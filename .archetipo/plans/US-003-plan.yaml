@@ -61,38 +61,44 @@ tasks:
     title: Consolidare configurazione Vitest e test unitario di esempio
     description: Verificare vitest.config.ts, alias @/* e script npm test. Mantenere o rifinire un test unitario di esempio che importi codice reale del progetto e passi in modo deterministico.
     type: Test
-    status: TODO
+    status: DONE
+    ref: TASK-01
   - id: TASK-02
     title: Validare suite unitaria locale
     description: Eseguire npm test e correggere eventuali problemi di configurazione, import o ambiente fino ad avere la suite Vitest verde.
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
+    ref: TASK-02
   - id: TASK-03
     title: Consolidare Playwright e smoke test homepage
     description: Verificare playwright.config.ts, webServer Next.js e smoke test sulla pagina iniziale. Assicurare che l’eventuale video del solo scenario demo venga salvato sotto docs/test-results/US-003/ senza registrare ogni scenario e2e.
     type: Test
-    status: TODO
+    status: DONE
+    ref: TASK-03
   - id: TASK-04
     title: Validare build ed e2e locali
     description: Eseguire npm run build e npm run test:e2e, installando i browser Playwright se necessario. Correggere eventuali fragilità di avvio, timeout o selettori dello smoke test.
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
+    ref: TASK-04
   - id: TASK-05
     title: Aggiungere workflow CI per push e pull request
     description: Creare .github/workflows/ci.yml con checkout, setup-node 22, npm ci, installazione Chromium Playwright, lint, test unitari, build e test e2e. Il workflow deve fallire automaticamente se uno qualsiasi degli step fallisce.
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-02
       - TASK-04
+    ref: TASK-05
   - id: TASK-06
     title: Documentare comandi di test e CI
     description: Aggiornare la documentazione del progetto se necessario per indicare i comandi locali npm test e npm run test:e2e e il comportamento della pipeline CI.
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-05
+    ref: TASK-06

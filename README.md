@@ -89,6 +89,18 @@ docker compose down -v         # Arresta e cancella i dati (reset completo)
 - `npm test` — Esegue i test unitari (Vitest)
 - `npm run test:e2e` — Esegue i test end-to-end (Playwright)
 
+## Integrazione Continua
+
+A ogni push e pull request su `main`, il workflow CI (`.github/workflows/ci.yml`) esegue automaticamente:
+
+1. **Install** — `npm ci` per installare le dipendenze in modo riproducibile
+2. **Lint** — `npm run lint` per verificare lo stile del codice
+3. **Unit test** — `npm test` (Vitest) per i test unitari
+4. **Build** — `npm run build` per verificare la compilazione TypeScript e la build Next.js
+5. **E2E test** — `npm run test:e2e` (Playwright) per i test end-to-end
+
+La pipeline fallisce automaticamente se uno qualsiasi degli step fallisce, intercettando le regressioni prima che raggiungano la produzione.
+
 ## Tecnologie
 
 - [Next.js](https://nextjs.org) (App Router)

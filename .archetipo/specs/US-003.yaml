@@ -6,7 +6,7 @@ epic:
   title: Fondazione del Progetto
 priority: HIGH
 points: 2
-status: PLANNED
+status: DONE
 blocked_by:
   - US-001
 scope: MVP
@@ -33,3 +33,9 @@ history:
     at: "2026-06-11T10:35:05Z"
   - status: PLANNED
     at: "2026-06-11T12:57:49Z"
+  - status: IN PROGRESS
+    at: "2026-06-11T14:25:20Z"
+  - status: REVIEW
+    at: "2026-06-11T14:29:01Z"
+  - status: DONE
+    at: "2026-06-11T14:46:28Z"
