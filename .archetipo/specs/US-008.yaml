@@ -1,0 +1,34 @@
+schema: archetipo/spec/v2
+code: US-008
+title: Anagrafica offerte per cliente
+epic:
+  code: EP-002
+  title: Anagrafiche e Configurazione
+priority: HIGH
+points: 3
+status: TODO
+blocked_by:
+  - US-007
+scope: MVP
+body: |-
+  #### US-008: Anagrafica offerte per cliente
+
+  **Epic:** EP-002 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** US-007
+
+  **Storia Utente**
+  Come Stefano, amministratore,
+  voglio gestire le offerte di ciascun cliente con codice, descrizione, tariffa giornaliera e giorni previsti,
+  così che le attività dei collaboratori possano essere agganciate all'offerta corretta e valorizzate automaticamente.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, l'amministratore può aprire un cliente, aggiungere un'offerta con codice, descrizione, tariffa giornaliera e giorni previsti, e vedere l'elenco delle offerte di quel cliente.
+
+  **Criteri di Accettazione**
+  - [ ] L'amministratore crea un'offerta associata a un cliente indicando codice, descrizione, tariffa giornaliera e giorni previsti
+  - [ ] La tariffa giornaliera è un importo decimale positivo e i giorni previsti sono un numero positivo; i valori non validi sono rifiutati con messaggio chiaro
+  - [ ] L'amministratore modifica un'offerta esistente e le modifiche sono persistite
+  - [ ] L'elenco delle offerte di un cliente mostra codice, descrizione, tariffa e giorni previsti
+history:
+  - status: TODO
+    at: "2026-06-11T10:35:05Z"

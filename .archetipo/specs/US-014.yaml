@@ -1,0 +1,34 @@
+schema: archetipo/spec/v2
+code: US-014
+title: Riepilogo mensile del collaboratore con importo fattura
+epic:
+  code: EP-003
+  title: Consuntivazione Attività
+priority: HIGH
+points: 3
+status: TODO
+blocked_by:
+  - US-012
+scope: MVP
+body: |-
+  #### US-014: Riepilogo mensile del collaboratore con importo fattura
+
+  **Epic:** EP-003 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** US-012
+
+  **Storia Utente**
+  Come Giulia, collaboratrice,
+  voglio un riepilogo mensile aggiornato automaticamente con ore e giornate per offerta, rimborsi trasferta e importo totale della fattura da emettere,
+  così da sapere in ogni momento quanto fatturare alla società, senza conti manuali.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, una collaboratrice che ha registrato attività e trasferte nel mese apre il riepilogo e vede ore e giornate per offerta, il totale dei rimborsi e l'importo complessivo della fattura; inserendo una nuova riga il riepilogo si aggiorna.
+
+  **Criteri di Accettazione**
+  - [ ] Il riepilogo mostra per ogni offerta le ore e le giornate lavorate nel mese, applicando la conversione fissa 1 giornata = 8 ore
+  - [ ] L'importo della fattura è calcolato come giornate fatturabili moltiplicate per la tariffa giornaliera della collaboratrice, più i rimborsi trasferta del mese
+  - [ ] Le righe non fatturabili sono escluse dall'importo della fattura ma restano visibili nel conteggio delle ore
+  - [ ] Il riepilogo riflette automaticamente ogni inserimento, modifica o cancellazione di righe e trasferte del mese
+history:
+  - status: TODO
+    at: "2026-06-11T10:35:05Z"

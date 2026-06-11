@@ -1,0 +1,32 @@
+schema: archetipo/spec/v2
+code: US-005
+title: Accesso con credenziali e sessione utente
+epic:
+  code: EP-001
+  title: Autenticazione e Ruoli
+priority: HIGH
+points: 3
+status: TODO
+scope: MVP
+body: |-
+  #### US-005: Accesso con credenziali e sessione utente
+
+  **Epic:** EP-001 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come utente del sistema (amministratore o collaboratore),
+  voglio accedere all'applicazione con le mie credenziali personali,
+  così da lavorare in un'area riservata e protetta corrispondente al mio ruolo.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, un utente può aprire la pagina di login, inserire le proprie credenziali e accedere all'area del proprio ruolo; un amministratore di esempio è disponibile tramite seed.
+
+  **Criteri di Accettazione**
+  - [ ] Con credenziali valide l'utente accede ed è reindirizzato all'area del proprio ruolo
+  - [ ] Con credenziali errate viene mostrato un errore generico, senza indicare quale campo è sbagliato
+  - [ ] Le password sono memorizzate con hashing robusto, mai in chiaro
+  - [ ] La sessione scade dopo inattività prolungata e l'utente può disconnettersi esplicitamente
+history:
+  - status: TODO
+    at: "2026-06-11T10:35:05Z"

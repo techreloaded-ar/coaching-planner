@@ -1,0 +1,34 @@
+schema: archetipo/spec/v2
+code: US-013
+title: Registrazione della trasferta con rimborso automatico
+epic:
+  code: EP-003
+  title: Consuntivazione Attività
+priority: HIGH
+points: 3
+status: TODO
+blocked_by:
+  - US-012
+scope: MVP
+body: |-
+  #### US-013: Registrazione della trasferta con rimborso automatico
+
+  **Epic:** EP-003 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** US-012
+
+  **Storia Utente**
+  Come Giulia, collaboratrice,
+  voglio registrare una trasferta indicando solo la distanza in km e vedere il rimborso forfettario calcolato automaticamente,
+  così da non dover ricordare gli scaglioni né fare conti a mano.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, una collaboratrice registra su una giornata una trasferta di 150 km e vede immediatamente il rimborso corrispondente allo scaglione configurato; modificando i km il rimborso si aggiorna.
+
+  **Criteri di Accettazione**
+  - [ ] La collaboratrice registra una trasferta su una giornata indicando la distanza in km, associata al cliente di riferimento
+  - [ ] Il rimborso forfettario è calcolato automaticamente dagli scaglioni configurati e mostrato subito
+  - [ ] La modifica della distanza ricalcola il rimborso; l'eliminazione della trasferta lo rimuove dai totali
+  - [ ] Una distanza oltre la soglia massima configurata è gestita con un comportamento definito e comunicato chiaramente
+history:
+  - status: TODO
+    at: "2026-06-11T10:35:05Z"

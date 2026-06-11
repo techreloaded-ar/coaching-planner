@@ -1,0 +1,32 @@
+schema: archetipo/spec/v2
+code: US-009
+title: Anagrafica collaboratori con tariffa e credenziali di accesso
+epic:
+  code: EP-002
+  title: Anagrafiche e Configurazione
+priority: HIGH
+points: 3
+status: TODO
+scope: MVP
+body: |-
+  #### US-009: Anagrafica collaboratori con tariffa e credenziali di accesso
+
+  **Epic:** EP-002 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come Stefano, amministratore,
+  voglio censire i collaboratori con dati anagrafici, partita IVA e tariffa giornaliera, dotandoli di credenziali di accesso,
+  così che ogni collaboratore possa entrare nel front office e i suoi consuntivi siano valorizzati con la tariffa corretta.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, l'amministratore può creare un collaboratore con tariffa giornaliera e credenziali; quel collaboratore può autenticarsi e accedere al front office.
+
+  **Criteri di Accettazione**
+  - [ ] L'amministratore crea un collaboratore con dati anagrafici, partita IVA e tariffa giornaliera; i campi obbligatori sono validati
+  - [ ] Alla creazione vengono predisposte le credenziali di accesso con ruolo collaboratore e il collaboratore può effettuare il login
+  - [ ] L'amministratore modifica i dati e la tariffa di un collaboratore esistente
+  - [ ] La disattivazione di un collaboratore ne revoca l'accesso, preservando lo storico delle sue attività
+history:
+  - status: TODO
+    at: "2026-06-11T10:35:05Z"
