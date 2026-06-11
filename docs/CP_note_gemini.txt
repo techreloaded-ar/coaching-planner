@@ -1,0 +1,120 @@
+﻿📝 Note
+giu 11, 2026
+Riunione del giorno 11 giu 2026 alle ore 11:59 CEST
+Record delle riunioni Trascrizione 
+
+
+
+
+Riepilogo
+Presentazione dello sviluppo del sistema Coaching Planner per la gestione operativa di fatturazione e collaboratori.
+
+Sviluppo Coaching Planner
+È stato definito lo sviluppo del sistema Coaching Planner per la gestione integrata di collaboratori, clienti e fatturazione. Il software centralizzerà i dati anagrafici e i parametri di costo.
+
+Funzionalità Front Office
+I collaboratori inseriranno quotidianamente attività, note e trasferte tramite una vista mensile dettagliata. Il sistema calcolerà automaticamente il riepilogo delle ore lavorate e gli importi spettanti.
+
+Configurazione Back Office
+Il back office gestirà tariffe, rimborsi chilometrici e reportistica mensile sull'avanzamento delle offerte. È stata presa la decisione di posticipare l'analisi della marginalità a una fase successiva al rilascio iniziale.
+
+
+
+
+Passaggi successivi
+* Redigere requisiti: Documentare le specifiche funzionali del Coaching Planner descritte da Stefano Marello. Organizzare le funzionalita per front office, back office e reportistica.
+
+
+
+
+Dettagli
+* Panoramica del prodotto Coaching Planner: È stato delineato lo sviluppo di un gestionale denominato "Coaching Planner", progettato per la gestione dei collaboratori aziendali, dei clienti e della fatturazione.
+* Gestione dei dati di clienti e collaboratori: La piattaforma deve gestire l'anagrafica dei clienti, includendo i dati di fatturazione e le relative offerte, le quali devono specificare una tariffa giornaliera e un numero di giorni previsti. Per i collaboratori, è necessaria la gestione dei dati anagrafici, della partita IVA e della tariffa giornaliera applicata alla società (00:00:42).
+* Logica per la gestione di ore e fatturazione: È previsto che i collaboratori inseriscano le ore e i giorni lavorati in relazione a specifici clienti e offerte, consentendo di ottenere un consuntivo mensile utile sia per la fatturazione ai clienti sia per la verifica dei costi dovuti ai collaboratori (00:00:42).
+* Funzionalità Front Office per la registrazione delle attività: L'applicazione front office deve consentire ai collaboratori di navigare su base mensile e di inserire quotidianamente le attività lavorative, permettendo la registrazione di più righe per la stessa giornata, ciascuna associata a un cliente e a un'offerta distinti (00:01:43).
+* Funzionalità Front Office per note, trasferte e riepiloghi: Gli utenti del front office devono poter aggiungere note alle righe di attività, contrassegnare le voci come fatturabili o meno, e inserire dati relativi a trasferte per il calcolo di rimborsi forfettari basati sulla distanza (00:02:44). L'interfaccia deve inoltre mostrare automaticamente un riepilogo mensile delle ore e dei giorni lavorati per offerta, calcolando l'ammontare totale della fattura spettante al collaboratore (00:03:32).
+* Configurazione del Back Office: Il back office deve includere la gestione delle anagrafiche (clienti, offerte, collaboratori) e la configurazione delle tariffe, inclusi i parametri per i rimborsi spese di trasferta, con la possibilità di definire importi variabili in base a soglie chilometriche (00:04:38).
+* Reporting del Back Office: Il sistema deve generare report mensili per cliente, calcolati in base alle attività svolte dai collaboratori, e offrire una visualizzazione dedicata al monitoraggio delle giornate erogate rispetto a quelle previste per ogni offerta (00:05:24).
+* Funzionalità futura di analisi della marginalità: È stata identificata la necessità, post-MVP, di implementare una funzionalità per il monitoraggio della marginalità, che permetta di confrontare i ricavi ottenuti dalle fatture verso i clienti con i costi generati dalle tariffe applicate dai collaboratori per il medesimo periodo (00:06:20).
+
+
+
+
+
+📖 Trascrizione
+giu 11, 2026
+Riunione del giorno 11 giu 2026 alle ore 11:59 CEST - Trascrizione
+00:00:01
+
+
+questa è la descrizione di un prodotto che devo sviluppare. Il prodotto si chiama Coaching Planner ed è un un gestionale per gestire ehm collaboratori della mia azienda, i clienti, le fatture, eccetera. sostanzialmente ci sono eh deve gestire l'anagrafica dei clienti. Ogni cliente avrà al suo interno i dati di fatturazione e avrà eh delle offerte offerte che facciamo che facciamo che che facciamo ai clienti con il codice eccetera.
+
+
+
+
+00:00:42
+
+
+Ad ogni offerta deve esserci un eh una tariffa giornaliera e un numero di giorni previsti per l'offerta. Inoltre ci sono i collaboratori, quindi i collaboratori sono persone che collaborano con la mia azienda e essendo collaboratori a partita IVA loro fatturano alla alla mia azienda. Ogni collaboratore, oltre naturalmente a avere i dati anagrafici a ehm e anche mh partita IVA hanno ogni collaboratore ha una sua tariffa, ossia quanto il collaboratore fattura alla mia azienda al giorno e poi ogni collaboratore caricherà le ore e e i giorni lavorati sui diversi clienti,
+
+
+
+
+00:01:43
+
+
+in modo che io alla fine di ogni mese possa avere un eh risultato finale su quali sono le ore e i giorni lavorati su un determinato cliente per ogni determinata offerta, in modo che possa fare eh le fatture al cliente e viceversa sapere vedere quanto mi devo aspettare come fattura dai miei collaboratori. Il prodotto è diviso sostanzialmente in due ehm applicazioni web desktop. Eh, la prima è il front office dei collaboratori, quindi ogni collaboratore deve avere una eh diciamo deve riuscire a a navigare mese per mese e per ogni giorno deve poter aggiungere una o più righe relativamente
+
+
+
+
+00:02:44
+
+
+a clienti e a su quale offerta ha lavorato. Per esempio, nel giorno 11 giugno il collaboratore potrebbe aggiungere di aver lavorato 4 ore per il cliente X sull'offerta A e potrebbe avere potrebbe caricare di aver lavorato altre 4 ore sul cliente Y offerta B. Inoltre, per ogni riga inserita nel front office, il collaboratore può inserire delle note, una breve descrizione, può inserire se quel quella riga è effettivamente fatturabile o no.
+
+
+
+
+00:03:32
+
+
+Quindi nel computo del totale della fattura del collaboratore saranno considerate solo le righe tracciate come fatturabile e eh deve anche aggiungere un un possibilità di inserire se è andato in trasferta. Quindi, dipendentemente dalla distanza della trasferta sono previsti dei rimborsi forfettari. nel front office eh deve automaticamente, man mano che le righe vengono aggiunte, devo vedere il riepilogo del mese, quindi il collaboratore deve vedere quante ore e giorni ha lavorato su ogni offerta in quel mese lì e quindi quanto poi è l'ammontare totale della fattura che dovrà fare alla mia azienda.
+
+
+
+
+00:04:38
+
+
+Sul backoffice invece le funzionalità principali saranno gestione dell'anagrafica dei clienti, delle offerte e dei collaboratori, la configurazione di eh tariffe sia per i clienti che per i collaboratori, ma anche per le trasferte, quindi possibilità di dire che per esempio se entro i 100 km il rimborso è X, entro i 200 km il rimborso è Y. Devono essere configurate queste cose e poi devono esserci delle liste di reportistica.
+
+
+
+
+00:05:24
+
+
+Le più importanti sono quella della ehm reportistica mensile per cliente, ossia io devo sapere quanto devo fatturare ad un certo cliente per ogni mese basato su quanto i miei collaboratori hanno lavorato per quel cliente in quel mese lì. e poi una una vista su quanto ehm quante giornate ancora devono essere erogate per una certa offerta. Quindi non tanto una vista per mese, ma una vista che mi dica ok, sul cliente X per l'offerta A queste sono le giornate erogate da questi collaboratori e quindi ne rimang rispetto a quelle
+
+
+
+
+00:06:20
+
+
+previste ne rimangono ancora X. un'altra vista che ehm sarà utile, ma non nell'MVP, quindi una cosa poi per successivamente, è quella di tenere eh sott'occhio la marginalità. Quindi io so quanto ho venduto, quant'è la mia tariffa verso un un determinato cliente per quellaofferta lì. So qual è la tariffa invece che i collaboratori applicano alla alla mia azienda.
+
+
+
+
+00:06:59
+
+
+posso calcolare la marginalità del eh del mese, quindi basato su la tariffa, i giorni che che sono stati lavorati su quel cliente con la tariffa che gli applico io rispetto a quanto invece hanno lavorato i collaboratori applicando la loro tariffa alla mia azienda. la differenza fra le due e e la marginalità che sto che sto ottenendo. Ok. Raccogli tutto quello che ti ho detto e fai una trascrizione precisa perché farà parte dei requisiti di prodotto. Что?
+
+
+
+
+Trascrizione terminata dopo 00:08:19
+
