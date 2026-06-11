@@ -35,27 +35,39 @@ async function main() {
   console.log(`✓ Creati ${scaglioni.length} scaglioni chilometrici`);
 
   // ── Utente Amministratore ────────────────────────────────────
+  // Account Google reale per la demo.
   const admin = await prisma.utente.create({
     data: {
-      nome: "Marco Bianchi",
-      email: "admin@coachingplanner.local",
+      nome: "Tech Reloaded",
+      email: "info@techreloaded.it",
       ruolo: "AMMINISTRATORE",
     },
   });
   console.log(`✓ Creato amministratore: ${admin.nome} (${admin.email})`);
 
-  // ── Collaboratore ────────────────────────────────────────────
+  // ── Utente Collaboratore ─────────────────────────────────────
+  // Utente distinto dall'amministratore, senza password.
+  const collabUser = await prisma.utente.create({
+    data: {
+      nome: "Giulia Conti",
+      email: "giulia.conti@agilereloaded.it",
+      ruolo: "COLLABORATORE",
+    },
+  });
+  console.log(`✓ Creato collaboratore: ${collabUser.nome} (${collabUser.email})`);
+
+  // ── Profilo Collaboratore ────────────────────────────────────
   const collaboratore = await prisma.collaboratore.create({
     data: {
-      userId: admin.id,
-      nome: "Marco",
-      cognome: "Bianchi",
+      userId: collabUser.id,
+      nome: "Giulia",
+      cognome: "Conti",
       partitaIva: "IT12345678901",
       tariffaGiornaliera: "350.00",
     },
   });
   console.log(
-    `✓ Creato collaboratore: ${collaboratore.nome} ${collaboratore.cognome} (tariffa €${collaboratore.tariffaGiornaliera}/giorno)`
+    `✓ Creato profilo collaboratore: ${collaboratore.nome} ${collaboratore.cognome} (tariffa €${collaboratore.tariffaGiornaliera}/giorno)`
   );
 
   // ── Cliente 1 ────────────────────────────────────────────────
@@ -188,6 +200,11 @@ async function main() {
     }),
   ]);
   console.log(`✓ Create ${attivita.length} attività dimostrative`);
+
+  console.log("\n🔐 Accesso tramite Google OAuth:");
+  console.log("   Amministratore → info@techreloaded.it (Back Office)");
+  console.log("   Collaboratore  → giulia.conti@agilereloaded.it (Front Office)");
+  console.log("   Qualsiasi altra email Google → accesso negato (messaggio generico)");
 
   console.log("\n✅ Seed completato con successo!");
 }
