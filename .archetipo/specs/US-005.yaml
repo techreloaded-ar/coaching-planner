@@ -1,32 +1,34 @@
 schema: archetipo/spec/v2
 code: US-005
-title: Accesso con credenziali e sessione utente
+title: Accesso con Google e sessione utente
 epic:
   code: EP-001
   title: Autenticazione e Ruoli
 priority: HIGH
-points: 3
-status: TODO
+points: 5
+status: PLANNED
 scope: MVP
 body: |-
-  #### US-005: Accesso con credenziali e sessione utente
+  #### US-005: Accesso con Google e sessione utente
 
-  **Epic:** EP-001 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Epic:** EP-001 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
   **Bloccata da:** -
 
   **Storia Utente**
   Come utente del sistema (amministratore o collaboratore),
-  voglio accedere all'applicazione con le mie credenziali personali,
-  così da lavorare in un'area riservata e protetta corrispondente al mio ruolo.
+  voglio accedere all'applicazione tramite il mio account Google,
+  così da entrare in modo sicuro nell'area riservata corrispondente al mio ruolo senza gestire una password dedicata.
 
   **Dimostrazione**
-  Dopo l'implementazione di questa spec, un utente può aprire la pagina di login, inserire le proprie credenziali e accedere all'area del proprio ruolo; un amministratore di esempio è disponibile tramite seed.
+  Dopo l'implementazione di questa spec, un utente apre la pagina di login, clicca "Accedi con Google", completa l'autenticazione presso Google e viene reindirizzato all'area del proprio ruolo; gli utenti di esempio (amministratore e collaboratore) sono disponibili tramite seed e riconosciuti dalla loro email Google.
 
   **Criteri di Accettazione**
-  - [ ] Con credenziali valide l'utente accede ed è reindirizzato all'area del proprio ruolo
-  - [ ] Con credenziali errate viene mostrato un errore generico, senza indicare quale campo è sbagliato
-  - [ ] Le password sono memorizzate con hashing robusto, mai in chiaro
+  - [ ] Cliccando "Accedi con Google" e completando l'autenticazione, un utente la cui email Google corrisponde a un utente censito accede ed è reindirizzato all'area del proprio ruolo
+  - [ ] Un account Google la cui email non corrisponde ad alcun utente censito non ottiene accesso e vede un messaggio generico, senza creazione automatica di nuovi utenti
+  - [ ] L'unico metodo di accesso è Google: non esistono form o endpoint di login con email e password
   - [ ] La sessione scade dopo inattività prolungata e l'utente può disconnettersi esplicitamente
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-06-11T15:13:39Z"

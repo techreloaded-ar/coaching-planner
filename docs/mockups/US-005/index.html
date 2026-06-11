@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accedi — Coaching Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Schibsted+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+/* ---------- Layout login ---------- */
+body{min-height:100vh;display:grid;place-items:center;overflow-x:hidden;position:relative;}
+
+/* atmosfera: blob pastello sfumati, coerenti con la palette MVP */
+.blobs{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:var(--blob-opacity);transition:opacity .25s;}
+.blobs::before,.blobs::after{content:"";position:absolute;border-radius:50%;filter:blur(70px);}
+.blobs::before{
+  width:480px;height:480px;left:-140px;top:-160px;
+  background:radial-gradient(circle at 35% 35%, var(--mint), transparent 65%);
+}
+.blobs::after{
+  width:520px;height:520px;right:-160px;bottom:-200px;
+  background:radial-gradient(circle at 60% 50%, var(--peri), transparent 65%);
+}
+.blob-coral{
+  position:fixed;width:340px;height:340px;border-radius:50%;filter:blur(80px);
+  right:14vw;top:-120px;background:radial-gradient(circle, var(--coral), transparent 65%);
+}
+
+.login-wrap{position:relative;z-index:1;width:min(400px, calc(100vw - 40px));padding:40px 0 56px;}
+
+.login-brand{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:26px;}
+.login-brand .brand-mark{width:46px;height:46px;border-radius:13px;font-size:22px;box-shadow:inset 0 1px 0 oklch(1 0 0 / .25), var(--shadow);}
+.login-brand .brand-name{font-size:19px;text-align:center;}
+.login-brand .brand-name small{font-size:11.5px;margin-top:2px;}
+
+.login-card{padding:28px 28px 26px;border-radius:var(--radius-lg);box-shadow:var(--shadow);}
+.login-card h1{font-size:21px;font-weight:700;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--ink-3);margin:0 0 22px;}
+
+/* ---------- Pulsante "Accedi con Google" ---------- */
+.btn-google{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:11px;
+  padding:12px 16px;font-size:14.5px;font-weight:600;cursor:pointer;
+  color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 1px 2px oklch(0 0 0 / .06);transition:background .15s, border-color .15s, transform .05s;
+}
+.btn-google:hover{background:var(--surface-2);border-color:color-mix(in oklch, var(--ink) 22%, var(--line));}
+.btn-google:active{transform:translateY(1px);}
+.btn-google:disabled{opacity:.7;cursor:default;}
+.btn-google .g-logo{width:18px;height:18px;flex:none;}
+.btn-google .spinner{width:16px;height:16px;}
+
+.login-foot{margin-top:18px;text-align:center;font-size:12px;color:var(--ink-3);}
+.login-foot b{color:var(--ink-2);font-weight:600;}
+
+/* hint account demo (solo prototipo) */
+.demo-hint{
+  margin-top:18px;padding:13px 15px;border-radius:12px;
+  background:var(--amber-t);border:1px solid color-mix(in oklch, var(--amber-d) 18%, transparent);
+  font-size:12px;color:var(--amber-d);line-height:1.7;
+}
+.demo-hint b{font-weight:700;}
+.demo-hint a{color:var(--amber-d);font-weight:600;text-decoration:underline;text-underline-offset:2px;cursor:pointer;}
+.demo-hint code{font-family:var(--sans);font-weight:600;background:oklch(1 0 0 / .35);border-radius:5px;padding:0 5px;}
+[data-theme="dark"] .demo-hint code{background:oklch(0 0 0 / .25);}
+
+/* reveal d'ingresso */
+.login-wrap{animation:rise .45s cubic-bezier(.2,.8,.3,1);}
+@keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+
+<div class="blobs"></div>
+<div class="blob-coral"></div>
+
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+  <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+  <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+</button>
+
+<main class="login-wrap">
+
+  <div class="login-brand">
+    <div class="brand-mark">CP</div>
+    <div class="brand-name">Coaching Planner<small>Consuntivi &amp; offerte</small></div>
+  </div>
+
+  <section class="login-card card">
+    <h1>Accedi</h1>
+    <p class="login-sub">Entra nella tua area riservata con il tuo account Google.</p>
+
+    <!-- Messaggio dopo logout esplicito (mostrato con ?logout=1) -->
+    <div class="alert alert-success" id="logoutAlert" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/></svg>
+      <span>Ti sei disconnesso. A presto!</span>
+    </div>
+
+    <!-- Errore generico: account Google non autorizzato (mostrato con ?error=1) -->
+    <div class="alert alert-error" id="loginError" role="alert" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.2M12 16.4h.01"/></svg>
+      <span>Questo account Google non è autorizzato ad accedere</span>
+    </div>
+
+    <!-- Unico metodo di accesso: Google -->
+    <button type="button" class="btn-google" id="googleBtn">
+      <svg class="g-logo" viewBox="0 0 18 18" aria-hidden="true">
+        <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z"/>
+        <path fill="#FBBC05" d="M3.97 10.71a5.4 5.4 0 0 1-.29-1.71c0-.6.1-1.18.29-1.71V4.96H.96a9 9 0 0 0 0 8.08l3.01-2.33Z"/>
+        <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.96l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"/>
+      </svg>
+      <span id="googleBtnLabel">Accedi con Google</span>
+    </button>
+
+    <div class="demo-hint">
+      <b>Prototipo</b> — solo gli account già censiti dall'amministratore possono entrare. Simula l'accesso con un account autorizzato:<br>
+      <a data-ruolo="admin">info@techreloaded.it</a> → Back Office (amministratore)<br>
+      <a data-ruolo="collab">giulia.conti@agilereloaded.it</a> → Front Office (collaboratrice)<br>
+      <a data-ruolo="negato">un'email non censita</a> → accesso negato.
+    </div>
+  </section>
+
+  <p class="login-foot">Area riservata · accesso consentito solo al personale autorizzato</p>
+
+</main>
+
+<script src="app.js"></script>
+<script>
+  CP.initTheme();
+
+  const params = new URLSearchParams(location.search);
+
+  // messaggio post-logout
+  if (params.get('logout') === '1') CP.show('#logoutAlert');
+  // errore generico di ritorno dal callback (account non autorizzato)
+  if (params.get('error') === '1') CP.show('#loginError');
+
+  const btn   = document.getElementById('googleBtn');
+  const label = document.getElementById('googleBtnLabel');
+
+  // Simula il giro OAuth con Google: stato di caricamento e poi esito.
+  // ruolo: 'admin' | 'collab' → area del proprio ruolo; 'negato' → errore generico.
+  function simulaAccessoGoogle(ruolo) {
+    CP.hide('#loginError');
+    CP.hide('#logoutAlert');
+    btn.disabled = true;
+    label.innerHTML = '<span class="spinner" aria-hidden="true"></span> Reindirizzamento a Google…';
+
+    setTimeout(() => {
+      if (ruolo === 'admin' || ruolo === 'collab') {
+        location.href = 'area-autenticata.html?ruolo=' + ruolo;
+      } else {
+        // email non censita → accesso negato con messaggio generico
+        btn.disabled = false;
+        label.textContent = 'Accedi con Google';
+        CP.show('#loginError');
+      }
+    }, 1100);
+  }
+
+  // Il pulsante principale usa l'account amministratore autorizzato.
+  btn.addEventListener('click', () => simulaAccessoGoogle('admin'));
+
+  // Scorciatoie del prototipo per provare gli altri esiti.
+  document.querySelectorAll('.demo-hint a[data-ruolo]').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      simulaAccessoGoogle(link.dataset.ruolo);
+    });
+  });
+</script>
+</body>
+</html>

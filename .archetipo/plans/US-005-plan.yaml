@@ -1,0 +1,96 @@
+schema: archetipo/plan/v2
+spec_code: US-005
+body: "# US-005: Accesso con Google e sessione utente — Piano di Implementazione\n\n**Generato da:** ARchetipo Planning Team\n**Data:** 2026-06-11\n\n---\n\n## Spec\n\n**Epic:** EP-001 — Autenticazione e Ruoli\n**Priorità:** HIGH | **Punti:** 5\n\n**Storia Utente**\nCome utente del sistema (amministratore o collaboratore), voglio accedere all'applicazione tramite il mio account Google, così da entrare in modo sicuro nell'area riservata corrispondente al mio ruolo senza gestire una password dedicata.\n\n**Criteri di Accettazione**\n- Cliccando \"Accedi con Google\" e completando l'autenticazione, un utente la cui email Google corrisponde a un utente censito accede ed è reindirizzato all'area del proprio ruolo\n- Un account Google la cui email non corrisponde ad alcun utente censito non ottiene accesso e vede un messaggio generico, senza creazione automatica di nuovi utenti\n- L'unico metodo di accesso è Google: non esistono form o endpoint di login con email e password\n- La sessione scade dopo inattività prolungata e l'utente può disconnettersi esplicitamente\n\n---\n\n## Soluzione Tecnica\n\nAccesso esclusivamente tramite Google (OpenID Connect, flusso Authorization Code con PKCE). La gestione della sessione applicativa resta interna e Next-16-native — sessione stateless come JWT firmato (`jose`) in cookie `httpOnly`, Data Access Layer per i controlli server-side e `proxy.ts` (che in Next 16 sostituisce `middleware.ts`) per i check ottimistici e i redirect — esattamente come previsto dalla guida ufficiale di Next.js 16 (`node_modules/next/dist/docs/01-app/02-guides/authentication.md`). Cambia solo il \"front-end\" dell'autenticazione: niente form email/password, ma il giro OAuth con Google.\n\n- **Niente credenziali email/password.** Si elimina ogni traccia del flusso a password: nessun campo `passwordHash`, nessuna migrazione relativa, nessun hashing `bcrypt`, nessun form né Server Action di login con credenziali. L'unico punto di ingresso autenticato è Google.\n- **Provisioning solo da amministratore (no self-registration).** Coerente con RF-01/RF-02 del PRD, gli utenti sono censiti in anagrafica; la login Google **non crea** nuovi utenti. Al callback si cerca l'utente per email Google (verificata): se non esiste, accesso negato con messaggio generico.\n- **Deviazione dal PRD (da registrare come ADR).** Il PRD indicava Auth.js (NextAuth) v5. La libreria non è installata e la sua integrazione con Next 16 (che usa `proxy.ts` al posto di `middleware.ts`) non è garantita; lo stesso ragionamento aveva già portato la pianificazione precedente a non adottarla. Per il giro OAuth si usa quindi `arctic` (libreria leggera e framework-agnostica per OAuth 2.0/OIDC, con provider Google integrato: genera state e PKCE, scambia il code, non vincola al framework), mantenendo la sessione `jose` + cookie + DAL già progettata. I modelli Auth.js nello schema Prisma (`Session`, `VerificationToken`) restano per ora intatti e inutilizzati (nessuna migrazione distruttiva); il modello `Account` viene invece valorizzato per tracciare il collegamento con l'account Google. La rimozione dei modelli non usati è rimandata a una spec di pulizia.\n- **Client OAuth Google** (`src/lib/google-oauth.ts`): wrapper su `arctic` che espone `urlAutorizzazione(state, codeVerifier)`, `scambiaCodice(code, codeVerifier)` e `recuperaProfilo(accessToken)` (email, `email_verified`, nome, `sub`). Gli endpoint di autorizzazione/token/userinfo sono presi da `arctic` ma incapsulati dietro questo modulo, così che i test e2e possano intercettarli senza colpire la rete reale (vedi Strategia di Test). Scope richiesti: `openid email profile`.\n- **Route handler di avvio** (`src/app/api/auth/google/route.ts`, seguendo le convenzioni dei route handler di Next 16): genera `state` e `codeVerifier`, li salva in cookie `httpOnly` di breve durata, e reindirizza l'utente all'URL di autorizzazione Google.\n- **Route handler di callback** (`src/app/api/auth/google/callback/route.ts`): valida il `state` rispetto al cookie, scambia il `code`, recupera il profilo; se l'email non è verificata o non corrisponde a nessun `Utente` censito reindirizza a `/login?error=1` con messaggio generico; altrimenti fa l'`upsert` dell'`Account` (`provider = \"google\"`, `providerAccountId = sub`) collegato all'utente, crea la sessione `jose` e reindirizza per ruolo (`AMMINISTRATORE → /anagrafiche`, `COLLABORATORE → /attivita`). Nessun dettaglio sull'errore distingue \"email sconosciuta\" da \"email non verificata\".\n- **Modulo sessione** (`src/lib/session.ts`): `encrypt`/`decrypt` con `jose` (HS256, segreto in `SESSION_SECRET`), `createSession`/`updateSession`/`deleteSession` sul cookie `sessione` con opzioni `httpOnly`, `secure`, `sameSite: \"lax\"`. Payload minimo: `utenteId`, `ruolo`, `expiresAt`. Durata `DURATA_SESSIONE_ORE = 8` con rinnovo sliding a ogni richiesta autenticata; l'inattività prolungata oltre la durata fa scadere la sessione (criterio di accettazione 4).\n- **Data Access Layer** (`src/lib/dal.ts`): `verificaSessione()` (memoizzata con React `cache`, redirect a `/login` se la sessione manca o non è valida), `utenteCorrente()` e `richiediRuolo(ruolo)` per l'autorizzazione per ruolo. Il placeholder `src/lib/auth.ts` viene sostituito/rimosso. Tutte le pagine protette passano dal DAL: il proxy è solo la prima linea ottimistica, mai l'unica difesa.\n- **Disconnessione** (`disconnetti()` Server Action): elimina la sessione e reindirizza a `/login`.\n- **Proxy** (`proxy.ts` alla radice del progetto): check ottimistico del solo cookie (nessun accesso al DB) sulle route protette dei gruppi front office (`/attivita`) e back office (`/anagrafiche`); senza sessione valida → redirect a `/login`; utente già autenticato su `/login` → redirect all'area del proprio ruolo. Le route pubbliche `/login` e `/api/auth/google*` non vengono mai reindirizzate. Rinnovo sliding della scadenza del cookie.\n- **UI:** pagina `/login` come componente server con un unico pulsante \"Accedi con Google\" (link a `/api/auth/google`) e l'eventuale messaggio di errore generico letto dal query param `error`. Si rimuove il form email/password. Il mockup `docs/mockups/US-005/index.html` è già aggiornato con il pulsante Google. Header dei layout front office e back office arricchiti con nome utente e pulsante \"Esci\" (mockup `area-autenticata.html`).\n- **Seed:** utente amministratore e utente collaboratore come anagrafiche distinte (il profilo `Collaboratore` non più agganciato all'admin), ciascuno con la propria email Google e senza password. L'amministratore usa `info@techreloaded.it` (account Google reale, usato per la review e per la demo video); la collaboratrice usa `giulia.conti@agilereloaded.it`. L'output del seed documenta che l'accesso avviene via Google con quelle email.\n- **Variabili d'ambiente:** `SESSION_SECRET` (generazione `openssl rand -base64 32`), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` aggiunte a `.env.example` con istruzioni per creare le credenziali OAuth nella Google Cloud Console e registrare l'URI di redirect.\n\n---\n\n## Strategia di Test\n\nTest unitari Vitest sui moduli puri e di sessione, test e2e Playwright sui flussi utente completi; il video è registrato solo per lo scenario demo come da policy del progetto (`video: \"off\"` di default in `playwright.config.ts`).\n\n- **Unit (Vitest, `tests/unit/`):** modulo sessione — roundtrip `encrypt`/`decrypt`, token scaduto e token manomesso restituiscono sessione nulla; helper di autenticazione — mappatura ruolo → destinazione di redirect e logica di esito del callback (email verificata e censita → utente; email non verificata o non censita → accesso negato) come funzioni pure.\n- **Sicurezza:** verifica che l'esito di \"email sconosciuta\" e \"email non verificata\" produca lo stesso messaggio generico; che non avvenga alcuna creazione automatica di utenti; che il `state` non valido al callback venga rifiutato.\n- **E2E (Playwright):** gli endpoint Google (autorizzazione, token, userinfo) vengono **stubbati** tramite intercettazione di rete di Playwright (`page.route`) — incapsulati dietro `src/lib/google-oauth.ts` — così da esercitare l'intero flusso callback → sessione → redirect senza credenziali Google reali. Il seed viene eseguito prima della suite per garantire gli utenti demo.\n\n### Test E2E — Simulazione Utente\n\n**Framework:** Playwright (config esistente `playwright.config.ts`, progetto chromium, `webServer` su `npm run dev`)\n**Registrazione video:** solo scenario demo (campo `Dimostrazione` della spec); gli altri scenari girano senza video\n\n| Scenario | Descrizione del flusso utente |\n|---|---|\n| Demo — accesso amministratore (CON VIDEO, `demo__accesso-con-google.spec.ts`) | L'utente apre la homepage, clicca \"Accedi con Google\", completa l'autenticazione (Google stubbato sull'email dell'amministratore di seed, `info@techreloaded.it`) e viene reindirizzato al Back Office, dove sono visibili il proprio nome e il pulsante \"Esci\" |\n| Accesso collaboratore | Google stubbato sull'email del collaboratore di seed → redirect al Front Office (`/attivita`) |\n| Email non censita | Google stubbato su un'email non presente in anagrafica → resta su `/login` con l'errore generico, nessun nuovo utente creato |\n| Route protetta senza sessione | Navigazione diretta a `/anagrafiche` e `/attivita` senza login → redirect a `/login` |\n| Disconnessione | Utente autenticato clicca \"Esci\" → redirect a `/login`; tornare indietro sulla route protetta riporta a `/login` |\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-005/` (login con pulsante \"Accedi con Google\")\n\n_Piano aggiornato tramite ARchetipo Planning — 2026-06-11_\n"
+tasks:
+  - id: TASK-01
+    title: Installare le dipendenze OAuth e configurare i segreti di ambiente
+    description: Aggiunge arctic (OAuth 2.0/OIDC), jose e server-only alle dipendenze. Aggiunge a .env.example SESSION_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_REDIRECT_URI con istruzioni per generare il segreto di sessione e creare le credenziali OAuth nella Google Cloud Console.
+    type: Impl
+    status: TODO
+  - id: TASK-02
+    title: Implementare il modulo sessione (src/lib/session.ts)
+    description: Funzioni encrypt/decrypt con jose (HS256), createSession/updateSession/deleteSession su cookie httpOnly+secure+sameSite lax, payload minimo (utenteId, ruolo, expiresAt) e costante DURATA_SESSIONE_ORE = 8 con rinnovo sliding.
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-01
+  - id: TASK-03
+    title: Unit test del modulo sessione
+    description: 'Vitest: roundtrip encrypt/decrypt, token scaduto e token manomesso restituiscono sessione nulla.'
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-02
+  - id: TASK-04
+    title: Implementare il Data Access Layer (src/lib/dal.ts)
+    description: verificaSessione() memoizzata con redirect a /login, utenteCorrente() e richiediRuolo(); sostituisce il placeholder src/lib/auth.ts.
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-02
+  - id: TASK-05
+    title: Implementare il client OAuth Google (src/lib/google-oauth.ts)
+    description: Wrapper su arctic con urlAutorizzazione(state, codeVerifier), scambiaCodice(code, codeVerifier) e recuperaProfilo(accessToken) che restituisce email, email_verified, nome e sub. Scope openid email profile. Gli endpoint Google sono incapsulati qui per consentirne lo stub nei test e2e.
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-01
+  - id: TASK-06
+    title: Route handler di avvio del login Google (src/app/api/auth/google/route.ts)
+    description: Genera state e codeVerifier, li salva in cookie httpOnly di breve durata e reindirizza l'utente all'URL di autorizzazione Google, seguendo le convenzioni dei route handler di Next 16.
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-05
+  - id: TASK-07
+    title: Route handler di callback Google (src/app/api/auth/google/callback/route.ts)
+    description: Valida il state rispetto al cookie, scambia il code, recupera il profilo; se l'email non è verificata o non corrisponde a un Utente censito reindirizza a /login con errore generico senza creare utenti; altrimenti fa upsert dell'Account (provider google, providerAccountId sub), crea la sessione e reindirizza per ruolo (AMMINISTRATORE → /anagrafiche, COLLABORATORE → /attivita).
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-04
+      - TASK-05
+  - id: TASK-08
+    title: Unit test degli helper di autenticazione
+    description: 'Vitest: mappatura ruolo → destinazione di redirect e logica di esito del callback (email verificata e censita → utente; email non verificata o sconosciuta → accesso negato con stesso esito) come funzioni pure.'
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-07
+  - id: TASK-09
+    title: Implementare la pagina di login con il pulsante Accedi con Google
+    description: Sostituisce il placeholder src/app/login/page.tsx con una pagina che mostra un unico pulsante "Accedi con Google" (link a /api/auth/google) e l'eventuale messaggio di errore generico letto dal query param, fedele al mockup docs/mockups/US-005/index.html.
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-07
+  - id: TASK-10
+    title: Implementare proxy.ts con check ottimistici e redirect
+    description: 'proxy.ts alla radice (in Next 16 sostituisce middleware.ts): decrittazione del solo cookie senza DB, redirect a /login per route protette senza sessione, redirect all''area del ruolo se già autenticato su /login, route pubbliche /login e /api/auth/google* mai reindirizzate, rinnovo sliding della scadenza.'
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-02
+  - id: TASK-11
+    title: Proteggere le aree e aggiungere utente e logout nei layout
+    description: verificaSessione()/richiediRuolo() nelle pagine attivita e anagrafiche; Server Action disconnetti() che elimina la sessione e reindirizza a /login; header dei layout front office e back office con nome utente e pulsante Esci (mockup docs/mockups/US-005/area-autenticata.html).
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-04
+      - TASK-07
+  - id: TASK-12
+    title: Aggiornare il seed con utenti distinti ed email Google
+    description: Amministratore e collaboratore come utenti distinti (il profilo Collaboratore non più agganciato all'admin), senza password. L'amministratore usa info@techreloaded.it (account Google reale per la demo), la collaboratrice giulia.conti@agilereloaded.it; l'output del seed documenta che l'accesso avviene via Google con quelle email.
+    type: Impl
+    status: TODO
+  - id: TASK-13
+    title: Test e2e Playwright dei flussi di autenticazione Google
+    description: 'Scenari con endpoint Google stubbati via intercettazione di rete: demo con video accesso amministratore → Back Office (demo__accesso-con-google.spec.ts), accesso collaboratore → Front Office, email non censita → errore generico e nessun utente creato, route protette senza sessione → redirect a /login, disconnessione. Seed eseguito prima della suite.'
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-09
+      - TASK-10
+      - TASK-11
+      - TASK-12

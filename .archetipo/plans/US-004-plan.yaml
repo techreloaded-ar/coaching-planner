@@ -55,32 +55,37 @@ tasks:
     title: Separare la configurazione dello spike SiteGround
     description: Documentare una variabile dedicata per la connessione remota SiteGround, distinta da DATABASE_URL locale, includendo indicazioni per TLS/sslmode=require e per non committare credenziali reali.
     type: Impl
-    status: TODO
+    status: DONE
+    ref: TASK-01
   - id: TASK-02
     title: Creare lo script diagnostico di connettività TLS
     description: Aggiungere uno script TypeScript non distruttivo che usa la configurazione dedicata per aprire una connessione al Postgres SiteGround, eseguire query di metadati/versione, misurare la latenza e chiudere correttamente il client.
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
+    ref: TASK-02
   - id: TASK-03
     title: Validare lo script con casi locali sicuri
     description: Verificare che lo script fallisca con un messaggio chiaro quando la variabile dedicata manca o è malformata e che non stampi segreti nei log o nell'output.
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-02
+    ref: TASK-03
   - id: TASK-04
     title: Eseguire lo spike remoto e registrare l'esito
     description: Eseguire lo script dall'ambiente di sviluppo con le credenziali SiteGround reali, raccogliere esito TLS, versione Postgres, latenza osservata e vincoli emersi, quindi creare `docs/siteground-postgres-connectivity-spike.md` con decisioni conseguenti.
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
+    ref: TASK-04
   - id: TASK-05
     title: Verificare compatibilità Prisma e regressione toolchain
     description: Confrontare la versione Postgres rilevata con i requisiti di Prisma 7.x e registrare il risultato nel documento; eseguire `npm run db:validate`, `npm run lint` e, se il database locale è disponibile, `npm test`.
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
+    ref: TASK-05
