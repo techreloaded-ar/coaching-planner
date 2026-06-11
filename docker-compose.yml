@@ -1,0 +1,25 @@
+# PostgreSQL locale per sviluppo Coaching Planner
+# Avvia con: docker compose up -d
+# Arresta con: docker compose down
+# Reset completo: docker compose down -v && docker compose up -d
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: coaching-planner-db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: coaching_planner
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d coaching_planner"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

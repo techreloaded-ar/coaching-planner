@@ -18,11 +18,18 @@ cd coaching-planner
 # 2. Installa le dipendenze
 npm install
 
-# 3. Configura le variabili d'ambiente
-cp .env.example .env.local
-# Modifica .env.local con i tuoi valori (DATABASE_URL, AUTH_SECRET)
+# 3. Avvia il database PostgreSQL locale
+docker compose up -d
 
-# 4. Avvia il server di sviluppo
+# 4. Configura le variabili d'ambiente
+cp .env.example .env.local
+# .env.local è già pronto per lo sviluppo locale con Docker
+
+# 5. Applica le migrazioni e popola il database
+npm run db:migrate
+npm run db:seed
+
+# 6. Avvia il server di sviluppo
 npm run dev
 ```
 
@@ -55,6 +62,24 @@ tests/
 ├── unit/                 # Test unitari (Vitest)
 └── e2e/                  # Test end-to-end (Playwright)
 ```
+
+## Database
+
+### Avvio locale
+
+```bash
+docker compose up -d          # Avvia PostgreSQL in background
+docker compose down            # Arresta PostgreSQL
+docker compose down -v         # Arresta e cancella i dati (reset completo)
+```
+
+### Comandi Prisma
+
+- `npm run db:validate` — Valida lo schema Prisma
+- `npm run db:migrate` — Applica le migrazioni in sviluppo
+- `npm run db:migrate:deploy` — Applica le migrazioni in produzione
+- `npm run db:seed` — Popola il database con dati di esempio
+- `npm run db:studio` — Apre Prisma Studio per esplorare i dati
 
 ## Script Disponibili
 

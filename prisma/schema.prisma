@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Utenti e Ruoli ──────────────────────────────────────────────
+
+enum Ruolo {
+  AMMINISTRATORE
+  COLLABORATORE
+}
+
+model Utente {
+  id            String   @id @default(uuid())
+  nome          String
+  email         String   @unique
+  emailVerified DateTime?
+  image         String?
+  ruolo         Ruolo    @default(COLLABORATORE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relazioni
+  account      Account[]
+  session      Session[]
+  collaboratore Collaboratore?
+}
+
+// Auth.js / NextAuth models
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user Utente @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user Utente @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ── Collaboratori ────────────────────────────────────────────────
+
+model Collaboratore {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  nome              String
+  cognome           String
+  partitaIva        String
+  tariffaGiornaliera Decimal  @db.Decimal(10, 2)
+  attivo            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  utente          Utente          @relation(fields: [userId], references: [id])
+  righeAttivita    RigaAttivita[]
+}
+
+// ── Clienti ─────────────────────────────────────────────────────
+
+model Cliente {
+  id            String   @id @default(uuid())
+  ragioneSociale String
+  partitaIva    String?
+  indirizzo     String?
+  citta         String?
+  cap           String?
+  provincia     String?
+  attivo        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  offerte        Offerta[]
+  righeAttivita  RigaAttivita[]
+}
+
+// ── Offerte ──────────────────────────────────────────────────────
+
+model Offerta {
+  id                String   @id @default(uuid())
+  codice            String
+  descrizione       String
+  clienteId         String
+  tariffaGiornaliera Decimal  @db.Decimal(10, 2)
+  giorniPrevisti    Int
+  attiva            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  cliente        Cliente         @relation(fields: [clienteId], references: [id])
+  righeAttivita  RigaAttivita[]
+
+  @@unique([codice, clienteId])
+}
+
+// ── Trasferte / Scaglioni Chilometrici ──────────────────────────
+
+model ScaglioneKm {
+  id        String   @id @default(uuid())
+  finoAKm   Int
+  importo   Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Attività Giornaliera ────────────────────────────────────────
+
+model RigaAttivita {
+  id              String   @id @default(uuid())
+  collaboratoreId String
+  clienteId       String
+  offertaId       String
+  data            DateTime @db.Date
+  ore             Decimal  @db.Decimal(4, 2)
+  nota            String?  @db.Text
+  fatturabile     Boolean  @default(true)
+  trasfertaKm     Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
+  cliente       Cliente       @relation(fields: [clienteId], references: [id])
+  offerta       Offerta       @relation(fields: [offertaId], references: [id])
+}
