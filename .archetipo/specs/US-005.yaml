@@ -6,9 +6,9 @@ epic:
   title: Autenticazione e Ruoli
 priority: HIGH
 points: 5
-status: PLANNED
+status: DONE
 scope: MVP
-body: |-
+body: |
   #### US-005: Accesso con Google e sessione utente
 
   **Epic:** EP-001 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
@@ -27,8 +27,34 @@ body: |-
   - [ ] Un account Google la cui email non corrisponde ad alcun utente censito non ottiene accesso e vede un messaggio generico, senza creazione automatica di nuovi utenti
   - [ ] L'unico metodo di accesso è Google: non esistono form o endpoint di login con email e password
   - [ ] La sessione scade dopo inattività prolungata e l'utente può disconnettersi esplicitamente
+
+  ## Rework Feedback
+
+  <!-- Added by request-changes. archetipo-plan converts each item into a Fix task. -->
+
+  - proxy.ts mancante: TASK-10 è segnato DONE ma il file proxy.ts non esiste. Il piano tecnico lo descrive come proxy.ts alla radice del progetto (in Next 16 sostituisce middleware.ts) con: decrittazione ottimistica del solo cookie senza DB, redirect a /login per route protette senza sessione, redirect all'area del ruolo se già autenticato su /login, route pubbliche /login e /api/auth/google* mai reindirizzate, rinnovo sliding della scadenza. Inoltre, nel rinnovo sliding, non limitarsi a estendere il maxAge del cookie: ri-crittografare il JWT con un nuovo campo exp, così che il token non scada DURATA_SESSIONE_ORE ore dopo il login originale ma dopo l'ultima richiesta.
+  - **src/app/api/auth/google/callback/route.ts:54** — Pulizia cookie OAuth ridondante: i cookie google_oauth_state e google_oauth_code_verifier vengono eliminati sia via cookieStore.delete() (righe 54-55) che via response.cookies.set() con maxAge 0 (righe 120-128 e 153-161). Scegliere un solo meccanismo: o usare esclusivamente response.cookies.set() con maxAge 0 (più esplicito e coerente con il pattern Next.js) oppure usare solo cookieStore.delete(). La doppia pulizia è innocua ma ridondante.
+  - Demo video assente: la cartella docs/test-results/US-005/ non esiste e nessun video dimostrativo è stato generato. La spec promette una demo nel campo Dimostrazione e TASK-13 include esplicitamente la registrazione video del flusso accesso amministratore → Back Office (demo__accesso-con-google.spec.ts). Eseguire la suite e2e Playwright e depositare il video in docs/test-results/US-005/.
+  - Modifiche non committate sul branch archetipo/US-005: tutto il codice è nel working tree principale come modifiche non committate. Il branch archetipo/US-005 è fermo al fork base (7e985df). Committare tutte le modifiche sul branch per consentire l'integrazione via archetipo spec integrate.
+branch: archetipo/US-005
+worktree: .archetipo/worktrees/US-005
+fork_base: 7e985dfb8f7ba787ca9205a517ea83aecbabad7f
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
   - status: PLANNED
     at: "2026-06-11T15:13:39Z"
+  - status: IN PROGRESS
+    at: "2026-06-11T15:38:46Z"
+  - status: REVIEW
+    at: "2026-06-11T15:49:44Z"
+  - status: TODO
+    at: "2026-06-11T16:04:45Z"
+  - status: PLANNED
+    at: "2026-06-11T16:12:20Z"
+  - status: IN PROGRESS
+    at: "2026-06-11T16:15:59Z"
+  - status: REVIEW
+    at: "2026-06-11T16:27:43Z"
+  - status: DONE
+    at: "2026-06-11T16:33:38Z"
