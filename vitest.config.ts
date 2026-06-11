@@ -7,10 +7,16 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["tests/unit/**/*.test.ts"],
+    server: {
+      deps: {
+        inline: [],
+      },
+    },
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "server-only": path.resolve(__dirname, "./tests/unit/__mocks__/server-only.ts"),
     },
   },
 });
