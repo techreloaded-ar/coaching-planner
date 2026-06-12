@@ -6,7 +6,7 @@ epic:
   title: Autenticazione e Ruoli
 priority: HIGH
 points: 3
-status: TODO
+status: DONE
 blocked_by:
   - US-005
 scope: MVP
@@ -32,3 +32,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-06-12T07:13:07Z"
+  - status: IN PROGRESS
+    at: "2026-06-12T07:21:15Z"
+  - status: REVIEW
+    at: "2026-06-12T07:49:18Z"
+  - status: DONE
+    at: "2026-06-12T10:20:42Z"

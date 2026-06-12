@@ -1,11 +1,10 @@
-import { richiediRuolo, disconnetti, utenteCorrente } from "@/lib/dal";
+import { disconnetti, utenteCorrente } from "@/lib/dal";
 
 export default async function FrontOfficeLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await richiediRuolo("COLLABORATORE");
   const sessione = await utenteCorrente();
   const iniziali = sessione
     ? sessione.nome

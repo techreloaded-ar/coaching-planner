@@ -4,12 +4,7 @@ import { scambiaCodice } from "@/lib/google-oauth";
 import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import type { Ruolo } from "@/domain/types";
-
-// ── Mappatura ruolo → destinazione ─────────────────────────────
-
-function homePerRuolo(ruolo: Ruolo): string {
-  return ruolo === "AMMINISTRATORE" ? "/anagrafiche" : "/attivita";
-}
+import { homePerRuolo } from "@/lib/policy-rotte";
 
 // ── URL base ────────────────────────────────────────────────────
 

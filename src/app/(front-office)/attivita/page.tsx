@@ -1,4 +1,8 @@
-export default function AttivitaPage() {
+import { richiediRuolo } from "@/lib/dal";
+
+export default async function AttivitaPage() {
+  await richiediRuolo("COLLABORATORE");
+
   return (
     <div className="flex flex-col items-center justify-center flex-1 p-8">
       <h1 className="text-2xl font-bold">Le Mie Attività</h1>

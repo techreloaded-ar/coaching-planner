@@ -1,0 +1,129 @@
+schema: archetipo/plan/v2
+spec_code: US-006
+body: |-
+  # US-006: Autorizzazione per ruolo e segregazione dei dati — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-06-12
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-001 — Autenticazione e Ruoli
+  **Priorità:** HIGH | **Punti:** 3
+
+  **Storia Utente**
+  Come Stefano, titolare e amministratore, voglio che ogni utente possa vedere e modificare solo ciò che il suo ruolo consente, così da garantire che ogni collaboratore acceda esclusivamente ai propri dati mentre io conservo la visione completa.
+
+  **Criteri di Accettazione**
+  - [ ] Un collaboratore non può accedere alle pagine del back office: viene reindirizzato o riceve un errore di autorizzazione
+  - [ ] L'amministratore accede sia al back office sia ai dati di tutti i collaboratori
+  - [ ] I controlli di autorizzazione sono applicati lato server su ogni operazione: le richieste dirette alle API o alle action di altri utenti vengono rifiutate
+  - [ ] Un utente non autenticato che richiede una pagina protetta è reindirizzato al login
+
+  ---
+
+  ## Soluzione Tecnica
+
+  US-005 ha consegnato autenticazione, sessione JWT e un primo `richiediRuolo` nei layout. US-006 trasforma questi controlli sparsi in un livello di autorizzazione completo e conforme alla guida `node_modules/next/dist/docs/01-app/02-guides/authentication.md`: check ottimistico di ruolo nel proxy, check autoritativi nel Data Access Layer vicino ai dati, e guardie dedicate per API/Server Action che rifiutano con 401/403 invece di reindirizzare.
+
+  - **Modulo puro di policy delle rotte** (`src/lib/policy-rotte.ts`, senza `server-only` così da essere importabile dal proxy): costanti `ROTTE_BACK_OFFICE = ["/anagrafiche"]` e `ROTTE_FRONT_OFFICE = ["/attivita"]` (estendibili dalle spec future), `ruoloRichiestoPerRotta(pathname): Ruolo | null` con match per prefisso, e `homePerRuolo(ruolo)` centralizzata. Oggi `homePerRuolo` è duplicata in tre punti (proxy.ts:22-24, callback Google, dal.ts:85-87): viene definita una sola volta qui e riusata ovunque.
+  - **Check ottimistico di ruolo nel proxy** (`proxy.ts`): dopo la decrittazione del cookie, se la rotta richiede un ruolo diverso da quello in sessione l'utente è reindirizzato a `homePerRuolo(ruolo della sessione)`. Solo lettura del JWT, nessun accesso a DB (come da guida). Rotte pubbliche, pulizia cookie non validi e rinnovo sliding (appena corretto nel rework di US-005) restano invariati.
+  - **Guardie DAL per API e Server Action** (`src/lib/dal.ts`): le funzioni esistenti (`verificaSessione`, `richiediRuolo`) reindirizzano, comportamento giusto per le pagine ma sbagliato per richieste dirette ad API/action. Si aggiungono: classe `ErroreAutorizzazione` con `statusCode` (401 non autenticato, 403 vietato); `richiediSessioneApi()` e `richiediRuoloApi(ruolo)` che lanciano `ErroreAutorizzazione` invece di reindirizzare; `richiediCollaboratoreCorrente()` che risolve il profilo `Collaboratore` dell'utente in sessione (403 se assente, es. amministratore senza profilo); `verificaAccessoDatiCollaboratore(collaboratoreId)` che concede sempre l'accesso all'AMMINISTRATORE e al COLLABORATORE solo sul proprio `collaboratoreId`.
+  - **Check di ruolo nelle pagine, non solo nei layout**: per la guida Next.js (Partial Rendering) i layout non si ri-renderizzano a ogni navigazione e non bastano come unica difesa. `richiediRuolo` viene chiamato anche nelle pagine `(back-office)/anagrafiche` e `(front-office)/attivita`; i layout mantengono `utenteCorrente()` per l'header. La home `/` reindirizza l'utente autenticato a `homePerRuolo` per coerenza di navigazione.
+  - **Convenzione vincolante per le spec future**: oggi non esistono ancora API o action di dati di business (le pagine sono placeholder); il criterio "ogni operazione" si consegna come toolkit applicato a tutte le superfici esistenti più la regola, registrata in questo piano, che ogni query delle spec successive (US-007+) DEVE passare da `richiediCollaboratoreCorrente`/`verificaDatiCollaboratore` o `richiediRuoloApi`: nessun accesso diretto a `db` dalle route senza guardia.
+
+  **Assunzione registrata:** la frase "l'amministratore accede a tutte le aree" della Dimostrazione si interpreta come accesso a tutto il back office più visibilità sui dati di tutti i collaboratori (RF-02). Il front office "Le mie attività" resta legato a un profilo Collaboratore: l'amministratore che vi naviga è reindirizzato al back office, come già in US-005. Un'eventuale vista admin sulle attività altrui arriverà con la reportistica (EP-004).
+
+  ---
+
+  ## Strategia di Test
+
+  La logica di policy è in funzioni pure o con dipendenze facilmente simulabili: la copertura principale è unitaria, con gli e2e a garanzia dell'enforcement reale lato server tramite richieste HTTP dirette.
+
+  - **Unit (Vitest)** su `policy-rotte.ts`: match per prefisso e sottopercorsi (`/anagrafiche/clienti` → AMMINISTRATORE), rotte neutre → null, mappa `homePerRuolo` completa per entrambi i ruoli.
+  - **Unit (Vitest)** sulle guardie DAL con mock di Prisma e cookie: non autenticato → `ErroreAutorizzazione` 401; collaboratore su dati altrui → 403; collaboratore sui propri dati → ok; amministratore su dati di chiunque → ok; `richiediCollaboratoreCorrente` con e senza profilo collegato.
+  - **E2E (Playwright)** sull'enforcement server-side: la navigazione UI verifica i redirect, ma il criterio 3 richiede di provare le richieste dirette — si usano `page.request` senza follow dei redirect per asserire che il back office non serve mai contenuto a un collaboratore autenticato.
+  - **Regressione US-005**: i flussi di autenticazione esistenti (`tests/e2e/auth-flows.spec.ts`) devono restare verdi, in particolare redirect a /login senza sessione e rinnovo sliding nel proxy.
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (config esistente `playwright.config.ts`, sessioni create via endpoint di test `/api/e2e-test/sessione` con seed eseguito dal global-setup)
+  **Registrazione video:** solo lo scenario demo (campo Dimostrazione); gli altri scenari girano senza video
+
+  | Scenario | Descrizione del flusso utente |
+  |---|---|
+  | Demo (con video): collaboratore bloccato, amministratore dentro | La collaboratrice accede, naviga verso /anagrafiche e viene riportata a "Le mie attività"; poi l'amministratore accede e apre il back office. Video in `docs/test-results/US-006/` (`demo__autorizzazione-ruoli.spec.ts`) |
+  | Richiesta diretta al back office da collaboratore | Con la sessione della collaboratrice, `page.request.get("/anagrafiche")` senza follow dei redirect risponde 3xx verso l'area propria e non serve mai il contenuto del back office |
+  | Amministratore reindirizzato dal front office | L'amministratore autenticato che naviga /attivita finisce su /anagrafiche (assunzione registrata) |
+  | Utente non autenticato su rotta protetta | Richiesta a /anagrafiche e /attivita senza sessione → redirect a /login (regressione US-005) |
+  | Home per ruolo | Utente autenticato che apre `/` viene portato all'area del proprio ruolo |
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-06-12_
+tasks:
+  - id: TASK-01
+    title: Creare il modulo puro di policy delle rotte (src/lib/policy-rotte.ts)
+    description: 'Modulo senza server-only importabile dal proxy: costanti ROTTE_BACK_OFFICE e ROTTE_FRONT_OFFICE, ruoloRichiestoPerRotta(pathname) con match per prefisso e homePerRuolo(ruolo) centralizzata. Sostituisce le tre copie di homePerRuolo in proxy.ts, callback Google e dal.ts.'
+    type: Impl
+    status: DONE
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test del modulo policy rotte
+    description: 'Vitest: prefissi e sottopercorsi back office → AMMINISTRATORE, front office → COLLABORATORE, rotte neutre → null, homePerRuolo per entrambi i ruoli.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    ref: TASK-02
+  - id: TASK-03
+    title: Aggiungere il check ottimistico di ruolo in proxy.ts
+    description: Dopo la decrittazione del cookie, se ruoloRichiestoPerRotta(pathname) esiste e differisce dal ruolo in sessione reindirizza a homePerRuolo(ruolo della sessione). Solo lettura del JWT senza DB; rotte pubbliche e rinnovo sliding invariati.
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    ref: TASK-03
+  - id: TASK-04
+    title: Implementare le guardie DAL per API e Server Action (src/lib/dal.ts)
+    description: Classe ErroreAutorizzazione con statusCode 401/403; richiediSessioneApi() e richiediRuoloApi(ruolo) che lanciano l'errore invece di reindirizzare; richiediCollaboratoreCorrente() che risolve il profilo Collaboratore dell'utente in sessione; verificaAccessoDatiCollaboratore(collaboratoreId) con accesso pieno per l'amministratore e limitato ai propri dati per il collaboratore.
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    ref: TASK-04
+  - id: TASK-05
+    title: Unit test delle guardie DAL
+    description: 'Vitest con mock di Prisma e cookie: non autenticato → 401; collaboratore su dati altrui → 403; collaboratore sui propri dati e amministratore su dati di chiunque → ok; richiediCollaboratoreCorrente con e senza profilo collegato.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    ref: TASK-05
+  - id: TASK-06
+    title: Spostare i check di ruolo dai layout alle pagine e home per ruolo
+    description: richiediRuolo chiamato nelle pagine (back-office)/anagrafiche e (front-office)/attivita come da guida Next.js (i layout non si ri-renderizzano a ogni navigazione e mantengono solo utenteCorrente per l'header). La home / reindirizza l'utente autenticato a homePerRuolo.
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    ref: TASK-06
+  - id: TASK-07
+    title: Test e2e dell'enforcement di autorizzazione
+    description: 'Playwright (autorizzazione-ruoli.spec.ts): collaboratore che naviga /anagrafiche finisce su /attivita; page.request.get(''/anagrafiche'') con sessione collaboratore e senza follow dei redirect non serve mai contenuto back office; amministratore reindirizzato da /attivita ad /anagrafiche; non autenticato → /login (regressione US-005); home / → area del ruolo.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-06
+    ref: TASK-07
+  - id: TASK-08
+    title: 'Demo e2e con video: collaboratore bloccato, amministratore dentro'
+    description: 'demo__autorizzazione-ruoli.spec.ts con video on (pattern di demo__accesso-con-google.spec.ts): la collaboratrice accede, tenta il back office e viene riportata a Le mie attività; poi l''amministratore accede e apre il back office. Video depositato in docs/test-results/US-006/.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-07
+    ref: TASK-08

@@ -1,4 +1,13 @@
-export default function Home() {
+import { redirect } from "next/navigation";
+import { utenteCorrente } from "@/lib/dal";
+import { homePerRuolo } from "@/lib/policy-rotte";
+
+export default async function Home() {
+  const sessione = await utenteCorrente();
+  if (sessione) {
+    redirect(homePerRuolo(sessione.ruolo));
+  }
+
   return (
     <div className="flex flex-col items-center justify-center flex-1 p-8">
       <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">

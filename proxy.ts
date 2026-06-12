@@ -4,6 +4,7 @@ import { jwtVerify } from "jose";
 import type { PayloadSessione } from "@/lib/session";
 import { DURATA_SESSIONE_ORE } from "@/lib/session";
 import { rinnovaToken } from "@/lib/rinnova-token";
+import { ruoloRichiestoPerRotta, homePerRuolo } from "@/lib/policy-rotte";
 
 const NOME_COOKIE = "cp_sessione";
 
@@ -15,12 +16,6 @@ function isPubblica(pathname: string): boolean {
   return ROTTE_PUBBLICHE.some(
     (r) => pathname === r || pathname.startsWith(r + "/")
   );
-}
-
-// ── Mappatura ruolo → destinazione ─────────────────────────────
-
-function homePerRuolo(ruolo: "AMMINISTRATORE" | "COLLABORATORE"): string {
-  return ruolo === "AMMINISTRATORE" ? "/anagrafiche" : "/attivita";
 }
 
 // ── Decrittazione ottimistica (solo cookie, senza DB) ───────────
@@ -92,7 +87,17 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return response;
   }
 
-  // 3. Rinnovo sliding della scadenza con nuova firma JWT
+  // 3. Check ottimistico di ruolo: se la rotta richiede un ruolo
+  //    diverso da quello in sessione, reindirizza all'area corretta.
+  //    Solo lettura del JWT, senza query al DB.
+  const ruoloRichiesto = ruoloRichiestoPerRotta(pathname);
+  if (ruoloRichiesto && sessione.ruolo !== ruoloRichiesto) {
+    return NextResponse.redirect(
+      new URL(homePerRuolo(sessione.ruolo), request.url)
+    );
+  }
+
+  // 4. Rinnovo sliding della scadenza con nuova firma JWT
   const response = NextResponse.next();
   const nuovoToken = await rinnovaToken(token);
 
