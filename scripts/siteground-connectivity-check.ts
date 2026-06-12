@@ -102,7 +102,7 @@ function exitWithError(message: string): never {
   process.exit(1);
 }
 
-export function runDiagnostics(connectionString: string | undefined): void | never {
+export function runDiagnostics(connectionString: string | undefined): ReturnType<typeof runConnectivityCheck> | never {
   const validation = validateConnectionString(connectionString);
   if (!validation.valid) {
     exitWithError(validation.message);

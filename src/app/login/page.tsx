@@ -143,6 +143,11 @@ function LoginContent() {
             → Back Office (amministratore)
             <br />
             <code className="rounded bg-amber-100 px-1 font-semibold dark:bg-amber-900">
+              stefano.marello@agilereloaded.it
+            </code>{" "}
+            → Back Office (amministratore)
+            <br />
+            <code className="rounded bg-amber-100 px-1 font-semibold dark:bg-amber-900">
               giulia.conti@agilereloaded.it
             </code>{" "}
             → Front Office (collaboratrice)
