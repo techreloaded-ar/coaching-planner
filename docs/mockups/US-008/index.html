@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dettaglio cliente — Coaching Planner</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* colonne della tabella offerte */
+.tbl th.col-tariffa{width:160px;}
+.tbl th.col-giorni{width:130px;}
+.tbl th.col-azioni{width:110px;}
+.tbl td.tariffa,.tbl th.col-tariffa{text-align:right;}
+.tbl td.giorni,.tbl th.col-giorni{text-align:right;}
+.tbl td.azioni{text-align:right;white-space:nowrap;}
+.tbl td.tariffa{font-weight:600;}
+
+.descrizione-offerta{max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.card-dati{margin-bottom:22px;}
+.back-link{
+  display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;
+  color:var(--ink-2);text-decoration:none;margin-bottom:14px;
+}
+.back-link svg{width:15px;height:15px;stroke-width:2.2;}
+.back-link:hover{color:var(--primary);}
+</style>
+</head>
+<body>
+<div class="console">
+
+  <!-- ============ SIDEBAR DI NAVIGAZIONE ============ -->
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-mark">CP</div>
+      <div class="brand-name">
+        <b>Coaching Planner</b>
+        <span>Console gestionale</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" aria-label="Navigazione principale">
+      <span class="nav-label">Gestione</span>
+
+      <a class="nav-item active" href="../US-007/index.html" aria-current="page" title="Clienti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V8.5L9 4l6 4.5V21"/><path d="M15 21h6V11l-6-3"/><path d="M7.5 21v-4.5h3V21"/><path d="M7 9.5h.01M11 9.5h.01M7 13h.01M11 13h.01"/></svg>
+        <span class="lbl">Clienti</span>
+      </a>
+
+      <button class="nav-item disabled" type="button" disabled aria-disabled="true" title="Offerte — In arrivo (si gestiscono dal cliente)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        <span class="lbl">Offerte</span>
+        <span class="nav-soon">In arrivo</span>
+      </button>
+
+      <button class="nav-item disabled" type="button" disabled aria-disabled="true" title="Collaboratori — In arrivo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0"/><circle cx="17.2" cy="9.4" r="2.6"/><path d="M15.4 14.6a5 5 0 0 1 5.8 4.8"/></svg>
+        <span class="lbl">Collaboratori</span>
+        <span class="nav-soon">In arrivo</span>
+      </button>
+
+      <button class="nav-item disabled" type="button" disabled aria-disabled="true" title="Scaglioni km — In arrivo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        <span class="lbl">Scaglioni km</span>
+        <span class="nav-soon">In arrivo</span>
+      </button>
+
+      <button class="nav-item disabled" type="button" disabled aria-disabled="true" title="Report — In arrivo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7.5 15.5v-4M12 15.5V7.5M16.5 15.5v-6"/></svg>
+        <span class="lbl">Report</span>
+        <span class="nav-soon">In arrivo</span>
+      </button>
+    </nav>
+
+    <div class="side-foot">
+      <div class="side-user">
+        <div class="avatar">SM</div>
+        <div class="meta">
+          <b>Stefano Marello</b>
+          <span>Amministratore</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+          <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm esci-btn" type="button" title="Disconnessione (vedi US-005)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+        <span class="lbl">Esci</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ============ AREA CONTENUTO — VIEW DETTAGLIO CLIENTE ============ -->
+  <div class="main">
+    <main class="content">
+
+      <a class="back-link" href="../US-007/index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
+        Torna all'elenco clienti
+      </a>
+
+      <div class="view-head">
+        <div class="cliente-hero">
+          <span class="av-sq" id="avatarCliente">—</span>
+          <div>
+            <div class="crumb">Anagrafiche · Clienti</div>
+            <h1><span id="nomeCliente">—</span> <span class="badge b-ok"><span class="d"></span>Attivo</span></h1>
+          </div>
+        </div>
+        <div class="view-actions">
+          <a class="btn btn-ghost" id="linkModificaCliente" href="../US-007/cliente-form.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16.5 3.7a2.2 2.2 0 0 1 3.1 3.1L7.5 18.9 3 20l1.1-4.5L16.5 3.7Z"/></svg>
+            Modifica dati cliente
+          </a>
+        </div>
+      </div>
+
+      <!-- ===== Riepilogo dati anagrafici (da US-007) ===== -->
+      <section class="card card-dati">
+        <div class="card-head">
+          <span class="titolo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V8.5L9 4l6 4.5V21"/><path d="M15 21h6V11l-6-3"/></svg>
+            Dati anagrafici
+          </span>
+        </div>
+        <div class="card-pad">
+          <dl class="dati-cliente" id="datiCliente" style="margin:0;"><!-- generato da JS --></dl>
+        </div>
+      </section>
+
+      <!-- ===== Sezione OFFERTE del cliente ===== -->
+      <section class="card">
+        <div class="card-head">
+          <span class="titolo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+            Offerte
+          </span>
+          <span class="conteggio" id="conteggioOfferte">—</span>
+          <span class="spazio">
+            <a class="btn btn-primary btn-sm" id="linkNuovaOfferta" href="offerta-form.html">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+              Nuova offerta
+            </a>
+          </span>
+        </div>
+
+        <table class="tbl" aria-label="Offerte del cliente" id="tabellaOfferte">
+          <thead>
+            <tr>
+              <th>Codice</th>
+              <th>Descrizione</th>
+              <th class="col-tariffa">Tariffa giornaliera</th>
+              <th class="col-giorni">Giorni previsti</th>
+              <th class="col-azioni" aria-label="Azioni"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoOfferte"><!-- righe generate da JS --></tbody>
+        </table>
+
+        <div class="vuoto-offerte" id="vuotoOfferte" hidden>
+          <span class="ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+          </span>
+          <b>Nessuna offerta per questo cliente</b>
+          <p>Crea la prima offerta con codice, descrizione, tariffa giornaliera e giorni previsti.</p>
+        </div>
+      </section>
+
+      <div class="card note-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+        <span><b>Nota US-008</b> — le offerte si gestiscono <b>dal cliente</b>: la voce «Offerte» in sidebar resta «In arrivo». Questa view è il dettaglio cliente (<code>/anagrafiche/clienti/[id]</code>) con la nuova sezione Offerte: tariffa giornaliera formattata in € all'italiana, azione <b>Modifica</b> per riga e pulsante <b>Nuova offerta</b>. Il prototipo persiste le offerte in locale; prova anche <code>?cliente=cli-002</code> o <code>?cliente=cli-003</code> (stato vuoto).</span>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  CP.initTheme();
+
+  /* ---------- cliente corrente (default: Banca Sintesi) ---------- */
+  const idCliente = new URLSearchParams(location.search).get('cliente') || 'cli-001';
+  const cliente = CP.trovaCliente(idCliente) || CP.clienti[0];
+
+  document.title = cliente.ragioneSociale + ' — Coaching Planner';
+  document.getElementById('nomeCliente').textContent = cliente.ragioneSociale;
+  document.getElementById('avatarCliente').textContent = CP.iniziali(cliente.ragioneSociale);
+  document.getElementById('linkModificaCliente').href = '../US-007/cliente-form.html?id=' + cliente.id;
+  document.getElementById('linkNuovaOfferta').href = 'offerta-form.html?cliente=' + cliente.id;
+
+  /* ---------- riepilogo anagrafico ---------- */
+  const sede = [cliente.indirizzo, [cliente.cap, cliente.citta, cliente.provincia ? '(' + cliente.provincia + ')' : '']
+    .filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  document.getElementById('datiCliente').innerHTML = [
+    ['Partita IVA', cliente.partitaIva],
+    ['Codice fiscale', cliente.codiceFiscale],
+    ['Sede legale', sede],
+    ['PEC', cliente.pec],
+    ['Codice SDI', cliente.codiceSdi]
+  ].map(([etichetta, valore]) => `
+    <div class="dato">
+      <dt>${etichetta}</dt>
+      <dd class="${valore ? '' : 'vuoto'}" title="${valore || ''}">${valore || 'Non indicato'}</dd>
+    </div>`).join('');
+
+  /* ---------- tabella offerte ---------- */
+  const corpoOfferte = document.getElementById('corpoOfferte');
+  const tabellaOfferte = document.getElementById('tabellaOfferte');
+  const vuotoOfferte = document.getElementById('vuotoOfferte');
+  const conteggioOfferte = document.getElementById('conteggioOfferte');
+
+  function disegnaOfferte() {
+    const offerte = CP.offerteDelCliente(cliente.id);
+
+    conteggioOfferte.textContent = offerte.length === 1
+      ? '1 offerta'
+      : offerte.length + ' offerte';
+
+    tabellaOfferte.hidden = !offerte.length;
+    vuotoOfferte.hidden = Boolean(offerte.length);
+
+    corpoOfferte.innerHTML = offerte.map((offerta) => `
+      <tr>
+        <td><span class="codice-offerta">${offerta.codice}</span></td>
+        <td><div class="descrizione-offerta" title="${offerta.descrizione}">${offerta.descrizione}</div></td>
+        <td class="tariffa tnum">${CP.formattaEuro(offerta.tariffaGiornaliera)}</td>
+        <td class="giorni tnum">${offerta.giorniPrevisti}</td>
+        <td class="azioni">
+          <a class="row-action act-edit" href="offerta-form.html?id=${offerta.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16.5 3.7a2.2 2.2 0 0 1 3.1 3.1L7.5 18.9 3 20l1.1-4.5L16.5 3.7Z"/></svg>
+            Modifica
+          </a>
+        </td>
+      </tr>`).join('');
+  }
+
+  /* feedback di ritorno dal form offerta */
+  const esito = new URLSearchParams(location.search).get('esito');
+  if (esito === 'creata') CP.toast('Offerta creata correttamente');
+  if (esito === 'salvata') CP.toast('Modifiche all\'offerta salvate');
+  if (esito) history.replaceState(null, '', 'index.html?cliente=' + cliente.id);
+
+  disegnaOfferte();
+</script>
+</body>
+</html>

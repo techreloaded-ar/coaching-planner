@@ -1,0 +1,65 @@
+schema: archetipo/plan/v2
+spec_code: US-008
+body: "# US-008: Anagrafica offerte per cliente — Piano di Implementazione\n\n**Generato da:** ARchetipo Planning Team\n**Data:** 2026-06-12\n\n---\n\n## Spec\n\n**Epic:** EP-002 — Anagrafiche e Configurazione\n**Priorità:** HIGH | **Punti:** 3 | **Bloccata da:** US-007\n\n**Storia Utente**\nCome Stefano, amministratore, voglio gestire le offerte di ciascun cliente con codice, descrizione, tariffa giornaliera e giorni previsti, così che le attività dei collaboratori possano essere agganciate all'offerta corretta e valorizzate automaticamente.\n\n**Criteri di Accettazione**\n- [ ] L'amministratore crea un'offerta associata a un cliente indicando codice, descrizione, tariffa giornaliera e giorni previsti\n- [ ] La tariffa giornaliera è un importo decimale positivo e i giorni previsti sono un numero positivo; i valori non validi sono rifiutati con messaggio chiaro\n- [ ] L'amministratore modifica un'offerta esistente e le modifiche sono persistite\n- [ ] L'elenco delle offerte di un cliente mostra codice, descrizione, tariffa e giorni previsti\n\n---\n\n## Soluzione Tecnica\n\nSecondo CRUD del back office: replica il pattern stabilito da US-007 (dominio puro → DAL con guardie → Server Actions → pagine server-rendered nella console) applicandolo alle offerte, che vivono sotto il cliente di appartenenza. Le convenzioni Next.js 16 seguono le guide locali in `node_modules/next/dist/docs/` (mutating-data, forms, data-security, revalidating), come richiesto da AGENTS.md.\n\n- **Modello dati: nessuna migrazione.** `Offerta` esiste già in `prisma/schema.prisma` con codice, descrizione, clienteId, tariffaGiornaliera `Decimal(10,2)`, giorniPrevisti `Int`, attiva e il vincolo `@@unique([codice, clienteId])`: lo schema copre interamente la spec. **Assunzione registrata:** la disattivazione delle offerte non è nei criteri di accettazione e resta fuori scope; il campo `attiva` rimane al default `true` senza UI dedicata (verrà usato dalle spec future se necessario).\n- **Validazione nel dominio** (`src/domain/anagrafiche/valida-offerta.ts`): funzioni pure senza dipendenze dal framework (ADR-006), simmetriche a `valida-cliente.ts` di US-007 — codice e descrizione obbligatori, tariffa giornaliera importo decimale strettamente positivo (max 2 decimali), giorni previsti intero strettamente positivo — con mappa errori per campo riusata dalle Server Actions. Il parsing dell'input tariffa accetta il formato italiano con virgola decimale; gli importi restano `Decimal` in tutta la catena (ADR-005, mai float).\n- **DAL offerte** (`src/lib/offerte.ts`, `server-only`, guardia di ruolo AMMINISTRATORE da `src/lib/dal.ts`): `elencaOffertePerCliente(clienteId)` ordinata per codice, `offertaPerId(id)` con il cliente incluso per intestazioni e controlli. Il cliente di appartenenza si risolve con `clientePerId` del DAL clienti di US-007.\n- **Server Actions** (`src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts`, direttiva `use server`): `creaOfferta` e `aggiornaOfferta`, ognuna con verifica del ruolo lato server (guida data-security: le action sono raggiungibili via POST diretta), validazione via `valida-offerta`, `revalidatePath` delle pagine del cliente e ritorno della mappa errori per `useActionState`. Due regole applicative: **(a)** `creaOfferta` rifiuta i clienti disattivati — è l'AC di US-007 \"la disattivazione esclude il cliente dalle selezioni per nuove offerte\" — mentre la modifica di offerte esistenti resta possibile per preservare l'operatività sullo storico (assunzione registrata); **(b)** unicità del codice per cliente garantita intercettando l'errore Prisma `P2002` del vincolo unique (oltre all'eventuale pre-check) e tradotta in errore sul campo codice, per evitare race condition.\n- **UI nella console** (mockup in `docs/mockups/US-008/`): la pagina di dettaglio/modifica cliente `/anagrafiche/clienti/[id]` (consegnata da US-007) acquisisce la sezione **Offerte** — tabella con codice, descrizione, tariffa giornaliera formattata in € all'italiana, giorni previsti, azione Modifica e pulsante \"Nuova offerta\" (mockup `index.html`). Il form offerta (creazione su `/anagrafiche/clienti/[id]/offerte/nuova`, modifica su `/anagrafiche/clienti/[id]/offerte/[offertaId]`) è una view nell'area contenuto della console con errori per campo e link di ritorno al cliente (mockup `offerta-form.html`). **Assunzione registrata:** la voce \"Offerte\" della sidebar resta disabilitata (\"In arrivo\"): le offerte si raggiungono dal cliente, coerentemente con la dimostrazione della spec.\n\n**Nota di dipendenza (rischio):** US-008 è bloccata da US-007, che risulta IN PROGRESS ma con tutti i task ancora TODO al momento della pianificazione. I task UI di questo piano si agganciano ad artefatti che US-007 deve consegnare (console con sidebar, pagina dettaglio cliente, DAL `src/lib/clienti.ts`, modulo `valida-cliente.ts` come riferimento di pattern): l'implementazione di US-008 deve partire solo a US-007 consegnata e integrata.\n\n---\n\n## Strategia di Test\n\nLa logica di validazione è in funzioni pure con copertura unitaria piena; DAL e action si testano con mock di Prisma e sessione; gli e2e provano il flusso reale cliente → offerte nella console, inclusi i casi di rifiuto.\n\n- **Unit (Vitest)** su `valida-offerta.ts`: obbligatorietà di codice e descrizione; tariffa con valori validi (interi, decimali con virgola e con punto) e invalidi (zero, negativi, testo, troppe cifre decimali); giorni previsti con valori validi e invalidi (zero, negativi, decimali, testo); record valido → mappa errori vuota.\n- **Unit (Vitest)** su DAL e action con mock di Prisma e sessione: guardia di ruolo applicata su ogni funzione e action; `creaOfferta` con dati invalidi non scrive a DB e restituisce la mappa errori; `creaOfferta` su cliente disattivato rifiutata; errore `P2002` tradotto in errore sul campo codice; `aggiornaOfferta` persiste le modifiche e rivalida i path.\n- **E2E (Playwright)**: flusso completo dall'elenco clienti al dettaglio, creazione offerta, errori di validazione visibili per campo, codice duplicato rifiutato con messaggio chiaro, modifica persistita dopo reload.\n- **Regressione**: le suite esistenti (unit e e2e di US-005/US-006/US-007, in particolare il CRUD clienti) devono restare verdi: la sezione Offerte si aggiunge al dettaglio cliente senza alterarne il form.\n\n### Test E2E — Simulazione Utente\n\n**Framework:** Playwright (config esistente `playwright.config.ts`; sessione amministratore via endpoint di test `/api/e2e-test/sessione`, seed dal global-setup)\n**Registrazione video:** solo lo scenario demo (campo Dimostrazione); gli altri scenari girano senza video\n\n| Scenario | Descrizione del flusso utente |\n|---|---|\n| Demo (con video): offerte di un cliente | L'amministratore entra nella console, apre Clienti dalla sidebar, apre un cliente, aggiunge un'offerta con codice, descrizione, tariffa giornaliera e giorni previsti, e vede l'elenco delle offerte del cliente con i dati inseriti. Video in `docs/test-results/US-008/` (`demo__anagrafica-offerte.spec.ts`) |\n| Validazione dei campi | Submit del form offerta con tariffa non positiva e giorni non positivi → errori per campo visibili, nessuna offerta creata nell'elenco |\n| Codice duplicato | Creazione di una seconda offerta con lo stesso codice per lo stesso cliente → rifiutata con messaggio chiaro sul campo codice |\n| Modifica persistita | L'amministratore modifica descrizione e tariffa di un'offerta esistente, torna al cliente e ricarica la pagina: i dati aggiornati sono persistiti |\n| Elenco offerte completo | L'elenco delle offerte del cliente mostra codice, descrizione, tariffa formattata in € e giorni previsti |\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-008/`\n\n_Piano generato via ARchetipo Planning — 2026-06-12_"
+tasks:
+  - id: TASK-01
+    title: Modulo di dominio valida-offerta (funzioni pure)
+    description: 'Creare src/domain/anagrafiche/valida-offerta.ts sul pattern di valida-cliente.ts: codice e descrizione obbligatori, tariffa giornaliera decimale strettamente positiva (parsing con virgola italiana, max 2 decimali, mai float — ADR-005), giorni previsti intero strettamente positivo; mappa errori per campo, senza dipendenze dal framework (ADR-006).'
+    type: Impl
+    status: TODO
+  - id: TASK-02
+    title: Unit test della validazione offerta
+    description: 'Vitest su valida-offerta.ts: obbligatorietà di codice e descrizione; tariffa valida con virgola e con punto, invalida se zero, negativa, testuale o con troppe cifre decimali; giorni invalidi se zero, negativi, decimali o testuali; record valido → nessun errore.'
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-01
+  - id: TASK-03
+    title: DAL offerte con guardia di ruolo (src/lib/offerte.ts)
+    description: Modulo server-only con elencaOffertePerCliente(clienteId) ordinata per codice e offertaPerId(id) con cliente incluso, ogni funzione protetta dalla guardia AMMINISTRATORE di src/lib/dal.ts; il cliente di appartenenza si risolve con clientePerId del DAL clienti di US-007.
+    type: Impl
+    status: TODO
+  - id: TASK-04
+    title: Server Actions crea/aggiorna offerta
+    description: 'actions.ts in src/app/(back-office)/anagrafiche/clienti/[id]/offerte con use server: creaOfferta e aggiornaOfferta con verifica del ruolo lato server, validazione via valida-offerta, rifiuto della creazione su cliente disattivato (AC US-007), unicità codice per cliente via gestione dell''errore Prisma P2002 tradotto in errore sul campo codice, revalidatePath delle pagine del cliente e mappa errori per useActionState. Seguire le guide locali mutating-data e data-security di Next.js 16.'
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-01
+      - TASK-03
+  - id: TASK-05
+    title: Unit test di DAL e Server Actions offerte
+    description: 'Vitest con mock di Prisma e sessione: guardia di ruolo su ogni funzione e action; dati invalidi → nessuna scrittura a DB e mappa errori; creazione su cliente disattivato rifiutata; P2002 → errore sul campo codice; aggiornaOfferta persiste e rivalida i path.'
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-04
+  - id: TASK-06
+    title: Sezione Offerte nel dettaglio cliente (da mockup)
+    description: 'Aggiungere alla pagina /anagrafiche/clienti/[id] (consegnata da US-007) la sezione Offerte del mockup docs/mockups/US-008/index.html: tabella con codice, descrizione, tariffa giornaliera formattata in € all''italiana, giorni previsti, azione Modifica e pulsante Nuova offerta, alimentata da elencaOffertePerCliente.'
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-03
+  - id: TASK-07
+    title: Form di creazione e modifica offerta (da mockup)
+    description: Implementare /anagrafiche/clienti/[id]/offerte/nuova e /anagrafiche/clienti/[id]/offerte/[offertaId] come view nell'area contenuto della console, con il form offerta collegato alle Server Actions via useActionState, errori di validazione per campo, intestazione con la ragione sociale del cliente e link di ritorno, come nel mockup docs/mockups/US-008/offerta-form.html.
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-04
+      - TASK-06
+  - id: TASK-08
+    title: Test e2e del CRUD offerte nella console
+    description: 'Playwright (anagrafica-offerte.spec.ts, senza video): validazione di tariffa e giorni non positivi senza creazione, codice duplicato per lo stesso cliente rifiutato con messaggio sul campo, modifica persistita dopo reload, elenco offerte con codice/descrizione/tariffa/giorni. Sessione amministratore via /api/e2e-test/sessione; regressione sul CRUD clienti di US-007.'
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-07
+  - id: TASK-09
+    title: 'Demo e2e con video: offerte di un cliente'
+    description: 'demo__anagrafica-offerte.spec.ts con video on (pattern di demo__accesso-con-google.spec.ts): l''amministratore entra nella console, apre Clienti, apre un cliente, aggiunge un''offerta con codice, descrizione, tariffa e giorni previsti e vede l''elenco delle offerte del cliente. Video depositato in docs/test-results/US-008/.'
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-08
