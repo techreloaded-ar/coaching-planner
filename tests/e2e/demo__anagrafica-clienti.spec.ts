@@ -43,8 +43,8 @@ test.describe("US-007 Demo", () => {
 
     // ── 2. Naviga a Clienti dalla sidebar ─────────────────────────
 
-    await expect(page.getByText("Tech Reloaded")).toBeVisible();
-    await expect(page.getByText("Amministratore")).toBeVisible();
+    await expect(page.getByRole("banner").getByText("Tech Reloaded")).toBeVisible();
+    await expect(page.getByRole("banner").getByText("Amministratore")).toBeVisible();
 
     await page
       .locator("nav[aria-label='Navigazione principale'] a")

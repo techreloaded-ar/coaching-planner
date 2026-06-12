@@ -39,21 +39,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upsert dell'Account Google fittizio per i test
-    await db.account.upsert({
-      where: {
-        provider_providerAccountId: {
+    // Garantisce un account Google fittizio per i test.
+    // createMany + skipDuplicates evita errori di concorrenza quando più
+    // worker Playwright autenticano lo stesso utente in parallelo.
+    await db.account.createMany({
+      data: [
+        {
+          userId: utente.id,
+          type: "oauth",
           provider: "google",
           providerAccountId: `test-${utente.id}`,
         },
-      },
-      update: {},
-      create: {
-        userId: utente.id,
-        type: "oauth",
-        provider: "google",
-        providerAccountId: `test-${utente.id}`,
-      },
+      ],
+      skipDuplicates: true,
     });
 
     await createSession(

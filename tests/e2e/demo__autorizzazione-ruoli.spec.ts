@@ -88,11 +88,11 @@ test.describe("US-006 Demo", () => {
 
     // 7. L'amministratore atterra nel back office
     await page.waitForURL("**/anagrafiche**");
-    await expect(page.getByText("Tech Reloaded")).toBeVisible();
-    await expect(page.getByText("Amministratore")).toBeVisible();
+    await expect(page.getByRole("banner").getByText("Tech Reloaded")).toBeVisible();
+    await expect(page.getByRole("banner").getByText("Amministratore")).toBeVisible();
     await expect(page.getByText("Back office")).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Report per cliente" })
+      page.getByRole("heading", { name: "Clienti" })
     ).toBeVisible();
 
     // 8. Mantieni lo stato finale visibile per almeno 1.5 secondi

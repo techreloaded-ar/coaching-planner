@@ -84,7 +84,7 @@ test.describe("Auth e2e", () => {
     await page.waitForURL("**/anagrafiche**");
 
     // 2. Clicca Esci
-    const esciBtn = page.getByRole("button", { name: "Esci" });
+    const esciBtn = page.locator("[data-esci]");
     await expect(esciBtn).toBeVisible();
     await esciBtn.click();
 

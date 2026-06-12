@@ -72,7 +72,7 @@ async function main() {
       userId: collabUser.id,
       nome: "Giulia",
       cognome: "Conti",
-      partitaIva: "IT12345678901",
+      partitaIva: "12345678901",
       tariffaGiornaliera: "350.00",
     },
   });
@@ -84,7 +84,7 @@ async function main() {
   const cliente1 = await prisma.cliente.create({
     data: {
       ragioneSociale: "TechSolutions Srl",
-      partitaIva: "IT98765432109",
+      partitaIva: "98765432109",
       indirizzo: "Via Roma 42",
       citta: "Milano",
       cap: "20121",
@@ -111,7 +111,7 @@ async function main() {
   const cliente2 = await prisma.cliente.create({
     data: {
       ragioneSociale: "DataFlow SpA",
-      partitaIva: "IT11223344556",
+      partitaIva: "11223344556",
       indirizzo: "Corso Italia 15",
       citta: "Torino",
       cap: "10122",
@@ -138,7 +138,7 @@ async function main() {
   const cliente3 = await prisma.cliente.create({
     data: {
       ragioneSociale: "GreenEnergy Srl",
-      partitaIva: "IT55667788900",
+      partitaIva: "55667788900",
       indirizzo: "Via Verdi 8",
       citta: "Bologna",
       cap: "40121",

@@ -48,6 +48,7 @@ export default async function FrontOfficeLayout({
             <form action={disconnetti}>
               <button
                 type="submit"
+                data-esci
                 className="inline-flex items-center gap-1.5 rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750"
               >
                 <svg

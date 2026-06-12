@@ -47,11 +47,11 @@ test.describe("US-005 Demo", () => {
     await page.waitForURL("**/anagrafiche**");
 
     // 5. Verifica che l'header mostri il nome utente e il ruolo
-    await expect(page.getByText("Tech Reloaded")).toBeVisible();
-    await expect(page.getByText("Amministratore")).toBeVisible();
+    await expect(page.getByRole("banner").getByText("Tech Reloaded")).toBeVisible();
+    await expect(page.getByRole("banner").getByText("Amministratore")).toBeVisible();
 
     // 6. Verifica la presenza del pulsante Esci
-    const esciBtn = page.getByRole("button", { name: "Esci" });
+    const esciBtn = page.locator("[data-esci]");
     await expect(esciBtn).toBeVisible();
 
     // 7. Mantieni lo stato finale visibile per almeno 1.5 secondi

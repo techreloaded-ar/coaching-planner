@@ -25,11 +25,11 @@ describe("Connessione al database e dati seedati", () => {
   });
 
   it("dovrebbe restituire l'amministratore seedato", async () => {
-    const admin = await db.utente.findFirst({
-      where: { ruolo: "AMMINISTRATORE" },
+    const admin = await db.utente.findUnique({
+      where: { email: "info@techreloaded.it" },
     });
     expect(admin).not.toBeNull();
-    expect(admin!.email).toBe("admin@coachingplanner.local");
+    expect(admin!.email).toBe("info@techreloaded.it");
     expect(admin!.ruolo).toBe("AMMINISTRATORE");
   });
 

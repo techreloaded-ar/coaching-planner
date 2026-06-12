@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import {
   creaCliente,
@@ -47,7 +48,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
   return (
     <div>
       {/* Link indietro */}
-      <a
+      <Link
         href="/anagrafiche/clienti"
         className="mb-[14px] inline-flex items-center gap-[6px] text-[13px] font-semibold text-zinc-600 no-underline transition hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400"
       >
@@ -55,7 +56,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
           <path d="M19 12H5m6 6-6-6 6-6" />
         </svg>
         Torna all&apos;elenco clienti
-      </a>
+      </Link>
 
       {/* Intestazione view */}
       <div className="mb-[22px]">
@@ -232,12 +233,12 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               )}
             </span>
           )}
-          <a
+          <Link
             href="/anagrafiche/clienti"
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm no-underline transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750"
           >
             Annulla
-          </a>
+          </Link>
           <button
             type="submit"
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"

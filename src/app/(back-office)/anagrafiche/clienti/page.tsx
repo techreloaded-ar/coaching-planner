@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { richiediRuolo } from "@/lib/dal";
 import { elencaClienti } from "@/lib/clienti";
 import ClientiTabella from "./clienti-tabella";
@@ -22,7 +23,7 @@ export default async function ClientiPage() {
           </p>
         </div>
         <div className="mt-1 flex shrink-0 items-center gap-[10px]">
-          <a
+          <Link
             href="/anagrafiche/clienti/nuovo"
             className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[15px] py-[9px] text-[13.5px] font-semibold text-white shadow-sm no-underline transition hover:bg-indigo-600"
           >
@@ -30,7 +31,7 @@ export default async function ClientiPage() {
               <path d="M12 5v14M5 12h14" />
             </svg>
             Nuovo cliente
-          </a>
+          </Link>
         </div>
       </div>
 

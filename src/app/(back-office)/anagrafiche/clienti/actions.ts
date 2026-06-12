@@ -17,7 +17,7 @@ export interface StatoAction {
   successo?: boolean;
 }
 
-export function statoIniziale(): StatoAction {
+function statoIniziale(): StatoAction {
   return { errori: {} };
 }
 

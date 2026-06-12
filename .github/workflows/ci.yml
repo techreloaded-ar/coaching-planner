@@ -14,7 +14,12 @@ jobs:
 
     env:
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/coaching_planner_ci"
-      AUTH_SECRET: "ci-secret-not-for-production-use"
+      SESSION_SECRET: "ci-session-secret-not-for-production-use"
+      AUTH_SECRET: "ci-auth-secret-not-for-production-use"
+      GOOGLE_CLIENT_ID: "ci-google-client-id"
+      GOOGLE_CLIENT_SECRET: "ci-google-client-secret"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      E2E_TEST_MODE: "true"
       NODE_ENV: test
 
     services:
