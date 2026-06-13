@@ -157,7 +157,7 @@ test.describe("Anagrafica clienti", () => {
     await expect(clientiLink).toHaveAttribute("aria-current", "page");
 
     // Verifica le voci disabilitate con badge "In arrivo"
-    const vociDisabilitate = ["Offerte", "Collaboratori", "Scaglioni km", "Report"];
+    const vociDisabilitate = ["Offerte", "Scaglioni km", "Report"];
     for (const voce of vociDisabilitate) {
       const btn = page
         .locator("nav[aria-label='Navigazione principale'] button[disabled]")
@@ -166,6 +166,14 @@ test.describe("Anagrafica clienti", () => {
       await expect(btn).toHaveAttribute("aria-disabled", "true");
       await expect(btn.getByText("In arrivo")).toBeVisible();
     }
+
+    // Verifica che "Collaboratori" sia un link attivo e navigabile
+    // (US-009: la voce non è più disabilitata)
+    const collaboratoriLink = page
+      .locator("nav[aria-label='Navigazione principale'] a")
+      .filter({ hasText: "Collaboratori" });
+    await expect(collaboratoriLink).toBeVisible();
+    await expect(collaboratoriLink).toHaveAttribute("href", "/anagrafiche/collaboratori");
 
     // Verifica che i pulsanti disabilitati non siano link cliccabili
     // (sono <button disabled>, quindi Playwright non li clicca comunque)

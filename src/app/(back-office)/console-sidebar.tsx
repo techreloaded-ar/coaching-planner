@@ -47,7 +47,7 @@ const IconEsci = (
 const NAV_ITEMS = [
   { href: "/anagrafiche/clienti", label: "Clienti", icon: IconClienti },
   { label: "Offerte", icon: IconOfferte, disabled: true },
-  { label: "Collaboratori", icon: IconCollaboratori, disabled: true },
+  { href: "/anagrafiche/collaboratori", label: "Collaboratori", icon: IconCollaboratori },
   { label: "Scaglioni km", icon: IconScaglioni, disabled: true },
   { label: "Report", icon: IconReport, disabled: true },
 ] as const;

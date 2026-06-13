@@ -47,6 +47,80 @@ function valutaCallback(
   };
 }
 
+// ── Logica pura di revoca accesso collaboratori disattivati ────
+//
+// Replica la decisione applicata in:
+// - src/app/api/auth/google/callback/route.ts (passo 5)
+// - src/lib/dal.ts, _risolviSessione
+//
+// Dato l'utente trovato a DB (o null se non censito), decide se
+// l'accesso è consentito e con quale motivo in caso di rifiuto.
+
+type EsitoAccesso =
+  | { autorizzato: true }
+  | { autorizzato: false; motivo: string };
+
+const MOTIVO_NON_AUTORIZZATO =
+  "Questo account Google non è autorizzato ad accedere.";
+
+function valutaAccessoUtente(
+  utente: {
+    ruolo: Ruolo;
+    collaboratore: { attivo: boolean } | null;
+  } | null
+): EsitoAccesso {
+  if (!utente) {
+    return { autorizzato: false, motivo: MOTIVO_NON_AUTORIZZATO };
+  }
+
+  if (
+    utente.ruolo === "COLLABORATORE" &&
+    utente.collaboratore &&
+    utente.collaboratore.attivo === false
+  ) {
+    return { autorizzato: false, motivo: MOTIVO_NON_AUTORIZZATO };
+  }
+
+  return { autorizzato: true };
+}
+
+describe("auth — revoca accesso collaboratori disattivati (callback Google)", () => {
+  it("collaboratore con profilo disattivato → accesso negato (motivo generico)", () => {
+    const esito = valutaAccessoUtente({
+      ruolo: "COLLABORATORE",
+      collaboratore: { attivo: false },
+    });
+    expect(esito.autorizzato).toBe(false);
+    if (!esito.autorizzato) {
+      expect(esito.motivo).toBe(MOTIVO_NON_AUTORIZZATO);
+    }
+  });
+
+  it("collaboratore con profilo attivo → accesso consentito", () => {
+    const esito = valutaAccessoUtente({
+      ruolo: "COLLABORATORE",
+      collaboratore: { attivo: true },
+    });
+    expect(esito.autorizzato).toBe(true);
+  });
+
+  it("amministratore senza profilo collaboratore (collaboratore: null) → accesso consentito", () => {
+    const esito = valutaAccessoUtente({
+      ruolo: "AMMINISTRATORE",
+      collaboratore: null,
+    });
+    expect(esito.autorizzato).toBe(true);
+  });
+
+  it("utente non trovato → accesso negato (stesso motivo generico)", () => {
+    const esito = valutaAccessoUtente(null);
+    expect(esito.autorizzato).toBe(false);
+    if (!esito.autorizzato) {
+      expect(esito.motivo).toBe(MOTIVO_NON_AUTORIZZATO);
+    }
+  });
+});
+
 describe("auth — mappatura ruolo → destinazione", () => {
   it("AMMINISTRATORE → /anagrafiche", () => {
     expect(homePerRuolo("AMMINISTRATORE")).toBe("/anagrafiche");

@@ -68,11 +68,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // 5. Cerca l'utente per email
     const utente = await db.utente.findUnique({
       where: { email: profilo.email },
-      select: { id: true, ruolo: true, nome: true, email: true },
+      select: {
+        id: true,
+        ruolo: true,
+        nome: true,
+        email: true,
+        collaboratore: { select: { attivo: true } },
+      },
     });
 
     if (!utente) {
       // Email non censita → accesso negato, messaggio generico
+      return redirectWithError(
+        "Questo account Google non è autorizzato ad accedere."
+      );
+    }
+
+    if (
+      utente.ruolo === "COLLABORATORE" &&
+      utente.collaboratore &&
+      utente.collaboratore.attivo === false
+    ) {
+      // Collaboratore disattivato → accesso negato, stesso messaggio generico
       return redirectWithError(
         "Questo account Google non è autorizzato ad accedere."
       );

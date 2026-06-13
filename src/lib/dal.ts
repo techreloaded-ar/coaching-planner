@@ -30,10 +30,25 @@ async function _risolviSessione(): Promise<SessioneUtente | null> {
   // Verifica che l'utente esista ancora
   const utente = await db.utente.findUnique({
     where: { id: cookie.utenteId },
-    select: { id: true, ruolo: true, nome: true, email: true },
+    select: {
+      id: true,
+      ruolo: true,
+      nome: true,
+      email: true,
+      collaboratore: { select: { attivo: true } },
+    },
   });
 
   if (!utente) return null;
+
+  if (
+    utente.ruolo === "COLLABORATORE" &&
+    utente.collaboratore &&
+    utente.collaboratore.attivo === false
+  ) {
+    // Collaboratore disattivato → sessione non valida
+    return null;
+  }
 
   return {
     utenteId: utente.id,
