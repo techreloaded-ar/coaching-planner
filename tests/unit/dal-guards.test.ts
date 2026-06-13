@@ -119,6 +119,57 @@ describe("richiediSessioneApi", () => {
     expect(sessione.utenteId).toBe("admin-1");
     expect(sessione.ruolo).toBe("AMMINISTRATORE");
   });
+
+  it("lancia 401 se il collaboratore è stato disattivato (profilo collaboratore.attivo === false)", async () => {
+    mockGetSessionCookie.mockResolvedValue(
+      sessioneCookie("col-1", "COLLABORATORE")
+    );
+    mockUtente.findUnique.mockResolvedValue({
+      id: "col-1",
+      ruolo: "COLLABORATORE",
+      nome: "Giulia",
+      email: "giulia@test.local",
+      collaboratore: { attivo: false },
+    });
+
+    await expect(richiediSessioneApi()).rejects.toMatchObject({
+      statusCode: 401,
+    });
+  });
+
+  it("restituisce la sessione se il collaboratore è attivo", async () => {
+    mockGetSessionCookie.mockResolvedValue(
+      sessioneCookie("col-1", "COLLABORATORE")
+    );
+    mockUtente.findUnique.mockResolvedValue({
+      id: "col-1",
+      ruolo: "COLLABORATORE",
+      nome: "Giulia",
+      email: "giulia@test.local",
+      collaboratore: { attivo: true },
+    });
+
+    const sessione = await richiediSessioneApi();
+    expect(sessione.utenteId).toBe("col-1");
+    expect(sessione.ruolo).toBe("COLLABORATORE");
+  });
+
+  it("restituisce la sessione per un amministratore senza profilo collaboratore (collaboratore: null)", async () => {
+    mockGetSessionCookie.mockResolvedValue(
+      sessioneCookie("admin-1", "AMMINISTRATORE")
+    );
+    mockUtente.findUnique.mockResolvedValue({
+      id: "admin-1",
+      ruolo: "AMMINISTRATORE",
+      nome: "Admin",
+      email: "admin@test.local",
+      collaboratore: null,
+    });
+
+    const sessione = await richiediSessioneApi();
+    expect(sessione.utenteId).toBe("admin-1");
+    expect(sessione.ruolo).toBe("AMMINISTRATORE");
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════
