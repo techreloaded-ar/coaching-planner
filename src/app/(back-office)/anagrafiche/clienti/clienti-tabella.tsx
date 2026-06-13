@@ -107,7 +107,10 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
                     }`}
                   >
                     <td className="px-4 py-[13px] align-middle">
-                      <div className="flex items-center gap-[11px] min-w-0">
+                      <a
+                        href={`/anagrafiche/clienti/${cliente.id}`}
+                        className="flex min-w-0 items-center gap-[11px] rounded-[10px] no-underline outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-indigo-400 dark:hover:bg-zinc-800/40"
+                      >
                         <div
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-[11.5px] font-bold text-white ${
                             cliente.attivo
@@ -133,7 +136,7 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
                               : "Dati fatturazione da completare"}
                           </span>
                         </div>
-                      </div>
+                      </a>
                     </td>
                     <td className="px-4 py-[13px] align-middle tabular-nums">{cliente.partitaIva ?? "—"}</td>
                     <td className="px-4 py-[13px] align-middle">{sede || "—"}</td>
@@ -152,7 +155,7 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
                     </td>
                     <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
                       <a
-                        href={`/anagrafiche/clienti/${cliente.id}`}
+                        href={`/anagrafiche/clienti/${cliente.id}/modifica`}
                         className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>

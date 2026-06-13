@@ -73,7 +73,7 @@ test.describe("Anagrafica clienti", () => {
     await firstRow.getByRole("link", { name: "Modifica" }).click();
 
     // Attendi la pagina di modifica
-    await page.waitForURL(/\/anagrafiche\/clienti\/[^/]+$/);
+    await page.waitForURL(/\/anagrafiche\/clienti\/[^/]+\/modifica$/);
     await expect(
       page.getByRole("heading", { name: "Modifica cliente" })
     ).toBeVisible();

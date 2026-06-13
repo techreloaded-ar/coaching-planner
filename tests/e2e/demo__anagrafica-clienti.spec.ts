@@ -102,7 +102,7 @@ test.describe("US-007 Demo", () => {
     // ── 8. Clicca "Modifica" sul cliente ──────────────────────────
 
     await rigaCliente.getByRole("link", { name: "Modifica" }).click();
-    await page.waitForURL(/\/anagrafiche\/clienti\/[^/]+$/);
+    await page.waitForURL(/\/anagrafiche\/clienti\/[^/]+\/modifica$/);
     await expect(
       page.getByRole("heading", { name: "Modifica cliente" })
     ).toBeVisible();

@@ -1,0 +1,81 @@
+schema: archetipo/plan/v2
+spec_code: US-009
+body: "# US-009: Anagrafica collaboratori con tariffa e credenziali di accesso — Piano di Implementazione\n\n**Generato da:** ARchetipo Planning Team\n**Data:** 2026-06-12\n\n---\n\n## Spec\n\n**Epic:** EP-002 — Anagrafiche e Configurazione\n**Priorità:** HIGH | **Punti:** 3 | **Bloccata da:** -\n\n**Storia Utente**\nCome Stefano, amministratore, voglio censire i collaboratori con dati anagrafici, partita IVA e tariffa giornaliera, dotandoli di credenziali di accesso, così che ogni collaboratore possa entrare nel front office e i suoi consuntivi siano valorizzati con la tariffa corretta.\n\n**Criteri di Accettazione**\n- [ ] L'amministratore crea un collaboratore con dati anagrafici, partita IVA e tariffa giornaliera; i campi obbligatori sono validati\n- [ ] Alla creazione vengono predisposte le credenziali di accesso con ruolo collaboratore e il collaboratore può effettuare il login\n- [ ] L'amministratore modifica i dati e la tariffa di un collaboratore esistente\n- [ ] La disattivazione di un collaboratore ne revoca l'accesso, preservando lo storico delle sue attività\n\n---\n\n## Soluzione Tecnica\n\nTerzo CRUD del back office sul pattern stabilito da US-007 (dominio puro → DAL con guardie → Server Actions → view nella console), con una particolarità: le **credenziali di accesso**. L'autenticazione del progetto è Google OAuth con email pre-censite (US-005: il callback nega l'accesso alle email non presenti in `Utente`), quindi \"predisporre le credenziali\" significa creare l'`Utente` con l'email Google del collaboratore e ruolo `COLLABORATORE` — **nessuna password**. Le convenzioni Next.js 16 seguono le guide locali in `node_modules/next/dist/docs/` (mutating-data, forms, data-security, revalidating), come richiesto da AGENTS.md.\n\n- **Modello dati: nessuna migrazione.** `Collaboratore` esiste già in `prisma/schema.prisma:75` (nome, cognome, partitaIva, tariffaGiornaliera `Decimal(10,2)`, attivo, `userId @unique` verso `Utente`) e `Utente` ha `email @unique` e ruolo: lo schema copre interamente la spec. La creazione è una **transazione** `Utente` + `Collaboratore` (`db.$transaction`), così non possono esistere collaboratori senza credenziali né utenti orfani; `Utente.nome` è tenuto in sync come \"Nome Cognome\" (è il nome mostrato in sidebar e sessione).\n- **Validazione nel dominio** (`src/domain/anagrafiche/valida-collaboratore.ts`): funzioni pure senza dipendenze dal framework (ADR-006), simmetriche a `valida-cliente.ts` — nome e cognome obbligatori; email obbligatoria con formato valido (è la credenziale); partita IVA obbligatoria di 11 cifre (coerente con la regola dei clienti); tariffa giornaliera importo decimale strettamente positivo, max 2 decimali, parsing che accetta la virgola italiana; gli importi restano `Decimal` in tutta la catena (ADR-005, mai float). **Nota di coerenza:** il seed ha `partitaIva: \"IT12345678901\"` (13 caratteri) — va normalizzata a 11 cifre per restare conforme alla regola.\n- **DAL collaboratori** (`src/lib/collaboratori.ts`, `server-only`, guardia di ruolo AMMINISTRATORE da `src/lib/dal.ts`): `elencaCollaboratori()` con l'email dell'utente collegato (include su `utente`), ordinati per cognome; `collaboratorePerId(id)` con utente incluso; `elencaCollaboratoriSelezionabili()` che filtra `attivo: true` — unica fonte per le selezioni delle spec future (attività, report), simmetrica a `elencaClientiSelezionabili`.\n- **Server Actions** (`src/app/(back-office)/anagrafiche/collaboratori/actions.ts`, direttiva `use server`): `creaCollaboratore` (transazione `Utente` con ruolo COLLABORATORE + profilo `Collaboratore`; email duplicata intercettando l'errore Prisma `P2002` sul vincolo unique e tradotta in errore sul campo email, stesso pattern del codice offerta in US-008), `aggiornaCollaboratore` (aggiorna profilo e utente collegato; la modifica dell'email è la rettifica della credenziale — requisito GDPR del PRD), `cambiaStatoCollaboratore` (disattiva/riattiva, reversibile). Ogni action verifica il ruolo lato server con `richiediRuoloApi(\"AMMINISTRATORE\")` (guida data-security: le action sono raggiungibili via POST diretta), valida nel dominio, fa `revalidatePath` dell'elenco e restituisce la mappa errori per `useActionState`.\n- **Revoca dell'accesso alla disattivazione** — due punti di enforcement, nessuna cancellazione:\n  - **(a) Login**: nel callback Google (`src/app/api/auth/google/callback/route.ts`), dopo la ricerca dell'utente per email, se l'utente è COLLABORATORE con profilo `Collaboratore` disattivato l'accesso è negato con lo stesso messaggio generico delle email non censite.\n  - **(b) Sessioni già attive**: in `_risolviSessione` di `src/lib/dal.ts` la sessione di un utente COLLABORATORE con profilo disattivato risolve a `null` (utente trattato come non autenticato): poiché ogni richiesta passa di lì, la revoca è immediata anche per chi è già dentro. La query esistente si estende con l'include del flag `attivo` del collaboratore (nessuna query aggiuntiva).\n  - Lo storico resta intatto: `RigaAttivita.collaboratoreId` non viene mai toccato, il collaboratore è solo marcato `attivo: false`. La riattivazione ripristina il login.\n- **UI nella console** (mockup in `docs/mockups/US-009/`): la voce **Collaboratori** della sidebar (`console-sidebar.tsx`) si attiva e punta a `/anagrafiche/collaboratori` (già coperta da `policy-rotte.ts` via prefisso `/anagrafiche`). Elenco (mockup `index.html`): tabella con nome e cognome, email di accesso con stato della credenziale, P.IVA, tariffa formattata in € all'italiana, badge Attivo/Disattivato, righe disattivate attenuate, azioni Modifica e Disattiva (con conferma che esplicita la revoca dell'accesso e la conservazione dello storico)/Riattiva, pulsante \"Nuovo collaboratore\". Form (mockup `collaboratore-form.html`): creazione su `/anagrafiche/collaboratori/nuovo`, modifica su `/anagrafiche/collaboratori/[id]`, con errori per campo e nota che spiega l'accesso con account Google, senza password.\n\n**Assunzioni registrate:**\n- \"Credenziali di accesso\" = censimento dell'email Google con ruolo COLLABORATORE: deriva dall'architettura di autenticazione consegnata da US-005 (nessuna password nel sistema; accesso negato alle email non censite).\n- Il criterio \"il collaboratore può effettuare il login\" si verifica in e2e tramite l'endpoint di test `/api/e2e-test/sessione` (che simula il completamento dell'OAuth Google per un utente censito): il login Google reale non è automatizzabile in CI.\n- L'email del collaboratore è modificabile dall'amministratore (rettifica della credenziale); l'unicità è garantita dal vincolo a DB.\n\n---\n\n## Strategia di Test\n\nLa validazione è in funzioni pure con copertura unitaria piena; DAL, action e revoca dell'accesso si testano con mock di Prisma e sessione; gli e2e provano il ciclo completo — creazione con credenziali, login del collaboratore, revoca alla disattivazione — attraverso la UI reale.\n\n- **Unit (Vitest)** su `valida-collaboratore.ts`: obbligatorietà di nome, cognome, email, P.IVA e tariffa; formati (email invalida, P.IVA non di 11 cifre, tariffa zero/negativa/testo/troppe cifre decimali, virgola e punto come separatore); record valido → mappa errori vuota.\n- **Unit (Vitest)** su DAL e action con mock di Prisma e sessione: guardia di ruolo su ogni funzione e action; `creaCollaboratore` con dati invalidi non scrive a DB; creazione in transazione di utente e profilo con ruolo COLLABORATORE; errore `P2002` tradotto in errore sul campo email; `aggiornaCollaboratore` tiene in sync `Utente.nome` ed email; `cambiaStatoCollaboratore` aggiorna solo il flag; `elencaCollaboratoriSelezionabili` esclude i disattivati.\n- **Unit (Vitest)** sulla revoca: il callback Google nega il login al collaboratore disattivato (e continua ad ammettere amministratori e collaboratori attivi); `_risolviSessione` restituisce null per il collaboratore disattivato e la sessione valida per gli altri (estensione di `dal-guards.test.ts` / `auth-helpers.test.ts`).\n- **Regressione**: tutte le suite esistenti (unit e e2e di US-005/US-006/US-007) devono restare verdi; in particolare i flussi di login esistenti non devono essere alterati dal nuovo controllo nel callback e in `_risolviSessione`.\n\n### Test E2E — Simulazione Utente\n\n**Framework:** Playwright (config esistente `playwright.config.ts`; sessioni create via endpoint di test `/api/e2e-test/sessione`, seed dal global-setup)\n**Registrazione video:** solo lo scenario demo (campo Dimostrazione); gli altri scenari girano senza video\n\n| Scenario | Descrizione del flusso utente |\n|---|---|\n| Demo (con video): collaboratore censito e operativo | L'amministratore entra nella console, apre Collaboratori dalla sidebar, crea un collaboratore con dati anagrafici, P.IVA, tariffa giornaliera ed email di accesso e lo vede in elenco come Attivo; poi il collaboratore si autentica (sessione via endpoint di test, che simula il login Google dell'email appena censita) e atterra nel front office `/attivita`. Video in `docs/test-results/US-009/` (`demo__anagrafica-collaboratori.spec.ts`) |\n| Validazione dei campi | Submit del form senza campi obbligatori, con P.IVA non di 11 cifre e tariffa non positiva → errori per campo visibili, nessun collaboratore creato nell'elenco |\n| Email duplicata | Creazione di un secondo collaboratore con l'email di un utente esistente → rifiutata con messaggio chiaro sul campo email |\n| Modifica persistita | L'amministratore modifica tariffa e dati anagrafici di un collaboratore esistente, torna all'elenco e ricarica: i dati aggiornati sono persistiti |\n| Revoca e riattivazione | Il collaboratore disattivato perde l'accesso: la sua sessione attiva decade (redirect a /login) e il nuovo login è negato; l'elenco lo mostra Disattivato e lo storico resta consultabile; alla riattivazione il login torna possibile |\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-009/`\n\n_Piano generato via ARchetipo Planning — 2026-06-12_"
+tasks:
+  - id: TASK-01
+    title: Modulo di dominio valida-collaboratore (funzioni pure)
+    description: 'Creare src/domain/anagrafiche/valida-collaboratore.ts: nome, cognome, email (formato valido), partita IVA (11 cifre, regola coerente con valida-cliente) e tariffa giornaliera obbligatori; tariffa decimale strettamente positiva, max 2 decimali, parsing con virgola italiana; mappa errori per campo, nessuna dipendenza dal framework (ADR-006), importi Decimal in tutta la catena (ADR-005). Normalizzare nel seed la partitaIva del collaboratore demo (IT12345678901 → 11 cifre).'
+    type: Impl
+    status: DONE
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test della validazione collaboratore
+    description: 'Vitest su valida-collaboratore.ts: obbligatorietà di ogni campo, email invalida, P.IVA non di 11 cifre, tariffa zero/negativa/testo/troppe cifre decimali, virgola e punto come separatore decimale, record valido → mappa errori vuota.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    ref: TASK-02
+  - id: TASK-03
+    title: DAL collaboratori con guardia di ruolo (src/lib/collaboratori.ts)
+    description: 'Modulo server-only con elencaCollaboratori() (include utente per l''email, ordinati per cognome), collaboratorePerId(id) con utente incluso, ed elencaCollaboratoriSelezionabili() che filtra attivo: true come unica fonte per le selezioni delle spec future (attività, report). Ogni funzione protetta dalla guardia di ruolo AMMINISTRATORE di src/lib/dal.ts.'
+    type: Impl
+    status: DONE
+    ref: TASK-03
+  - id: TASK-04
+    title: Server Actions crea/aggiorna/cambia stato collaboratore
+    description: 'actions.ts in src/app/(back-office)/anagrafiche/collaboratori con use server: creaCollaboratore crea in transazione l''Utente (email, nome "Nome Cognome", ruolo COLLABORATORE) e il profilo Collaboratore, traducendo l''errore Prisma P2002 sull''email in errore di campo; aggiornaCollaboratore aggiorna profilo e utente collegato (nome ed email in sync); cambiaStatoCollaboratore disattiva/riattiva in modo reversibile. Ogni action con richiediRuoloApi("AMMINISTRATORE"), validazione via valida-collaboratore, revalidatePath dell''elenco e mappa errori per useActionState. Seguire le guide locali mutating-data e data-security di Next.js 16.'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+    ref: TASK-04
+  - id: TASK-05
+    title: Unit test di DAL e Server Actions collaboratori
+    description: 'Vitest con mock di Prisma e sessione: guardia di ruolo su ogni funzione e action; dati invalidi non scrivono a DB e restituiscono la mappa errori; creazione transazionale di utente e profilo con ruolo COLLABORATORE; P2002 → errore sul campo email; aggiornaCollaboratore tiene in sync Utente.nome ed email; cambiaStatoCollaboratore aggiorna solo il flag attivo; elencaCollaboratoriSelezionabili esclude i disattivati.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    ref: TASK-05
+  - id: TASK-06
+    title: Revoca dell'accesso ai collaboratori disattivati (login e sessioni attive)
+    description: 'Nel callback Google (src/app/api/auth/google/callback/route.ts) negare il login, con il messaggio generico esistente, agli utenti COLLABORATORE il cui profilo Collaboratore è disattivato. In _risolviSessione di src/lib/dal.ts estendere la query utente con il flag attivo del collaboratore e risolvere a null la sessione di un collaboratore disattivato, così la revoca è immediata anche per le sessioni già attive. Nessuna cancellazione: lo storico (RigaAttivita) resta intatto e la riattivazione ripristina il login.'
+    type: Impl
+    status: DONE
+    ref: TASK-06
+  - id: TASK-07
+    title: Unit test della revoca accesso
+    description: 'Vitest con mock di Prisma: il callback Google nega il login al collaboratore disattivato e continua ad ammettere amministratori e collaboratori attivi; _risolviSessione restituisce null per il collaboratore disattivato e la sessione valida per gli altri (estensione di dal-guards.test.ts / auth-helpers.test.ts). Le suite esistenti su login e sessioni restano verdi.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-06
+    ref: TASK-07
+  - id: TASK-08
+    title: View elenco collaboratori e attivazione voce sidebar (da mockup)
+    description: 'Implementare /anagrafiche/collaboratori come view della console secondo docs/mockups/US-009/index.html: tabella con nome e cognome, email di accesso, P.IVA, tariffa giornaliera formattata in € all''italiana, badge Attivo/Disattivato, righe disattivate attenuate, azioni Modifica e Disattiva (con conferma che esplicita revoca dell''accesso e conservazione dello storico)/Riattiva, pulsante Nuovo collaboratore. Attivare la voce Collaboratori in console-sidebar.tsx con href /anagrafiche/collaboratori (rotta già coperta da policy-rotte via prefisso /anagrafiche).'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+    ref: TASK-08
+  - id: TASK-09
+    title: Form di creazione e modifica collaboratore (da mockup)
+    description: Implementare /anagrafiche/collaboratori/nuovo e /anagrafiche/collaboratori/[id] come view nell'area contenuto della console, con il form collegato alle Server Actions via useActionState, errori di validazione per campo e la nota che spiega che il collaboratore accederà con il proprio account Google corrispondente all'email indicata (nessuna password), come nel mockup docs/mockups/US-009/collaboratore-form.html.
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-04
+    ref: TASK-09
+  - id: TASK-10
+    title: Test e2e Playwright con demo video
+    description: 'Scenari della strategia di test: demo con video (admin crea il collaboratore con tariffa ed email, il collaboratore si autentica via endpoint di test e atterra su /attivita — video in docs/test-results/US-009/, file demo__anagrafica-collaboratori.spec.ts), validazione campi, email duplicata, modifica persistita, revoca alla disattivazione (sessione attiva decaduta e login negato) e riattivazione. Solo lo scenario demo registra il video; le suite e2e esistenti restano verdi.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-06
+      - TASK-08
+      - TASK-09
+    ref: TASK-10

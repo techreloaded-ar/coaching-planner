@@ -6,7 +6,7 @@ epic:
   title: Anagrafiche e Configurazione
 priority: HIGH
 points: 2
-status: TODO
+status: PLANNED
 scope: MVP
 body: |-
   #### US-010: Configurazione degli scaglioni chilometrici per i rimborsi
@@ -30,3 +30,5 @@ body: |-
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-06-13T05:57:00Z"

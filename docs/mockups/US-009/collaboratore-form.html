@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuovo collaboratore — Coaching Planner</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+.form-card{max-width:760px;}
+.form-card .card-pad{padding:26px 28px 10px;}
+.form-foot{
+  display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  padding:16px 28px;border-top:1px solid var(--line);background:var(--surface-2);
+  border-radius:0 0 var(--radius) var(--radius);
+}
+.form-foot .stato-collaboratore{margin-right:auto;display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-3);}
+.back-link{
+  display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;
+  color:var(--ink-2);text-decoration:none;margin-bottom:14px;
+}
+.back-link svg{width:15px;height:15px;stroke-width:2.2;}
+.back-link:hover{color:var(--primary);}
+.note-form{max-width:760px;}
+</style>
+</head>
+<body>
+<div class="console">
+
+  <!-- ============ SIDEBAR DI NAVIGAZIONE ============ -->
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-mark">CP</div>
+      <div class="brand-name">
+        <b>Coaching Planner</b>
+        <span>Console gestionale</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" aria-label="Navigazione principale">
+      <span class="nav-label">Gestione</span>
+
+      <a class="nav-item" href="../US-007/index.html" title="Clienti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V8.5L9 4l6 4.5V21"/><path d="M15 21h6V11l-6-3"/><path d="M7.5 21v-4.5h3V21"/><path d="M7 9.5h.01M11 9.5h.01M7 13h.01M11 13h.01"/></svg>
+        <span class="lbl">Clienti</span>
+      </a>
+
+      <button class="nav-item disabled" type="button" disabled aria-disabled="true" title="Offerte — In arrivo (si gestiscono dal cliente)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        <span class="lbl">Offerte</span>
+        <span class="nav-soon">In arrivo</span>
+      </button>
+
+      <a class="nav-item active" href="index.html" aria-current="page" title="Collaboratori">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0"/><circle cx="17.2" cy="9.4" r="2.6"/><path d="M15.4 14.6a5 5 0 0 1 5.8 4.8"/></svg>
+        <span class="lbl">Collaboratori</span>
+      </a>
+
+      <button class="nav-item disabled" type="button" disabled aria-disabled="true" title="Scaglioni km — In arrivo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        <span class="lbl">Scaglioni km</span>
+        <span class="nav-soon">In arrivo</span>
+      </button>
+
+      <button class="nav-item disabled" type="button" disabled aria-disabled="true" title="Report — In arrivo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7.5 15.5v-4M12 15.5V7.5M16.5 15.5v-6"/></svg>
+        <span class="lbl">Report</span>
+        <span class="nav-soon">In arrivo</span>
+      </button>
+    </nav>
+
+    <div class="side-foot">
+      <div class="side-user">
+        <div class="avatar">SM</div>
+        <div class="meta">
+          <b>Stefano Marello</b>
+          <span>Amministratore</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+          <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm esci-btn" type="button" title="Disconnessione (vedi US-005)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+        <span class="lbl">Esci</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ============ AREA CONTENUTO — VIEW FORM COLLABORATORE ============ -->
+  <div class="main">
+    <main class="content">
+
+      <a class="back-link" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
+        Torna all'elenco collaboratori
+      </a>
+
+      <div class="view-head">
+        <div>
+          <div class="crumb">Anagrafiche · Collaboratori</div>
+          <h1 id="titoloPagina">Nuovo collaboratore</h1>
+          <div class="desc">Dati anagrafici, partita IVA e tariffa giornaliera; l'email è la credenziale con cui il collaboratore accede al front office.</div>
+        </div>
+      </div>
+
+      <form class="card form-card" id="formCollaboratore" novalidate>
+        <div class="card-pad">
+
+          <div class="alert alert-error" id="alertErrori" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4.5M12 17h.01"/><path d="M10.3 3.9 2.6 17.4A2 2 0 0 0 4.3 20.4h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+            <span>Controlla i campi evidenziati: alcuni dati obbligatori mancano o non sono validi.</span>
+          </div>
+
+          <div class="form-grid">
+
+            <!-- ===== Dati anagrafici ===== -->
+            <div class="fieldset-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+              Dati anagrafici
+            </div>
+
+            <div class="field" data-campo="nome">
+              <label for="nome">Nome <span class="req">*</span></label>
+              <input id="nome" name="nome" type="text" placeholder="Es. Giulia" autocomplete="given-name">
+              <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>Il nome è obbligatorio</span></p>
+            </div>
+
+            <div class="field" data-campo="cognome">
+              <label for="cognome">Cognome <span class="req">*</span></label>
+              <input id="cognome" name="cognome" type="text" placeholder="Es. Mantovani" autocomplete="family-name">
+              <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>Il cognome è obbligatorio</span></p>
+            </div>
+
+            <!-- ===== Credenziali di accesso ===== -->
+            <div class="fieldset-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="8" cy="14" r="4.2"/><path d="M11 11 20 2M16.5 5.5 19 8M14 8l2 2"/></svg>
+              Credenziali di accesso
+            </div>
+
+            <div class="field full" data-campo="email">
+              <label for="email">Email di accesso <span class="req">*</span></label>
+              <input id="email" name="email" type="email" placeholder="nome.cognome@gmail.com" autocomplete="email">
+              <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>L'email di accesso è obbligatoria</span></p>
+            </div>
+
+            <div class="nota-google">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+              <span><b>Accesso con Google, nessuna password da impostare</b> — il collaboratore entrerà nel front office accedendo con il proprio account Google corrispondente a questa email, con ruolo <b>collaboratore</b>.</span>
+            </div>
+
+            <!-- ===== Dati fiscali e tariffa ===== -->
+            <div class="fieldset-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M14.8 8.6a3.4 3.4 0 0 0-5.6 2.6 3.4 3.4 0 0 0 5.6 2.6M7.6 10.4h4.6M7.6 13h4.6"/></svg>
+              Dati fiscali e tariffa
+            </div>
+
+            <div class="field" data-campo="partitaIva">
+              <label for="partitaIva">Partita IVA <span class="req">*</span></label>
+              <input id="partitaIva" name="partitaIva" type="text" inputmode="numeric" maxlength="11" placeholder="11 cifre, es. 03481920457">
+              <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>La partita IVA è obbligatoria</span></p>
+            </div>
+
+            <div class="field" data-campo="tariffaGiornaliera">
+              <label for="tariffaGiornaliera">Tariffa giornaliera <span class="req">*</span></label>
+              <span class="input-affix">
+                <input id="tariffaGiornaliera" name="tariffaGiornaliera" type="text" inputmode="decimal" placeholder="Es. 520,00" autocomplete="off">
+                <span class="affix">€</span>
+              </span>
+              <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>La tariffa giornaliera è obbligatoria</span></p>
+              <span class="hint">Importo in euro, virgola per i decimali: valorizza i consuntivi del collaboratore</span>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="form-foot">
+          <span class="stato-collaboratore" id="statoCollaboratore" hidden>
+            Stato attuale: <span class="badge b-ok" id="badgeStato"><span class="d"></span>Attivo</span>
+          </span>
+          <a class="btn btn-ghost" href="index.html">Annulla</a>
+          <button class="btn btn-primary" type="submit" id="bottoneSalva">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+            Crea collaboratore
+          </button>
+        </div>
+      </form>
+
+      <div class="card note-card note-form">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+        <span><b>Nota US-009</b> — stessa view per creazione (<code>/anagrafiche/collaboratori/nuovo</code>) e modifica (<code>/anagrafiche/collaboratori/[id]</code>): con <code>?id=col-001</code> il titolo diventa «Modifica collaboratore» e i campi sono precompilati. Tutti i campi sono obbligatori e validati per campo: P.IVA di <b>11 cifre</b>, tariffa <b>decimale positiva</b> all'italiana (es. 520,00), email <b>unica</b> tra i collaboratori. Prova a salvare con campi vuoti o errati per vedere i messaggi sotto i campi.</span>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  CP.initTheme();
+
+  const form = document.getElementById('formCollaboratore');
+  const alertErrori = document.getElementById('alertErrori');
+  const idCollaboratore = new URLSearchParams(location.search).get('id');
+  const collaboratoreEsistente = idCollaboratore ? CP.trovaCollaboratore(idCollaboratore) : null;
+  const inModifica = Boolean(collaboratoreEsistente);
+
+  /* ---------- intestazione e precompilazione in modifica ---------- */
+  if (inModifica) {
+    document.title = 'Modifica collaboratore — Coaching Planner';
+    document.getElementById('titoloPagina').textContent = 'Modifica collaboratore';
+    document.getElementById('bottoneSalva').lastChild.textContent = ' Salva modifiche';
+
+    const statoCollaboratore = document.getElementById('statoCollaboratore');
+    statoCollaboratore.hidden = false;
+    if (!collaboratoreEsistente.attivo) {
+      const badge = document.getElementById('badgeStato');
+      badge.className = 'badge b-off';
+      badge.innerHTML = '<span class="d"></span>Disattivato';
+    }
+
+    form.elements.nome.value = collaboratoreEsistente.nome;
+    form.elements.cognome.value = collaboratoreEsistente.cognome;
+    form.elements.email.value = collaboratoreEsistente.email;
+    form.elements.partitaIva.value = collaboratoreEsistente.partitaIva;
+    form.elements.tariffaGiornaliera.value = new Intl.NumberFormat('it-IT', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(collaboratoreEsistente.tariffaGiornaliera);
+  }
+
+  /* ---------- validazione per campo ---------- */
+  const regole = {
+    nome: (valore) => {
+      if (!valore.trim()) return 'Il nome è obbligatorio';
+      return null;
+    },
+    cognome: (valore) => {
+      if (!valore.trim()) return 'Il cognome è obbligatorio';
+      return null;
+    },
+    email: (valore) => {
+      const email = valore.trim().toLowerCase();
+      if (!email) return 'L\'email di accesso è obbligatoria';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
+        return 'Inserisci un indirizzo email valido';
+      const duplicata = CP.caricaCollaboratori().some((collaboratore) =>
+        collaboratore.email.toLowerCase() === email && collaboratore.id !== idCollaboratore);
+      if (duplicata) return 'Esiste già un collaboratore con questa email di accesso';
+      return null;
+    },
+    partitaIva: (valore) => {
+      if (!valore.trim()) return 'La partita IVA è obbligatoria';
+      if (!/^\d{11}$/.test(valore.trim())) return 'La partita IVA deve essere di 11 cifre';
+      return null;
+    },
+    tariffaGiornaliera: (valore) => {
+      if (!valore.trim()) return 'La tariffa giornaliera è obbligatoria';
+      const importo = CP.interpretaImporto(valore);
+      if (Number.isNaN(importo)) return 'Importo non valido: usa la virgola per i decimali (es. 520,00)';
+      if (importo <= 0) return 'La tariffa giornaliera deve essere maggiore di zero';
+      return null;
+    }
+  };
+
+  function validaCampo(nomeCampo) {
+    const contenitore = form.querySelector(`[data-campo="${nomeCampo}"]`);
+    const messaggio = regole[nomeCampo](form.elements[nomeCampo].value);
+    contenitore.classList.toggle('invalid', Boolean(messaggio));
+    if (messaggio) contenitore.querySelector('.field-err span').textContent = messaggio;
+    return !messaggio;
+  }
+
+  /* l'errore si pulisce mentre l'utente corregge */
+  Object.keys(regole).forEach((nomeCampo) => {
+    form.elements[nomeCampo].addEventListener('input', () => {
+      const contenitore = form.querySelector(`[data-campo="${nomeCampo}"]`);
+      if (contenitore.classList.contains('invalid')) validaCampo(nomeCampo);
+    });
+  });
+
+  /* ---------- salvataggio ---------- */
+  form.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+
+    const tuttiValidi = Object.keys(regole)
+      .map((nomeCampo) => validaCampo(nomeCampo))
+      .every(Boolean);
+
+    if (!tuttiValidi) {
+      alertErrori.hidden = false;
+      alertErrori.classList.remove('pop'); void alertErrori.offsetWidth;
+      alertErrori.classList.add('pop');
+      form.querySelector('.field.invalid input')?.focus();
+      return;
+    }
+    alertErrori.hidden = true;
+
+    const dati = {
+      nome: form.elements.nome.value.trim(),
+      cognome: form.elements.cognome.value.trim(),
+      email: form.elements.email.value.trim().toLowerCase(),
+      partitaIva: form.elements.partitaIva.value.trim(),
+      tariffaGiornaliera: CP.interpretaImporto(form.elements.tariffaGiornaliera.value)
+    };
+
+    const lista = CP.caricaCollaboratori();
+    if (inModifica) {
+      const indice = lista.findIndex((collaboratore) => collaboratore.id === idCollaboratore);
+      lista[indice] = { ...lista[indice], ...dati };
+      CP.salvaCollaboratori(lista);
+      location.href = 'index.html?esito=salvato';
+    } else {
+      lista.push({ id: CP.nuovoIdCollaboratore(), ...dati, attivo: true });
+      CP.salvaCollaboratori(lista);
+      location.href = 'index.html?esito=creato';
+    }
+  });
+</script>
+</body>
+</html>

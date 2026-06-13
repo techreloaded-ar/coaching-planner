@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scaglioni km — Coaching Planner</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+.tbl th.col-soglia{width:160px;}
+.tbl th.col-importo{width:180px;}
+.tbl th.col-azioni{width:180px;}
+</style>
+</head>
+<body>
+<div class="console">
+
+  <!-- ============ SIDEBAR DI NAVIGAZIONE ============ -->
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-mark">CP</div>
+      <div class="brand-name">
+        <b>Coaching Planner</b>
+        <span>Console gestionale</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" aria-label="Navigazione principale">
+      <span class="nav-label">Gestione</span>
+
+      <a class="nav-item" href="../US-007/index.html" title="Clienti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V8.5L9 4l6 4.5V21"/><path d="M15 21h6V11l-6-3"/><path d="M7.5 21v-4.5h3V21"/><path d="M7 9.5h.01M11 9.5h.01M7 13h.01M11 13h.01"/></svg>
+        <span class="lbl">Clienti</span>
+      </a>
+
+      <button class="nav-item disabled" type="button" disabled aria-disabled="true" title="Offerte — si gestiscono dal cliente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        <span class="lbl">Offerte</span>
+      </button>
+
+      <a class="nav-item" href="../US-009/index.html" title="Collaboratori">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0"/><circle cx="17.2" cy="9.4" r="2.6"/><path d="M15.4 14.6a5 5 0 0 1 5.8 4.8"/></svg>
+        <span class="lbl">Collaboratori</span>
+      </a>
+
+      <a class="nav-item active" href="index.html" aria-current="page" title="Scaglioni km">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        <span class="lbl">Scaglioni km</span>
+      </a>
+
+      <button class="nav-item disabled" type="button" disabled aria-disabled="true" title="Report — In arrivo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7.5 15.5v-4M12 15.5V7.5M16.5 15.5v-6"/></svg>
+        <span class="lbl">Report</span>
+        <span class="nav-soon">In arrivo</span>
+      </button>
+    </nav>
+
+    <div class="side-foot">
+      <div class="side-user">
+        <div class="avatar">SM</div>
+        <div class="meta">
+          <b>Stefano Marello</b>
+          <span>Amministratore</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+          <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm esci-btn" type="button" title="Disconnessione (vedi US-005)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+        <span class="lbl">Esci</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ============ AREA CONTENUTO — VIEW SCAGLIONI KM ============ -->
+  <div class="main">
+    <main class="content">
+
+      <div class="view-head">
+        <div>
+          <div class="crumb">Anagrafiche</div>
+          <h1>Scaglioni chilometrici</h1>
+          <div class="desc">Per ogni soglia di distanza definisci l'importo forfettario del rimborso trasferta. Le fasce sono contigue: ogni scaglione copre i chilometri fino alla sua soglia, a partire dalla soglia precedente.</div>
+        </div>
+        <div class="view-actions">
+          <a class="btn btn-primary" href="scaglione-form.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+            Nuovo scaglione
+          </a>
+        </div>
+      </div>
+
+      <section class="card">
+        <div class="tbl-toolbar">
+          <span class="badge b-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:13px;height:13px;stroke-width:2"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+            Configurazione rimborsi trasferta
+          </span>
+          <span class="toolbar-count" id="conteggioScaglioni">—</span>
+        </div>
+
+        <table class="tbl" aria-label="Elenco scaglioni chilometrici">
+          <thead>
+            <tr>
+              <th>Fascia chilometrica</th>
+              <th class="col-soglia">Soglia massima</th>
+              <th class="col-importo">Importo forfettario</th>
+              <th class="col-azioni" aria-label="Azioni"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoTabella"><!-- righe generate da JS --></tbody>
+        </table>
+
+        <div id="statoVuoto" class="empty-state" hidden>
+          <div class="ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+          </div>
+          <h3>Nessuno scaglione configurato</h3>
+          <p>Finché non definisci almeno uno scaglione, i rimborsi trasferta non possono essere calcolati. Inizia dalla soglia più bassa.</p>
+          <a class="btn btn-primary" href="scaglione-form.html" style="display:inline-flex">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+            Nuovo scaglione
+          </a>
+        </div>
+      </section>
+
+      <div class="card note-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+        <span><b>Nota US-010</b> — con questa user story la voce <b>Scaglioni km</b> della sidebar diventa attiva e punta a <code>/anagrafiche/scaglioni</code>. Le soglie devono essere <b>strettamente crescenti e non sovrapposte</b>: la vista è sempre ordinata per soglia e le fasce («Da A a B km») si calcolano dalla soglia precedente. Gli importi sono decimali positivi formattati in € all'italiana. <b>Elimina</b> rimuove lo scaglione previa conferma. Il prototipo persiste le modifiche in locale.</span>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============ MODALE DI CONFERMA ELIMINAZIONE ============ -->
+<div class="modal-backdrop" id="modaleElimina" role="dialog" aria-modal="true" aria-labelledby="modaleTitolo">
+  <div class="modal">
+    <div class="modal-ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/></svg>
+    </div>
+    <h3 id="modaleTitolo">Eliminare lo scaglione?</h3>
+    <p id="modaleTesto">Lo scaglione verrà rimosso dalla configurazione. Le fasce successive si ricalcoleranno automaticamente partendo dalla soglia precedente rimasta. L'operazione è definitiva.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" id="modaleAnnulla">Annulla</button>
+      <button class="btn btn-danger" type="button" id="modaleConferma">Elimina scaglione</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  CP.initTheme();
+
+  const corpoTabella = document.getElementById('corpoTabella');
+  const statoVuoto = document.getElementById('statoVuoto');
+  const conteggio = document.getElementById('conteggioScaglioni');
+  const modale = document.getElementById('modaleElimina');
+  const modaleTitolo = document.getElementById('modaleTitolo');
+
+  let scaglioneDaEliminare = null;
+
+  function rigaScaglione(scaglione, sogliaMin) {
+    const tr = document.createElement('tr');
+    const etichetta = CP.etichettaFascia(sogliaMin, scaglione.finoAKm);
+
+    tr.innerHTML = `
+      <td>
+        <div class="fascia-cell">
+          <span class="av-sq">${scaglione.finoAKm}</span>
+          <div class="fascia-nome">
+            <b>${etichetta}</b>
+            <span>Rimborso forfettario di fascia</span>
+          </div>
+        </div>
+      </td>
+      <td class="soglia tnum">fino a ${scaglione.finoAKm} km</td>
+      <td class="importo tnum">${CP.formattaEuro(scaglione.importo)}</td>
+      <td class="azioni">
+        <a class="row-action act-edit" href="scaglione-form.html?id=${scaglione.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16.5 3.7a2.2 2.2 0 0 1 3.1 3.1L7.5 18.9 3 20l1.1-4.5L16.5 3.7Z"/></svg>
+          Modifica
+        </a>
+        <button class="row-action act-del" type="button" data-elimina="${scaglione.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/></svg>
+          Elimina
+        </button>
+      </td>`;
+    return tr;
+  }
+
+  function disegnaElenco() {
+    const scaglioni = CP.caricaScaglioni(); // già ordinati per soglia crescente
+
+    corpoTabella.innerHTML = '';
+    if (!scaglioni.length) {
+      statoVuoto.hidden = false;
+      corpoTabella.closest('table').hidden = true;
+      conteggio.textContent = 'Nessuno scaglione';
+      return;
+    }
+
+    statoVuoto.hidden = true;
+    corpoTabella.closest('table').hidden = false;
+
+    let sogliaPrecedente = 0;
+    scaglioni.forEach((scaglione) => {
+      const sogliaMin = sogliaPrecedente === 0 ? 0 : sogliaPrecedente + 1;
+      corpoTabella.appendChild(rigaScaglione(scaglione, sogliaMin));
+      sogliaPrecedente = scaglione.finoAKm;
+    });
+
+    const massima = scaglioni[scaglioni.length - 1].finoAKm;
+    conteggio.textContent = `${scaglioni.length} scaglioni · copertura fino a ${massima} km`;
+  }
+
+  function elimina(idScaglione) {
+    const lista = CP.caricaScaglioni().filter((scaglione) => scaglione.id !== idScaglione);
+    CP.salvaScaglioni(lista);
+    disegnaElenco();
+    CP.toast('Scaglione eliminato: le fasce sono state ricalcolate');
+  }
+
+  /* azioni di riga (delegate) */
+  corpoTabella.addEventListener('click', (evento) => {
+    const bottoneDel = evento.target.closest('[data-elimina]');
+    if (bottoneDel) {
+      scaglioneDaEliminare = bottoneDel.dataset.elimina;
+      const scaglione = CP.trovaScaglione(scaglioneDaEliminare);
+      modaleTitolo.textContent = `Eliminare lo scaglione «fino a ${scaglione.finoAKm} km»?`;
+      modale.classList.add('open');
+    }
+  });
+
+  /* modale di conferma */
+  document.getElementById('modaleAnnulla').addEventListener('click', () => modale.classList.remove('open'));
+  modale.addEventListener('click', (evento) => { if (evento.target === modale) modale.classList.remove('open'); });
+  document.addEventListener('keydown', (evento) => { if (evento.key === 'Escape') modale.classList.remove('open'); });
+  document.getElementById('modaleConferma').addEventListener('click', () => {
+    modale.classList.remove('open');
+    if (scaglioneDaEliminare) elimina(scaglioneDaEliminare);
+    scaglioneDaEliminare = null;
+  });
+
+  /* feedback di ritorno dal form */
+  const esito = new URLSearchParams(location.search).get('esito');
+  if (esito === 'creato') CP.toast('Scaglione creato e inserito nella configurazione');
+  if (esito === 'salvato') CP.toast('Modifiche allo scaglione salvate');
+  if (esito) history.replaceState(null, '', 'index.html');
+
+  disegnaElenco();
+</script>
+</body>
+</html>

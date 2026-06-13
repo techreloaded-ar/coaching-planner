@@ -6,7 +6,7 @@ epic:
   title: Anagrafiche e Configurazione
 priority: HIGH
 points: 3
-status: TODO
+status: REVIEW
 scope: MVP
 body: |-
   #### US-009: Anagrafica collaboratori con tariffa e credenziali di accesso
@@ -27,6 +27,15 @@ body: |-
   - [ ] Alla creazione vengono predisposte le credenziali di accesso con ruolo collaboratore e il collaboratore può effettuare il login
   - [ ] L'amministratore modifica i dati e la tariffa di un collaboratore esistente
   - [ ] La disattivazione di un collaboratore ne revoca l'accesso, preservando lo storico delle sue attività
+branch: archetipo/US-009
+worktree: .archetipo/worktrees/US-009
+fork_base: 6d16c91266dd976f1f52cd81df83e50668ac753b
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-06-12T20:24:12Z"
+  - status: IN PROGRESS
+    at: "2026-06-13T05:50:37Z"
+  - status: REVIEW
+    at: "2026-06-13T07:44:13Z"

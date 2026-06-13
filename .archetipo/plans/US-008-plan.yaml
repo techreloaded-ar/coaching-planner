@@ -6,60 +6,69 @@ tasks:
     title: Modulo di dominio valida-offerta (funzioni pure)
     description: 'Creare src/domain/anagrafiche/valida-offerta.ts sul pattern di valida-cliente.ts: codice e descrizione obbligatori, tariffa giornaliera decimale strettamente positiva (parsing con virgola italiana, max 2 decimali, mai float — ADR-005), giorni previsti intero strettamente positivo; mappa errori per campo, senza dipendenze dal framework (ADR-006).'
     type: Impl
-    status: TODO
+    status: DONE
+    ref: TASK-01
   - id: TASK-02
     title: Unit test della validazione offerta
     description: 'Vitest su valida-offerta.ts: obbligatorietà di codice e descrizione; tariffa valida con virgola e con punto, invalida se zero, negativa, testuale o con troppe cifre decimali; giorni invalidi se zero, negativi, decimali o testuali; record valido → nessun errore.'
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
+    ref: TASK-02
   - id: TASK-03
     title: DAL offerte con guardia di ruolo (src/lib/offerte.ts)
     description: Modulo server-only con elencaOffertePerCliente(clienteId) ordinata per codice e offertaPerId(id) con cliente incluso, ogni funzione protetta dalla guardia AMMINISTRATORE di src/lib/dal.ts; il cliente di appartenenza si risolve con clientePerId del DAL clienti di US-007.
     type: Impl
-    status: TODO
+    status: DONE
+    ref: TASK-03
   - id: TASK-04
     title: Server Actions crea/aggiorna offerta
     description: 'actions.ts in src/app/(back-office)/anagrafiche/clienti/[id]/offerte con use server: creaOfferta e aggiornaOfferta con verifica del ruolo lato server, validazione via valida-offerta, rifiuto della creazione su cliente disattivato (AC US-007), unicità codice per cliente via gestione dell''errore Prisma P2002 tradotto in errore sul campo codice, revalidatePath delle pagine del cliente e mappa errori per useActionState. Seguire le guide locali mutating-data e data-security di Next.js 16.'
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
       - TASK-03
+    ref: TASK-04
   - id: TASK-05
     title: Unit test di DAL e Server Actions offerte
     description: 'Vitest con mock di Prisma e sessione: guardia di ruolo su ogni funzione e action; dati invalidi → nessuna scrittura a DB e mappa errori; creazione su cliente disattivato rifiutata; P2002 → errore sul campo codice; aggiornaOfferta persiste e rivalida i path.'
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
+    ref: TASK-05
   - id: TASK-06
     title: Sezione Offerte nel dettaglio cliente (da mockup)
     description: 'Aggiungere alla pagina /anagrafiche/clienti/[id] (consegnata da US-007) la sezione Offerte del mockup docs/mockups/US-008/index.html: tabella con codice, descrizione, tariffa giornaliera formattata in € all''italiana, giorni previsti, azione Modifica e pulsante Nuova offerta, alimentata da elencaOffertePerCliente.'
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
+    ref: TASK-06
   - id: TASK-07
     title: Form di creazione e modifica offerta (da mockup)
     description: Implementare /anagrafiche/clienti/[id]/offerte/nuova e /anagrafiche/clienti/[id]/offerte/[offertaId] come view nell'area contenuto della console, con il form offerta collegato alle Server Actions via useActionState, errori di validazione per campo, intestazione con la ragione sociale del cliente e link di ritorno, come nel mockup docs/mockups/US-008/offerta-form.html.
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
       - TASK-06
+    ref: TASK-07
   - id: TASK-08
     title: Test e2e del CRUD offerte nella console
     description: 'Playwright (anagrafica-offerte.spec.ts, senza video): validazione di tariffa e giorni non positivi senza creazione, codice duplicato per lo stesso cliente rifiutato con messaggio sul campo, modifica persistita dopo reload, elenco offerte con codice/descrizione/tariffa/giorni. Sessione amministratore via /api/e2e-test/sessione; regressione sul CRUD clienti di US-007.'
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-07
+    ref: TASK-08
   - id: TASK-09
     title: 'Demo e2e con video: offerte di un cliente'
     description: 'demo__anagrafica-offerte.spec.ts con video on (pattern di demo__accesso-con-google.spec.ts): l''amministratore entra nella console, apre Clienti, apre un cliente, aggiunge un''offerta con codice, descrizione, tariffa e giorni previsti e vede l''elenco delle offerte del cliente. Video depositato in docs/test-results/US-008/.'
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-08
+    ref: TASK-09
