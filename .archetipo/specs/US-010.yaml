@@ -6,7 +6,7 @@ epic:
   title: Anagrafiche e Configurazione
 priority: HIGH
 points: 2
-status: PLANNED
+status: DONE
 scope: MVP
 body: |-
   #### US-010: Configurazione degli scaglioni chilometrici per i rimborsi
@@ -27,8 +27,17 @@ body: |-
   - [ ] Le soglie devono essere strettamente crescenti e non sovrapposte; configurazioni non valide sono rifiutate con messaggio chiaro
   - [ ] Gli importi sono decimali positivi
   - [ ] La configurazione corrente degli scaglioni è consultabile in un'unica vista ordinata per soglia
+branch: archetipo/US-010
+worktree: .archetipo/worktrees/US-010
+fork_base: c2a34caaa862c6f7b40677300023e776a9432b42
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
   - status: PLANNED
     at: "2026-06-13T05:57:00Z"
+  - status: IN PROGRESS
+    at: "2026-06-15T07:01:33Z"
+  - status: REVIEW
+    at: "2026-06-15T07:46:01Z"
+  - status: DONE
+    at: "2026-06-15T12:23:38Z"
