@@ -131,7 +131,7 @@ model Offerta {
 
 model ScaglioneKm {
   id        String   @id @default(uuid())
-  finoAKm   Int
+  finoAKm   Int      @unique
   importo   Decimal  @db.Decimal(10, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

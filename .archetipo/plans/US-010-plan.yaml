@@ -6,55 +6,63 @@ tasks:
     title: Modulo di dominio valida-scaglione (funzioni pure)
     description: 'Creare src/domain/anagrafiche/valida-scaglione.ts: validaScaglione(record) con soglia finoAKm obbligatoria e intero strettamente positivo, importo obbligatorio decimale strettamente positivo (max 2 decimali, parsing con virgola o punto) riusando normalizzaTariffaGiornaliera di valida-offerta; verificaSogliaUnica(finoAKm, soglieEsistenti, idEscluso?) che segnala la sovrapposizione con messaggio chiaro escludendo lo scaglione in modifica. Nessuna dipendenza dal framework (ADR-006), importi Decimal in tutta la catena (ADR-005).'
     type: Impl
-    status: TODO
+    status: DONE
+    ref: TASK-01
   - id: TASK-02
     title: Unit test della validazione scaglione
     description: 'Vitest su valida-scaglione.ts: obbligatorietà di soglia e importo; soglia non intera/zero/negativa; importo zero/negativo/testo/troppe cifre decimali, virgola e punto come separatore; verificaSogliaUnica che rileva la sovrapposizione e ammette la modifica dello stesso scaglione; record valido → mappa errori vuota.'
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
+    ref: TASK-02
   - id: TASK-03
     title: Vincolo @unique su ScaglioneKm.finoAKm e migrazione
     description: Aggiungere il vincolo @unique a finoAKm in prisma/schema.prisma (ScaglioneKm) per garantire soglie distinte e quindi fasce non sovrapposte a livello DB; generare la migrazione e rigenerare il client Prisma. È la rete di sicurezza definitiva contro le sovrapposizioni concorrenti, intercettabile come P2002 nelle action.
     type: Impl
-    status: TODO
+    status: DONE
+    ref: TASK-03
   - id: TASK-04
     title: DAL scaglioni con guardia di ruolo (src/lib/scaglioni.ts)
     description: Modulo server-only con elencaScaglioni() ordinati per finoAKm crescente (unica fonte per la vista e per il futuro calcolo dei rimborsi) e scaglionePerId(id). Ogni funzione protetta dalla guardia di ruolo AMMINISTRATORE di src/lib/dal.ts. Nessuna logica di calcolo del rimborso in questo modulo.
     type: Impl
-    status: TODO
+    status: DONE
+    ref: TASK-04
   - id: TASK-05
     title: Server Actions crea/aggiorna/elimina scaglione
     description: 'actions.ts in src/app/(back-office)/anagrafiche/scaglioni con use server: creaScaglione, aggiornaScaglione, eliminaScaglione. Ogni action con richiediRuoloApi("AMMINISTRATORE"), validazione dei campi via valida-scaglione, controllo di unicità della soglia (escludendo sé stessa in modifica) con esito tradotto in errore sul campo finoAKm, intercettando anche il P2002 del vincolo DB; normalizzazione importo; revalidatePath dell''elenco e mappa errori per useActionState. Seguire le guide locali mutating-data e data-security di Next.js 16.'
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
       - TASK-03
       - TASK-04
+    ref: TASK-05
   - id: TASK-06
     title: Unit test di DAL e Server Actions scaglioni
     description: 'Vitest con mock di Prisma e sessione: guardia di ruolo su ogni funzione e action; dati invalidi non scrivono a DB e restituiscono la mappa errori; soglia duplicata rifiutata con errore sul campo finoAKm sia per verifica pura sia per P2002; elencaScaglioni ordina per soglia crescente; crea/aggiorna/elimina eseguono la mutazione attesa.'
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
       - TASK-05
+    ref: TASK-06
   - id: TASK-07
     title: View elenco scaglioni e attivazione voce sidebar (da mockup)
     description: 'Implementare /anagrafiche/scaglioni come view della console secondo docs/mockups/US-010/index.html: tabella sempre ordinata per soglia crescente con etichetta di fascia calcolata (Fino a / Da A a B km), soglia massima, importo formattato in € all''italiana, azioni Modifica ed Elimina (con modale di conferma collegata a eliminaScaglione), pulsante Nuovo scaglione e stato vuoto. Attivare la voce Scaglioni km in console-sidebar.tsx con href /anagrafiche/scaglioni (rotta già coperta da policy-rotte via prefisso /anagrafiche).'
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
+    ref: TASK-07
   - id: TASK-08
     title: Form di creazione e modifica scaglione (da mockup)
     description: Implementare /anagrafiche/scaglioni/nuovo e /anagrafiche/scaglioni/[id] come view nell'area contenuto della console, con il form (soglia in km, importo in €) collegato alle Server Actions via useActionState, errori di validazione per campo e l'anteprima della fascia coperta, come nel mockup docs/mockups/US-010/scaglione-form.html.
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-05
+    ref: TASK-08
   - id: TASK-09
     title: Test e2e Playwright con demo video
     description: 'Scenari della strategia di test: demo con video (admin configura ''fino a 100 km'' e ''fino a 200 km'' e rivede la configurazione ordinata — video in docs/test-results/US-010/, file demo__anagrafica-scaglioni.spec.ts), validazione campi, soglia duplicata/sovrapposta rifiutata, modifica persistita, eliminazione con conferma e ricalcolo delle fasce. Solo lo scenario demo registra il video; le suite e2e esistenti restano verdi.'
@@ -64,3 +72,4 @@ tasks:
       - TASK-05
       - TASK-07
       - TASK-08
+    ref: TASK-09
