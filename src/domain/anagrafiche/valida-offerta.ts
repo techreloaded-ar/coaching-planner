@@ -3,10 +3,10 @@
 
 /** Dati in ingresso per la validazione di un'offerta */
 export interface DatiOffertaInput {
-  codice: string;
-  descrizione: string;
-  tariffaGiornaliera: string;
-  giorniPrevisti: string;
+	codice: string;
+	descrizione: string;
+	tariffaGiornaliera: string;
+	giorniPrevisti: string;
 }
 
 /** Mappa campo → messaggio di errore. Vuota se la validazione passa. */
@@ -16,8 +16,8 @@ const RE_IMPORTO = /^\d+(?:[.,]\d{1,2})?$/;
 const RE_INTERO = /^-?\d+$/;
 
 export interface TariffaNormalizzata {
-  valore: string;
-  centesimi: bigint;
+	valore: string;
+	centesimi: bigint;
 }
 
 /**
@@ -25,23 +25,23 @@ export interface TariffaNormalizzata {
  * Accetta sia virgola italiana sia punto come separatore decimale.
  */
 export function normalizzaTariffaGiornaliera(
-  valore: string
+	valore: string,
 ): TariffaNormalizzata | null {
-  const pulito = valore.trim().replace(/\s+/g, "");
+	const pulito = valore.trim().replace(/\s+/g, "");
 
-  if (!RE_IMPORTO.test(pulito)) {
-    return null;
-  }
+	if (!RE_IMPORTO.test(pulito)) {
+		return null;
+	}
 
-  const [interaRaw, decimaleRaw = ""] = pulito.replace(",", ".").split(".");
-  const intera = String(BigInt(interaRaw));
-  const decimale = decimaleRaw.padEnd(2, "0");
-  const centesimi = BigInt(intera) * 100n + BigInt(decimale);
+	const [interaRaw, decimaleRaw = ""] = pulito.replace(",", ".").split(".");
+	const intera = String(BigInt(interaRaw));
+	const decimale = decimaleRaw.padEnd(2, "0");
+	const centesimi = BigInt(intera) * BigInt(100) + BigInt(decimale);
 
-  return {
-    valore: `${intera}.${decimale}`,
-    centesimi,
-  };
+	return {
+		valore: `${intera}.${decimale}`,
+		centesimi,
+	};
 }
 
 /**
@@ -49,44 +49,43 @@ export function normalizzaTariffaGiornaliera(
  * Restituisce `{}` se tutti i controlli passano.
  */
 export function validaOfferta(
-  dati: DatiOffertaInput
+	dati: DatiOffertaInput,
 ): ErroriValidazioneOfferta {
-  const errori: ErroriValidazioneOfferta = {};
+	const errori: ErroriValidazioneOfferta = {};
 
-  if (!dati.codice || dati.codice.trim() === "") {
-    errori.codice = "Il codice offerta è obbligatorio";
-  }
+	if (!dati.codice || dati.codice.trim() === "") {
+		errori.codice = "Il codice offerta è obbligatorio";
+	}
 
-  if (!dati.descrizione || dati.descrizione.trim() === "") {
-    errori.descrizione = "La descrizione è obbligatoria";
-  }
+	if (!dati.descrizione || dati.descrizione.trim() === "") {
+		errori.descrizione = "La descrizione è obbligatoria";
+	}
 
-  if (!dati.tariffaGiornaliera || dati.tariffaGiornaliera.trim() === "") {
-    errori.tariffaGiornaliera = "La tariffa giornaliera è obbligatoria";
-  } else {
-    const tariffa = normalizzaTariffaGiornaliera(dati.tariffaGiornaliera);
+	if (!dati.tariffaGiornaliera || dati.tariffaGiornaliera.trim() === "") {
+		errori.tariffaGiornaliera = "La tariffa giornaliera è obbligatoria";
+	} else {
+		const tariffa = normalizzaTariffaGiornaliera(dati.tariffaGiornaliera);
 
-    if (!tariffa) {
-      errori.tariffaGiornaliera =
-        "Importo non valido: usa massimo 2 decimali";
-    } else if (tariffa.centesimi <= 0n) {
-      errori.tariffaGiornaliera =
-        "La tariffa giornaliera deve essere maggiore di zero";
-    }
-  }
+		if (!tariffa) {
+			errori.tariffaGiornaliera = "Importo non valido: usa massimo 2 decimali";
+		} else if (tariffa.centesimi <= BigInt(0)) {
+			errori.tariffaGiornaliera =
+				"La tariffa giornaliera deve essere maggiore di zero";
+		}
+	}
 
-  if (!dati.giorniPrevisti || dati.giorniPrevisti.trim() === "") {
-    errori.giorniPrevisti = "I giorni previsti sono obbligatori";
-  } else {
-    const giorni = dati.giorniPrevisti.trim();
+	if (!dati.giorniPrevisti || dati.giorniPrevisti.trim() === "") {
+		errori.giorniPrevisti = "I giorni previsti sono obbligatori";
+	} else {
+		const giorni = dati.giorniPrevisti.trim();
 
-    if (!RE_INTERO.test(giorni)) {
-      errori.giorniPrevisti = "Inserisci un numero intero di giorni (es. 10)";
-    } else if (parseInt(giorni, 10) <= 0) {
-      errori.giorniPrevisti =
-        "I giorni previsti devono essere maggiori di zero";
-    }
-  }
+		if (!RE_INTERO.test(giorni)) {
+			errori.giorniPrevisti = "Inserisci un numero intero di giorni (es. 10)";
+		} else if (parseInt(giorni, 10) <= 0) {
+			errori.giorniPrevisti =
+				"I giorni previsti devono essere maggiori di zero";
+		}
+	}
 
-  return errori;
+	return errori;
 }

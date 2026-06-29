@@ -39,10 +39,25 @@ Apri [http://localhost:3000](http://localhost:3000) nel browser.
 
 | Variabile | Descrizione |
 |---|---|
-| `DATABASE_URL` | Stringa di connessione PostgreSQL (es. `postgresql://user:pass@localhost:5432/coaching_planner`) |
+| `DATABASE_URL` | Stringa di connessione PostgreSQL usata normalmente dall'applicazione (es. `postgresql://user:pass@localhost:5432/coaching_planner`) |
+| `E2E_DATABASE_URL` | Stringa di connessione PostgreSQL dedicata agli end-to-end (es. `postgresql://user:pass@localhost:5432/coaching_planner_e2e`) |
 | `AUTH_SECRET` | Segreto per Auth.js (genera con `openssl rand -base64 32`) |
+| `SESSION_SECRET` | Chiave usata per firmare/cifrare la sessione applicativa |
 
 Copia `.env.example` in `.env.local` e personalizza i valori. `.env.local` non viene mai committato.
+
+### Test end-to-end e database dedicato
+
+`npm run test:e2e` richiede `E2E_DATABASE_URL` valorizzata verso un database dedicato ai test e vuoto nelle tabelle applicative.
+
+Durante la suite e2e Playwright:
+
+- avvia Next con `DATABASE_URL=E2E_DATABASE_URL`
+- applica le migrazioni al database e2e
+- esegue il seed sul database e2e
+- ripulisce i dati applicativi al teardown finale
+
+`DATABASE_URL` resta quindi il database normale dell'applicazione fuori dai test e2e.
 
 ## Struttura del Progetto
 

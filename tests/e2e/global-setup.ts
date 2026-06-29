@@ -1,22 +1,46 @@
 import { execSync } from "node:child_process";
-import type { FullConfig } from "@playwright/test";
+
+import {
+	assertE2eDatabaseHasNoApplicationData,
+	requireE2eDatabaseUrl,
+} from "./e2e-database-safety";
 
 /**
- * Playwright global setup: esegue il seed del database prima della suite e2e.
+ * Playwright global setup: allinea schema e dati del database prima della suite e2e.
  */
-async function globalSetup(_config: FullConfig) {
-  console.log("🌱 Esecuzione seed database...");
-  try {
-    execSync("npx prisma db seed", {
-      cwd: process.cwd(),
-      stdio: "inherit",
-      env: { ...process.env },
-    });
-    console.log("✅ Seed completato.");
-  } catch (error) {
-    console.error("❌ Errore durante il seed:", error);
-    throw error;
-  }
+async function globalSetup() {
+	const e2eDatabaseUrl = requireE2eDatabaseUrl();
+	const e2eEnvironment = {
+		...process.env,
+		DATABASE_URL: e2eDatabaseUrl,
+		E2E_DATABASE_URL: e2eDatabaseUrl,
+		E2E_TEST_MODE: "true",
+	};
+
+	try {
+		console.log("🔒 Verifica che il database e2e sia vuoto...");
+		await assertE2eDatabaseHasNoApplicationData(e2eDatabaseUrl);
+		console.log("✅ Database e2e pronto: nessun dato applicativo presente.");
+
+		console.log("🗃️ Applicazione migrazioni database e2e...");
+		execSync("npm run db:migrate:deploy", {
+			cwd: process.cwd(),
+			stdio: "inherit",
+			env: e2eEnvironment,
+		});
+		console.log("✅ Migrazioni completate.");
+
+		console.log("🌱 Esecuzione seed database e2e...");
+		execSync("npm run db:seed", {
+			cwd: process.cwd(),
+			stdio: "inherit",
+			env: e2eEnvironment,
+		});
+		console.log("✅ Seed completato.");
+	} catch (error) {
+		console.error("❌ Errore durante la preparazione del database e2e:", error);
+		throw error;
+	}
 }
 
 export default globalSetup;
