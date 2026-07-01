@@ -44,11 +44,8 @@ test.describe("US-013 Validazione — Trasferta km", () => {
     await inputKm.fill("999");
 
     // Verifica messaggio di errore visibile
-    await expect(
-      page.locator("#trasfertaKm + span + p, #trasfertaKm ~ p")
-        .filter({ hasText: /soglia/i })
-        .first()
-    ).toBeVisible();
+    // Il messaggio è un <p> fratello del flex-container (che contiene input+span), non dell'input
+    await expect(page.getByText(/soglia massima/i)).toBeVisible();
 
     // Verifica che la preview non mostri un importo (nessun OK)
     await expect(page.getByText("Rimborso stimato")).not.toBeVisible();

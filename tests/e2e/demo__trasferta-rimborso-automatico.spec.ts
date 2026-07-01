@@ -74,7 +74,9 @@ test.describe("US-013 Demo — Trasferta con rimborso automatico", () => {
     // Inserisci km e verifica preview rimborso
     await inputKm.fill("150");
     await expect(page.getByText("Rimborso stimato")).toBeVisible();
-    await expect(page.getByText(/€\s*\d+[,\.]\d{2}/)).toBeVisible();
+    // Scope la ricerca € al contenitore della preview (evita conflitto con "€ 0.00" del riepilogo)
+    const previewContainer = page.getByText(/Rimborso stimato/).locator('xpath=..');
+    await expect(previewContainer.getByText(/€/)).toBeVisible();
 
     // Salva riga
     await bottoneAggiungiRiga.click();
