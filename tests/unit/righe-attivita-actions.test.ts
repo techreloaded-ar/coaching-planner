@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { creaRiga, modificaRiga, eliminaRiga } from "@/lib/actions/righe-attivita";
+import { creaRiga, modificaRiga, eliminaRiga, rimuoviTrasferta } from "@/lib/actions/righe-attivita";
 
 // ── Mock di Prisma ──────────────────────────────────────────────
 
@@ -10,9 +10,19 @@ const mockRigaAttivita = vi.hoisted(() => ({
   findUnique: vi.fn(),
 }));
 
+const mockScaglioneKm = vi.hoisted(() => ({
+  findMany: vi.fn(),
+}));
+
+const mockOfferta = vi.hoisted(() => ({
+  findUnique: vi.fn(),
+}));
+
 vi.mock("@/lib/db", () => ({
   db: {
     rigaAttivita: mockRigaAttivita,
+    scaglioneKm: mockScaglioneKm,
+    offerta: mockOfferta,
   },
 }));
 
@@ -73,6 +83,17 @@ function collaboratoreMock() {
 describe("creaRiga", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock offerta valida per tutte le chiamate (necessario per verificaOffertaCliente)
+    mockOfferta.findUnique.mockResolvedValue({
+      clienteId: "cliente-1",
+      attiva: true,
+    });
+    // Mock scaglioni per validazione km (quando presente)
+    mockScaglioneKm.findMany.mockResolvedValue([
+      { finoAKm: 50, importo: "15.00" },
+      { finoAKm: 100, importo: "28.00" },
+      { finoAKm: 250, importo: "85.00" },
+    ]);
   });
 
   it("crea un record con tutti i campi corretti", async () => {
@@ -101,9 +122,51 @@ describe("creaRiga", () => {
     expect(chiamata.data.ore).toBe(8);
     expect(chiamata.data.nota).toBe("Analisi requisiti");
     expect(chiamata.data.fatturabile).toBe(true);
+    expect(chiamata.data.trasfertaKm).toBeNull();
 
     // Verifica revalidate
     expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita/2026-07-01");
+  });
+
+  it("crea una riga con trasfertaKm valido", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRigaAttivita.create.mockResolvedValue({ id: "riga-1" });
+
+    const fd = creaFormData({
+      clienteId: "cliente-1",
+      offertaId: "offerta-1",
+      ore: "8",
+      data: "2026-07-01",
+      trasfertaKm: "150",
+    });
+    fd.append("fatturabile", "on");
+
+    const result = await creaRiga(fd);
+
+    expect(result.success).toBe(true);
+    expect(mockRigaAttivita.create).toHaveBeenCalledTimes(1);
+
+    const chiamata = mockRigaAttivita.create.mock.calls[0][0];
+    expect(chiamata.data.trasfertaKm).toBe(150);
+  });
+
+  it("rifiuta trasfertaKm oltre soglia massima", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+
+    const fd = creaFormData({
+      clienteId: "cliente-1",
+      offertaId: "offerta-1",
+      ore: "8",
+      data: "2026-07-01",
+      trasfertaKm: "500",
+    });
+
+    const result = await creaRiga(fd);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(result.error).toContain("250");
+    expect(mockRigaAttivita.create).not.toHaveBeenCalled();
   });
 
   it("crea una riga con fatturabile disattivato", async () => {
@@ -190,6 +253,27 @@ describe("creaRiga", () => {
     expect(result.error).toBe("Compila tutti i campi obbligatori");
   });
 
+  it("rifiuta offerta non appartenente al cliente", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockOfferta.findUnique.mockResolvedValue({
+      clienteId: "cliente-altro",
+      attiva: true,
+    });
+
+    const fd = creaFormData({
+      clienteId: "cliente-1",
+      offertaId: "offerta-altrui",
+      ore: "8",
+      data: "2026-07-01",
+    });
+
+    const result = await creaRiga(fd);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("appartiene");
+    expect(mockRigaAttivita.create).not.toHaveBeenCalled();
+  });
+
   it("restituisce errore se non autenticato", async () => {
     mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
 
@@ -212,6 +296,11 @@ describe("creaRiga", () => {
 describe("modificaRiga", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockScaglioneKm.findMany.mockResolvedValue([
+      { finoAKm: 50, importo: "15.00" },
+      { finoAKm: 100, importo: "28.00" },
+      { finoAKm: 250, importo: "85.00" },
+    ]);
   });
 
   it("aggiorna i campi modificati", async () => {
@@ -241,6 +330,46 @@ describe("modificaRiga", () => {
     expect(chiamata.data.fatturabile).toBe(true);
 
     expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita/2026-07-01");
+  });
+
+  it("aggiorna trasfertaKm a un nuovo valore valido", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+    });
+    mockRigaAttivita.update.mockResolvedValue({ id: "riga-1" });
+
+    const fd = creaFormData({
+      rigaId: "riga-1",
+      trasfertaKm: "150",
+      data: "2026-07-01",
+    });
+
+    const result = await modificaRiga(fd);
+
+    expect(result.success).toBe(true);
+    const chiamata = mockRigaAttivita.update.mock.calls[0][0];
+    expect(chiamata.data.trasfertaKm).toBe(150);
+  });
+
+  it("rimuove trasfertaKm quando inviato vuoto", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+    });
+    mockRigaAttivita.update.mockResolvedValue({ id: "riga-1" });
+
+    const fd = creaFormData({
+      rigaId: "riga-1",
+      trasfertaKm: "",
+      data: "2026-07-01",
+    });
+
+    const result = await modificaRiga(fd);
+
+    expect(result.success).toBe(true);
+    const chiamata = mockRigaAttivita.update.mock.calls[0][0];
+    expect(chiamata.data.trasfertaKm).toBeNull();
   });
 
   it("rifiuta riga di altro collaboratore", async () => {
@@ -346,6 +475,63 @@ describe("eliminaRiga", () => {
     mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
 
     const result = await eliminaRiga("riga-1");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("collaboratore");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+
+describe("rimuoviTrasferta", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("imposta trasfertaKm a null sulla riga propria", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRigaAttivita.findUnique
+      .mockResolvedValueOnce({ collaboratoreId: "collab-giulia" })
+      .mockResolvedValueOnce({ data: new Date(2026, 6, 1) });
+    mockRigaAttivita.update.mockResolvedValue({ id: "riga-1" });
+
+    const result = await rimuoviTrasferta("riga-1");
+
+    expect(result.success).toBe(true);
+    expect(mockRigaAttivita.update).toHaveBeenCalledWith({
+      where: { id: "riga-1" },
+      data: { trasfertaKm: null },
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita/2026-07-01");
+  });
+
+  it("rifiuta riga di altro collaboratore", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-altro",
+    });
+
+    const result = await rimuoviTrasferta("riga-altrui");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("altro collaboratore");
+    expect(mockRigaAttivita.update).not.toHaveBeenCalled();
+  });
+
+  it("rifiuta riga inesistente", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRigaAttivita.findUnique.mockResolvedValue(null);
+
+    const result = await rimuoviTrasferta("riga-inesistente");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Riga non trovata");
+  });
+
+  it("restituisce errore se non autenticato", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
+
+    const result = await rimuoviTrasferta("riga-1");
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("collaboratore");

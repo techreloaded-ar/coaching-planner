@@ -222,7 +222,7 @@ async function main() {
         trasfertaKm: 45,
       },
     }),
-    // Giorno 4: 2 righe su offerte diverse
+    // Giorno 4: 2 righe su offerte diverse (una include trasferta demo)
     prisma.rigaAttivita.create({
       data: {
         collaboratoreId: collaboratore.id,
@@ -232,6 +232,7 @@ async function main() {
         ore: "7.00",
         nota: "Setup ambiente di sviluppo",
         fatturabile: true,
+        trasfertaKm: 150,
       },
     }),
     prisma.rigaAttivita.create({

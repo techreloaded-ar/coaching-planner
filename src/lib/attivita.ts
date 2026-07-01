@@ -3,7 +3,8 @@ import "server-only";
 import { db } from "@/lib/db";
 import { richiediCollaboratoreCorrente, ErroreAutorizzazione } from "@/lib/dal";
 import { parseTokenMese } from "@/domain/calendario";
-import type { RigaAttivita, Offerta, Cliente } from "@/generated/prisma/client";
+import type { RigaAttivita, Offerta, Cliente, ScaglioneKm } from "@/generated/prisma/client";
+import { type ScaglioneRimborso } from "@/domain/consuntivi";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -228,4 +229,32 @@ export async function offerteAttivePerCliente(
     },
     orderBy: { codice: "asc" },
   });
+}
+
+/**
+ * Restituisce gli scaglioni km per il calcolo del rimborso trasferta.
+ *
+ * Accessibile al collaboratore autenticato (a differenza di src/lib/scaglioni.ts
+ * che è admin-only). Lancia ErroreAutorizzazione se non autenticato o se non
+ * è un collaboratore.
+ *
+ * @returns Scaglioni ordinati per soglia crescente
+ */
+export async function scaglioniRimborsoTrasferta(): Promise<ScaglioneRimborso[]> {
+  const collaboratore = await richiediCollaboratoreCorrente();
+  if (!collaboratore) {
+    throw new ErroreAutorizzazione(
+      401,
+      "Devi essere un collaboratore per visualizzare gli scaglioni di rimborso"
+    );
+  }
+
+  const scaglioni = await db.scaglioneKm.findMany({
+    orderBy: { finoAKm: "asc" },
+  });
+
+  return scaglioni.map((s: ScaglioneKm) => ({
+    finoAKm: s.finoAKm,
+    importo: s.importo.toString(),
+  }));
 }
