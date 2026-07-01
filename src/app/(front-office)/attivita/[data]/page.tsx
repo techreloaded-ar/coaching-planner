@@ -130,7 +130,6 @@ export default async function DettaglioGiornataPage({
         data={dataStr}
         righeIniziali={righeClient}
         clienti={clientiSelect}
-        meseToken={meseToken ?? null}
       />
     </>
   );

@@ -36,12 +36,6 @@ const IconReport = (
   </svg>
 );
 
-const IconEsci = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px]" strokeWidth={2}>
-    <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" /><path d="m16 17 5-5-5-5M21 12H9" />
-  </svg>
-);
-
 // ── Dati di navigazione ────────────────────────────────────────
 
 const NAV_ITEMS = [

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { richiediCollaboratoreCorrente, ErroreAutorizzazione } from "@/lib/dal";
+import { richiediCollaboratoreCorrente } from "@/lib/dal";
 import { validaOre } from "@/domain/consuntivi";
 import { offerteAttivePerCliente } from "@/lib/attivita";
 
@@ -226,7 +226,7 @@ export async function fetchOffertePerCliente(
   try {
     const offerte = await offerteAttivePerCliente(clienteId);
     return { success: true, data: offerte };
-  } catch (e) {
+  } catch {
     return { success: false, error: "Errore nel recupero delle offerte" };
   }
 }

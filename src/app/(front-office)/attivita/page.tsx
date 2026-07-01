@@ -30,7 +30,7 @@ export default async function AttivitaPage({
   const etichetta = etichettaMese(token);
 
   // Dati del mese
-  const { perGiorno, righe } = await attivitaDelMese(token);
+  const { perGiorno } = await attivitaDelMese(token);
   const griglia = costruisciGrigliaMese(token);
 
   // Conversione Map → plain object e Date → string per il passaggio al client component

@@ -8,7 +8,6 @@ import {
   meseSuccessivo,
   costruisciGrigliaMese,
 } from "@/domain/calendario";
-import type { CellaGiorno } from "@/domain/calendario";
 
 // ── Helpers ─────────────────────────────────────────────────────
 

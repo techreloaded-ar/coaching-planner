@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionCookie, deleteSession } from "@/lib/session";
 import type { Ruolo } from "@/domain/types";
-import type { Utente, Collaboratore } from "@/generated/prisma/client";
+import type { Collaboratore } from "@/generated/prisma/client";
 import { homePerRuolo } from "@/lib/policy-rotte";
 
 // ── Tipi ────────────────────────────────────────────────────────

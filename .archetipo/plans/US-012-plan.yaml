@@ -5,7 +5,7 @@ tasks:
   - id: TASK-01
     title: 'Validazione dominio: funzione pura validaOre'
     type: Impl
-    status: TODO
+    status: DONE
     body: |
       ## Descrizione
 
@@ -34,10 +34,11 @@ tasks:
       - [ ] `validaOre("")` restituisce `{ valido: false, errore: "..." }`
       - [ ] `validaOre("25")` restituisce `{ valido: false, errore: "..." }` (max 24h)
       - [ ] `validaOre("  4  ")` restituisce `{ valido: true, valore: 4 }` (trim)
+    ref: TASK-01
   - id: TASK-02
     title: Unit test validazione ore
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |
@@ -53,10 +54,11 @@ tasks:
       - [ ] Test copre input non validi: zero, negativi, testo, vuoto, > 24
       - [ ] Ogni caso verifica il campo `errore` per i casi non validi
       - [ ] `npx vitest run tests/unit/valida-ore.test.ts` passa con 0 failure
+    ref: TASK-02
   - id: TASK-03
     title: 'Accesso dati: righe del giorno, clienti e offerte attivi per il collaboratore'
     type: Impl
-    status: TODO
+    status: DONE
     body: |
       ## Descrizione
 
@@ -81,10 +83,11 @@ tasks:
       - [ ] `clientiAttiviPerSelezione()` restituisce solo clienti con `attivo: true`, ordinati
       - [ ] `offerteAttivePerCliente()` restituisce solo offerte con `attiva: true` per quel cliente
       - [ ] Tutte le funzioni richiedono autenticazione come collaboratore
+    ref: TASK-03
   - id: TASK-04
     title: 'Server Actions: crea, modifica, elimina riga attività'
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
       - TASK-03
@@ -115,10 +118,11 @@ tasks:
       - [ ] `eliminaRiga` cancella il record e rifiuta righe di altri collaboratori
       - [ ] Ogni mutazione riuscita fa revalidate del percorso
       - [ ] Le azioni sono marcate `"use server"` e esportate come funzioni async
+    ref: TASK-04
   - id: TASK-05
     title: Unit test Server Actions (con db mockato)
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
     body: |
@@ -140,10 +144,11 @@ tasks:
       - [ ] Test copre eliminazione: successo e rifiuto per riga altrui
       - [ ] Test copre caso senza autenticazione (errore atteso)
       - [ ] `npx vitest run tests/unit/righe-attivita-actions.test.ts` passa con 0 failure
+    ref: TASK-05
   - id: TASK-06
     title: Pagina dettaglio giornata — Server Component /attivita/[data]
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
       - TASK-04
@@ -173,10 +178,11 @@ tasks:
       - [ ] La pagina carica i clienti attivi per la select
       - [ ] I dati vengono serializzati correttamente per il Client Component
       - [ ] È presente un link "Torna al calendario" che preserva il contesto del mese
+    ref: TASK-06
   - id: TASK-07
     title: Client Component DettaglioGiornata — form interattivo e lista righe
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-06
     body: |
@@ -219,10 +225,11 @@ tasks:
       - [ ] L'eliminazione rimuove la riga dalla lista
       - [ ] Il riepilogo giornata (righe, ore, fatturabili) si aggiorna dopo ogni operazione
       - [ ] Il componente è responsive e accessibile
+    ref: TASK-07
   - id: TASK-08
     title: 'Aggiornare il calendario: link ai giorni con attività'
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-07
     body: |
@@ -248,10 +255,11 @@ tasks:
       - [ ] La nota "In arrivo (US-012)" è rimossa
       - [ ] Il badge con numero righe e ore totali per giorno rimane visibile
       - [ ] La navigazione tra mesi funziona invariata
+    ref: TASK-08
   - id: TASK-09
     title: Aggiornare il seed con attività nel mese corrente
     type: Impl
-    status: TODO
+    status: DONE
     body: |
       ## Descrizione
 
@@ -271,10 +279,11 @@ tasks:
       - [ ] Almeno un giorno ha 2+ righe su clienti/offerte diversi
       - [ ] Sono presenti righe fatturabili e non fatturabili
       - [ ] `npx prisma db seed` esegue senza errori
+    ref: TASK-09
   - id: TASK-10
     title: 'Test E2E: flusso inserimento, modifica ed eliminazione righe'
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-07
       - TASK-09
@@ -310,3 +319,4 @@ tasks:
       - [ ] Lo scenario mese concluso verifica l'assenza di blocchi temporali
       - [ ] `npx playwright test tests/e2e/demo__inserimento-righe-attivita.spec.ts` passa
       - [ ] Il video del demo scenario viene generato in `docs/test-results/US-012/`
+    ref: TASK-10

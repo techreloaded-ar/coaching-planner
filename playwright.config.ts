@@ -11,6 +11,9 @@ if (!e2eDatabaseUrl) {
 	);
 }
 
+const webServerCommand =
+	process.env.PLAYWRIGHT_WEB_SERVER_COMMAND?.trim() || "npm run dev";
+
 const configuredSessionSecret = process.env.SESSION_SECRET?.trim();
 const e2eSessionSecret =
 	configuredSessionSecret &&
@@ -45,7 +48,7 @@ export default defineConfig({
 		},
 	],
 	webServer: {
-		command: "npm run dev",
+		command: webServerCommand,
 		env: e2eEnvironment,
 		url: "http://localhost:3000",
 		reuseExistingServer: false,

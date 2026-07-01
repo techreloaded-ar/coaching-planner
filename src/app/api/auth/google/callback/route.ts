@@ -23,7 +23,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const codeVerifier = cookieStore.get("google_oauth_code_verifier")?.value;
 
     if (!savedState || !codeVerifier) {
-      return redirectWithError("Sessione OAuth scaduta. Riprova.");
+      return redirectWithError();
     }
 
     // 2. Valida il state contro il query param
@@ -34,15 +34,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (error) {
       console.error("Google OAuth error:", error);
-      return redirectWithError("Autenticazione Google annullata.");
+      return redirectWithError();
     }
 
     if (!code || !state) {
-      return redirectWithError("Parametri di callback mancanti.");
+      return redirectWithError();
     }
 
     if (state !== savedState) {
-      return redirectWithError("Stato OAuth non valido.");
+      return redirectWithError();
     }
 
     // 3. Scambia il codice con i token e recupera il profilo
@@ -51,18 +51,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const risultato = await scambiaCodice(code, codeVerifier);
 
     if (!risultato) {
-      return redirectWithError(
-        "Impossibile completare l'autenticazione con Google."
-      );
+      return redirectWithError();
     }
 
     const { profilo } = risultato;
 
     // 4. Verifica email verificata
     if (!profilo.email_verified) {
-      return redirectWithError(
-        "L'email Google non è verificata. Verifica la tua email Google e riprova."
-      );
+      return redirectWithError();
     }
 
     // 5. Cerca l'utente per email
@@ -79,9 +75,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (!utente) {
       // Email non censita → accesso negato, messaggio generico
-      return redirectWithError(
-        "Questo account Google non è autorizzato ad accedere."
-      );
+      return redirectWithError();
     }
 
     if (
@@ -90,9 +84,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       utente.collaboratore.attivo === false
     ) {
       // Collaboratore disattivato → accesso negato, stesso messaggio generico
-      return redirectWithError(
-        "Questo account Google non è autorizzato ad accedere."
-      );
+      return redirectWithError();
     }
 
     // 6. Upsert dell'Account (provider google)
@@ -146,15 +138,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return response;
   } catch (err) {
     console.error("Errore callback Google:", err);
-    return redirectWithError(
-      "Si è verificato un errore durante l'autenticazione."
-    );
+    return redirectWithError();
   }
 }
 
 // ── Helper ──────────────────────────────────────────────────────
 
-function redirectWithError(_dettaglio?: string): NextResponse {
+function redirectWithError(): NextResponse {
   // Messaggio generico verso l'esterno, il dettaglio è solo per i log
   const response = NextResponse.redirect(
     new URL("/login?error=1", baseUrl())

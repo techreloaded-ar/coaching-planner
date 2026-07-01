@@ -27,9 +27,6 @@ body: |-
   - [ ] La collaboratrice naviga al mese precedente e successivo senza limiti di periodo
   - [ ] I giorni con attività registrate sono distinguibili e mostrano una sintesi delle righe presenti
   - [ ] Sono visibili esclusivamente le attività della collaboratrice autenticata
-branch: archetipo/US-011
-worktree: .archetipo/worktrees/US-011
-fork_base: c2a34caaa862c6f7b40677300023e776a9432b42
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"

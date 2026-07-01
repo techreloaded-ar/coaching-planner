@@ -25,8 +25,6 @@ interface DettaglioGiornataProps {
   righeIniziali: RigaAttivitaClient[];
   /** Clienti attivi per la select */
   clienti: ClienteSelect[];
-  /** Token mese YYYY-MM per il link di ritorno (null se non disponibile) */
-  meseToken: string | null;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -65,13 +63,12 @@ export default function DettaglioGiornata({
   data,
   righeIniziali,
   clienti,
-  meseToken,
 }: DettaglioGiornataProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // ── Stato righe ────────────────────────────────────────────
-  const [righe, setRighe] = useState<RigaAttivitaClient[]>(righeIniziali);
+  // ── Dati righe refreshed dal server ───────────────────────
+  const righe = righeIniziali;
 
   // ── Stato form ─────────────────────────────────────────────
   const [clienteId, setClienteId] = useState("");

@@ -21,7 +21,6 @@ export type ErroriValidazione = Record<string, string>;
 // Regex pre-compilate (istanziate una volta sola)
 // ---------------------------------------------------------------------------
 
-const RE_SOLO_CIFRE = /^\d+$/;
 const RE_CIFRE_11 = /^\d{11}$/;
 const RE_CIFRE_5 = /^\d{5}$/;
 const RE_ALFANUM_16 = /^[A-Z0-9]{16}$/;

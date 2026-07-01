@@ -81,12 +81,10 @@ test.describe("US-011 Demo", () => {
 
     // ── 6. Verifica che ci siano giorni con attività (seed) ────────
 
-    // I giorni con attività hanno sfondo rose-50 e sono cliccabili (button)
-    const giorniConAttivita = calendario.locator("button").filter({
-      has: calendario.locator(".bg-rose-600, .border-rose-200"),
-    });
+    // Nel calendario i giorni con attività sono renderizzati come link verso
+    // il dettaglio giornata; il seed corrente copre 3 giorni distinti del mese.
+    const giorniConAttivita = calendario.locator('a[href^="/attivita/"]');
 
-    // Dovrebbero esserci almeno 4 giorni nel seed (giorni 2-5 del mese corrente)
     const count = await giorniConAttivita.count();
     expect(count).toBeGreaterThanOrEqual(3);
 
@@ -96,22 +94,25 @@ test.describe("US-011 Demo", () => {
     // Deve mostrare il numero di righe e le ore
     await expect(primaCella.locator("text=/\\d+(\\.\\d+)?\\s*h/")).toBeVisible();
 
-    // ── 8. Clicca su un giorno con attività → apre il drawer ───────
+    // ── 8. Clicca su un giorno con attività → pagina dettaglio ─────
 
     await primaCella.click();
+    await page.waitForURL("**/attivita/*");
 
-    // Il drawer deve aprirsi (diventa visibile)
-    const drawer = page.getByLabel("Dettaglio attività della giornata");
-    await expect(drawer).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Torna al calendario" })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /\d{1,2} .* \d{4}/ })
+    ).toBeVisible();
+    await expect(page.getByText("Righe registrate")).toBeVisible();
+    await expect(page.getByText("Ore totali")).toBeVisible();
+    await expect(page.getByText("Ore fatturabili")).toBeVisible();
+    await expect(page.getByText("Attività della giornata")).toBeVisible();
 
-    // Verifica contenuto drawer
-    await expect(drawer.getByText("Righe registrate")).toBeVisible();
-    await expect(drawer.getByText("Ore totali")).toBeVisible();
-    await expect(drawer.getByText("Attività della giornata")).toBeVisible();
-
-    // Chiudi il drawer
-    await drawer.getByLabel("Chiudi").click();
-    await expect(drawer).not.toBeVisible();
+    await page.getByRole("link", { name: "Torna al calendario" }).click();
+    await page.waitForURL("**/attivita*");
+    await expect(calendario).toBeVisible();
 
     // ── 9. Naviga al mese precedente ───────────────────────────────
 

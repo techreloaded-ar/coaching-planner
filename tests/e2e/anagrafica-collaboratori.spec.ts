@@ -160,7 +160,7 @@ test.describe("Anagrafica collaboratori", () => {
     await expect(rigaRicaricata.getByText("777,50")).toBeVisible();
   });
 
-  test("disattivazione revoca l'accesso e riattivazione", async ({ page, request }) => {
+  test("disattivazione revoca l'accesso e riattivazione", async ({ page }) => {
     const ts = Date.now();
     const nome = "Revoca";
     const cognome = `Test${ts}`;

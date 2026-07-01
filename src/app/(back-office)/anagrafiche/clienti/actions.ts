@@ -17,10 +17,6 @@ export interface StatoAction {
   successo?: boolean;
 }
 
-function statoIniziale(): StatoAction {
-  return { errori: {} };
-}
-
 // ── Helpers ─────────────────────────────────────────────────────
 
 /**
@@ -56,8 +52,7 @@ async function guardiaAmministratore(): Promise<void> {
 /**
  * Crea un nuovo cliente.
  *
- * Usabile con useActionState:
- *   const [stato, azione] = useActionState(creaCliente, statoIniziale());
+ * Usabile con useActionState.
  */
 export async function creaCliente(
   _prevState: StatoAction,

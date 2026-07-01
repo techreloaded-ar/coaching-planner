@@ -21,6 +21,7 @@ jobs:
       GOOGLE_CLIENT_SECRET: "ci-google-client-secret"
       NEXT_PUBLIC_APP_URL: "http://localhost:3000"
       E2E_TEST_MODE: "true"
+      PLAYWRIGHT_WEB_SERVER_COMMAND: "npm run start"
       NODE_ENV: test
 
     services:
@@ -50,9 +51,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Generate Prisma client
-        run: npx prisma generate
 
       - name: Run database migrations
         run: npx prisma migrate deploy

@@ -45,42 +45,40 @@ test.describe("US-011 Segregazione dati", () => {
 
     // ── 4. Conta i giorni con attività ────────────────────────────
 
-    const giorniConAttivita = calendario.locator("button");
+    const giorniConAttivita = calendario.locator('a[href^="/attivita/"]');
     const count = await giorniConAttivita.count();
 
-    // Il seed crea 4 attività per Giulia nei giorni 2-5 del mese corrente.
-    // Se i giorni cadono in weekend o sono distribuiti, potremmo averne 4 o meno
-    // (se un giorno ha più righe, viene comunque contato come 1 cella).
-    expect(count).toBeGreaterThanOrEqual(1);
+    // Il seed crea 6 righe per Giulia distribuite su 3 giorni distinti del
+    // mese corrente; la vista di default atterra proprio su quel mese.
+    expect(count).toBeGreaterThanOrEqual(3);
 
-    // ── 5. Apri un giorno con attività e verifica il contenuto ────
+    // ── 5. Apri un giorno con attività e verifica la pagina dettaglio ──
 
     await giorniConAttivita.first().click();
+    await page.waitForURL("**/attivita/*");
 
-    const drawer = page.getByLabel("Dettaglio attività della giornata");
-    await expect(drawer).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Torna al calendario" })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /\d{1,2} .* \d{4}/ })
+    ).toBeVisible();
+    await expect(page.getByText("Righe registrate")).toBeVisible();
+    await expect(page.getByText("Ore totali")).toBeVisible();
+    await expect(page.getByText("Ore fatturabili")).toBeVisible();
+    await expect(page.getByText("Attività della giornata")).toBeVisible();
 
-    // Verifica che il drawer mostri attività
-    await expect(drawer.getByText("Attività della giornata")).toBeVisible();
-
-    // Tutti i clienti e le offerte nel drawer dovrebbero essere
+    // Tutti i clienti e le offerte nel dettaglio dovrebbero essere
     // coerenti con il seed (TechSolutions, DataFlow, TS-*, DF-*)
     // Non possiamo verificare l'assenza di dati altrui perché il seed
     // ha solo Giulia — ma l'unit test di attivita.test.ts copre già
     // il filtro sul collaboratoreId.
 
-    // Chiudi il drawer
-    await drawer.getByLabel("Chiudi").click();
-    await expect(drawer).not.toBeVisible();
+    await page.getByRole("link", { name: "Torna al calendario" }).click();
+    await page.waitForURL("**/attivita*");
+    await expect(calendario).toBeVisible();
 
-    // ── 6. Verifica che la nota US-011 sia presente ────────────────
-
-    await expect(page.getByText("Nota US-011")).toBeVisible();
-    await expect(
-      page.getByText(/consultazione e navigazione/)
-    ).toBeVisible();
-
-    // ── 7. Verifica navigazione senza limiti ───────────────────────
+    // ── 6. Verifica navigazione senza limiti ───────────────────────
 
     const btnPrev = page.getByLabel("Mese precedente");
     const btnNext = page.getByLabel("Mese successivo");
@@ -100,7 +98,7 @@ test.describe("US-011 Segregazione dati", () => {
     // (non verifichiamo l'esatto mese perché il seed cambia ogni giorno)
     await expect(calendario).toBeVisible();
 
-    // ── 8. Verifica che l'amministratore non possa accedere a /attivita ──
+    // ── 7. Verifica che l'amministratore non possa accedere a /attivita ──
 
     // Usa un nuovo contesto per l'amministratore
     const adminCtx = await page.context().browser()!.newContext();
@@ -119,15 +117,18 @@ test.describe("US-011 Segregazione dati", () => {
       }
     });
 
-    // L'amministratore viene reindirizzato a /anagrafiche, non a /attivita
-    await adminPage.waitForURL("**/anagrafiche**");
+    // L'amministratore viene reindirizzato alla landing reale del back office
+    await adminPage.waitForURL("**/anagrafiche/clienti**");
     await expect(
-      adminPage.getByRole("heading", { name: "Anagrafiche" })
+      adminPage.getByRole("heading", { name: "Clienti" })
     ).toBeVisible();
 
     // Se proviamo ad andare manualmente a /attivita, veniamo reindirizzati
     await adminPage.goto("/attivita");
-    await adminPage.waitForURL("**/anagrafiche**");
+    await adminPage.waitForURL("**/anagrafiche/clienti**");
+    await expect(
+      adminPage.getByRole("heading", { name: "Clienti" })
+    ).toBeVisible();
 
     await adminCtx.close();
   });

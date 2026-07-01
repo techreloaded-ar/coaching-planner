@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import type { Cliente } from "@/generated/prisma/client";
 import { cambiaStatoAction } from "./cambia-stato-action";
 
@@ -14,8 +14,6 @@ interface ClientiTabellaProps {
 
 export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
   const [filtro, setFiltro] = useState("");
-  const [clienteDaDisattivare, setClienteDaDisattivare] = useState<string | null>(null);
-  const [modaleAperta, setModaleAperta] = useState(false);
 
   const filtroLower = filtro.toLowerCase();
   const clientiFiltrati = clienti.filter(
@@ -28,13 +26,6 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
 
   const attivi = clienti.filter((c) => c.attivo).length;
   const disattivati = clienti.length - attivi;
-
-  const chiudiModale = useCallback(() => setModaleAperta(false), []);
-
-  const apriModaleDisattiva = useCallback((id: string) => {
-    setClienteDaDisattivare(id);
-    setModaleAperta(true);
-  }, []);
 
   return (
     <>
@@ -201,61 +192,6 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
         </table>
       </section>
 
-      {/* Modale di conferma disattivazione */}
-      <div
-        className={`fixed inset-0 z-[60] grid place-items-center bg-zinc-900/45 p-5 backdrop-blur-[3px] transition-opacity duration-[.18s] ${
-          modaleAperta ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
-        }`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modale-titolo"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) chiudiModale();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") chiudiModale();
-        }}
-      >
-        <div
-          className={`w-full max-w-[440px] rounded-[14px] border border-zinc-200 bg-white p-[22px] shadow-xl transition-transform duration-[.18s] dark:border-zinc-700 dark:bg-zinc-900 ${
-            modaleAperta ? "scale-100 translate-y-0" : "scale-[.98] translate-y-2"
-          }`}
-        >
-          <div className="mb-[13px] flex h-10 w-10 items-center justify-center rounded-[12px] bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5" strokeWidth={2}>
-              <path d="M18.4 5.6 5.6 18.4M5.6 5.6l12.8 12.8" /><circle cx="12" cy="12" r="9.2" />
-            </svg>
-          </div>
-          <h3 id="modale-titolo" className="mb-[7px] text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
-            Disattivare il cliente?
-          </h3>
-          <p className="mb-[18px] text-[13px] leading-[1.55] text-zinc-600 dark:text-zinc-400">
-            Il cliente non sarà più selezionabile per nuove attività e offerte. Lo storico di consuntivi e offerte esistenti resta invariato e potrai riattivarlo in qualsiasi momento.
-          </p>
-          <div className="flex justify-end gap-[9px]">
-            <button
-              type="button"
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750"
-              onClick={chiudiModale}
-            >
-              Annulla
-            </button>
-            {clienteDaDisattivare && (
-              <form action={cambiaStatoAction}>
-                <input type="hidden" name="id" value={clienteDaDisattivare} />
-                <input type="hidden" name="attivo" value="false" />
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:brightness-[.92]"
-                  onClick={chiudiModale}
-                >
-                  Disattiva cliente
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
     </>
   );
 }
