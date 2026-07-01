@@ -1,46 +1,24 @@
 connector: file
-
-# Shared paths — used by every connector.
 paths:
-  prd: docs/PRD.md
-  mockups: docs/mockups/
-  test_results: docs/test-results/
-
+    prd: docs/PRD.md
+    mockups: docs/mockups/
+    test_results: docs/test-results/
 workflow:
-  statuses:
-    todo: TODO
-    planned: PLANNED
-    in_progress: IN PROGRESS
-    review: REVIEW
-    done: DONE        # human-gated: only /archetipo-review moves a spec here, after explicit user approval
-
-# Used only when connector == file
+    statuses:
+        todo: TODO
+        planned: PLANNED
+        in_progress: IN PROGRESS
+        review: REVIEW
+        done: DONE
 file:
-  backlog: .archetipo/backlog.yaml
-  planning: .archetipo/plans/
-
-# Optional per-spec git worktree workflow. When enabled, `archetipo spec start`
-# creates a branch + worktree per spec so the review diff is isolated to a
-# single spec and integrated back with one merge. Disabled by default.
+    backlog: .archetipo/backlog.yaml
+    planning: .archetipo/plans/
+github: {}
+jira: {}
 worktree:
-  enabled: true
-  base: main
-  dir: .archetipo/worktrees
-  branch_prefix: archetipo/
-
-# Used only when connector == github. owner/project_number are auto-detected
-# from `gh`; the remaining keys are populated automatically by the CLI during
-# initialize_connector — leave them commented unless you need to override.
-github:
-  # owner: auto-detected from repo
-  # project_number: auto-detected from repo
-  # project_node_id: <auto>
-  # project_url: <auto>
-  # fields:
-  #   status_field_id: <auto>
-  #   status_options: { ... }
-  #   priority_field_id: <auto>
-  #   priority_options: { ... }
-  #   points_field_id: <auto>
-  #   epic_field_id: <auto>
-  #   epic_options: { ... }
+    enabled: true
+    base: main
+    dir: .archetipo/worktrees
+    branch_prefix: archetipo/
+e2e:
+    record_demo_video: true

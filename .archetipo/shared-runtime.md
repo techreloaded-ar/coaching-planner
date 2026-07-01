@@ -22,7 +22,10 @@ Common rules:
 {"schema":"archetipo/v1","kind":"error","error":{"code":"E_*","message":"...","hint":"..."}}
 ```
 
-- Branch on `error.code`, never on `error.message`.
+- Error envelopes MAY include an optional `error.details` field with machine-readable corrective data (e.g. validation findings). Skills must tolerate its absence and must never branch on its shape alone — always branch on `error.code` first, then use `details` only as corrective instructions.
+
+- Branch on `error.code`, never on `error.message`. Important error codes:
+  - `E_VALIDATION`: artifact validation failed; `error.details` carries structured findings to guide correction.
 - Treat exit codes as stable:
   - `0`: success
   - `1`: generic error
@@ -92,6 +95,17 @@ For non-critical gaps:
 - infer a reasonable assumption
 - continue
 - record the assumption or open question in the final artifact
+
+## Small Model Discipline
+
+ARchetipo artifacts must be usable by smaller or lower-cost models during later phases. Prefer explicit contracts over broad interpretation:
+
+- Keep generated specs small, independently demonstrable, and testable.
+- Make `Demonstrates` concrete enough to become a review script.
+- In implementation plans, split work into small tasks with local context, clear allowed changes, verification commands, done criteria, and blockers.
+- Do not leave architectural choices implicit for implementation. If a decision matters, put it in the plan.
+- Before persisting generated specs or plans, run the relevant `archetipo validate ...` command and repair blocking issues instead of saving malformed artifacts.
+- Treat warnings as quality feedback. They do not block persistence, but fix them when the repair is straightforward.
 
 ## Conversation Rules
 

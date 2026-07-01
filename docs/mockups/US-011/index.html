@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le mie attività — Calendario mensile · Coaching Planner (US-011)</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="fo-shell">
+
+  <!-- ===================================================================
+       HEADER FRONT OFFICE — riprodotto da src/app/(front-office)/layout.tsx
+       come contesto. NON è oggetto del mockup (avatar rosa, bottone Esci).
+       =================================================================== -->
+  <header class="fo-header">
+    <div class="fo-header-row">
+      <div class="fo-title">
+        <div class="crumb">Front office</div>
+        <h1>Le mie attività</h1>
+      </div>
+      <div class="fo-spacer"></div>
+
+      <div class="fo-session">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+          <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+        </button>
+        <span class="fo-sep" aria-hidden="true"></span>
+        <div class="fo-user">
+          <div class="meta">
+            <b>Giulia Conti</b>
+            <span>Collaboratore · giulia.conti@agilereloaded.it</span>
+          </div>
+          <div class="avatar">GC</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+          Esci
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================
+       AREA CONTENUTO — oggetto del mockup US-011
+       =================================================================== -->
+  <main class="fo-main">
+    <div class="content">
+
+      <!-- Barra di navigazione del mese -->
+      <div class="cal-toolbar">
+        <div class="cal-monthnav">
+          <button class="cal-arrow" id="btnPrev" type="button" aria-label="Mese precedente" title="Mese precedente">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 6-6 6 6 6"/></svg>
+          </button>
+          <div class="cal-month" id="calMonth">Giugno 2026</div>
+          <button class="cal-arrow" id="btnNext" type="button" aria-label="Mese successivo" title="Mese successivo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+          <button class="btn btn-ghost btn-sm" id="btnOggi" type="button" style="margin-left:4px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.5"/></svg>
+            Mese corrente
+          </button>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="month-summary" id="monthSummary"></div>
+      </div>
+
+      <!-- Griglia calendario mensile (lun → dom, locale italiano) -->
+      <section class="calendar" aria-label="Calendario mensile delle attività">
+        <div class="cal-weekdays" id="calWeekdays"></div>
+        <div class="cal-grid" id="calGrid"></div>
+      </section>
+
+      <!-- Legenda -->
+      <div class="cal-legend" style="margin-top:16px;">
+        <span class="legend-item"><span class="legend-dot has"></span> Giorno con attività registrate</span>
+        <span class="legend-item"><span class="legend-dot today"></span> Oggi</span>
+        <span class="legend-item"><span class="legend-dot empty"></span> Nessuna attività</span>
+        <span class="legend-item" style="color:var(--ink-3);">Clicca un giorno con attività per vederne il dettaglio</span>
+      </div>
+
+      <!-- Nota di contesto US-011 -->
+      <div class="note-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+        <span><b>Nota US-011</b> — schermata di sola <b>consultazione e navigazione</b>: la collaboratrice vede esclusivamente le proprie attività, distingue a colpo d'occhio i giorni consuntivati (numero di righe e ore totali) e si sposta liberamente fra i mesi. L'<b>inserimento e la modifica</b> delle righe arriveranno con US-012.</span>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ===================================================================
+     PANNELLO DETTAGLIO GIORNATA (sola lettura)
+     =================================================================== -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<aside class="drawer" id="drawer" aria-label="Dettaglio attività della giornata">
+  <div class="drawer-head">
+    <div class="drawer-date">
+      <div class="dow" id="drawerDow">Mercoledì</div>
+      <h3 id="drawerDate">10 Giugno 2026</h3>
+    </div>
+    <button class="drawer-close" id="drawerClose" type="button" aria-label="Chiudi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="drawer-totals">
+    <div class="dt-box">
+      <div class="lbl">Righe registrate</div>
+      <div class="val" id="drawerRows">3</div>
+    </div>
+    <div class="dt-box">
+      <div class="lbl">Ore totali</div>
+      <div class="val"><span id="drawerHours">7,5</span> h</div>
+    </div>
+  </div>
+
+  <div class="drawer-body">
+    <div class="body-label">Attività della giornata</div>
+    <div id="drawerActs"></div>
+  </div>
+
+  <div class="drawer-foot">
+    <div class="future-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+      <span><b>In arrivo (US-012)</b> — da qui sarà possibile aggiungere e modificare le righe della giornata. Per ora la vista è di sola consultazione.</span>
+    </div>
+  </div>
+</aside>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+schema: archetipo/plan/v2
+spec_code: US-011
+body: "# US-011: Calendario mensile delle proprie attività — Piano di Implementazione\n\n**Prodotto da:** Team di Planning ARchetipo\n**Data:** 2026-06-15\n\n---\n\n## Spec\n\n**Epic:** EP-003 — Consuntivazione Attività\n**Priorità:** HIGH | **Punti:** 3\n\n**Storia Utente**\nCome Giulia, collaboratrice, voglio navigare le mie attività su base mensile, spostandomi tra i mesi e vedendo i giorni del mese selezionato, così da avere sempre il quadro di cosa ho già registrato e di cosa manca.\n\n**Criteri di Accettazione**\n- All'accesso al front office viene mostrato il mese corrente con tutti i suoi giorni\n- La collaboratrice naviga al mese precedente e successivo senza limiti di periodo\n- I giorni con attività registrate sono distinguibili e mostrano una sintesi delle righe presenti\n- Sono visibili esclusivamente le attività della collaboratrice autenticata\n\n---\n\n## Soluzione Tecnica\n\nSi sostituisce il placeholder della pagina `/attivita` (area front-office, ruolo COLLABORATORE) con una vista calendario mensile di sola consultazione, mantenendo l'architettura a tre strati del progetto: dominio puro, accesso dati server-only, rendering Server Component. L'inserimento e la modifica delle righe NON fanno parte di questa spec (arrivano con US-012, che è bloccata da questa): qui si costruiscono solo la navigazione mensile e la visualizzazione di cosa è già registrato.\n\n- **Dominio puro (`src/domain/calendario/`)**: funzioni senza dipendenze dal framework, testabili in isolamento — costruzione della griglia del mese (settimana che inizia di lunedì, locale italiano, con i giorni di riempimento delle settimane parziali marcati come \"fuori mese\"), calcolo del mese precedente/successivo, parsing e formattazione del token `YYYY-MM`, etichetta del mese in italiano (es. \"Giugno 2026\"). Nessun limite di periodo nella navigazione.\n- **Accesso dati (`src/lib/attivita.ts`, server-only)**: funzione che, risolto il profilo della collaboratrice autenticata tramite `richiediCollaboratoreCorrente()` (dal `src/lib/dal.ts`), legge le `RigaAttivita` del SOLO collaboratore corrente nell'intervallo `[primo giorno mese, ultimo giorno mese]` sul campo `data`, includendo offerta e cliente per la sintesi. La query è sempre vincolata al `collaboratoreId` del profilo in sessione: nessuna possibilità di vedere dati altrui (RF-02 / criterio 4). Le righe vengono aggregate per giorno producendo una sintesi (numero righe, ore totali, codici offerta/cliente del giorno).\n- **UI — pagina `/attivita` (React Server Component)**: legge `searchParams.mese` (formato `YYYY-MM`; in Next.js 15 `searchParams` è asincrono — consultare la guida in `node_modules/next/dist/docs/` prima di scrivere il codice), con default al mese corrente quando assente o non valido. Costruisce la griglia tramite le funzioni di dominio, recupera le righe del mese e renderizza il calendario. La navigazione mese precedente/successivo e \"Mese corrente\" è realizzata con `Link` che variano il parametro `?mese=`, senza stato client, coerentemente col pattern server-rendered già usato nel back office. Le celle dei giorni con attività sono evidenziate (accento rosa, coerente con l'header front-office) e mostrano la sintesi; il giorno odierno è marcato; i giorni fuori mese restano spenti. Riferimento visivo: `docs/mockups/US-011/`.\n- **Dati di esempio (`prisma/seed.ts`)**: le attività dimostrative sono attualmente datate giugno 2025; si rendono le date relative al mese corrente per la collaboratrice Giulia Conti, così che la vista di default mostri subito alcuni giorni consuntivati e la demo sia robusta nel tempo.\n\n---\n\n## Strategia di Test\n\nLa logica calendariale e di aggregazione, essendo pura, è coperta in modo esaustivo da unit test; l'accesso dati è verificato con il database mockato (come per le anagrafiche esistenti) concentrandosi su segregazione e finestra temporale; il flusso utente completo è coperto end-to-end.\n\n- **Unit (Vitest) — dominio calendario**: griglia con numero corretto di giorni e allineamento dei giorni della settimana (lunedì-prima), gestione mesi a 28/29/30/31 giorni e anni bisestili, marcatura dei giorni \"fuori mese\"; calcolo mese precedente/successivo a cavallo d'anno (dicembre↔gennaio); parsing/formattazione `YYYY-MM` e fallback al mese corrente su input non valido; etichetta mese in italiano.\n- **Unit (Vitest) — accesso dati `attivita`**: con `db` mockato, verifica che la query filtri sul `collaboratoreId` del profilo in sessione e sull'intervallo del mese, e che l'aggregazione per giorno calcoli correttamente numero righe e ore totali; verifica che un collaboratore non possa ottenere righe di un altro (segregazione).\n\n### Test E2E — Simulazione Utente\n\n**Framework:** Playwright (già configurato nel progetto; login via endpoint `/api/e2e-test/sessione`)\n**Registrazione video:** Solo scenario demo (come da campo `Dimostrazione` della spec); gli altri scenari girano senza registrazione\n\n| Scenario | Descrizione del flusso utente |\n|---|---|\n| Demo — navigazione calendario mensile (video) | Giulia accede al front office, vede il mese corrente con tutti i giorni e i giorni già consuntivati evidenziati con la sintesi (n. righe + ore); naviga al mese precedente e successivo senza limiti; torna al mese corrente con l'apposito controllo. |\n| Segregazione dati | Autenticata come Giulia, il calendario mostra esclusivamente le righe della collaboratrice in sessione e mai quelle di altri collaboratori. |\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-011/`\n\n_Piano generato tramite ARchetipo Planning — 2026-06-15_"
+tasks:
+  - id: TASK-01
+    title: Funzioni pure del dominio calendario mensile
+    description: 'Creare src/domain/calendario/ con funzioni pure: costruzione griglia mese (settimana lunedi-prima, locale IT, giorni fuori mese marcati), calcolo mese precedente/successivo, parsing/formattazione del token YYYY-MM e etichetta mese in italiano. Nessuna dipendenza dal framework.'
+    type: Impl
+    status: DONE
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test del dominio calendario
+    description: 'Test Vitest sulle funzioni di TASK-01: allineamento settimanale, mesi 28/29/30/31 giorni e anni bisestili, navigazione a cavallo d''anno, parsing/fallback YYYY-MM ed etichetta mese.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    ref: TASK-02
+  - id: TASK-03
+    title: Accesso dati righe attività del mese per collaboratore
+    description: Creare src/lib/attivita.ts (server-only) che, risolto il collaboratore corrente via richiediCollaboratoreCorrente(), legge le RigaAttivita del solo collaboratore nell'intervallo del mese (con offerta e cliente) e le aggrega per giorno producendo la sintesi (n. righe, ore totali, codici).
+    type: Impl
+    status: DONE
+    ref: TASK-03
+  - id: TASK-04
+    title: Unit test accesso dati attività (segregazione e mese)
+    description: 'Test Vitest con db mockato: la query filtra sul collaboratoreId in sessione e sull''intervallo del mese; l''aggregazione per giorno e'' corretta; un collaboratore non puo'' ottenere righe altrui.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    ref: TASK-04
+  - id: TASK-05
+    title: Pagina calendario mensile /attivita (Server Component)
+    description: 'Sostituire il placeholder di /attivita: leggere searchParams.mese (YYYY-MM, default mese corrente; searchParams async in Next 15), costruire la griglia via TASK-01, recuperare le righe via TASK-03 e renderizzare il calendario con navigazione prev/next/oggi tramite Link, evidenziazione dei giorni con attività e relativa sintesi, marcatura del giorno odierno. Seguire i mockup in docs/mockups/US-011/.'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+    ref: TASK-05
+  - id: TASK-06
+    title: Attività di esempio nel mese corrente nel seed
+    description: Aggiornare prisma/seed.ts rendendo relative al mese corrente alcune attività della collaboratrice Giulia Conti, così che la vista di default mostri giorni consuntivati e la demo resti valida nel tempo.
+    type: Impl
+    status: DONE
+    ref: TASK-06
+  - id: TASK-07
+    title: Test E2E navigazione calendario e segregazione
+    description: 'Scenario demo Playwright (video) demo__calendario-mensile.spec.ts: Giulia apre il mese corrente, riconosce i giorni con attività e la sintesi, naviga al mese precedente/successivo e torna al mese corrente. Scenario aggiuntivo (senza video) che verifica la segregazione dei dati.'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+      - TASK-06
+    ref: TASK-07

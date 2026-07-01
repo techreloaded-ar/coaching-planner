@@ -1,0 +1,340 @@
+/* ============================================================
+   Coaching Planner — US-011 Calendario mensile delle attività
+   Front office · ruolo COLLABORATORE.
+   Design system allineato ai mockup US-007/008/009/010
+   (neutri zinc, raggi 10-11px, dark mode, font di sistema) ma
+   con ACCENTO ROSA (rose-600) coerente con l'header reale del
+   front office collaboratore (src/app/(front-office)/layout.tsx).
+   ============================================================ */
+
+:root{
+  /* neutri — scala zinc (come US-010) */
+  --bg:        #fafafa;
+  --surface:   #ffffff;
+  --surface-2: #f4f4f5;
+  --ink:       #27272a;
+  --ink-2:     #52525b;
+  --ink-3:     #a1a1aa;
+  --line:      #e4e4e7;
+  --line-2:    #f0f0f1;
+
+  /* accento front office — rose (bg-rose-600 dell'header reale) */
+  --accent:      #e11d48;   /* rose-600 */
+  --accent-600:  #be123c;   /* rose-700 */
+  --accent-soft: #fff1f2;   /* rose-50  */
+  --accent-tint: #fecdd3;   /* rose-200 */
+  --accent-ink:  #9f1239;   /* rose-800 */
+  --on-accent:   #ffffff;
+
+  /* semantici */
+  --ok:    #059669;
+  --ok-t:  #ecfdf5;
+  --soon:  #b45309;
+  --soon-t:#fffbeb;
+
+  --radius: 11px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / .05), 0 1px 3px rgb(24 24 27 / .05);
+  --shadow:    0 2px 6px rgb(24 24 27 / .06), 0 8px 24px rgb(24 24 27 / .07);
+  --shadow-lg: 0 12px 40px rgb(24 24 27 / .16);
+
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --header-blur-bg: rgb(255 255 255 / .82);
+}
+
+/* ---------- Dark mode ---------- */
+[data-theme="dark"]{
+  --bg:        #09090b;
+  --surface:   #18181b;
+  --surface-2: #27272a;
+  --ink:       #f4f4f5;
+  --ink-2:     #a1a1aa;
+  --ink-3:     #71717a;
+  --line:      #2c2c30;
+  --line-2:    #222226;
+
+  --accent:      #fb7185;   /* rose-400 */
+  --accent-600:  #fda4af;   /* rose-300 */
+  --accent-soft: rgb(225 29 72 / .16);
+  --accent-tint: rgb(251 113 133 / .45);
+  --accent-ink:  #fda4af;
+  --on-accent:   #ffffff;
+
+  --ok:    #34d399;
+  --ok-t:  rgb(16 185 129 / .14);
+  --soon:  #fbbf24;
+  --soon-t:rgb(245 158 11 / .13);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / .35), 0 1px 3px rgb(0 0 0 / .3);
+  --shadow:    0 2px 6px rgb(0 0 0 / .35), 0 8px 24px rgb(0 0 0 / .35);
+  --shadow-lg: 0 12px 40px rgb(0 0 0 / .5);
+
+  --header-blur-bg: rgb(9 9 11 / .82);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  font-size:15px;
+  line-height:1.5;
+  transition:background .25s, color .25s;
+}
+h1,h2,h3,h4{margin:0;letter-spacing:-0.02em;line-height:1.15;font-weight:700;}
+a{color:inherit;}
+
+/* ============================================================
+   Header front office — riprodotto dal layout reale.
+   NB: non è oggetto del mockup, serve solo da contesto.
+   ============================================================ */
+.fo-shell{display:flex;min-height:100vh;flex-direction:column;}
+
+.fo-header{
+  position:sticky;top:0;z-index:10;
+  border-bottom:1px solid var(--line);
+  background:var(--header-blur-bg);backdrop-filter:blur(16px);
+}
+.fo-header-row{display:flex;align-items:center;gap:20px;padding:14px 32px;}
+.fo-title .crumb{font-size:12.5px;font-weight:500;color:var(--ink-3);}
+.fo-title h1{margin-top:2px;font-size:22px;font-weight:700;color:var(--ink);}
+.fo-spacer{flex:1;}
+
+.fo-session{display:flex;align-items:center;gap:14px;}
+.fo-user{display:flex;align-items:center;gap:10px;border-radius:11px;padding:6px 8px;}
+.fo-user .meta{text-align:right;line-height:1.25;}
+.fo-user .meta b{display:block;font-size:13.5px;font-weight:600;color:var(--ink);}
+.fo-user .meta span{font-size:11.5px;color:var(--ink-3);}
+.fo-user .avatar{
+  width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:var(--accent);color:#fff;font-weight:700;font-size:13px;
+}
+.fo-sep{width:1px;height:26px;background:var(--line);}
+
+/* ---------- Theme toggle ---------- */
+.theme-toggle{
+  width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);cursor:pointer;flex:none;
+  display:grid;place-items:center;box-shadow:var(--shadow-sm);
+}
+.theme-toggle:hover{color:var(--ink);background:var(--surface-2);}
+.theme-toggle svg{width:17px;height:17px;stroke-width:1.8;}
+.theme-toggle .ic-sun{display:none;}
+[data-theme="dark"] .theme-toggle .ic-sun{display:block;}
+[data-theme="dark"] .theme-toggle .ic-moon{display:none;}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  font-family:var(--sans);font-weight:600;font-size:13.5px;border-radius:10px;
+  padding:9px 15px;border:1px solid transparent;cursor:pointer;
+  text-decoration:none;white-space:nowrap;
+  transition:background .15s, color .15s, border-color .15s;
+}
+.btn svg{width:16px;height:16px;stroke-width:2;}
+.btn-accent{background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-sm);}
+.btn-accent:hover{background:var(--accent-600);}
+.btn-ghost{background:var(--surface);border-color:var(--line);color:var(--ink-2);box-shadow:var(--shadow-sm);}
+.btn-ghost:hover{background:var(--surface-2);color:var(--ink);}
+.btn-sm{padding:6px 10px;font-size:12.5px;}
+.btn[disabled]{cursor:not-allowed;opacity:.55;}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+/* ============================================================
+   Area contenuto del front office (oggetto del mockup)
+   ============================================================ */
+.fo-main{flex:1;}
+.content{padding:28px 32px 64px;max-width:1080px;width:100%;margin:0 auto;}
+
+/* ---------- Barra di navigazione del mese ---------- */
+.cal-toolbar{
+  display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap;
+}
+.cal-monthnav{display:flex;align-items:center;gap:10px;}
+.cal-arrow{
+  width:36px;height:36px;border-radius:10px;flex:none;
+  display:grid;place-items:center;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink-2);
+  box-shadow:var(--shadow-sm);transition:background .15s, color .15s;
+}
+.cal-arrow:hover{background:var(--surface-2);color:var(--ink);}
+.cal-arrow svg{width:18px;height:18px;stroke-width:2.2;}
+.cal-month{
+  min-width:188px;text-align:center;font-size:19px;font-weight:700;
+  letter-spacing:-0.02em;color:var(--ink);text-transform:capitalize;
+}
+.cal-month .yr{color:var(--ink-3);font-weight:600;}
+.cal-toolbar .spacer{flex:1;}
+
+/* legenda + riepilogo del mese */
+.cal-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.legend-item{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--ink-2);}
+.legend-dot{width:11px;height:11px;border-radius:4px;flex:none;}
+.legend-dot.has{background:var(--accent-soft);border:1px solid var(--accent-tint);}
+.legend-dot.today{background:var(--accent);}
+.legend-dot.empty{background:var(--surface);border:1px solid var(--line);}
+
+/* pill riepilogo mese */
+.month-summary{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--accent-soft);border:1px solid var(--accent-tint);
+  border-radius:99px;padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--accent-ink);
+}
+.month-summary svg{width:15px;height:15px;stroke-width:2;}
+.month-summary b{font-variant-numeric:tabular-nums;}
+.month-summary .ms-sep{width:1px;height:13px;background:var(--accent-tint);}
+
+/* ---------- Griglia calendario ---------- */
+.calendar{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;
+}
+.cal-weekdays{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  border-bottom:1px solid var(--line);
+}
+.cal-weekdays div{
+  padding:11px 12px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;
+}
+.cal-weekdays div.we{color:var(--accent);}
+
+.cal-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  grid-auto-rows:minmax(116px,auto);
+}
+
+/* cella giorno (può essere <div> oppure <button> quando cliccabile) */
+.day{
+  position:relative;
+  padding:9px 10px 10px;min-width:0;width:100%;
+  display:flex;flex-direction:column;align-items:flex-start;gap:7px;
+  transition:background .12s;
+  /* reset per i giorni cliccabili resi come <button> */
+  font:inherit;color:inherit;text-align:left;background:none;border-radius:0;
+  appearance:none;-webkit-appearance:none;cursor:default;
+  border:0;border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2);
+}
+button.day{cursor:pointer;}
+.day:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;z-index:1;}
+.cal-grid .day:nth-child(7n){border-right:0;}
+/* ultima riga: niente bordo inferiore (calcolato via classe) */
+.day.last-row{border-bottom:0;}
+
+.day .dnum{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:600;color:var(--ink-2);
+  width:26px;height:26px;border-radius:8px;font-variant-numeric:tabular-nums;
+}
+
+/* giorni fuori mese */
+.day.outside{background:var(--surface-2);}
+.day.outside .dnum{color:var(--ink-3);opacity:.65;}
+
+/* weekend tenue */
+.day.weekend:not(.outside):not(.has){background:color-mix(in srgb, var(--surface-2) 45%, transparent);}
+
+/* giorno OGGI */
+.day.today .dnum{background:var(--accent);color:#fff;font-weight:700;}
+.day.today{box-shadow:inset 0 0 0 2px var(--accent);}
+
+/* giorno CON attività registrate — distinguibile a colpo d'occhio */
+.day.has{background:var(--accent-soft);cursor:pointer;}
+.day.has:hover{background:color-mix(in srgb, var(--accent-soft) 70%, var(--accent-tint));}
+.day.has::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);
+}
+
+/* sintesi compatta della giornata */
+.day-summary{display:flex;flex-direction:column;gap:5px;margin-top:auto;}
+.day-stats{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.stat{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;line-height:1;
+  padding:3px 7px;border-radius:7px;font-variant-numeric:tabular-nums;
+}
+.stat svg{width:11px;height:11px;stroke-width:2.4;}
+.stat.rows{background:var(--surface);border:1px solid var(--accent-tint);color:var(--accent-ink);}
+.stat.hours{background:var(--accent);color:#fff;}
+
+/* codici offerta/cliente del giorno */
+.day-codes{display:flex;flex-wrap:wrap;gap:4px;}
+.code-chip{
+  font-size:10px;font-weight:700;letter-spacing:.02em;
+  padding:2px 6px;border-radius:6px;line-height:1.4;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink-2);white-space:nowrap;
+}
+.code-more{font-size:10px;font-weight:700;color:var(--accent-ink);padding:2px 2px;}
+
+/* ---------- Pannello laterale dettaglio giorno (consultazione) ---------- */
+.drawer-backdrop{
+  position:fixed;inset:0;z-index:60;background:rgb(9 9 11 / .35);backdrop-filter:blur(2px);
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.drawer-backdrop.open{opacity:1;pointer-events:auto;}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;z-index:61;width:380px;max-width:92vw;
+  background:var(--surface);border-left:1px solid var(--line);box-shadow:var(--shadow-lg);
+  transform:translateX(100%);transition:transform .24s cubic-bezier(.2,.8,.2,1);
+  display:flex;flex-direction:column;
+}
+.drawer.open{transform:none;}
+.drawer-head{
+  padding:18px 20px 16px;border-bottom:1px solid var(--line);
+  display:flex;align-items:flex-start;gap:12px;
+}
+.drawer-date{flex:1;min-width:0;}
+.drawer-date .dow{font-size:12px;font-weight:600;color:var(--accent-ink);text-transform:capitalize;}
+.drawer-date h3{font-size:18px;margin-top:2px;text-transform:capitalize;}
+.drawer-close{
+  width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink-2);cursor:pointer;display:grid;place-items:center;flex:none;
+}
+.drawer-close:hover{background:var(--surface-2);color:var(--ink);}
+.drawer-close svg{width:16px;height:16px;stroke-width:2;}
+
+.drawer-totals{display:flex;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line-2);}
+.dt-box{flex:1;background:var(--accent-soft);border:1px solid var(--accent-tint);border-radius:10px;padding:10px 12px;}
+.dt-box .lbl{font-size:11px;font-weight:600;color:var(--ink-3);}
+.dt-box .val{font-size:19px;font-weight:700;color:var(--accent-ink);font-variant-numeric:tabular-nums;margin-top:2px;}
+
+.drawer-body{flex:1;overflow-y:auto;padding:14px 20px 20px;}
+.drawer-body .body-label{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;}
+.act-row{
+  border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:10px;background:var(--surface);
+}
+.act-row .ar-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.act-row .ar-cli{font-size:13.5px;font-weight:600;color:var(--ink);}
+.act-row .ar-h{font-size:12.5px;font-weight:700;color:var(--accent-ink);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.act-row .ar-meta{display:flex;align-items:center;gap:8px;margin-top:5px;}
+.act-row .ar-meta .code-chip{background:var(--surface-2);}
+.act-row .ar-desc{font-size:12.5px;color:var(--ink-2);margin-top:7px;line-height:1.5;}
+
+.drawer-foot{padding:14px 20px;border-top:1px solid var(--line);}
+.future-hint{
+  display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--ink-3);line-height:1.5;
+  background:var(--soon-t);border:1px solid color-mix(in srgb,var(--soon) 22%,transparent);
+  border-radius:10px;padding:10px 12px;
+}
+.future-hint svg{width:15px;height:15px;flex:none;stroke-width:2;color:var(--soon);margin-top:1px;}
+.future-hint b{color:var(--soon);}
+
+/* ---------- Nota di contesto (stile US-005/010) ---------- */
+.note-card{
+  margin-top:20px;padding:15px 18px;display:flex;gap:11px;align-items:flex-start;
+  font-size:13px;color:var(--ink-2);line-height:1.55;
+  background:var(--accent-soft);border:1px solid var(--accent-tint);border-radius:var(--radius);
+}
+.note-card svg{width:16px;height:16px;flex:none;stroke-width:2;color:var(--accent-600);margin-top:2px;}
+.note-card b{color:var(--accent-ink);}
+
+@media (max-width:760px){
+  .content{padding:20px 16px 56px;}
+  .cal-grid{grid-auto-rows:minmax(92px,auto);}
+  .day-codes{display:none;}
+  .cal-month{min-width:150px;font-size:17px;}
+}

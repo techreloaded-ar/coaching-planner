@@ -6,7 +6,7 @@ epic:
   title: Anagrafiche e Configurazione
 priority: HIGH
 points: 3
-status: REVIEW
+status: DONE
 scope: MVP
 body: |-
   #### US-009: Anagrafica collaboratori con tariffa e credenziali di accesso
@@ -39,3 +39,5 @@ history:
     at: "2026-06-13T05:50:37Z"
   - status: REVIEW
     at: "2026-06-13T07:44:13Z"
+  - status: DONE
+    at: "2026-06-13T07:51:35Z"
