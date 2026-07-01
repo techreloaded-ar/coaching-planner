@@ -163,7 +163,8 @@ async function main() {
 
   // ── Attività dimostrative ────────────────────────────────────
   // Relative al mese corrente così che la vista di default mostri giorni consuntivati
-  // e la demo resti valida nel tempo.
+  // e la demo resti valida nel tempo. Include giorni con attività multiple e varietà
+  // di clienti/offerte.
   const oggi = new Date();
   const anno = oggi.getFullYear();
   const mese = oggi.getMonth(); // 0-based
@@ -174,6 +175,7 @@ async function main() {
   }
 
   const attivita = await Promise.all([
+    // Giorno 2: 3 righe su 2 clienti diversi
     prisma.rigaAttivita.create({
       data: {
         collaboratoreId: collaboratore.id,
@@ -190,6 +192,29 @@ async function main() {
         collaboratoreId: collaboratore.id,
         clienteId: cliente1.id,
         offertaId: offerta1.id,
+        data: giornoDelMese(2),
+        ore: "2.50",
+        nota: "Revisione documentazione tecnica",
+        fatturabile: true,
+      },
+    }),
+    prisma.rigaAttivita.create({
+      data: {
+        collaboratoreId: collaboratore.id,
+        clienteId: cliente2.id,
+        offertaId: offerta2.id,
+        data: giornoDelMese(2),
+        ore: "1.00",
+        nota: "Call di allineamento",
+        fatturabile: false,
+      },
+    }),
+    // Giorno 3: 1 riga
+    prisma.rigaAttivita.create({
+      data: {
+        collaboratoreId: collaboratore.id,
+        clienteId: cliente1.id,
+        offertaId: offerta1.id,
         data: giornoDelMese(3),
         ore: "6.50",
         nota: "Stesura documento di architettura",
@@ -197,6 +222,7 @@ async function main() {
         trasfertaKm: 45,
       },
     }),
+    // Giorno 4: 2 righe su offerte diverse
     prisma.rigaAttivita.create({
       data: {
         collaboratoreId: collaboratore.id,
@@ -213,7 +239,7 @@ async function main() {
         collaboratoreId: collaboratore.id,
         clienteId: cliente1.id,
         offertaId: offerta1.id,
-        data: giornoDelMese(5),
+        data: giornoDelMese(4),
         ore: "4.00",
         nota: "Attività non fatturabile — formazione interna",
         fatturabile: false,

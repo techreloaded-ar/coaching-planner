@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { richiediCollaboratoreCorrente } from "@/lib/dal";
+import { richiediCollaboratoreCorrente, ErroreAutorizzazione } from "@/lib/dal";
 import { parseTokenMese } from "@/domain/calendario";
 import type { RigaAttivita, Offerta, Cliente } from "@/generated/prisma/client";
 
@@ -117,4 +117,115 @@ export async function attivitaDelMese(token: string): Promise<AttivitaMese> {
   }
 
   return { perGiorno, righe };
+}
+
+/**
+ * Recupera le righe attività del collaboratore corrente per una data specifica.
+ *
+ * Include offerta e cliente. Ordinate per ora di creazione.
+ * Lancia ErroreAutorizzazione se non autenticato o se non è un collaboratore.
+ *
+ * @param dataStr - Data in formato YYYY-MM-DD
+ * @returns Righe attività del giorno con contesto offerta e cliente
+ */
+export async function righeDelGiorno(
+  dataStr: string
+): Promise<RigaAttivitaConContesto[]> {
+  const collaboratore = await richiediCollaboratoreCorrente();
+  if (!collaboratore) {
+    throw new ErroreAutorizzazione(
+      401,
+      "Devi essere un collaboratore per visualizzare le attività"
+    );
+  }
+
+  // Parsa la data YYYY-MM-DD
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dataStr);
+  if (!match) return [];
+
+  const anno = parseInt(match[1], 10);
+  const mese = parseInt(match[2], 10);
+  const giorno = parseInt(match[3], 10);
+
+  const inizio = new Date(anno, mese - 1, giorno);
+  const fine = new Date(anno, mese - 1, giorno, 23, 59, 59, 999);
+
+  return db.rigaAttivita.findMany({
+    where: {
+      collaboratoreId: collaboratore.id,
+      data: {
+        gte: inizio,
+        lte: fine,
+      },
+    },
+    include: {
+      offerta: true,
+      cliente: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+/**
+ * Restituisce i clienti attivi per la select del form attività.
+ *
+ * Accessibile al collaboratore autenticato (a differenza di src/lib/clienti.ts
+ * che è admin-only). Lancia ErroreAutorizzazione se non autenticato o se non
+ * è un collaboratore.
+ *
+ * @returns Lista clienti attivi con id e ragione sociale, ordinati per ragione sociale
+ */
+export async function clientiAttiviPerSelezione(): Promise<
+  { id: string; ragioneSociale: string }[]
+> {
+  const collaboratore = await richiediCollaboratoreCorrente();
+  if (!collaboratore) {
+    throw new ErroreAutorizzazione(
+      401,
+      "Devi essere un collaboratore per visualizzare i clienti"
+    );
+  }
+
+  return db.cliente.findMany({
+    where: { attivo: true },
+    select: {
+      id: true,
+      ragioneSociale: true,
+    },
+    orderBy: { ragioneSociale: "asc" },
+  });
+}
+
+/**
+ * Restituisce le offerte attive per un cliente specifico.
+ *
+ * Accessibile al collaboratore autenticato. Lancia ErroreAutorizzazione
+ * se non autenticato o se non è un collaboratore.
+ *
+ * @param clienteId - ID del cliente di cui recuperare le offerte attive
+ * @returns Lista offerte attive con id, codice e descrizione, ordinate per codice
+ */
+export async function offerteAttivePerCliente(
+  clienteId: string
+): Promise<{ id: string; codice: string; descrizione: string }[]> {
+  const collaboratore = await richiediCollaboratoreCorrente();
+  if (!collaboratore) {
+    throw new ErroreAutorizzazione(
+      401,
+      "Devi essere un collaboratore per visualizzare le offerte"
+    );
+  }
+
+  return db.offerta.findMany({
+    where: {
+      clienteId,
+      attiva: true,
+    },
+    select: {
+      id: true,
+      codice: true,
+      descrizione: true,
+    },
+    orderBy: { codice: "asc" },
+  });
 }

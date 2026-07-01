@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import type { CellaGiorno } from "@/domain/calendario";
 import type { SintesiGiorno } from "@/lib/attivita";
 
 // ── Tipi client (dopo serializzazione RSC → Client) ─────────────
@@ -14,17 +13,6 @@ interface CellaGiornoClient {
   isWeekend: boolean;
 }
 
-/** Riga attività dopo serializzazione (Date → string) */
-interface RigaAttivitaClient {
-  id: string;
-  data: string;
-  ore: number;
-  nota: string | null;
-  fatturabile: boolean;
-  offerta: { codice: string };
-  cliente: { ragioneSociale: string };
-}
-
 // ── Helpers ─────────────────────────────────────────────────────
 
 /** Formatta una data in YYYY-MM-DD. Supporta Date e stringa ISO. */
@@ -34,18 +22,6 @@ function formattaDataISO(data: Date | string): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const g = String(d.getDate()).padStart(2, "0");
   return `${a}-${m}-${g}`;
-}
-
-function nomeGiorno(data: Date): string {
-  return data.toLocaleDateString("it-IT", { weekday: "long" });
-}
-
-function dataEstesa(data: Date): string {
-  return data.toLocaleDateString("it-IT", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 /** Verifica se due date sono lo stesso giorno. Supporta stringhe ISO e Date. */
@@ -68,12 +44,10 @@ interface CalendarioMensileProps {
   tokenPrecedente: string;
   tokenSuccessivo: string;
   etichetta: string;
-  griglia: CellaGiorno[];
   /** Griglia del mese (Date → string dopo serializzazione) */
   griglia: CellaGiornoClient[];
   /** Sintesi per giorno indicizzata per data YYYY-MM-DD */
   sintesi: Record<string, SintesiGiorno>;
-  righeDelMese: RigaAttivitaClient[];
   /** Data corrente in formato ISO string */
   oggi: string;
 }
@@ -89,27 +63,9 @@ export default function CalendarioMensile({
   etichetta,
   griglia,
   sintesi,
-  righeDelMese,
   oggi,
 }: CalendarioMensileProps) {
   const oggiDate = new Date(oggi);
-
-  const [giornoSelezionato, setGiornoSelezionato] = useState<string | null>(
-    null
-  );
-
-  // Righe del giorno selezionato
-  const righeGiorno = useMemo(() => {
-    if (!giornoSelezionato) return [] as RigaAttivitaClient[];
-    return righeDelMese.filter(
-      (r) => formattaDataISO(r.data) === giornoSelezionato
-    );
-  }, [giornoSelezionato, righeDelMese]);
-
-  // Sintesi del giorno selezionato
-  const sintesiGiorno = giornoSelezionato
-    ? (sintesi[giornoSelezionato] ?? null)
-    : null;
 
   // Totale mese
   const totaleRighe = useMemo(() => {
@@ -316,15 +272,14 @@ export default function CalendarioMensile({
 
             if (haAttivita) {
               return (
-                <button
+                <Link
                   key={key}
-                  type="button"
+                  href={`/attivita/${key}?mese=${token}`}
                   className={classiGiorno}
-                  onClick={() => setGiornoSelezionato(key)}
-                  style={{ font: "inherit", textAlign: "left" }}
+                  style={{ textDecoration: "none" }}
                 >
                   {contenuto}
-                </button>
+                </Link>
               );
             }
 
@@ -352,161 +307,9 @@ export default function CalendarioMensile({
           Nessuna attività
         </span>
         <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">
-          Clicca un giorno con attività per vederne il dettaglio
+          Clicca un giorno con attività per inserire o modificare le righe
         </span>
       </div>
-
-      {/* ── Nota di contesto ── */}
-      <div className="mt-5 flex gap-[11px] rounded-[11px] border border-rose-200 bg-rose-50 p-[15px_18px] text-[13px] leading-relaxed text-zinc-600 dark:border-rose-800 dark:bg-rose-950/40 dark:text-zinc-400">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          className="mt-0.5 h-4 w-4 flex-none text-rose-700 dark:text-rose-400"
-        >
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 11v5M12 7.6h.01" />
-        </svg>
-        <span>
-          <b className="text-rose-800 dark:text-rose-300">Nota US-011</b> —
-          schermata di sola{" "}
-          <b>consultazione e navigazione</b>: la collaboratrice vede
-          esclusivamente le proprie attività, distingue a colpo d&apos;occhio i
-          giorni consuntivati (numero di righe e ore totali) e si sposta
-          liberamente fra i mesi. L&apos;<b>inserimento e la modifica</b> delle
-          righe arriveranno con US-012.
-        </span>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════
-           PANNELLO DETTAGLIO GIORNATA (sola lettura)
-           ═══════════════════════════════════════════════════════ */}
-      <div
-        className={`fixed inset-0 z-[60] bg-zinc-950/35 backdrop-blur-[2px] transition-opacity duration-200 ${
-          giornoSelezionato
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0"
-        }`}
-        onClick={() => setGiornoSelezionato(null)}
-      />
-
-      <aside
-        className={`fixed right-0 top-0 bottom-0 z-[61] flex w-[380px] max-w-[92vw] flex-col border-l border-zinc-200 bg-white shadow-2xl transition-transform duration-[240ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] dark:border-zinc-700 dark:bg-zinc-900 ${
-          giornoSelezionato ? "translate-x-0" : "translate-x-full"
-        }`}
-        aria-label="Dettaglio attività della giornata"
-      >
-        {giornoSelezionato && sintesiGiorno && (
-          <>
-            <div className="flex items-start gap-3 border-b border-zinc-200 px-5 py-[18px_20px_16px] dark:border-zinc-700">
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold capitalize text-rose-800 dark:text-rose-300">
-                  {nomeGiorno(
-                    new Date(righeGiorno[0]?.data ?? giornoSelezionato)
-                  )}
-                </div>
-                <h3 className="mt-0.5 text-lg font-bold capitalize">
-                  {dataEstesa(
-                    new Date(righeGiorno[0]?.data ?? giornoSelezionato)
-                  )}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setGiornoSelezionato(null)}
-                className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] border border-zinc-200 bg-white text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
-                aria-label="Chiudi"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  className="h-4 w-4"
-                >
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="flex gap-2.5 border-b border-zinc-100 px-5 py-[14px_20px] dark:border-zinc-800">
-              <div className="flex-1 rounded-[10px] border border-rose-200 bg-rose-50 p-[10px_12px] dark:border-rose-800 dark:bg-rose-950/40">
-                <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
-                  Righe registrate
-                </div>
-                <div className="mt-0.5 text-[19px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
-                  {sintesiGiorno.righe}
-                </div>
-              </div>
-              <div className="flex-1 rounded-[10px] border border-rose-200 bg-rose-50 p-[10px_12px] dark:border-rose-800 dark:bg-rose-950/40">
-                <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
-                  Ore totali
-                </div>
-                <div className="mt-0.5 text-[19px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
-                  {sintesiGiorno.oreTotali.toFixed(1)} h
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-5 py-[14px_20px_20px]">
-              <div className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.07em] text-zinc-400 dark:text-zinc-500">
-                Attività della giornata
-              </div>
-              {righeGiorno.map((riga) => (
-                <div
-                  key={riga.id}
-                  className="mb-2.5 rounded-[10px] border border-zinc-200 bg-white p-[11px_13px] dark:border-zinc-700 dark:bg-zinc-800"
-                >
-                  <div className="flex items-center justify-between gap-2.5">
-                    <span className="text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
-                      {riga.cliente.ragioneSociale}
-                    </span>
-                    <span className="whitespace-nowrap text-[12.5px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
-                      {Number(riga.ore).toFixed(1)} h
-                    </span>
-                  </div>
-                  <div className="mt-[5px] flex items-center gap-2">
-                    <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
-                      {riga.offerta.codice}
-                    </span>
-                    <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
-                      {riga.fatturabile ? "Fatturabile" : "Non fatturabile"}
-                    </span>
-                  </div>
-                  {riga.nota && (
-                    <div className="mt-[7px] text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                      {riga.nota}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-zinc-200 px-5 py-[14px_20px] dark:border-zinc-700">
-              <div className="flex items-start gap-[9px] rounded-[10px] border border-amber-300/40 bg-amber-50 p-[10px_12px] text-xs leading-relaxed text-zinc-400 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-zinc-500">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  className="mt-0.5 h-[15px] w-[15px] flex-none text-amber-600 dark:text-amber-400"
-                >
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 11v5M12 7.6h.01" />
-                </svg>
-                <span>
-                  <b className="text-amber-600 dark:text-amber-400">
-                    In arrivo (US-012)
-                  </b>{" "}
-                  — da qui sarà possibile aggiungere e modificare le righe
-                  della giornata. Per ora la vista è di sola consultazione.
-                </span>
-              </div>
-            </div>
-          </>
-        )}
-      </aside>
     </div>
   );
 }

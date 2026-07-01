@@ -35,7 +35,6 @@ export default async function AttivitaPage({
 
   // Conversione Map → plain object e Date → string per il passaggio al client component
   const sintesiPlain = Object.fromEntries(perGiorno);
-  const righePlain = JSON.parse(JSON.stringify(righe));
   const grigliaPlain = JSON.parse(JSON.stringify(griglia));
 
   return (
@@ -46,7 +45,6 @@ export default async function AttivitaPage({
       etichetta={etichetta}
       griglia={grigliaPlain}
       sintesi={sintesiPlain}
-      righeDelMese={righePlain}
       oggi={new Date().toISOString()}
     />
   );
