@@ -1,0 +1,401 @@
+/* ============================================================
+   Coaching Planner — US-014 Riepilogo mensile del collaboratore
+   Front office · ruolo COLLABORATORE.
+   Route /attivita/riepilogo?mese=YYYY-MM
+   Design system allineato a US-011/012/013: neutri zinc, raggi
+   10-11px, dark mode, font di sistema, ACCENTO ROSA (rose-600)
+   coerente con l'header reale del front office collaboratore.
+   ============================================================ */
+
+:root{
+  /* neutri — scala zinc (come US-011) */
+  --bg:        #fafafa;
+  --surface:   #ffffff;
+  --surface-2: #f4f4f5;
+  --ink:       #27272a;
+  --ink-2:     #52525b;
+  --ink-3:     #a1a1aa;
+  --line:      #e4e4e7;
+  --line-2:    #f0f0f1;
+
+  /* accento front office — rose */
+  --accent:      #e11d48;   /* rose-600 */
+  --accent-600:  #be123c;   /* rose-700 */
+  --accent-soft: #fff1f2;   /* rose-50  */
+  --accent-tint: #fecdd3;   /* rose-200 */
+  --accent-ink:  #9f1239;   /* rose-800 */
+  --on-accent:   #ffffff;
+
+  /* semantici */
+  --ok:    #059669;
+  --ok-t:  #ecfdf5;
+  --ok-tint:#a7f3d0;
+  --warn:  #b45309;
+  --warn-t:#fffbeb;
+  --warn-tint:#fde68a;
+  --danger:#dc2626;
+  --danger-t:#fef2f2;
+  --danger-tint:#fecaca;
+
+  --radius: 11px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / .05), 0 1px 3px rgb(24 24 27 / .05);
+  --shadow:    0 2px 6px rgb(24 24 27 / .06), 0 8px 24px rgb(24 24 27 / .07);
+  --shadow-lg: 0 12px 40px rgb(24 24 27 / .16);
+
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --header-blur-bg: rgb(255 255 255 / .82);
+}
+
+/* ---------- Dark mode ---------- */
+[data-theme="dark"]{
+  --bg:        #09090b;
+  --surface:   #18181b;
+  --surface-2: #27272a;
+  --ink:       #f4f4f5;
+  --ink-2:     #a1a1aa;
+  --ink-3:     #71717a;
+  --line:      #2c2c30;
+  --line-2:    #222226;
+
+  --accent:      #fb7185;   /* rose-400 */
+  --accent-600:  #fda4af;   /* rose-300 */
+  --accent-soft: rgb(225 29 72 / .16);
+  --accent-tint: rgb(251 113 133 / .45);
+  --accent-ink:  #fda4af;
+  --on-accent:   #ffffff;
+
+  --ok:    #34d399;
+  --ok-t:  rgb(16 185 129 / .14);
+  --ok-tint:rgb(16 185 129 / .4);
+  --warn:  #fbbf24;
+  --warn-t:rgb(245 158 11 / .13);
+  --warn-tint:rgb(245 158 11 / .4);
+  --danger:#f87171;
+  --danger-t:rgb(220 38 38 / .15);
+  --danger-tint:rgb(248 113 113 / .4);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / .35), 0 1px 3px rgb(0 0 0 / .3);
+  --shadow:    0 2px 6px rgb(0 0 0 / .35), 0 8px 24px rgb(0 0 0 / .35);
+  --shadow-lg: 0 12px 40px rgb(0 0 0 / .5);
+
+  --header-blur-bg: rgb(9 9 11 / .82);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  font-size:15px;
+  line-height:1.5;
+  transition:background .25s, color .25s;
+}
+h1,h2,h3,h4{margin:0;letter-spacing:-0.02em;line-height:1.15;font-weight:700;}
+a{color:inherit;}
+
+/* ============================================================
+   Header front office — riprodotto dal layout reale (contesto).
+   ============================================================ */
+.fo-shell{display:flex;min-height:100vh;flex-direction:column;}
+
+.fo-header{
+  position:sticky;top:0;z-index:10;
+  border-bottom:1px solid var(--line);
+  background:var(--header-blur-bg);backdrop-filter:blur(16px);
+}
+.fo-header-row{display:flex;align-items:center;gap:20px;padding:14px 32px;}
+.fo-title .crumb{font-size:12.5px;font-weight:500;color:var(--ink-3);}
+.fo-title h1{margin-top:2px;font-size:22px;font-weight:700;color:var(--ink);}
+.fo-spacer{flex:1;}
+
+.fo-session{display:flex;align-items:center;gap:14px;}
+.fo-user{display:flex;align-items:center;gap:10px;border-radius:11px;padding:6px 8px;}
+.fo-user .meta{text-align:right;line-height:1.25;}
+.fo-user .meta b{display:block;font-size:13.5px;font-weight:600;color:var(--ink);}
+.fo-user .meta span{font-size:11.5px;color:var(--ink-3);}
+.fo-user .avatar{
+  width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:var(--accent);color:#fff;font-weight:700;font-size:13px;
+}
+.fo-sep{width:1px;height:26px;background:var(--line);}
+
+/* ---------- Theme toggle ---------- */
+.theme-toggle{
+  width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);cursor:pointer;flex:none;
+  display:grid;place-items:center;box-shadow:var(--shadow-sm);
+}
+.theme-toggle:hover{color:var(--ink);background:var(--surface-2);}
+.theme-toggle svg{width:17px;height:17px;stroke-width:1.8;}
+.theme-toggle .ic-sun{display:none;}
+[data-theme="dark"] .theme-toggle .ic-sun{display:block;}
+[data-theme="dark"] .theme-toggle .ic-moon{display:none;}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  font-family:var(--sans);font-weight:600;font-size:13.5px;border-radius:10px;
+  padding:9px 15px;border:1px solid transparent;cursor:pointer;
+  text-decoration:none;white-space:nowrap;
+  transition:background .15s, color .15s, border-color .15s, box-shadow .15s;
+}
+.btn svg{width:16px;height:16px;stroke-width:2;}
+.btn-accent{background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-sm);}
+.btn-accent:hover{background:var(--accent-600);}
+.btn-ghost{background:var(--surface);border-color:var(--line);color:var(--ink-2);box-shadow:var(--shadow-sm);}
+.btn-ghost:hover{background:var(--surface-2);color:var(--ink);}
+.btn-danger-ghost{background:var(--surface);border-color:var(--line);color:var(--danger);box-shadow:var(--shadow-sm);}
+.btn-danger-ghost:hover{background:var(--danger-t);border-color:var(--danger-tint);}
+.btn-sm{padding:6px 10px;font-size:12.5px;}
+.btn-icon{padding:7px;width:32px;height:32px;}
+.btn-icon svg{width:15px;height:15px;}
+.btn[disabled]{cursor:not-allowed;opacity:.55;}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+/* link "Torna al calendario" */
+.back-link{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:13px;font-weight:600;color:var(--ink-2);text-decoration:none;
+  padding:5px 0;transition:color .15s;
+}
+.back-link:hover{color:var(--accent-ink);}
+.back-link svg{width:16px;height:16px;stroke-width:2.2;}
+
+/* ============================================================
+   Area contenuto
+   ============================================================ */
+.fo-main{flex:1;}
+.content{padding:24px 32px 72px;max-width:1080px;width:100%;margin:0 auto;}
+
+/* ---------- Barra di navigazione del mese ---------- */
+.cal-toolbar{
+  display:flex;align-items:center;gap:16px;margin-bottom:8px;flex-wrap:wrap;
+}
+.cal-monthnav{display:flex;align-items:center;gap:10px;}
+.cal-arrow{
+  width:36px;height:36px;border-radius:10px;flex:none;
+  display:grid;place-items:center;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink-2);
+  box-shadow:var(--shadow-sm);transition:background .15s, color .15s;
+}
+.cal-arrow:hover{background:var(--surface-2);color:var(--ink);}
+.cal-arrow svg{width:18px;height:18px;stroke-width:2.2;}
+.cal-month{
+  min-width:188px;text-align:center;font-size:19px;font-weight:700;
+  letter-spacing:-0.02em;color:var(--ink);text-transform:capitalize;
+}
+.cal-month .yr{color:var(--ink-3);font-weight:600;}
+.cal-toolbar .spacer{flex:1;}
+
+/* pill riepilogo mese (coerente con US-011) */
+.month-summary{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--accent-soft);border:1px solid var(--accent-tint);
+  border-radius:99px;padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--accent-ink);
+}
+.month-summary svg{width:15px;height:15px;stroke-width:2;}
+.month-summary b{font-variant-numeric:tabular-nums;}
+.month-summary .ms-sep{width:1px;height:13px;background:var(--accent-tint);}
+
+/* ---------- Intestazione riepilogo ---------- */
+.summary-head{margin:18px 0 4px;}
+.summary-head .dow{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--accent-ink);
+}
+.summary-head .dow svg{width:15px;height:15px;stroke-width:2.2;}
+.summary-head h2{font-size:27px;margin-top:6px;text-transform:capitalize;}
+
+/* ---------- Schede riepilogo (stat cards) ---------- */
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:12px;
+  margin-top:18px;
+}
+.stat-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);padding:16px 18px;
+  display:flex;flex-direction:column;gap:6px;
+  transition:border-color .15s, box-shadow .15s;
+}
+.stat-card:hover{box-shadow:var(--shadow);}
+.stat-card .sc-label{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+.stat-card .sc-label svg{width:14px;height:14px;stroke-width:2;}
+.stat-card .sc-value{
+  font-size:28px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;
+  line-height:1.1;letter-spacing:-0.03em;
+}
+.stat-card .sc-value small{font-size:14px;font-weight:600;color:var(--ink-3);margin-left:3px;}
+.stat-card .sc-sub{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;}
+
+/* Scheda IMPORTO FATTURA — in evidenza */
+.stat-card.invoice{
+  grid-column:span 3;
+  background:linear-gradient(135deg, var(--accent) 0%, var(--accent-600) 100%);
+  border-color:var(--accent-600);color:var(--on-accent);
+  box-shadow:var(--shadow-lg);position:relative;overflow:hidden;
+}
+.stat-card.invoice::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse at top right, rgb(255 255 255 / .12), transparent 60%);
+  pointer-events:none;
+}
+.stat-card.invoice .sc-label{color:rgb(255 255 255 / .82);}
+.stat-card.invoice .sc-label svg{color:rgb(255 255 255 / .82);}
+.stat-card.invoice .sc-value{font-size:38px;color:var(--on-accent);letter-spacing:-0.04em;}
+.stat-card.invoice .sc-value small{color:rgb(255 255 255 / .65);}
+.stat-card.invoice .sc-sub{color:rgb(255 255 255 / .72);}
+.stat-card.invoice .invoice-row{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.stat-card.invoice .invoice-breakdown{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.stat-card.invoice .bd-item{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12.5px;font-weight:600;color:rgb(255 255 255 / .82);
+}
+.stat-card.invoice .bd-item b{font-variant-numeric:tabular-nums;color:#fff;}
+.stat-card.invoice .bd-sep{width:1px;height:16px;background:rgb(255 255 255 / .22);}
+
+/* ---------- Sezioni ---------- */
+.section{margin-top:30px;}
+.section-title{
+  display:flex;align-items:center;gap:9px;margin-bottom:13px;
+}
+.section-title h3{font-size:15px;font-weight:700;color:var(--ink);}
+.section-title .count{
+  font-size:11.5px;font-weight:700;color:var(--accent-ink);
+  background:var(--accent-soft);border:1px solid var(--accent-tint);
+  border-radius:99px;padding:2px 9px;font-variant-numeric:tabular-nums;
+}
+
+/* ============================================================
+   Tabella riepilogo per offerta
+   ============================================================ */
+.summary-table-wrap{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);overflow:hidden;
+}
+.summary-table{width:100%;border-collapse:collapse;font-size:13px;}
+.summary-table thead th{
+  font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--ink-3);text-align:right;
+  padding:12px 14px;border-bottom:1px solid var(--line);
+  background:var(--surface-2);white-space:nowrap;
+}
+.summary-table thead th.left{text-align:left;}
+.summary-table thead th.num{text-align:right;font-variant-numeric:tabular-nums;}
+.summary-table tbody td{
+  padding:13px 14px;border-bottom:1px solid var(--line-2);
+  vertical-align:middle;
+}
+.summary-table tbody tr:last-child td{border-bottom:0;}
+.summary-table tbody tr{transition:background .12s;}
+.summary-table tbody tr:hover{background:var(--surface-2);}
+.summary-table tbody tr.nobill-row td{color:var(--ink-3);}
+.summary-table tbody tr.nobill-row .td-cli{color:var(--ink-2);}
+
+.td-cli{font-weight:700;color:var(--ink);font-size:13.5px;white-space:nowrap;}
+.td-offer{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.td-offer .code-chip{
+  font-size:11px;font-weight:700;letter-spacing:.02em;
+  padding:2px 8px;border-radius:6px;line-height:1.5;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);
+  white-space:nowrap;display:inline-block;width:fit-content;
+}
+.td-offer .off-desc{font-size:12.5px;color:var(--ink-2);line-height:1.4;}
+
+.summary-table td.num,
+.summary-table th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.summary-table .num-val{font-weight:700;color:var(--ink);font-size:14px;}
+.summary-table .num-sub{font-size:11px;color:var(--ink-3);font-weight:600;}
+.summary-table .num-zero{color:var(--ink-3);font-weight:500;}
+.summary-table .refund-val{font-weight:700;color:var(--accent-ink);}
+
+/* footer totale della tabella */
+.summary-table tfoot td{
+  padding:14px;border-top:2px solid var(--line);
+  background:var(--surface-2);font-weight:700;font-size:14px;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.summary-table tfoot td.left{font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);}
+
+/* ---------- Badge fatturabile/non fatturabile ---------- */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10.5px;font-weight:700;letter-spacing:.02em;
+  padding:3px 8px;border-radius:99px;white-space:nowrap;
+}
+.badge svg{width:11px;height:11px;stroke-width:2.6;}
+.badge.bill{background:var(--ok-t);border:1px solid var(--ok-tint);color:var(--ok);}
+.badge.nobill{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-3);}
+
+/* ---------- Nota di contesto ---------- */
+.note-card{
+  margin-top:26px;padding:15px 18px;display:flex;gap:11px;align-items:flex-start;
+  font-size:13px;color:var(--ink-2);line-height:1.55;
+  background:var(--accent-soft);border:1px solid var(--accent-tint);border-radius:var(--radius);
+}
+.note-card svg{width:16px;height:16px;flex:none;stroke-width:2;color:var(--accent-600);margin-top:2px;}
+.note-card b{color:var(--accent-ink);}
+
+/* ---------- Demo: barra "simula inserimento" ---------- */
+.demo-bar{
+  display:flex;align-items:center;gap:10px;margin-top:22px;
+  padding:13px 16px;border:1px dashed var(--accent-tint);border-radius:var(--radius);
+  background:var(--accent-soft);
+}
+.demo-bar .demo-label{
+  font-size:12px;font-weight:600;color:var(--accent-ink);flex:1;
+  display:flex;align-items:center;gap:8px;
+}
+.demo-bar .demo-label svg{width:15px;height:15px;stroke-width:2;}
+.demo-bar select.control{
+  width:auto;min-width:200px;font-size:13px;padding:7px 32px 7px 10px;
+}
+
+/* select con chevron (coerente con US-012/013) */
+.select-wrap{position:relative;}
+.select-wrap select.control{padding-right:38px;cursor:pointer;}
+.select-wrap::after{
+  content:"";position:absolute;right:14px;top:50%;width:9px;height:9px;
+  border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);
+  transform:translateY(-70%) rotate(45deg);pointer-events:none;
+}
+
+/* input / select / textarea (coerente con US-012/013) */
+.control{
+  width:100%;font-family:var(--sans);font-size:14px;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:10px 12px;transition:border-color .15s, box-shadow .15s, background .15s;
+  appearance:none;-webkit-appearance:none;
+}
+.control:hover{border-color:var(--ink-3);}
+.control:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+
+@media (max-width:860px){
+  .stat-grid{grid-template-columns:repeat(2, 1fr);}
+  .stat-card.invoice{grid-column:span 2;}
+}
+@media (max-width:680px){
+  .content{padding:18px 16px 56px;}
+  .summary-head h2{font-size:23px;}
+  .stat-grid{grid-template-columns:1fr;}
+  .stat-card.invoice{grid-column:span 1;}
+  .summary-table{font-size:12px;}
+  .summary-table thead th,
+  .summary-table tbody td{padding:9px 8px;}
+  .td-offer .off-desc{display:none;}
+}
