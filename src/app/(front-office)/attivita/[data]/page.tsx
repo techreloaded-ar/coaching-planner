@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { richiediRuolo } from "@/lib/dal";
-import { righeDelGiorno, clientiAttiviPerSelezione } from "@/lib/attivita";
+import { righeDelGiorno, clientiAttiviPerSelezione, scaglioniRimborsoTrasferta } from "@/lib/attivita";
+import { calcolaRimborsoTrasferta, type RisultatoCalcoloRimborso, type ScaglioneRimborso } from "@/domain/consuntivi";
 import DettaglioGiornata from "./dettaglio-giornata";
 
 // ── Tipi serializzati ───────────────────────────────────────────
@@ -13,6 +14,8 @@ export interface RigaAttivitaClient {
   ore: number;
   nota: string | null;
   fatturabile: boolean;
+  trasfertaKm: number | null;
+  rimborso: RisultatoCalcoloRimborso | null;
   offerta: {
     id: string;
     codice: string;
@@ -28,6 +31,12 @@ export interface RigaAttivitaClient {
 export interface ClienteSelect {
   id: string;
   ragioneSociale: string;
+}
+
+/** Scaglione rimborso serializzato per il client */
+export interface ScaglioneRimborsoSerializzato {
+  finoAKm: number;
+  importo: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -77,28 +86,44 @@ export default async function DettaglioGiornataPage({
   }
 
   // Carica dati in parallelo
-  const [righe, clienti] = await Promise.all([
+  const [righe, clienti, scaglioniRaw] = await Promise.all([
     righeDelGiorno(dataStr),
     clientiAttiviPerSelezione(),
+    scaglioniRimborsoTrasferta(),
   ]);
 
-  // Serializza per il client component
-  const righeClient: RigaAttivitaClient[] = righe.map((r) => ({
-    id: r.id,
-    data: formattaDataISO(r.data),
-    ore: Number(r.ore),
-    nota: r.nota,
-    fatturabile: r.fatturabile,
-    offerta: {
-      id: r.offerta.id,
-      codice: r.offerta.codice,
-      descrizione: r.offerta.descrizione,
-    },
-    cliente: {
-      id: r.cliente.id,
-      ragioneSociale: r.cliente.ragioneSociale,
-    },
+  // Serializza scaglioni per il client (converte importo a stringa)
+  const scaglioni: ScaglioneRimborsoSerializzato[] = scaglioniRaw.map((s) => ({
+    finoAKm: s.finoAKm,
+    importo: typeof s.importo === "number" ? s.importo.toFixed(2) : String(s.importo),
   }));
+
+  // Serializza per il client component
+  const righeClient: RigaAttivitaClient[] = righe.map((r) => {
+    const rimborso: RisultatoCalcoloRimborso | null =
+      r.trasfertaKm != null
+        ? calcolaRimborsoTrasferta(r.trasfertaKm, scaglioniRaw)
+        : null;
+
+    return {
+      id: r.id,
+      data: formattaDataISO(r.data),
+      ore: Number(r.ore),
+      nota: r.nota,
+      fatturabile: r.fatturabile,
+      trasfertaKm: r.trasfertaKm ?? null,
+      rimborso,
+      offerta: {
+        id: r.offerta.id,
+        codice: r.offerta.codice,
+        descrizione: r.offerta.descrizione,
+      },
+      cliente: {
+        id: r.cliente.id,
+        ragioneSociale: r.cliente.ragioneSociale,
+      },
+    };
+  });
 
   const clientiSelect: ClienteSelect[] = clienti;
 
@@ -130,6 +155,7 @@ export default async function DettaglioGiornataPage({
         data={dataStr}
         righeIniziali={righeClient}
         clienti={clientiSelect}
+        scaglioni={scaglioni}
       />
     </>
   );

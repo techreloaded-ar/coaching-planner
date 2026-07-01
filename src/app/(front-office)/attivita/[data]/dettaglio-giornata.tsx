@@ -6,9 +6,11 @@ import {
   creaRiga,
   modificaRiga,
   eliminaRiga,
+  rimuoviTrasferta,
   fetchOffertePerCliente,
 } from "@/lib/actions/righe-attivita";
-import type { RigaAttivitaClient, ClienteSelect } from "./page";
+import { calcolaRimborsoTrasferta, validaKmTrasferta } from "@/domain/consuntivi";
+import type { RigaAttivitaClient, ClienteSelect, ScaglioneRimborsoSerializzato } from "./page";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -25,6 +27,8 @@ interface DettaglioGiornataProps {
   righeIniziali: RigaAttivitaClient[];
   /** Clienti attivi per la select */
   clienti: ClienteSelect[];
+  /** Scaglioni configurati per il calcolo rimborso trasferta */
+  scaglioni: ScaglioneRimborsoSerializzato[];
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -63,6 +67,7 @@ export default function DettaglioGiornata({
   data,
   righeIniziali,
   clienti,
+  scaglioni,
 }: DettaglioGiornataProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -79,6 +84,10 @@ export default function DettaglioGiornata({
   const [nota, setNota] = useState("");
   const [erroreSubmit, setErroreSubmit] = useState<string | null>(null);
 
+  // Stato trasferta
+  const [trasfertaKmRaw, setTrasfertaKmRaw] = useState("");
+  const [erroreKm, setErroreKm] = useState<string | null>(null);
+
   // Modalità modifica
   const [modificaId, setModificaId] = useState<string | null>(null);
 
@@ -94,8 +103,23 @@ export default function DettaglioGiornata({
     const oreFatturabili = righe
       .filter((r) => r.fatturabile)
       .reduce((s, r) => s + r.ore, 0);
-    return { nRighe, oreTotali, oreFatturabili };
+    const totaleRimborsi = righe
+      .filter((r) => r.rimborso?.stato === "OK")
+      .reduce((s, r) => {
+        const importo = parseFloat(r.rimborso!.importo!);
+        return s + (isNaN(importo) ? 0 : importo);
+      }, 0);
+    return { nRighe, oreTotali, oreFatturabili, totaleRimborsi };
   }, [righe]);
+
+  // ── Preview rimborso dalla distanza inserita ───────────────
+
+  const previewRimborso = useMemo(() => {
+    if (!trasfertaKmRaw || trasfertaKmRaw.trim() === "") return null;
+    const validazione = validaKmTrasferta(trasfertaKmRaw);
+    if (!validazione.valido) return null;
+    return calcolaRimborsoTrasferta(validazione.valore!, scaglioni);
+  }, [trasfertaKmRaw, scaglioni]);
 
   // ── Cascade select cliente → offerte ───────────────────────
 
@@ -134,6 +158,32 @@ export default function DettaglioGiornata({
     setErroreOre(err);
   }, []);
 
+  // ── Validazione km inline ──────────────────────────────────
+
+  const handleCambioKm = useCallback((valore: string) => {
+    setTrasfertaKmRaw(valore);
+    if (valore.trim() === "") {
+      setErroreKm(null);
+      return;
+    }
+    const validazione = validaKmTrasferta(valore);
+    if (!validazione.valido) {
+      setErroreKm(validazione.errore ?? null);
+      return;
+    }
+    // Verifica anche che rientri in uno scaglione
+    const risultato = calcolaRimborsoTrasferta(validazione.valore!, scaglioni);
+    if (risultato.stato === "OLTRE_SOGLIA") {
+      setErroreKm(risultato.messaggio ?? "Distanza oltre la soglia massima");
+      return;
+    }
+    if (risultato.stato === "NESSUNO_SCAGLIONE") {
+      setErroreKm(risultato.messaggio ?? null);
+      return;
+    }
+    setErroreKm(null);
+  }, [scaglioni]);
+
   // ── Submit form ────────────────────────────────────────────
 
   const handleSubmit = useCallback(
@@ -153,6 +203,12 @@ export default function DettaglioGiornata({
         return;
       }
 
+      // Blocca submit se km non validi o oltre soglia
+      if (erroreKm) {
+        setErroreSubmit(erroreKm);
+        return;
+      }
+
       const fd = new FormData();
       fd.append("clienteId", clienteId);
       fd.append("offertaId", offertaId);
@@ -160,6 +216,8 @@ export default function DettaglioGiornata({
       fd.append("data", data);
       if (nota) fd.append("nota", nota);
       if (fatturabile) fd.append("fatturabile", "on");
+      // Trasferta: invia sempre il valore (anche vuoto per rimuovere)
+      fd.append("trasfertaKm", trasfertaKmRaw);
 
       if (modificaId) {
         fd.append("rigaId", modificaId);
@@ -188,11 +246,13 @@ export default function DettaglioGiornata({
       setErroreOre(null);
       setFatturabile(true);
       setNota("");
+      setTrasfertaKmRaw("");
+      setErroreKm(null);
       setModificaId(null);
       setOfferte([]);
       setErroreSubmit(null);
     },
-    [clienteId, offertaId, ore, nota, fatturabile, data, modificaId, router]
+    [clienteId, offertaId, ore, nota, fatturabile, trasfertaKmRaw, erroreKm, data, modificaId, router]
   );
 
   // ── Modifica riga ──────────────────────────────────────────
@@ -204,7 +264,9 @@ export default function DettaglioGiornata({
       setFatturabile(riga.fatturabile);
       setOre(riga.ore.toString().replace(".", ","));
       setNota(riga.nota ?? "");
+      setTrasfertaKmRaw(riga.trasfertaKm != null ? String(riga.trasfertaKm) : "");
       setErroreOre(null);
+      setErroreKm(null);
       setErroreSubmit(null);
 
       // Carica le offerte di quel cliente
@@ -240,6 +302,8 @@ export default function DettaglioGiornata({
     setErroreOre(null);
     setFatturabile(true);
     setNota("");
+    setTrasfertaKmRaw("");
+    setErroreKm(null);
     setOfferte([]);
     setErroreSubmit(null);
   }, []);
@@ -251,6 +315,22 @@ export default function DettaglioGiornata({
       if (!confirm("Eliminare questa riga attività?")) return;
 
       const result = await eliminaRiga(rigaId);
+      if (result.success) {
+        startTransition(() => {
+          router.refresh();
+        });
+      }
+    },
+    [router]
+  );
+
+  // ── Rimuovi trasferta ──────────────────────────────────────
+
+  const handleRimuoviTrasferta = useCallback(
+    async (rigaId: string) => {
+      if (!confirm("Rimuovere la trasferta da questa riga?")) return;
+
+      const result = await rimuoviTrasferta(rigaId);
       if (result.success) {
         startTransition(() => {
           router.refresh();
@@ -300,6 +380,14 @@ export default function DettaglioGiornata({
           </div>
           <div className="mt-0.5 text-[22px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
             {riepilogo.oreFatturabili.toFixed(1)} h
+          </div>
+        </div>
+        <div className="flex-1 min-w-[120px] rounded-[11px] border border-rose-200 bg-rose-50 p-[14px_16px] dark:border-rose-800 dark:bg-rose-950/40">
+          <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
+            Totale rimborsi
+          </div>
+          <div className="mt-0.5 text-[22px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
+            € {riepilogo.totaleRimborsi.toFixed(2)}
           </div>
         </div>
       </div>
@@ -369,6 +457,40 @@ export default function DettaglioGiornata({
                   </div>
                 </div>
 
+                {/* Trasferta (se presente) */}
+                {riga.trasfertaKm != null && (
+                  <div className="mt-[8px] flex items-center gap-2 rounded-[7px] bg-amber-50 px-2.5 py-1.5 dark:bg-amber-950/30">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      className="h-[13px] w-[13px] text-amber-600 dark:text-amber-400"
+                    >
+                      <path d="M6 17h12l1.5-5.5A2 2 0 0 0 17.6 9H6.4a2 2 0 0 0-1.9 2.5L6 17Z" />
+                      <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                    </svg>
+                    <span className="text-[11.5px] font-semibold text-amber-800 dark:text-amber-300">
+                      {riga.trasfertaKm} km
+                    </span>
+                    {riga.rimborso?.stato === "OK" && (
+                      <>
+                        <span className="text-[11px] text-amber-600 dark:text-amber-400">
+                          · {riga.rimborso.labelFascia}
+                        </span>
+                        <span className="ml-auto text-[13px] font-bold tabular-nums text-amber-800 dark:text-amber-300">
+                          € {parseFloat(riga.rimborso.importo!).toFixed(2)}
+                        </span>
+                      </>
+                    )}
+                    {riga.rimborso?.stato === "OLTRE_SOGLIA" && (
+                      <span className="text-[11px] text-red-600 dark:text-red-400">
+                        · {riga.rimborso.messaggio}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Pulsanti azione */}
                 <div className="mt-[10px] flex items-center gap-2 border-t border-zinc-100 pt-[10px] dark:border-zinc-700">
                   <button
@@ -387,6 +509,25 @@ export default function DettaglioGiornata({
                     </svg>
                     Modifica
                   </button>
+                  {riga.trasfertaKm != null && (
+                    <button
+                      type="button"
+                      onClick={() => handleRimuoviTrasferta(riga.id)}
+                      className="inline-flex items-center gap-[5px] rounded-[8px] border border-amber-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-amber-700 transition hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        className="h-[13px] w-[13px]"
+                      >
+                        <path d="M6 17h12l1.5-5.5A2 2 0 0 0 17.6 9H6.4a2 2 0 0 0-1.9 2.5L6 17Z" />
+                        <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                      </svg>
+                      Rimuovi trasferta
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleElimina(riga.id)}
@@ -499,6 +640,68 @@ export default function DettaglioGiornata({
             {erroreOre && (
               <p className="mt-1 text-[11.5px] font-medium text-red-600 dark:text-red-400">
                 {erroreOre}
+              </p>
+            )}
+          </div>
+
+          {/* Trasferta km */}
+          <div>
+            <label
+              htmlFor="trasfertaKm"
+              className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+            >
+              Distanza trasferta <span className="text-zinc-400 font-normal">(opzionale)</span>
+            </label>
+            <div className="flex items-center">
+              <input
+                id="trasfertaKm"
+                type="text"
+                inputMode="numeric"
+                placeholder="es. 150"
+                value={trasfertaKmRaw}
+                onChange={(e) => handleCambioKm(e.target.value)}
+                className={`w-[140px] rounded-[8px] border bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:outline-none focus:ring-1 ${
+                  erroreKm
+                    ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-800"
+                    : "border-zinc-200 focus:border-rose-500 focus:ring-rose-500 dark:border-zinc-700"
+                } dark:bg-zinc-800 dark:text-zinc-200`}
+              />
+              <span className="ml-2 text-[13px] font-semibold text-zinc-500 dark:text-zinc-400">km</span>
+            </div>
+            {erroreKm && (
+              <p className="mt-1 text-[11.5px] font-medium text-red-600 dark:text-red-400">
+                {erroreKm}
+              </p>
+            )}
+            {/* Preview rimborso */}
+            {previewRimborso && previewRimborso.stato === "OK" && (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-[7px] bg-amber-50 px-3 py-1.5 dark:bg-amber-950/30">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  className="h-[13px] w-[13px] text-amber-600 dark:text-amber-400"
+                >
+                  <path d="M6 17h12l1.5-5.5A2 2 0 0 0 17.6 9H6.4a2 2 0 0 0-1.9 2.5L6 17Z" />
+                  <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                </svg>
+                <span className="text-[11.5px] font-semibold text-amber-800 dark:text-amber-300">
+                  Rimborso stimato: {previewRimborso.labelFascia}
+                </span>
+                <span className="text-[13px] font-bold tabular-nums text-amber-800 dark:text-amber-300">
+                  € {parseFloat(previewRimborso.importo!).toFixed(2)}
+                </span>
+              </div>
+            )}
+            {previewRimborso && previewRimborso.stato === "OLTRE_SOGLIA" && (
+              <p className="mt-1 text-[11.5px] font-medium text-red-600 dark:text-red-400">
+                {previewRimborso.messaggio}
+              </p>
+            )}
+            {!trasfertaKmRaw && (
+              <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">
+                Inserisci i km per vedere il rimborso automatico.
               </p>
             )}
           </div>
