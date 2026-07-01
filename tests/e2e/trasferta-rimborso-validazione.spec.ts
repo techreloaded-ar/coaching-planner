@@ -41,11 +41,11 @@ test.describe("US-013 Validazione — Trasferta km", () => {
 
   test("mostra errore per km oltre soglia massima", async ({ page }) => {
     const inputKm = page.locator("#trasfertaKm");
-    await inputKm.fill("999");
+    await inputKm.fill("100000");
 
     // Verifica messaggio di errore visibile
     // Il messaggio è un <p> fratello del flex-container (che contiene input+span), non dell'input
-    await expect(page.getByText(/soglia massima/i)).toBeVisible();
+    await expect(page.getByText(/soglia massima/i).first()).toBeVisible();
 
     // Verifica che la preview non mostri un importo (nessun OK)
     await expect(page.getByText("Rimborso stimato")).not.toBeVisible();

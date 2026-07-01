@@ -74,9 +74,10 @@ test.describe("US-013 Demo — Trasferta con rimborso automatico", () => {
     // Inserisci km e verifica preview rimborso
     await inputKm.fill("150");
     await expect(page.getByText("Rimborso stimato")).toBeVisible();
-    // Scope la ricerca € al contenitore della preview (evita conflitto con "€ 0.00" del riepilogo)
-    const previewContainer = page.getByText(/Rimborso stimato/).locator('xpath=..');
-    await expect(previewContainer.getByText(/€/)).toBeVisible();
+    // Scope la verifica al contenitore della preview (evita conflitto con il riepilogo)
+    const previewContainer = page.getByText(/Rimborso stimato/).locator("xpath=..");
+    await expect(previewContainer).toContainText(/fino a 250 km/);
+    await expect(previewContainer).toContainText(/€\s*110[,.]00/);
 
     // Salva riga
     await bottoneAggiungiRiga.click();
@@ -111,7 +112,7 @@ test.describe("US-013 Demo — Trasferta con rimborso automatico", () => {
     // Cambia km a 50
     await inputKm.fill("50");
     // Verifica che la preview si aggiorni
-    await expect(page.getByText(/fino a 50 km/)).toBeVisible();
+    await expect(previewContainer).toContainText(/fino a 50 km/);
 
     // Salva modifiche
     const bottoneSalva = page.getByRole("button", {
@@ -123,7 +124,7 @@ test.describe("US-013 Demo — Trasferta con rimborso automatico", () => {
     await page.waitForTimeout(500);
 
     // Verifica che la card mostri 50 km
-    await expect(card.getByText("50 km")).toBeVisible();
+    await expect(card.getByText("50 km", { exact: true })).toBeVisible();
     // Lo scaglione ora dovrebbe essere "fino a 50 km"
     // Nota: potrebbe mostrare "fino a 100 km" depending on seed. Verifichiamo solo presenza.
     await expect(card.getByText(/fino a/)).toBeVisible();
