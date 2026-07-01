@@ -162,13 +162,24 @@ async function main() {
   console.log(`✓ Creata offerta: GE-2024-03 (non attiva)`);
 
   // ── Attività dimostrative ────────────────────────────────────
+  // Relative al mese corrente così che la vista di default mostri giorni consuntivati
+  // e la demo resti valida nel tempo.
+  const oggi = new Date();
+  const anno = oggi.getFullYear();
+  const mese = oggi.getMonth(); // 0-based
+
+  // Giorni del mese corrente per le attività demo: usiamo i primi giorni feriali disponibili
+  function giornoDelMese(g: number): Date {
+    return new Date(anno, mese, g);
+  }
+
   const attivita = await Promise.all([
     prisma.rigaAttivita.create({
       data: {
         collaboratoreId: collaboratore.id,
         clienteId: cliente1.id,
         offertaId: offerta1.id,
-        data: new Date("2025-06-02"),
+        data: giornoDelMese(2),
         ore: "8.00",
         nota: "Analisi requisiti architetturali",
         fatturabile: true,
@@ -179,7 +190,7 @@ async function main() {
         collaboratoreId: collaboratore.id,
         clienteId: cliente1.id,
         offertaId: offerta1.id,
-        data: new Date("2025-06-03"),
+        data: giornoDelMese(3),
         ore: "6.50",
         nota: "Stesura documento di architettura",
         fatturabile: true,
@@ -191,7 +202,7 @@ async function main() {
         collaboratoreId: collaboratore.id,
         clienteId: cliente2.id,
         offertaId: offerta2.id,
-        data: new Date("2025-06-04"),
+        data: giornoDelMese(4),
         ore: "7.00",
         nota: "Setup ambiente di sviluppo",
         fatturabile: true,
@@ -202,7 +213,7 @@ async function main() {
         collaboratoreId: collaboratore.id,
         clienteId: cliente1.id,
         offertaId: offerta1.id,
-        data: new Date("2025-06-05"),
+        data: giornoDelMese(5),
         ore: "4.00",
         nota: "Attività non fatturabile — formazione interna",
         fatturabile: false,

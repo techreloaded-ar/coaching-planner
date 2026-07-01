@@ -1,12 +1,53 @@
 import { richiediRuolo } from "@/lib/dal";
+import { attivitaDelMese } from "@/lib/attivita";
+import {
+  tokenMeseCorrente,
+  parseTokenMese,
+  etichettaMese,
+  mesePrecedente,
+  meseSuccessivo,
+  costruisciGrigliaMese,
+} from "@/domain/calendario";
+import CalendarioMensile from "./calendario-mensile";
 
-export default async function AttivitaPage() {
+export default async function AttivitaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mese?: string }>;
+}) {
   await richiediRuolo("COLLABORATORE");
 
+  const params = await searchParams;
+
+  // Token del mese: da query string o mese corrente
+  const tokenRaw = params.mese ?? tokenMeseCorrente();
+  const parsed = parseTokenMese(tokenRaw);
+  const token = parsed ? tokenRaw : tokenMeseCorrente();
+
+  // Navigazione
+  const tokenPrev = mesePrecedente(token);
+  const tokenNext = meseSuccessivo(token);
+  const etichetta = etichettaMese(token);
+
+  // Dati del mese
+  const { perGiorno, righe } = await attivitaDelMese(token);
+  const griglia = costruisciGrigliaMese(token);
+
+  // Conversione Map → plain object e Date → string per il passaggio al client component
+  const sintesiPlain = Object.fromEntries(perGiorno);
+  const righePlain = JSON.parse(JSON.stringify(righe));
+  const grigliaPlain = JSON.parse(JSON.stringify(griglia));
+
   return (
-    <div className="flex flex-col items-center justify-center flex-1 p-8">
-      <h1 className="text-2xl font-bold">Le Mie Attività</h1>
-      <p className="text-zinc-500 mt-2">Calendario mensile — in arrivo</p>
-    </div>
+    <CalendarioMensile
+      token={token}
+      tokenPrecedente={tokenPrev}
+      tokenSuccessivo={tokenNext}
+      etichetta={etichetta}
+      griglia={grigliaPlain}
+      sintesi={sintesiPlain}
+      righeDelMese={righePlain}
+      oggi={new Date().toISOString()}
+    />
   );
 }
