@@ -314,3 +314,185 @@ export function calcolaRiepilogoMese(
     },
   };
 }
+
+// ── Report fatturazione clienti ─────────────────────────────────
+
+/**
+ * Riga elementare di attività per il report di fatturazione (dipendenza-zero).
+ * Rappresenta un contributo di un collaboratore su una offerta di un cliente.
+ */
+export interface RigaReportFatturazione {
+  clienteId: string;
+  clienteRagioneSociale: string;
+  offertaId: string;
+  offertaCodice: string;
+  offertaDescrizione: string;
+  /** Tariffa giornaliera dell'offerta (serializzabile come stringa o numero) */
+  tariffaOffertaGiornaliera: string | number;
+  ore: number;
+  fatturabile: boolean;
+  trasfertaKm: number | null;
+}
+
+/** Voce di dettaglio di una singola offerta nel report cliente */
+export interface VoceOffertaReport {
+  offertaId: string;
+  offertaCodice: string;
+  offertaDescrizione: string;
+  tariffaGiornaliera: string;
+  giornateFatturabili: number;
+  imponibile: string;
+}
+
+/** Voce di report aggregata per singolo cliente */
+export interface VoceClienteReport {
+  clienteId: string;
+  clienteRagioneSociale: string;
+  perOfferta: VoceOffertaReport[];
+  rimborsiTrasferta: string;
+  imponibileManodopera: string;
+  importoTotale: string;
+}
+
+/** Report complessivo di fatturazione, per cliente e con totali di riepilogo */
+export interface ReportFatturazioneClienti {
+  perCliente: VoceClienteReport[];
+  totali: {
+    imponibileManodopera: string;
+    totaleRimborsi: string;
+    importoTotale: string;
+  };
+}
+
+/**
+ * Aggrega le righe attività del mese (di tutti i collaboratori) per cliente e,
+ * dentro ogni cliente, per offerta, calcolando l'importo da fatturare con la
+ * tariffa dell'offerta e ribaltando i rimborsi trasferta al cliente.
+ *
+ * Funzione pura: nessuna dipendenza da framework o Prisma.
+ *
+ * @param righe - Righe elementari di attività da aggregare
+ * @param scaglioni - Scaglioni per il calcolo dei rimborsi trasferta
+ * @returns Report per cliente con totali di riepilogo
+ */
+export function calcolaReportFatturazioneClienti(
+  righe: RigaReportFatturazione[],
+  scaglioni: ScaglioneRimborso[],
+): ReportFatturazioneClienti {
+  interface AccumulatoreOfferta {
+    offertaId: string;
+    offertaCodice: string;
+    offertaDescrizione: string;
+    tariffaGiornaliera: number;
+    oreFatturabili: number;
+  }
+
+  interface AccumulatoreCliente {
+    clienteId: string;
+    clienteRagioneSociale: string;
+    offerte: Map<string, AccumulatoreOfferta>;
+    rimborsiTrasferta: number;
+  }
+
+  const clienti = new Map<string, AccumulatoreCliente>();
+
+  for (const riga of righe) {
+    let cliente = clienti.get(riga.clienteId);
+    if (!cliente) {
+      cliente = {
+        clienteId: riga.clienteId,
+        clienteRagioneSociale: riga.clienteRagioneSociale,
+        offerte: new Map(),
+        rimborsiTrasferta: 0,
+      };
+      clienti.set(riga.clienteId, cliente);
+    }
+
+    let offerta = cliente.offerte.get(riga.offertaId);
+    if (!offerta) {
+      offerta = {
+        offertaId: riga.offertaId,
+        offertaCodice: riga.offertaCodice,
+        offertaDescrizione: riga.offertaDescrizione,
+        tariffaGiornaliera: Number(riga.tariffaOffertaGiornaliera),
+        oreFatturabili: 0,
+      };
+      cliente.offerte.set(riga.offertaId, offerta);
+    }
+
+    if (riga.fatturabile) {
+      offerta.oreFatturabili += riga.ore;
+    }
+
+    if (riga.trasfertaKm != null) {
+      const rimborso = calcolaRimborsoTrasferta(riga.trasfertaKm, scaglioni);
+      if (rimborso.stato === "OK" && rimborso.importo != null) {
+        cliente.rimborsiTrasferta += parseFloat(rimborso.importo);
+      }
+    }
+  }
+
+  let totaleImponibileManodopera = 0;
+  let totaleRimborsi = 0;
+  let totaleImporto = 0;
+
+  const perCliente: VoceClienteReport[] = [];
+
+  for (const cliente of clienti.values()) {
+    const perOfferta: VoceOffertaReport[] = [];
+    let imponibileManodoperaCliente = 0;
+
+    for (const offerta of cliente.offerte.values()) {
+      const giornateFatturabili = offerta.oreFatturabili / ORE_PER_GIORNATA;
+      const imponibile = giornateFatturabili * offerta.tariffaGiornaliera;
+
+      if (giornateFatturabili > 0) {
+        imponibileManodoperaCliente += imponibile;
+        perOfferta.push({
+          offertaId: offerta.offertaId,
+          offertaCodice: offerta.offertaCodice,
+          offertaDescrizione: offerta.offertaDescrizione,
+          tariffaGiornaliera: offerta.tariffaGiornaliera.toFixed(2),
+          giornateFatturabili,
+          imponibile: imponibile.toFixed(2),
+        });
+      }
+    }
+
+    const rimborsiCliente = cliente.rimborsiTrasferta;
+
+    if (perOfferta.length === 0 && rimborsiCliente <= 0) {
+      continue;
+    }
+
+    perOfferta.sort((a, b) => a.offertaCodice.localeCompare(b.offertaCodice));
+
+    const importoTotaleCliente = imponibileManodoperaCliente + rimborsiCliente;
+
+    perCliente.push({
+      clienteId: cliente.clienteId,
+      clienteRagioneSociale: cliente.clienteRagioneSociale,
+      perOfferta,
+      rimborsiTrasferta: rimborsiCliente.toFixed(2),
+      imponibileManodopera: imponibileManodoperaCliente.toFixed(2),
+      importoTotale: importoTotaleCliente.toFixed(2),
+    });
+
+    totaleImponibileManodopera += imponibileManodoperaCliente;
+    totaleRimborsi += rimborsiCliente;
+    totaleImporto += importoTotaleCliente;
+  }
+
+  perCliente.sort((a, b) =>
+    a.clienteRagioneSociale.localeCompare(b.clienteRagioneSociale),
+  );
+
+  return {
+    perCliente,
+    totali: {
+      imponibileManodopera: totaleImponibileManodopera.toFixed(2),
+      totaleRimborsi: totaleRimborsi.toFixed(2),
+      importoTotale: totaleImporto.toFixed(2),
+    },
+  };
+}

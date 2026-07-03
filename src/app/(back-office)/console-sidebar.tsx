@@ -43,7 +43,7 @@ const NAV_ITEMS = [
   { label: "Offerte", icon: IconOfferte, disabled: true },
   { href: "/anagrafiche/collaboratori", label: "Collaboratori", icon: IconCollaboratori },
   { href: "/anagrafiche/scaglioni", label: "Scaglioni km", icon: IconScaglioni },
-  { label: "Report", icon: IconReport, disabled: true },
+  { href: "/report/fatturazione-clienti", label: "Report", icon: IconReport },
 ] as const;
 
 // ── Props ──────────────────────────────────────────────────────

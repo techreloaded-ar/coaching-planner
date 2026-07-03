@@ -150,7 +150,7 @@ test.describe("Anagrafica clienti", () => {
 		await expect(clientiLink).toHaveAttribute("aria-current", "page");
 
 		// Verifica le voci disabilitate con badge "In arrivo"
-		const vociDisabilitate = ["Offerte", "Report"];
+		const vociDisabilitate = ["Offerte"];
 		for (const voce of vociDisabilitate) {
 			const btn = page
 				.locator("nav[aria-label='Navigazione principale'] button[disabled]")
@@ -159,6 +159,16 @@ test.describe("Anagrafica clienti", () => {
 			await expect(btn).toHaveAttribute("aria-disabled", "true");
 			await expect(btn.getByText("In arrivo")).toBeVisible();
 		}
+
+		// Verifica che "Report" sia ora un link attivo verso il report fatturazione (US-015)
+		const reportLink = page
+			.locator("nav[aria-label='Navigazione principale'] a")
+			.filter({ hasText: "Report" });
+		await expect(reportLink).toBeVisible();
+		await expect(reportLink).toHaveAttribute(
+			"href",
+			"/report/fatturazione-clienti",
+		);
 
 		// Verifica che "Collaboratori" e "Scaglioni km" siano link attivi e navigabili
 		const collaboratoriLink = page

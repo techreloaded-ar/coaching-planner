@@ -80,6 +80,34 @@ async function main() {
     `✓ Creato profilo collaboratore: ${collaboratore.nome} ${collaboratore.cognome} (tariffa €${collaboratore.tariffaGiornaliera}/giorno)`
   );
 
+  // ── Secondo Utente Collaboratore (Marco Bianchi) ─────────────
+  // Serve a dimostrare l'aggregazione per offerta nel report: più
+  // collaboratori che lavorano sulla stessa offerta di un cliente.
+  const secondoCollabUser = await prisma.utente.create({
+    data: {
+      nome: "Marco Bianchi",
+      email: "marco.bianchi@agilereloaded.it",
+      ruolo: "COLLABORATORE",
+    },
+  });
+  console.log(
+    `✓ Creato collaboratore: ${secondoCollabUser.nome} (${secondoCollabUser.email})`
+  );
+
+  // ── Profilo Secondo Collaboratore ───────────────────────────
+  const secondoCollaboratore = await prisma.collaboratore.create({
+    data: {
+      userId: secondoCollabUser.id,
+      nome: "Marco",
+      cognome: "Bianchi",
+      partitaIva: "23456789012",
+      tariffaGiornaliera: "300.00",
+    },
+  });
+  console.log(
+    `✓ Creato profilo collaboratore: ${secondoCollaboratore.nome} ${secondoCollaboratore.cognome} (tariffa €${secondoCollaboratore.tariffaGiornaliera}/giorno)`
+  );
+
   // ── Cliente 1 ────────────────────────────────────────────────
   const cliente1 = await prisma.cliente.create({
     data: {
@@ -249,10 +277,47 @@ async function main() {
   ]);
   console.log(`✓ Create ${attivita.length} attività dimostrative`);
 
+  // ── Attività del secondo collaboratore (Marco Bianchi) ───────
+  // Righe fatturabili sulla STESSA offerta di Giulia (offerta1 / cliente1)
+  // così che il report possa aggregare per offerta le giornate erogate da
+  // più collaboratori. I giorni 5 e 9 sono scelti per non interferire con
+  // gli scenari e2e (che usano i giorni 2, 3, 4, 6, 7).
+  const attivitaSecondoCollaboratore = await Promise.all([
+    // Giorno 5: giornata piena fatturabile con trasferta entro scaglione (80 km → 60,00 €)
+    prisma.rigaAttivita.create({
+      data: {
+        collaboratoreId: secondoCollaboratore.id,
+        clienteId: cliente1.id,
+        offertaId: offerta1.id,
+        data: giornoDelMese(5),
+        ore: "8.00",
+        nota: "Implementazione moduli infrastruttura cloud",
+        fatturabile: true,
+        trasfertaKm: 80,
+      },
+    }),
+    // Giorno 9: giornata piena fatturabile sulla stessa offerta
+    prisma.rigaAttivita.create({
+      data: {
+        collaboratoreId: secondoCollaboratore.id,
+        clienteId: cliente1.id,
+        offertaId: offerta1.id,
+        data: giornoDelMese(9),
+        ore: "8.00",
+        nota: "Test di integrazione e collaudo",
+        fatturabile: true,
+      },
+    }),
+  ]);
+  console.log(
+    `✓ Create ${attivitaSecondoCollaboratore.length} attività del secondo collaboratore`
+  );
+
   console.log("\n🔐 Accesso tramite Google OAuth:");
   console.log("   Amministratore → info@techreloaded.it (Back Office)");
   console.log("   Amministratore → stefano.marello@agilereloaded.it (Back Office)");
   console.log("   Collaboratore  → giulia.conti@agilereloaded.it (Front Office)");
+  console.log("   Collaboratore  → marco.bianchi@agilereloaded.it (Front Office)");
   console.log("   Qualsiasi altra email Google → accesso negato (messaggio generico)");
 
   console.log("\n✅ Seed completato con successo!");
