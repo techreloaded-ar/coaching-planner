@@ -5,7 +5,7 @@ tasks:
   - id: TASK-01
     title: Funzione di dominio calcolaRiepilogoMese
     type: Impl
-    status: TODO
+    status: DONE
     body: |
       ## Descrizione
 
@@ -42,10 +42,11 @@ tasks:
       - [ ] Una riga con `trasfertaKm` coperto da scaglione aggiunge il rimborso a `rimborsiTrasferta` dell'offerta e al `totaleRimborsi` e all'`importoFattura`
       - [ ] Una riga con `trasfertaKm` oltre soglia (`stato !== "OK"`) NON aggiunge alcun rimborso
       - [ ] Tutti gli importi esposti sono stringhe con 2 decimali
+    ref: TASK-01
   - id: TASK-02
     title: Unit test calcolaRiepilogoMese
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |
@@ -65,10 +66,11 @@ tasks:
       - [ ] Test composizione importo fattura = (giornateFatturabili × tariffa) + totaleRimborsi
       - [ ] Test formattazione importi a 2 decimali come stringhe
       - [ ] `npx vitest run tests/unit/riepilogo-mese.test.ts` passa con 0 failure
+    ref: TASK-02
   - id: TASK-03
     title: Accesso dati riepilogoMese in src/lib/attivita.ts
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |
@@ -96,10 +98,11 @@ tasks:
       - [ ] La funzione recupera solo le righe del collaboratore corrente nel mese indicato
       - [ ] La tariffa giornaliera del collaboratore viene passata a `calcolaRiepilogoMese`
       - [ ] Il risultato è serializzabile (nessun Date o Decimal grezzo) e pronto per un Client Component
+    ref: TASK-03
   - id: TASK-04
     title: revalidatePath riepilogo nelle Server Actions righe-attivita
     type: Impl
-    status: TODO
+    status: DONE
     body: |
       ## Descrizione
 
@@ -117,10 +120,11 @@ tasks:
       - [ ] `rimuoviTrasferta` chiama `revalidatePath("/attivita/riepilogo")` dopo la rimozione
       - [ ] I `revalidatePath` esistenti sul percorso del giorno restano invariati
       - [ ] `npm run build` o `npx tsc --noEmit` non riporta errori di tipo
+    ref: TASK-04
   - id: TASK-05
     title: Pagina route /attivita/riepilogo — Server Component
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
     body: |
@@ -147,10 +151,11 @@ tasks:
       - [ ] La pagina carica `riepilogoMese(token)` e passa dati serializzati al Client Component
       - [ ] Sono presenti i link di navigazione mese (gestiti nel Client Component) e il link "Torna al calendario"
       - [ ] La pagina usa il layout front-office esistente
+    ref: TASK-05
   - id: TASK-06
     title: Client Component RiepilogoMese — vista riepilogo
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-05
     body: |
@@ -181,10 +186,11 @@ tasks:
       - [ ] La navigazione mese e il link "Torna al calendario" funzionano
       - [ ] Il componente è coerente con i mockup in `docs/mockups/US-014/` (riferimento esplicito)
       - [ ] Il componente è responsive e supporta la dark mode
+    ref: TASK-06
   - id: TASK-07
     title: Link "Riepilogo mese" dal calendario mensile
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-06
     body: |
@@ -202,10 +208,11 @@ tasks:
       - [ ] Il link punta a `/attivita/riepilogo?mese={token}` con il token del mese visualizzato
       - [ ] Lo stile è coerente con il link "Mese corrente"
       - [ ] La navigazione tra mesi del calendario continua a funzionare invariata
+    ref: TASK-07
   - id: TASK-08
     title: 'Test E2E: flusso riepilogo mensile con importo fattura'
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-06
       - TASK-07
@@ -237,3 +244,4 @@ tasks:
       - [ ] Lo scenario mese vuoto verifica lo stato vuoto e importo a 0
       - [ ] `npx playwright test tests/e2e/demo__riepilogo-mensile-fattura.spec.ts` passa
       - [ ] Il video del demo scenario viene generato in `docs/test-results/US-014/`
+    ref: TASK-08

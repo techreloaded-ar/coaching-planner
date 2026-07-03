@@ -6,7 +6,7 @@ epic:
   title: Reportistica
 priority: HIGH
 points: 3
-status: TODO
+status: PLANNED
 scope: MVP
 body: |-
   #### US-015: Report mensile degli importi da fatturare per cliente
@@ -27,6 +27,15 @@ body: |-
   - [ ] L'importo per offerta è calcolato come giornate fatturabili erogate (1 giornata = 8 ore) moltiplicate per la tariffa giornaliera dell'offerta
   - [ ] I rimborsi trasferta del mese sono ribaltati al cliente di riferimento con lo stesso importo forfettario riconosciuto al collaboratore
   - [ ] Il report ricalcola sempre i dati correnti: riaprendolo dopo una modifica retroattiva, i valori riflettono lo stato attuale
+branch: archetipo/US-015
+worktree: .archetipo/worktrees/US-015
+fork_base: 66dd145d8ddb1c16997f450be587ecbd012cbf8b
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-07-03T13:26:01Z"
+  - status: IN PROGRESS
+    at: "2026-07-03T14:39:51Z"
+  - status: PLANNED
+    at: "2026-07-03T14:42:39Z"
