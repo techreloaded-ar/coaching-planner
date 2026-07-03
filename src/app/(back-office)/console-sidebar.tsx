@@ -36,6 +36,12 @@ const IconReport = (
   </svg>
 );
 
+const IconAvanzamentoOfferte = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
+    <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" />
+  </svg>
+);
+
 // ── Dati di navigazione ────────────────────────────────────────
 
 const NAV_ITEMS = [
@@ -43,7 +49,8 @@ const NAV_ITEMS = [
   { label: "Offerte", icon: IconOfferte, disabled: true },
   { href: "/anagrafiche/collaboratori", label: "Collaboratori", icon: IconCollaboratori },
   { href: "/anagrafiche/scaglioni", label: "Scaglioni km", icon: IconScaglioni },
-  { href: "/report/fatturazione-clienti", label: "Report", icon: IconReport },
+  { href: "/report/fatturazione-clienti", label: "Fatturazione clienti", icon: IconReport },
+  { href: "/report/avanzamento-offerte", label: "Avanzamento offerte", icon: IconAvanzamentoOfferte },
 ] as const;
 
 // ── Props ──────────────────────────────────────────────────────

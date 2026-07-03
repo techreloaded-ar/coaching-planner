@@ -144,9 +144,10 @@ test.describe("Anagrafica clienti", () => {
 		await page.goto("/anagrafiche/clienti");
 
 		// Verifica che "Clienti" sia il link attivo nella sidebar
+		// (match esatto: "Fatturazione clienti" contiene "Clienti" come sottostringa)
 		const clientiLink = page
 			.locator("nav[aria-label='Navigazione principale'] a")
-			.filter({ hasText: "Clienti" });
+			.filter({ hasText: /^Clienti$/ });
 		await expect(clientiLink).toHaveAttribute("aria-current", "page");
 
 		// Verifica le voci disabilitate con badge "In arrivo"
@@ -160,10 +161,10 @@ test.describe("Anagrafica clienti", () => {
 			await expect(btn.getByText("In arrivo")).toBeVisible();
 		}
 
-		// Verifica che "Report" sia ora un link attivo verso il report fatturazione (US-015)
+		// Verifica che "Fatturazione clienti" sia un link attivo verso il report fatturazione (US-015/US-016)
 		const reportLink = page
 			.locator("nav[aria-label='Navigazione principale'] a")
-			.filter({ hasText: "Report" });
+			.filter({ hasText: "Fatturazione clienti" });
 		await expect(reportLink).toBeVisible();
 		await expect(reportLink).toHaveAttribute(
 			"href",
