@@ -4,7 +4,14 @@ import { db } from "@/lib/db";
 import { richiediCollaboratoreCorrente, ErroreAutorizzazione } from "@/lib/dal";
 import { parseTokenMese } from "@/domain/calendario";
 import type { RigaAttivita, Offerta, Cliente, ScaglioneKm } from "@/generated/prisma/client";
-import { type ScaglioneRimborso } from "@/domain/consuntivi";
+import {
+  calcolaRiepilogoMese,
+  type ScaglioneRimborso,
+  type RigaRiepilogo,
+  type VoceRiepilogoOfferta,
+  type TotaliRiepilogoMese,
+  type BreakdownRiepilogoMese,
+} from "@/domain/consuntivi";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -32,6 +39,16 @@ export interface AttivitaMese {
   perGiorno: Map<string, SintesiGiorno>;
   /** Righe complete del mese (con offerta e cliente) */
   righe: RigaAttivitaConContesto[];
+}
+
+/** Risultato serializzabile del riepilogo mensile */
+export interface RisultatoRiepilogoMese {
+  token: string;
+  perOfferta: VoceRiepilogoOfferta[];
+  totali: TotaliRiepilogoMese;
+  importoFattura: string;
+  breakdown: BreakdownRiepilogoMese;
+  tariffaGiornaliera: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -257,4 +274,85 @@ export async function scaglioniRimborsoTrasferta(): Promise<ScaglioneRimborso[]>
     finoAKm: s.finoAKm,
     importo: s.importo.toString(),
   }));
+}
+
+function creaRiepilogoVuoto(token: string, tariffaGiornaliera = "0.00"): RisultatoRiepilogoMese {
+  return {
+    token,
+    perOfferta: [],
+    totali: {
+      oreTotali: 0,
+      oreFatturabili: 0,
+      giornateTotali: 0,
+      giornateFatturabili: 0,
+      totaleRimborsi: "0.00",
+    },
+    importoFattura: "0.00",
+    breakdown: {
+      giornateFatturabili: "0.00",
+      tariffaGiornaliera,
+      imponibileManodopera: "0.00",
+      totaleRimborsi: "0.00",
+    },
+    tariffaGiornaliera,
+  };
+}
+
+/**
+ * Restituisce il riepilogo mensile del collaboratore corrente pronto per il client.
+ */
+export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMese> {
+  const parsed = parseTokenMese(token);
+  if (!parsed) {
+    return creaRiepilogoVuoto(token);
+  }
+
+  const collaboratore = await richiediCollaboratoreCorrente();
+  if (!collaboratore) {
+    return creaRiepilogoVuoto(token);
+  }
+
+  const { anno, mese } = parsed;
+  const inizio = new Date(anno, mese - 1, 1);
+  const fine = new Date(anno, mese, 0);
+
+  const [righeDb, scaglioni] = await Promise.all([
+    db.rigaAttivita.findMany({
+      where: {
+        collaboratoreId: collaboratore.id,
+        data: {
+          gte: inizio,
+          lte: fine,
+        },
+      },
+      include: {
+        offerta: true,
+        cliente: true,
+      },
+      orderBy: { data: "asc" },
+    }),
+    scaglioniRimborsoTrasferta(),
+  ]);
+
+  const tariffa = collaboratore.tariffaGiornaliera.toString();
+  const righe: RigaRiepilogo[] = righeDb.map((riga) => ({
+    offertaId: riga.offerta.id,
+    offertaCodice: riga.offerta.codice,
+    offertaDescrizione: riga.offerta.descrizione,
+    clienteRagioneSociale: riga.cliente.ragioneSociale,
+    ore: Number(riga.ore),
+    fatturabile: riga.fatturabile,
+    trasfertaKm: riga.trasfertaKm ?? null,
+  }));
+
+  const riepilogo = calcolaRiepilogoMese(righe, tariffa, scaglioni);
+
+  return {
+    token,
+    perOfferta: riepilogo.perOfferta,
+    totali: riepilogo.totali,
+    importoFattura: riepilogo.importoFattura,
+    breakdown: riepilogo.breakdown,
+    tariffaGiornaliera: tariffa,
+  };
 }

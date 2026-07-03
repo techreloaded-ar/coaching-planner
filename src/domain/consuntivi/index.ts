@@ -1,7 +1,9 @@
 // Modulo di dominio Consuntivi — funzioni pure per calcoli
 // Conversioni, rimborsi, totali saranno implementati nelle spec successive.
 
-export { ORE_PER_GIORNATA } from "../types";
+import { ORE_PER_GIORNATA } from "../types";
+
+export { ORE_PER_GIORNATA };
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -37,6 +39,55 @@ export interface RisultatoCalcoloRimborso {
   importo?: string;
   finoAKm?: number;
   labelFascia?: string;
+}
+
+/** Riga di input per il riepilogo mensile del collaboratore */
+export interface RigaRiepilogo {
+  offertaId: string;
+  offertaCodice: string;
+  offertaDescrizione: string;
+  clienteRagioneSociale: string;
+  ore: number;
+  fatturabile: boolean;
+  trasfertaKm: number | null;
+}
+
+/** Voce aggregata del riepilogo mensile per offerta */
+export interface VoceRiepilogoOfferta {
+  offertaId: string;
+  offertaCodice: string;
+  offertaDescrizione: string;
+  clienteRagioneSociale: string;
+  oreTotali: number;
+  oreFatturabili: number;
+  giornateTotali: number;
+  giornateFatturabili: number;
+  rimborsiTrasferta: string;
+}
+
+/** Totali aggregati del riepilogo mensile */
+export interface TotaliRiepilogoMese {
+  oreTotali: number;
+  oreFatturabili: number;
+  giornateTotali: number;
+  giornateFatturabili: number;
+  totaleRimborsi: string;
+}
+
+/** Breakdown dell'importo fattura per la UI */
+export interface BreakdownRiepilogoMese {
+  giornateFatturabili: string;
+  tariffaGiornaliera: string;
+  imponibileManodopera: string;
+  totaleRimborsi: string;
+}
+
+/** Struttura di output del riepilogo mensile */
+export interface RiepilogoMese {
+  perOfferta: VoceRiepilogoOfferta[];
+  totali: TotaliRiepilogoMese;
+  importoFattura: string;
+  breakdown: BreakdownRiepilogoMese;
 }
 
 // ── Validazione ore ─────────────────────────────────────────────
@@ -168,5 +219,98 @@ export function calcolaRimborsoTrasferta(
     importo: importoStr,
     finoAKm: scaglione.finoAKm,
     labelFascia: `fino a ${scaglione.finoAKm} km`,
+  };
+}
+
+// ── Riepilogo mensile ───────────────────────────────────────────
+
+function formattaImporto(valore: number): string {
+  return valore.toFixed(2);
+}
+
+/**
+ * Aggrega le righe attività del mese per offerta e calcola il riepilogo
+ * economico complessivo del collaboratore.
+ */
+export function calcolaRiepilogoMese(
+  righe: RigaRiepilogo[],
+  tariffaGiornaliera: string | number,
+  scaglioni: ScaglioneRimborso[],
+): RiepilogoMese {
+  const tariffa = Number(tariffaGiornaliera);
+  const tariffaNumerica = Number.isFinite(tariffa) ? tariffa : 0;
+  const aggregati = new Map<
+    string,
+    Omit<VoceRiepilogoOfferta, "rimborsiTrasferta"> & { rimborsiTrasferta: number }
+  >();
+
+  let oreTotali = 0;
+  let oreFatturabili = 0;
+  let totaleRimborsi = 0;
+
+  for (const riga of righe) {
+    const voce = aggregati.get(riga.offertaId) ?? {
+      offertaId: riga.offertaId,
+      offertaCodice: riga.offertaCodice,
+      offertaDescrizione: riga.offertaDescrizione,
+      clienteRagioneSociale: riga.clienteRagioneSociale,
+      oreTotali: 0,
+      oreFatturabili: 0,
+      giornateTotali: 0,
+      giornateFatturabili: 0,
+      rimborsiTrasferta: 0,
+    };
+
+    voce.oreTotali += riga.ore;
+    oreTotali += riga.ore;
+
+    if (riga.fatturabile) {
+      voce.oreFatturabili += riga.ore;
+      oreFatturabili += riga.ore;
+    }
+
+    if (riga.trasfertaKm != null) {
+      const rimborso = calcolaRimborsoTrasferta(riga.trasfertaKm, scaglioni);
+
+      if (rimborso.stato === "OK" && rimborso.importo != null) {
+        const importoNumerico = Number.parseFloat(rimborso.importo);
+
+        if (!Number.isNaN(importoNumerico)) {
+          voce.rimborsiTrasferta += importoNumerico;
+          totaleRimborsi += importoNumerico;
+        }
+      }
+    }
+
+    aggregati.set(riga.offertaId, voce);
+  }
+
+  const giornateTotali = oreTotali / ORE_PER_GIORNATA;
+  const giornateFatturabili = oreFatturabili / ORE_PER_GIORNATA;
+  const imponibileManodopera = giornateFatturabili * tariffaNumerica;
+
+  const perOfferta = Array.from(aggregati.values()).map((voce) => ({
+    ...voce,
+    giornateTotali: voce.oreTotali / ORE_PER_GIORNATA,
+    giornateFatturabili: voce.oreFatturabili / ORE_PER_GIORNATA,
+    rimborsiTrasferta: formattaImporto(voce.rimborsiTrasferta),
+  }));
+
+  return {
+    perOfferta,
+    totali: {
+      oreTotali,
+      oreFatturabili,
+      giornateTotali,
+      giornateFatturabili,
+      totaleRimborsi: formattaImporto(totaleRimborsi),
+    },
+    importoFattura: formattaImporto(imponibileManodopera + totaleRimborsi),
+    breakdown: {
+      giornateFatturabili: formattaImporto(giornateFatturabili),
+      tariffaGiornaliera: formattaImporto(tariffaNumerica),
+      imponibileManodopera: formattaImporto(imponibileManodopera),
+      totaleRimborsi: formattaImporto(totaleRimborsi),
+    },
   };
 }
