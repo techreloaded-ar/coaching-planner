@@ -5,7 +5,7 @@ tasks:
   - id: TASK-01
     title: Funzione di dominio calcolaReportFatturazioneClienti
     type: Impl
-    status: TODO
+    status: DONE
     body: |-
       ## Descrizione
 
@@ -48,10 +48,11 @@ tasks:
       - [ ] Una riga con `trasfertaKm` oltre soglia (`stato !== "OK"`) NON aggiunge rimborso
       - [ ] Clienti con solo attività non fatturabili e senza rimborsi sono esclusi dal report
       - [ ] Tutti gli importi esposti sono stringhe con 2 decimali; clienti ordinati per ragione sociale, offerte per codice
+    ref: TASK-01
   - id: TASK-02
     title: Unit test calcolaReportFatturazioneClienti
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |-
@@ -72,10 +73,11 @@ tasks:
       - [ ] Test totale cliente = imponibile + rimborsi e totali di report = somma per cliente
       - [ ] Test formattazione importi a 2 decimali come stringhe
       - [ ] `npx vitest run tests/unit/report-fatturazione-clienti.test.ts` passa con 0 failure
+    ref: TASK-02
   - id: TASK-03
     title: Accesso dati admin reportFatturazioneClientiMese in src/lib/report.ts
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |-
@@ -102,10 +104,11 @@ tasks:
       - [ ] La tariffa passata al dominio è quella dell'**offerta**
       - [ ] Il risultato è serializzabile (nessun Date o Decimal grezzo) e pronto per un Client Component
       - [ ] `npx tsc --noEmit` non riporta errori di tipo
+    ref: TASK-03
   - id: TASK-04
     title: Pagina route /report/fatturazione-clienti — Server Component
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
     body: |-
@@ -132,10 +135,11 @@ tasks:
       - [ ] La pagina carica `reportFatturazioneClientiMese(token)` e passa dati serializzati al Client Component
       - [ ] Sono calcolati i token per la navigazione mese precedente/successivo e l'etichetta del mese
       - [ ] La pagina usa il layout back-office esistente e un'intestazione coerente con le pagine anagrafiche
+    ref: TASK-04
   - id: TASK-05
     title: Client Component ReportFatturazioneClienti — vista report
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
     body: |-
@@ -163,10 +167,11 @@ tasks:
       - [ ] Per ogni cliente sono visibili i rimborsi trasferta ribaltati e il totale da fatturare
       - [ ] Lo stato vuoto mostra il messaggio appropriato
       - [ ] Il componente è coerente con i mockup in `docs/mockups/US-015/`, responsive e con dark mode
+    ref: TASK-05
   - id: TASK-06
     title: Abilitare la voce sidebar "Report" verso il report clienti
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
     body: |-
@@ -187,10 +192,11 @@ tasks:
       - [ ] Il link punta a `/report/fatturazione-clienti`
       - [ ] La voce risulta evidenziata quando si è sul report
       - [ ] La navigazione tra le altre voci resta invariata
+    ref: TASK-06
   - id: TASK-07
     title: Arricchire il seed per un report cliente significativo
     type: Impl
-    status: TODO
+    status: DONE
     body: |-
       ## Descrizione
 
@@ -211,10 +217,11 @@ tasks:
       - [ ] Se il seed ha più collaboratori, almeno un'offerta ha righe di due collaboratori diversi
       - [ ] `npx prisma db seed` esegue senza errori
       - [ ] Gli scenari e2e esistenti continuano a passare
+    ref: TASK-07
   - id: TASK-08
     title: 'Test E2E: report mensile importi da fatturare per cliente'
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-05
       - TASK-06
@@ -246,3 +253,4 @@ tasks:
       - [ ] Lo scenario mese vuoto verifica lo stato vuoto
       - [ ] `npx playwright test tests/e2e/demo__report-fatturazione-clienti.spec.ts` passa
       - [ ] Il video del demo scenario viene generato in `docs/test-results/US-015/`
+    ref: TASK-08
