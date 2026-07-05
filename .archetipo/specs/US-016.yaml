@@ -6,7 +6,7 @@ epic:
   title: Reportistica
 priority: HIGH
 points: 3
-status: TODO
+status: DONE
 scope: MVP
 body: |-
   #### US-016: Vista avanzamento offerte con residuo giornate
@@ -30,3 +30,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-07-03T20:06:47Z"
+  - status: IN PROGRESS
+    at: "2026-07-03T20:13:32Z"
+  - status: REVIEW
+    at: "2026-07-03T20:50:55Z"
+  - status: DONE
+    at: "2026-07-05T07:40:59Z"
