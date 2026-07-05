@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
+
 /**
  * Test e2e — US-005: Flussi di autenticazione Google
  *
@@ -12,23 +14,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Auth e2e", () => {
   test("accesso collaboratore → Front Office", async ({ page }) => {
-    await page.goto("/login");
-
-    // Simula il completamento OAuth per la collaboratrice
-    await page.evaluate(async () => {
-      const res = await fetch("/api/e2e-test/sessione", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "giulia.conti@agilereloaded.it" }),
-      });
-      const data = await res.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    });
-
-    // Attendi il reindirizzamento al Front Office
-    await page.waitForURL("**/attivita**");
+    await accediComeCollaboratore(page);
 
     // Verifica che l'header mostri il nome e il ruolo della collaboratrice
     await expect(page.getByText("Giulia Conti")).toBeVisible();
@@ -69,19 +55,7 @@ test.describe("Auth e2e", () => {
 
   test("disconnessione esplicita → /login con messaggio", async ({ page }) => {
     // 1. Accedi come amministratore
-    await page.goto("/login");
-    await page.evaluate(async () => {
-      const res = await fetch("/api/e2e-test/sessione", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "info@techreloaded.it" }),
-      });
-      const data = await res.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    });
-    await page.waitForURL("**/anagrafiche**");
+    await accediComeAdmin(page);
 
     // 2. Clicca Esci
     const esciBtn = page.locator("[data-esci]");

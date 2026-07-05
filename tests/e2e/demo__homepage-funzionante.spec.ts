@@ -33,7 +33,7 @@ test.describe("US-001 Demo", () => {
     await expect(loginLink).toBeVisible();
     await expect(loginLink).toHaveAttribute("href", "/login");
 
-    // Mantieni lo stato finale visibile per almeno 1.5 secondi
+    // Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);
   });
 });

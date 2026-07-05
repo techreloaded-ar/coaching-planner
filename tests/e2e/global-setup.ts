@@ -7,6 +7,11 @@ import {
 
 /**
  * Playwright global setup: allinea schema e dati del database prima della suite e2e.
+ *
+ * Il seed è una baseline read-only/smoke: i test che mutano dati devono creare
+ * righe proprie tramite fixture/factory con namespace univoco. Non facciamo
+ * cleanup per-test mentre i worker girano in parallelo; la pulizia ordinaria è
+ * centralizzata nel globalTeardown.
  */
 async function globalSetup() {
 	const e2eDatabaseUrl = requireE2eDatabaseUrl();

@@ -84,8 +84,7 @@ test.describe("US-016 Demo", () => {
 
     // ── 2. Apre "Avanzamento offerte" dalla sidebar ────────────────
     await page
-      .locator("nav[aria-label='Navigazione principale'] a")
-      .filter({ hasText: "Avanzamento offerte" })
+      .getByRole("link", { name: "Avanzamento offerte", exact: true })
       .click();
 
     await page.waitForURL("**/report/avanzamento-offerte");
@@ -214,7 +213,7 @@ test.describe("US-016 Demo", () => {
     expect(erogateTotali).toBeGreaterThanOrEqual(5 - 0.01); // 4,125 + 0,875 + 0
     expect(residuoTotale).toBeCloseTo(previsteTotali - erogateTotali, 1);
 
-    // ── 7. Mantieni lo stato finale visibile per la registrazione ──
+    // ── 7. Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);
   });
 });

@@ -190,6 +190,7 @@ export default function ReportFatturazioneClienti({
               return (
                 <div
                   key={cliente.clienteId}
+                  data-testid={`report-client-${cliente.clienteId}`}
                   className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
                 >
                   {/* Intestazione: ragione sociale + importo totale */}
@@ -285,7 +286,10 @@ export default function ReportFatturazioneClienti({
                       </svg>
                       Rimborsi trasferta ribaltati
                     </div>
-                    <span className="text-[14px] font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
+                    <span
+                      data-testid={`report-client-${cliente.clienteId}-rimborsi`}
+                      className="text-[14px] font-bold tabular-nums text-zinc-800 dark:text-zinc-100"
+                    >
                       {formattaEuro(cliente.rimborsiTrasferta)}
                     </span>
                   </div>
@@ -304,7 +308,10 @@ export default function ReportFatturazioneClienti({
                       </svg>
                       Totale da fatturare
                     </div>
-                    <span className="text-[20px] font-extrabold -tracking-[0.02em] tabular-nums text-indigo-600 dark:text-indigo-400">
+                    <span
+                      data-testid={`report-client-${cliente.clienteId}-totale`}
+                      className="text-[20px] font-extrabold -tracking-[0.02em] tabular-nums text-indigo-600 dark:text-indigo-400"
+                    >
                       {formattaEuro(cliente.importoTotale)}
                     </span>
                   </div>
@@ -334,7 +341,10 @@ export default function ReportFatturazioneClienti({
                   <div className="mb-[5px] text-[11.5px] font-semibold text-white/80">
                     Imponibile manodopera
                   </div>
-                  <div className="text-[19px] font-bold -tracking-[0.02em] tabular-nums">
+                  <div
+                    data-testid="report-total-imponibile"
+                    className="text-[19px] font-bold -tracking-[0.02em] tabular-nums"
+                  >
                     {formattaEuro(report.totali.imponibileManodopera)}
                   </div>
                 </div>
@@ -342,7 +352,10 @@ export default function ReportFatturazioneClienti({
                   <div className="mb-[5px] text-[11.5px] font-semibold text-white/80">
                     Totale rimborsi
                   </div>
-                  <div className="text-[19px] font-bold -tracking-[0.02em] tabular-nums">
+                  <div
+                    data-testid="report-total-rimborsi"
+                    className="text-[19px] font-bold -tracking-[0.02em] tabular-nums"
+                  >
                     {formattaEuro(report.totali.totaleRimborsi)}
                   </div>
                 </div>
@@ -351,7 +364,10 @@ export default function ReportFatturazioneClienti({
                 <div className="mb-1 text-[11.5px] font-bold uppercase tracking-[0.05em] text-white/80">
                   Importo totale
                 </div>
-                <div className="text-[38px] leading-none font-extrabold -tracking-[0.04em] tabular-nums">
+                <div
+                  data-testid="report-total-importo"
+                  className="text-[38px] leading-none font-extrabold -tracking-[0.04em] tabular-nums"
+                >
                   {formattaEuro(report.totali.importoTotale)}
                 </div>
               </div>

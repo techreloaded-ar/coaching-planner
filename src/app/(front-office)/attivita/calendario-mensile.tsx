@@ -105,7 +105,10 @@ export default function CalendarioMensile({
             </svg>
           </Link>
 
-          <div className="min-w-[188px] text-center text-[19px] font-bold capitalize -tracking-[0.02em] text-zinc-800 dark:text-zinc-100">
+          <div
+            data-testid="calendar-month-label"
+            className="min-w-[188px] text-center text-[19px] font-bold capitalize -tracking-[0.02em] text-zinc-800 dark:text-zinc-100"
+          >
             {etichetta}
           </div>
 

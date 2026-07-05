@@ -1,11 +1,20 @@
 import { randomUUID } from "node:crypto";
 
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
 
+import { ORE_PER_GIORNATA } from "../../src/domain/types";
 import {
-  dataOggiOffset,
-  loginComeGiulia,
+  selezionaClienteEOffertaTest,
 } from "./demo__inserimento-righe-attivita.helpers";
+import { accediComeCollaboratore } from "./support/auth";
+import { dataNelMese, meseCorrenteToken } from "./support/date";
+import {
+  test,
+  expect,
+  type ClienteConOffertaTestData,
+  type CollaboratoreTestData,
+  type E2eDataFactory,
+} from "./support/fixtures";
 
 test.use({
   video: "on",
@@ -13,84 +22,142 @@ test.use({
   launchOptions: { slowMo: 100 },
 });
 
-test.describe.configure({ mode: "serial" });
-
-/**
- * Tolleranza usata per le asserzioni sui totali aggregati del riepilogo
- * mensile. Il database e2e è condiviso e la suite gira con
- * `fullyParallel: true`: altri spec file (es.
- * demo__inserimento-righe-attivita-flusso.spec.ts) operano sulla stessa
- * collaboratrice (Giulia) nello stesso mese corrente in worker concorrenti,
- * ma solo aggiungendo/rimuovendo proprie righe temporanee — mai riducendo il
- * saldo netto delle ore fatturabili di Giulia al di sotto della baseline.
- * Per questo i totali su ore/manodopera sono verificati come limite
- * inferiore garantito dalla riga appena aggiunta (non può diminuire per
- * effetto della nostra azione, ma può aumentare per interferenza di altri
- * scenari e2e), mentre la correttezza puntuale dell'azione (fatturabile
- * sì/no) è verificata in modo deterministico sulla riga stessa tramite il
- * badge "Fatt."/"Non fatt." nella card dell'attività.
- *
- * NOTA IMPORTANTE su "importo fattura": il valore mostrato in
- * `summary-importo-fattura-value` è `imponibileManodopera + totaleRimborsi`
- * (src/domain/consuntivi/index.ts, calcolaRiepilogoMese). Il termine
- * `totaleRimborsi` è però mutato da `demo__trasferta-rimborso-automatico.spec.ts`,
- * che RIMUOVE realmente un rimborso trasferta di seed (150 km, giorno 4) di
- * Giulia nel corso del proprio scenario — un decremento reale e legittimo
- * di un dato condiviso, non rumore. Confrontare l'importo fattura completo
- * "prima/dopo" sarebbe quindi soggetto a un calo genuino non causato dalla
- * nostra azione. Le asserzioni qui isolano perciò la sola componente
- * "imponibile manodopera" (`importoFattura - totaleRimborsi`), che è
- * l'unica interessata dalle regole US-014 in verifica (ore fatturabili vs
- * non fatturabili), escludendo i rimborsi trasferta dal confronto.
- */
 const EPS = 0.01;
+const TARIFFA_COLLABORATORE = 400;
+const TARIFFA_OFFERTA = 640;
 
-function parseNumeroItaliano(valore: string): number {
-  const normalizzato = valore.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+type RiepilogoLetto = {
+  oreTotali: number;
+  oreFatturabili: number;
+  totaleRimborsi: number;
+  imponibileManodopera: number;
+};
+
+type ScenarioRiepilogo = {
+  mese: string;
+  collaboratore: CollaboratoreTestData;
+  clienteConOfferta: ClienteConOffertaTestData;
+};
+
+function parseNumero(valore: string): number {
+  const normalizzato = valore.replace(/[^\d,.-]/g, "");
+  const ultimoPunto = normalizzato.lastIndexOf(".");
+  const ultimaVirgola = normalizzato.lastIndexOf(",");
+
+  if (ultimoPunto >= 0 && ultimaVirgola >= 0) {
+    const separatoreDecimale = ultimoPunto > ultimaVirgola ? "." : ",";
+    return Number.parseFloat(
+      separatoreDecimale === ","
+        ? normalizzato.replace(/\./g, "").replace(",", ".")
+        : normalizzato.replace(/,/g, ""),
+    );
+  }
+
+  if (ultimaVirgola >= 0) {
+    return Number.parseFloat(normalizzato.replace(/\./g, "").replace(",", "."));
+  }
+
   return Number.parseFloat(normalizzato);
 }
 
 async function leggiNumero(page: Page, testId: string): Promise<number> {
   const testo = await page.getByTestId(testId).textContent();
-  return parseNumeroItaliano(testo ?? "0");
+  return parseNumero(testo ?? "0");
 }
 
-/** Legge ore totali/fatturabili e il solo imponibile manodopera (importo fattura al netto dei rimborsi trasferta). */
-async function leggiRiepilogo(page: Page) {
+async function leggiRiepilogo(page: Page): Promise<RiepilogoLetto> {
   const oreTotali = await leggiNumero(page, "summary-ore-totali-value");
   const oreFatturabili = await leggiNumero(page, "summary-ore-fatturabili-value");
   const importoFattura = await leggiNumero(page, "summary-importo-fattura-value");
   const totaleRimborsi = await leggiNumero(page, "summary-rimborsi-value");
+
   return {
     oreTotali,
     oreFatturabili,
+    totaleRimborsi,
     imponibileManodopera: importoFattura - totaleRimborsi,
   };
 }
 
-async function attendiOfferteCaricate(selectOfferta: Locator) {
-  await expect(selectOfferta).toBeEnabled();
-  await expect.poll(async () => selectOfferta.locator("option").count()).toBeGreaterThan(1);
+function dataDelMese(mese: string, giorno: number): string {
+  return dataNelMese(mese, giorno);
 }
 
-function tokenMese(offsetMesi = 0): string {
-  const data = new Date();
-  data.setMonth(data.getMonth() + offsetMesi, 1);
-  const anno = data.getFullYear();
-  const mese = String(data.getMonth() + 1).padStart(2, "0");
-  return `${anno}-${mese}`;
+function dataDb(dataIso: string): Date {
+  return new Date(`${dataIso}T00:00:00.000Z`);
 }
 
-async function apriRiepilogoDaCalendario(page: Page) {
-  await page.goto("/attivita");
+function expectDeltaEsatto(
+  valoreDopo: number,
+  valorePrima: number,
+  deltaAtteso: number,
+  label: string,
+) {
+  expect(
+    Math.abs((valoreDopo - valorePrima) - deltaAtteso),
+    `${label}: delta atteso ${deltaAtteso}, prima ${valorePrima}, dopo ${valoreDopo}`,
+  ).toBeLessThanOrEqual(EPS);
+}
+
+async function creaScenarioRiepilogo(
+  factory: E2eDataFactory,
+  { baselineTrasfertaKm }: { baselineTrasfertaKm?: number | null } = {},
+): Promise<ScenarioRiepilogo> {
+  const seed = randomUUID().slice(0, 8);
+  const mese = meseCorrenteToken();
+  const collaboratore = await factory.createCollaboratore({
+    nome: "E2E Riepilogo",
+    cognome: seed,
+    tariffaGiornaliera: TARIFFA_COLLABORATORE.toFixed(2),
+  });
+  const clienteConOfferta = await factory.createClienteConOfferta(
+    { ragioneSociale: `E2E Riepilogo ${seed}` },
+    {
+      codice: `RIEP-${seed}`,
+      descrizione: `Offerta riepilogo ${seed}`,
+      tariffaGiornaliera: TARIFFA_OFFERTA.toFixed(2),
+    },
+  );
+
+  await factory.createRigaAttivita({
+    collaboratore,
+    cliente: clienteConOfferta.cliente,
+    offerta: clienteConOfferta.offerta,
+    data: dataDb(dataDelMese(mese, 8)),
+    ore: "2.00",
+    nota: `Baseline riepilogo ${seed}`,
+    fatturabile: true,
+    trasfertaKm: baselineTrasfertaKm ?? null,
+  });
+
+  return { mese, collaboratore, clienteConOfferta };
+}
+
+async function apriRiepilogoDaCalendario(page: Page, mese: string) {
+  await page.goto(`/attivita?mese=${mese}`);
   await expect(page.getByRole("link", { name: "Riepilogo mese" })).toBeVisible();
   await page.getByRole("link", { name: "Riepilogo mese" }).click();
   await page.waitForURL("**/attivita/riepilogo**");
   await expect(page.getByTestId("summary-importo-fattura")).toBeVisible();
 }
 
+async function apriGiornata(page: Page, data: string, mese: string) {
+  await page.goto(`/attivita/${data}?mese=${mese}`);
+  await page.waitForURL(`**/attivita/${data}**`);
+  await expect(page.getByRole("link", { name: "Torna al calendario" })).toBeVisible();
+}
+
+function cardRiga(page: Page, nota: string, fatturabile: boolean): Locator {
+  return page
+    .locator("div")
+    .filter({ has: page.getByText(nota, { exact: true }) })
+    .filter({ has: page.getByText(fatturabile ? "Fatt." : "Non fatt.", { exact: true }) })
+    .last();
+}
+
 async function aggiungiRiga(
   page: Page,
+  clienteConOfferta: ClienteConOffertaTestData,
   {
     ore,
     nota,
@@ -101,18 +168,11 @@ async function aggiungiRiga(
     fatturabile: boolean;
   },
 ) {
-  const selectCliente = page.locator("#cliente");
-  const selectOfferta = page.locator("#offerta");
-  const inputOre = page.locator("#ore");
+  await selezionaClienteEOffertaTest(page, clienteConOfferta);
+  await page.locator("#ore").fill(ore);
+  await page.locator("#nota").fill(nota);
+
   const checkboxFatturabile = page.locator("input[type='checkbox']");
-  const textareaNota = page.locator("#nota");
-
-  await selectCliente.selectOption({ index: 1 });
-  await attendiOfferteCaricate(selectOfferta);
-  await selectOfferta.selectOption({ index: 1 });
-  await inputOre.fill(ore);
-  await textareaNota.fill(nota);
-
   if (fatturabile) {
     await checkboxFatturabile.check();
   } else {
@@ -120,63 +180,42 @@ async function aggiungiRiga(
   }
 
   await page.getByRole("button", { name: "Aggiungi riga" }).click();
-  await expect(page.getByText(nota, { exact: true })).toBeVisible();
-
-  // Verifica deterministica e non racy: la card della riga appena creata
-  // (individuata dalla sua nota, univoca, e dal badge fatturabile/non
-  // fatturabile con match esatto per evitare la collisione di sottostringa
-  // "Fatt." ⊂ "Non fatt.") mostra il badge coerente con l'azione appena
-  // compiuta, indipendentemente da cosa fanno nel frattempo altri scenari
-  // e2e sugli aggregati condivisi del mese.
-  const cardRiga = page
-    .locator("div")
-    .filter({ has: page.getByText(nota, { exact: true }) })
-    .filter({ has: page.getByText(fatturabile ? "Fatt." : "Non fatt.", { exact: true }) })
-    .last();
-  await expect(cardRiga).toBeVisible();
+  await expect(cardRiga(page, nota, fatturabile)).toBeVisible();
 }
 
 test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
   test("apre il riepilogo, mostra i dati del mese e si aggiorna dopo un nuovo inserimento", async ({
     page,
+    factory,
   }) => {
     test.setTimeout(90_000);
 
-    const seed = randomUUID();
-    const notaNuova = `US-014 demo fatturabile ${seed}`;
+    const scenario = await creaScenarioRiepilogo(factory, { baselineTrasfertaKm: 50 });
+    const notaNuova = `US-014 demo fatturabile ${randomUUID()}`;
 
-    await loginComeGiulia(page);
-    await apriRiepilogoDaCalendario(page);
+    await accediComeCollaboratore(page, scenario.collaboratore.utente.email);
+    await apriRiepilogoDaCalendario(page, scenario.mese);
 
     await expect(page.getByTestId("summary-ore-totali")).toBeVisible();
     await expect(page.getByTestId("summary-giornate-fatturabili")).toBeVisible();
     await expect(page.getByTestId("summary-rimborsi")).toBeVisible();
     await expect(page.getByTestId("summary-table")).toBeVisible();
-    await expect(page.getByTestId("summary-table")).toContainText("TechSolutions Srl");
-    await expect(page.getByTestId("summary-table")).toContainText("DataFlow SpA");
+    await expect(page.getByTestId("summary-table")).toContainText(
+      scenario.clienteConOfferta.cliente.ragioneSociale,
+    );
+    await expect(page.getByTestId("summary-table")).toContainText(
+      scenario.clienteConOfferta.offerta.codice,
+    );
+    await expect(page.getByTestId("summary-table")).not.toContainText("TechSolutions Srl");
+    await expect(page.getByTestId("summary-table")).not.toContainText("DataFlow SpA");
 
-    const {
-      oreTotali: oreTotaliPrima,
-      oreFatturabili: oreFatturabiliPrima,
-      imponibileManodopera: imponibilePrima,
-    } = await leggiRiepilogo(page);
-    const cardGiornateFatturabili = await page.getByTestId("summary-giornate-fatturabili").textContent();
-    const tariffaMatch = cardGiornateFatturabili?.match(/Tariffa giorno:\s*€\s*([\d.,]+)/);
-    const tariffaGiornaliera = parseNumeroItaliano(tariffaMatch?.[1] ?? "0");
+    const riepilogoPrima = await leggiRiepilogo(page);
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();
     await page.waitForURL("**/attivita**");
 
-    // Giorno 15: nessun altro spec e2e opera su questo giorno per Giulia
-    // (gli altri usano gli offset 2, 4, 6, 7 — vedi grep su dataOggiOffset
-    // in tests/e2e/). Un giorno libero evita che scenari concorrenti
-    // aggiungano/modifichino/eliminino righe sulla stessa giornata mentre
-    // leggiamo il riepilogo mensile.
-    const dataGiornoUsato = dataOggiOffset(15);
-    await page.goto(`/attivita/${dataGiornoUsato}?mese=${tokenMese()}`);
-    await page.waitForURL(`**/attivita/${dataGiornoUsato}**`);
-
-    await aggiungiRiga(page, {
+    await apriGiornata(page, dataDelMese(scenario.mese, 12), scenario.mese);
+    await aggiungiRiga(page, scenario.clienteConOfferta, {
       ore: "4",
       nota: notaNuova,
       fatturabile: true,
@@ -187,54 +226,52 @@ test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
     await page.getByRole("link", { name: "Riepilogo mese" }).click();
     await page.waitForURL("**/attivita/riepilogo**");
 
-    const {
-      oreTotali: oreTotaliDopo,
-      oreFatturabili: oreFatturabiliDopo,
-      imponibileManodopera: imponibileDopo,
-    } = await leggiRiepilogo(page);
+    const riepilogoDopo = await leggiRiepilogo(page);
+    const oreAggiunte = 4;
+    const imponibileAggiunto = (oreAggiunte / ORE_PER_GIORNATA) * TARIFFA_COLLABORATORE;
 
-    // Limite inferiore garantito dalla nostra riga (4h fatturabili aggiunte):
-    // gli aggregati non possono diminuire per effetto della nostra azione,
-    // ma possono crescere oltre l'atteso per interferenza di altri scenari
-    // e2e concorrenti sullo stesso database condiviso (vedi commento su EPS
-    // e sull'esclusione dei rimborsi trasferta dal confronto).
-    expect(oreTotaliDopo - oreTotaliPrima).toBeGreaterThanOrEqual(4 - EPS);
-    expect(oreFatturabiliDopo - oreFatturabiliPrima).toBeGreaterThanOrEqual(4 - EPS);
-    expect(imponibileDopo - imponibilePrima).toBeGreaterThanOrEqual(tariffaGiornaliera / 2 - EPS);
+    expectDeltaEsatto(riepilogoDopo.oreTotali, riepilogoPrima.oreTotali, oreAggiunte, "ore totali");
+    expectDeltaEsatto(
+      riepilogoDopo.oreFatturabili,
+      riepilogoPrima.oreFatturabili,
+      oreAggiunte,
+      "ore fatturabili",
+    );
+    expectDeltaEsatto(
+      riepilogoDopo.imponibileManodopera,
+      riepilogoPrima.imponibileManodopera,
+      imponibileAggiunto,
+      "imponibile manodopera",
+    );
+    expectDeltaEsatto(
+      riepilogoDopo.totaleRimborsi,
+      riepilogoPrima.totaleRimborsi,
+      0,
+      "rimborsi trasferta",
+    );
   });
 });
 
 test.describe("US-014 — scenari complementari", () => {
   test("una nuova riga non fatturabile aumenta le ore totali ma non l'importo fattura", async ({
     page,
+    factory,
   }) => {
     test.setTimeout(60_000);
 
-    const seed = randomUUID();
-    const notaNuova = `US-014 non fatturabile ${seed}`;
+    const scenario = await creaScenarioRiepilogo(factory, { baselineTrasfertaKm: 50 });
+    const notaNuova = `US-014 non fatturabile ${randomUUID()}`;
 
-    await loginComeGiulia(page);
-    await apriRiepilogoDaCalendario(page);
+    await accediComeCollaboratore(page, scenario.collaboratore.utente.email);
+    await apriRiepilogoDaCalendario(page, scenario.mese);
 
-    const {
-      oreTotali: oreTotaliPrima,
-      oreFatturabili: oreFatturabiliPrima,
-      imponibileManodopera: imponibilePrima,
-    } = await leggiRiepilogo(page);
+    const riepilogoPrima = await leggiRiepilogo(page);
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();
     await page.waitForURL("**/attivita**");
 
-    // Giorno 15: nessun altro spec e2e opera su questo giorno per Giulia
-    // (gli altri usano gli offset 2, 4, 6, 7 — vedi grep su dataOggiOffset
-    // in tests/e2e/). Un giorno libero evita che scenari concorrenti
-    // aggiungano/modifichino/eliminino righe sulla stessa giornata mentre
-    // leggiamo il riepilogo mensile.
-    const dataGiornoUsato = dataOggiOffset(15);
-    await page.goto(`/attivita/${dataGiornoUsato}?mese=${tokenMese()}`);
-    await page.waitForURL(`**/attivita/${dataGiornoUsato}**`);
-
-    await aggiungiRiga(page, {
+    await apriGiornata(page, dataDelMese(scenario.mese, 13), scenario.mese);
+    await aggiungiRiga(page, scenario.clienteConOfferta, {
       ore: "4",
       nota: notaNuova,
       fatturabile: false,
@@ -245,33 +282,46 @@ test.describe("US-014 — scenari complementari", () => {
     await page.getByRole("link", { name: "Riepilogo mese" }).click();
     await page.waitForURL("**/attivita/riepilogo**");
 
-    const {
-      oreTotali: oreTotaliDopo,
-      oreFatturabili: oreFatturabiliDopo,
-      imponibileManodopera: imponibileDopo,
-    } = await leggiRiepilogo(page);
+    const riepilogoDopo = await leggiRiepilogo(page);
 
-    // La riga aggiunta è non fatturabile: il badge verificato in
-    // `aggiungiRiga` conferma già, in modo deterministico e non racy, che
-    // NON contribuisce a ore fatturabili/imponibile. Qui verifichiamo solo
-    // che gli aggregati condivisi non possano diminuire per effetto della
-    // nostra azione (possono crescere per interferenza di altri scenari
-    // e2e concorrenti, ma mai scendere sotto il valore "prima"). L'imponibile
-    // manodopera esclude i rimborsi trasferta (vedi commento di modulo).
-    expect(oreTotaliDopo - oreTotaliPrima).toBeGreaterThanOrEqual(4 - EPS);
-    expect(oreFatturabiliDopo).toBeGreaterThanOrEqual(oreFatturabiliPrima - EPS);
-    expect(imponibileDopo).toBeGreaterThanOrEqual(imponibilePrima - EPS);
+    expectDeltaEsatto(riepilogoDopo.oreTotali, riepilogoPrima.oreTotali, 4, "ore totali");
+    expectDeltaEsatto(
+      riepilogoDopo.oreFatturabili,
+      riepilogoPrima.oreFatturabili,
+      0,
+      "ore fatturabili",
+    );
+    expectDeltaEsatto(
+      riepilogoDopo.imponibileManodopera,
+      riepilogoPrima.imponibileManodopera,
+      0,
+      "imponibile manodopera",
+    );
+    expectDeltaEsatto(
+      riepilogoDopo.totaleRimborsi,
+      riepilogoPrima.totaleRimborsi,
+      0,
+      "rimborsi trasferta",
+    );
   });
 
-  test("mostra lo stato vuoto per un mese senza attività", async ({ page }) => {
+  test("mostra lo stato vuoto per un mese senza attività", async ({ page, factory }) => {
     test.setTimeout(60_000);
 
-    await loginComeGiulia(page);
+    const collaboratore = await factory.createCollaboratore({
+      tariffaGiornaliera: TARIFFA_COLLABORATORE.toFixed(2),
+    });
+    const meseSenzaAttivita = meseCorrenteToken(1);
 
-    await page.goto(`/attivita/riepilogo?mese=${tokenMese(1)}`);
+    await accediComeCollaboratore(page, collaboratore.utente.email);
+
+    await page.goto(`/attivita/riepilogo?mese=${meseSenzaAttivita}`);
     await page.waitForURL("**/attivita/riepilogo**");
 
     await expect(page.getByText("Nessuna attività registrata per questo mese.")).toBeVisible();
+    await expect(page.getByTestId("summary-ore-totali-value")).toHaveText("0");
+    await expect(page.getByTestId("summary-ore-fatturabili-value")).toHaveText("0");
+    await expect(page.getByTestId("summary-rimborsi-value")).toHaveText(/€\s*0,00/);
     await expect(page.getByTestId("summary-importo-fattura-value")).toHaveText(/€\s*0,00/);
   });
 });

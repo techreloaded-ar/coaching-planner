@@ -386,7 +386,10 @@ export default function DettaglioGiornata({
           <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
             Totale rimborsi
           </div>
-          <div className="mt-0.5 text-[22px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
+          <div
+            data-testid="day-summary-rimborsi"
+            className="mt-0.5 text-[22px] font-bold tabular-nums text-rose-800 dark:text-rose-300"
+          >
             € {riepilogo.totaleRimborsi.toFixed(2)}
           </div>
         </div>
@@ -419,6 +422,7 @@ export default function DettaglioGiornata({
             {righe.map((riga) => (
               <div
                 key={riga.id}
+                data-testid="activity-row"
                 className="rounded-[11px] border border-zinc-200 bg-white p-[13px_15px] transition-shadow hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
               >
                 <div className="flex items-center justify-between gap-3">

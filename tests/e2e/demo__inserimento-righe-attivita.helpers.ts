@@ -1,40 +1,51 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+
+import { accediComeCollaboratore } from "./support/auth";
+import {
+	dataNelMese,
+	meseCorrenteToken,
+	mesePassatoToken,
+} from "./support/date";
+import type { ClienteConOffertaTestData } from "./support/fixtures";
 
 export async function loginComeGiulia(page: Page) {
-  await page.goto("/login");
-  await expect(
-    page.getByRole("heading", { name: "Accedi" })
-  ).toBeVisible();
-
-  await page.evaluate(async () => {
-    const res = await fetch("/api/e2e-test/sessione", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "giulia.conti@agilereloaded.it" }),
-    });
-    const data = await res.json();
-    if (data.redirect) {
-      window.location.href = data.redirect;
-    }
-  });
-
-  await page.waitForURL("**/attivita**");
+	await accediComeCollaboratore(page);
 }
 
 export function dataOggiOffset(giorno: number): string {
-  const oggi = new Date();
-  const a = oggi.getFullYear();
-  const m = String(oggi.getMonth() + 1).padStart(2, "0");
-  const g = String(giorno).padStart(2, "0");
-  return `${a}-${m}-${g}`;
+	return dataNelMese(meseCorrenteToken(), giorno);
 }
 
 export function dataMesePrecedenteGiorno(giorno: number): string {
-  const data = new Date();
-  data.setMonth(data.getMonth() - 1, giorno);
+	return dataNelMese(mesePassatoToken(), giorno);
+}
 
-  const a = data.getFullYear();
-  const m = String(data.getMonth() + 1).padStart(2, "0");
-  const g = String(data.getDate()).padStart(2, "0");
-  return `${a}-${m}-${g}`;
+export function labelOffertaTest(clienteConOfferta: ClienteConOffertaTestData) {
+	return `${clienteConOfferta.offerta.codice} — ${clienteConOfferta.offerta.descrizione}`;
+}
+
+export async function attendiOfferteCaricate(selectOfferta: Locator) {
+	await expect(selectOfferta).toBeEnabled();
+	await expect
+		.poll(async () => selectOfferta.locator("option").count())
+		.toBeGreaterThan(1);
+}
+
+export async function selezionaClienteEOffertaTest(
+	page: Page,
+	clienteConOfferta: ClienteConOffertaTestData,
+) {
+	const selectCliente = page.locator("#cliente");
+	const selectOfferta = page.locator("#offerta");
+	const clienteLabel = clienteConOfferta.cliente.ragioneSociale;
+	const offertaLabel = labelOffertaTest(clienteConOfferta);
+
+	await expect(selectCliente).toContainText(clienteLabel);
+	await selectCliente.selectOption(clienteConOfferta.cliente.id);
+	await expect(selectCliente).toHaveValue(clienteConOfferta.cliente.id);
+
+	await attendiOfferteCaricate(selectOfferta);
+	await expect(selectOfferta).toContainText(offertaLabel);
+	await selectOfferta.selectOption(clienteConOfferta.offerta.id);
+	await expect(selectOfferta).toHaveValue(clienteConOfferta.offerta.id);
 }

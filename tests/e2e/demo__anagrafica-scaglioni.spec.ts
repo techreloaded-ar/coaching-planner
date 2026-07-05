@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 
+import { accediComeAdmin } from "./support/auth";
+import {
+  REGISTRO_SCAGLIONI_KM,
+  soglieStabiliInIntervallo,
+} from "./support/reserved-resources";
+
 /**
  * Demo scenario — US-010: Configurazione degli scaglioni chilometrici per i rimborsi
  *
@@ -20,41 +26,27 @@ test.use({
 test.describe("US-010 Demo", () => {
   test("configura due scaglioni chilometrici e rivede la configurazione ordinata", async ({
     page,
-  }) => {
+  }, testInfo) => {
     test.setTimeout(60_000);
 
-    const base = 6000 + (Date.now() % 900);
-    const kmA = base;
-    const kmB = base + 50;
+    // Scaglioni globali con soglia unica: usa il range demo riservato 6000-6999.
+    const [kmA, kmB] = soglieStabiliInIntervallo(
+      REGISTRO_SCAGLIONI_KM.demoAnagraficaScaglioni,
+      testInfo.workerIndex,
+      2,
+      { passo: 50, salt: "configura-due-scaglioni" }
+    );
 
     // ── 1. Login amministratore tramite endpoint e2e ───────────────
 
-    await page.goto("/login");
-    await expect(
-      page.getByRole("heading", { name: "Accedi" })
-    ).toBeVisible();
-
-    await page.evaluate(async () => {
-      const res = await fetch("/api/e2e-test/sessione", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "info@techreloaded.it" }),
-      });
-      const data = await res.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    });
-
-    await page.waitForURL("**/anagrafiche**");
+    await accediComeAdmin(page);
 
     // ── 2. Naviga a "Scaglioni km" dalla sidebar ────────────────────
 
     await expect(page.getByRole("banner").getByText("Tech Reloaded")).toBeVisible();
 
     await page
-      .locator("nav[aria-label='Navigazione principale'] a")
-      .filter({ hasText: "Scaglioni km" })
+      .getByRole("link", { name: "Scaglioni km", exact: true })
       .click();
 
     await page.waitForURL("**/anagrafiche/scaglioni");
@@ -125,6 +117,7 @@ test.describe("US-010 Demo", () => {
 
     // ── 9. Mantieni lo stato finale visibile per almeno 1.5 secondi ─
 
+    // Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);
   });
 });

@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 
+import { accediComeAdmin } from "./support/auth";
+import {
+  REGISTRO_SCAGLIONI_KM,
+  sogliaStabileInIntervallo,
+} from "./support/reserved-resources";
+
 /**
  * Test e2e — US-010: Configurazione degli scaglioni chilometrici per i rimborsi
  *
@@ -12,20 +18,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Anagrafica scaglioni km", () => {
   test.beforeEach(async ({ page }) => {
-    // Accedi come amministratore tramite endpoint e2e
-    await page.goto("/login");
-    await page.evaluate(async () => {
-      const res = await fetch("/api/e2e-test/sessione", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "info@techreloaded.it" }),
-      });
-      const data = await res.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    });
-    await page.waitForURL("**/anagrafiche**");
+    await accediComeAdmin(page);
   });
 
   test("validazione campi obbligatori senza creazione", async ({ page }) => {
@@ -67,8 +60,13 @@ test.describe("Anagrafica scaglioni km", () => {
     await expect(page).toHaveURL(/\/anagrafiche\/scaglioni\/nuovo/);
   });
 
-  test("creazione, modifica persistita dopo reload e fascia ricalcolata", async ({ page }) => {
-    const km = 9000 + (Date.now() % 900);
+  test("creazione, modifica persistita dopo reload e fascia ricalcolata", async ({ page }, testInfo) => {
+    // Scaglioni globali con soglia unica: usa il range riservato 9000-9999.
+    const km = sogliaStabileInIntervallo(
+      REGISTRO_SCAGLIONI_KM.anagraficaScaglioni,
+      testInfo.workerIndex,
+      { salt: "creazione-modifica" }
+    );
 
     // Naviga al form nuovo scaglione
     await page.goto("/anagrafiche/scaglioni/nuovo");
@@ -121,8 +119,13 @@ test.describe("Anagrafica scaglioni km", () => {
     await expect(rigaRicaricata.getByText(/18,00/)).toBeVisible();
   });
 
-  test("eliminazione con conferma rimuove lo scaglione e ricalcola le fasce", async ({ page }) => {
-    const km = 9999 - (Date.now() % 900);
+  test("eliminazione con conferma rimuove lo scaglione e ricalcola le fasce", async ({ page }, testInfo) => {
+    // Scaglioni globali con soglia unica: usa il range riservato 9000-9999.
+    const km = sogliaStabileInIntervallo(
+      REGISTRO_SCAGLIONI_KM.anagraficaScaglioni,
+      testInfo.workerIndex,
+      { salt: "eliminazione" }
+    );
 
     // Crea uno scaglione dedicato a questo scenario
     await page.goto("/anagrafiche/scaglioni/nuovo");

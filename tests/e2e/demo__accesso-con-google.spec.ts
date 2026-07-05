@@ -54,7 +54,7 @@ test.describe("US-005 Demo", () => {
     const esciBtn = page.locator("[data-esci]");
     await expect(esciBtn).toBeVisible();
 
-    // 7. Mantieni lo stato finale visibile per almeno 1.5 secondi
+    // Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);
   });
 });

@@ -95,7 +95,7 @@ test.describe("US-006 Demo", () => {
       page.getByRole("heading", { name: "Clienti" })
     ).toBeVisible();
 
-    // 8. Mantieni lo stato finale visibile per almeno 1.5 secondi
+    // Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);
   });
 });

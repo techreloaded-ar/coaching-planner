@@ -49,8 +49,7 @@ test.describe("US-009 Demo", () => {
     await expect(page.getByRole("banner").getByText("Tech Reloaded")).toBeVisible();
 
     await page
-      .locator("nav[aria-label='Navigazione principale'] a")
-      .filter({ hasText: "Collaboratori" })
+      .getByRole("link", { name: "Collaboratori", exact: true })
       .click();
 
     await page.waitForURL("**/anagrafiche/collaboratori");
@@ -142,6 +141,7 @@ test.describe("US-009 Demo", () => {
 
     // ── 10. Mantieni lo stato finale visibile per almeno 1.5 secondi ─
 
+    // Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);
   });
 });

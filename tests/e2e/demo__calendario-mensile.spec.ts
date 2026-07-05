@@ -52,9 +52,8 @@ test.describe("US-011 Demo", () => {
 
     // ── 3. Verifica che la barra di navigazione mostri il mese corrente ──
 
-    // La label del mese (es. "Giugno 2026") — classe capitalize, verifichiamo
-    // che sia visibile una stringa non vuota nella navigazione
-    const meseLabel = page.locator(".min-w-\\[188px\\].text-center");
+    // La label del mese (es. "Giugno 2026") deve essere visibile e non vuota.
+    const meseLabel = page.getByTestId("calendar-month-label");
     await expect(meseLabel).toBeVisible();
     const meseTesto = await meseLabel.textContent();
     expect(meseTesto).toBeTruthy();
@@ -152,7 +151,7 @@ test.describe("US-011 Demo", () => {
     await expect(page.getByText("Oggi")).toBeVisible();
     await expect(page.getByText("Nessuna attività")).toBeVisible();
 
-    // ── 13. Mantieni lo stato finale visibile per almeno 1.5 secondi
+    // ── 13. Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
 
     await page.waitForTimeout(1500);
   });

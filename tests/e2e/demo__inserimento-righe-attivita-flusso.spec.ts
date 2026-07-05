@@ -1,11 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { type Locator, type Page } from "@playwright/test";
 
 import {
   dataOggiOffset,
-  loginComeGiulia,
+  selezionaClienteEOffertaTest,
 } from "./demo__inserimento-righe-attivita.helpers";
+import { accediComeCollaboratore } from "./support/auth";
+import { dataNelMeseRiservato, meseRiservato } from "./support/date";
+import { test, expect } from "./support/fixtures";
 
 /**
  * US-012: Inserimento delle righe di attività giornaliere
@@ -21,31 +24,65 @@ test.use({
   launchOptions: { slowMo: 200 },
 });
 
-async function attendiOfferteCaricate(selectOfferta: Locator) {
-  await expect(selectOfferta).toBeEnabled();
-  await expect
-    .poll(async () => selectOfferta.locator("option").count())
-    .toBeGreaterThan(1);
-}
-
 function cardAttivitaPerNota(page: Page, nota: string): Locator {
   return page
-    .getByRole("heading", { name: "Attività della giornata" })
-    .locator("xpath=following-sibling::div[1]/div")
+    .getByTestId("activity-row")
     .filter({ has: page.getByText(nota, { exact: true }) });
 }
 
 test.describe("US-012 Demo — Inserimento righe attività", () => {
+  test("pilota fixture: collaboratore dedicato inserisce una riga per cliente e offerta creati", async ({
+    page,
+    collaboratore,
+    clienteConOfferta,
+  }) => {
+    test.setTimeout(60_000);
+
+    const seed = randomUUID();
+    const dataControllata = dataNelMeseRiservato("US-023-TASK-05", 12);
+    const meseControllato = meseRiservato("US-023-TASK-05");
+    const notaUnivoca = `US-023 fixture pilota ${seed}`;
+    const clienteLabel = clienteConOfferta.cliente.ragioneSociale;
+
+    await accediComeCollaboratore(page, collaboratore.utente.email);
+
+    await page.goto(`/attivita/${dataControllata}?mese=${meseControllato}`);
+    await page.waitForURL(`**/attivita/${dataControllata}**`);
+    await expect(page.getByText("Nuova riga attività")).toBeVisible();
+
+    await selezionaClienteEOffertaTest(page, clienteConOfferta);
+
+    await page.locator("#ore").fill("2,5");
+    await page.locator("#nota").fill(notaUnivoca);
+    await page.getByRole("button", { name: "Aggiungi riga" }).click();
+
+    const rigaCreata = cardAttivitaPerNota(page, notaUnivoca);
+    await expect(rigaCreata).toBeVisible();
+    await expect(rigaCreata).toContainText(clienteLabel);
+    await expect(rigaCreata).toContainText(clienteConOfferta.offerta.codice);
+    await expect(rigaCreata).toContainText("2.5 h");
+  });
+
   test("flusso completo: aggiunta, modifica ed eliminazione righe", async ({
     page,
+    collaboratore,
+    clienteConOfferta,
+    factory,
   }) => {
     test.setTimeout(90_000);
 
     const seed = randomUUID();
+    const secondaClienteConOfferta = await factory.createClienteConOfferta(
+      { ragioneSociale: `US-023 Cliente seconda ${seed}` },
+      {
+        codice: `US023-${seed.slice(0, 8)}-B`,
+        descrizione: `Offerta US-023 seconda ${seed}`,
+      }
+    );
     const notaNuova = `Test e2e — nuova riga ${seed}`;
     const notaSeconda = `Test e2e — seconda riga non fatturabile ${seed}`;
 
-    await loginComeGiulia(page);
+    await accediComeCollaboratore(page, collaboratore.utente.email);
 
     const dataGiorno2 = dataOggiOffset(2);
     await page.goto(`/attivita/${dataGiorno2}`);
@@ -77,9 +114,7 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     });
     const bottoneAnnulla = page.getByRole("button", { name: "Annulla" });
 
-    await selectCliente.selectOption({ index: 1 });
-    await attendiOfferteCaricate(selectOfferta);
-    await selectOfferta.selectOption({ index: 1 });
+    await selezionaClienteEOffertaTest(page, clienteConOfferta);
 
     await inputOre.fill("3,5");
     await expect(checkboxFatturabile).toBeChecked();
@@ -89,6 +124,7 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
 
     const primaRigaCard = cardAttivitaPerNota(page, notaNuova);
     await expect(primaRigaCard).toBeVisible();
+    await expect(primaRigaCard).toContainText(clienteConOfferta.offerta.codice);
     await expect(bottoneAggiungiRiga).toBeVisible();
     await expect(bottoneAggiungiRiga).toBeEnabled();
     await expect(selectCliente).toHaveValue("");
@@ -98,12 +134,7 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     await expect(checkboxFatturabile).toBeChecked();
     await expect(textareaNota).toHaveValue("");
 
-    const clientiDisponibili = await selectCliente.locator("option").count();
-    const indiceSecondoCliente = clientiDisponibili > 2 ? 2 : 1;
-    await selectCliente.selectOption({ index: indiceSecondoCliente });
-    await attendiOfferteCaricate(selectOfferta);
-
-    await selectOfferta.selectOption({ index: 1 });
+    await selezionaClienteEOffertaTest(page, secondaClienteConOfferta);
     await inputOre.fill("6");
     await checkboxFatturabile.uncheck();
     await textareaNota.fill(notaSeconda);
@@ -112,6 +143,12 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
 
     const secondaRigaCard = cardAttivitaPerNota(page, notaSeconda);
     await expect(secondaRigaCard).toBeVisible();
+    await expect(secondaRigaCard).toContainText(
+      secondaClienteConOfferta.offerta.codice
+    );
+    await expect(secondaRigaCard).toContainText(
+      secondaClienteConOfferta.offerta.descrizione
+    );
     await expect(bottoneAggiungiRiga).toBeVisible();
     await expect(bottoneAggiungiRiga).toBeEnabled();
     await expect(selectCliente).toHaveValue("");
