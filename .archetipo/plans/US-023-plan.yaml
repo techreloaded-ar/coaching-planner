@@ -5,7 +5,7 @@ tasks:
   - id: TASK-01
     title: Creare factory Prisma e fixture e2e isolate
     type: Impl
-    status: TODO
+    status: DONE
     body: |-
       ## Descrizione
 
@@ -38,10 +38,11 @@ tasks:
       - [ ] Le fixture sono tipizzate e riutilizzabili dagli spec.
       - [ ] Nessun helper usa `DATABASE_URL` direttamente quando è richiesto `E2E_DATABASE_URL`.
       - [ ] `npm run lint` passa sui nuovi file.
+    ref: TASK-01
   - id: TASK-02
     title: Standardizzare login, date e registri e2e
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |-
@@ -76,10 +77,11 @@ tasks:
       - [ ] I mesi riservati sono centralizzati e usabili da writer e report.
       - [ ] Gli intervalli km riservati sono centralizzati e documentati nel codice.
       - [ ] `npm run lint` passa.
+    ref: TASK-02
   - id: TASK-03
     title: Validare fixture con uno scenario pilota front-office
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
       - TASK-02
@@ -114,10 +116,11 @@ tasks:
       - [ ] Lo scenario non contiene `selectOption({ index: ... })`.
       - [ ] Le asserzioni individuano la riga tramite nota/codice univoco.
       - [ ] Il fallimento del pilota è diagnostico.
+    ref: TASK-03
   - id: TASK-04
     title: Stabilizzare gli scaglioni km globali
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-02
     body: |-
@@ -152,10 +155,11 @@ tasks:
       - [ ] Non rimane generazione collision-prone con `Date.now() % 900`.
       - [ ] Nessun test scaglioni crea soglie sotto 1000 km.
       - [ ] I due spec scaglioni passano con `--retries=0`.
+    ref: TASK-04
   - id: TASK-05
     title: Migrare i writer front-office di inserimento righe
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
     body: |-
@@ -192,10 +196,11 @@ tasks:
       - [ ] Nessuno dei writer migrati usa `selectOption({ index: ... })`.
       - [ ] `mese-concluso` usa un mese riservato e non può rompere il report del mese precedente.
       - [ ] Il gruppo di spec passa con `--retries=0`.
+    ref: TASK-05
   - id: TASK-06
     title: Migrare riepilogo mensile e trasferta demo a dati propri
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
       - TASK-05
@@ -232,10 +237,11 @@ tasks:
       - [ ] Le asserzioni principali sono esatte rispetto al dataset creato dal test.
       - [ ] Nessuno scenario modifica rimborsi o attività di seed.
       - [ ] Entrambi gli spec passano con `--retries=0`.
+    ref: TASK-06
   - id: TASK-07
     title: Preparare dataset a mese riservato per report
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-02
     body: |-
@@ -270,10 +276,11 @@ tasks:
       - [ ] L’helper restituisce valori attesi calcolabili nel test.
       - [ ] I mesi riservati sono passati e non dipendono dal mese corrente.
       - [ ] La documentazione inline spiega il partizionamento per mese.
+    ref: TASK-07
   - id: TASK-08
     title: Migrare i report fatturazione clienti a totali esatti
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-07
     body: |-
@@ -309,10 +316,11 @@ tasks:
       - [ ] Non ci sono asserzioni seed su `2.268,75`, `95,00`, `110,00` o `205,00` come contratto principale.
       - [ ] Lo stato vuoto non dipende dal mese precedente globale.
       - [ ] Entrambi gli spec passano con `--retries=0`.
+    ref: TASK-08
   - id: TASK-09
     title: Migrare anagrafiche back-office che mutano seed
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
       - TASK-02
@@ -350,10 +358,11 @@ tasks:
       - [ ] Le offerte create nei test appartengono a clienti propri del test.
       - [ ] I test collaboratori mutanti usano identità generate.
       - [ ] Il gruppo anagrafiche passa con `--retries=0`.
+    ref: TASK-09
   - id: TASK-10
     title: Pulire selettori fragili e hard wait
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-05
       - TASK-08
@@ -391,10 +400,11 @@ tasks:
       - [ ] Le classi Tailwind non sono contratti primari dei test migrati.
       - [ ] Gli hard wait di sincronizzazione sono sostituiti da attese web-first.
       - [ ] I file toccati passano con `--retries=0`.
+    ref: TASK-10
   - id: TASK-11
     title: Aggiungere guardrail automatici anti-flakiness
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
       - TASK-06
@@ -434,10 +444,11 @@ tasks:
       - [ ] Il guardrail copre email seed, hard wait, nav fragile e selettori Tailwind.
       - [ ] Il guardrail copre scaglioni km fuori registro e `Date.now() % 900`.
       - [ ] `npm run lint` passa sul repository ripulito.
+    ref: TASK-11
   - id: TASK-12
     title: Documentare setup, teardown e regole per nuovi e2e
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-11
     body: |-
@@ -475,10 +486,11 @@ tasks:
       - [ ] Sono documentati mesi riservati e intervalli km.
       - [ ] Sono documentate regole per aggregati globali futuri come US-016.
       - [ ] Sono chiariti slowMo, hard wait e comando finale `--retries=0`.
+    ref: TASK-12
   - id: TASK-13
     title: Validare suite completa tre volte senza retry
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-11
       - TASK-12
@@ -514,3 +526,4 @@ tasks:
       - [ ] `fullyParallel: true` è mantenuto.
       - [ ] Tre run consecutive di `npx playwright test --retries=0` passano con exit code 0.
       - [ ] Non sono introdotti retry maggiori, `workers: 1` o serializzazione globale.
+    ref: TASK-13
