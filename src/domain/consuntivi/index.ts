@@ -496,3 +496,204 @@ export function calcolaReportFatturazioneClienti(
     },
   };
 }
+
+// ── Avanzamento offerte ──────────────────────────────────────────
+
+/** Soglia di percentuale di utilizzo oltre la quale un'offerta è considerata in allerta */
+export const SOGLIA_ALLERTA_UTILIZZO = 0.85;
+
+/** Stati possibili di avanzamento di un'offerta rispetto al budget in giornate previste */
+export type StatoAvanzamentoOfferta =
+  | "IN_CORSO"
+  | "IN_ALLERTA"
+  | "ESAURITA"
+  | "OLTRE_BUDGET";
+
+/** Metadati di un'offerta ai fini del calcolo dell'avanzamento (dipendenza-zero) */
+export interface OffertaAvanzamento {
+  offertaId: string;
+  offertaCodice: string;
+  offertaDescrizione: string;
+  clienteId: string;
+  clienteRagioneSociale: string;
+  giorniPrevisti: number;
+}
+
+/** Riga elementare di attività ai fini del calcolo dell'avanzamento */
+export interface RigaAvanzamento {
+  offertaId: string;
+  collaboratoreId: string;
+  collaboratoreNome: string;
+  ore: number;
+  fatturabile: boolean;
+}
+
+/** Dettaglio dell'erogato per singolo collaboratore su un'offerta */
+export interface VoceCollaboratoreAvanzamento {
+  collaboratoreId: string;
+  collaboratoreNome: string;
+  oreErogate: number;
+  giornateErogate: number;
+}
+
+/** Voce di avanzamento di una singola offerta */
+export interface VoceAvanzamentoOfferta {
+  offertaId: string;
+  offertaCodice: string;
+  offertaDescrizione: string;
+  clienteId: string;
+  clienteRagioneSociale: string;
+  giornatePreviste: number;
+  giornateErogate: number;
+  residuo: number;
+  percentualeUtilizzo: number;
+  stato: StatoAvanzamentoOfferta;
+  perCollaboratore: VoceCollaboratoreAvanzamento[];
+}
+
+/** Report complessivo di avanzamento delle offerte, con totali di riepilogo */
+export interface ReportAvanzamentoOfferte {
+  perOfferta: VoceAvanzamentoOfferta[];
+  totali: {
+    giornatePrevisteTotali: number;
+    giornateErogateTotali: number;
+    residuoTotale: number;
+  };
+}
+
+/**
+ * Calcola l'avanzamento (giornate erogate vs previste) di ciascuna offerta,
+ * aggregando le sole ore fatturabili per collaboratore.
+ *
+ * Funzione pura: nessuna dipendenza da framework o Prisma.
+ *
+ * @param offerte - Metadati delle offerte da includere nel report (tutte incluse, anche senza attività)
+ * @param righe - Righe elementari di attività da aggregare (solo le fatturabili concorrono all'erogato)
+ * @returns Report di avanzamento per offerta con totali di riepilogo
+ */
+export function calcolaAvanzamentoOfferte(
+  offerte: OffertaAvanzamento[],
+  righe: RigaAvanzamento[],
+): ReportAvanzamentoOfferte {
+  interface AccumulatoreCollaboratore {
+    collaboratoreId: string;
+    collaboratoreNome: string;
+    oreErogate: number;
+  }
+
+  interface AccumulatoreOfferta {
+    offertaId: string;
+    oreErogateTotali: number;
+    collaboratori: Map<string, AccumulatoreCollaboratore>;
+  }
+
+  const accumulatori = new Map<string, AccumulatoreOfferta>();
+
+  for (const riga of righe) {
+    if (!riga.fatturabile) {
+      continue;
+    }
+
+    let accumulatoreOfferta = accumulatori.get(riga.offertaId);
+    if (!accumulatoreOfferta) {
+      accumulatoreOfferta = {
+        offertaId: riga.offertaId,
+        oreErogateTotali: 0,
+        collaboratori: new Map(),
+      };
+      accumulatori.set(riga.offertaId, accumulatoreOfferta);
+    }
+
+    accumulatoreOfferta.oreErogateTotali += riga.ore;
+
+    const accumulatoreCollaboratore = accumulatoreOfferta.collaboratori.get(
+      riga.collaboratoreId,
+    ) ?? {
+      collaboratoreId: riga.collaboratoreId,
+      collaboratoreNome: riga.collaboratoreNome,
+      oreErogate: 0,
+    };
+    accumulatoreCollaboratore.oreErogate += riga.ore;
+    accumulatoreOfferta.collaboratori.set(riga.collaboratoreId, accumulatoreCollaboratore);
+  }
+
+  let giornatePrevisteTotali = 0;
+  let giornateErogateTotali = 0;
+  let residuoTotale = 0;
+
+  const perOfferta: VoceAvanzamentoOfferta[] = offerte.map((offerta) => {
+    const accumulatoreOfferta = accumulatori.get(offerta.offertaId);
+    const oreErogate = accumulatoreOfferta?.oreErogateTotali ?? 0;
+    const giornateErogate = oreErogate / ORE_PER_GIORNATA;
+    const giornatePreviste = offerta.giorniPrevisti;
+    const residuo = giornatePreviste - giornateErogate;
+
+    const percentualeUtilizzo =
+      giornatePreviste > 0
+        ? giornateErogate / giornatePreviste
+        : giornateErogate > 0
+          ? 1.01
+          : 0;
+
+    let stato: StatoAvanzamentoOfferta;
+    if (residuo < 0) {
+      stato = "OLTRE_BUDGET";
+    } else if (residuo === 0 && giornatePreviste > 0) {
+      stato = "ESAURITA";
+    } else if (percentualeUtilizzo >= SOGLIA_ALLERTA_UTILIZZO && residuo > 0) {
+      stato = "IN_ALLERTA";
+    } else {
+      stato = "IN_CORSO";
+    }
+
+    const perCollaboratore: VoceCollaboratoreAvanzamento[] = Array.from(
+      accumulatoreOfferta?.collaboratori.values() ?? [],
+    )
+      .map((collaboratore) => ({
+        collaboratoreId: collaboratore.collaboratoreId,
+        collaboratoreNome: collaboratore.collaboratoreNome,
+        oreErogate: collaboratore.oreErogate,
+        giornateErogate: collaboratore.oreErogate / ORE_PER_GIORNATA,
+      }))
+      .sort((a, b) => {
+        if (b.giornateErogate !== a.giornateErogate) {
+          return b.giornateErogate - a.giornateErogate;
+        }
+        return a.collaboratoreNome.localeCompare(b.collaboratoreNome);
+      });
+
+    giornatePrevisteTotali += giornatePreviste;
+    giornateErogateTotali += giornateErogate;
+    residuoTotale += residuo;
+
+    return {
+      offertaId: offerta.offertaId,
+      offertaCodice: offerta.offertaCodice,
+      offertaDescrizione: offerta.offertaDescrizione,
+      clienteId: offerta.clienteId,
+      clienteRagioneSociale: offerta.clienteRagioneSociale,
+      giornatePreviste,
+      giornateErogate,
+      residuo,
+      percentualeUtilizzo,
+      stato,
+      perCollaboratore,
+    };
+  });
+
+  perOfferta.sort((a, b) => {
+    if (b.percentualeUtilizzo !== a.percentualeUtilizzo) {
+      return b.percentualeUtilizzo - a.percentualeUtilizzo;
+    }
+    return a.offertaCodice.localeCompare(b.offertaCodice);
+  });
+
+  return {
+    perOfferta,
+    totali: {
+      giornatePrevisteTotali,
+      giornateErogateTotali,
+      residuoTotale,
+    },
+  };
+}

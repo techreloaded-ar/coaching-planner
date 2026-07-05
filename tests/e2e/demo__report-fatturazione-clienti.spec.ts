@@ -63,10 +63,10 @@ test.describe("US-015 Demo", () => {
       page.getByRole("banner").getByText("Tech Reloaded"),
     ).toBeVisible();
 
-    // ── 2. Apre "Report" dalla sidebar ────────────────────────────
+    // ── 2. Apre "Fatturazione clienti" dalla sidebar ───────────────
     await page
       .locator("nav[aria-label='Navigazione principale'] a")
-      .filter({ hasText: "Report" })
+      .filter({ hasText: "Fatturazione clienti" })
       .click();
 
     await page.waitForURL("**/report/fatturazione-clienti");

@@ -48,7 +48,7 @@ test.describe("US-007 Demo", () => {
 
     await page
       .locator("nav[aria-label='Navigazione principale'] a")
-      .filter({ hasText: "Clienti" })
+      .filter({ hasText: /^Clienti$/ })
       .click();
 
     await page.waitForURL("**/anagrafiche/clienti");
