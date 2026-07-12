@@ -22,9 +22,9 @@ test.describe("US-001 Demo", () => {
     const heading = page.getByRole("heading", { name: "Coaching Planner" });
     await expect(heading).toBeVisible();
 
-    // Verifica il sottotitolo
+    // Verifica il payoff
     const subtitle = page.getByText(
-      "Il gestionale per la consuntivazione mensile"
+      "Consuntivi mensili di collaboratori, clienti e offerte."
     );
     await expect(subtitle).toBeVisible();
 
