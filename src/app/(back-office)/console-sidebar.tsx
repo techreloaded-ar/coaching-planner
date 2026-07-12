@@ -46,7 +46,7 @@ const IconAvanzamentoOfferte = (
 
 const NAV_ITEMS = [
   { href: "/anagrafiche/clienti", label: "Clienti", icon: IconClienti },
-  { label: "Offerte", icon: IconOfferte, disabled: true },
+  { href: "/offerte", label: "Offerte", icon: IconOfferte },
   { href: "/anagrafiche/collaboratori", label: "Collaboratori", icon: IconCollaboratori },
   { href: "/anagrafiche/scaglioni", label: "Scaglioni km", icon: IconScaglioni },
   { href: "/report/fatturazione-clienti", label: "Fatturazione clienti", icon: IconReport },
@@ -90,33 +90,12 @@ export default function ConsoleSidebar({ nome, ruolo, iniziali }: SidebarProps) 
         </span>
 
         {NAV_ITEMS.map((item) => {
-          const isActive = "href" in item ? pathname.startsWith(item.href!) : false;
-
-          if ("disabled" in item && item.disabled) {
-            return (
-              <button
-                key={item.label}
-                type="button"
-                disabled
-                aria-disabled="true"
-                title={`${item.label} — In arrivo`}
-                className="relative flex w-full cursor-not-allowed items-center gap-[11px] rounded-[10px] border-0 bg-transparent px-[11px] py-[9px] text-left font-[inherit] text-[13.5px] font-semibold text-zinc-400 dark:text-zinc-500 max-[920px]:justify-center max-[920px]:px-[10px]"
-              >
-                {item.icon}
-                <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap max-[920px]:hidden">
-                  {item.label}
-                </span>
-                <span className="shrink-0 rounded-full bg-amber-50 px-[7px] py-[2px] text-[10px] font-bold tracking-[.03em] whitespace-nowrap text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 max-[920px]:hidden">
-                  In arrivo
-                </span>
-              </button>
-            );
-          }
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <a
               key={item.label}
-              href={"href" in item ? item.href : undefined}
+              href={item.href}
               aria-current={isActive ? "page" : undefined}
               className={`relative flex items-center gap-[11px] rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-semibold no-underline transition-colors max-[920px]:justify-center max-[920px]:px-[10px] ${
                 isActive
