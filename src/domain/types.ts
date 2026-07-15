@@ -6,6 +6,15 @@ export const ORE_PER_GIORNATA = 8;
 /** Ruoli utente */
 export type Ruolo = "AMMINISTRATORE" | "COLLABORATORE";
 
+/** Payload JWT della sessione stateless */
+export interface PayloadSessione {
+  utenteId: string;
+  ruolo: Ruolo;
+  nome: string;
+  email: string;
+  expiresAt: number; // timestamp Unix in secondi
+}
+
 /** Cliente */
 export interface Cliente {
   id: string;

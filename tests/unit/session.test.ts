@@ -1,106 +1,128 @@
-import { describe, it, expect } from "vitest";
-import { SignJWT, jwtVerify } from "jose";
-import { DURATA_SESSIONE_ORE } from "@/lib/session";
-import type { PayloadSessione } from "@/lib/session";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { SignJWT, decodeJwt } from "jose";
+import type { PayloadSessione } from "@/domain/types";
+import { DURATA_SESSIONE_SECONDI } from "@/lib/session-config";
+import {
+  creaTokenSessione,
+  verificaERinnovaTokenSessione,
+  verificaTokenSessione,
+} from "@/lib/session-token";
 
-// ── Helpers di crittografia ─────────────────────────────────────
+const SESSION_SECRET_VALIDA =
+  "chiave-di-test-lunga-almeno-32-caratteri-!!";
 
-const chiave = new TextEncoder().encode("chiave-di-test-lunga-almeno-32-caratteri-!!");
+let sessionSecretOriginale = process.env.SESSION_SECRET;
 
-async function encrypt(payload: PayloadSessione): Promise<string> {
-  return new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${DURATA_SESSIONE_ORE}h`)
-    .sign(chiave);
-}
+describe("session-token", () => {
+  beforeEach(() => {
+    sessionSecretOriginale = process.env.SESSION_SECRET;
+    process.env.SESSION_SECRET = SESSION_SECRET_VALIDA;
+  });
 
-async function decrypt(token: string): Promise<PayloadSessione | null> {
-  try {
-    const { payload } = await jwtVerify<PayloadSessione>(token, chiave, {
-      algorithms: ["HS256"],
+  afterEach(() => {
+    if (sessionSecretOriginale === undefined) {
+      delete process.env.SESSION_SECRET;
+      return;
+    }
+
+    process.env.SESSION_SECRET = sessionSecretOriginale;
+  });
+
+  it("crea e verifica una sessione con claim coerenti", async () => {
+    const now = 1_700_000_000;
+
+    const sessione = await creaTokenSessione(
+      {
+        utenteId: "abc-123",
+        ruolo: "AMMINISTRATORE",
+        nome: "Test User",
+        email: "test@example.com",
+      },
+      { now }
+    );
+
+    expect(sessione.payload.expiresAt).toBe(now + DURATA_SESSIONE_SECONDI);
+
+    const payload = await verificaTokenSessione(sessione.token, { now });
+    expect(payload).toEqual(sessione.payload);
+
+    const claims = decodeJwt(sessione.token) as PayloadSessione & {
+      exp: number;
+      iat: number;
+    };
+
+    expect(claims.iat).toBe(now);
+    expect(claims.exp).toBe(now + DURATA_SESSIONE_SECONDI);
+    expect(claims.expiresAt).toBe(claims.exp);
+  });
+
+  it("rinnova la sessione in modo deterministico", async () => {
+    const issuedAt = 1_700_000_000;
+    const renewedAt = issuedAt + 600;
+    const originale = await creaTokenSessione(
+      {
+        utenteId: "user-2",
+        ruolo: "COLLABORATORE",
+        nome: "Collab",
+        email: "collab@example.com",
+      },
+      { now: issuedAt }
+    );
+
+    const rinnovata = await verificaERinnovaTokenSessione(originale.token, {
+      now: renewedAt,
     });
-    return payload;
-  } catch {
-    return null;
-  }
-}
 
-describe("session — crittografia roundtrip", () => {
-  const payload: PayloadSessione = {
-    utenteId: "abc-123",
-    ruolo: "AMMINISTRATORE",
-    nome: "Test User",
-    email: "test@example.com",
-    expiresAt: Math.floor(Date.now() / 1000) + 3600,
-  };
+    expect(rinnovata).not.toBeNull();
+    expect(rinnovata!.token).not.toBe(originale.token);
+    expect(rinnovata!.payload).toEqual({
+      ...originale.payload,
+      expiresAt: renewedAt + DURATA_SESSIONE_SECONDI,
+    });
 
-  it("encrypt + decrypt restituisce il payload originale", async () => {
-    const token = await encrypt(payload);
-    expect(token).toBeTruthy();
-    expect(typeof token).toBe("string");
-
-    const decoded = await decrypt(token);
-    expect(decoded).not.toBeNull();
-    expect(decoded!.utenteId).toBe(payload.utenteId);
-    expect(decoded!.ruolo).toBe(payload.ruolo);
-    expect(decoded!.nome).toBe(payload.nome);
-    expect(decoded!.email).toBe(payload.email);
+    const payload = await verificaTokenSessione(rinnovata!.token, {
+      now: renewedAt,
+    });
+    expect(payload).toEqual(rinnovata!.payload);
   });
-});
 
-describe("session — token scaduto", () => {
-  it("restituisce null per un token scaduto", async () => {
-    const now = Math.floor(Date.now() / 1000);
-    const expiredPayload: PayloadSessione = {
-      utenteId: "scaduto-1",
-      ruolo: "COLLABORATORE",
-      nome: "Expired",
-      email: "expired@test.local",
-      expiresAt: now - 3600,
-    };
-
-    // Creiamo un token già scaduto impostando exp nel passato
-    const token = await new SignJWT({ ...expiredPayload })
+  it("rifiuta token firmati ma con claim malformati", async () => {
+    const now = 1_700_000_000;
+    const token = await new SignJWT({
+      utenteId: "user-3",
+      ruolo: "RUOLO_SCONOSCIUTO",
+      nome: "Broken",
+      email: "broken@example.com",
+      expiresAt: now + DURATA_SESSIONE_SECONDI,
+    })
       .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("0s") // scade subito
-      .sign(chiave);
+      .setIssuedAt(now)
+      .setExpirationTime(now + DURATA_SESSIONE_SECONDI)
+      .sign(new TextEncoder().encode(SESSION_SECRET_VALIDA));
 
-    // Attendiamo un attimo per essere certi che il token sia scaduto
-    await new Promise((r) => setTimeout(r, 1100));
-
-    const decoded = await decrypt(token);
-    expect(decoded).toBeNull();
+    const payload = await verificaTokenSessione(token, { now });
+    expect(payload).toBeNull();
   });
-});
 
-describe("session — token manomesso", () => {
-  const altraChiave = new TextEncoder().encode(
-    "un-altra-chiave-diversa-per-test-manomissione!"
-  );
-
-  it("restituisce null con una chiave diversa", async () => {
-    const payload: PayloadSessione = {
-      utenteId: "man-1",
+  it("rifiuta token firmati con una chiave diversa", async () => {
+    const now = 1_700_000_000;
+    const token = await new SignJWT({
+      utenteId: "alien-1",
       ruolo: "AMMINISTRATORE",
-      nome: "Tampered",
-      email: "tampered@test.local",
-      expiresAt: Math.floor(Date.now() / 1000) + 3600,
-    };
-
-    const token = await new SignJWT({ ...payload })
+      nome: "Alien",
+      email: "alien@example.com",
+      expiresAt: now + DURATA_SESSIONE_SECONDI,
+    })
       .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("1h")
-      .sign(altraChiave);
+      .setIssuedAt(now)
+      .setExpirationTime(now + DURATA_SESSIONE_SECONDI)
+      .sign(
+        new TextEncoder().encode(
+          "altra-chiave-diversa-per-test-firma-errata!"
+        )
+      );
 
-    const decoded = await decrypt(token);
-    expect(decoded).toBeNull();
-  });
-
-  it("restituisce null per una stringa casuale", async () => {
-    const decoded = await decrypt("questa-non-è-una-stringa-jwt-valida");
-    expect(decoded).toBeNull();
+    const payload = await verificaTokenSessione(token, { now });
+    expect(payload).toBeNull();
   });
 });

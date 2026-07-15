@@ -6,8 +6,9 @@ import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
  * Demo scenario — US-006: Autorizzazione per ruolo e segregazione dei dati
  *
  * Dimostra il flusso descritto nel campo Dimostrazione:
- * 1. Una collaboratrice autenticata tenta di aprire il back office e viene bloccata
- * 2. L'amministratore accede e apre il back office senza restrizioni
+ * 1. Un utente non autenticato apre una rotta protetta e viene riportato alla radice
+ * 2. Una collaboratrice autenticata tenta di aprire il back office e viene bloccata
+ * 3. L'amministratore accede e apre il back office senza restrizioni
  *
  * Registra un video per la review.
  */
@@ -19,8 +20,16 @@ test.use({
 });
 
 test.describe("US-006 Demo", () => {
-  test("collaboratore bloccato, amministratore dentro", async ({ page }) => {
-    // ── Atto 1: La collaboratrice tenta il back office ──────────
+  test("utente anonimo alla radice, collaboratore bloccato, amministratore dentro", async ({ page }) => {
+    // ── Atto 1: Utente anonimo su rotta protetta ────────────────
+
+    await page.goto("/anagrafiche");
+    await page.waitForURL((url) => url.pathname === "/");
+    await expect(
+      page.getByRole("heading", { name: "Coaching Planner" })
+    ).toBeVisible();
+
+    // ── Atto 2: La collaboratrice tenta il back office ──────────
 
     await accediComeCollaboratore(page);
 
@@ -47,7 +56,7 @@ test.describe("US-006 Demo", () => {
       page.getByText("Ti sei disconnesso. A presto!")
     ).toBeVisible();
 
-    // ── Atto 2: L'amministratore apre il back office ────────────
+    // ── Atto 3: L'amministratore apre il back office ────────────
 
     await expect(
       page.getByRole("button", { name: "Accedi con Google" })

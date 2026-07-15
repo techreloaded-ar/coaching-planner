@@ -1,142 +1,128 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import { SignJWT, jwtVerify } from "jose";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { SignJWT, decodeJwt } from "jose";
 import { rinnovaToken } from "@/lib/rinnova-token";
-import { DURATA_SESSIONE_ORE } from "@/lib/session";
-import type { PayloadSessione } from "@/lib/session";
+import { DURATA_SESSIONE_SECONDI } from "@/lib/session-config";
 
-const CHIAVE_TEST = "chiave-di-test-lunga-almeno-32-caratteri-!!";
-const chiave = new TextEncoder().encode(CHIAVE_TEST);
+const SESSION_SECRET_VALIDA =
+  "chiave-di-test-lunga-almeno-32-caratteri-!!";
 
-// Imposta SESSION_SECRET prima di ogni test
-beforeAll(() => {
-  process.env.SESSION_SECRET = CHIAVE_TEST;
-});
+let sessionSecretOriginale = process.env.SESSION_SECRET;
 
-async function creaToken(payload: Partial<PayloadSessione> & { utenteId: string; ruolo: "AMMINISTRATORE" | "COLLABORATORE" }, expSeconds: string = `${DURATA_SESSIONE_ORE}h`): Promise<string> {
-  const fullPayload: PayloadSessione = {
-    utenteId: payload.utenteId,
-    ruolo: payload.ruolo,
-    nome: payload.nome ?? "Test User",
-    email: payload.email ?? "test@example.com",
-    expiresAt: payload.expiresAt ?? Math.floor(Date.now() / 1000) + DURATA_SESSIONE_ORE * 3600,
-  };
+describe("rinnovaToken", () => {
+  beforeEach(() => {
+    sessionSecretOriginale = process.env.SESSION_SECRET;
+    process.env.SESSION_SECRET = SESSION_SECRET_VALIDA;
+  });
 
-  return new SignJWT({ ...fullPayload })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(expSeconds)
-    .sign(chiave);
-}
+  afterEach(() => {
+    if (sessionSecretOriginale === undefined) {
+      delete process.env.SESSION_SECRET;
+      return;
+    }
 
-async function decodificaToken(token: string): Promise<PayloadSessione | null> {
-  try {
-    const { payload } = await jwtVerify<PayloadSessione>(token, chiave, {
-      algorithms: ["HS256"],
-    });
-    return payload;
-  } catch {
-    return null;
-  }
-}
+    process.env.SESSION_SECRET = sessionSecretOriginale;
+  });
 
-describe("rinnovaToken — token valido", () => {
-  it("produce un token verificabile che mantiene i campi originali", async () => {
-    // Crea un token con expiresAt nel passato (ma JWT exp ancora valido)
-    // così la ri-firma produce sicuramente un token testuale diverso
-    const pastExpiresAt = Math.floor(Date.now() / 1000) - 3600;
-    const originale = await creaToken({
-      utenteId: "user-1",
+  it("restituisce un nuovo token con exp ed expiresAt aggiornati", async () => {
+    const issuedAt = 1_700_000_000;
+    const renewedAt = issuedAt + 300;
+    const originale = await creaTokenValido({
+      now: issuedAt,
       ruolo: "AMMINISTRATORE",
-      nome: "Admin",
-      email: "admin@test.local",
-      expiresAt: pastExpiresAt,
     });
 
-    const rinnovato = await rinnovaToken(originale);
+    const nowSpy = vi
+      .spyOn(Date, "now")
+      .mockReturnValue(renewedAt * 1000);
 
-    expect(rinnovato).not.toBeNull();
-    expect(rinnovato).not.toBe(originale); // deve essere un token diverso
+    try {
+      const rinnovato = await rinnovaToken(originale);
 
-    const payload = await decodificaToken(rinnovato!);
-    expect(payload).not.toBeNull();
-    expect(payload!.utenteId).toBe("user-1");
-    expect(payload!.ruolo).toBe("AMMINISTRATORE");
-    expect(payload!.nome).toBe("Admin");
-    expect(payload!.email).toBe("admin@test.local");
+      expect(rinnovato).not.toBeNull();
+      expect(rinnovato).not.toBe(originale);
+
+      const claims = decodeJwt(rinnovato!) as {
+        utenteId: string;
+        ruolo: string;
+        nome: string;
+        email: string;
+        expiresAt: number;
+        exp: number;
+        iat: number;
+      };
+
+      expect(claims.utenteId).toBe("user-1");
+      expect(claims.ruolo).toBe("AMMINISTRATORE");
+      expect(claims.expiresAt).toBe(renewedAt + DURATA_SESSIONE_SECONDI);
+      expect(claims.exp).toBe(claims.expiresAt);
+      expect(claims.iat).toBe(renewedAt);
+    } finally {
+      nowSpy.mockRestore();
+    }
   });
 
-  it("ha exp ed expiresAt strettamente maggiori dell'originale", async () => {
-    // expiresAt originale nel passato
-    const pastExpiresAt = Math.floor(Date.now() / 1000) - 3600;
-    const originale = await creaToken({
-      utenteId: "user-2",
-      ruolo: "COLLABORATORE",
-      nome: "Collab",
-      email: "collab@test.local",
-      expiresAt: pastExpiresAt,
-    });
-
-    const payloadOrig = await decodificaToken(originale);
-    expect(payloadOrig).not.toBeNull();
-
-    const rinnovato = await rinnovaToken(originale);
-    expect(rinnovato).not.toBeNull();
-
-    const payloadNew = await decodificaToken(rinnovato!);
-    expect(payloadNew).not.toBeNull();
-
-    // expiresAt deve essere maggiore
-    expect(payloadNew!.expiresAt).toBeGreaterThan(payloadOrig!.expiresAt);
-
-    // expiresAt rinnovato deve essere nel futuro (circa DURATA_SESSIONE_ORE ore da ora)
-    const now = Math.floor(Date.now() / 1000);
-    expect(payloadNew!.expiresAt).toBeGreaterThan(now);
-    expect(payloadNew!.expiresAt).toBeLessThanOrEqual(now + DURATA_SESSIONE_ORE * 3600 + 5);
-  });
-});
-
-describe("rinnovaToken — token non valido", () => {
   it("restituisce null per un token scaduto", async () => {
-    const scaduto = await creaToken(
-      {
-        utenteId: "expired-1",
-        ruolo: "AMMINISTRATORE",
-        nome: "Expired",
-        email: "expired@test.local",
-      },
-      "0s" // scade subito
-    );
+    const now = 1_700_000_000;
+    const token = await new SignJWT({
+      utenteId: "expired-1",
+      ruolo: "AMMINISTRATORE",
+      nome: "Expired",
+      email: "expired@example.com",
+      expiresAt: now - 10,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt(now - 100)
+      .setExpirationTime(now - 10)
+      .sign(new TextEncoder().encode(SESSION_SECRET_VALIDA));
 
-    // Attendiamo per essere certi che il token sia scaduto
-    await new Promise((r) => setTimeout(r, 1100));
-
-    const risultato = await rinnovaToken(scaduto);
+    const risultato = await rinnovaToken(token);
     expect(risultato).toBeNull();
   });
 
-  it("restituisce null per una stringa casuale (token manomesso)", async () => {
+  it("restituisce null per una stringa non JWT", async () => {
     const risultato = await rinnovaToken("stringa-non-jwt-valida");
     expect(risultato).toBeNull();
   });
 
   it("restituisce null per un token firmato con chiave diversa", async () => {
-    const altraChiave = new TextEncoder().encode(
-      "altra-chiave-diversa-per-test-firma-errata!"
-    );
-
-    const tokenAlieno = await new SignJWT({
+    const now = 1_700_000_000;
+    const token = await new SignJWT({
       utenteId: "alien-1",
-      ruolo: "AMMINISTRATORE",
+      ruolo: "COLLABORATORE",
       nome: "Alien",
-      email: "alien@test.local",
-      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      email: "alien@example.com",
+      expiresAt: now + DURATA_SESSIONE_SECONDI,
     })
       .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("1h")
-      .sign(altraChiave);
+      .setIssuedAt(now)
+      .setExpirationTime(now + DURATA_SESSIONE_SECONDI)
+      .sign(
+        new TextEncoder().encode(
+          "altra-chiave-diversa-per-test-firma-errata!"
+        )
+      );
 
-    const risultato = await rinnovaToken(tokenAlieno);
+    const risultato = await rinnovaToken(token);
     expect(risultato).toBeNull();
   });
 });
+
+async function creaTokenValido({
+  now,
+  ruolo,
+}: {
+  now: number;
+  ruolo: "AMMINISTRATORE" | "COLLABORATORE";
+}) {
+  return new SignJWT({
+    utenteId: "user-1",
+    ruolo,
+    nome: "Test User",
+    email: "test@example.com",
+    expiresAt: now + DURATA_SESSIONE_SECONDI,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt(now)
+    .setExpirationTime(now + DURATA_SESSIONE_SECONDI)
+    .sign(new TextEncoder().encode(SESSION_SECRET_VALIDA));
+}

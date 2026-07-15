@@ -138,7 +138,7 @@ export class ErroreAutorizzazione extends Error {
 
 /**
  * Versione API di verificaSessione: lancia ErroreAutorizzazione(401)
- * invece di reindirizzare a /login. Pensata per route handler e
+ * invece di reindirizzare alla radice pubblica. Pensata per route handler e
  * Server Action chiamate via fetch.
  */
 export async function richiediSessioneApi(): Promise<SessioneUtente> {

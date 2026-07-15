@@ -23,7 +23,10 @@ docker compose up -d
 
 # 4. Configura le variabili d'ambiente
 cp .env.example .env.local
-# .env.local è già pronto per lo sviluppo locale con Docker
+# Sostituisci i placeholder di AUTH_SECRET e SESSION_SECRET:
+openssl rand -base64 32
+# SESSION_SECRET è obbligatoria: se assente, vuota, troppo corta o lasciata al
+# placeholder predefinito, l'applicazione fallisce subito all'avvio.
 
 # 5. Applica le migrazioni e popola il database
 npm run db:migrate
@@ -42,9 +45,11 @@ Apri [http://localhost:3000](http://localhost:3000) nel browser.
 | `DATABASE_URL` | Stringa di connessione PostgreSQL usata normalmente dall'applicazione (es. `postgresql://user:pass@localhost:5432/coaching_planner`) |
 | `E2E_DATABASE_URL` | Stringa di connessione PostgreSQL dedicata agli end-to-end (es. `postgresql://user:pass@localhost:5432/coaching_planner_e2e`) |
 | `AUTH_SECRET` | Segreto per Auth.js (genera con `openssl rand -base64 32`) |
-| `SESSION_SECRET` | Chiave usata per firmare/cifrare la sessione applicativa |
+| `SESSION_SECRET` | Chiave obbligatoria per firmare la sessione applicativa; deve essere reale, non vuota, non placeholder e lunga almeno 32 caratteri |
 
 Copia `.env.example` in `.env.local` e personalizza i valori. `.env.local` non viene mai committato.
+
+L'applicazione esegue un fail-fast all'avvio se `SESSION_SECRET` è assente, vuota, troppo corta o ancora impostata al placeholder di esempio.
 
 ### Test end-to-end e database dedicato
 
@@ -59,6 +64,17 @@ Durante la suite e2e Playwright:
 
 `DATABASE_URL` resta quindi il database normale dell'applicazione fuori dai test e2e.
 
+Playwright passa sempre al web server una `SESSION_SECRET` conforme alla stessa policy dell'applicazione. Se l'ambiente locale non la definisce o lascia il placeholder, il solo web server e2e usa un fallback esplicitamente non produttivo ma valido.
+
+## Sessione e proxy di autenticazione
+
+- `src/proxy.ts` è il proxy attivo di Next.js: intercetta le rotte protette prima del rendering.
+- `/` è la pagina pubblica di accesso.
+- `/login` è una tombstone intenzionale e continua a restituire `404`.
+- Le aree protette reindirizzano gli utenti non autenticati verso `/`.
+- La sessione JWT `cp_sessione` usa rinnovo sliding: ogni richiesta valida sposta la scadenza a **8 ore di inattività**.
+- Il controllo del ruolo nel proxy è ottimistico e legge solo il cookie; il DAL resta la seconda linea di difesa con verifica a database.
+
 ## Struttura del Progetto
 
 ```
@@ -66,11 +82,13 @@ src/
 ├── app/
 │   ├── (front-office)/   # Area Collaboratore
 │   ├── (back-office)/    # Area Amministratore
-│   └── login/            # Autenticazione
+│   └── page.tsx          # Pagina pubblica di accesso su /
+├── proxy.ts              # Proxy Next.js per auth, ruolo e rinnovo sliding
+├── instrumentation.ts    # Fail-fast della configurazione di sessione all'avvio
 ├── domain/               # Logica di dominio (funzioni pure)
 │   ├── consuntivi/       # Modulo calcoli: ore, rimborsi, totali
 │   └── types.ts          # Tipi di dominio condivisi
-├── lib/                  # Client Prisma, Auth.js
+├── lib/                  # Prisma, sessione, DAL e policy rotte
 └── components/           # Componenti UI condivisi
 
 tests/

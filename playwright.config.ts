@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { defineConfig, devices } from "@playwright/test";
+import { validaSessionSecret } from "./src/lib/session-config";
 
 loadEnvConfig(process.cwd());
 
@@ -14,18 +15,25 @@ if (!e2eDatabaseUrl) {
 const webServerCommand =
 	process.env.PLAYWRIGHT_WEB_SERVER_COMMAND?.trim() || "npm run dev";
 
-const configuredSessionSecret = process.env.SESSION_SECRET?.trim();
-const e2eSessionSecret =
-	configuredSessionSecret &&
-	configuredSessionSecret !== "changeme-change-me-change-me-change-me"
-		? configuredSessionSecret
-		: "e2e-test-session-secret-change-this-before-production";
+const E2E_FALLBACK_SESSION_SECRET =
+	"e2e-test-session-secret-not-for-production-1234567890";
+
+function resolveE2ESessionSecret(secret: string | undefined) {
+	try {
+		return validaSessionSecret(secret);
+	} catch {
+		return validaSessionSecret(E2E_FALLBACK_SESSION_SECRET);
+	}
+}
+
+const e2eSessionSecret = resolveE2ESessionSecret(process.env.SESSION_SECRET);
 
 const e2eEnvironment = {
 	...process.env,
 	DATABASE_URL: e2eDatabaseUrl,
 	E2E_DATABASE_URL: e2eDatabaseUrl,
 	E2E_TEST_MODE: "true",
+	// Il fallback vale solo per il processo web server lanciato da Playwright.
 	SESSION_SECRET: e2eSessionSecret,
 };
 
