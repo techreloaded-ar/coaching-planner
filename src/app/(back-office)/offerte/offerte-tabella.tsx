@@ -298,22 +298,43 @@ function RigaOfferta({
         </div>
       </td>
 
-      {/* Stato attiva/non attiva */}
+      {/* Stato attiva/non attiva: interruttore + etichetta, coerente col mockup */}
       <td className="px-4 py-[13px] align-middle">
-        {offerta.attiva ? (
-          <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-            <span className="h-[6px] w-[6px] rounded-full bg-current" />
-            Attiva
+        <div className="flex items-center gap-[10px]">
+          <form action={cambiaStatoOfferta} className="contents">
+            <input type="hidden" name="id" value={offerta.offertaId} />
+            <input type="hidden" name="attiva" value={offerta.attiva ? "false" : "true"} />
+            <button
+              type="submit"
+              aria-label={offerta.attiva ? "Disattiva" : "Attiva"}
+              aria-pressed={offerta.attiva}
+              title={offerta.attiva ? "Disattiva offerta" : "Attiva offerta"}
+              className={`relative inline-flex h-[21px] w-9 shrink-0 items-center rounded-full border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                offerta.attiva
+                  ? "border-indigo-500 bg-indigo-500"
+                  : "border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800"
+              }`}
+            >
+              <span
+                className={`absolute top-1/2 h-[15px] w-[15px] -translate-y-1/2 rounded-full bg-white shadow-sm transition-[left] duration-150 ${
+                  offerta.attiva ? "left-[17.5px]" : "left-[2.5px]"
+                }`}
+              />
+            </button>
+          </form>
+          <span
+            className={`text-[12.5px] font-semibold whitespace-nowrap ${
+              offerta.attiva
+                ? "text-zinc-600 dark:text-zinc-300"
+                : "text-zinc-400 dark:text-zinc-500"
+            }`}
+          >
+            {offerta.attiva ? "Attiva" : "Non attiva"}
           </span>
-        ) : (
-          <span className="inline-flex items-center gap-[5px] rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
-            <span className="h-[6px] w-[6px] rounded-full bg-current" />
-            Non attiva
-          </span>
-        )}
+        </div>
       </td>
 
-      {/* Azioni: modifica, toggle stato, elimina */}
+      {/* Azioni: modifica, elimina */}
       <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
         <div className="inline-flex items-center gap-[2px]">
           <Link
@@ -325,26 +346,6 @@ function RigaOfferta({
             </svg>
             Modifica
           </Link>
-
-          <form action={cambiaStatoOfferta}>
-            <input type="hidden" name="id" value={offerta.offertaId} />
-            <input type="hidden" name="attiva" value={offerta.attiva ? "false" : "true"} />
-            <button
-              type="submit"
-              className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-amber-50 hover:text-amber-600 dark:text-zinc-400 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
-            >
-              {offerta.attiva ? (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
-                  <path d="M18.4 12A6.4 6.4 0 1 1 12 5.6M12 3v5l3.5-1" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
-                  <path d="M5 12l4 4L19 6" />
-                </svg>
-              )}
-              {offerta.attiva ? "Disattiva" : "Attiva"}
-            </button>
-          </form>
 
           <button
             type="button"
@@ -388,6 +389,7 @@ function ModaleElimina({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modale-elimina-titolo"
+      aria-hidden={!aperta}
       data-testid="modale-elimina-offerta"
       onClick={(e) => {
         if (e.target === e.currentTarget) onChiudi();
@@ -554,20 +556,19 @@ function StatoVuoto() {
         Nessuna offerta presente
       </h3>
       <p className="mx-auto max-w-[440px] text-[13px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-        Non risultano offerte per nessun cliente. Le offerte si creano dalla scheda
-        del cliente: apri un cliente dall&apos;anagrafica e aggiungi la sua prima
-        offerta con codice, descrizione, tariffa giornaliera e giorni previsti.
+        Non risultano offerte per nessun cliente. Crea la prima offerta scegliendo
+        il cliente e indicando codice, descrizione, tariffa giornaliera e giorni
+        previsti.
       </p>
       <div className="mt-5">
         <Link
-          href="/anagrafiche/clienti"
+          href="/offerte/nuova"
           className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[15px] py-[9px] text-[13.5px] font-semibold text-white no-underline shadow-sm transition hover:bg-indigo-600"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
-            <path d="M3 21V8.5L9 4l6 4.5V21" />
-            <path d="M15 21h6V11l-6-3" />
+            <path d="M12 5v14M5 12h14" />
           </svg>
-          Vai ai clienti
+          Nuova offerta
         </Link>
       </div>
     </div>

@@ -271,6 +271,13 @@ describe("Server Actions offerte", () => {
 	});
 
 	it("con origine=offerte la creazione rivalida /offerte e vi redirige", async () => {
+		// In produzione redirect() interrompe l'esecuzione lanciando; lo simuliamo
+		// per verificare che il codice non "cada" anche nel redirect al dettaglio
+		// cliente quando origine=offerte.
+		mockRedirect.mockImplementationOnce(() => {
+			throw new Error("NEXT_REDIRECT");
+		});
+
 		const formData = new FormData();
 		formData.set("clienteId", "cli-1");
 		formData.set("codice", "OFF-001");
@@ -279,7 +286,9 @@ describe("Server Actions offerte", () => {
 		formData.set("giorniPrevisti", "5");
 		formData.set("origine", "offerte");
 
-		await creaOfferta({ errori: {} }, formData);
+		await expect(creaOfferta({ errori: {} }, formData)).rejects.toThrow(
+			"NEXT_REDIRECT",
+		);
 
 		expect(mockOfferta.create).toHaveBeenCalled();
 		expect(mockRevalidatePath).toHaveBeenCalledWith("/offerte");
@@ -289,6 +298,10 @@ describe("Server Actions offerte", () => {
 	});
 
 	it("con origine=offerte l'aggiornamento rivalida /offerte e vi redirige", async () => {
+		mockRedirect.mockImplementationOnce(() => {
+			throw new Error("NEXT_REDIRECT");
+		});
+
 		const formData = new FormData();
 		formData.set("id", "off-1");
 		formData.set("clienteId", "cli-1");
@@ -298,13 +311,16 @@ describe("Server Actions offerte", () => {
 		formData.set("giorniPrevisti", "8");
 		formData.set("origine", "offerte");
 
-		await aggiornaOfferta({ errori: {} }, formData);
+		await expect(aggiornaOfferta({ errori: {} }, formData)).rejects.toThrow(
+			"NEXT_REDIRECT",
+		);
 
 		expect(mockOfferta.update).toHaveBeenCalled();
 		expect(mockRevalidatePath).toHaveBeenCalledWith("/offerte");
 		expect(mockRedirect).toHaveBeenCalledWith(
 			"/offerte?esito=offerta-salvata",
 		);
+		expect(mockRedirect).toHaveBeenCalledTimes(1);
 	});
 
 	it("senza origine la creazione redirige al dettaglio cliente e non rivalida /offerte", async () => {
