@@ -58,6 +58,9 @@ export async function creaOfferta(
     return { errori: { _form: "Cliente mancante" } };
   }
 
+  const provieneDaPaginaOfferte =
+    ((formData.get("origine") as string) ?? "") === "offerte";
+
   const cliente = await clientePerId(clienteId);
   if (!cliente) {
     return { errori: { _form: "Cliente non trovato" } };
@@ -107,6 +110,12 @@ export async function creaOfferta(
 
   revalidatePath("/anagrafiche/clienti");
   revalidatePath(`/anagrafiche/clienti/${clienteId}`);
+
+  if (provieneDaPaginaOfferte) {
+    revalidatePath("/offerte");
+    redirect("/offerte?esito=offerta-creata");
+  }
+
   redirect(`/anagrafiche/clienti/${clienteId}?esito=offerta-creata`);
 }
 
@@ -126,6 +135,9 @@ export async function aggiornaOfferta(
   if (!clienteId) {
     return { errori: { _form: "Cliente mancante" } };
   }
+
+  const provieneDaPaginaOfferte =
+    ((formData.get("origine") as string) ?? "") === "offerte";
 
   const dati = datiDaForm(formData);
   const errori = validaOfferta(dati);
@@ -162,5 +174,11 @@ export async function aggiornaOfferta(
 
   revalidatePath("/anagrafiche/clienti");
   revalidatePath(`/anagrafiche/clienti/${clienteId}`);
+
+  if (provieneDaPaginaOfferte) {
+    revalidatePath("/offerte");
+    redirect("/offerte?esito=offerta-salvata");
+  }
+
   redirect(`/anagrafiche/clienti/${clienteId}?esito=offerta-salvata`);
 }

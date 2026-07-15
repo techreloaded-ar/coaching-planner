@@ -40,6 +40,7 @@ export interface VoceElencoOfferta {
   giornateErogate: number;
   residuo: number;
   stato: StatoAvanzamentoOfferta;
+  numeroRigheAttivita: number;
 }
 
 /**
@@ -142,6 +143,14 @@ export async function elencaOfferteConAvanzamento(): Promise<
     perOfferta.map((voce) => [voce.offertaId, voce]),
   );
 
+  const numeroRighePerOfferta = new Map<string, number>();
+  for (const riga of righe) {
+    numeroRighePerOfferta.set(
+      riga.offertaId,
+      (numeroRighePerOfferta.get(riga.offertaId) ?? 0) + 1,
+    );
+  }
+
   const voci: VoceElencoOfferta[] = offerte.map((offerta: OffertaConCliente) => {
     const avanzamento = avanzamentoPerOfferta.get(offerta.id);
 
@@ -157,6 +166,7 @@ export async function elencaOfferteConAvanzamento(): Promise<
       giornateErogate: avanzamento?.giornateErogate ?? 0,
       residuo: avanzamento?.residuo ?? offerta.giorniPrevisti,
       stato: avanzamento?.stato ?? "IN_CORSO",
+      numeroRigheAttivita: numeroRighePerOfferta.get(offerta.id) ?? 0,
     };
   });
 
