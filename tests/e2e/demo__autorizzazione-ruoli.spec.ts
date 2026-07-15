@@ -21,10 +21,7 @@ test.describe("US-006 Demo", () => {
     // ── Atto 1: La collaboratrice tenta il back office ──────────
 
     // 1. Accedi come collaboratrice
-    await page.goto("/login");
-    await expect(
-      page.getByRole("heading", { name: "Accedi" })
-    ).toBeVisible();
+    await page.goto("/");
 
     const googleBtn = page.getByRole("button", { name: "Accedi con Google" });
     await expect(googleBtn).toBeVisible();
@@ -69,9 +66,9 @@ test.describe("US-006 Demo", () => {
     // ── Atto 2: L'amministratore apre il back office ────────────
 
     // 6. Accedi come amministratore
-    await page.goto("/login");
+    await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: "Accedi" })
+      page.getByRole("button", { name: "Accedi con Google" })
     ).toBeVisible();
 
     await page.evaluate(async () => {

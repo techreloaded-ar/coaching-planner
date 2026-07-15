@@ -34,7 +34,7 @@ export async function GET(): Promise<NextResponse> {
   } catch (error) {
     console.error("Errore avvio login Google:", error);
     return NextResponse.redirect(
-      new URL("/login?error=1", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
+      new URL("/?error=1", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
     );
   }
 }

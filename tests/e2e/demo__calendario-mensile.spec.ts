@@ -24,9 +24,9 @@ test.describe("US-011 Demo", () => {
 
     // ── 1. Login come Giulia tramite endpoint e2e ──────────────────
 
-    await page.goto("/login");
+    await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: "Accedi" })
+      page.getByRole("button", { name: "Accedi con Google" })
     ).toBeVisible();
 
     await page.evaluate(async () => {

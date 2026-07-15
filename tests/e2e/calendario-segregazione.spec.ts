@@ -13,9 +13,9 @@ test.describe("US-011 Segregazione dati", () => {
   }) => {
     // ── 1. Login come Giulia ──────────────────────────────────────
 
-    await page.goto("/login");
+    await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: "Accedi" })
+      page.getByRole("button", { name: "Accedi con Google" })
     ).toBeVisible();
 
     await page.evaluate(async () => {
@@ -104,7 +104,7 @@ test.describe("US-011 Segregazione dati", () => {
     const adminCtx = await page.context().browser()!.newContext();
     const adminPage = await adminCtx.newPage();
 
-    await adminPage.goto("/login");
+    await adminPage.goto("/");
     await adminPage.evaluate(async () => {
       const res = await fetch("/api/e2e-test/sessione", {
         method: "POST",

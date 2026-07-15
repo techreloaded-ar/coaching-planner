@@ -62,7 +62,7 @@ async function _risolviSessione(): Promise<SessioneUtente | null> {
 
 /**
  * Verifica che l'utente sia autenticato.
- * Se non lo è, reindirizza a /login.
+ * Se non lo è, reindirizza alla radice (pagina di accesso).
  * Usa React cache per memoizzare la query a DB nella stessa richiesta.
  * Rinnova la scadenza della sessione a ogni utilizzo (sliding).
  */
@@ -70,7 +70,7 @@ export const verificaSessione = cache(
   async (): Promise<SessioneUtente> => {
     const sessione = await _risolviSessione();
     if (!sessione) {
-      redirect("/login");
+      redirect("/");
     }
     // Il rinnovo sliding della scadenza è gestito dal proxy.ts,
     // che ri-firma il JWT con un nuovo exp a ogni richiesta.
@@ -90,7 +90,7 @@ export const utenteCorrente = cache(
 
 /**
  * Richiede un ruolo specifico. Se l'utente non è autenticato reindirizza
- * a /login; se ha un ruolo diverso, reindirizza alla propria area.
+ * alla radice (pagina di accesso); se ha un ruolo diverso, reindirizza alla propria area.
  * Pensato per l'uso nei layout e nelle pagine RSC.
  */
 export const richiediRuolo = cache(
@@ -106,12 +106,13 @@ export const richiediRuolo = cache(
 );
 
 /**
- * Server Action di logout: elimina la sessione e reindirizza a /login.
+ * Server Action di logout: elimina la sessione e reindirizza alla radice
+ * con il messaggio di disconnessione.
  */
 export async function disconnetti(): Promise<void> {
   "use server";
   await deleteSession();
-  redirect("/login?logout=1");
+  redirect("/?logout=1");
 }
 
 // ── Errore di autorizzazione ────────────────────────────────────

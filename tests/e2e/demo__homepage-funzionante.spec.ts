@@ -28,10 +28,9 @@ test.describe("US-001 Demo", () => {
     );
     await expect(subtitle).toBeVisible();
 
-    // Verifica il pulsante Accedi
-    const loginLink = page.getByRole("link", { name: "Accedi" });
-    await expect(loginLink).toBeVisible();
-    await expect(loginLink).toHaveAttribute("href", "/login");
+    // Verifica il pulsante Accedi con Google
+    const googleBtn = page.getByRole("button", { name: "Accedi con Google" });
+    await expect(googleBtn).toBeVisible();
 
     // Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);

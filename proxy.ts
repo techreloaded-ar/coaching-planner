@@ -10,7 +10,7 @@ const NOME_COOKIE = "cp_sessione";
 
 // ── Rotte pubbliche (mai reindirizzate) ─────────────────────────
 
-const ROTTE_PUBBLICHE = ["/login", "/api/auth/google", "/api/e2e-test"];
+const ROTTE_PUBBLICHE = ["/", "/api/auth/google", "/api/e2e-test"];
 
 function isPubblica(pathname: string): boolean {
   return ROTTE_PUBBLICHE.some(
@@ -49,8 +49,8 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   if (isPubblica(pathname)) {
     const response = NextResponse.next();
 
-    // Se già autenticato e su /login, reindirizza all'area del ruolo
-    if (pathname === "/login" || pathname.startsWith("/login?")) {
+    // Se già autenticato e sulla radice (pagina di accesso), reindirizza all'area del ruolo
+    if (pathname === "/" || pathname.startsWith("/?")) {
       const token = request.cookies.get(NOME_COOKIE)?.value;
       if (token) {
         const sessione = await decrittazionaSessione(token);
@@ -69,14 +69,14 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const token = request.cookies.get(NOME_COOKIE)?.value;
 
   if (!token) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   const sessione = await decrittazionaSessione(token);
 
   if (!sessione) {
     // Cookie presente ma non valido → puliscilo e redirect
-    const response = NextResponse.redirect(new URL("/login", request.url));
+    const response = NextResponse.redirect(new URL("/", request.url));
     response.cookies.set(NOME_COOKIE, "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

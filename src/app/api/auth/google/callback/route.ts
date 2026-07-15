@@ -147,7 +147,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 function redirectWithError(): NextResponse {
   // Messaggio generico verso l'esterno, il dettaglio è solo per i log
   const response = NextResponse.redirect(
-    new URL("/login?error=1", baseUrl())
+    new URL("/?error=1", baseUrl())
   );
 
   // Pulisci i cookie OAuth anche in caso di errore
