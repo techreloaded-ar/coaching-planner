@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offerte — Gestione — Coaching Planner (US-026)</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div class="console">
+
+  <!-- ============ SIDEBAR DI NAVIGAZIONE ============ -->
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-mark">CP</div>
+      <div class="brand-name">
+        <b>Coaching Planner</b>
+        <span>Console gestionale</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" aria-label="Navigazione principale">
+      <span class="nav-label">Gestione</span>
+
+      <a class="nav-item" href="../US-007/index.html" title="Clienti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V8.5L9 4l6 4.5V21"/><path d="M15 21h6V11l-6-3"/><path d="M7.5 21v-4.5h3V21"/><path d="M7 9.5h.01M11 9.5h.01M7 13h.01M11 13h.01"/></svg>
+        <span class="lbl">Clienti</span>
+      </a>
+
+      <a class="nav-item active" href="index.html" aria-current="page" title="Offerte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        <span class="lbl">Offerte</span>
+      </a>
+
+      <a class="nav-item" href="../US-009/index.html" title="Collaboratori">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0"/><circle cx="17.2" cy="9.4" r="2.6"/><path d="M15.4 14.6a5 5 0 0 1 5.8 4.8"/></svg>
+        <span class="lbl">Collaboratori</span>
+      </a>
+
+      <a class="nav-item" href="../US-010/index.html" title="Scaglioni km">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        <span class="lbl">Scaglioni km</span>
+      </a>
+
+      <span class="nav-label" style="margin-top:8px;">Amministrazione</span>
+
+      <a class="nav-item" href="../US-015/index.html" title="Report da fatturare">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7.5 15.5v-4M12 15.5V7.5M16.5 15.5v-6"/></svg>
+        <span class="lbl">Report da fatturare</span>
+      </a>
+
+      <a class="nav-item" href="../US-016/index.html" title="Avanzamento offerte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20V10M10 20V4M16 20v-7M4 20h16"/></svg>
+        <span class="lbl">Avanzamento offerte</span>
+      </a>
+    </nav>
+
+    <div class="side-foot">
+      <div class="side-user">
+        <div class="avatar">SM</div>
+        <div class="meta">
+          <b>Stefano Marello</b>
+          <span>Amministratore</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+          <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm esci-btn" type="button" title="Disconnessione (vedi US-005)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+        <span class="lbl">Esci</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ============ AREA CONTENUTO — GESTIONE OFFERTE (US-026) ============ -->
+  <div class="main">
+    <main class="content">
+
+      <div class="view-head">
+        <div>
+          <div class="crumb">Anagrafiche</div>
+          <h1>Offerte</h1>
+          <div class="desc">Gestisci l'intero ciclo di vita delle offerte da un unico punto: crea una nuova offerta scegliendo il cliente, modificala, attivala o disattivala con l'interruttore di stato, oppure eliminala quando non ha attività collegate.</div>
+        </div>
+        <div class="view-actions">
+          <a class="btn btn-primary" href="offerta-form.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+            Nuova offerta
+          </a>
+        </div>
+      </div>
+
+      <!-- ===== Banner di esito (creazione/modifica/eliminazione/cambio stato) ===== -->
+      <div class="banner-esito" id="bannerEsito" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+        <span class="testo"></span>
+        <button class="chiudi" type="button" aria-label="Chiudi messaggio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- ===== Card tabella offerte ===== -->
+      <section class="card" id="cardOfferte">
+
+        <div class="tbl-toolbar">
+          <label class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.3-3.3"/></svg>
+            <input type="search" id="campoRicerca" placeholder="Cerca per cliente, codice o descrizione…" aria-label="Cerca offerta">
+          </label>
+          <span class="pill-critiche" id="pillCritiche" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+            <span><b id="numCritiche">0</b> da presidiare</span>
+          </span>
+          <span class="toolbar-count" id="conteggioOfferte">—</span>
+        </div>
+
+        <div class="tbl-wrap">
+          <table class="tbl" aria-label="Elenco di tutte le offerte">
+            <thead>
+              <tr>
+                <th>Offerta</th>
+                <th>Cliente</th>
+                <th class="num">Tariffa giornaliera</th>
+                <th class="num">Giorni previsti</th>
+                <th class="num">Erogate</th>
+                <th class="num">Residuo</th>
+                <th style="width:150px;">Stato</th>
+                <th class="azioni" style="width:180px;">Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="corpoOfferte"><!-- righe generate da JS --></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Barra demo -->
+      <div class="demo-bar">
+        <div class="demo-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+          <span>Dimostrazione: usa gli interruttori per attivare/disattivare, «Modifica» per aprire il form, «Elimina» su <b>OFF-2025-008</b> (senza attività) per la conferma normale, e su <b>OFF-2025-012</b> (con attività) per la variante bloccata.</span>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="offerta-form.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+          Nuova offerta
+        </a>
+      </div>
+
+      <!-- Nota di contesto -->
+      <div class="note-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+        <span><b>US-026</b> — la pagina <code>/offerte</code> (US-025) diventa il punto unico di gestione. In intestazione arriva <b>Nuova offerta</b>; ogni riga espone <b>Modifica</b>, l'interruttore <b>attiva/disattiva</b> (cambio immediato) e <b>Elimina</b>. L'eliminazione è possibile solo se l'offerta non ha <b>righe di attività collegate</b>: in caso contrario la modale si blocca e propone di <i>disattivare</i> l'offerta. Creazione e modifica restano disponibili anche dalla scheda cliente (US-008).</span>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============ MODALE DI ELIMINAZIONE — due varianti ============ -->
+<div class="modal-backdrop" id="modaleElimina" role="dialog" aria-modal="true" aria-labelledby="modaleTitolo">
+  <div class="modal">
+
+    <!-- Riquadro comune con l'offerta oggetto dell'azione -->
+    <div class="modal-target">
+      <span class="av-sq" id="mtAvatar">—</span>
+      <div class="mt-info">
+        <span class="codice-offerta" id="mtCodice">—</span>
+        <span class="mt-descr" id="mtDescr">—</span>
+      </div>
+    </div>
+
+    <!-- Variante (a): conferma normale (offerta senza attività) -->
+    <div id="modaleConferma">
+      <div class="modal-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/><path d="M10 11v6M14 11v6"/></svg>
+      </div>
+      <h3 id="modaleTitolo">Elimina questa offerta?</h3>
+      <p>L'offerta non ha righe di attività collegate e può essere eliminata definitivamente. <b>L'operazione non è reversibile.</b></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" id="bottoneAnnullaElimina">Annulla</button>
+        <button class="btn btn-danger" type="button" id="bottoneConfermaElimina">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/><path d="M10 11v6M14 11v6"/></svg>
+          Elimina offerta
+        </button>
+      </div>
+    </div>
+
+    <!-- Variante (b): bloccata (offerta con attività collegate) -->
+    <div id="modaleBloccata" hidden>
+      <div class="modal-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      </div>
+      <h3>Non è possibile eliminare l'offerta</h3>
+      <p>Questa offerta ha già delle attività registrate dai collaboratori: eliminarla cancellerebbe dati di lavoro consuntivati. Per toglierla dal lavoro in corso <b>disattivala</b> invece di eliminarla.</p>
+      <div class="modal-callout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M8 13h8M8 17h5"/></svg>
+        <span>Blocco: <b id="numAttivita">— righe di attività collegate</b>. Le attività vanno rimosse prima di poter eliminare l'offerta.</span>
+      </div>
+      <p id="giaDisattivata" hidden style="margin-top:14px;">L'offerta è già <b>non attiva</b>: non concorre più al lavoro in corso.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" id="bottoneChiudiBloccata">Chiudi</button>
+        <button class="btn btn-primary" type="button" id="bottoneDisattiva">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18.4 12A6.4 6.4 0 1 1 12 5.6M12 3v5l3.5-1"/></svg>
+          Disattiva offerta
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  CP.initTheme();
+  CP.inizializzaElenco();
+</script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuova offerta — Coaching Planner (US-026)</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div class="console">
+
+  <!-- ============ SIDEBAR DI NAVIGAZIONE ============ -->
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-mark">CP</div>
+      <div class="brand-name">
+        <b>Coaching Planner</b>
+        <span>Console gestionale</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" aria-label="Navigazione principale">
+      <span class="nav-label">Gestione</span>
+
+      <a class="nav-item" href="../US-007/index.html" title="Clienti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V8.5L9 4l6 4.5V21"/><path d="M15 21h6V11l-6-3"/><path d="M7.5 21v-4.5h3V21"/><path d="M7 9.5h.01M11 9.5h.01M7 13h.01M11 13h.01"/></svg>
+        <span class="lbl">Clienti</span>
+      </a>
+
+      <a class="nav-item active" href="index.html" aria-current="page" title="Offerte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        <span class="lbl">Offerte</span>
+      </a>
+
+      <a class="nav-item" href="../US-009/index.html" title="Collaboratori">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0"/><circle cx="17.2" cy="9.4" r="2.6"/><path d="M15.4 14.6a5 5 0 0 1 5.8 4.8"/></svg>
+        <span class="lbl">Collaboratori</span>
+      </a>
+
+      <a class="nav-item" href="../US-010/index.html" title="Scaglioni km">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        <span class="lbl">Scaglioni km</span>
+      </a>
+
+      <span class="nav-label" style="margin-top:8px;">Amministrazione</span>
+
+      <a class="nav-item" href="../US-015/index.html" title="Report da fatturare">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7.5 15.5v-4M12 15.5V7.5M16.5 15.5v-6"/></svg>
+        <span class="lbl">Report da fatturare</span>
+      </a>
+
+      <a class="nav-item" href="../US-016/index.html" title="Avanzamento offerte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20V10M10 20V4M16 20v-7M4 20h16"/></svg>
+        <span class="lbl">Avanzamento offerte</span>
+      </a>
+    </nav>
+
+    <div class="side-foot">
+      <div class="side-user">
+        <div class="avatar">SM</div>
+        <div class="meta">
+          <b>Stefano Marello</b>
+          <span>Amministratore</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+          <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm esci-btn" type="button" title="Disconnessione (vedi US-005)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+        <span class="lbl">Esci</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ============ AREA CONTENUTO — FORM OFFERTA (crea/modifica) ============ -->
+  <div class="main">
+    <main class="content">
+
+      <a class="back-link" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
+        Torna alle offerte
+      </a>
+
+      <div class="view-head">
+        <div>
+          <div class="crumb">Anagrafiche · Offerte</div>
+          <h1 id="titoloPagina">Nuova offerta</h1>
+          <!-- chip cliente (visibile solo in modifica: cliente fisso) -->
+          <div class="chip-wrap" id="chipWrap" hidden>
+            <span class="chip-cliente">
+              <span class="av-sq" id="avatarCliente">—</span>
+              <span id="chipNomeCliente">—</span>
+              <svg class="lucchetto" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <form class="card form-card" id="formOfferta" novalidate>
+        <div class="card-pad">
+
+          <div class="alert alert-error" id="alertErrori" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4.5M12 17h.01"/><path d="M10.3 3.9 2.6 17.4A2 2 0 0 0 4.3 20.4h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+            <span>Controlla i campi evidenziati: alcuni dati mancano o non sono validi.</span>
+          </div>
+
+          <div class="form-grid">
+
+            <!-- ===== Cliente ===== -->
+            <div class="fieldset-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0"/><circle cx="17.2" cy="9.4" r="2.6"/><path d="M15.4 14.6a5 5 0 0 1 5.8 4.8"/></svg>
+              Cliente
+            </div>
+
+            <!-- select cliente (solo in creazione) -->
+            <div class="field full" data-campo="cliente" id="campoCliente">
+              <label for="cliente">Cliente <span class="req">*</span></label>
+              <select id="cliente" name="cliente">
+                <option value="" selected disabled>Seleziona un cliente…</option>
+                <!-- opzioni (solo clienti attivi) generate da JS -->
+              </select>
+              <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>Seleziona il cliente a cui associare l'offerta</span></p>
+              <span class="hint">Sono elencati solo i clienti attivi</span>
+            </div>
+
+            <!-- ===== Dati offerta ===== -->
+            <div class="fieldset-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+              Dati offerta
+            </div>
+
+            <div class="riga-codice-descrizione">
+              <div class="field" data-campo="codice">
+                <label for="codice">Codice <span class="req">*</span></label>
+                <input id="codice" name="codice" type="text" placeholder="Es. OFF-2026-001" style="text-transform:uppercase" autocomplete="off">
+                <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>Esiste già un'offerta con questo codice per questo cliente</span></p>
+                <span class="hint">Univoco tra le offerte del cliente</span>
+              </div>
+
+              <div class="field" data-campo="descrizione">
+                <label for="descrizione">Descrizione <span class="req">*</span></label>
+                <input id="descrizione" name="descrizione" type="text" placeholder="Es. Percorso di coaching executive — comitato di direzione" autocomplete="off">
+                <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>La descrizione è obbligatoria</span></p>
+              </div>
+            </div>
+
+            <!-- ===== Condizioni economiche ===== -->
+            <div class="fieldset-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M14.8 8.6a3.4 3.4 0 0 0-5.6 2.6 3.4 3.4 0 0 0 5.6 2.6M7.6 10.4h4.6M7.6 13h4.6"/></svg>
+              Condizioni economiche
+            </div>
+
+            <div class="riga-economica">
+              <div class="field" data-campo="tariffaGiornaliera">
+                <label for="tariffaGiornaliera">Tariffa giornaliera <span class="req">*</span></label>
+                <span class="input-affix">
+                  <input id="tariffaGiornaliera" name="tariffaGiornaliera" type="text" inputmode="decimal" placeholder="Es. 650,00" autocomplete="off">
+                  <span class="affix">€</span>
+                </span>
+                <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>La tariffa giornaliera deve essere maggiore di zero</span></p>
+                <span class="hint">Importo in euro, virgola per i decimali</span>
+              </div>
+
+              <div class="field" data-campo="giorniPrevisti">
+                <label for="giorniPrevisti">Giorni previsti <span class="req">*</span></label>
+                <span class="input-affix">
+                  <input id="giorniPrevisti" name="giorniPrevisti" type="text" inputmode="numeric" placeholder="Es. 10" autocomplete="off">
+                  <span class="affix">gg</span>
+                </span>
+                <p class="field-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>I giorni previsti devono essere maggiori di zero</span></p>
+                <span class="hint">Numero intero di giornate</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="form-foot">
+          <a class="btn btn-ghost" href="index.html">Annulla</a>
+          <button class="btn btn-primary" type="submit" id="bottoneSalva">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+            Salva offerta
+          </button>
+        </div>
+      </form>
+
+      <div class="card note-card note-form">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+        <span><b>US-026</b> — stessa view per creazione e modifica dalla pagina Offerte. In <b>creazione</b> scegli il <b>cliente</b> (solo attivi) dalla select; con <code>?id=off-001</code> passi in <b>modifica</b>: il titolo diventa «Modifica offerta» e il cliente è <b>fisso</b> (chip con lucchetto). Validazioni identiche all'anagrafica offerte (US-008): tariffa <b>decimale positiva</b> all'italiana, giorni <b>intero positivo</b>, codice <b>univoco per cliente</b> — prova a salvare «OFF-2025-012» per Banca Sintesi.</span>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  CP.initTheme();
+
+  const form = document.getElementById('formOfferta');
+  const alertErrori = document.getElementById('alertErrori');
+  const selectCliente = document.getElementById('cliente');
+
+  /* ---------- offerta in modifica ---------- */
+  const parametri = new URLSearchParams(location.search);
+  const idOfferta = parametri.get('id');
+  const offertaEsistente = idOfferta ? CP.trovaOfferta(idOfferta) : null;
+  const inModifica = Boolean(offertaEsistente);
+
+  /* ---------- popolamento select cliente (solo attivi) ---------- */
+  CP.clientiAttivi().forEach((cliente) => {
+    const opzione = document.createElement('option');
+    opzione.value = cliente.id;
+    opzione.textContent = cliente.ragioneSociale;
+    selectCliente.appendChild(opzione);
+  });
+
+  /* ---------- modalità modifica: cliente fisso + campi precompilati ---------- */
+  if (inModifica) {
+    const cliente = CP.trovaCliente(offertaEsistente.clienteId);
+    document.title = 'Modifica offerta — Coaching Planner (US-026)';
+    document.getElementById('titoloPagina').textContent = 'Modifica offerta';
+
+    // cliente non modificabile: nascondo la select, mostro la chip con lucchetto
+    document.getElementById('campoCliente').hidden = true;
+    document.getElementById('chipWrap').hidden = false;
+    document.getElementById('avatarCliente').textContent = CP.iniziali(cliente.ragioneSociale);
+    document.getElementById('chipNomeCliente').textContent = cliente.ragioneSociale;
+    selectCliente.value = cliente.id; // valore fissato per la validazione
+
+    form.elements.codice.value = offertaEsistente.codice;
+    form.elements.descrizione.value = offertaEsistente.descrizione;
+    form.elements.tariffaGiornaliera.value = new Intl.NumberFormat('it-IT', {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    }).format(offertaEsistente.tariffaGiornaliera);
+    form.elements.giorniPrevisti.value = offertaEsistente.giorniPrevisti;
+  }
+
+  /* ---------- clienteId corrente (per la verifica di unicità codice) ---------- */
+  function clienteIdCorrente() {
+    return inModifica ? offertaEsistente.clienteId : (selectCliente.value || null);
+  }
+
+  /* ---------- validazione per campo ---------- */
+  const regole = {
+    cliente: () => {
+      if (inModifica) return null; // cliente fisso, sempre valido
+      if (!selectCliente.value) return 'Seleziona il cliente a cui associare l\'offerta';
+      return null;
+    },
+    codice: (valore) => {
+      const codice = valore.trim().toUpperCase();
+      if (!codice) return 'Il codice offerta è obbligatorio';
+      const clienteId = clienteIdCorrente();
+      if (clienteId) {
+        const duplicato = CP.offerteDelCliente(clienteId).some((offerta) =>
+          offerta.codice.toUpperCase() === codice && offerta.id !== idOfferta);
+        if (duplicato) return 'Esiste già un\'offerta con questo codice per questo cliente';
+      }
+      return null;
+    },
+    descrizione: (valore) => valore.trim() ? null : 'La descrizione è obbligatoria',
+    tariffaGiornaliera: (valore) => {
+      if (!valore.trim()) return 'La tariffa giornaliera è obbligatoria';
+      const importo = CP.interpretaImporto(valore);
+      if (Number.isNaN(importo)) return 'Importo non valido: usa la virgola per i decimali (es. 650,00)';
+      if (importo <= 0) return 'La tariffa giornaliera deve essere maggiore di zero';
+      return null;
+    },
+    giorniPrevisti: (valore) => {
+      if (!valore.trim()) return 'I giorni previsti sono obbligatori';
+      if (!/^-?\d+$/.test(valore.trim())) return 'Inserisci un numero intero di giorni (es. 10)';
+      if (parseInt(valore.trim(), 10) <= 0) return 'I giorni previsti devono essere maggiori di zero';
+      return null;
+    }
+  };
+
+  function validaCampo(nomeCampo) {
+    const contenitore = form.querySelector(`[data-campo="${nomeCampo}"]`);
+    if (!contenitore || contenitore.hidden) return true;
+    const valore = form.elements[nomeCampo] ? form.elements[nomeCampo].value : '';
+    const messaggio = regole[nomeCampo](valore);
+    contenitore.classList.toggle('invalid', Boolean(messaggio));
+    if (messaggio) contenitore.querySelector('.field-err span').textContent = messaggio;
+    return !messaggio;
+  }
+
+  /* l'errore si pulisce mentre l'utente corregge */
+  Object.keys(regole).forEach((nomeCampo) => {
+    const elemento = form.elements[nomeCampo];
+    if (!elemento) return;
+    const evento = elemento.tagName === 'SELECT' ? 'change' : 'input';
+    elemento.addEventListener(evento, () => {
+      const contenitore = form.querySelector(`[data-campo="${nomeCampo}"]`);
+      if (contenitore?.classList.contains('invalid')) validaCampo(nomeCampo);
+      // cambiando cliente rivaluto il codice (unicità dipende dal cliente)
+      if (nomeCampo === 'cliente') validaCampo('codice');
+    });
+  });
+
+  /* ---------- salvataggio ---------- */
+  form.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+
+    const tuttiValidi = Object.keys(regole)
+      .map((nomeCampo) => validaCampo(nomeCampo))
+      .every(Boolean);
+
+    if (!tuttiValidi) {
+      alertErrori.hidden = false;
+      alertErrori.classList.remove('pop'); void alertErrori.offsetWidth; alertErrori.classList.add('pop');
+      form.querySelector('.field.invalid select, .field.invalid input')?.focus();
+      return;
+    }
+    alertErrori.hidden = true;
+
+    const codice = form.elements.codice.value.trim().toUpperCase();
+    const esito = inModifica ? 'salvata' : 'creata';
+    // prototipo statico: l'esito è mostrato dal banner verde sull'elenco
+    location.href = `index.html?esito=${esito}&codice=${encodeURIComponent(codice)}`;
+  });
+</script>
+</body>
+</html>

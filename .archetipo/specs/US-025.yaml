@@ -6,7 +6,7 @@ epic:
   title: Anagrafiche e Configurazione
 priority: HIGH
 points: 3
-status: IN PROGRESS
+status: DONE
 body: |-
   #### US-025: Pagina offerte trasversale con stato e avanzamento
 
@@ -27,9 +27,6 @@ body: |-
   - [ ] Per ogni offerta sono mostrate giornate erogate e residuo, coerenti con la vista di avanzamento esistente a parità di dati
   - [ ] Le offerte non attive e quelle con residuo esaurito o negativo sono evidenziate visivamente
   - [ ] Se non esistono offerte la pagina mostra uno stato vuoto chiaro
-branch: archetipo/US-025
-worktree: .archetipo/worktrees/US-025
-fork_base: e41b45503d0ceb6ae67694e8c4b60b597885df4e
 history:
   - status: TODO
     at: "2026-07-12T09:08:47Z"
@@ -37,3 +34,7 @@ history:
     at: "2026-07-12T09:21:11Z"
   - status: IN PROGRESS
     at: "2026-07-12T09:23:54Z"
+  - status: REVIEW
+    at: "2026-07-12T09:54:02Z"
+  - status: DONE
+    at: "2026-07-15T07:48:28Z"

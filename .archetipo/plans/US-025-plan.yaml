@@ -65,7 +65,7 @@ tasks:
   - id: TASK-03
     title: 'Pagina /offerte: Server Component e tabella client'
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |-
@@ -101,7 +101,7 @@ tasks:
   - id: TASK-04
     title: 'Sidebar: attivare la voce Offerte verso /offerte'
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
     body: |-
@@ -133,7 +133,7 @@ tasks:
   - id: TASK-05
     title: Test e2e Playwright della pagina Offerte con dati factory
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
       - TASK-04
@@ -168,7 +168,7 @@ tasks:
   - id: TASK-06
     title: Demo spec e2e su dati seed per la review
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
     body: |-
