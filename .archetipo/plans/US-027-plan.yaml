@@ -33,7 +33,7 @@ tasks:
   - id: TASK-02
     title: Pagina radice come pagina di accesso con brand Agile Reloaded
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |-
@@ -70,7 +70,7 @@ tasks:
   - id: TASK-03
     title: Rimozione route /login e aggiornamento dei riferimenti interni
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-02
     body: |-
@@ -113,7 +113,7 @@ tasks:
   - id: TASK-04
     title: Adeguamento dei test e2e esistenti alla radice come pagina di accesso
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-03
     body: |-
@@ -155,7 +155,7 @@ tasks:
   - id: TASK-05
     title: Nuova suite e2e US-027 e scenario demo
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
     body: |-
@@ -196,7 +196,7 @@ tasks:
   - id: TASK-06
     title: Regressione completa e verifica finale dei criteri
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-04
       - TASK-05

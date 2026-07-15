@@ -251,18 +251,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
         </div>
       </form>
 
-      {/* Nota di contesto */}
-      <div className="mt-[22px] flex max-w-[760px] items-start gap-[11px] rounded-[11px] border border-indigo-200 bg-indigo-50 p-[15px] text-[13px] text-zinc-600 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-zinc-400">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[2px] h-[16px] w-[16px] shrink-0 text-indigo-600 dark:text-indigo-400" strokeWidth={2}>
-          <circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 7.6h.01" />
-        </svg>
-        <span>
-          <b className="text-indigo-600 dark:text-indigo-400">Nota US-007</b> — la view del form si apre nell&apos;area
-          contenuto con la sidebar sempre visibile. I campi obbligatori sono{" "}
-          <b>ragione sociale</b> e <b className="text-indigo-600 dark:text-indigo-400">partita IVA</b> (11 cifre);
-          gli altri sono facoltativi ma, se compilati, vengono validati nel formato.
-        </span>
-      </div>
+
     </div>
   );
 }

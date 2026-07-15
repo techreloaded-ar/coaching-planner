@@ -38,18 +38,7 @@ export default async function ClientiPage() {
       {/* Tabella clienti */}
       <ClientiTabella clienti={clienti} />
 
-      {/* Nota di contesto */}
-      <div className="mt-[22px] flex items-start gap-[11px] rounded-[11px] border border-indigo-200 bg-indigo-50 p-[15px] text-[13px] text-zinc-600 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-zinc-400">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[2px] h-[16px] w-[16px] shrink-0" strokeWidth={2}>
-          <circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 7.6h.01" />
-        </svg>
-        <span>
-          <b className="text-indigo-600 dark:text-indigo-400">Nota US-007</b> — il back office è una console: la
-          sidebar a sinistra è sempre visibile e le view si aprono nell&apos;area contenuto. In questa user
-          story è attiva la sola voce <b className="text-indigo-600 dark:text-indigo-400">Clienti</b>; Offerte,
-          Collaboratori, Scaglioni km e Report arriveranno con le prossime storie.
-        </span>
-      </div>
+
     </div>
   );
 }
