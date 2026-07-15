@@ -6,7 +6,7 @@ epic:
   title: Anagrafiche e Configurazione
 priority: HIGH
 points: 3
-status: IN PROGRESS
+status: DONE
 body: |-
   #### US-026: Gestione delle offerte dalla pagina offerte
 
@@ -26,9 +26,6 @@ body: |-
   - [ ] L'amministratore modifica un'offerta esistente dalla pagina e le modifiche sono persistite e riflesse nell'elenco
   - [ ] L'amministratore attiva o disattiva un'offerta tramite il flag manuale di stato e il cambiamento è immediatamente visibile nell'elenco
   - [ ] L'amministratore elimina un'offerta priva di attività collegate; l'eliminazione è bloccata con un messaggio chiaro quando esistono righe di attività collegate, invitando a disattivare l'offerta invece di eliminarla
-branch: archetipo/US-026
-worktree: .archetipo/worktrees/US-026
-fork_base: b6683f88dce343cba7380ad5b564f2eb0bdceb44
 history:
   - status: TODO
     at: "2026-07-12T09:08:47Z"
@@ -36,3 +33,7 @@ history:
     at: "2026-07-12T09:37:18Z"
   - status: IN PROGRESS
     at: "2026-07-15T07:49:11Z"
+  - status: REVIEW
+    at: "2026-07-15T08:19:48Z"
+  - status: DONE
+    at: "2026-07-15T08:36:11Z"

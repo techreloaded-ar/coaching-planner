@@ -1,0 +1,278 @@
+/* ============================================================
+   Coaching Planner — US-027 Accesso diretto dalla pagina radice
+   Pagina di accesso unica con brand Agile Reloaded.
+   Design system allineato al tema reale dell'app:
+   palette zinc, accenti teal/emerald, blob decorativi
+   emerald/indigo/rose, card 20px, pulsanti arrotondati.
+   ============================================================ */
+
+:root{
+  /* neutri — scala zinc */
+  --bg:        #fafafa;   /* zinc-50 */
+  --surface:   #ffffff;
+  --surface-2: #f4f4f5;   /* zinc-100 */
+  --ink:       #27272a;   /* zinc-800 */
+  --ink-2:     #52525b;   /* zinc-600 */
+  --ink-3:     #a1a1aa;   /* zinc-400 */
+  --line:      #e4e4e7;   /* zinc-200 */
+  --line-2:    #d4d4d8;   /* zinc-300 */
+
+  /* brand — gradiente teal → emerald come il badge CP dell'app */
+  --brand-a: #0d9488;     /* teal-600 */
+  --brand-b: #10b981;     /* emerald-500 */
+
+  /* messaggio post-logout — verde smeraldo */
+  --ok:        #047857;   /* emerald-700 */
+  --ok-bg:     #ecfdf5;   /* emerald-50 */
+  --ok-line:   #a7f3d0;   /* emerald-200 */
+
+  /* messaggio accesso negato — rosso rose */
+  --err:       #be123c;   /* rose-700 */
+  --err-bg:    #fff1f2;   /* rose-50 */
+  --err-line:  #fecdd3;   /* rose-200 */
+
+  /* blob decorativi */
+  --blob-emerald: rgb(167 243 208 / .60);
+  --blob-indigo:  rgb(199 210 254 / .60);
+  --blob-rose:    rgb(254 205 211 / .50);
+  --blob-opacity: .5;
+
+  --radius-card: 20px;
+  --radius-btn:  12px;
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / .05), 0 1px 3px rgb(24 24 27 / .06);
+  --shadow:    0 4px 12px rgb(24 24 27 / .07), 0 12px 32px rgb(24 24 27 / .08);
+  --shadow-lg: 0 12px 40px rgb(24 24 27 / .16);
+
+  /* Geist Sans nell'app reale: qui il fallback di sistema più vicino */
+  --sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---------- Dark mode (zinc-950) ---------- */
+[data-theme="dark"]{
+  --bg:        #09090b;
+  --surface:   #18181b;
+  --surface-2: #27272a;
+  --ink:       #f4f4f5;
+  --ink-2:     #a1a1aa;
+  --ink-3:     #71717a;
+  --line:      #2c2c30;
+  --line-2:    #3f3f46;
+
+  --ok:        #6ee7b7;                   /* emerald-300 */
+  --ok-bg:     rgb(6 78 59 / .45);        /* emerald-950 */
+  --ok-line:   rgb(6 95 70 / .9);         /* emerald-800 */
+
+  --err:       #fda4af;                   /* rose-300 */
+  --err-bg:    rgb(76 5 25 / .5);         /* rose-950 */
+  --err-line:  rgb(159 18 57 / .8);       /* rose-800 */
+
+  --blob-opacity: .2;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / .35), 0 1px 3px rgb(0 0 0 / .3);
+  --shadow:    0 4px 12px rgb(0 0 0 / .4), 0 12px 32px rgb(0 0 0 / .4);
+  --shadow-lg: 0 12px 40px rgb(0 0 0 / .55);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  font-size:15px;
+  line-height:1.5;
+  min-height:100vh;
+  transition:background .25s, color .25s;
+}
+
+/* ============================================================
+   Sfondo: blob decorativi sfumati come nella home/login reale
+   ============================================================ */
+.blobs{
+  pointer-events:none;position:fixed;inset:0;z-index:0;
+  opacity:var(--blob-opacity);
+  transition:opacity .25s;
+  overflow:hidden;
+}
+.blobs .blob{position:absolute;border-radius:50%;filter:blur(70px);}
+.blobs .blob-emerald{
+  left:-140px;top:-160px;width:480px;height:480px;
+  background:radial-gradient(circle at 35% 35%, var(--blob-emerald), transparent 70%);
+}
+.blobs .blob-indigo{
+  right:-160px;bottom:-200px;width:520px;height:520px;
+  background:radial-gradient(circle at 65% 65%, var(--blob-indigo), transparent 70%);
+}
+.blobs .blob-rose{
+  right:14vw;top:-120px;width:340px;height:340px;filter:blur(80px);
+  background:radial-gradient(circle at 50% 20%, var(--blob-rose), transparent 72%);
+}
+
+/* ============================================================
+   Layout — un'unica colonna centrata (hero di accesso)
+   ============================================================ */
+.stage{
+  position:relative;z-index:1;
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:48px 20px 88px;
+}
+.accesso{
+  width:100%;max-width:420px;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  animation:sorgi .55s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes sorgi{
+  from{opacity:0;transform:translateY(14px);}
+  to{opacity:1;transform:none;}
+}
+@media (prefers-reduced-motion: reduce){
+  .accesso, .banner{animation:none !important;}
+}
+
+/* ---------- Targa del logo Agile Reloaded ----------
+   Il PNG ha fondo bianco: vive su una superficie bianca
+   arrotondata anche in tema scuro, con bordo e ombra tenui. */
+.logo-targa{
+  background:#ffffff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:16px 24px;
+  box-shadow:var(--shadow-sm);
+  transition:border-color .25s;
+}
+[data-theme="dark"] .logo-targa{
+  border-color:rgb(255 255 255 / .14);
+  box-shadow:var(--shadow);
+}
+.logo-targa img{
+  display:block;
+  height:46px;width:auto;max-width:100%;
+}
+
+/* ---------- Titolo e payoff ---------- */
+.titolo{
+  margin:26px 0 0;
+  font-size:38px;font-weight:700;letter-spacing:-0.03em;line-height:1.08;
+  color:var(--ink);
+}
+.payoff{
+  margin:14px 0 0;max-width:340px;
+  font-size:16px;color:var(--ink-2);
+}
+[data-theme="dark"] .payoff{color:var(--ink-2);}
+
+/* ---------- Banner di stato (post-logout / accesso negato) ---------- */
+.banner{
+  width:100%;max-width:340px;
+  margin-top:26px;
+  display:flex;align-items:flex-start;gap:9px;
+  text-align:left;
+  border-radius:12px;border:1px solid;
+  padding:11px 13px;
+  font-size:13.5px;font-weight:600;line-height:1.45;
+  animation:banner-in .4s cubic-bezier(.22,1,.36,1) .15s both;
+}
+@keyframes banner-in{
+  from{opacity:0;transform:translateY(-6px);}
+  to{opacity:1;transform:none;}
+}
+.banner svg{width:17px;height:17px;flex:none;margin-top:1px;stroke-width:2;}
+.banner-ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok);}
+.banner-err{background:var(--err-bg);border-color:var(--err-line);color:var(--err);}
+
+/* ---------- Pulsante "Accedi con Google" ---------- */
+.google-btn{
+  margin-top:26px;
+  width:100%;max-width:340px;
+  display:inline-flex;align-items:center;justify-content:center;gap:11px;
+  padding:13px 20px;
+  border-radius:var(--radius-btn);
+  border:1px solid var(--line);
+  background:var(--surface);
+  color:var(--ink);
+  font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:-0.01em;
+  cursor:pointer;
+  box-shadow:var(--shadow-sm);
+  transition:background .15s, border-color .15s, box-shadow .2s, transform .06s;
+}
+.banner + .google-btn{margin-top:16px;}
+.google-btn:hover{background:var(--surface-2);box-shadow:var(--shadow);}
+.google-btn:active{transform:translateY(1px);}
+.google-btn:focus-visible{outline:2px solid var(--brand-a);outline-offset:3px;}
+.google-btn:disabled{opacity:.7;cursor:default;transform:none;}
+.google-btn .g-logo{width:19px;height:19px;flex:none;}
+
+/* spinner durante il reindirizzamento */
+.google-btn .spinner{
+  width:16px;height:16px;flex:none;border-radius:50%;
+  border:2px solid var(--line-2);border-top-color:var(--ink-2);
+  animation:gira .7s linear infinite;
+}
+@keyframes gira{to{transform:rotate(360deg);}}
+
+/* ---------- Nota a piè di pagina ---------- */
+.nota-riservata{
+  margin:22px 0 0;
+  font-size:12px;color:var(--ink-3);
+}
+
+/* filo decorativo brand sotto il titolo, richiamo teal→emerald */
+.filo-brand{
+  width:44px;height:4px;border-radius:99px;margin-top:18px;
+  background:linear-gradient(90deg, var(--brand-a), var(--brand-b));
+}
+
+/* ============================================================
+   Controlli del mockup (non fanno parte della pagina reale)
+   ============================================================ */
+.theme-toggle{
+  position:fixed;top:16px;right:16px;z-index:5;
+  width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);cursor:pointer;
+  display:grid;place-items:center;box-shadow:var(--shadow-sm);
+  transition:background .15s, color .15s;
+}
+.theme-toggle:hover{color:var(--ink);background:var(--surface-2);}
+.theme-toggle svg{width:17px;height:17px;stroke-width:1.8;}
+.theme-toggle .ic-sun{display:none;}
+[data-theme="dark"] .theme-toggle .ic-sun{display:block;}
+[data-theme="dark"] .theme-toggle .ic-moon{display:none;}
+
+/* barra demo per navigare fra gli stati della pagina */
+.demo-bar{
+  position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:5;
+  display:flex;align-items:center;gap:2px;
+  background:var(--surface);border:1px dashed var(--line-2);border-radius:99px;
+  padding:4px 6px;box-shadow:var(--shadow-sm);
+  font-size:12px;white-space:nowrap;
+}
+.demo-bar .demo-tag{
+  color:var(--ink-3);font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  font-size:10px;padding:0 8px;
+}
+.demo-bar a{
+  color:var(--ink-2);text-decoration:none;font-weight:600;
+  padding:5px 10px;border-radius:99px;
+  transition:background .15s, color .15s;
+}
+.demo-bar a:hover{background:var(--surface-2);color:var(--ink);}
+.demo-bar a[aria-current="page"]{
+  background:linear-gradient(135deg, var(--brand-a), var(--brand-b));
+  color:#fff;
+}
+
+/* ============================================================
+   Responsive — schermi piccoli (375px)
+   ============================================================ */
+@media (max-width: 480px){
+  .stage{padding:40px 18px 84px;}
+  .logo-targa{padding:13px 20px;border-radius:16px;}
+  .logo-targa img{height:38px;}
+  .titolo{margin-top:22px;font-size:31px;}
+  .payoff{font-size:15px;}
+  .banner,.google-btn{max-width:100%;}
+  .demo-bar .demo-tag{display:none;}
+}

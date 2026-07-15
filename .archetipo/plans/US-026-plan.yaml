@@ -5,7 +5,7 @@ tasks:
   - id: TASK-01
     title: 'DAL e action esistenti: campo numeroRigheAttivita e parametro origine'
     type: Impl
-    status: TODO
+    status: DONE
     body: |-
       ## Descrizione
       **Obiettivo:** esporre alla pagina `/offerte` il conteggio delle righe attività per offerta e permettere alle action crea/aggiorna esistenti di servire anche la pagina trasversale.
@@ -32,10 +32,11 @@ tasks:
       - [ ] Con `origine="offerte"` crea/aggiorna rivalidano `/offerte` e vi redirigono con `?esito=`
       - [ ] Senza `origine` il flusso dall'anagrafica cliente è invariato
       - [ ] `npm run lint` e `npm run test` passano
+    ref: TASK-01
   - id: TASK-02
     title: Nuove server action cambiaStatoOfferta ed eliminaOfferta con blocco attività collegate
     type: Impl
-    status: TODO
+    status: DONE
     body: |-
       ## Descrizione
       **Obiettivo:** introdurre le action mancanti per il ciclo di vita dell'offerta: toggle attiva/disattiva ed eliminazione con blocco applicativo quando esistono righe attività collegate.
@@ -64,10 +65,11 @@ tasks:
       - [ ] Un'offerta senza attività viene eliminata con redirect ed esito
       - [ ] Entrambe le action sono protette dalla guardia amministratore
       - [ ] `npm run lint` passa
+    ref: TASK-02
   - id: TASK-03
     title: Test unit delle nuove action e delle estensioni DAL/origine
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
       - TASK-02
@@ -98,10 +100,11 @@ tasks:
       - [ ] Casi `origine` e `numeroRigheAttivita` aggiunti alle suite esistenti
       - [ ] Nessun accesso a database reale: tutte le dipendenze mockate
       - [ ] `npm run test` passa per l'intera suite
+    ref: TASK-03
   - id: TASK-04
     title: Pagine form /offerte/nuova e /offerte/[offertaId] con select del cliente
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |-
@@ -133,10 +136,11 @@ tasks:
       - [ ] Da `/offerte/[offertaId]` si modifica un'offerta con cliente fisso e si torna a `/offerte` con esito
       - [ ] Il form dell'anagrafica cliente esistente continua a funzionare invariato
       - [ ] `npm run lint` passa
+    ref: TASK-04
   - id: TASK-05
     title: 'Azioni di riga in offerte-tabella: Modifica, toggle stato, modale eliminazione, banner esito'
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-02
       - TASK-04
@@ -168,10 +172,11 @@ tasks:
       - [ ] L'eliminazione riuscita rimuove la riga e mostra il banner di esito
       - [ ] UI fedele ai mockup di `docs/mockups/US-026/`
       - [ ] `npm run lint` passa
+    ref: TASK-05
   - id: TASK-06
     title: Test e2e Playwright del ciclo di vita offerte dalla pagina /offerte
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-05
     body: |-
@@ -202,10 +207,11 @@ tasks:
       - [ ] Tutti gli scenari (creazione con validazioni, modifica, toggle, eliminazione, eliminazione bloccata) verdi con soli dati factory
       - [ ] Selezione cliente per label derivata dalla factory
       - [ ] `npm run lint` passa e la suite e2e completa resta verde in parallelo
+    ref: TASK-06
   - id: TASK-07
     title: Demo spec e2e del flusso di gestione offerte per la review
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-05
     body: |-
@@ -233,3 +239,4 @@ tasks:
       - [ ] Solo dati factory, nessuna entità seed mutata
       - [ ] Spec verde anche nell'esecuzione parallela dell'intera suite
       - [ ] `npm run lint` passa
+    ref: TASK-07
