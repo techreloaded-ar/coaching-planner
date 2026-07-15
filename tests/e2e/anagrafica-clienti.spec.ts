@@ -105,15 +105,9 @@ test.describe("Anagrafica clienti", () => {
 		const clientiLink = page.getByRole("link", { name: "Clienti", exact: true });
 		await expect(clientiLink).toHaveAttribute("aria-current", "page");
 
-		const vociDisabilitate = ["Offerte"];
-		for (const voce of vociDisabilitate) {
-			const btn = page
-				.locator("nav[aria-label='Navigazione principale'] button[disabled]")
-				.filter({ hasText: voce });
-			await expect(btn).toBeVisible();
-			await expect(btn).toHaveAttribute("aria-disabled", "true");
-			await expect(btn.getByText("In arrivo")).toBeVisible();
-		}
+		const offerteLink = page.getByRole("link", { name: "Offerte", exact: true });
+		await expect(offerteLink).toBeVisible();
+		await expect(offerteLink).toHaveAttribute("href", "/offerte");
 
 		const reportLink = page.getByRole("link", {
 			name: "Fatturazione clienti",
@@ -145,10 +139,6 @@ test.describe("Anagrafica clienti", () => {
 			"/anagrafiche/scaglioni",
 		);
 
-		const offerteBtn = page
-			.locator("nav[aria-label='Navigazione principale'] button[disabled]")
-			.filter({ hasText: "Offerte" });
-		await expect(offerteBtn).toBeDisabled();
 	});
 
 	test("redirect /anagrafiche → /anagrafiche/clienti", async ({ page }) => {
