@@ -36,8 +36,8 @@ describe("ruoloRichiestoPerRotta — front office", () => {
 });
 
 describe("ruoloRichiestoPerRotta — rotte neutre", () => {
-  it("restituisce null per /login", () => {
-    expect(ruoloRichiestoPerRotta("/login")).toBeNull();
+  it("restituisce null per / (radice)", () => {
+    expect(ruoloRichiestoPerRotta("/")).toBeNull();
   });
 
   it("restituisce null per /api/auth/google", () => {

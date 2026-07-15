@@ -4,8 +4,8 @@ export const EMAIL_ADMIN_E2E = "info@techreloaded.it";
 export const EMAIL_COLLABORATORE_E2E = "giulia.conti@agilereloaded.it";
 
 export async function accediCome(page: Page, email: string): Promise<void> {
-	await page.goto("/login");
-	await expect(page.getByRole("heading", { name: "Accedi" })).toBeVisible();
+	await page.goto("/");
+	await expect(page.getByRole("button", { name: "Accedi con Google" })).toBeVisible();
 
 	const redirect = await page.evaluate(async (emailUtente) => {
 		const res = await fetch("/api/e2e-test/sessione", {

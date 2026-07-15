@@ -42,7 +42,7 @@ function giornateANumero(testo: string): number {
 }
 
 async function accediComeAmministratore(page: Page) {
-  await page.goto("/login");
+  await page.goto("/");
   await page.evaluate(async () => {
     const res = await fetch("/api/e2e-test/sessione", {
       method: "POST",
@@ -58,7 +58,7 @@ async function accediComeAmministratore(page: Page) {
 }
 
 async function accediComeCollaboratrice(page: Page) {
-  await page.goto("/login");
+  await page.goto("/");
   await page.evaluate(async () => {
     const res = await fetch("/api/e2e-test/sessione", {
       method: "POST",

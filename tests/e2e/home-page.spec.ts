@@ -1,20 +1,18 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Test e2e — US-024: Hero della home page pubblica
+ * Test e2e — US-027: Pagina radice come pagina di accesso con brand Agile Reloaded
  *
  * Scenari read-only (nessuna fixture, nessuna mutazione di dati, nessuna
  * entità seed toccata): compatibili con `fullyParallel: true`.
  *
  * Copre:
- * - hero visibile con heading e payoff;
- * - CTA "Accedi" unica con href="/login";
- * - navigazione al login;
+ * - heading "Coaching Planner", payoff, logo Agile Reloaded e pulsante Google;
  * - leggibilità su viewport mobile 375×667.
  */
 
-test.describe("US-024 Home page", () => {
-  test("hero non autenticata: heading, payoff e CTA unica", async ({
+test.describe("US-027 Pagina radice", () => {
+  test("radice non autenticata: heading, payoff, logo e pulsante Google", async ({
     page,
   }) => {
     await page.goto("/");
@@ -29,34 +27,31 @@ test.describe("US-024 Home page", () => {
       )
     ).toBeVisible();
 
-    const cta = page.getByRole("link", { name: "Accedi" });
-    await expect(cta).toHaveCount(1);
-    await expect(cta).toBeVisible();
-    await expect(cta).toHaveAttribute("href", "/login");
-  });
+    // Logo Agile Reloaded
+    await expect(page.getByAltText("Agile Reloaded")).toBeVisible();
 
-  test("navigazione al login dalla CTA Accedi", async ({ page }) => {
-    await page.goto("/");
-
-    await page.getByRole("link", { name: "Accedi" }).click();
-
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(
-      page.getByRole("heading", { name: "Accedi" })
-    ).toBeVisible();
+    // Pulsante Accedi con Google
+    const googleBtn = page.getByRole("button", {
+      name: "Accedi con Google",
+    });
+    await expect(googleBtn).toHaveCount(1);
+    await expect(googleBtn).toBeVisible();
   });
 
   test.describe("leggibilità mobile", () => {
     test.use({ viewport: { width: 375, height: 667 } });
 
-    test("heading e CTA visibili su viewport 375×667", async ({ page }) => {
+    test("logo, heading e pulsante visibili su viewport 375×667", async ({
+      page,
+    }) => {
       await page.goto("/");
 
       await expect(
         page.getByRole("heading", { name: "Coaching Planner" })
       ).toBeVisible();
+      await expect(page.getByAltText("Agile Reloaded")).toBeVisible();
       await expect(
-        page.getByRole("link", { name: "Accedi" })
+        page.getByRole("button", { name: "Accedi con Google" })
       ).toBeVisible();
     });
   });

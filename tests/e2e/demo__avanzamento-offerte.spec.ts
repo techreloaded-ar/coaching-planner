@@ -62,8 +62,8 @@ test.describe("US-016 Demo", () => {
     test.setTimeout(60_000);
 
     // ── 1. Login amministratore tramite endpoint e2e ──────────────
-    await page.goto("/login");
-    await expect(page.getByRole("heading", { name: "Accedi" })).toBeVisible();
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Accedi con Google" })).toBeVisible();
 
     await page.evaluate(async () => {
       const res = await fetch("/api/e2e-test/sessione", {

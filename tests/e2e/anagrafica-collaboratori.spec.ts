@@ -13,7 +13,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Anagrafica collaboratori", () => {
   test.beforeEach(async ({ page }) => {
     // Accedi come amministratore tramite endpoint e2e
-    await page.goto("/login");
+    await page.goto("/");
     await page.evaluate(async () => {
       const res = await fetch("/api/e2e-test/sessione", {
         method: "POST",
@@ -218,7 +218,7 @@ test.describe("Anagrafica collaboratori", () => {
     const contestoCollaboratore = await page.context().browser()!.newContext();
     const paginaCollaboratore = await contestoCollaboratore.newPage();
 
-    await paginaCollaboratore.goto("/login");
+    await paginaCollaboratore.goto("/");
     await paginaCollaboratore.evaluate(async (emailCollaboratore) => {
       await fetch("/api/e2e-test/sessione", {
         method: "POST",

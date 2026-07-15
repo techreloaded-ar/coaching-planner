@@ -25,9 +25,9 @@ test.describe("US-009 Demo", () => {
 
     // ── 1. Login amministratore tramite endpoint e2e ───────────────
 
-    await page.goto("/login");
+    await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: "Accedi" })
+      page.getByRole("button", { name: "Accedi con Google" })
     ).toBeVisible();
 
     await page.evaluate(async () => {
@@ -113,9 +113,9 @@ test.describe("US-009 Demo", () => {
     const contestoCollaboratore = await page.context().browser()!.newContext();
     const paginaCollaboratore = await contestoCollaboratore.newPage();
 
-    await paginaCollaboratore.goto("/login");
+    await paginaCollaboratore.goto("/");
     await expect(
-      paginaCollaboratore.getByRole("heading", { name: "Accedi" })
+      paginaCollaboratore.getByRole("button", { name: "Accedi con Google" })
     ).toBeVisible();
 
     const destinazione = await paginaCollaboratore.evaluate(async (emailCollaboratore) => {

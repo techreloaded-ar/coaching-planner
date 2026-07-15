@@ -7,8 +7,8 @@ import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
  *
  * Scenari:
  * - Accesso collaboratore → Front Office
- * - Email non censita → errore generico
- * - Route protette senza sessione → redirect a /login
+ * - Email non censita → errore generico sulla radice
+ * - Route protette senza sessione → redirect alla radice
  * - Disconnessione esplicita
  */
 
@@ -24,11 +24,11 @@ test.describe("Auth e2e", () => {
     await expect(page.getByRole("button", { name: "Esci" })).toBeVisible();
   });
 
-  test("email non censita → errore generico su /login", async ({ page }) => {
-    // Vai direttamente alla login con parametro error=1
-    await page.goto("/login?error=1");
+  test("email non censita → errore generico sulla radice", async ({ page }) => {
+    // Vai direttamente alla radice con parametro error=1
+    await page.goto("/?error=1");
 
-    // Verifica che l'alert di errore sia visibile (ignora il __next-route-announcer__)
+    // Verifica che l'alert di errore sia visibile
     const errorAlert = page.getByRole("alert").filter({
       hasText: "Questo account Google non è autorizzato ad accedere",
     });
@@ -40,20 +40,20 @@ test.describe("Auth e2e", () => {
     ).toBeVisible();
   });
 
-  test("route protette senza sessione → redirect a /login", async ({
+  test("route protette senza sessione → redirect alla radice", async ({
     page,
   }) => {
     // Prova ad accedere a una route protetta senza sessione
     await page.goto("/anagrafiche");
 
-    // Dovrebbe reindirizzare a /login
-    await page.waitForURL("**/login**");
+    // Dovrebbe reindirizzare alla radice (pagina di accesso)
+    await page.waitForURL("**/");
     await expect(
-      page.getByRole("heading", { name: "Accedi" })
+      page.getByRole("button", { name: "Accedi con Google" })
     ).toBeVisible();
   });
 
-  test("disconnessione esplicita → /login con messaggio", async ({ page }) => {
+  test("disconnessione esplicita → radice con messaggio", async ({ page }) => {
     // 1. Accedi come amministratore
     await accediComeAdmin(page);
 
@@ -62,8 +62,8 @@ test.describe("Auth e2e", () => {
     await expect(esciBtn).toBeVisible();
     await esciBtn.click();
 
-    // 3. Dovrebbe reindirizzare a /login?logout=1
-    await page.waitForURL("**/login?logout=1**");
+    // 3. Dovrebbe reindirizzare alla radice con ?logout=1
+    await page.waitForURL("**/?logout=1**");
     await expect(
       page.getByText("Ti sei disconnesso. A presto!")
     ).toBeVisible();

@@ -16,6 +16,8 @@ const SEED_EMAIL_ALLOWLIST = new Set([
 	"tests/e2e/demo__anagrafica-collaboratori.spec.ts",
 	"tests/e2e/avanzamento-offerte.spec.ts",
 	"tests/e2e/demo__avanzamento-offerte.spec.ts",
+	"tests/e2e/accesso-radice.spec.ts",
+	"tests/e2e/demo__accesso-diretto-radice.spec.ts",
 ]);
 
 const XPATH_ALLOWLIST = new Set([

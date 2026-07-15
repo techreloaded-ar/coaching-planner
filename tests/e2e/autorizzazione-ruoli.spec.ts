@@ -16,7 +16,7 @@ test.describe("US-006 Autorizzazione ruoli", () => {
     page,
   }) => {
     // Accedi come collaboratrice
-    await page.goto("/login");
+    await page.goto("/");
     await page.evaluate(async () => {
       const res = await fetch("/api/e2e-test/sessione", {
         method: "POST",
@@ -49,7 +49,7 @@ test.describe("US-006 Autorizzazione ruoli", () => {
     page,
   }) => {
     // Accedi come amministratore
-    await page.goto("/login");
+    await page.goto("/");
     await page.evaluate(async () => {
       const res = await fetch("/api/e2e-test/sessione", {
         method: "POST",
@@ -84,7 +84,7 @@ test.describe("US-006 Autorizzazione ruoli", () => {
 
   test("home / → reindirizza all'area del ruolo", async ({ page }) => {
     // Accedi come collaboratrice
-    await page.goto("/login");
+    await page.goto("/");
     await page.evaluate(async () => {
       const res = await fetch("/api/e2e-test/sessione", {
         method: "POST",
@@ -112,7 +112,7 @@ test.describe("US-006 Autorizzazione ruoli", () => {
     page,
   }) => {
     // Accedi come collaboratrice
-    await page.goto("/login");
+    await page.goto("/");
     await page.evaluate(async () => {
       const res = await fetch("/api/e2e-test/sessione", {
         method: "POST",
