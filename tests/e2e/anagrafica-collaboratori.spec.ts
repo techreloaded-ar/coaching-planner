@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+import { accediComeAdmin } from "./support/auth";
+
 /**
  * Test e2e — US-009: Anagrafica collaboratori con tariffa e credenziali di accesso
  *
@@ -12,20 +14,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Anagrafica collaboratori", () => {
   test.beforeEach(async ({ page }) => {
-    // Accedi come amministratore tramite endpoint e2e
-    await page.goto("/");
-    await page.evaluate(async () => {
-      const res = await fetch("/api/e2e-test/sessione", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "info@techreloaded.it" }),
-      });
-      const data = await res.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    });
-    await page.waitForURL("**/anagrafiche**");
+    await accediComeAdmin(page);
   });
 
   test("validazione campi obbligatori senza creazione", async ({ page }) => {
@@ -212,9 +201,9 @@ test.describe("Anagrafica collaboratori", () => {
     // a una sessione valida: l'endpoint e2e crea la sessione direttamente
     // (senza replicare i controlli del callback Google), ma _risolviSessione
     // in src/lib/dal.ts invalida la sessione di un collaboratore disattivato
-    // a ogni richiesta successiva (richiediRuolo → redirect a /login).
-    // Verifichiamo quindi il comportamento reale: la sessione viene creata,
-    // ma una navigazione successiva a /attivita reindirizza al login.
+    // a ogni richiesta successiva. Verifichiamo quindi il comportamento reale:
+    // la sessione viene creata, ma una navigazione successiva a /attivita
+    // reindirizza alla radice (pagina di accesso).
     const contestoCollaboratore = await page.context().browser()!.newContext();
     const paginaCollaboratore = await contestoCollaboratore.newPage();
 
@@ -228,11 +217,14 @@ test.describe("Anagrafica collaboratori", () => {
     }, email);
 
     // La sessione creata per un collaboratore disattivato non è valida:
-    // navigando su /attivita viene reindirizzato a /login
+    // navigando su /attivita viene reindirizzato alla radice
     await paginaCollaboratore.goto("/attivita");
-    await paginaCollaboratore.waitForURL("**/login**");
+    await paginaCollaboratore.waitForURL((url) => url.pathname === "/");
     await expect(
-      paginaCollaboratore.getByRole("heading", { name: "Accedi" })
+      paginaCollaboratore.getByRole("heading", { name: "Coaching Planner" })
+    ).toBeVisible();
+    await expect(
+      paginaCollaboratore.getByRole("button", { name: "Accedi con Google" })
     ).toBeVisible();
 
     await contestoCollaboratore.close();

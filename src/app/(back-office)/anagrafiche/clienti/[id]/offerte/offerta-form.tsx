@@ -225,7 +225,7 @@ export default function OffertaForm({
         <div className="flex items-center justify-end gap-[10px] rounded-b-[11px] border-t border-zinc-200 bg-zinc-50 px-7 py-4 dark:border-zinc-700 dark:bg-zinc-800/50">
           {cliente && !cliente.attivo && !inModifica && (
             <span className="mr-auto text-[12.5px] font-medium text-red-600 dark:text-red-400">
-              Il cliente è disattivato: la creazione verrà rifiutata lato server.
+              Il cliente è disattivato: non puoi creare nuove offerte.
             </span>
           )}
           <Link
