@@ -270,6 +270,76 @@ describe("Server Actions offerte", () => {
 		);
 	});
 
+	it("con origine=offerte la creazione rivalida /offerte e vi redirige", async () => {
+		const formData = new FormData();
+		formData.set("clienteId", "cli-1");
+		formData.set("codice", "OFF-001");
+		formData.set("descrizione", "Analisi");
+		formData.set("tariffaGiornaliera", "650,00");
+		formData.set("giorniPrevisti", "5");
+		formData.set("origine", "offerte");
+
+		await creaOfferta({ errori: {} }, formData);
+
+		expect(mockOfferta.create).toHaveBeenCalled();
+		expect(mockRevalidatePath).toHaveBeenCalledWith("/offerte");
+		expect(mockRedirect).toHaveBeenCalledWith(
+			"/offerte?esito=offerta-creata",
+		);
+	});
+
+	it("con origine=offerte l'aggiornamento rivalida /offerte e vi redirige", async () => {
+		const formData = new FormData();
+		formData.set("id", "off-1");
+		formData.set("clienteId", "cli-1");
+		formData.set("codice", "OFF-002");
+		formData.set("descrizione", "Delivery");
+		formData.set("tariffaGiornaliera", "700,00");
+		formData.set("giorniPrevisti", "8");
+		formData.set("origine", "offerte");
+
+		await aggiornaOfferta({ errori: {} }, formData);
+
+		expect(mockOfferta.update).toHaveBeenCalled();
+		expect(mockRevalidatePath).toHaveBeenCalledWith("/offerte");
+		expect(mockRedirect).toHaveBeenCalledWith(
+			"/offerte?esito=offerta-salvata",
+		);
+	});
+
+	it("senza origine la creazione redirige al dettaglio cliente e non rivalida /offerte", async () => {
+		const formData = new FormData();
+		formData.set("clienteId", "cli-1");
+		formData.set("codice", "OFF-001");
+		formData.set("descrizione", "Analisi");
+		formData.set("tariffaGiornaliera", "650,00");
+		formData.set("giorniPrevisti", "5");
+
+		await creaOfferta({ errori: {} }, formData);
+
+		expect(mockRedirect).toHaveBeenCalledWith(
+			"/anagrafiche/clienti/cli-1?esito=offerta-creata",
+		);
+		expect(mockRevalidatePath).not.toHaveBeenCalledWith("/offerte");
+	});
+
+	it("senza origine l'aggiornamento redirige al dettaglio cliente e non rivalida /offerte", async () => {
+		const formData = new FormData();
+		formData.set("id", "off-1");
+		formData.set("clienteId", "cli-1");
+		formData.set("codice", "OFF-002");
+		formData.set("descrizione", "Delivery");
+		formData.set("tariffaGiornaliera", "700,00");
+		formData.set("giorniPrevisti", "8");
+
+		await aggiornaOfferta({ errori: {} }, formData);
+
+		expect(mockRedirect).toHaveBeenCalledWith(
+			"/anagrafiche/clienti/cli-1?esito=offerta-salvata",
+		);
+		expect(mockRevalidatePath).not.toHaveBeenCalledWith("/offerte");
+	});
+
 	it("applica la guardia di ruolo su DAL e actions", async () => {
 		mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
 

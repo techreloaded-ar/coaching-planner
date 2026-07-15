@@ -170,6 +170,66 @@ describe("elencaOfferteConAvanzamento", () => {
 		expect(voce.stato).toBe("IN_CORSO");
 	});
 
+	// (c-bis) conteggio righe attività ──────────────────────────────
+
+	it("conta tutte le righe attività dell'offerta, incluse le non fatturabili", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-1", giorniPrevisti: 10 }),
+		]);
+		mockRigaAttivita.findMany.mockResolvedValue([
+			rigaConCollaboratore({ offertaId: "off-1", ore: 8, fatturabile: true }),
+			rigaConCollaboratore({
+				offertaId: "off-1",
+				collaboratoreId: "collab-2",
+				ore: 4,
+				fatturabile: false,
+			}),
+			rigaConCollaboratore({
+				offertaId: "off-1",
+				collaboratoreId: "collab-3",
+				ore: 2,
+				fatturabile: false,
+			}),
+		]);
+
+		const [voce] = await elencaOfferteConAvanzamento();
+
+		expect(voce.numeroRigheAttivita).toBe(3);
+	});
+
+	it("riporta numeroRigheAttivita 0 per un'offerta senza righe attività", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-vuota", giorniPrevisti: 7 }),
+		]);
+		mockRigaAttivita.findMany.mockResolvedValue([]);
+
+		const [voce] = await elencaOfferteConAvanzamento();
+
+		expect(voce.numeroRigheAttivita).toBe(0);
+	});
+
+	it("conta le righe separatamente per ciascuna offerta", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-1", codice: "OFF-001", giorniPrevisti: 10 }),
+			offertaConCliente({ id: "off-2", codice: "OFF-002", giorniPrevisti: 10 }),
+		]);
+		mockRigaAttivita.findMany.mockResolvedValue([
+			rigaConCollaboratore({ offertaId: "off-1", ore: 8 }),
+			rigaConCollaboratore({
+				offertaId: "off-1",
+				collaboratoreId: "collab-2",
+				ore: 8,
+			}),
+			rigaConCollaboratore({ offertaId: "off-2", ore: 8 }),
+		]);
+
+		const voci = await elencaOfferteConAvanzamento();
+		const perId = new Map(voci.map((v) => [v.offertaId, v]));
+
+		expect(perId.get("off-1")!.numeroRigheAttivita).toBe(2);
+		expect(perId.get("off-2")!.numeroRigheAttivita).toBe(1);
+	});
+
 	// (d) serializzazione tariffa e propagazione attiva ─────────────
 
 	it("serializza la tariffa giornaliera come stringa e propaga il flag attiva", async () => {
