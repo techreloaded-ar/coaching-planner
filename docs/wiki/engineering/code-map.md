@@ -2,7 +2,7 @@
 id: engineering.code-map
 type: code-map
 summary: Matrice fisica fra capability candidate, codice, dati e test
-status: reviewed
+status: generated
 links:
     - id: overview
       relation: supports
@@ -92,10 +92,6 @@ coverage:
       status: mapped
       pages:
         - domains.politiche-rimborso
-review:
-    content_hash: sha256:107d5f678d819adf4756636b2a62da32a61b1b88b1f0be4e86770a0652395add
-    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
-    reviewed_at: "2026-07-16T17:30:56Z"
 ---
 # Mappa del codice
 
@@ -106,7 +102,7 @@ review:
 |---|---|---|---|---|---|---|
 | Clienti | `src/app/(back-office)/anagrafiche/clienti/**` | `src/lib/clienti.ts`, `src/domain/anagrafiche/valida-cliente.ts` | `Cliente` | Offerte, Attività, report | unit clienti/validazione; E2E anagrafica clienti | `domains.clienti` |
 | Collaboratori | `src/app/(back-office)/anagrafiche/collaboratori/**` | `src/lib/collaboratori.ts`, validatore, parti di `dal.ts` | `Collaboratore`, scritture coordinate su `Utente` | Identità, Attività | unit collaboratori/DAL; E2E collaboratori | `domains.collaboratori` |
-| Offerte | UI annidata cliente e `src/app/(back-office)/offerte/**`, incluso dettaglio avanzamento espandibile | `src/lib/offerte.ts`, validatore offerta, `calcolaAvanzamentoOfferte` | `Offerta` | Clienti, Attività | unit offerte/avanzamento; E2E offerte e dettaglio avanzamento | `domains.offerte` |
+| Offerte | UI annidata cliente, compresa `offerte-cliente-tabella.tsx`, e `src/app/(back-office)/offerte/**`, entrambe con dettaglio avanzamento espandibile | `src/lib/offerte.ts`, inclusa query filtrata per cliente, validatore offerta, `calcolaAvanzamentoOfferte` | `Offerta` | Clienti, Attività | unit offerte/avanzamento; E2E offerte e dettaglio avanzamento nelle viste trasversale e cliente | `domains.offerte` |
 | Politiche rimborso | `src/app/(back-office)/anagrafiche/scaglioni/**` | `src/lib/scaglioni.ts`, validatore, `calcolaRimborsoTrasferta` | `ScaglioneKm` | Attività, Fatturazione | unit scaglioni/rimborso; E2E scaglioni/trasferta | `domains.politiche-rimborso` |
 | Attività | `src/app/(front-office)/attivita/**` | `src/lib/actions/righe-attivita.ts`, `src/lib/attivita.ts`, calendario e consuntivi | `RigaAttivita` | tutte le anagrafiche operative | unit attività/action/calendario/riepilogo; E2E attività | `domains.attivita` |
 | Fatturazione clienti | `src/app/(back-office)/report/fatturazione-clienti/**` | `src/lib/report.ts`, `calcolaReportFatturazioneClienti` | sola lettura di attività/offerte/clienti/scaglioni | nessuna esterna | unit ed E2E report fatturazione | `domains.fatturazione-clienti` |

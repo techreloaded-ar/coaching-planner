@@ -22,7 +22,10 @@ vi.mock("@/lib/dal", () => ({
 	richiediRuoloApi: mockRichiediRuoloApi,
 }));
 
-import { elencaOfferteConAvanzamento } from "@/lib/offerte";
+import {
+	elencaOfferteConAvanzamento,
+	elencaOffertePerClienteConAvanzamento,
+} from "@/lib/offerte";
 
 // ── Builder di supporto ─────────────────────────────────────────
 
@@ -438,5 +441,81 @@ describe("elencaOfferteConAvanzamento", () => {
 		expect(voci.find((v) => v.offertaId === "off-oltre")!.stato).toBe(
 			"OLTRE_BUDGET",
 		);
+	});
+});
+
+describe("elencaOffertePerClienteConAvanzamento", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockOfferta.findMany.mockResolvedValue([]);
+		mockRigaAttivita.findMany.mockResolvedValue([]);
+	});
+
+	it("filtra offerte e attività per cliente e restituisce l'avanzamento calcolato", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ clienteId: "cli-1", giorniPrevisti: 10 }),
+		]);
+		mockRigaAttivita.findMany.mockResolvedValue([
+			rigaConCollaboratore({ offertaId: "off-1", ore: 16, fatturabile: true }),
+		]);
+
+		const [voce] = await elencaOffertePerClienteConAvanzamento("cli-1");
+
+		expect(mockOfferta.findMany).toHaveBeenCalledWith({
+			where: { clienteId: "cli-1" },
+			include: { cliente: true },
+		});
+		expect(mockRigaAttivita.findMany).toHaveBeenCalledWith({
+			where: { offerta: { clienteId: "cli-1" } },
+			include: { collaboratore: true },
+		});
+		expect(voce.percentualeUtilizzo).toBe(0.2);
+		expect(voce.giornateErogate).toBe(2);
+		expect(voce.perCollaboratore).toEqual([
+			{
+				collaboratoreId: "collab-1",
+				collaboratoreNome: "Mario Rossi",
+				oreErogate: 16,
+				giornateErogate: 2,
+			},
+		]);
+	});
+
+	it("ordina le offerte del cliente per codice crescente", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-c", codice: "OFF-C", clienteId: "cli-1" }),
+			offertaConCliente({ id: "off-a", codice: "OFF-A", clienteId: "cli-1" }),
+			offertaConCliente({ id: "off-b", codice: "OFF-B", clienteId: "cli-1" }),
+		]);
+
+		const voci = await elencaOffertePerClienteConAvanzamento("cli-1");
+
+		expect(voci.map((voce) => voce.codice)).toEqual([
+			"OFF-A",
+			"OFF-B",
+			"OFF-C",
+		]);
+	});
+
+	it("restituisce percentuale zero, ripartizione vuota e residuo previsto senza attività", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ clienteId: "cli-1", giorniPrevisti: 7 }),
+		]);
+
+		const [voce] = await elencaOffertePerClienteConAvanzamento("cli-1");
+
+		expect(voce.percentualeUtilizzo).toBe(0);
+		expect(voce.perCollaboratore).toEqual([]);
+		expect(voce.residuo).toBe(7);
+	});
+
+	it("propaga l'errore della guardia senza leggere le offerte", async () => {
+		mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+
+		await expect(
+			elencaOffertePerClienteConAvanzamento("cli-1"),
+		).rejects.toThrow("Accesso negato");
+		expect(mockOfferta.findMany).not.toHaveBeenCalled();
 	});
 });

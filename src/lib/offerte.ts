@@ -49,21 +49,6 @@ export interface VoceElencoOfferta {
 }
 
 /**
- * Elenca le offerte di un cliente ordinate per codice.
- * Accesso riservato all'amministratore.
- */
-export async function elencaOffertePerCliente(
-  clienteId: string
-): Promise<Offerta[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
-
-  return db.offerta.findMany({
-    where: { clienteId },
-    orderBy: { codice: "asc" },
-  });
-}
-
-/**
  * Restituisce un'offerta per ID, includendo il cliente di appartenenza.
  * Accesso riservato all'amministratore.
  */
@@ -92,35 +77,11 @@ function gruppoOrdinamento(
   return 2;
 }
 
-/**
- * Elenca in modo trasversale TUTTE le offerte di TUTTI i clienti con il loro
- * avanzamento (giornate erogate, residuo, stato), riusando il calcolo di
- * dominio `calcolaAvanzamentoOfferte` senza duplicare alcuna logica.
- *
- * Accesso riservato all'amministratore (`richiediRuoloApi("AMMINISTRATORE")`).
- * Ogni offerta esistente compare nell'elenco, anche quelle senza righe attività
- * (in tal caso: giornate erogate 0 e residuo pari alle giornate previste).
- *
- * Il risultato è interamente serializzabile: la tariffa è una stringa, non sono
- * esposti valori Decimal o Date grezzi.
- *
- * Ordinamento: prima le offerte attive esaurite/oltre budget, poi le altre
- * attive, infine quelle non attive; dentro ogni gruppo per ragione sociale
- * cliente e poi per codice offerta.
- */
-export async function elencaOfferteConAvanzamento(): Promise<
-  VoceElencoOfferta[]
-> {
-  await richiediRuoloApi("AMMINISTRATORE");
-
-  const offerte = await db.offerta.findMany({
-    include: { cliente: true },
-  });
-
-  const righe = await db.rigaAttivita.findMany({
-    include: { collaboratore: true },
-  });
-
+/** Costruisce voci serializzabili di avanzamento a partire da offerte e attività. */
+function costruisciVociElencoOfferte(
+  offerte: OffertaConCliente[],
+  righe: RigaAttivitaConCollaboratore[],
+): VoceElencoOfferta[] {
   const offerteMappate: OffertaAvanzamento[] = offerte.map(
     (offerta: OffertaConCliente) => ({
       offertaId: offerta.id,
@@ -156,7 +117,7 @@ export async function elencaOfferteConAvanzamento(): Promise<
     );
   }
 
-  const voci: VoceElencoOfferta[] = offerte.map((offerta: OffertaConCliente) => {
+  return offerte.map((offerta: OffertaConCliente) => {
     const avanzamento = avanzamentoPerOfferta.get(offerta.id);
 
     return {
@@ -176,6 +137,38 @@ export async function elencaOfferteConAvanzamento(): Promise<
       numeroRigheAttivita: numeroRighePerOfferta.get(offerta.id) ?? 0,
     };
   });
+}
+
+/**
+ * Elenca in modo trasversale TUTTE le offerte di TUTTI i clienti con il loro
+ * avanzamento (giornate erogate, residuo, stato), riusando il calcolo di
+ * dominio `calcolaAvanzamentoOfferte` senza duplicare alcuna logica.
+ *
+ * Accesso riservato all'amministratore (`richiediRuoloApi("AMMINISTRATORE")`).
+ * Ogni offerta esistente compare nell'elenco, anche quelle senza righe attività
+ * (in tal caso: giornate erogate 0 e residuo pari alle giornate previste).
+ *
+ * Il risultato è interamente serializzabile: la tariffa è una stringa, non sono
+ * esposti valori Decimal o Date grezzi.
+ *
+ * Ordinamento: prima le offerte attive esaurite/oltre budget, poi le altre
+ * attive, infine quelle non attive; dentro ogni gruppo per ragione sociale
+ * cliente e poi per codice offerta.
+ */
+export async function elencaOfferteConAvanzamento(): Promise<
+  VoceElencoOfferta[]
+> {
+  await richiediRuoloApi("AMMINISTRATORE");
+
+  const offerte = await db.offerta.findMany({
+    include: { cliente: true },
+  });
+
+  const righe = await db.rigaAttivita.findMany({
+    include: { collaboratore: true },
+  });
+
+  const voci = costruisciVociElencoOfferte(offerte, righe);
 
   voci.sort((a, b) => {
     const gruppoA = gruppoOrdinamento(a.attiva, a.stato);
@@ -191,6 +184,34 @@ export async function elencaOfferteConAvanzamento(): Promise<
     }
     return a.codice.localeCompare(b.codice);
   });
+
+  return voci;
+}
+
+/**
+ * Elenca le offerte di un cliente con il relativo avanzamento, ordinate per
+ * codice. Il risultato è interamente serializzabile: la tariffa è una stringa
+ * e non espone valori Decimal o Date grezzi.
+ *
+ * Accesso riservato all'amministratore.
+ */
+export async function elencaOffertePerClienteConAvanzamento(
+  clienteId: string,
+): Promise<VoceElencoOfferta[]> {
+  await richiediRuoloApi("AMMINISTRATORE");
+
+  const offerte = await db.offerta.findMany({
+    where: { clienteId },
+    include: { cliente: true },
+  });
+
+  const righe = await db.rigaAttivita.findMany({
+    where: { offerta: { clienteId } },
+    include: { collaboratore: true },
+  });
+
+  const voci = costruisciVociElencoOfferte(offerte, righe);
+  voci.sort((a, b) => a.codice.localeCompare(b.codice));
 
   return voci;
 }

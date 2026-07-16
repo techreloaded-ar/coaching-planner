@@ -14,8 +14,8 @@
 | `domains.collaboratori` | domain | candidate | generated | Profili professionali dei collaboratori, tariffa e abilitazione operativa | [domains/collaboratori.md](domains/collaboratori.md) |
 | `domains.fatturazione-clienti` | domain | candidate | reviewed | Proiezione amministrativa mensile degli importi da fatturare ai clienti | [domains/fatturazione-clienti.md](domains/fatturazione-clienti.md) |
 | `domains.identita-accesso` | domain | candidate | generated | Accesso Google, sessione JWT, ruoli, policy di rotta e segregazione dei dati | [domains/identita-accesso.md](domains/identita-accesso.md) |
-| `domains.offerte` | domain | candidate | reviewed | Impegni commerciali per cliente, budget in giornate e monitoraggio dell'avanzamento | [domains/offerte.md](domains/offerte.md) |
+| `domains.offerte` | domain | candidate | generated | Impegni commerciali per cliente, budget in giornate e monitoraggio dell'avanzamento | [domains/offerte.md](domains/offerte.md) |
 | `domains.politiche-rimborso` | domain | candidate | generated | Configurazione globale delle fasce chilometriche e calcolo del rimborso trasferta | [domains/politiche-rimborso.md](domains/politiche-rimborso.md) |
-| `engineering.code-map` | code-map | — | reviewed | Matrice fisica fra capability candidate, codice, dati e test | [engineering/code-map.md](engineering/code-map.md) |
+| `engineering.code-map` | code-map | — | generated | Matrice fisica fra capability candidate, codice, dati e test | [engineering/code-map.md](engineering/code-map.md) |
 | `operations.development` | operations | — | generated | Sviluppo locale, build, test, CI, database e vincoli operativi | [operations/development.md](operations/development.md) |
 | `overview` | overview | — | reviewed | Scopo, attori, stack e perimetro della mappa codebase-first di Coaching Planner | [overview.md](overview.md) |

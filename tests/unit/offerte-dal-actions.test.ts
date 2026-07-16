@@ -53,7 +53,7 @@ vi.mock("@/domain/anagrafiche/valida-offerta", () => ({
 	normalizzaTariffaGiornaliera: mockNormalizzaTariffa,
 }));
 
-import { elencaOffertePerCliente, offertaPerId } from "@/lib/offerte";
+import { offertaPerId } from "@/lib/offerte";
 import {
 	creaOfferta,
 	aggiornaOfferta,
@@ -63,32 +63,6 @@ describe("DAL offerte", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockRichiediRuoloApi.mockResolvedValue(undefined);
-	});
-
-	it("elenca le offerte di un cliente ordinate per codice", async () => {
-		const offerte = [
-			{
-				id: "off-1",
-				codice: "OFF-001",
-				descrizione: "Analisi",
-				clienteId: "cli-1",
-				tariffaGiornaliera: "650.00",
-				giorniPrevisti: 10,
-				attiva: true,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			},
-		];
-		mockOfferta.findMany.mockResolvedValue(offerte);
-
-		const result = await elencaOffertePerCliente("cli-1");
-
-		expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
-		expect(mockOfferta.findMany).toHaveBeenCalledWith({
-			where: { clienteId: "cli-1" },
-			orderBy: { codice: "asc" },
-		});
-		expect(result).toEqual(offerte);
 	});
 
 	it("restituisce un'offerta per id con il cliente incluso", async () => {
@@ -359,9 +333,6 @@ describe("Server Actions offerte", () => {
 	it("applica la guardia di ruolo su DAL e actions", async () => {
 		mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
 
-		await expect(elencaOffertePerCliente("cli-1")).rejects.toThrow(
-			"Accesso negato",
-		);
 		await expect(offertaPerId("off-1")).rejects.toThrow("Accesso negato");
 
 		const formData = new FormData();

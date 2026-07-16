@@ -2,7 +2,7 @@
 id: domains.offerte
 type: domain
 summary: Impegni commerciali per cliente, budget in giornate e monitoraggio dell'avanzamento
-status: reviewed
+status: generated
 classification: candidate
 links:
     - id: architecture.context-map
@@ -22,7 +22,7 @@ sources:
       symbol: cambiaStatoOfferta, eliminaOfferta
     - path: src/lib/offerte.ts
       role: application-query
-      symbol: elencaOfferteConAvanzamento
+      symbol: elencaOfferteConAvanzamento, elencaOffertePerClienteConAvanzamento
     - path: src/domain/anagrafiche/valida-offerta.ts
       role: domain-validation
     - path: src/domain/consuntivi/index.ts
@@ -35,10 +35,8 @@ sources:
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts
       role: verification
-review:
-    content_hash: sha256:86dd469fc172f3ee0e69a2b114c2da94decd9b3ead4b2705e50a12efa72582ce
-    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
-    reviewed_at: "2026-07-16T17:30:56Z"
+    - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
+      role: verification
 ---
 # Offerte
 
@@ -64,7 +62,7 @@ Possiede `Offerta`, i termini commerciali, il budget e il booleano `attiva`. Rif
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
-Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `elencaOffertePerCliente`, `offertaPerId` ed `elencaOfferteConAvanzamento` sono riservate all'amministratore; quest'ultima espone anche percentuale di utilizzo e ripartizione per collaboratore, per mostrare l'avanzamento direttamente nella tabella Offerte. Le attività consumano solo offerte attive del cliente selezionato.
+Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `offertaPerId`, `elencaOfferteConAvanzamento` ed `elencaOffertePerClienteConAvanzamento` sono riservate all'amministratore; le ultime due espongono percentuale di utilizzo e ripartizione per collaboratore. La query annidata filtra offerte e attività per cliente e le ordina per codice. Le attività consumano solo offerte attive del cliente selezionato.
 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
@@ -74,20 +72,20 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 3. Il comando di stato assegna direttamente a `attiva` il booleano del form, senza guardia sullo stato sorgente.
 4. L'eliminazione conta prima le righe attività e traduce anche l'errore FK da concorrenza; in presenza di righe invita a disattivare.
 5. `calcolaAvanzamentoOfferte` assegna una delle quattro classificazioni in base a residuo e soglia 85%. Non esiste una colonna `stato` né una write di transizione: ogni lettura ricalcola il valore.
-6. La tabella trasversale `/offerte` espande una riga per mostrare classificazione, KPI, percentuale e ripartizione; il toggle di attivazione conserva la riga espansa attraverso il redirect. La precedente rotta `/report/avanzamento-offerte` reindirizza a `/offerte`.
+6. La tabella trasversale `/offerte` e quella annidata nel dettaglio cliente espandono una riga per mostrare classificazione, KPI, percentuale e ripartizione; nell'elenco cliente il link Modifica non attiva il toggle. Il toggle di attivazione della tabella trasversale conserva la riga espansa attraverso il redirect. La precedente rotta `/report/avanzamento-offerte` reindirizza a `/offerte`.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
 
 | Aspetto | Percorsi |
 |---|---|
-| UI annidata | `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/**` |
+| UI annidata | `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/**`, `src/app/(back-office)/anagrafiche/clienti/[id]/offerte-cliente-tabella.tsx` |
 | UI trasversale e stato | `src/app/(back-office)/offerte/**` |
 | Query | `src/lib/offerte.ts` |
 | Validazione | `src/domain/anagrafiche/valida-offerta.ts` |
 | Avanzamento | `src/domain/consuntivi/index.ts`, `src/lib/offerte.ts`, `src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx` |
 | Dati | `prisma/schema.prisma` (`Offerta`) |
-| Test | `tests/unit/offerte-dal-actions.test.ts`, `tests/unit/avanzamento-offerte.test.ts`, `tests/e2e/anagrafica-offerte.spec.ts`, `tests/e2e/gestione-offerte.spec.ts` |
+| Test | `tests/unit/offerte-dal-actions.test.ts`, `tests/unit/elenca-offerte-con-avanzamento.test.ts`, `tests/unit/avanzamento-offerte.test.ts`, `tests/e2e/anagrafica-offerte.spec.ts`, `tests/e2e/gestione-offerte.spec.ts`, `tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts` |
 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
@@ -97,4 +95,4 @@ Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Unit test coprono validazione, DAL, eliminazione, calcolo ed esposizione dell'avanzamento; E2E coprono gestione, viste annidate e trasversali, incluso il dettaglio espandibile e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer.
+Unit test coprono validazione, DAL, eliminazione, calcolo e le query di avanzamento trasversale e filtrata per cliente; E2E coprono gestione, viste annidate e trasversali, inclusi i dettagli espandibili, la navigazione a Modifica dall'elenco cliente e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer.
