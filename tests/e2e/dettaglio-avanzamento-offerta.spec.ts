@@ -4,6 +4,10 @@ import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import {
+	apriPaginaOfferte,
+	attendiTabellaOfferteIdratata,
+} from "./support/offerte";
 
 function codiceUnivoco(prefisso: string): string {
 	return `E2E-DET-${prefisso}-${randomUUID().slice(0, 8)}`.toUpperCase();
@@ -11,16 +15,6 @@ function codiceUnivoco(prefisso: string): string {
 
 function testoLetterale(valore: string): RegExp {
 	return new RegExp(valore.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-}
-
-async function apriOfferte(page: Page): Promise<void> {
-	const navigazione = page.getByRole("navigation", {
-		name: "Navigazione principale",
-	});
-
-	await navigazione.getByRole("link", { name: "Offerte", exact: true }).click();
-	await page.waitForURL(/\/offerte(?:\?.*)?$/);
-	await expect(page.getByRole("table", { name: "Elenco offerte" })).toBeVisible();
 }
 
 function rigaOfferta(page: Page, codice: string): Locator {
@@ -81,7 +75,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			fatturabile: true,
 		});
 
-		await apriOfferte(page);
+		await apriPaginaOfferte(page);
 
 		const riga = rigaOfferta(page, codice);
 		const pulsante = pulsanteDettaglio(riga, codice);
@@ -157,7 +151,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			});
 		}
 
-		await apriOfferte(page);
+		await apriPaginaOfferte(page);
 
 		for (const scenario of scenari) {
 			const riga = rigaOfferta(page, scenario.codice);
@@ -200,7 +194,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			fatturabile: true,
 		});
 
-		await apriOfferte(page);
+		await apriPaginaOfferte(page);
 
 		const riga = rigaOfferta(page, codice);
 		await riga.getByText(codice, { exact: true }).click();
@@ -220,7 +214,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			{ codice, giorniPrevisti: 5 },
 		);
 
-		await apriOfferte(page);
+		await apriPaginaOfferte(page);
 		await rigaOfferta(page, codice).getByText(codice, { exact: true }).click();
 
 		const dettaglio = dettaglioOfferta(page, codice);
@@ -243,7 +237,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 		const offertaA = await factory.createOfferta({ cliente, codice: codiceA });
 		await factory.createOfferta({ cliente, codice: codiceB });
 
-		await apriOfferte(page);
+		await apriPaginaOfferte(page);
 
 		const rigaA = rigaOfferta(page, codiceA);
 		await rigaA.getByText(codiceA, { exact: true }).click();
@@ -266,6 +260,9 @@ test.describe("Dettaglio avanzamento offerta", () => {
 				url.searchParams.get("esito") === "stato-offerta-aggiornato" &&
 				url.searchParams.get("offertaEspansaId") === offertaA.id,
 		);
+		// Il redirect della server action ricarica la pagina: la tabella va
+		// ri-attesa idratata prima di cliccare handler client come "Elimina".
+		await attendiTabellaOfferteIdratata(page);
 
 		const rigaBDisattivata = rigaOfferta(page, codiceB);
 		await expect(

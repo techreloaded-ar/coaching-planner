@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import { attendiTabellaOfferteClienteIdratata } from "./support/offerte";
 
 function codiceUnivoco(): string {
 	return `E2E-DEMO-DET-CLIENTE-${randomUUID().slice(0, 8)}`.toUpperCase();
@@ -33,7 +34,8 @@ test.describe("US-033 Demo", () => {
 		await page.goto(`/anagrafiche/clienti/${cliente.id}`);
 
 		const tabella = page.getByRole("table", { name: "Offerte del cliente" });
-		await expect(tabella).toBeVisible();
+		// L'espansione della riga è un handler client: attendere l'idratazione.
+		await attendiTabellaOfferteClienteIdratata(page);
 
 		const riga = tabella.getByRole("row", { name: new RegExp(codice) });
 		await expect(riga).toBeVisible();

@@ -4,6 +4,7 @@ import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import { attendiTabellaOfferteIdratata } from "./support/offerte";
 
 /** Codice offerta univoco per il test, così da localizzare una singola riga. */
 function codiceUnivoco(prefisso: string): string {
@@ -166,6 +167,8 @@ test.describe("Gestione offerte", () => {
 		const offerta = await factory.createOfferta({ codice });
 
 		await page.goto("/offerte");
+		// "Elimina" è un handler client: attendere l'idratazione della tabella.
+		await attendiTabellaOfferteIdratata(page);
 		const riga = rigaConCodice(page, offerta.codice);
 		await expect(riga).toHaveCount(1);
 		await riga.getByRole("button", { name: "Elimina", exact: true }).click();
@@ -190,6 +193,8 @@ test.describe("Gestione offerte", () => {
 		await factory.createRigaAttivita({ offerta });
 
 		await page.goto("/offerte");
+		// "Elimina" è un handler client: attendere l'idratazione della tabella.
+		await attendiTabellaOfferteIdratata(page);
 		const riga = rigaConCodice(page, offerta.codice);
 		await expect(riga).toHaveCount(1);
 		await riga.getByRole("button", { name: "Elimina", exact: true }).click();

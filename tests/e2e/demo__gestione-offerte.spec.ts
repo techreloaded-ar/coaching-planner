@@ -4,6 +4,7 @@ import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import { attendiTabellaOfferteIdratata } from "./support/offerte";
 
 /**
  * Demo scenario — US-026: Gestione delle offerte dalla pagina Offerte.
@@ -175,6 +176,9 @@ test.describe("US-026 Demo", () => {
     ).toBeVisible();
 
     // ── 5. Eliminazione di un'offerta priva di attività collegate ──
+    // Il redirect post-riattivazione ricarica la pagina: "Elimina" è un
+    // handler client, quindi la tabella va ri-attesa idratata.
+    await attendiTabellaOfferteIdratata(page);
     await rigaOfferta(page, offertaSenzaAttivita.codice)
       .getByRole("button", { name: "Elimina", exact: true })
       .click();
@@ -194,6 +198,8 @@ test.describe("US-026 Demo", () => {
     ).toHaveCount(0);
 
     // ── 6. Eliminazione bloccata per offerta con attività collegate ─
+    // Anche qui la pagina è appena stata ricaricata dal redirect post-eliminazione.
+    await attendiTabellaOfferteIdratata(page);
     await rigaOfferta(page, offertaConAttivita.codice)
       .getByRole("button", { name: "Elimina", exact: true })
       .click();

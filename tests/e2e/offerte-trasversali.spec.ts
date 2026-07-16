@@ -1,29 +1,12 @@
 import { randomUUID } from "node:crypto";
 
-import type { Page } from "@playwright/test";
-
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import { apriPaginaOfferte } from "./support/offerte";
 
 /** Escape per usare un valore come frammento letterale in una RegExp. */
 function comeRegExp(valore: string): RegExp {
 	return new RegExp(valore.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-}
-
-/**
- * Naviga alla pagina Offerte cliccando la voce di menu (non via URL diretto) e
- * attende in modo web-first che la tabella trasversale sia montata.
- */
-async function apriPaginaOfferte(page: Page): Promise<void> {
-	const navigazione = page.getByRole("navigation", {
-		name: "Navigazione principale",
-	});
-	await navigazione
-		.getByRole("link", { name: "Offerte", exact: true })
-		.click();
-
-	await page.waitForURL("**/offerte");
-	await expect(page.getByRole("table", { name: "Elenco offerte" })).toBeVisible();
 }
 
 test.describe("Pagina offerte trasversale", () => {

@@ -1,0 +1,46 @@
+schema: archetipo/spec/v2
+code: US-031
+title: Apertura di qualsiasi giorno dal calendario per registrare attività
+epic:
+  code: EP-003
+  title: Consuntivazione Attività
+priority: HIGH
+points: 2
+status: DONE
+body: |-
+  #### US-031: Apertura di qualsiasi giorno dal calendario per registrare attività
+
+  **Epic:** EP-003 | **Priorità:** HIGH | **Punti:** 2 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come Giulia, collaboratrice,
+  voglio aprire dal calendario qualunque giorno, anche se non ha ancora attività registrate,
+  così da poter aggiungere le righe della giornata direttamente dal mese, senza giorni irraggiungibili.
+
+  **Dimostrazione**
+  Partendo da un mese in cui un giorno non ha attività registrate, la collaboratrice clicca quel giorno vuoto e atterra sulla pagina della giornata con il form di inserimento riga visibile; aggiunge una riga e, tornando al calendario, vede quel giorno evidenziato con la sintesi della riga appena inserita. Clicca poi un giorno fuori mese in testa alla griglia e atterra sulla pagina di dettaglio di quel giorno del mese adiacente.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Il click su un giorno del mese senza attività apre la pagina di dettaglio di quel giorno, con il form di inserimento riga visibile
+  - [ ] AC-2 — Il click su un giorno con attività registrate apre la pagina di dettaglio con le righe esistenti, come oggi
+  - [ ] AC-3 — Il click su un giorno fuori mese apre la pagina di dettaglio di quel giorno del mese adiacente
+  - [ ] AC-4 — I giorni senza attività mostrano al passaggio del mouse uno stato visivo che li segnala come cliccabili
+  - [ ] AC-5 — La legenda del calendario indica che ogni giorno è apribile per inserire o modificare le righe, senza limitare il click ai soli giorni con attività
+
+  **Fuori Perimetro**
+  Nessuna modifica al form di inserimento/modifica della giornata, alle validazioni delle righe o alla sintesi mostrata nelle celle del calendario. Nessun blocco o trattamento speciale per giorni futuri o weekend: restano apribili come qualsiasi altro giorno.
+
+  **Wiki context**
+  - domains.attivita
+history:
+  - status: TODO
+    at: "2026-07-16T09:34:40Z"
+  - status: PLANNED
+    at: "2026-07-16T10:20:07Z"
+  - status: IN PROGRESS
+    at: "2026-07-16T11:26:00Z"
+  - status: REVIEW
+    at: "2026-07-16T11:30:35Z"
+  - status: DONE
+    at: "2026-07-16T14:24:34Z"

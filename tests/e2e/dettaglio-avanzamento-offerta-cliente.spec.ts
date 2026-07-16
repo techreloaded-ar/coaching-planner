@@ -4,6 +4,7 @@ import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import { attendiTabellaOfferteClienteIdratata } from "./support/offerte";
 
 function codiceUnivoco(prefisso: string): string {
 	return `E2E-DET-CLIENTE-${prefisso}-${randomUUID().slice(0, 8)}`.toUpperCase();
@@ -37,9 +38,7 @@ function indicatore(region: Locator, etichetta: string): Locator {
 
 async function apriDettaglioCliente(page: Page, clienteId: string): Promise<void> {
 	await page.goto(`/anagrafiche/clienti/${clienteId}`);
-	await expect(
-		page.getByRole("table", { name: "Offerte del cliente" }),
-	).toBeVisible();
+	await attendiTabellaOfferteClienteIdratata(page);
 }
 
 test.describe("Dettaglio avanzamento offerta nella pagina cliente", () => {

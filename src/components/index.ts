@@ -1,2 +1,2 @@
 // Componenti UI condivisi — saranno popolati nelle spec successive.
-export {};
+export { useIdratata } from "./use-idratata";

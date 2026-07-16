@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import Link from "next/link";
+import { useIdratata } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
 import DettaglioAvanzamentoOfferta from "@/app/(back-office)/offerte/dettaglio-avanzamento-offerta";
 
@@ -22,13 +23,18 @@ export default function OfferteClienteTabella({
   offerte,
 }: OfferteClienteTabellaProps) {
   const [offertaEspansaId, setOffertaEspansaId] = useState<string | null>(null);
+  const idratata = useIdratata();
 
   function toggleEspansione(offertaId: string) {
     setOffertaEspansaId((id) => (id === offertaId ? null : offertaId));
   }
 
   return (
-    <table className="w-full border-collapse text-[13.5px]" aria-label="Offerte del cliente">
+    <table
+      className="w-full border-collapse text-[13.5px]"
+      aria-label="Offerte del cliente"
+      data-idratata={idratata ? "true" : "false"}
+    >
       <thead>
         <tr>
           <th className="px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">

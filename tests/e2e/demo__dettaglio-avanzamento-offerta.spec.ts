@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { expect, test } from "./support/fixtures";
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { attendiTabellaOfferteIdratata } from "./support/offerte";
 
 test.describe("Demo US-032 — dettaglio avanzamento nelle Offerte", () => {
   test("l'amministratore espande un'offerta e monitora avanzamento e collaboratori", async ({
@@ -32,7 +33,7 @@ test.describe("Demo US-032 — dettaglio avanzamento nelle Offerte", () => {
       .getByRole("navigation", { name: "Navigazione principale" })
       .getByRole("link", { name: "Offerte", exact: true })
       .click();
-    await expect(page.getByRole("table", { name: "Elenco offerte" })).toBeVisible();
+    await attendiTabellaOfferteIdratata(page);
 
     // 2. Apre il dettaglio dell'offerta appena creata.
     const riga = page.getByRole("row", { name: new RegExp(codice) });

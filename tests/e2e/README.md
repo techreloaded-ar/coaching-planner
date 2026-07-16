@@ -55,6 +55,16 @@ Per report aggregati globali, come avanzamento offerte, non asserire conteggi o 
 - Non usare `waitForTimeout` per sincronizzare logica funzionale: usa `expect`, `waitForURL`, locator web-first o polling su stato osservabile.
 - `slowMo` e una pausa finale `waitForTimeout(1500)` sono ammessi solo nei demo video come ritmo di registrazione, con commento esplicito.
 
+### Idratazione e click su handler client
+
+L'HTML server-rendered supera gli actionability check di Playwright prima che React abbia agganciato gli handler: un click in quella finestra è un no-op e produce flake (visto sulla US-032, amplificato da `npm run dev` con route fredde e worker paralleli).
+
+Le tabelle offerte espongono il contratto osservabile `data-idratata` (hook `useIdratata` in `src/components/use-idratata.ts`): vale `"false"` nell'HTML SSR e passa a `"true"` solo a idratazione avvenuta.
+
+Regola: ogni click su handler client (espansione riga, "Elimina") che è la **prima interazione client dopo una navigazione documentale** (goto, click da menu, redirect post-server-action) va preceduto dagli helper di `support/offerte.ts` — `apriPaginaOfferte` o `attendiTabellaOfferteIdratata`/`attendiTabellaOfferteClienteIdratata`. Non servono per: submit di form server-action (progressive enhancement), link `<a>`, o click successivi a interazioni client già riuscite nella stessa pagina.
+
+Misura complementare (non sostitutiva) per CI: lanciare la suite contro una build di produzione con `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run build && npm run start"`, che elimina la compilazione on-demand delle route.
+
 ## Gate locale
 
 Prima di considerare stabile una modifica e2e:

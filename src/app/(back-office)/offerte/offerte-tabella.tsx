@@ -2,6 +2,7 @@
 
 import { Fragment, useState, useActionState } from "react";
 import Link from "next/link";
+import { useIdratata } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
 import DettaglioAvanzamentoOfferta from "./dettaglio-avanzamento-offerta";
 import {
@@ -65,6 +66,7 @@ export default function OfferteTabella({
   );
   const [offertaDaEliminare, setOffertaDaEliminare] =
     useState<VoceElencoOfferta | null>(null);
+  const idratata = useIdratata();
 
   if (offerte.length === 0) {
     return <StatoVuoto />;
@@ -122,7 +124,11 @@ export default function OfferteTabella({
 
       {/* Tabella trasversale */}
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[13.5px]" aria-label="Elenco offerte">
+        <table
+          className="w-full border-collapse text-[13.5px]"
+          aria-label="Elenco offerte"
+          data-idratata={idratata ? "true" : "false"}
+        >
           <thead>
             <tr>
               <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">

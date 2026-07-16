@@ -1,0 +1,38 @@
+schema: archetipo/spec/v2
+code: US-034
+title: Nome cliente e ore cumulate nelle celle del calendario attività
+epic:
+  code: EP-003
+  title: Consuntivazione Attività
+priority: MEDIUM
+points: 2
+status: TODO
+body: |-
+  #### US-034: Nome cliente e ore cumulate nelle celle del calendario attività
+
+  **Epic:** EP-003 | **Priorità:** MEDIUM | **Punti:** 2 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come Giulia, collaboratrice,
+  voglio vedere nelle celle del calendario il nome del cliente con le ore lavorate per quel cliente,
+  così da riconoscere a colpo d'occhio per chi ho lavorato in ogni giornata, invece di dover decifrare i codici offerta.
+
+  **Dimostrazione**
+  Partendo da un mese in cui un giorno ha due righe su offerte diverse dello stesso cliente (es. 4 h + 2 h) e una riga su un secondo cliente, la collaboratrice apre il calendario e nella cella di quel giorno vede due etichette: la ragione sociale del primo cliente con le ore sommate (6 h) e quella del secondo cliente con le sue ore. Aggiunge poi una riga per un terzo cliente nello stesso giorno e, tornando al calendario, vede le prime due etichette seguite dall'indicatore "+1".
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Nelle celle del calendario, al posto del codice offerta compare la ragione sociale del cliente con le ore lavorate per quel cliente nel giorno
+  - [ ] AC-2 — Righe su offerte diverse dello stesso cliente nello stesso giorno producono un'unica etichetta con la somma delle loro ore
+  - [ ] AC-3 — Con più di due clienti nello stesso giorno, la cella mostra le prime due etichette e un indicatore "+N" con il numero dei clienti rimanenti
+  - [ ] AC-4 — Il riepilogo del giorno già presente nella cella (numero righe e ore totali della giornata) resta invariato
+
+  **Fuori Perimetro**
+  Nessuna modifica alla pagina di dettaglio della giornata, che continua a mostrare le righe con cliente e offerta. Nessuna modifica al riepilogo mensile né ai criteri di evidenziazione dei giorni con attività.
+
+  **Wiki context**
+  - domains.attivita
+  - domains.clienti
+history:
+  - status: TODO
+    at: "2026-07-16T15:40:04Z"

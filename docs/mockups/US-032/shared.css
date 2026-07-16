@@ -1,0 +1,591 @@
+/* ============================================================
+   Coaching Planner — US-032
+   Dettaglio avanzamento espandibile nella pagina Offerte
+   (e dismissione della pagina Avanzamento offerte)
+
+   Estende la tabella trasversale /offerte (US-025/US-026): il
+   click su una riga la espande sotto sé stessa mostrando la
+   scheda di avanzamento — badge di stato, KPI previste/erogate/
+   residuo, barra di utilizzo e ripartizione per collaboratore —
+   riprendendo il linguaggio visivo di
+   report/avanzamento-offerte/report-avanzamento-offerte.tsx,
+   compattato per stare dentro una riga di tabella.
+
+   Design system allineato a US-026 (zinc + indigo, dark mode,
+   raggi 10-11px, font 13.5px).
+   ============================================================ */
+
+:root{
+  /* neutri — scala zinc */
+  --bg:        #fafafa;
+  --surface:   #ffffff;
+  --surface-2: #f4f4f5;
+  --ink:       #27272a;
+  --ink-2:     #52525b;
+  --ink-3:     #a1a1aa;
+  --line:      #e4e4e7;
+  --line-2:    #f0f0f1;
+
+  /* primario — indigo */
+  --primary:      #4f46e5;
+  --primary-600:  #4338ca;
+  --primary-soft: #eef2ff;
+  --primary-tint: #c7d2fe;
+  --on-primary:   #ffffff;
+
+  /* semantici */
+  --ok:    #059669;
+  --ok-t:  #ecfdf5;
+  --ok-tint:#a7f3d0;
+  --err:   #dc2626;
+  --err-2: #b91c1c;
+  --err-t: #fef2f2;
+  --err-tint: #fecaca;
+  --soon:  #b45309;
+  --soon-t:#fffbeb;
+  --soon-tint:#fde68a;
+
+  --radius: 11px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / .05), 0 1px 3px rgb(24 24 27 / .05);
+  --shadow:    0 2px 6px rgb(24 24 27 / .06), 0 8px 24px rgb(24 24 27 / .07);
+  --shadow-lg: 0 12px 40px rgb(24 24 27 / .16);
+
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --sidebar-w: 248px;
+  --sidebar-w-rail: 66px;
+}
+
+/* ---------- Dark mode ---------- */
+[data-theme="dark"]{
+  --bg:        #09090b;
+  --surface:   #18181b;
+  --surface-2: #27272a;
+  --ink:       #f4f4f5;
+  --ink-2:     #a1a1aa;
+  --ink-3:     #71717a;
+  --line:      #2c2c30;
+  --line-2:    #222226;
+
+  --primary:      #6366f1;
+  --primary-600:  #818cf8;
+  --primary-soft: rgb(99 102 241 / .16);
+  --primary-tint: rgb(129 140 248 / .45);
+  --on-primary:   #ffffff;
+
+  --ok:    #34d399;
+  --ok-t:  rgb(16 185 129 / .14);
+  --ok-tint:rgb(52 211 153 / .4);
+  --err:   #f87171;
+  --err-2: #fca5a5;
+  --err-t: rgb(239 68 68 / .14);
+  --err-tint: rgb(248 113 113 / .4);
+  --soon:  #fbbf24;
+  --soon-t:rgb(245 158 11 / .13);
+  --soon-tint:rgb(251 191 36 / .4);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / .35), 0 1px 3px rgb(0 0 0 / .3);
+  --shadow:    0 2px 6px rgb(0 0 0 / .35), 0 8px 24px rgb(0 0 0 / .35);
+  --shadow-lg: 0 12px 40px rgb(0 0 0 / .5);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  font-size:15px;
+  line-height:1.5;
+  transition:background .25s, color .25s;
+}
+h1,h2,h3,h4{margin:0;letter-spacing:-0.02em;line-height:1.15;font-weight:700;}
+a{color:inherit;}
+
+/* ============================================================
+   App shell — console con sidebar fissa a sinistra
+   ============================================================ */
+.console{min-height:100vh;}
+
+.sidebar{
+  position:fixed;top:0;bottom:0;left:0;z-index:20;
+  width:var(--sidebar-w);
+  display:flex;flex-direction:column;
+  background:var(--surface);
+  border-right:1px solid var(--line);
+  transition:background .25s, border-color .25s;
+}
+
+/* ---------- Brand ---------- */
+.brand{
+  display:flex;align-items:center;gap:11px;
+  padding:18px 16px;border-bottom:1px solid var(--line-2);
+}
+.brand-mark{
+  width:36px;height:36px;border-radius:10px;flex:none;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg, var(--primary), var(--primary-600));
+  color:#fff;font-weight:800;font-size:13px;letter-spacing:.02em;
+  box-shadow:var(--shadow-sm);
+}
+.brand-name{min-width:0;line-height:1.25;}
+.brand-name b{display:block;font-size:14px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap;}
+.brand-name span{font-size:11px;color:var(--ink-3);font-weight:500;}
+
+/* ---------- Navigazione ---------- */
+.side-nav{
+  flex:1;overflow-y:auto;
+  padding:14px 10px;display:flex;flex-direction:column;gap:3px;
+}
+.nav-label{
+  font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3);padding:4px 10px 7px;
+}
+.nav-item{
+  position:relative;
+  display:flex;align-items:center;gap:11px;
+  padding:9px 11px;border-radius:10px;
+  font-size:13.5px;font-weight:600;color:var(--ink-2);
+  text-decoration:none;border:0;background:transparent;
+  font-family:var(--sans);cursor:pointer;width:100%;text-align:left;
+  transition:background .15s, color .15s;
+}
+.nav-item svg{width:17px;height:17px;flex:none;stroke-width:1.9;}
+.nav-item .lbl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nav-item:hover:not(.active){background:var(--surface-2);color:var(--ink);}
+
+/* voce attiva */
+.nav-item.active{background:var(--primary-soft);color:var(--primary-600);}
+.nav-item.active::before{
+  content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;
+  border-radius:99px;background:var(--primary);
+}
+
+/* voce dismessa: barrata e disabilitata (pagina Avanzamento offerte) */
+.nav-item.dismessa{color:var(--ink-3);cursor:not-allowed;opacity:.7;}
+.nav-item.dismessa .lbl{text-decoration:line-through;}
+.nav-item.dismessa:hover{background:transparent;color:var(--ink-3);}
+.nav-item .dismessa-tag{
+  margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);border:1px solid var(--line);border-radius:99px;padding:1px 6px;flex:none;
+}
+
+/* ---------- Piede sidebar ---------- */
+.side-foot{
+  border-top:1px solid var(--line-2);
+  padding:12px;display:flex;flex-direction:column;gap:10px;
+}
+.side-user{display:flex;align-items:center;gap:10px;padding:2px 3px;}
+.side-user .meta{flex:1;min-width:0;line-height:1.25;}
+.side-user .meta b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.side-user .meta span{font-size:11px;color:var(--ink-3);}
+.esci-btn{width:100%;}
+
+.avatar{
+  width:32px;height:32px;border-radius:50%;flex:none;
+  display:grid;place-items:center;font-weight:700;font-size:13px;
+  background:var(--primary);color:#fff;
+}
+
+/* ---------- Area contenuto ---------- */
+.main{margin-left:var(--sidebar-w);min-width:0;min-height:100vh;display:flex;flex-direction:column;}
+.content{padding:30px 36px 64px;max-width:1240px;width:100%;}
+
+.view-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
+.view-head .crumb{font-size:12px;color:var(--ink-3);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;}
+.view-head h1{font-size:23px;}
+.view-head .desc{font-size:13px;color:var(--ink-3);margin-top:6px;max-width:640px;}
+.view-head .view-actions{display:flex;align-items:center;gap:10px;flex:none;margin-top:4px;}
+
+/* ---------- Theme toggle ---------- */
+.theme-toggle{
+  width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);cursor:pointer;flex:none;
+  display:grid;place-items:center;box-shadow:var(--shadow-sm);
+}
+.theme-toggle:hover{color:var(--ink);background:var(--surface-2);}
+.theme-toggle svg{width:17px;height:17px;stroke-width:1.8;}
+.theme-toggle .ic-sun{display:none;}
+[data-theme="dark"] .theme-toggle .ic-sun{display:block;}
+[data-theme="dark"] .theme-toggle .ic-moon{display:none;}
+
+/* ============================================================
+   Componenti condivisi
+   ============================================================ */
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  font-family:var(--sans);font-weight:600;font-size:13.5px;border-radius:10px;
+  padding:9px 15px;border:1px solid transparent;cursor:pointer;
+  text-decoration:none;white-space:nowrap;
+  transition:background .15s, color .15s, border-color .15s;
+}
+.btn svg{width:16px;height:16px;stroke-width:2;}
+.btn-primary{background:var(--primary);color:var(--on-primary);box-shadow:var(--shadow-sm);}
+.btn-primary:hover{background:var(--primary-600);}
+.btn-ghost{background:var(--surface);border-color:var(--line);color:var(--ink);box-shadow:var(--shadow-sm);}
+.btn-ghost:hover{background:var(--surface-2);}
+.btn-sm{padding:6px 10px;font-size:12.5px;}
+.btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);}
+
+/* codice offerta: badge mono-spaced */
+.codice-offerta{
+  font-family:var(--mono);
+  font-size:12px;font-weight:600;letter-spacing:.01em;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:7px;
+  padding:3px 8px;white-space:nowrap;color:var(--ink-2);
+  display:inline-block;
+}
+
+.av-sq{
+  width:32px;height:32px;border-radius:9px;flex:none;display:grid;place-items:center;
+  color:#fff;font-weight:700;font-size:11.5px;letter-spacing:.01em;
+  background:var(--primary);
+}
+
+/* ============================================================
+   Tabella offerte trasversale (ereditata da US-025/US-026)
+   ============================================================ */
+.tbl-toolbar{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.search{
+  flex:1;display:flex;align-items:center;gap:8px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:10px;padding:8px 12px;color:var(--ink-3);max-width:340px;
+}
+.search svg{width:15px;height:15px;flex:none;stroke-width:2;}
+.search input{border:0;background:transparent;outline:0;font-family:var(--sans);font-size:13.5px;color:var(--ink);width:100%;}
+.search input::placeholder{color:var(--ink-3);}
+.pill-critiche{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--err-t);border:1px solid var(--err-tint);
+  border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--err);
+}
+.pill-critiche svg{width:13px;height:13px;stroke-width:2.2;}
+.pill-critiche b{font-variant-numeric:tabular-nums;}
+.toolbar-count{font-size:12.5px;color:var(--ink-3);font-weight:500;margin-left:auto;font-variant-numeric:tabular-nums;}
+
+.tbl-wrap{overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px;}
+.tbl th{
+  text-align:left;font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);padding:11px 16px;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+.tbl td{padding:13px 16px;border-bottom:1px solid var(--line-2);vertical-align:middle;}
+.tbl .tnum{font-variant-numeric:tabular-nums;}
+.tbl td.num,.tbl th.num{text-align:right;}
+.tbl td.num{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.tbl .unita{font-size:11px;font-weight:600;color:var(--ink-3);margin-left:3px;}
+.tbl td.tariffa{font-weight:600;}
+
+/* riga cliccabile che espande il dettaglio */
+.riga-offerta{cursor:pointer;transition:background .12s;}
+.riga-offerta:hover{background:var(--surface-2);}
+.riga-offerta:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;}
+.riga-offerta.espansa{background:var(--surface-2);}
+.riga-offerta.espansa td{border-bottom-color:transparent;}
+
+/* chevron di espansione nella prima cella */
+.chev{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;flex:none;border-radius:7px;color:var(--ink-3);
+  transition:transform .2s, background .14s, color .14s;
+}
+.chev svg{width:15px;height:15px;stroke-width:2.4;}
+.riga-offerta:hover .chev{background:var(--surface);color:var(--ink-2);}
+.riga-offerta.espansa .chev{transform:rotate(90deg);color:var(--primary-600);background:var(--primary-soft);}
+
+/* cella Offerta: chevron + codice badge + descrizione */
+.offerta-cell{display:flex;align-items:flex-start;gap:10px;min-width:0;}
+.offerta-cell .oc-testi{min-width:0;line-height:1.35;}
+.offerta-cell .codice-offerta{margin-bottom:5px;}
+.offerta-cell .descr{
+  display:block;font-size:13.5px;font-weight:600;color:var(--ink);
+  max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* cella Cliente */
+.cliente-cell{display:flex;align-items:center;gap:10px;min-width:0;}
+.cliente-cell .nome{
+  font-size:13px;font-weight:600;color:var(--ink);
+  max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cliente-cell .av-sq{width:28px;height:28px;border-radius:8px;font-size:10.5px;}
+
+/* mini barra di utilizzo sotto le giornate erogate */
+.mini-bar{
+  width:76px;height:4px;border-radius:99px;background:var(--surface-2);
+  border:1px solid var(--line-2);overflow:hidden;margin:5px 0 0 auto;
+}
+.mini-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6366f1,#4338ca);}
+.mini-bar.is-warn i{background:linear-gradient(90deg,#fbbf24,#d97706);}
+.mini-bar.is-err i{background:repeating-linear-gradient(45deg,#ef4444 0 5px,#b91c1c 5px 10px);}
+
+/* residuo critico */
+.tbl td.residuo .valore{display:block;}
+.tbl td.residuo.critico .valore{color:var(--err);font-weight:800;}
+.residuo-flag{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-top:4px;padding:1.5px 7px;border-radius:99px;
+  font-size:10.5px;font-weight:700;letter-spacing:.02em;white-space:nowrap;
+  background:var(--err-t);color:var(--err);border:1px solid var(--err-tint);
+}
+.residuo-flag svg{width:11px;height:11px;stroke-width:2.4;}
+
+/* riga critica: filo rosso a sinistra */
+.tbl tr.riga-critica td:first-child{box-shadow:inset 3px 0 0 var(--err);}
+
+/* riga non attiva: attenuata */
+.tbl tr.riga-non-attiva td{color:var(--ink-3);}
+.tbl tr.riga-non-attiva .offerta-cell .descr{color:var(--ink-3);}
+.tbl tr.riga-non-attiva .cliente-cell .nome{color:var(--ink-3);}
+.tbl tr.riga-non-attiva .cliente-cell .av-sq{background:var(--surface-2);color:var(--ink-3);border:1px solid var(--line);}
+.tbl tr.riga-non-attiva .codice-offerta{color:var(--ink-3);}
+.tbl tr.riga-non-attiva td.tariffa{font-weight:500;}
+.tbl tr.riga-non-attiva .mini-bar i{background:var(--ink-3);opacity:.45;}
+.tbl td.nessun-risultato{padding:34px 16px;text-align:center;font-size:13px;color:var(--ink-3);}
+
+/* colonna Stato: switch + etichetta */
+.stato-cell{display:flex;align-items:center;gap:10px;}
+.switch{position:relative;display:inline-flex;align-items:center;flex:none;cursor:pointer;}
+.switch input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;}
+.switch .track{
+  position:relative;width:36px;height:21px;border-radius:99px;flex:none;
+  background:var(--surface-2);border:1px solid var(--line);
+  transition:background .18s, border-color .18s;
+}
+.switch .track i{
+  position:absolute;left:2.5px;top:50%;transform:translateY(-50%);
+  width:15px;height:15px;border-radius:50%;background:#fff;
+  box-shadow:var(--shadow-sm);transition:left .18s;
+}
+.switch input:checked + .track{background:var(--primary);border-color:var(--primary);}
+.switch input:checked + .track i{left:17.5px;}
+.switch input:focus-visible + .track{outline:2px solid var(--primary);outline-offset:2px;}
+.stato-cell .stato-testo{font-size:12.5px;font-weight:600;color:var(--ink-2);white-space:nowrap;}
+.stato-cell.is-off .stato-testo{color:var(--ink-3);}
+
+/* colonna Azioni */
+.tbl th.azioni,.tbl td.azioni{text-align:right;white-space:nowrap;}
+.row-actions{display:inline-flex;align-items:center;gap:4px;justify-content:flex-end;}
+.act-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  border:1px solid transparent;background:transparent;border-radius:8px;padding:6px 9px;
+  font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--ink-2);
+  cursor:pointer;text-decoration:none;white-space:nowrap;
+  transition:background .14s, color .14s, border-color .14s;
+}
+.act-btn svg{width:14px;height:14px;stroke-width:2;flex:none;}
+.act-btn:hover{background:var(--surface);color:var(--ink);}
+.act-btn.danger:hover{background:var(--err-t);color:var(--err);}
+.act-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+
+/* ============================================================
+   US-032 — Riga di dettaglio avanzamento espansa
+   Riprende il linguaggio della scheda di
+   report-avanzamento-offerte, compattato in una riga tabella.
+   ============================================================ */
+
+/* la riga <tr> che contiene il pannello: nessun padding, full width */
+.riga-dettaglio > td{padding:0;border-bottom:1px solid var(--line-2);background:var(--surface-2);}
+
+/* animazione di apertura/chiusura */
+.dettaglio-wrap{
+  overflow:hidden;
+  display:grid;grid-template-rows:0fr;
+  transition:grid-template-rows .28s cubic-bezier(.4,0,.2,1);
+}
+.riga-dettaglio.aperta .dettaglio-wrap{grid-template-rows:1fr;}
+.dettaglio-inner{min-height:0;}
+
+/* la scheda vera e propria, con filo colorato a sinistra per stato */
+.avanzamento{
+  position:relative;margin:2px 16px 16px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);overflow:hidden;
+}
+.avanzamento::before{
+  content:"";position:absolute;top:0;bottom:0;left:0;width:4px;background:var(--primary);
+}
+
+/* mappa stato → colore del filo e degli accenti */
+.avanzamento.st-in_corso::before{background:var(--primary);}
+.avanzamento.st-in_allerta::before{background:#f59e0b;}
+.avanzamento.st-esaurita::before,
+.avanzamento.st-oltre_budget::before{background:#ef4444;}
+.avanzamento.st-oltre_budget::before{
+  background:repeating-linear-gradient(45deg,#ef4444 0 8px,#b91c1c 8px 16px);
+}
+.avanzamento.st-in_allerta{border-color:var(--soon-tint);}
+.avanzamento.st-esaurita,
+.avanzamento.st-oltre_budget{border-color:var(--err-tint);}
+
+/* intestazione del pannello: etichetta + badge di classificazione */
+.av-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:13px 18px 13px 22px;border-bottom:1px solid var(--line);
+  background:var(--surface-2);
+}
+.av-head .titolo{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+}
+.av-head .titolo svg{width:14px;height:14px;stroke-width:2;color:var(--primary-600);}
+
+/* badge di classificazione avanzamento (4 stati) */
+.badge-stato{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid transparent;border-radius:99px;padding:5px 11px;
+  font-size:11.5px;font-weight:700;white-space:nowrap;
+}
+.badge-stato svg{width:13px;height:13px;stroke-width:2.2;flex:none;}
+.badge-stato.st-in_corso{background:var(--primary-soft);color:var(--primary-600);border-color:var(--primary-tint);}
+.badge-stato.st-in_allerta{background:var(--soon-t);color:var(--soon);border-color:var(--soon-tint);}
+.badge-stato.st-esaurita,
+.badge-stato.st-oltre_budget{background:var(--err-t);color:var(--err);border-color:var(--err-tint);}
+
+/* corpo: KPI a 3 celle + barra di avanzamento */
+.av-body{padding:16px 22px 18px;}
+.kpi{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:16px;
+  background:var(--surface);
+}
+.kpi .cella{padding:12px 16px;text-align:center;border-right:1px solid var(--line);}
+.kpi .cella:last-child{border-right:0;}
+.kpi .etichetta{
+  display:block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:5px;
+}
+.kpi .valore{
+  font-size:25px;line-height:1;font-weight:800;letter-spacing:-.02em;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.kpi .valore .u{font-size:11px;font-weight:600;color:var(--ink-3);margin-left:3px;}
+.kpi .sotto{display:block;margin-top:5px;font-size:10.5px;font-variant-numeric:tabular-nums;color:var(--ink-3);}
+
+/* cella residuo colorata secondo lo stato */
+.kpi .cella.residuo.st-in_corso{background:var(--primary-soft);}
+.kpi .cella.residuo.st-in_corso .valore{color:var(--primary-600);}
+.kpi .cella.residuo.st-in_allerta{background:var(--soon-t);}
+.kpi .cella.residuo.st-in_allerta .valore{color:var(--soon);}
+.kpi .cella.residuo.st-esaurita,
+.kpi .cella.residuo.st-oltre_budget{background:var(--err-t);}
+.kpi .cella.residuo.st-esaurita .valore,
+.kpi .cella.residuo.st-oltre_budget .valore{color:var(--err);}
+
+/* barra di avanzamento con percentuale */
+.av-barra .riga-testo{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:7px;}
+.av-barra .lbl{font-size:12px;font-weight:600;color:var(--ink-2);}
+.av-barra .pct{font-size:15px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.av-barra.st-in_corso .pct{color:var(--primary-600);}
+.av-barra.st-in_allerta .pct{color:var(--soon);}
+.av-barra.st-esaurita .pct,
+.av-barra.st-oltre_budget .pct{color:var(--err);}
+.track-barra{
+  position:relative;height:11px;border-radius:99px;overflow:hidden;
+  background:var(--surface-2);border:1px solid var(--line);
+}
+.track-barra i{
+  position:absolute;top:0;bottom:0;left:0;border-radius:99px;
+  transition:width .5s cubic-bezier(.4,0,.2,1);
+}
+.av-barra.st-in_corso .track-barra i{background:linear-gradient(90deg,#6366f1,#4338ca);}
+.av-barra.st-in_allerta .track-barra i{background:linear-gradient(90deg,#fbbf24,#d97706);}
+.av-barra.st-esaurita .track-barra i{background:linear-gradient(90deg,#ef4444,#b91c1c);}
+.av-barra.st-oltre_budget .track-barra i{background:repeating-linear-gradient(45deg,#ef4444 0 8px,#b91c1c 8px 16px);}
+.av-barra .sotto{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;
+  font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--ink-3);
+}
+.av-barra .over-flag{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--err);}
+.av-barra .over-flag svg{width:13px;height:13px;stroke-width:2.4;}
+
+/* ripartizione per collaboratore */
+.av-collab{border-top:1px solid var(--line);}
+.av-collab .cap{
+  display:flex;align-items:center;gap:8px;padding:12px 22px 4px;
+  font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
+}
+.av-collab .cap svg{width:14px;height:14px;stroke-width:2;}
+.tbl-collab{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl-collab th{
+  text-align:right;font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--ink-3);
+  padding:6px 22px;white-space:nowrap;
+}
+.tbl-collab th:first-child{text-align:left;}
+.tbl-collab td{padding:9px 22px;border-top:1px solid var(--line-2);vertical-align:middle;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.tbl-collab td:first-child{text-align:left;}
+.tbl-collab tbody tr:hover{background:var(--surface-2);}
+.tbl-collab .collab-nome{display:flex;align-items:center;gap:10px;min-width:0;}
+.tbl-collab .av-collab-ini{
+  width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;
+  font-size:10px;font-weight:700;color:var(--ink-2);
+  background:var(--surface-2);border:1px solid var(--line);
+}
+.tbl-collab .collab-nome b{font-size:13px;font-weight:600;color:var(--ink);}
+.tbl-collab td.ore{color:var(--ink-2);}
+.tbl-collab td.gg{font-weight:700;color:var(--ink);}
+.tbl-collab td.quota{color:var(--ink-3);font-size:12.5px;}
+
+/* caso vuoto: nessuna attività registrata */
+.av-vuoto{
+  display:flex;align-items:center;gap:11px;
+  padding:16px 22px;font-size:13px;color:var(--ink-3);font-style:italic;
+}
+.av-vuoto svg{width:18px;height:18px;flex:none;stroke-width:1.8;color:var(--ink-3);font-style:normal;}
+
+/* ============================================================
+   Nota di contesto + barra demo
+   ============================================================ */
+.note-card{
+  margin-top:22px;padding:15px 18px;display:flex;gap:11px;align-items:flex-start;
+  font-size:13px;color:var(--ink-2);line-height:1.55;
+  background:var(--primary-soft);border:1px solid var(--primary-tint);border-radius:var(--radius);
+}
+.note-card svg{width:16px;height:16px;flex:none;stroke-width:2;color:var(--primary-600);margin-top:2px;}
+.note-card b{color:var(--primary-600);}
+.note-card code{
+  font-family:var(--mono);font-size:11.5px;
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:1px 6px;
+}
+.demo-bar{
+  margin-top:22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:12px 16px;border:1px dashed var(--line);border-radius:var(--radius);
+  background:var(--surface);
+}
+.demo-bar .demo-label{
+  display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--ink-3);flex:1;min-width:220px;
+}
+.demo-bar .demo-label svg{width:15px;height:15px;flex:none;stroke-width:2;margin-top:1.5px;}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 920px){
+  .sidebar{width:var(--sidebar-w-rail);}
+  .main{margin-left:var(--sidebar-w-rail);}
+  .content{padding:24px 20px 56px;}
+  .brand{padding:16px 0;justify-content:center;}
+  .brand-name{display:none;}
+  .side-nav{padding:12px 8px;}
+  .nav-label{display:none;}
+  .nav-item{justify-content:center;padding:10px;}
+  .nav-item .lbl{display:none;}
+  .nav-item .dismessa-tag{display:none;}
+  .nav-item.active::before{left:-8px;}
+  .side-foot{padding:10px 8px;align-items:center;}
+  .side-user{flex-direction:column;gap:8px;padding:0;}
+  .side-user .meta{display:none;}
+  .esci-btn{width:auto;padding:8px;}
+  .esci-btn .lbl{display:none;}
+}
+@media (max-width: 680px){
+  .kpi{grid-template-columns:1fr;}
+  .kpi .cella{border-right:0;border-bottom:1px solid var(--line);}
+  .kpi .cella:last-child{border-bottom:0;}
+}
