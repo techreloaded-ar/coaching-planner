@@ -6,7 +6,7 @@ epic:
   title: Autenticazione e Ruoli
 priority: HIGH
 points: 3
-status: PLANNED
+status: DONE
 body: |-
   #### US-029: Attivazione del proxy di autenticazione con rinnovo sliding della sessione
 
@@ -33,3 +33,9 @@ history:
     at: "2026-07-15T08:36:52Z"
   - status: PLANNED
     at: "2026-07-15T09:51:46Z"
+  - status: IN PROGRESS
+    at: "2026-07-15T12:04:34Z"
+  - status: REVIEW
+    at: "2026-07-15T14:10:17Z"
+  - status: DONE
+    at: "2026-07-15T15:34:46Z"

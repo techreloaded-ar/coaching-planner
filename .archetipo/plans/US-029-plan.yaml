@@ -73,7 +73,7 @@ tasks:
   - id: TASK-01
     title: Centralizzare configurazione e primitive della sessione
     type: Impl
-    status: TODO
+    status: DONE
     body: |-
       ## Descrizione
       **Obiettivo (Objective):** creare un'unica implementazione rigorosa per configurazione, firma, verifica e rinnovo dei token di sessione, riusabile dal proxy senza dipendenze da Next headers, database o `server-only`.
@@ -113,10 +113,11 @@ tasks:
       - [ ] Claim firmati ma incompleti o con ruolo ignoto vengono rifiutati
       - [ ] `src/lib/session.ts` conserva le opzioni di sicurezza del cookie
       - [ ] Nessuna dipendenza DB/`next/headers` nei moduli usati dal proxy
+    ref: TASK-01
   - id: TASK-02
     title: Attivare e rendere deterministico il proxy Next.js
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
     body: |-
@@ -154,10 +155,11 @@ tasks:
       - [ ] Redirect di ruolo e pass-through protetti rinnovano la sessione
       - [ ] Cookie invalidi vengono eliminati senza bloccare rotte pubbliche
       - [ ] Il proxy non importa né interroga il database
+    ref: TASK-02
   - id: TASK-03
     title: Coprire secret, token e proxy con test unitari reali
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
       - TASK-02
@@ -194,10 +196,11 @@ tasks:
       - [ ] Ambiente ripristinato tra i casi
       - [ ] Coperti claim malformati e tutti i rami redirect/pulizia/rinnovo
       - [ ] Suite unit mirata verde
+    ref: TASK-03
   - id: TASK-04
     title: Allineare ambiente e documentazione al fail-fast
     type: Impl
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-01
       - TASK-02
@@ -235,10 +238,11 @@ tasks:
       - [ ] CI ed e2e forniscono valori conformi
       - [ ] README descrive proxy attivo e rinnovo sliding
       - [ ] Nessun riferimento funzionale obsoleto a `/login`
+    ref: TASK-04
   - id: TASK-05
     title: Verificare i flussi proxy e sliding con Playwright
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-02
       - TASK-03
@@ -280,10 +284,11 @@ tasks:
       - [ ] Entrambi i ruoli tornano alla propria area senza dipendenze DB nel proxy
       - [ ] `/login` resta 404 e login/logout restano funzionanti
       - [ ] Lint e suite e2e mirata passano con parallelismo invariato
+    ref: TASK-05
   - id: TASK-06
     title: Eseguire fail-fast e regressione completa stabile
     type: Test
-    status: TODO
+    status: DONE
     dependencies:
       - TASK-05
     body: |-
@@ -315,3 +320,4 @@ tasks:
       - [ ] Redirect protetto conferma il proxy attivo
       - [ ] Tre suite e2e complete consecutive verdi con `--retries=0`
       - [ ] Ogni criterio di US-029 dispone di evidenza verificabile
+    ref: TASK-06

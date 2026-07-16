@@ -49,3 +49,4 @@ next-env.d.ts
 .agents/skills
 .claude/transcripts
 docs/test-results
+.pi-subagents

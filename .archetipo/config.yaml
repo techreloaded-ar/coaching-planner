@@ -2,6 +2,7 @@ connector: file
 paths:
     prd: docs/PRD.md
     mockups: docs/mockups/
+    wiki: docs/wiki/
     test_results: docs/test-results/
 workflow:
     statuses:
