@@ -2,7 +2,7 @@
 id: domains.offerte
 type: domain
 summary: Impegni commerciali per cliente, budget in giornate e monitoraggio dell'avanzamento
-status: generated
+status: reviewed
 classification: candidate
 links:
     - id: architecture.context-map
@@ -37,6 +37,10 @@ sources:
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
       role: verification
+review:
+    content_hash: sha256:8d316b9487d247f6fcef15d184beaa5f25240c529ad94da9362ddea90eee504c
+    evidence_revision: 89284123bc3a3a9931d727a2d22085aea7fe348c
+    reviewed_at: "2026-07-16T19:03:51Z"
 ---
 # Offerte
 
