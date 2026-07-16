@@ -80,9 +80,10 @@ test.describe("US-011 Demo", () => {
 
     // ── 6. Verifica che ci siano giorni con attività (seed) ────────
 
-    // Nel calendario i giorni con attività sono renderizzati come link verso
-    // il dettaglio giornata; il seed corrente copre 3 giorni distinti del mese.
-    const giorniConAttivita = calendario.locator('a[href^="/attivita/"]');
+    // Dopo US-031 tutte le celle sono link; i giorni con attività si
+    // distinguono per l'attributo data-con-attivita="true".
+    // Il seed corrente copre 3 giorni distinti del mese.
+    const giorniConAttivita = calendario.locator('a[data-con-attivita="true"]');
 
     const count = await giorniConAttivita.count();
     expect(count).toBeGreaterThanOrEqual(3);

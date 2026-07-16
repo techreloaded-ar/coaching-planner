@@ -224,21 +224,24 @@ export default function CalendarioMensile({
           {griglia.map((cella, idx) => {
             const cellaData = dataCalendario(cella.data);
             const key = formattaDataISO(cellaData);
+            const tokenCella = key.slice(0, 7);
             const haAttivita = key in sintesi;
             const isToday = stessoGiorno(cellaData, oggiDate);
             const isLastRow = idx >= griglia.length - 7;
 
             const classiGiorno = [
-              "relative flex flex-col items-start gap-[7px] p-[9px_10px_10px] min-w-0 w-full transition-colors",
+              "relative flex flex-col items-start gap-[7px] p-[9px_10px_10px] min-w-0 w-full transition-colors cursor-pointer",
               (idx + 1) % 7 !== 0 ? "border-r border-zinc-100 dark:border-zinc-800" : "",
               !isLastRow ? "border-b border-zinc-100 dark:border-zinc-800" : "",
-              cella.fuoriMese ? "bg-zinc-50 dark:bg-zinc-800/50" : "",
+              cella.fuoriMese
+                ? "bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800/70"
+                : "",
               !cella.fuoriMese && cella.isWeekend && !haAttivita
                 ? "bg-zinc-50/45 dark:bg-zinc-800/30"
                 : "",
               haAttivita
-                ? "bg-rose-50 dark:bg-rose-950/40 cursor-pointer hover:bg-rose-100/70 dark:hover:bg-rose-950/60"
-                : "",
+                ? "bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100/70 dark:hover:bg-rose-950/60"
+                : (!cella.fuoriMese ? "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60" : ""),
               isToday
                 ? "shadow-[inset_0_0_0_2px] shadow-rose-600 dark:shadow-rose-400"
                 : "",
@@ -302,23 +305,18 @@ export default function CalendarioMensile({
               </>
             );
 
-            if (haAttivita) {
-              return (
-                <Link
-                  key={key}
-                  href={`/attivita/${key}?mese=${token}`}
-                  className={classiGiorno}
-                  style={{ textDecoration: "none" }}
-                >
-                  {contenuto}
-                </Link>
-              );
-            }
-
             return (
-              <div key={key} className={classiGiorno}>
+              <Link
+                key={key}
+                href={`/attivita/${key}?mese=${tokenCella}`}
+                className={classiGiorno}
+                style={{ textDecoration: "none" }}
+                data-testid="cella-giorno"
+                data-con-attivita={haAttivita ? "true" : "false"}
+                data-fuori-mese={cella.fuoriMese ? "true" : "false"}
+              >
                 {contenuto}
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -339,7 +337,7 @@ export default function CalendarioMensile({
           Nessuna attività
         </span>
         <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">
-          Clicca un giorno con attività per inserire o modificare le righe
+          Clicca un giorno qualsiasi per inserire o modificare le righe
         </span>
       </div>
     </div>

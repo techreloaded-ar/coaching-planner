@@ -44,8 +44,10 @@ test.describe("US-011 Segregazione dati", () => {
     await expect(calendario).toBeVisible();
 
     // ── 4. Conta i giorni con attività ────────────────────────────
+    // Dopo US-031 tutte le celle sono link; i giorni con attività
+    // si distinguono per l'attributo data-con-attivita="true".
 
-    const giorniConAttivita = calendario.locator('a[href^="/attivita/"]');
+    const giorniConAttivita = calendario.locator('a[data-con-attivita="true"]');
     const count = await giorniConAttivita.count();
 
     // Il seed crea 6 righe per Giulia distribuite su 3 giorni distinti del
