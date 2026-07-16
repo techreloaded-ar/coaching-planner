@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Locator, Page } from "@playwright/test";
 
-import { accediComeAdmin } from "./support/auth";
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
 
 /**
@@ -86,7 +86,7 @@ test.describe("US-026 Demo", () => {
     const codiceNuova = `OFF-NEW-${token}`;
 
     // ── 1. Login amministratore e apertura "Offerte" dalla sidebar ─
-    await accediComeAdmin(page);
+    await accediAlBackOfficeComeAdmin(page);
     await expect(
       page.getByRole("banner").getByText("Tech Reloaded"),
     ).toBeVisible();

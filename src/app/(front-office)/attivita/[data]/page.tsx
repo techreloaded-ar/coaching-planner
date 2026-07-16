@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { richiediRuolo } from "@/lib/dal";
+import {
+  risolviProfiloCollaboratoreCorrente,
+  verificaSessione,
+} from "@/lib/dal";
 import { righeDelGiorno, clientiAttiviPerSelezione, scaglioniRimborsoTrasferta } from "@/lib/attivita";
 import { calcolaRimborsoTrasferta, type RisultatoCalcoloRimborso, type ScaglioneRimborso } from "@/domain/consuntivi";
 import DettaglioGiornata from "./dettaglio-giornata";
+import StatoProfiloCollaboratore from "../stato-profilo-collaboratore";
 
 // ── Tipi serializzati ───────────────────────────────────────────
 
@@ -75,7 +79,17 @@ export default async function DettaglioGiornataPage({
   params: Promise<{ data: string }>;
   searchParams: Promise<{ mese?: string }>;
 }) {
-  await richiediRuolo("COLLABORATORE");
+  const sessione = await verificaSessione();
+  const profilo = await risolviProfiloCollaboratoreCorrente();
+
+  if (profilo.stato !== "ATTIVO") {
+    return (
+      <StatoProfiloCollaboratore
+        stato={profilo.stato}
+        amministratore={sessione.ruolo === "AMMINISTRATORE"}
+      />
+    );
+  }
 
   const { data: dataStr } = await params;
   const { mese: meseToken } = await searchParams;

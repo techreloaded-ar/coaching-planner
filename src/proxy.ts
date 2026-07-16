@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import type { Ruolo } from "@/domain/types";
-import { homePerRuolo, ruoloRichiestoPerRotta } from "@/lib/policy-rotte";
+import {
+  HOME_AUTENTICATA,
+  type PoliticaAccesso,
+  politicaAccessoPerRotta,
+} from "@/lib/policy-rotte";
 import {
   NOME_COOKIE_SESSIONE,
   dataScadenzaSessione,
@@ -22,7 +25,7 @@ type TipoRichiesta =
 
 interface ClassificazioneRichiesta {
   tipo: TipoRichiesta;
-  ruoloRichiesto: Ruolo | null;
+  politicaAccesso: PoliticaAccesso | null;
 }
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
@@ -57,11 +60,11 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   if (
-    classificazione.ruoloRichiesto &&
-    sessione.payload.ruolo !== classificazione.ruoloRichiesto
+    classificazione.politicaAccesso === "AMMINISTRATORE" &&
+    sessione.payload.ruolo !== "AMMINISTRATORE"
   ) {
     return applicaRinnovo(
-      NextResponse.redirect(new URL(homePerRuolo(sessione.payload.ruolo), request.url)),
+      NextResponse.redirect(new URL(HOME_AUTENTICATA, request.url)),
       sessione
     );
   }
@@ -71,24 +74,24 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
 function classificaRichiesta(pathname: string): ClassificazioneRichiesta {
   if (pathname === "/") {
-    return { tipo: "root", ruoloRichiesto: null };
+    return { tipo: "root", politicaAccesso: null };
   }
 
   if (pathname === "/login") {
-    return { tipo: "login-tombstone", ruoloRichiesto: null };
+    return { tipo: "login-tombstone", politicaAccesso: null };
   }
 
   if (pathname === "/api/auth/google" || pathname.startsWith("/api/auth/google/")) {
-    return { tipo: "auth-public", ruoloRichiesto: null };
+    return { tipo: "auth-public", politicaAccesso: null };
   }
 
   if (pathname === "/api/e2e-test" || pathname.startsWith("/api/e2e-test/")) {
-    return { tipo: "e2e-public", ruoloRichiesto: null };
+    return { tipo: "e2e-public", politicaAccesso: null };
   }
 
   return {
     tipo: "protected",
-    ruoloRichiesto: ruoloRichiestoPerRotta(pathname),
+    politicaAccesso: politicaAccessoPerRotta(pathname),
   };
 }
 

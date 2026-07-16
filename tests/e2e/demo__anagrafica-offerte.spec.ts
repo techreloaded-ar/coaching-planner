@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { accediComeAdmin } from "./support/auth";
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
 
 test.use({
@@ -20,7 +20,7 @@ test.describe("US-008 Demo", () => {
 			ragioneSociale: `E2E Demo Offerte Cliente ${token}`,
 		});
 
-		await accediComeAdmin(page);
+		await accediAlBackOfficeComeAdmin(page);
 
 		await page.getByRole("link", { name: "Clienti", exact: true }).click();
 		await page.waitForURL("**/anagrafiche/clienti");

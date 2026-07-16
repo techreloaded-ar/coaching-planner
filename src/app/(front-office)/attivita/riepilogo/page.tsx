@@ -1,4 +1,7 @@
-import { richiediRuolo } from "@/lib/dal";
+import {
+  risolviProfiloCollaboratoreCorrente,
+  verificaSessione,
+} from "@/lib/dal";
 import { riepilogoMese } from "@/lib/attivita";
 import {
   tokenMeseCorrente,
@@ -8,13 +11,24 @@ import {
   meseSuccessivo,
 } from "@/domain/calendario";
 import RiepilogoMese from "./riepilogo-mese";
+import StatoProfiloCollaboratore from "../stato-profilo-collaboratore";
 
 export default async function RiepilogoMesePage({
   searchParams,
 }: {
   searchParams: Promise<{ mese?: string }>;
 }) {
-  await richiediRuolo("COLLABORATORE");
+  const sessione = await verificaSessione();
+  const profilo = await risolviProfiloCollaboratoreCorrente();
+
+  if (profilo.stato !== "ATTIVO") {
+    return (
+      <StatoProfiloCollaboratore
+        stato={profilo.stato}
+        amministratore={sessione.ruolo === "AMMINISTRATORE"}
+      />
+    );
+  }
 
   const params = await searchParams;
   const tokenRaw = params.mese ?? tokenMeseCorrente();

@@ -98,38 +98,7 @@ test.describe("US-011 Segregazione dati", () => {
     // (non verifichiamo l'esatto mese perché il seed cambia ogni giorno)
     await expect(calendario).toBeVisible();
 
-    // ── 7. Verifica che l'amministratore non possa accedere a /attivita ──
-
-    // Usa un nuovo contesto per l'amministratore
-    const adminCtx = await page.context().browser()!.newContext();
-    const adminPage = await adminCtx.newPage();
-
-    await adminPage.goto("/");
-    await adminPage.evaluate(async () => {
-      const res = await fetch("/api/e2e-test/sessione", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "info@techreloaded.it" }),
-      });
-      const data = await res.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    });
-
-    // L'amministratore viene reindirizzato alla landing reale del back office
-    await adminPage.waitForURL("**/anagrafiche/clienti**");
-    await expect(
-      adminPage.getByRole("heading", { name: "Clienti" })
-    ).toBeVisible();
-
-    // Se proviamo ad andare manualmente a /attivita, veniamo reindirizzati
-    await adminPage.goto("/attivita");
-    await adminPage.waitForURL("**/anagrafiche/clienti**");
-    await expect(
-      adminPage.getByRole("heading", { name: "Clienti" })
-    ).toBeVisible();
-
-    await adminCtx.close();
+    // L'accesso dell'amministratore al front office è coperto in modo isolato
+    // dalla suite US-030, senza riutilizzare il suo account seed.
   });
 });

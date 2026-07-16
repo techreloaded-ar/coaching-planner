@@ -4,6 +4,7 @@ import {
   richiediSessioneApi,
   richiediRuoloApi,
   richiediCollaboratoreCorrente,
+  risolviProfiloCollaboratoreCorrente,
   verificaAccessoDatiCollaboratore,
 } from "@/lib/dal";
 
@@ -170,6 +171,24 @@ describe("richiediSessioneApi", () => {
     expect(sessione.utenteId).toBe("admin-1");
     expect(sessione.ruolo).toBe("AMMINISTRATORE");
   });
+
+  it("mantiene la sessione amministrativa con profilo collaboratore disattivato", async () => {
+    mockGetSessionCookie.mockResolvedValue(
+      sessioneCookie("admin-1", "AMMINISTRATORE")
+    );
+    mockUtente.findUnique.mockResolvedValue({
+      id: "admin-1",
+      ruolo: "AMMINISTRATORE",
+      nome: "Admin",
+      email: "admin@test.local",
+      collaboratore: { attivo: false },
+    });
+
+    await expect(richiediSessioneApi()).resolves.toMatchObject({
+      utenteId: "admin-1",
+      ruolo: "AMMINISTRATORE",
+    });
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -217,9 +236,49 @@ describe("richiediRuoloApi", () => {
 // richiediCollaboratoreCorrente
 // ═══════════════════════════════════════════════════════════════
 
-describe("richiediCollaboratoreCorrente", () => {
+describe("risolviProfiloCollaboratoreCorrente e richiediCollaboratoreCorrente", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("risolve un profilo attivo associato a un amministratore", async () => {
+    mockGetSessionCookie.mockResolvedValue(
+      sessioneCookie("admin-1", "AMMINISTRATORE")
+    );
+    mockUtente.findUnique.mockResolvedValue({
+      id: "admin-1",
+      ruolo: "AMMINISTRATORE",
+      nome: "Admin",
+      email: "admin@test.local",
+      collaboratore: { attivo: true },
+    });
+    mockCollaboratore.findUnique.mockResolvedValue({ id: "collab-admin", attivo: true });
+
+    await expect(risolviProfiloCollaboratoreCorrente()).resolves.toMatchObject({
+      stato: "ATTIVO",
+      collaboratore: { id: "collab-admin" },
+    });
+  });
+
+  it("distingue il profilo assente", async () => {
+    mockGetSessionCookie.mockResolvedValue(sessioneCookie("admin-1", "AMMINISTRATORE"));
+    mockUtente.findUnique.mockResolvedValue({ id: "admin-1", ruolo: "AMMINISTRATORE" });
+    mockCollaboratore.findUnique.mockResolvedValue(null);
+
+    await expect(risolviProfiloCollaboratoreCorrente()).resolves.toEqual({ stato: "ASSENTE" });
+  });
+
+  it("distingue il profilo disattivato senza renderlo operativo", async () => {
+    mockGetSessionCookie.mockResolvedValue(sessioneCookie("admin-1", "AMMINISTRATORE"));
+    mockUtente.findUnique.mockResolvedValue({
+      id: "admin-1",
+      ruolo: "AMMINISTRATORE",
+      collaboratore: { attivo: false },
+    });
+    mockCollaboratore.findUnique.mockResolvedValue({ id: "collab-admin", attivo: false });
+
+    await expect(risolviProfiloCollaboratoreCorrente()).resolves.toEqual({ stato: "DISATTIVATO" });
+    await expect(richiediCollaboratoreCorrente()).resolves.toBeNull();
   });
 
   it("restituisce il profilo collaboratore se associato all'utente", async () => {

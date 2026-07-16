@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import type { Ruolo } from "@/domain/types";
+import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 
 /**
  * POST /api/__test/sessione
@@ -61,10 +62,7 @@ export async function POST(request: NextRequest) {
       utente.email
     );
 
-    const destinazione =
-      utente.ruolo === "AMMINISTRATORE" ? "/anagrafiche" : "/attivita";
-
-    return NextResponse.json({ ok: true, redirect: destinazione });
+    return NextResponse.json({ ok: true, redirect: HOME_AUTENTICATA });
   } catch (error) {
     console.error("Errore test session:", error);
     return NextResponse.json(

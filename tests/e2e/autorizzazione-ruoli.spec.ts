@@ -7,7 +7,7 @@ import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
  *
  * Scenari:
  * - Collaboratore tenta back office → reindirizzato al front office
- * - Amministratore reindirizzato da front office a back office
+ * - Amministratore ammesso nel front office e invitato alla console quando manca il profilo
  * - Route protetta senza sessione → redirect alla radice (regressioni US-027/US-029)
  * - Home / → reindirizza all'area del ruolo (proxy + server)
  * - API request con cookie: collaboratore non ottiene contenuto back office
@@ -31,24 +31,21 @@ test.describe("US-006 Autorizzazione ruoli", () => {
     ).toBeVisible();
   });
 
-  test("amministratore viene reindirizzato da /attivita ad /anagrafiche", async ({
+  test("amministratore accede a /attivita e conserva l'accesso alla console", async ({
     page,
   }) => {
     await accediComeAdmin(page);
 
+    await page.waitForURL("**/attivita");
     await expect(
-      page.getByRole("banner").getByText("Tech Reloaded")
+      page.getByRole("heading", { name: "Attività non disponibili" })
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Clienti" })
+      page.getByRole("link", { name: "Console amministrativa", exact: true })
     ).toBeVisible();
 
-    await page.goto("/attivita");
-
+    await page.getByRole("link", { name: "Console amministrativa", exact: true }).click();
     await page.waitForURL("**/anagrafiche**");
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded")
-    ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Clienti" })
     ).toBeVisible();

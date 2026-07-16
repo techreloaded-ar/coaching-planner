@@ -92,14 +92,32 @@ export async function creaCollaboratore(
   }
 
   try {
-    await db.$transaction(async (tx) => {
-      const utente = await tx.utente.create({
-        data: {
-          email: dati.email,
-          nome: `${dati.nome} ${dati.cognome}`,
-          ruolo: "COLLABORATORE",
-        },
+    const esito = await db.$transaction(async (tx) => {
+      const utenteEsistente = await tx.utente.findUnique({
+        where: { email: dati.email },
+        include: { collaboratore: { select: { id: true } } },
       });
+
+      if (
+        utenteEsistente &&
+        (utenteEsistente.ruolo !== "AMMINISTRATORE" ||
+          utenteEsistente.collaboratore)
+      ) {
+        return "EMAIL_DUPLICATA" as const;
+      }
+
+      const utente = utenteEsistente
+        ? await tx.utente.update({
+            where: { id: utenteEsistente.id },
+            data: { nome: `${dati.nome} ${dati.cognome}` },
+          })
+        : await tx.utente.create({
+            data: {
+              email: dati.email,
+              nome: `${dati.nome} ${dati.cognome}`,
+              ruolo: "COLLABORATORE",
+            },
+          });
 
       await tx.collaboratore.create({
         data: {
@@ -111,7 +129,13 @@ export async function creaCollaboratore(
           attivo: true,
         },
       });
+
+      return "CREATO" as const;
     });
+
+    if (esito === "EMAIL_DUPLICATA") {
+      return erroreEmailDuplicata();
+    }
   } catch (error) {
     if (isPrismaUniqueConstraintError(error)) {
       return erroreEmailDuplicata();

@@ -4,7 +4,7 @@ import { scambiaCodice } from "@/lib/google-oauth";
 import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import type { Ruolo } from "@/domain/types";
-import { homePerRuolo } from "@/lib/policy-rotte";
+import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 
 // ── URL base ────────────────────────────────────────────────────
 
@@ -115,9 +115,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       utente.email
     );
 
-    // 8. Reindirizza all'area del ruolo
-    const destinazione = homePerRuolo(utente.ruolo as Ruolo);
-    const response = NextResponse.redirect(new URL(destinazione, baseUrl()));
+    // 8. Reindirizza all'area autenticata comune
+    const response = NextResponse.redirect(
+      new URL(HOME_AUTENTICATA, baseUrl())
+    );
 
     // Pulisci eventuali cookie OAuth residui
     response.cookies.set("google_oauth_state", "", {

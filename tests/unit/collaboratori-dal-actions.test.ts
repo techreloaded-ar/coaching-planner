@@ -10,6 +10,7 @@ const mockCollaboratore = vi.hoisted(() => ({
 }));
 
 const mockUtente = vi.hoisted(() => ({
+  findUnique: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
 }));
@@ -103,6 +104,16 @@ const TARIFFA_NORMALIZZATA = {
   valore: "150.00",
   centesimi: BigInt(15000),
 };
+
+function formDatiCollaboratore(): FormData {
+  const formData = new FormData();
+  formData.set("nome", "Mario");
+  formData.set("cognome", "Bianchi");
+  formData.set("email", "mario.bianchi@example.com");
+  formData.set("partitaIva", "11111111111");
+  formData.set("tariffaGiornaliera", "150");
+  return formData;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // DAL collaboratori
@@ -314,19 +325,17 @@ describe("Server Actions collaboratori", () => {
     it("con dati validi crea Utente e Collaboratore in transazione, poi redirige", async () => {
       mockValidaCollaboratore.mockReturnValue({});
       mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
+      mockUtente.findUnique.mockResolvedValue(null);
       mockUtente.create.mockResolvedValue({ id: "utente-1" });
 
-      const formData = new FormData();
-      formData.set("nome", "Mario");
-      formData.set("cognome", "Bianchi");
-      formData.set("email", "mario.bianchi@example.com");
-      formData.set("partitaIva", "11111111111");
-      formData.set("tariffaGiornaliera", "150");
-
-      await creaCollaboratore(statoIniziale(), formData);
+      await creaCollaboratore(statoIniziale(), formDatiCollaboratore());
 
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
       expect(mockDb.$transaction).toHaveBeenCalled();
+      expect(mockUtente.findUnique).toHaveBeenCalledWith({
+        where: { email: "mario.bianchi@example.com" },
+        include: { collaboratore: { select: { id: true } } },
+      });
       expect(mockUtente.create).toHaveBeenCalledWith({
         data: {
           email: "mario.bianchi@example.com",
@@ -348,21 +357,65 @@ describe("Server Actions collaboratori", () => {
       expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/collaboratori?esito=creato");
     });
 
-    it("se la transazione fallisce per email duplicata (P2002) restituisce errore senza redirect", async () => {
+    it("collega un admin esistente senza profilo preservandone ruolo ed email", async () => {
       mockValidaCollaboratore.mockReturnValue({});
       mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
-      mockDb.$transaction.mockRejectedValue({ code: "P2002" });
+      mockUtente.findUnique.mockResolvedValue({
+        id: "admin-1",
+        email: "mario.bianchi@example.com",
+        ruolo: "AMMINISTRATORE",
+        collaboratore: null,
+      });
+      mockUtente.update.mockResolvedValue({ id: "admin-1" });
 
-      const formData = new FormData();
-      formData.set("nome", "Mario");
-      formData.set("cognome", "Bianchi");
-      formData.set("email", "mario.bianchi@example.com");
-      formData.set("partitaIva", "11111111111");
-      formData.set("tariffaGiornaliera", "150");
+      await creaCollaboratore(statoIniziale(), formDatiCollaboratore());
 
-      const result = await creaCollaboratore(statoIniziale(), formData);
+      expect(mockUtente.create).not.toHaveBeenCalled();
+      expect(mockUtente.update).toHaveBeenCalledWith({
+        where: { id: "admin-1" },
+        data: { nome: "Mario Bianchi" },
+      });
+      expect(mockCollaboratore.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ userId: "admin-1" }),
+      });
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/collaboratori");
+      expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/collaboratori?esito=creato");
+    });
+
+    it("rifiuta un'email già associata a un profilo senza effettuare write", async () => {
+      mockValidaCollaboratore.mockReturnValue({});
+      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
+      mockUtente.findUnique.mockResolvedValue({
+        id: "admin-1",
+        ruolo: "AMMINISTRATORE",
+        collaboratore: { id: "collaboratore-1" },
+      });
+
+      const result = await creaCollaboratore(statoIniziale(), formDatiCollaboratore());
 
       expect(result.errori).toEqual({ email: "Esiste già un utente con questa email" });
+      expect(mockUtente.create).not.toHaveBeenCalled();
+      expect(mockUtente.update).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
+    it("traduce una race P2002 della transazione senza confermare scritture parziali", async () => {
+      mockValidaCollaboratore.mockReturnValue({});
+      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
+      mockUtente.findUnique.mockResolvedValue(null);
+      mockUtente.create.mockResolvedValue({ id: "utente-1" });
+      mockDb.$transaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => {
+        await cb(mockDb);
+        throw { code: "P2002" };
+      });
+
+      const result = await creaCollaboratore(statoIniziale(), formDatiCollaboratore());
+
+      expect(result.errori).toEqual({ email: "Esiste già un utente con questa email" });
+      expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
       expect(mockRedirect).not.toHaveBeenCalled();
     });
   });

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // ── Icone SVG inline ───────────────────────────────────────────
@@ -39,6 +40,13 @@ const IconReport = (
 const IconAvanzamentoOfferte = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
     <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" />
+  </svg>
+);
+
+const IconAttivita = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
+    <path d="M8 3v3M16 3v3M4 10h16M5 6h14a1 1 0 0 1 1 1v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a1 1 0 0 1 1-1Z" />
+    <path d="m8 15 2.5 2.5L16 12" />
   </svg>
 );
 
@@ -85,7 +93,22 @@ export default function ConsoleSidebar({ nome, ruolo, iniziali }: SidebarProps) 
 
       {/* Navigazione */}
       <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto px-[10px] py-[14px]" aria-label="Navigazione principale">
-        <span className="px-[10px] pb-[7px] pt-1 text-[10.5px] font-bold uppercase tracking-[.09em] text-zinc-400 dark:text-zinc-500 max-[920px]:hidden">
+        <Link
+          href="/attivita"
+          aria-current={pathname === "/attivita" || pathname.startsWith("/attivita/") ? "page" : undefined}
+          className={`relative flex items-center gap-[11px] rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-semibold no-underline transition-colors max-[920px]:justify-center max-[920px]:px-[10px] ${
+            pathname === "/attivita" || pathname.startsWith("/attivita/")
+              ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
+              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          }`}
+        >
+          {IconAttivita}
+          <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap max-[920px]:hidden">
+            Le mie attività
+          </span>
+        </Link>
+
+        <span className="px-[10px] pb-[7px] pt-4 text-[10.5px] font-bold uppercase tracking-[.09em] text-zinc-400 dark:text-zinc-500 max-[920px]:hidden">
           Gestione
         </span>
 

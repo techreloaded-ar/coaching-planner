@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { getSessionCookie, deleteSession } from "@/lib/session";
 import type { Ruolo } from "@/domain/types";
 import type { Collaboratore } from "@/generated/prisma/client";
-import { homePerRuolo } from "@/lib/policy-rotte";
+import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -89,16 +89,23 @@ export const utenteCorrente = cache(
 );
 
 /**
- * Richiede un ruolo specifico. Se l'utente non è autenticato reindirizza
- * alla radice (pagina di accesso); se ha un ruolo diverso, reindirizza alla propria area.
- * Pensato per l'uso nei layout e nelle pagine RSC.
+ * Richiede l'accesso amministrativo quando necessario. Il valore storico
+ * COLLABORATORE equivale all'area autenticata comune, accessibile a entrambi
+ * i ruoli.
+ *
+ * Se l'utente non è autenticato reindirizza alla radice (pagina di accesso);
+ * un non amministratore diretto al back office viene reindirizzato all'area
+ * autenticata comune. Pensato per l'uso nei layout e nelle pagine RSC.
  */
 export const richiediRuolo = cache(
   async (ruoloRichiesto: Ruolo): Promise<SessioneUtente> => {
     const sessione = await verificaSessione();
 
-    if (sessione.ruolo !== ruoloRichiesto) {
-      redirect(homePerRuolo(sessione.ruolo));
+    if (
+      ruoloRichiesto === "AMMINISTRATORE" &&
+      sessione.ruolo !== "AMMINISTRATORE"
+    ) {
+      redirect(HOME_AUTENTICATA);
     }
 
     return sessione;
@@ -171,21 +178,47 @@ export async function richiediRuoloApi(
 
 // ── Profilo Collaboratore ───────────────────────────────────────
 
+/** Stato del profilo Collaboratore dell'utente autenticato corrente. */
+export type StatoProfiloCollaboratore =
+  | { stato: "ATTIVO"; collaboratore: Collaboratore }
+  | { stato: "ASSENTE" }
+  | { stato: "DISATTIVATO" };
+
 /**
  * Risolve il profilo Collaboratore collegato all'utente in sessione.
  *
- * Lancia ErroreAutorizzazione(401) se non autenticato.
- * Restituisce null se l'utente è autenticato ma non ha un profilo
- * Collaboratore associato (es. amministratore puro).
+ * Lancia ErroreAutorizzazione(401) se non autenticato. Un amministratore può
+ * mantenere la sessione anche se il suo profilo è disattivato: in quel caso
+ * il risultato consente al front office di mostrare uno stato esplicativo,
+ * senza rendere il profilo utilizzabile per attività.
  */
-export async function richiediCollaboratoreCorrente(): Promise<Collaboratore | null> {
+export async function risolviProfiloCollaboratoreCorrente(): Promise<StatoProfiloCollaboratore> {
   const sessione = await richiediSessioneApi();
-
   const collaboratore = await db.collaboratore.findUnique({
     where: { userId: sessione.utenteId },
   });
 
-  return collaboratore;
+  if (!collaboratore) {
+    return { stato: "ASSENTE" };
+  }
+
+  if (!collaboratore.attivo) {
+    return { stato: "DISATTIVATO" };
+  }
+
+  return { stato: "ATTIVO", collaboratore };
+}
+
+/**
+ * Restituisce il solo profilo Collaboratore operativo dell'utente corrente.
+ *
+ * Lancia ErroreAutorizzazione(401) se non autenticato. Per un profilo assente
+ * o disattivato restituisce null, così letture e mutazioni non possono usare
+ * un collaboratore non operativo.
+ */
+export async function richiediCollaboratoreCorrente(): Promise<Collaboratore | null> {
+  const profilo = await risolviProfiloCollaboratoreCorrente();
+  return profilo.stato === "ATTIVO" ? profilo.collaboratore : null;
 }
 
 // ── Segregazione dei dati ───────────────────────────────────────

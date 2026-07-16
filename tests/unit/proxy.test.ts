@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { proxy, config } from "@/proxy";
+import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 import {
   DURATA_SESSIONE_SECONDI,
   NOME_COOKIE_SESSIONE,
@@ -89,27 +90,27 @@ describe("proxy", () => {
     expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
   });
 
-  it("reindirizza l'amministratore fuori area alla propria home rinnovando il cookie", async () => {
-    const now = 1_700_000_000;
-    vi.setSystemTime(new Date(now * 1000));
-    const sessione = await creaTokenSessione(
-      {
-        utenteId: "admin-1",
-        ruolo: "AMMINISTRATORE",
-        nome: "Admin",
-        email: "admin@example.com",
-      },
-      { now: now - 60 }
-    );
+  it.each([
+    ["AMMINISTRATORE", "admin-1", "Admin", "admin@example.com"],
+    ["COLLABORATORE", "collab-1", "Collab", "collab@example.com"],
+  ] as const)(
+    "lascia passare %s sulla rotta AUTENTICATO rinnovando il cookie",
+    async (ruolo, utenteId, nome, email) => {
+      const now = 1_700_000_000;
+      vi.setSystemTime(new Date(now * 1000));
+      const sessione = await creaTokenSessione(
+        { utenteId, ruolo, nome, email },
+        { now: now - 60 }
+      );
 
-    const response = await proxy(creaRequest("/attivita", sessione.token));
+      const response = await proxy(creaRequest("/attivita", sessione.token));
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(`${BASE_URL}/anagrafiche`);
-    expect(response.headers.get("set-cookie")).toContain(NOME_COOKIE_SESSIONE);
-  });
+      expect(response.headers.get("location")).toBeNull();
+      expect(response.headers.get("set-cookie")).toContain(NOME_COOKIE_SESSIONE);
+    }
+  );
 
-  it("reindirizza il collaboratore fuori area alla propria home rinnovando il cookie", async () => {
+  it("reindirizza il collaboratore dalla rotta AMMINISTRATORE alla home autenticata rinnovando il cookie", async () => {
     const now = 1_700_000_000;
     vi.setSystemTime(new Date(now * 1000));
     const sessione = await creaTokenSessione(
@@ -125,7 +126,9 @@ describe("proxy", () => {
     const response = await proxy(creaRequest("/anagrafiche", sessione.token));
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(`${BASE_URL}/attivita`);
+    expect(response.headers.get("location")).toBe(
+      `${BASE_URL}${HOME_AUTENTICATA}`
+    );
     expect(response.headers.get("set-cookie")).toContain(NOME_COOKIE_SESSIONE);
   });
 

@@ -1,4 +1,4 @@
-import { disconnetti, utenteCorrente } from "@/lib/dal";
+import { disconnetti, richiediRuolo } from "@/lib/dal";
 import ConsoleSidebar from "@/app/(back-office)/console-sidebar";
 
 export default async function BackOfficeLayout({
@@ -6,22 +6,20 @@ export default async function BackOfficeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const sessione = await utenteCorrente();
-  const iniziali = sessione
-    ? sessione.nome
-        .split(" ")
-        .map((p) => p[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "";
+  const sessione = await richiediRuolo("AMMINISTRATORE");
+  const iniziali = sessione.nome
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
       {/* Sidebar fissa a sinistra */}
       <ConsoleSidebar
-        nome={sessione?.nome ?? ""}
-        ruolo={sessione?.ruolo === "AMMINISTRATORE" ? "Amministratore" : "Collaboratore"}
+        nome={sessione.nome}
+        ruolo="Amministratore"
         iniziali={iniziali}
       />
 
@@ -32,10 +30,10 @@ export default async function BackOfficeLayout({
           <div className="flex items-center gap-3">
             <div className="text-right leading-tight">
               <b className="block text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
-                {sessione?.nome}
+                {sessione.nome}
               </b>
               <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                {sessione?.ruolo === "AMMINISTRATORE" ? "Amministratore" : "Collaboratore"}
+                Amministratore
               </span>
             </div>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[13px] font-bold text-white">

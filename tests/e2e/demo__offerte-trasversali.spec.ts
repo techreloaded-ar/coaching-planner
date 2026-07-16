@@ -1,6 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 
-import { accediComeAdmin } from "./support/auth";
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
 
 /**
  * Demo scenario — US-025: Pagina offerte trasversale con stato e avanzamento.
@@ -81,7 +81,7 @@ test.describe("US-025 Demo", () => {
     test.setTimeout(60_000);
 
     // ── 1. Login amministratore e apertura "Offerte" dalla sidebar ─
-    await accediComeAdmin(page);
+    await accediAlBackOfficeComeAdmin(page);
     await expect(
       page.getByRole("banner").getByText("Tech Reloaded"),
     ).toBeVisible();

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Locator, Page } from "@playwright/test";
 
-import { accediComeAdmin } from "./support/auth";
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
 
 /** Codice offerta univoco per il test, così da localizzare una singola riga. */
@@ -28,7 +28,7 @@ function rigaConCodice(page: Page, codice: string): Locator {
 
 test.describe("Gestione offerte", () => {
 	test.beforeEach(async ({ page }) => {
-		await accediComeAdmin(page);
+		await accediAlBackOfficeComeAdmin(page);
 	});
 
 	test("creazione di una nuova offerta selezionando il cliente per label", async ({
@@ -40,7 +40,6 @@ test.describe("Gestione offerte", () => {
 		});
 		const codice = codiceUnivoco("CREA");
 
-		await page.goto("/");
 		await vaiAOfferteDallaSidebar(page);
 
 		await page.getByRole("link", { name: "Nuova offerta" }).click();

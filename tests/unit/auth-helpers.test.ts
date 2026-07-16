@@ -1,14 +1,8 @@
 import { describe, it, expect } from "vitest";
 import type { Ruolo } from "@/domain/types";
+import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 
 // ── Funzioni pure da testare (estratte perché sono logica pura) ─
-
-/**
- * Mappatura ruolo → destinazione di redirect dopo il login.
- */
-function homePerRuolo(ruolo: Ruolo): string {
-  return ruolo === "AMMINISTRATORE" ? "/anagrafiche" : "/attivita";
-}
 
 /**
  * Logica di esito del callback:
@@ -121,14 +115,13 @@ describe("auth — revoca accesso collaboratori disattivati (callback Google)", 
   });
 });
 
-describe("auth — mappatura ruolo → destinazione", () => {
-  it("AMMINISTRATORE → /anagrafiche", () => {
-    expect(homePerRuolo("AMMINISTRATORE")).toBe("/anagrafiche");
-  });
-
-  it("COLLABORATORE → /attivita", () => {
-    expect(homePerRuolo("COLLABORATORE")).toBe("/attivita");
-  });
+describe("auth — landing autenticata comune", () => {
+  it.each(["AMMINISTRATORE", "COLLABORATORE"] as const)(
+    "%s → /attivita",
+    () => {
+      expect(HOME_AUTENTICATA).toBe("/attivita");
+    }
+  );
 });
 
 describe("auth — esito del callback", () => {

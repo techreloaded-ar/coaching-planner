@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { accediComeAdmin } from "./support/auth";
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
 
 /**
@@ -17,7 +17,7 @@ test.use({
 
 test.describe("US-007 Demo", () => {
 	test("ciclo di vita cliente: crea → modifica → disattiva", async ({ page }) => {
-		await accediComeAdmin(page);
+		await accediAlBackOfficeComeAdmin(page);
 
 		await expect(page.getByRole("banner").getByText("Tech Reloaded")).toBeVisible();
 		await expect(page.getByRole("banner").getByText("Amministratore")).toBeVisible();

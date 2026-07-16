@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { test, expect } from "./support/fixtures";
 
 /**
  * Demo scenario — US-009: Anagrafica collaboratori con tariffa e credenziali di accesso
@@ -20,29 +21,13 @@ test.use({
 test.describe("US-009 Demo", () => {
   test("crea collaboratore con tariffa e credenziali → il collaboratore accede al front office", async ({
     page,
+    factory,
   }) => {
     test.setTimeout(60_000);
 
     // ── 1. Login amministratore tramite endpoint e2e ───────────────
 
-    await page.goto("/");
-    await expect(
-      page.getByRole("button", { name: "Accedi con Google" })
-    ).toBeVisible();
-
-    await page.evaluate(async () => {
-      const res = await fetch("/api/e2e-test/sessione", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "info@techreloaded.it" }),
-      });
-      const data = await res.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    });
-
-    await page.waitForURL("**/anagrafiche**");
+    await accediAlBackOfficeComeAdmin(page);
 
     // ── 2. Naviga a Collaboratori dalla sidebar ────────────────────
 
@@ -67,10 +52,9 @@ test.describe("US-009 Demo", () => {
 
     // ── 4. Compila tutti i campi del form ──────────────────────────
 
-    const ts = Date.now();
     const nome = "Luca";
-    const cognome = `Bianchi${ts}`;
-    const email = `luca.bianchi.${ts}@example.com`;
+    const cognome = `Bianchi ${factory.namespace}`;
+    const email = `${factory.namespace}@e2e.invalid`;
     const nomeCompleto = `${nome} ${cognome}`;
 
     await page.getByLabel(/^Nome\b/).fill(nome);

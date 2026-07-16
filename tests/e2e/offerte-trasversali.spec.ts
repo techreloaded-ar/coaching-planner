@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Page } from "@playwright/test";
 
-import { accediComeAdmin } from "./support/auth";
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
 
 /** Escape per usare un valore come frammento letterale in una RegExp. */
@@ -28,7 +28,7 @@ async function apriPaginaOfferte(page: Page): Promise<void> {
 
 test.describe("Pagina offerte trasversale", () => {
 	test.beforeEach(async ({ page }) => {
-		await accediComeAdmin(page);
+		await accediAlBackOfficeComeAdmin(page);
 	});
 
 	test("elenca l'offerta con avanzamento: erogate e residuo coerenti", async ({

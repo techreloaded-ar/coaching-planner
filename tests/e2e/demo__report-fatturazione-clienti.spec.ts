@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { accediComeAdmin } from "./support/auth";
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
 import {
   creaDatasetReportFatturazioneClienti,
@@ -114,7 +114,7 @@ test.describe("US-015 Demo", () => {
     });
 
     // ── 1. Login amministratore tramite endpoint e2e ──────────────
-    await accediComeAdmin(page);
+    await accediAlBackOfficeComeAdmin(page);
     await expect(
       page.getByRole("banner").getByText("Tech Reloaded"),
     ).toBeVisible();

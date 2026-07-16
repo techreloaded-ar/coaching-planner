@@ -1,19 +1,18 @@
-import { disconnetti, utenteCorrente } from "@/lib/dal";
+import Link from "next/link";
+import { disconnetti, verificaSessione } from "@/lib/dal";
 
 export default async function FrontOfficeLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const sessione = await utenteCorrente();
-  const iniziali = sessione
-    ? sessione.nome
-        .split(" ")
-        .map((p) => p[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "";
+  const sessione = await verificaSessione();
+  const iniziali = sessione.nome
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -30,13 +29,23 @@ export default async function FrontOfficeLayout({
           <div className="flex-1" />
 
           <div className="flex items-center gap-3.5">
+            {sessione.ruolo === "AMMINISTRATORE" && (
+              <Link
+                href="/anagrafiche"
+                className="inline-flex items-center rounded-[10px] border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[12.5px] font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 dark:hover:bg-indigo-500/25"
+              >
+                Console amministrativa
+              </Link>
+            )}
             <div className="flex items-center gap-2.5 rounded-[11px] px-2 py-1.5">
               <div className="text-right leading-tight">
                 <b className="block text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
-                  {sessione?.nome}
+                  {sessione.nome}
                 </b>
                 <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
-                  Collaboratore · {sessione?.email}
+                  {sessione.ruolo === "AMMINISTRATORE"
+                    ? "Amministratore"
+                    : "Collaboratore"} · {sessione.email}
                 </span>
               </div>
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-600 text-[13px] font-bold text-white">

@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 
-import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
+import {
+  accediAlBackOfficeComeAdmin,
+  accediComeCollaboratore,
+} from "./support/auth";
 
 /**
  * Demo scenario — US-006: Autorizzazione per ruolo e segregazione dei dati
@@ -62,7 +65,7 @@ test.describe("US-006 Demo", () => {
       page.getByRole("button", { name: "Accedi con Google" })
     ).toBeVisible();
 
-    await accediComeAdmin(page);
+    await accediAlBackOfficeComeAdmin(page);
 
     await expect(
       page.getByRole("banner").getByText("Tech Reloaded")

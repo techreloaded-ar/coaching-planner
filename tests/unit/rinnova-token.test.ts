@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SignJWT, decodeJwt } from "jose";
 import { rinnovaToken } from "@/lib/rinnova-token";
 import { DURATA_SESSIONE_SECONDI } from "@/lib/session-config";

@@ -93,12 +93,13 @@ describe("attivitaDelMese", () => {
     expect(result.perGiorno.size).toBe(0);
   });
 
-  it("restituisce risultato vuoto se il collaboratore non ha profilo", async () => {
+  it("non esegue query di attività se il profilo non è operativo", async () => {
     mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
 
     const result = await attivitaDelMese("2026-06");
     expect(result.righe).toEqual([]);
     expect(result.perGiorno.size).toBe(0);
+    expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
   });
 
   // ── Filtro sull'intervallo del mese ─────────────────────────
@@ -285,6 +286,29 @@ describe("attivitaDelMese", () => {
   });
 
   // ── Segregazione: il filtro è sul collaboratoreId della sessione ──
+
+  it("filtra le attività dell'amministratore collegato al suo solo profilo", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue({
+      id: "collab-admin",
+      userId: "admin-1",
+      nome: "Admin",
+      cognome: "Operativo",
+      partitaIva: "IT12345678901",
+      tariffaGiornaliera: "350.00",
+      attivo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockRigaAttivita.findMany.mockResolvedValue([]);
+
+    await attivitaDelMese("2026-06");
+
+    expect(mockRigaAttivita.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ collaboratoreId: "collab-admin" }),
+      })
+    );
+  });
 
   it("filtra sempre sul collaboratoreId della sessione, non su altri", async () => {
     mockRichiediCollaboratoreCorrente.mockResolvedValue({

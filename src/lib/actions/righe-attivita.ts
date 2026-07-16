@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { richiediCollaboratoreCorrente } from "@/lib/dal";
+import {
+  risolviProfiloCollaboratoreCorrente,
+  type StatoProfiloCollaboratore,
+} from "@/lib/dal";
+import type { Collaboratore } from "@/generated/prisma/client";
 import { validaOre, validaKmTrasferta, calcolaRimborsoTrasferta } from "@/domain/consuntivi";
 import { offerteAttivePerCliente, scaglioniRimborsoTrasferta } from "@/lib/attivita";
 
@@ -14,6 +18,27 @@ interface ActionResult {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
+
+function messaggioProfiloNonDisponibile(
+  profilo: Exclude<StatoProfiloCollaboratore, { stato: "ATTIVO" }>
+): string {
+  return profilo.stato === "ASSENTE"
+    ? "Il tuo account non ha un profilo Collaboratore. Richiedi il censimento nell'Anagrafica collaboratori."
+    : "Il tuo profilo Collaboratore è disattivato. Chiedi a un amministratore di riattivarlo.";
+}
+
+/** Restituisce solo il profilo corrente attivo, senza consentire fallback. */
+async function richiediCollaboratoreOperativo(): Promise<
+  Collaboratore | ActionResult
+> {
+  const profilo = await risolviProfiloCollaboratoreCorrente();
+
+  if (profilo.stato === "ATTIVO") {
+    return profilo.collaboratore;
+  }
+
+  return { success: false, error: messaggioProfiloNonDisponibile(profilo) };
+}
 
 /**
  * Verifica che la riga appartenga al collaboratore corrente.
@@ -117,9 +142,9 @@ async function validaTrasfertaKmServer(
 export async function creaRiga(
   formData: FormData
 ): Promise<ActionResult> {
-  const collaboratore = await richiediCollaboratoreCorrente();
-  if (!collaboratore) {
-    return { success: false, error: "Devi essere un collaboratore per registrare attività" };
+  const collaboratore = await richiediCollaboratoreOperativo();
+  if ("success" in collaboratore) {
+    return collaboratore;
   }
 
   const clienteId = formData.get("clienteId") as string;
@@ -157,7 +182,8 @@ export async function creaRiga(
     return { success: false, error: "Data non valida" };
   }
   const [anno, mese, giorno] = dataStr.split("-").map(Number);
-  const data = new Date(anno, mese - 1, giorno);
+  // Mantiene il giorno civile anche quando server e database usano fusi diversi.
+  const data = new Date(Date.UTC(anno, mese - 1, giorno, 12));
 
   // Parsing fatturabile
   const fatturabile = fatturabileRaw === "on" || fatturabileRaw === "true";
@@ -190,9 +216,9 @@ export async function creaRiga(
 export async function modificaRiga(
   formData: FormData
 ): Promise<ActionResult> {
-  const collaboratore = await richiediCollaboratoreCorrente();
-  if (!collaboratore) {
-    return { success: false, error: "Devi essere un collaboratore per modificare attività" };
+  const collaboratore = await richiediCollaboratoreOperativo();
+  if ("success" in collaboratore) {
+    return collaboratore;
   }
 
   const rigaId = formData.get("rigaId") as string;
@@ -260,7 +286,7 @@ export async function modificaRiga(
       return { success: false, error: "Data non valida" };
     }
     const [anno, mese, giorno] = dataStr.split("-").map(Number);
-    updateData.data = new Date(anno, mese - 1, giorno);
+    updateData.data = new Date(Date.UTC(anno, mese - 1, giorno, 12));
   }
 
   await db.rigaAttivita.update({
@@ -282,9 +308,9 @@ export async function modificaRiga(
 export async function eliminaRiga(
   rigaId: string
 ): Promise<ActionResult> {
-  const collaboratore = await richiediCollaboratoreCorrente();
-  if (!collaboratore) {
-    return { success: false, error: "Devi essere un collaboratore per eliminare attività" };
+  const collaboratore = await richiediCollaboratoreOperativo();
+  if ("success" in collaboratore) {
+    return collaboratore;
   }
 
   if (!rigaId) {
@@ -324,9 +350,9 @@ export async function eliminaRiga(
 export async function rimuoviTrasferta(
   rigaId: string
 ): Promise<ActionResult> {
-  const collaboratore = await richiediCollaboratoreCorrente();
-  if (!collaboratore) {
-    return { success: false, error: "Devi essere un collaboratore per rimuovere la trasferta" };
+  const collaboratore = await richiediCollaboratoreOperativo();
+  if ("success" in collaboratore) {
+    return collaboratore;
   }
 
   if (!rigaId) {
@@ -365,6 +391,11 @@ export async function rimuoviTrasferta(
 export async function fetchOffertePerCliente(
   clienteId: string
 ): Promise<{ success: boolean; data?: { id: string; codice: string; descrizione: string }[]; error?: string }> {
+  const collaboratore = await richiediCollaboratoreOperativo();
+  if ("success" in collaboratore) {
+    return collaboratore;
+  }
+
   try {
     const offerte = await offerteAttivePerCliente(clienteId);
     return { success: true, data: offerte };

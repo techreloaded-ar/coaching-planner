@@ -34,8 +34,27 @@ export async function accediCome(page: Page, email: string): Promise<void> {
 	await page.waitForURL(`**${redirect}**`);
 }
 
-export async function accediComeAdmin(page: Page): Promise<void> {
-	await accediCome(page, EMAIL_ADMIN_E2E);
+export async function accediComeAdmin(
+	page: Page,
+	email = EMAIL_ADMIN_E2E,
+): Promise<void> {
+	await accediCome(page, email);
+}
+
+/**
+ * Accede come amministratore e apre esplicitamente la console dalla landing
+ * comune del front office. I test che verificano la landing usano
+ * `accediComeAdmin` senza questo helper.
+ */
+export async function accediAlBackOfficeComeAdmin(
+	page: Page,
+	email = EMAIL_ADMIN_E2E,
+): Promise<void> {
+	await accediComeAdmin(page, email);
+	await page
+		.getByRole("link", { name: "Console amministrativa", exact: true })
+		.click();
+	await page.waitForURL("**/anagrafiche**");
 }
 
 export async function accediComeCollaboratore(

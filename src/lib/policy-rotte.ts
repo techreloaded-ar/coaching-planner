@@ -1,16 +1,17 @@
 /**
  * Modulo puro di policy delle rotte.
  *
- * Importabile ovunque (anche da proxy.ts, edge runtime) perché non
- * usa "server-only", React cache, Prisma o cookie.
- *
- * Centralizza:
- *  - l'elenco delle rotte di back office e front office
- *  - la mappatura percorso → ruolo richiesto
- *  - la destinazione di default per ogni ruolo (homePerRuolo)
+ * Importabile ovunque (anche da proxy.ts) perché non usa "server-only",
+ * React cache, Prisma o cookie.
  */
 
 import type { Ruolo } from "@/domain/types";
+
+/** Livelli di accesso alle rotte non pubbliche. */
+export type PoliticaAccesso = "AUTENTICATO" | "AMMINISTRATORE";
+
+/** Unica landing per ogni utente autenticato. */
+export const HOME_AUTENTICATA = "/attivita";
 
 // ── Costanti: prefissi di rotta ─────────────────────────────────
 
@@ -22,28 +23,35 @@ export const ROTTE_BACK_OFFICE = [
   "/report",
 ] as const;
 
-/** Prefissi di percorso riservati ai collaboratori (front office). */
-export const ROTTE_FRONT_OFFICE = [
-  "/attivita",
-] as const;
+/** Prefissi dell'area autenticata comune (front office). */
+export const ROTTE_FRONT_OFFICE = [HOME_AUTENTICATA] as const;
 
-// ── Mappatura percorso → ruolo richiesto ────────────────────────
+// ── Mappatura percorso → policy di accesso ──────────────────────
 
 /**
- * Dato un pathname, restituisce il ruolo necessario per accedere alla rotta.
+ * Restituisce la policy di accesso per una rotta non pubblica.
  *
- * Regole:
- * - match per prefisso: /anagrafiche/123 → back office
- * - rotte non coperte → null (pubbliche o neutre)
- *
- * @returns "AMMINISTRATORE" | "COLLABORATORE" | null
+ * Le sole rotte amministrative richiedono il ruolo AMMINISTRATORE;
+ * /attivita e le sue sottorotte richiedono una sessione valida. Il fallback
+ * conserva la protezione delle rotte non pubbliche non ancora classificate.
  */
-export function ruoloRichiestoPerRotta(
-  pathname: string
-): Ruolo | null {
+export function politicaAccessoPerRotta(pathname: string): PoliticaAccesso {
   if (matchPrefisso(pathname, ROTTE_BACK_OFFICE)) return "AMMINISTRATORE";
-  if (matchPrefisso(pathname, ROTTE_FRONT_OFFICE)) return "COLLABORATORE";
-  return null;
+  if (matchPrefisso(pathname, ROTTE_FRONT_OFFICE)) return "AUTENTICATO";
+  return "AUTENTICATO";
+}
+
+/**
+ * Compatibilità temporanea per i consumer che usano ancora la vecchia API.
+ * La policy autorevole è politicaAccessoPerRotta: `null` non identifica una
+ * rotta pubblica e non deve essere usato per prendere decisioni di accesso.
+ *
+ * @deprecated Usa politicaAccessoPerRotta.
+ */
+export function ruoloRichiestoPerRotta(pathname: string): Ruolo | null {
+  return politicaAccessoPerRotta(pathname) === "AMMINISTRATORE"
+    ? "AMMINISTRATORE"
+    : null;
 }
 
 // ── Helper: match per prefisso ──────────────────────────────────
@@ -62,14 +70,11 @@ function matchPrefisso(
   );
 }
 
-// ── Mappatura ruolo → destinazione (home) ───────────────────────
-
 /**
- * Restituisce il percorso di destinazione predefinito per il ruolo.
+ * Compatibilità temporanea della vecchia API di landing per ruolo.
  *
- * Unica fonte di verità: sostituisce le copie duplicate in proxy.ts,
- * callback Google e dal.ts.
+ * @deprecated Usa HOME_AUTENTICATA.
  */
-export function homePerRuolo(ruolo: Ruolo): string {
-  return ruolo === "AMMINISTRATORE" ? "/anagrafiche" : "/attivita";
+export function homePerRuolo(_ruolo: Ruolo): string {
+  return HOME_AUTENTICATA;
 }

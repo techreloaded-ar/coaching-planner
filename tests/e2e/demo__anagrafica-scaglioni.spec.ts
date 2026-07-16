@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { accediComeAdmin } from "./support/auth";
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import {
   REGISTRO_SCAGLIONI_KM,
   soglieStabiliInIntervallo,
@@ -39,7 +39,7 @@ test.describe("US-010 Demo", () => {
 
     // ── 1. Login amministratore tramite endpoint e2e ───────────────
 
-    await accediComeAdmin(page);
+    await accediAlBackOfficeComeAdmin(page);
 
     // ── 2. Naviga a "Scaglioni km" dalla sidebar ────────────────────
 

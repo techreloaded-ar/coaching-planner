@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { utenteCorrente } from "@/lib/dal";
-import { homePerRuolo } from "@/lib/policy-rotte";
+import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 import AccessoGoogle from "./accesso-google";
 
 export default async function Home({
@@ -11,7 +11,7 @@ export default async function Home({
 }) {
   const sessione = await utenteCorrente();
   if (sessione) {
-    redirect(homePerRuolo(sessione.ruolo));
+    redirect(HOME_AUTENTICATA);
   }
 
   const params = await searchParams;

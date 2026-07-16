@@ -1,4 +1,7 @@
-import { richiediRuolo } from "@/lib/dal";
+import {
+  risolviProfiloCollaboratoreCorrente,
+  verificaSessione,
+} from "@/lib/dal";
 import { attivitaDelMese } from "@/lib/attivita";
 import {
   tokenMeseCorrente,
@@ -9,13 +12,31 @@ import {
   costruisciGrigliaMese,
 } from "@/domain/calendario";
 import CalendarioMensile from "./calendario-mensile";
+import StatoProfiloCollaboratore from "./stato-profilo-collaboratore";
+
+function formattaDataISO(data: Date): string {
+  const anno = data.getFullYear();
+  const mese = String(data.getMonth() + 1).padStart(2, "0");
+  const giorno = String(data.getDate()).padStart(2, "0");
+  return `${anno}-${mese}-${giorno}`;
+}
 
 export default async function AttivitaPage({
   searchParams,
 }: {
   searchParams: Promise<{ mese?: string }>;
 }) {
-  await richiediRuolo("COLLABORATORE");
+  const sessione = await verificaSessione();
+  const profilo = await risolviProfiloCollaboratoreCorrente();
+
+  if (profilo.stato !== "ATTIVO") {
+    return (
+      <StatoProfiloCollaboratore
+        stato={profilo.stato}
+        amministratore={sessione.ruolo === "AMMINISTRATORE"}
+      />
+    );
+  }
 
   const params = await searchParams;
 
@@ -35,7 +56,10 @@ export default async function AttivitaPage({
 
   // Conversione Map → plain object e Date → string per il passaggio al client component
   const sintesiPlain = Object.fromEntries(perGiorno);
-  const grigliaPlain = JSON.parse(JSON.stringify(griglia));
+  const grigliaPlain = griglia.map((cella) => ({
+    ...cella,
+    data: formattaDataISO(cella.data),
+  }));
 
   return (
     <CalendarioMensile

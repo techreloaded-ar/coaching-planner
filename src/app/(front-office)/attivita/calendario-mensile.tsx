@@ -15,9 +15,21 @@ interface CellaGiornoClient {
 
 // ── Helpers ─────────────────────────────────────────────────────
 
+/** Mantiene il giorno civile delle date del calendario tra server e browser. */
+function dataCalendario(data: Date | string): Date {
+  if (typeof data !== "string") return data;
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(data);
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+
+  return new Date(data);
+}
+
 /** Formatta una data in YYYY-MM-DD. Supporta Date e stringa ISO. */
 function formattaDataISO(data: Date | string): string {
-  const d = typeof data === "string" ? new Date(data) : data;
+  const d = dataCalendario(data);
   const a = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const g = String(d.getDate()).padStart(2, "0");
@@ -26,8 +38,8 @@ function formattaDataISO(data: Date | string): string {
 
 /** Verifica se due date sono lo stesso giorno. Supporta stringhe ISO e Date. */
 function stessoGiorno(a: Date | string, b: Date | string): boolean {
-  const da = typeof a === "string" ? new Date(a) : a;
-  const db = typeof b === "string" ? new Date(b) : b;
+  const da = dataCalendario(a);
+  const db = dataCalendario(b);
   return (
     da.getFullYear() === db.getFullYear() &&
     da.getMonth() === db.getMonth() &&
@@ -210,7 +222,7 @@ export default function CalendarioMensile({
         {/* Corpo griglia */}
         <div className="grid grid-cols-7 auto-rows-[minmax(116px,auto)]">
           {griglia.map((cella, idx) => {
-            const cellaData = new Date(cella.data);
+            const cellaData = dataCalendario(cella.data);
             const key = formattaDataISO(cellaData);
             const haAttivita = key in sintesi;
             const isToday = stessoGiorno(cellaData, oggiDate);

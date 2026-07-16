@@ -298,9 +298,13 @@ export class E2eDataFactory {
 
 	private nextToken(label: string): string {
 		this.sequence += 1;
-		return slugify(
-			`${this.namespace}-${label}-${String(this.sequence).padStart(3, "0")}`,
-		);
+		const sequence = String(this.sequence).padStart(3, "0");
+		const identita = hashToNumericCode(`${this.namespace}-${label}-${sequence}`);
+
+		// Il namespace può superare il limite di slug. Manteniamo una firma
+		// deterministica prima del troncamento, così due risorse dello stesso test
+		// non condividono email o codici univoci.
+		return `${slugify(`${this.namespace}-${label}`).slice(0, 48)}-${sequence}-${identita}`;
 	}
 
 	private readableName(token: string): string {

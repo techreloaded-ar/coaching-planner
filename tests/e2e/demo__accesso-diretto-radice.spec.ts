@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
+
 /**
  * Demo scenario — US-027: Accesso diretto dalla pagina radice con brand Agile Reloaded
  *
@@ -38,21 +40,8 @@ test.describe("US-027 Demo", () => {
     const googleBtn = page.getByRole("button", { name: "Accedi con Google" });
     await expect(googleBtn).toBeVisible();
 
-    // 3. Simula il completamento del flusso Google OAuth
-    await page.evaluate(async () => {
-      const res = await fetch("/api/e2e-test/sessione", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "info@techreloaded.it" }),
-      });
-      const data = await res.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    });
-
-    // 4. Attendi il reindirizzamento al Back Office
-    await page.waitForURL("**/anagrafiche**");
+    // 3. Simula il completamento del flusso Google OAuth e apre la console.
+    await accediAlBackOfficeComeAdmin(page);
 
     // 5. Verifica che l'header mostri il nome utente e il ruolo
     await expect(

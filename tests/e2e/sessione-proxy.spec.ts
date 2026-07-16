@@ -100,13 +100,18 @@ test.describe("US-029 Proxy e sessione sliding", () => {
     ).toBeVisible();
   });
 
-  test("amministratore su front office → /anagrafiche", async ({ page }) => {
+  test("amministratore su front office resta nell'area autenticata comune", async ({ page }) => {
     await accediComeAdmin(page);
 
     await page.goto("/attivita");
 
-    await page.waitForURL("**/anagrafiche**");
-    await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
+    await page.waitForURL("**/attivita");
+    await expect(
+      page.getByRole("heading", { name: "Attività non disponibili" })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Console amministrativa", exact: true })
+    ).toBeVisible();
   });
 
   test("logout elimina il cookie di sessione", async ({ page }) => {

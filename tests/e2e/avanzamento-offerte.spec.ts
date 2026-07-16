@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
+import { accediAlBackOfficeComeAdmin } from "./support/auth";
+
 /**
  * Test e2e — US-016: Vista di avanzamento delle offerte (rotta
  * `/report/avanzamento-offerte`), con giornate previste/erogate/residuo e
@@ -42,19 +44,7 @@ function giornateANumero(testo: string): number {
 }
 
 async function accediComeAmministratore(page: Page) {
-  await page.goto("/");
-  await page.evaluate(async () => {
-    const res = await fetch("/api/e2e-test/sessione", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "info@techreloaded.it" }),
-    });
-    const data = await res.json();
-    if (data.redirect) {
-      window.location.href = data.redirect;
-    }
-  });
-  await page.waitForURL("**/anagrafiche**");
+  await accediAlBackOfficeComeAdmin(page);
 }
 
 async function accediComeCollaboratrice(page: Page) {

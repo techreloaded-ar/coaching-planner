@@ -28,12 +28,14 @@ vi.mock("@/lib/db", () => ({
 
 // ── Mock del DAL ────────────────────────────────────────────────
 
+const mockRisolviProfiloCollaboratoreCorrente = vi.hoisted(() => vi.fn());
 const mockRichiediCollaboratoreCorrente = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/dal", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/dal")>();
   return {
     ...actual,
+    risolviProfiloCollaboratoreCorrente: mockRisolviProfiloCollaboratoreCorrente,
     richiediCollaboratoreCorrente: mockRichiediCollaboratoreCorrente,
   };
 });
@@ -76,6 +78,10 @@ function collaboratoreMock() {
   };
 }
 
+beforeEach(() => {
+  mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+});
+
 // ═══════════════════════════════════════════════════════════════
 // Test
 // ═══════════════════════════════════════════════════════════════
@@ -97,7 +103,10 @@ describe("creaRiga", () => {
   });
 
   it("crea un record con tutti i campi corretti", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.create.mockResolvedValue({ id: "riga-1" });
 
     const fd = creaFormData({
@@ -129,7 +138,10 @@ describe("creaRiga", () => {
   });
 
   it("crea una riga con trasfertaKm valido", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.create.mockResolvedValue({ id: "riga-1" });
 
     const fd = creaFormData({
@@ -151,7 +163,10 @@ describe("creaRiga", () => {
   });
 
   it("rifiuta trasfertaKm oltre soglia massima", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
 
     const fd = creaFormData({
       clienteId: "cliente-1",
@@ -170,7 +185,10 @@ describe("creaRiga", () => {
   });
 
   it("crea una riga con fatturabile disattivato", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.create.mockResolvedValue({ id: "riga-2" });
 
     const fd = creaFormData({
@@ -189,7 +207,10 @@ describe("creaRiga", () => {
   });
 
   it("rifiuta ore non valide con messaggio di errore", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
 
     const fd = creaFormData({
       clienteId: "cliente-1",
@@ -206,7 +227,10 @@ describe("creaRiga", () => {
   });
 
   it("rifiuta ore negative", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
 
     const fd = creaFormData({
       clienteId: "cliente-1",
@@ -222,7 +246,10 @@ describe("creaRiga", () => {
   });
 
   it("rifiuta ore testuali", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
 
     const fd = creaFormData({
       clienteId: "cliente-1",
@@ -238,7 +265,10 @@ describe("creaRiga", () => {
   });
 
   it("rifiuta campi obbligatori mancanti", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
 
     const fd = creaFormData({
       clienteId: "cliente-1",
@@ -254,7 +284,10 @@ describe("creaRiga", () => {
   });
 
   it("rifiuta offerta non appartenente al cliente", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockOfferta.findUnique.mockResolvedValue({
       clienteId: "cliente-altro",
       attiva: true,
@@ -274,20 +307,45 @@ describe("creaRiga", () => {
     expect(mockRigaAttivita.create).not.toHaveBeenCalled();
   });
 
-  it("restituisce errore se non autenticato", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
+  it("scrive l'attività dell'amministratore sul suo profilo collegato", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: { ...collaboratoreMock(), id: "collab-admin", userId: "admin-1" },
+    });
+    mockRigaAttivita.create.mockResolvedValue({ id: "riga-admin" });
 
-    const fd = creaFormData({
+    const result = await creaRiga(creaFormData({
       clienteId: "cliente-1",
       offertaId: "offerta-1",
       ore: "8",
       data: "2026-07-01",
-    });
+    }));
 
-    const result = await creaRiga(fd);
+    expect(result.success).toBe(true);
+    expect(mockRigaAttivita.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ collaboratoreId: "collab-admin" }),
+      })
+    );
+  });
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("collaboratore");
+  it.each([
+    ["assente", { stato: "ASSENTE" }, "non ha un profilo"],
+    ["disattivato", { stato: "DISATTIVATO" }, "è disattivato"],
+  ])("non scrive né interroga dati attività con profilo %s", async (_stato, profilo, messaggio) => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue(profilo);
+
+    const result = await creaRiga(creaFormData({
+      clienteId: "cliente-1",
+      offertaId: "offerta-1",
+      ore: "8",
+      data: "2026-07-01",
+    }));
+
+    expect(result).toEqual(expect.objectContaining({ success: false, error: expect.stringContaining(messaggio) }));
+    expect(mockRigaAttivita.create).not.toHaveBeenCalled();
+    expect(mockOfferta.findUnique).not.toHaveBeenCalled();
+    expect(mockScaglioneKm.findMany).not.toHaveBeenCalled();
   });
 });
 
@@ -304,7 +362,10 @@ describe("modificaRiga", () => {
   });
 
   it("aggiorna i campi modificati", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique.mockResolvedValue({
       collaboratoreId: "collab-giulia",
     });
@@ -333,7 +394,10 @@ describe("modificaRiga", () => {
   });
 
   it("aggiorna trasfertaKm a un nuovo valore valido", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique.mockResolvedValue({
       collaboratoreId: "collab-giulia",
     });
@@ -353,7 +417,10 @@ describe("modificaRiga", () => {
   });
 
   it("rimuove trasfertaKm quando inviato vuoto", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique.mockResolvedValue({
       collaboratoreId: "collab-giulia",
     });
@@ -373,7 +440,10 @@ describe("modificaRiga", () => {
   });
 
   it("rifiuta riga di altro collaboratore", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique.mockResolvedValue({
       collaboratoreId: "collab-altro",
     });
@@ -392,7 +462,10 @@ describe("modificaRiga", () => {
   });
 
   it("rifiuta riga inesistente", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique.mockResolvedValue(null);
 
     const fd = creaFormData({
@@ -407,8 +480,8 @@ describe("modificaRiga", () => {
     expect(result.error).toBe("Riga non trovata");
   });
 
-  it("restituisce errore se non autenticato", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
+  it("restituisce un messaggio per profilo assente", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({ stato: "ASSENTE" });
 
     const fd = creaFormData({
       rigaId: "riga-1",
@@ -419,7 +492,7 @@ describe("modificaRiga", () => {
     const result = await modificaRiga(fd);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("collaboratore");
+    expect(result.error).toContain("profilo Collaboratore");
   });
 });
 
@@ -431,7 +504,10 @@ describe("eliminaRiga", () => {
   });
 
   it("cancella correttamente il record", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique
       // Prima chiamata: verificaProprietario
       .mockResolvedValueOnce({ collaboratoreId: "collab-giulia" })
@@ -449,7 +525,10 @@ describe("eliminaRiga", () => {
   });
 
   it("rifiuta riga di altro collaboratore", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique.mockResolvedValue({
       collaboratoreId: "collab-altro",
     });
@@ -462,7 +541,10 @@ describe("eliminaRiga", () => {
   });
 
   it("rifiuta riga inesistente", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique.mockResolvedValue(null);
 
     const result = await eliminaRiga("riga-inesistente");
@@ -471,13 +553,13 @@ describe("eliminaRiga", () => {
     expect(result.error).toBe("Riga non trovata");
   });
 
-  it("restituisce errore se non autenticato", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
+  it("restituisce un messaggio per profilo assente", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({ stato: "ASSENTE" });
 
     const result = await eliminaRiga("riga-1");
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("collaboratore");
+    expect(result.error).toContain("profilo Collaboratore");
   });
 });
 
@@ -489,7 +571,10 @@ describe("rimuoviTrasferta", () => {
   });
 
   it("imposta trasfertaKm a null sulla riga propria", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique
       .mockResolvedValueOnce({ collaboratoreId: "collab-giulia" })
       .mockResolvedValueOnce({ data: new Date(2026, 6, 1) });
@@ -506,7 +591,10 @@ describe("rimuoviTrasferta", () => {
   });
 
   it("rifiuta riga di altro collaboratore", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique.mockResolvedValue({
       collaboratoreId: "collab-altro",
     });
@@ -519,7 +607,10 @@ describe("rimuoviTrasferta", () => {
   });
 
   it("rifiuta riga inesistente", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(collaboratoreMock());
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
     mockRigaAttivita.findUnique.mockResolvedValue(null);
 
     const result = await rimuoviTrasferta("riga-inesistente");
@@ -528,12 +619,12 @@ describe("rimuoviTrasferta", () => {
     expect(result.error).toBe("Riga non trovata");
   });
 
-  it("restituisce errore se non autenticato", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
+  it("restituisce un messaggio per profilo assente", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({ stato: "ASSENTE" });
 
     const result = await rimuoviTrasferta("riga-1");
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("collaboratore");
+    expect(result.error).toContain("profilo Collaboratore");
   });
 });
