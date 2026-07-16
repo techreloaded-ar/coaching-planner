@@ -2,27 +2,31 @@
 id: overview
 type: overview
 summary: Scopo, attori, stack e perimetro della mappa codebase-first di Coaching Planner
-status: generated
+status: reviewed
 links:
-  - id: architecture.context-map
-    relation: introduces
-  - id: engineering.code-map
-    relation: maps-code
-  - id: operations.development
-    relation: describes-operations
+    - id: architecture.context-map
+      relation: introduces
+    - id: engineering.code-map
+      relation: maps-code
+    - id: operations.development
+      relation: describes-operations
 sources:
-  - path: "prisma/schema.prisma"
-    role: runtime-model
-  - path: "src/app/page.tsx"
-    role: public-entry-point
-  - path: "src/lib/dal.ts"
-    role: actor-and-access-policy
-  - path: "src/lib/actions/righe-attivita.ts"
-    role: primary-use-case
-  - path: "src/lib/report.ts"
-    role: administrative-use-cases
-  - path: "package.json"
-    role: stack-manifest
+    - path: prisma/schema.prisma
+      role: runtime-model
+    - path: src/app/page.tsx
+      role: public-entry-point
+    - path: src/lib/dal.ts
+      role: actor-and-access-policy
+    - path: src/lib/actions/righe-attivita.ts
+      role: primary-use-case
+    - path: src/lib/report.ts
+      role: administrative-use-cases
+    - path: package.json
+      role: stack-manifest
+review:
+    content_hash: sha256:f0ba1b122cf795e72468ee0c58906ebd9a7ba0c37c865bec508cb49f406f73c9
+    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
+    reviewed_at: "2026-07-16T17:30:56Z"
 ---
 # Panoramica
 

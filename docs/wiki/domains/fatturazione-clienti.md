@@ -1,31 +1,35 @@
 ---
 id: domains.fatturazione-clienti
 type: domain
-classification: candidate
 summary: Proiezione amministrativa mensile degli importi da fatturare ai clienti
-status: generated
+status: reviewed
+classification: candidate
 links:
-  - id: architecture.context-map
-    relation: participates-in
-  - id: domains.attivita
-    relation: consumes-activity-facts
-  - id: domains.offerte
-    relation: consumes-commercial-rates
-  - id: domains.politiche-rimborso
-    relation: consumes-reimbursement-policy
+    - id: architecture.context-map
+      relation: participates-in
+    - id: domains.attivita
+      relation: consumes-activity-facts
+    - id: domains.offerte
+      relation: consumes-commercial-rates
+    - id: domains.politiche-rimborso
+      relation: consumes-reimbursement-policy
 sources:
-  - path: "src/lib/report.ts"
-    role: application-query
-    symbol: reportFatturazioneClientiMese
-  - path: "src/domain/consuntivi/index.ts"
-    role: domain-calculation
-    symbol: calcolaReportFatturazioneClienti
-  - path: "src/app/(back-office)/report/fatturazione-clienti/page.tsx"
-    role: inbound-ui
-  - path: "tests/unit/report-fatturazione-clienti.test.ts"
-    role: verification
-  - path: "tests/e2e/report-fatturazione-clienti.spec.ts"
-    role: verification
+    - path: src/lib/report.ts
+      role: application-query
+      symbol: reportFatturazioneClientiMese
+    - path: src/domain/consuntivi/index.ts
+      role: domain-calculation
+      symbol: calcolaReportFatturazioneClienti
+    - path: src/app/(back-office)/report/fatturazione-clienti/page.tsx
+      role: inbound-ui
+    - path: tests/unit/report-fatturazione-clienti.test.ts
+      role: verification
+    - path: tests/e2e/report-fatturazione-clienti.spec.ts
+      role: verification
+review:
+    content_hash: sha256:2662136a0b54f5a37c4939e23530539570942704c9f68cc0645d8df98bbe1a54
+    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
+    reviewed_at: "2026-07-16T17:30:56Z"
 ---
 # Fatturazione clienti
 

@@ -2,7 +2,7 @@
 id: engineering.code-map
 type: code-map
 summary: Matrice fisica fra capability candidate, codice, dati e test
-status: generated
+status: reviewed
 links:
     - id: overview
       relation: supports
@@ -92,6 +92,10 @@ coverage:
       status: mapped
       pages:
         - domains.politiche-rimborso
+review:
+    content_hash: sha256:107d5f678d819adf4756636b2a62da32a61b1b88b1f0be4e86770a0652395add
+    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
+    reviewed_at: "2026-07-16T17:30:56Z"
 ---
 # Mappa del codice
 

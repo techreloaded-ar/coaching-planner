@@ -1,40 +1,44 @@
 ---
 id: domains.offerte
 type: domain
-classification: candidate
 summary: Impegni commerciali per cliente, budget in giornate e monitoraggio dell'avanzamento
-status: generated
+status: reviewed
+classification: candidate
 links:
-  - id: architecture.context-map
-    relation: participates-in
-  - id: domains.clienti
-    relation: references-client
-  - id: domains.attivita
-    relation: supplies-engagement-reference
-  - id: domains.fatturazione-clienti
-    relation: supplies-commercial-rates
+    - id: architecture.context-map
+      relation: participates-in
+    - id: domains.clienti
+      relation: references-client
+    - id: domains.attivita
+      relation: supplies-engagement-reference
+    - id: domains.fatturazione-clienti
+      relation: supplies-commercial-rates
 sources:
-  - path: "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts"
-    role: inbound-commands
-    symbol: creaOfferta, aggiornaOfferta
-  - path: "src/app/(back-office)/offerte/actions.ts"
-    role: inbound-commands
-    symbol: cambiaStatoOfferta, eliminaOfferta
-  - path: "src/lib/offerte.ts"
-    role: application-query
-    symbol: elencaOfferteConAvanzamento
-  - path: "src/domain/anagrafiche/valida-offerta.ts"
-    role: domain-validation
-  - path: "src/domain/consuntivi/index.ts"
-    role: projection-calculation
-    symbol: calcolaAvanzamentoOfferte
-  - path: "prisma/schema.prisma"
-    role: owned-data
-    symbol: Offerta
-  - path: "tests/unit/avanzamento-offerte.test.ts"
-    role: verification
-  - path: "tests/e2e/dettaglio-avanzamento-offerta.spec.ts"
-    role: verification
+    - path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
+      role: inbound-commands
+      symbol: creaOfferta, aggiornaOfferta
+    - path: src/app/(back-office)/offerte/actions.ts
+      role: inbound-commands
+      symbol: cambiaStatoOfferta, eliminaOfferta
+    - path: src/lib/offerte.ts
+      role: application-query
+      symbol: elencaOfferteConAvanzamento
+    - path: src/domain/anagrafiche/valida-offerta.ts
+      role: domain-validation
+    - path: src/domain/consuntivi/index.ts
+      role: projection-calculation
+      symbol: calcolaAvanzamentoOfferte
+    - path: prisma/schema.prisma
+      role: owned-data
+      symbol: Offerta
+    - path: tests/unit/avanzamento-offerte.test.ts
+      role: verification
+    - path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts
+      role: verification
+review:
+    content_hash: sha256:86dd469fc172f3ee0e69a2b114c2da94decd9b3ead4b2705e50a12efa72582ce
+    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
+    reviewed_at: "2026-07-16T17:30:56Z"
 ---
 # Offerte
 

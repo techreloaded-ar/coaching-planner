@@ -2,35 +2,39 @@
 id: architecture.context-map
 type: context-map
 summary: Relazioni tra capability candidate, infrastruttura condivisa e confini ancora da revisionare
-status: generated
+status: reviewed
 links:
-  - id: overview
-    relation: detailed-by
-  - id: engineering.code-map
-    relation: implemented-by
-  - id: domains.clienti
-    relation: includes-candidate
-  - id: domains.collaboratori
-    relation: includes-candidate
-  - id: domains.offerte
-    relation: includes-candidate
-  - id: domains.politiche-rimborso
-    relation: includes-candidate
-  - id: domains.attivita
-    relation: includes-candidate
-  - id: domains.fatturazione-clienti
-    relation: includes-candidate
-  - id: domains.identita-accesso
-    relation: includes-candidate
+    - id: overview
+      relation: detailed-by
+    - id: engineering.code-map
+      relation: implemented-by
+    - id: domains.clienti
+      relation: includes-candidate
+    - id: domains.collaboratori
+      relation: includes-candidate
+    - id: domains.offerte
+      relation: includes-candidate
+    - id: domains.politiche-rimborso
+      relation: includes-candidate
+    - id: domains.attivita
+      relation: includes-candidate
+    - id: domains.fatturazione-clienti
+      relation: includes-candidate
+    - id: domains.identita-accesso
+      relation: includes-candidate
 sources:
-  - path: "src/lib/actions/righe-attivita.ts"
-    role: cross-capability-flow
-  - path: "src/lib/report.ts"
-    role: downstream-projections
-  - path: "src/lib/dal.ts"
-    role: shared-access-boundary
-  - path: "prisma/schema.prisma"
-    role: shared-storage
+    - path: src/lib/actions/righe-attivita.ts
+      role: cross-capability-flow
+    - path: src/lib/report.ts
+      role: downstream-projections
+    - path: src/lib/dal.ts
+      role: shared-access-boundary
+    - path: prisma/schema.prisma
+      role: shared-storage
+review:
+    content_hash: sha256:c732db3187b8aee5286bde89c0af3c1644c1d34c6e076721adbe60d8f68d1d56
+    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
+    reviewed_at: "2026-07-16T17:30:56Z"
 ---
 # Mappa dei contesti candidati
 
