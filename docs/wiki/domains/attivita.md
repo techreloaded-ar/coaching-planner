@@ -1,41 +1,45 @@
 ---
 id: domains.attivita
 type: domain
-classification: candidate
 summary: Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore
-status: generated
+status: reviewed
+classification: candidate
 links:
-  - id: architecture.context-map
-    relation: participates-in
-  - id: domains.collaboratori
-    relation: references-operational-profile
-  - id: domains.clienti
-    relation: references-client
-  - id: domains.offerte
-    relation: references-engagement
-  - id: domains.politiche-rimborso
-    relation: consumes-reimbursement-policy
-  - id: domains.fatturazione-clienti
-    relation: supplies-activity-facts
+    - id: architecture.context-map
+      relation: participates-in
+    - id: domains.collaboratori
+      relation: references-operational-profile
+    - id: domains.clienti
+      relation: references-client
+    - id: domains.offerte
+      relation: references-engagement
+    - id: domains.politiche-rimborso
+      relation: consumes-reimbursement-policy
+    - id: domains.fatturazione-clienti
+      relation: supplies-activity-facts
 sources:
-  - path: "src/lib/actions/righe-attivita.ts"
-    role: inbound-commands
-    symbol: creaRiga, modificaRiga, eliminaRiga, rimuoviTrasferta
-  - path: "src/lib/attivita.ts"
-    role: application-query
-    symbol: attivitaDelMese, righeDelGiorno, riepilogoMese
-  - path: "src/domain/calendario/index.ts"
-    role: supporting-domain
-  - path: "src/domain/consuntivi/index.ts"
-    role: domain-calculation
-    symbol: validaOre, validaKmTrasferta, calcolaRiepilogoMese
-  - path: "prisma/schema.prisma"
-    role: owned-data
-    symbol: RigaAttivita
-  - path: "tests/unit/righe-attivita-actions.test.ts"
-    role: verification
-  - path: "tests/e2e/calendario-segregazione.spec.ts"
-    role: verification
+    - path: src/lib/actions/righe-attivita.ts
+      role: inbound-commands
+      symbol: creaRiga, modificaRiga, eliminaRiga, rimuoviTrasferta
+    - path: src/lib/attivita.ts
+      role: application-query
+      symbol: attivitaDelMese, righeDelGiorno, riepilogoMese
+    - path: src/domain/calendario/index.ts
+      role: supporting-domain
+    - path: src/domain/consuntivi/index.ts
+      role: domain-calculation
+      symbol: validaOre, validaKmTrasferta, calcolaRiepilogoMese
+    - path: prisma/schema.prisma
+      role: owned-data
+      symbol: RigaAttivita
+    - path: tests/unit/righe-attivita-actions.test.ts
+      role: verification
+    - path: tests/e2e/calendario-segregazione.spec.ts
+      role: verification
+review:
+    content_hash: sha256:aba114b4022ff7c22a2ff8296d1477cfe3052ea09126c2f87ebf5fd81af01d8b
+    evidence_revision: 82aa87a3bc73c8e8f42bf1d162c6973dbdf76978
+    reviewed_at: "2026-07-16T14:24:23Z"
 ---
 # Attività e consuntivazione
 

@@ -2,80 +2,101 @@
 id: engineering.code-map
 type: code-map
 summary: Matrice fisica fra capability candidate, codice, dati e test
-status: generated
+status: reviewed
 links:
-  - id: overview
-    relation: supports
-  - id: architecture.context-map
-    relation: physical-view-of
-  - id: operations.development
-    relation: operated-by
+    - id: overview
+      relation: supports
+    - id: architecture.context-map
+      relation: physical-view-of
+    - id: operations.development
+      relation: operated-by
 sources:
-  - path: "package.json"
-    role: manifest
-  - path: "src"
-    role: runtime-boundary
-  - path: "prisma/schema.prisma"
-    role: data-boundary
-  - path: "tests"
-    role: verification-boundary
+    - path: package.json
+      role: manifest
+    - path: src
+      role: runtime-boundary
+    - path: prisma/schema.prisma
+      role: data-boundary
+    - path: tests
+      role: verification-boundary
 coverage:
-  - kind: boundary
-    path: "."
-    status: mapped
-    pages: [engineering.code-map, operations.development]
-  - kind: boundary
-    path: docs
-    status: partial
-    note: "L'inspector dichiara un campione rappresentativo; mockup e fonti di intento sono mappati fisicamente ma non letti come runtime."
-  - kind: boundary
-    path: prisma
-    status: mapped
-    pages: [engineering.code-map, operations.development]
-  - kind: boundary
-    path: scripts
-    status: mapped
-    pages: [operations.development]
-  - kind: boundary
-    path: src
-    status: partial
-    note: "Letti entry point, candidati e dipendenze pertinenti; l'inspector segnala il boundary complessivo come campione rappresentativo."
-  - kind: boundary
-    path: tests
-    status: partial
-    note: "Letti test pertinenti ai candidati e rappresentanti; l'inspector segnala il boundary complessivo come campione rappresentativo."
-  - kind: capability
-    path: anagrafiche
-    status: mapped
-    pages: [domains.clienti, domains.collaboratori, domains.offerte, domains.politiche-rimborso]
-  - kind: capability
-    path: attivita
-    status: mapped
-    pages: [domains.attivita]
-  - kind: capability
-    path: auth
-    status: mapped
-    pages: [domains.identita-accesso]
-  - kind: capability
-    path: clienti
-    status: mapped
-    pages: [domains.clienti]
-  - kind: capability
-    path: collaboratori
-    status: mapped
-    pages: [domains.collaboratori]
-  - kind: capability
-    path: offerte
-    status: mapped
-    pages: [domains.offerte]
-  - kind: capability
-    path: report
-    status: mapped
-    pages: [domains.fatturazione-clienti, domains.offerte]
-  - kind: capability
-    path: scaglioni
-    status: mapped
-    pages: [domains.politiche-rimborso]
+    - kind: boundary
+      path: .
+      status: mapped
+      pages:
+        - engineering.code-map
+        - operations.development
+    - kind: boundary
+      path: docs
+      status: partial
+      note: L'inspector dichiara un campione rappresentativo; mockup e fonti di intento sono mappati fisicamente ma non letti come runtime.
+    - kind: boundary
+      path: prisma
+      status: mapped
+      pages:
+        - engineering.code-map
+        - operations.development
+    - kind: boundary
+      path: scripts
+      status: mapped
+      pages:
+        - operations.development
+    - kind: boundary
+      path: src
+      status: partial
+      note: Letti entry point, candidati e dipendenze pertinenti; l'inspector segnala il boundary complessivo come campione rappresentativo.
+    - kind: boundary
+      path: tests
+      status: partial
+      note: Letti test pertinenti ai candidati e rappresentanti; l'inspector segnala il boundary complessivo come campione rappresentativo.
+    - kind: capability
+      path: anagrafiche
+      status: mapped
+      pages:
+        - domains.clienti
+        - domains.collaboratori
+        - domains.offerte
+        - domains.politiche-rimborso
+    - kind: capability
+      path: attivita
+      status: mapped
+      pages:
+        - domains.attivita
+    - kind: capability
+      path: auth
+      status: mapped
+      pages:
+        - domains.identita-accesso
+    - kind: capability
+      path: clienti
+      status: mapped
+      pages:
+        - domains.clienti
+    - kind: capability
+      path: collaboratori
+      status: mapped
+      pages:
+        - domains.collaboratori
+    - kind: capability
+      path: offerte
+      status: mapped
+      pages:
+        - domains.offerte
+    - kind: capability
+      path: report
+      status: mapped
+      pages:
+        - domains.fatturazione-clienti
+        - domains.offerte
+    - kind: capability
+      path: scaglioni
+      status: mapped
+      pages:
+        - domains.politiche-rimborso
+review:
+    content_hash: sha256:c3666590a03a47d719015b353f7d2942cd4effba4634ed28c95dbd71095a427c
+    evidence_revision: 82aa87a3bc73c8e8f42bf1d162c6973dbdf76978
+    reviewed_at: "2026-07-16T14:24:23Z"
 ---
 # Mappa del codice
 
