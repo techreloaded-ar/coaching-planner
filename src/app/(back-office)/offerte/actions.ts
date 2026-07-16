@@ -31,6 +31,7 @@ export async function cambiaStatoOfferta(formData: FormData): Promise<void> {
 
   const id = formData.get("id") as string;
   const attiva = formData.get("attiva") === "true";
+  const offertaEspansaId = formData.get("offertaEspansaId");
 
   if (!id) {
     redirect("/offerte");
@@ -42,7 +43,14 @@ export async function cambiaStatoOfferta(formData: FormData): Promise<void> {
   });
 
   revalidatePath("/offerte");
-  redirect("/offerte?esito=stato-offerta-aggiornato");
+
+  const parametriRedirect = new URLSearchParams({
+    esito: "stato-offerta-aggiornato",
+  });
+  if (typeof offertaEspansaId === "string" && offertaEspansaId) {
+    parametriRedirect.set("offertaEspansaId", offertaEspansaId);
+  }
+  redirect(`/offerte?${parametriRedirect.toString()}`);
 }
 
 export interface StatoEliminazioneOfferta {

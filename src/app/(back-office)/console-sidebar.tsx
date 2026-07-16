@@ -37,12 +37,6 @@ const IconReport = (
   </svg>
 );
 
-const IconAvanzamentoOfferte = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
-    <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" />
-  </svg>
-);
-
 const IconAttivita = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
     <path d="M8 3v3M16 3v3M4 10h16M5 6h14a1 1 0 0 1 1 1v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a1 1 0 0 1 1-1Z" />
@@ -58,7 +52,6 @@ const NAV_ITEMS = [
   { href: "/anagrafiche/collaboratori", label: "Collaboratori", icon: IconCollaboratori },
   { href: "/anagrafiche/scaglioni", label: "Scaglioni km", icon: IconScaglioni },
   { href: "/report/fatturazione-clienti", label: "Fatturazione clienti", icon: IconReport },
-  { href: "/report/avanzamento-offerte", label: "Avanzamento offerte", icon: IconAvanzamentoOfferte },
 ] as const;
 
 // ── Props ──────────────────────────────────────────────────────

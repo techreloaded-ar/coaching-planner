@@ -4,7 +4,14 @@ import { elencaOfferteConAvanzamento } from "@/lib/offerte";
 import OfferteTabella from "./offerte-tabella";
 
 interface OffertePageProps {
-  searchParams: Promise<{ esito?: string }>;
+  searchParams: Promise<{
+    esito?: string | string[];
+    offertaEspansaId?: string | string[];
+  }>;
+}
+
+function primoParametro(parametro?: string | string[]): string | undefined {
+  return Array.isArray(parametro) ? parametro[0] : parametro;
 }
 
 /** Messaggio del banner verde di esito in base al parametro `esito`. */
@@ -26,8 +33,9 @@ function messaggioPerEsito(esito?: string): string | null {
 export default async function OffertePage({ searchParams }: OffertePageProps) {
   await richiediRuolo("AMMINISTRATORE");
   const offerte = await elencaOfferteConAvanzamento();
-  const { esito } = await searchParams;
-  const messaggioEsito = messaggioPerEsito(esito);
+  const { esito, offertaEspansaId } = await searchParams;
+  const messaggioEsito = messaggioPerEsito(primoParametro(esito));
+  const offertaEspansaIdIniziale = primoParametro(offertaEspansaId);
 
   return (
     <div>
@@ -71,7 +79,10 @@ export default async function OffertePage({ searchParams }: OffertePageProps) {
       )}
 
       {/* Tabella offerte */}
-      <OfferteTabella offerte={offerte} />
+      <OfferteTabella
+        offerte={offerte}
+        offertaEspansaIdIniziale={offertaEspansaIdIniziale}
+      />
     </div>
   );
 }

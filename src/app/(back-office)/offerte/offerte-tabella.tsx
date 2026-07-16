@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { Fragment, useState, useActionState } from "react";
 import Link from "next/link";
 import type { VoceElencoOfferta } from "@/lib/offerte";
+import DettaglioAvanzamentoOfferta from "./dettaglio-avanzamento-offerta";
 import {
   cambiaStatoOfferta,
   eliminaOfferta,
@@ -49,12 +50,19 @@ function eCritica(offerta: VoceElencoOfferta): boolean {
 
 interface OfferteTabellaProps {
   offerte: VoceElencoOfferta[];
+  offertaEspansaIdIniziale?: string;
 }
 
 // ── Componente ──────────────────────────────────────────────────
 
-export default function OfferteTabella({ offerte }: OfferteTabellaProps) {
+export default function OfferteTabella({
+  offerte,
+  offertaEspansaIdIniziale,
+}: OfferteTabellaProps) {
   const [filtro, setFiltro] = useState("");
+  const [offertaEspansaId, setOffertaEspansaId] = useState<string | null>(
+    offertaEspansaIdIniziale ?? null,
+  );
   const [offertaDaEliminare, setOffertaDaEliminare] =
     useState<VoceElencoOfferta | null>(null);
 
@@ -155,7 +163,14 @@ export default function OfferteTabella({ offerte }: OfferteTabellaProps) {
                 <RigaOfferta
                   key={offerta.offertaId}
                   offerta={offerta}
+                  espansa={offertaEspansaId === offerta.offertaId}
+                  onToggleEspansione={() =>
+                    setOffertaEspansaId((id) =>
+                      id === offerta.offertaId ? null : offerta.offertaId,
+                    )
+                  }
                   onElimina={() => setOffertaDaEliminare(offerta)}
+                  offertaEspansaId={offertaEspansaId}
                 />
               ))
             )}
@@ -166,6 +181,7 @@ export default function OfferteTabella({ offerte }: OfferteTabellaProps) {
 
     <ModaleElimina
       offerta={offertaDaEliminare}
+      offertaEspansaId={offertaEspansaId}
       onChiudi={() => setOffertaDaEliminare(null)}
     />
     </>
@@ -176,10 +192,16 @@ export default function OfferteTabella({ offerte }: OfferteTabellaProps) {
 
 function RigaOfferta({
   offerta,
+  espansa,
+  onToggleEspansione,
   onElimina,
+  offertaEspansaId,
 }: {
   offerta: VoceElencoOfferta;
+  espansa: boolean;
+  onToggleEspansione: () => void;
   onElimina: () => void;
+  offertaEspansaId: string | null;
 }) {
   const oltreBudget = offerta.residuo < 0;
   const esaurita = offerta.residuo === 0 && offerta.giorniPrevisti > 0;
@@ -193,25 +215,50 @@ function RigaOfferta({
     (offerta.residuo < 0 ? "−" : "") + formattaGiornate(Math.abs(offerta.residuo));
 
   return (
-    <tr
-      className={`border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 ${
-        !offerta.attiva ? "opacity-60" : ""
-      }`}
-    >
-      {/* Offerta: badge codice + descrizione */}
-      <td className="px-4 py-[13px] align-middle">
-        <div className="flex min-w-0 flex-col gap-[5px] leading-[1.3]">
-          <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-white px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-            {offerta.codice}
-          </span>
-          <span
-            className="max-w-[340px] truncate text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100"
-            title={offerta.descrizione}
-          >
-            {offerta.descrizione}
-          </span>
-        </div>
-      </td>
+    <Fragment key={offerta.offertaId}>
+      <tr
+        onClick={onToggleEspansione}
+        className={`cursor-pointer border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 ${
+          !offerta.attiva ? "opacity-60" : ""
+        }`}
+      >
+        {/* Offerta: controllo espansione, badge codice + descrizione */}
+        <td className="px-4 py-[13px] align-middle">
+          <div className="flex min-w-0 items-start gap-[9px] leading-[1.3]">
+            <button
+              type="button"
+              aria-expanded={espansa}
+              aria-label={`Dettaglio avanzamento ${offerta.codice}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleEspansione();
+              }}
+              className="mt-[2px] flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className={`h-4 w-4 transition-transform ${espansa ? "rotate-90" : ""}`}
+                aria-hidden="true"
+              >
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+            </button>
+            <div className="flex min-w-0 flex-col gap-[5px]">
+              <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-white px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                {offerta.codice}
+              </span>
+              <span
+                className="max-w-[340px] truncate text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100"
+                title={offerta.descrizione}
+              >
+                {offerta.descrizione}
+              </span>
+            </div>
+          </div>
+        </td>
 
       {/* Cliente */}
       <td className="px-4 py-[13px] align-middle">
@@ -299,11 +346,19 @@ function RigaOfferta({
       </td>
 
       {/* Stato attiva/non attiva: interruttore + etichetta, coerente col mockup */}
-      <td className="px-4 py-[13px] align-middle">
+      <td
+        className="px-4 py-[13px] align-middle"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center gap-[10px]">
           <form action={cambiaStatoOfferta} className="contents">
             <input type="hidden" name="id" value={offerta.offertaId} />
             <input type="hidden" name="attiva" value={offerta.attiva ? "false" : "true"} />
+            <input
+              type="hidden"
+              name="offertaEspansaId"
+              value={offertaEspansaId ?? ""}
+            />
             <button
               type="submit"
               aria-label={offerta.attiva ? "Disattiva" : "Attiva"}
@@ -335,7 +390,10 @@ function RigaOfferta({
       </td>
 
       {/* Azioni: modifica, elimina */}
-      <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
+      <td
+        className="px-4 py-[13px] text-right align-middle whitespace-nowrap"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="inline-flex items-center gap-[2px]">
           <Link
             href={`/offerte/${offerta.offertaId}`}
@@ -359,7 +417,15 @@ function RigaOfferta({
           </button>
         </div>
       </td>
-    </tr>
+      </tr>
+      {espansa && (
+        <tr>
+          <td colSpan={8} className="bg-zinc-100 p-0 dark:bg-zinc-800/50">
+            <DettaglioAvanzamentoOfferta offerta={offerta} />
+          </td>
+        </tr>
+      )}
+    </Fragment>
   );
 }
 
@@ -367,9 +433,11 @@ function RigaOfferta({
 
 function ModaleElimina({
   offerta,
+  offertaEspansaId,
   onChiudi,
 }: {
   offerta: VoceElencoOfferta | null;
+  offertaEspansaId: string | null;
   onChiudi: () => void;
 }) {
   const [stato, azione] = useActionState(
@@ -474,6 +542,11 @@ function ModaleElimina({
                     <form action={cambiaStatoOfferta} onSubmit={onChiudi}>
                       <input type="hidden" name="id" value={offerta.offertaId} />
                       <input type="hidden" name="attiva" value="false" />
+                      <input
+                        type="hidden"
+                        name="offertaEspansaId"
+                        value={offertaEspansaId ?? ""}
+                      />
                       <button
                         type="submit"
                         className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"

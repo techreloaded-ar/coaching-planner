@@ -32,8 +32,7 @@ import { accediAlBackOfficeComeAdmin } from "./support/auth";
  *   questo erogato/residuo sono verificati per COERENZA INTERNA
  *   (residuo = giorni previsti − erogate, letti entrambi dalla stessa riga
  *   della tabella) invece che su cifre fisse, come già fatto per lo stesso
- *   cliente in demo__avanzamento-offerte.spec.ts e
- *   demo__report-fatturazione-clienti.spec.ts.
+ *   cliente in demo__report-fatturazione-clienti.spec.ts.
  */
 
 /** Converte un testo tipo "35,9gg" o "0gg" in number (formato it-IT). */

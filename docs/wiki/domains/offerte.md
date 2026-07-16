@@ -33,6 +33,8 @@ sources:
     symbol: Offerta
   - path: "tests/unit/avanzamento-offerte.test.ts"
     role: verification
+  - path: "tests/e2e/dettaglio-avanzamento-offerta.spec.ts"
+    role: verification
 ---
 # Offerte
 
@@ -58,7 +60,7 @@ Possiede `Offerta`, i termini commerciali, il budget e il booleano `attiva`. Rif
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
-Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `elencaOffertePerCliente`, `offertaPerId` ed `elencaOfferteConAvanzamento` sono riservate all'amministratore. Le attività consumano solo offerte attive del cliente selezionato.
+Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `elencaOffertePerCliente`, `offertaPerId` ed `elencaOfferteConAvanzamento` sono riservate all'amministratore; quest'ultima espone anche percentuale di utilizzo e ripartizione per collaboratore, per mostrare l'avanzamento direttamente nella tabella Offerte. Le attività consumano solo offerte attive del cliente selezionato.
 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
@@ -68,6 +70,7 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 3. Il comando di stato assegna direttamente a `attiva` il booleano del form, senza guardia sullo stato sorgente.
 4. L'eliminazione conta prima le righe attività e traduce anche l'errore FK da concorrenza; in presenza di righe invita a disattivare.
 5. `calcolaAvanzamentoOfferte` assegna una delle quattro classificazioni in base a residuo e soglia 85%. Non esiste una colonna `stato` né una write di transizione: ogni lettura ricalcola il valore.
+6. La tabella trasversale `/offerte` espande una riga per mostrare classificazione, KPI, percentuale e ripartizione; il toggle di attivazione conserva la riga espansa attraverso il redirect. La precedente rotta `/report/avanzamento-offerte` reindirizza a `/offerte`.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
@@ -78,7 +81,7 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 | UI trasversale e stato | `src/app/(back-office)/offerte/**` |
 | Query | `src/lib/offerte.ts` |
 | Validazione | `src/domain/anagrafiche/valida-offerta.ts` |
-| Avanzamento | `src/domain/consuntivi/index.ts`, `src/lib/report.ts` |
+| Avanzamento | `src/domain/consuntivi/index.ts`, `src/lib/offerte.ts`, `src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx` |
 | Dati | `prisma/schema.prisma` (`Offerta`) |
 | Test | `tests/unit/offerte-dal-actions.test.ts`, `tests/unit/avanzamento-offerte.test.ts`, `tests/e2e/anagrafica-offerte.spec.ts`, `tests/e2e/gestione-offerte.spec.ts` |
 
@@ -90,4 +93,4 @@ Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Unit test coprono validazione, DAL, eliminazione e calcolo dell'avanzamento; E2E coprono gestione, viste annidate e trasversali. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer.
+Unit test coprono validazione, DAL, eliminazione, calcolo ed esposizione dell'avanzamento; E2E coprono gestione, viste annidate e trasversali, incluso il dettaglio espandibile e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer.

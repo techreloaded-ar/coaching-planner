@@ -155,6 +155,110 @@ describe("elencaOfferteConAvanzamento", () => {
 		expect(voce.residuo).toBe(9);
 	});
 
+	it("ripartisce 32 ore fatturabili di due collaboratori su 10 giorni previsti con percentuale 0.4 e dati esatti", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-ripartita", giorniPrevisti: 10 }),
+		]);
+		mockRigaAttivita.findMany.mockResolvedValue([
+			rigaConCollaboratore({
+				offertaId: "off-ripartita",
+				collaboratoreId: "collab-anna",
+				nome: "Anna",
+				cognome: "Bianchi",
+				ore: 16,
+			}),
+			rigaConCollaboratore({
+				offertaId: "off-ripartita",
+				collaboratoreId: "collab-bruno",
+				nome: "Bruno",
+				cognome: "Verdi",
+				ore: 16,
+			}),
+		]);
+
+		const [voce] = await elencaOfferteConAvanzamento();
+
+		expect(voce).toMatchObject({
+			offertaId: "off-ripartita",
+			giornateErogate: 4,
+			residuo: 6,
+			percentualeUtilizzo: 0.4,
+			stato: "IN_CORSO",
+		});
+		expect(voce.perCollaboratore).toEqual([
+			{
+				collaboratoreId: "collab-anna",
+				collaboratoreNome: "Anna Bianchi",
+				oreErogate: 16,
+				giornateErogate: 2,
+			},
+			{
+				collaboratoreId: "collab-bruno",
+				collaboratoreNome: "Bruno Verdi",
+				oreErogate: 16,
+				giornateErogate: 2,
+			},
+		]);
+	});
+
+	it("ripartisce solo le ore fatturabili tra i collaboratori", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-mista", giorniPrevisti: 10 }),
+		]);
+		mockRigaAttivita.findMany.mockResolvedValue([
+			rigaConCollaboratore({
+				offertaId: "off-mista",
+				collaboratoreId: "collab-anna",
+				nome: "Anna",
+				cognome: "Bianchi",
+				ore: 16,
+				fatturabile: true,
+			}),
+			rigaConCollaboratore({
+				offertaId: "off-mista",
+				collaboratoreId: "collab-bruno",
+				nome: "Bruno",
+				cognome: "Verdi",
+				ore: 80,
+				fatturabile: false,
+			}),
+		]);
+
+		const [voce] = await elencaOfferteConAvanzamento();
+
+		expect(voce).toMatchObject({
+			giornateErogate: 2,
+			residuo: 8,
+			percentualeUtilizzo: 0.2,
+		});
+		expect(voce.perCollaboratore).toEqual([
+			{
+				collaboratoreId: "collab-anna",
+				collaboratoreNome: "Anna Bianchi",
+				oreErogate: 16,
+				giornateErogate: 2,
+			},
+		]);
+	});
+
+	it("restituisce avanzamento zero e nessun collaboratore senza attività", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-senza-attivita", giorniPrevisti: 10 }),
+		]);
+		mockRigaAttivita.findMany.mockResolvedValue([]);
+
+		const [voce] = await elencaOfferteConAvanzamento();
+
+		expect(voce).toMatchObject({
+			offertaId: "off-senza-attivita",
+			giornateErogate: 0,
+			residuo: 10,
+			percentualeUtilizzo: 0,
+			stato: "IN_CORSO",
+		});
+		expect(voce.perCollaboratore).toEqual([]);
+	});
+
 	// (c) offerta senza attività ────────────────────────────────────
 
 	it("per un'offerta senza righe attività riporta erogate 0, residuo = giorni previsti e stato IN_CORSO", async () => {

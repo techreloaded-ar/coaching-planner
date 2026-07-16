@@ -13,6 +13,7 @@ import {
   type OffertaAvanzamento,
   type RigaAvanzamento,
   type StatoAvanzamentoOfferta,
+  type VoceCollaboratoreAvanzamento,
 } from "@/domain/consuntivi";
 
 export interface OffertaConCliente extends Offerta {
@@ -39,7 +40,11 @@ export interface VoceElencoOfferta {
   attiva: boolean;
   giornateErogate: number;
   residuo: number;
+  /** Percentuale di utilizzo del budget previsto dall'offerta. */
+  percentualeUtilizzo: number;
   stato: StatoAvanzamentoOfferta;
+  /** Dettaglio delle giornate erogate per ciascun collaboratore. */
+  perCollaboratore: VoceCollaboratoreAvanzamento[];
   numeroRigheAttivita: number;
 }
 
@@ -165,7 +170,9 @@ export async function elencaOfferteConAvanzamento(): Promise<
       attiva: offerta.attiva,
       giornateErogate: avanzamento?.giornateErogate ?? 0,
       residuo: avanzamento?.residuo ?? offerta.giorniPrevisti,
+      percentualeUtilizzo: avanzamento?.percentualeUtilizzo ?? 0,
       stato: avanzamento?.stato ?? "IN_CORSO",
+      perCollaboratore: avanzamento?.perCollaboratore ?? [],
       numeroRigheAttivita: numeroRighePerOfferta.get(offerta.id) ?? 0,
     };
   });

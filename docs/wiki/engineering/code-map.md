@@ -2,7 +2,7 @@
 id: engineering.code-map
 type: code-map
 summary: Matrice fisica fra capability candidate, codice, dati e test
-status: reviewed
+status: generated
 links:
     - id: overview
       relation: supports
@@ -87,16 +87,11 @@ coverage:
       status: mapped
       pages:
         - domains.fatturazione-clienti
-        - domains.offerte
     - kind: capability
       path: scaglioni
       status: mapped
       pages:
         - domains.politiche-rimborso
-review:
-    content_hash: sha256:c3666590a03a47d719015b353f7d2942cd4effba4634ed28c95dbd71095a427c
-    evidence_revision: 82aa87a3bc73c8e8f42bf1d162c6973dbdf76978
-    reviewed_at: "2026-07-16T14:24:23Z"
 ---
 # Mappa del codice
 
@@ -107,7 +102,7 @@ review:
 |---|---|---|---|---|---|---|
 | Clienti | `src/app/(back-office)/anagrafiche/clienti/**` | `src/lib/clienti.ts`, `src/domain/anagrafiche/valida-cliente.ts` | `Cliente` | Offerte, Attività, report | unit clienti/validazione; E2E anagrafica clienti | `domains.clienti` |
 | Collaboratori | `src/app/(back-office)/anagrafiche/collaboratori/**` | `src/lib/collaboratori.ts`, validatore, parti di `dal.ts` | `Collaboratore`, scritture coordinate su `Utente` | Identità, Attività | unit collaboratori/DAL; E2E collaboratori | `domains.collaboratori` |
-| Offerte | UI annidata cliente e `src/app/(back-office)/offerte/**` | `src/lib/offerte.ts`, validatore offerta, `calcolaAvanzamentoOfferte` | `Offerta` | Clienti, Attività | unit offerte/avanzamento; E2E offerte | `domains.offerte` |
+| Offerte | UI annidata cliente e `src/app/(back-office)/offerte/**`, incluso dettaglio avanzamento espandibile | `src/lib/offerte.ts`, validatore offerta, `calcolaAvanzamentoOfferte` | `Offerta` | Clienti, Attività | unit offerte/avanzamento; E2E offerte e dettaglio avanzamento | `domains.offerte` |
 | Politiche rimborso | `src/app/(back-office)/anagrafiche/scaglioni/**` | `src/lib/scaglioni.ts`, validatore, `calcolaRimborsoTrasferta` | `ScaglioneKm` | Attività, Fatturazione | unit scaglioni/rimborso; E2E scaglioni/trasferta | `domains.politiche-rimborso` |
 | Attività | `src/app/(front-office)/attivita/**` | `src/lib/actions/righe-attivita.ts`, `src/lib/attivita.ts`, calendario e consuntivi | `RigaAttivita` | tutte le anagrafiche operative | unit attività/action/calendario/riepilogo; E2E attività | `domains.attivita` |
 | Fatturazione clienti | `src/app/(back-office)/report/fatturazione-clienti/**` | `src/lib/report.ts`, `calcolaReportFatturazioneClienti` | sola lettura di attività/offerte/clienti/scaglioni | nessuna esterna | unit ed E2E report fatturazione | `domains.fatturazione-clienti` |
@@ -135,4 +130,4 @@ review:
 <!-- archetipo:wiki section=coverage -->
 ## Copertura dell'ispezione
 
-Tutti i sei boundary e gli otto candidati restituiti da `archetipo wiki inspect` sono rappresentati nel frontmatter `coverage`. Root, Prisma e script sono mappati. `docs`, `src` e `tests` restano `partial` perché l'inspector li dichiara campionati; per i candidati sono stati comunque letti tutti i file riportati e le dipendenze/test pertinenti. `anagrafiche` è distribuito su quattro pagine; `report` su Fatturazione clienti e Offerte.
+Tutti i sei boundary e gli otto candidati restituiti da `archetipo wiki inspect` sono rappresentati nel frontmatter `coverage`. Root, Prisma e script sono mappati. `docs`, `src` e `tests` restano `partial` perché l'inspector li dichiara campionati; per i candidati sono stati comunque letti tutti i file riportati e le dipendenze/test pertinenti. `anagrafiche` è distribuito su quattro pagine; il dettaglio di avanzamento appartiene ora a Offerte, mentre `report` mappa solo Fatturazione clienti.
