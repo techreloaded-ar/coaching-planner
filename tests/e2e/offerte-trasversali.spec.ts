@@ -104,6 +104,7 @@ test.describe("Pagina offerte trasversale", () => {
 		await expect(rigaNonAttiva).toBeVisible();
 		const indicatoreNonAttiva = rigaNonAttiva.getByRole("button", {
 			name: "Attiva",
+			exact: true,
 		});
 		await expect(indicatoreNonAttiva).toBeVisible();
 		await expect(indicatoreNonAttiva).toHaveAttribute(

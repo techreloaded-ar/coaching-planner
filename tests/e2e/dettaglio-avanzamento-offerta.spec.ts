@@ -266,7 +266,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 
 		const rigaBDisattivata = rigaOfferta(page, codiceB);
 		await expect(
-			rigaBDisattivata.getByRole("button", { name: "Attiva" }),
+			rigaBDisattivata.getByRole("button", { name: "Attiva", exact: true }),
 		).toHaveAttribute("title", "Offerta non attiva");
 		await expect(pulsanteDettaglio(rigaBDisattivata, codiceB)).toHaveAttribute(
 			"aria-expanded",
@@ -327,7 +327,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 		);
 		await expect(dettaglioOfferta(page, codice)).toBeVisible();
 		await expect(
-			rigaDisattivata.getByRole("button", { name: "Attiva" }),
+			rigaDisattivata.getByRole("button", { name: "Attiva", exact: true }),
 		).toHaveAttribute("title", "Offerta non attiva");
 	});
 

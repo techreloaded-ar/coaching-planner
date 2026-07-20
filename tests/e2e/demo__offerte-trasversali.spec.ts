@@ -19,20 +19,19 @@ import { accediAlBackOfficeComeAdmin } from "./support/auth";
  * Valori attesi derivati dal seed (prisma/seed.ts):
  * - TS-2025-01 (TechSolutions Srl): 40 gg previste. Giulia Conti eroga 17h
  *   fatturabili (8+2,5+6,5) → 2,125 gg; Marco Bianchi eroga 16h fatturabili
- *   (8+8) → 2 gg. Totale erogato 33h → 4,1 gg (display), residuo 35,9 gg.
+ *   (8+8) → 2 gg. Totale erogato 33h → 4,1 gg (display).
  *   Nessun altro scenario e2e tocca questa offerta (TechSolutions è un seed
  *   condiviso stabile: gli altri spec creano clienti/offerte via factory e
  *   non selezionano questa offerta), quindi i valori sono a cifra fissa.
  * - GE-2024-03 (GreenEnergy Srl, cliente e offerta inattivi): 10 gg previste,
- *   nessuna attività registrata → 0 gg erogate, 10 gg residuo, stato non
+ *   nessuna attività registrata → 0 gg erogate, stato non
  *   attiva. Il cliente inattivo non è selezionabile dai form attività degli
  *   altri scenari e2e, quindi i valori restano a cifra fissa.
  * - DF-2025-02 (DataFlow SpA): 25 gg previste (valore fisso di seed); riceve
  *   però attività aggiuntive da altri scenari e2e (US-012) che restano
  *   registrate e non vengono ripulite fino al termine dell'intera suite. Per
- *   questo erogato/residuo sono verificati per COERENZA INTERNA
- *   (residuo = giorni previsti − erogate, letti entrambi dalla stessa riga
- *   della tabella) invece che su cifre fisse, come già fatto per lo stesso
+ *   questo l'erogato è verificato su una soglia minima (baseline seed)
+ *   invece che su cifre fisse, come già fatto per lo stesso
  *   cliente in demo__report-fatturazione-clienti.spec.ts.
  */
 
@@ -49,13 +48,11 @@ function rigaOfferta(page: Page, codiceOfferta: string): Locator {
 
 /**
  * Legge le giornate erogate/previste dalla cella unica "Giorni erogati"
- * (4ª cella, indice 3) nel formato "erogate/previste gg" (it-IT) e deriva il
- * residuo come previste − erogate, mantenendo la stessa tupla di ritorno.
+ * (4ª cella, indice 3) nel formato "erogate/previste gg" (it-IT).
  */
 async function giornateDellaRiga(riga: Locator): Promise<{
   previste: number;
   erogate: number;
-  residuo: number;
 }> {
   const testo = (await riga.getByRole("cell").nth(3).innerText()).trim();
   const corrispondenza = testo.match(/^(-?\d+(?:,\d+)?)\/(-?\d+(?:,\d+)?)/);
@@ -66,7 +63,7 @@ async function giornateDellaRiga(riga: Locator): Promise<{
   }
   const erogate = Number(corrispondenza[1].replace(",", "."));
   const previste = Number(corrispondenza[2].replace(",", "."));
-  return { previste, erogate, residuo: previste - erogate };
+  return { previste, erogate };
 }
 
 test.use({
@@ -113,7 +110,6 @@ test.describe("US-025 Demo", () => {
     const giornateTs = await giornateDellaRiga(rigaTs);
     expect(giornateTs.previste).toBe(40);
     expect(giornateTs.erogate).toBeCloseTo(4.1, 1); // 33h → 4,125 gg, display 4,1
-    expect(giornateTs.residuo).toBeCloseTo(35.9, 1); // 40 − 4,1 → 35,9
     const indicatoreTs = rigaTs.getByRole("button", { name: "Disattiva" });
     await expect(indicatoreTs).toBeVisible();
     await expect(indicatoreTs).toHaveAttribute("title", "Offerta attiva");
@@ -123,23 +119,18 @@ test.describe("US-025 Demo", () => {
     const giornateGe = await giornateDellaRiga(rigaGe);
     expect(giornateGe.previste).toBe(10);
     expect(giornateGe.erogate).toBe(0);
-    expect(giornateGe.residuo).toBe(10);
     const indicatoreGe = rigaGe.getByRole("button", { name: "Attiva" });
     await expect(indicatoreGe).toBeVisible();
     await expect(indicatoreGe).toHaveAttribute("title", "Offerta non attiva");
 
-    // ── 5. DF-2025-02 (DataFlow): coerenza interna ─────────────────
+    // ── 5. DF-2025-02 (DataFlow): soglia minima sull'erogato ───────────
     // Altri scenari e2e (US-012) aggiungono attività fatturabili su questa
     // offerta nel corso dell'intera suite: si verifica quindi solo che le
-    // giornate previste siano il valore fisso di seed e che
-    // residuo = previste − erogate, invece di cifre assolute su erogato.
+    // giornate previste siano il valore fisso di seed e che l'erogato non
+    // scenda sotto la baseline di seed, invece di cifre assolute.
     const giornateDf = await giornateDellaRiga(rigaDf);
     expect(giornateDf.previste).toBe(25); // valore fisso di seed
     expect(giornateDf.erogate).toBeGreaterThanOrEqual(0.875 - 0.01); // baseline seed: 7h/8
-    expect(giornateDf.residuo).toBeCloseTo(
-      giornateDf.previste - giornateDf.erogate,
-      1,
-    );
     const indicatoreDf = rigaDf.getByRole("button", { name: "Disattiva" });
     await expect(indicatoreDf).toBeVisible();
     await expect(indicatoreDf).toHaveAttribute("title", "Offerta attiva");
