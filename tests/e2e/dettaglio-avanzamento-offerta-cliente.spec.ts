@@ -100,8 +100,12 @@ test.describe("Dettaglio avanzamento offerta nella pagina cliente", () => {
 			dettaglio.getByTestId("barra-avanzamento-offerta"),
 		).toHaveAttribute("style", /width:\s*40%/);
 
+		const tabellaCollaboratori = dettaglio.getByRole("table", {
+			name: "Giornate erogate per collaboratore",
+			exact: true,
+		});
 		for (const nome of ["Ada Lovelace", "Alan Turing"]) {
-			const rigaCollaboratore = dettaglio.getByRole("row", {
+			const rigaCollaboratore = tabellaCollaboratori.getByRole("row", {
 				name: testoLetterale(nome),
 			});
 			await expect(rigaCollaboratore).toContainText("16 h");

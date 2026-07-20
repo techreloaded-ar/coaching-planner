@@ -29,6 +29,7 @@ function riga(modifiche: Partial<RigaAvanzamento> = {}): RigaAvanzamento {
     collaboratoreNome: "Mario Rossi",
     ore: 8,
     fatturabile: true,
+    mese: "2026-01",
     ...modifiche,
   };
 }
@@ -279,6 +280,159 @@ describe("calcolaAvanzamentoOfferte", () => {
       giornatePrevisteTotali: 30,
       giornateErogateTotali: 25,
       residuoTotale: 5,
+    });
+  });
+
+  // ── Matrice mensile ──────────────────────────────────────────────
+
+  describe("Matrice mensile", () => {
+    it("ordina i mesi cronologicamente indipendentemente dall'ordine delle righe", () => {
+      const righe = [
+        riga({ mese: "2026-03", ore: 8 }),
+        riga({ mese: "2025-11", ore: 8 }),
+        riga({ mese: "2026-01", ore: 8 }),
+      ];
+
+      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+
+      expect(report.perOfferta[0].matriceMensile.mesi).toEqual([
+        "2025-11",
+        "2026-01",
+        "2026-03",
+      ]);
+    });
+
+    it("aggrega nella stessa cella le ore dello stesso collaboratore nello stesso mese", () => {
+      const righe = [
+        riga({ mese: "2026-01", ore: 8 }),
+        riga({ mese: "2026-01", ore: 4 }),
+      ];
+
+      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+
+      const rigaMatrice = report.perOfferta[0].matriceMensile.righe[0];
+      expect(rigaMatrice.giornatePerMese["2026-01"]).toBe(1.5);
+    });
+
+    it("non crea una cella per un mese in cui il collaboratore non ha erogato (chiave assente, non zero)", () => {
+      const righe = [
+        riga({
+          collaboratoreId: "collab-a",
+          collaboratoreNome: "Anna Bianchi",
+          mese: "2026-01",
+          ore: 8,
+        }),
+        riga({
+          collaboratoreId: "collab-b",
+          collaboratoreNome: "Bruno Verdi",
+          mese: "2026-02",
+          ore: 8,
+        }),
+      ];
+
+      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+
+      const matrice = report.perOfferta[0].matriceMensile;
+      expect(matrice.mesi).toEqual(["2026-01", "2026-02"]);
+
+      const rigaAnna = matrice.righe.find(
+        (r) => r.collaboratoreId === "collab-a",
+      )!;
+      expect(rigaAnna.giornatePerMese).toHaveProperty("2026-01");
+      expect(rigaAnna.giornatePerMese).not.toHaveProperty("2026-02");
+    });
+
+    it("quadra totali per mese, totali di riga e totale complessivo con le giornate erogate", () => {
+      const righe = [
+        riga({
+          collaboratoreId: "collab-a",
+          collaboratoreNome: "Anna Bianchi",
+          mese: "2026-01",
+          ore: 8, // 1 gg
+        }),
+        riga({
+          collaboratoreId: "collab-a",
+          collaboratoreNome: "Anna Bianchi",
+          mese: "2026-02",
+          ore: 8, // 1 gg
+        }),
+        riga({
+          collaboratoreId: "collab-b",
+          collaboratoreNome: "Bruno Verdi",
+          mese: "2026-01",
+          ore: 16, // 2 gg
+        }),
+        riga({
+          collaboratoreId: "collab-b",
+          collaboratoreNome: "Bruno Verdi",
+          mese: "2026-02",
+          ore: 8, // 1 gg
+        }),
+      ];
+
+      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+      const voce = report.perOfferta[0];
+      const matrice = voce.matriceMensile;
+
+      // AC-2: totali per colonna (mese)
+      expect(matrice.totaliPerMese).toEqual({
+        "2026-01": 3, // Anna 1 + Bruno 2
+        "2026-02": 2, // Anna 1 + Bruno 1
+      });
+
+      // AC-2: totale di ogni riga = somma delle sue celle
+      for (const rigaMatrice of matrice.righe) {
+        const sommaCelle = Object.values(rigaMatrice.giornatePerMese).reduce(
+          (acc, giornate) => acc + giornate,
+          0,
+        );
+        expect(rigaMatrice.totaleGiornate).toBe(sommaCelle);
+      }
+
+      // AC-2: totale complessivo della matrice = giornate erogate della voce
+      expect(matrice.totaleGiornate).toBe(voce.giornateErogate);
+      expect(matrice.totaleGiornate).toBe(5);
+    });
+
+    it("esclude dalla matrice i mesi con sole righe non fatturabili", () => {
+      const righe = [
+        riga({ mese: "2026-01", ore: 8, fatturabile: true }),
+        riga({ mese: "2026-02", ore: 8, fatturabile: false }),
+      ];
+
+      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+      const matrice = report.perOfferta[0].matriceMensile;
+
+      expect(matrice.mesi).toEqual(["2026-01"]);
+      expect(matrice.totaliPerMese).not.toHaveProperty("2026-02");
+      for (const rigaMatrice of matrice.righe) {
+        expect(rigaMatrice.giornatePerMese).not.toHaveProperty("2026-02");
+      }
+    });
+
+    it("restituisce una matrice vuota per un'offerta senza righe", () => {
+      const report = calcolaAvanzamentoOfferte([offerta()], []);
+
+      expect(report.perOfferta[0].matriceMensile).toEqual({
+        mesi: [],
+        righe: [],
+        totaliPerMese: {},
+        totaleGiornate: 0,
+      });
+    });
+
+    it("ordina le righe della matrice come il dettaglio per collaboratore", () => {
+      const righe = [
+        riga({ collaboratoreId: "collab-a", collaboratoreNome: "Anna Bianchi", ore: 8 }), // 1 gg
+        riga({ collaboratoreId: "collab-b", collaboratoreNome: "Bruno Verdi", ore: 16 }), // 2 gg
+      ];
+
+      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+      const voce = report.perOfferta[0];
+
+      expect(voce.matriceMensile.righe.map((r) => r.collaboratoreId)).toEqual(
+        voce.perCollaboratore.map((c) => c.collaboratoreId),
+      );
     });
   });
 });

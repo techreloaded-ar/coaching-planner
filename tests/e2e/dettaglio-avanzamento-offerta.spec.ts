@@ -3,11 +3,38 @@ import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import {
+	dataNelMese,
+	mesePassatoRiservato,
+	meseRiservato,
+} from "./support/date";
 import { test, expect } from "./support/fixtures";
 import {
 	apriPaginaOfferte,
 	attendiTabellaOfferteIdratata,
 } from "./support/offerte";
+
+// Mesi riservati alla spec US-036: mesePrecedente < meseRiferimento in ordine
+// cronologico, così le colonne mensili hanno un ordinamento atteso stabile.
+const mesePrecedente = mesePassatoRiservato("US-036");
+const meseRiferimento = meseRiservato("US-036");
+
+const formattatoreMeseAtteso = new Intl.DateTimeFormat("it-IT", {
+	month: "short",
+	year: "numeric",
+	timeZone: "UTC",
+});
+
+// Etichetta colonna mese identica a quella resa dalla UI
+// (dettaglio-avanzamento-offerta.tsx).
+function etichettaMese(meseToken: string): string {
+	const [anno, numeroMese] = meseToken.split("-").map(Number);
+	return formattatoreMeseAtteso.format(new Date(Date.UTC(anno, numeroMese - 1, 1)));
+}
+
+function dataNelMeseUtc(meseToken: string, giorno: number): Date {
+	return new Date(`${dataNelMese(meseToken, giorno)}T00:00:00.000Z`);
+}
 
 function codiceUnivoco(prefisso: string): string {
 	return `E2E-DET-${prefisso}-${randomUUID().slice(0, 8)}`.toUpperCase();
@@ -96,8 +123,12 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			dettaglio.getByTestId("barra-avanzamento-offerta"),
 		).toHaveAttribute("style", /width:\s*40%/);
 
+		const tabellaCollaboratori = dettaglio.getByRole("table", {
+			name: "Giornate erogate per collaboratore",
+			exact: true,
+		});
 		for (const nome of ["Ada Lovelace", "Alan Turing"]) {
-			const rigaCollaboratore = dettaglio.getByRole("row", {
+			const rigaCollaboratore = tabellaCollaboratori.getByRole("row", {
 				name: testoLetterale(nome),
 			});
 			await expect(rigaCollaboratore).toContainText("16 h");
@@ -329,6 +360,166 @@ test.describe("Dettaglio avanzamento offerta", () => {
 		await expect(
 			rigaDisattivata.getByRole("button", { name: "Attiva", exact: true }),
 		).toHaveAttribute("title", "Offerta non attiva");
+	});
+
+	test("mostra la matrice mensile per collaboratore con totali coerenti", async ({
+		page,
+		factory,
+	}) => {
+		const codice = codiceUnivoco("MATRICE");
+		const { cliente, offerta } = await factory.createClienteConOfferta(
+			{ ragioneSociale: `E2E Matrice Cliente ${codice}` },
+			{ codice, giorniPrevisti: 10 },
+		);
+		const ada = await factory.createCollaboratore({
+			nome: "Ada",
+			cognome: "Lovelace",
+		});
+		const alan = await factory.createCollaboratore({
+			nome: "Alan",
+			cognome: "Turing",
+		});
+
+		await factory.createRigaAttivita({
+			cliente,
+			offerta,
+			collaboratore: ada,
+			data: dataNelMeseUtc(mesePrecedente, 10),
+			ore: "8.00",
+			fatturabile: true,
+		});
+		await factory.createRigaAttivita({
+			cliente,
+			offerta,
+			collaboratore: ada,
+			data: dataNelMeseUtc(meseRiferimento, 5),
+			ore: "4.00",
+			fatturabile: true,
+		});
+		await factory.createRigaAttivita({
+			cliente,
+			offerta,
+			collaboratore: alan,
+			data: dataNelMeseUtc(meseRiferimento, 12),
+			ore: "16.00",
+			fatturabile: true,
+		});
+
+		await apriPaginaOfferte(page);
+
+		const riga = rigaOfferta(page, codice);
+		await riga.getByText(codice, { exact: true }).click();
+
+		const dettaglio = dettaglioOfferta(page, codice);
+		await expect(dettaglio).toBeVisible();
+
+		const matrice = dettaglio.getByRole("table", {
+			name: "Giornate erogate per collaboratore e mese",
+		});
+		await expect(matrice).toBeVisible();
+
+		await expect(matrice.getByRole("columnheader")).toHaveText([
+			"Collaboratore",
+			etichettaMese(mesePrecedente),
+			etichettaMese(meseRiferimento),
+			"Totale",
+		]);
+
+		const celleAda = matrice
+			.getByRole("row", { name: testoLetterale("Ada Lovelace") })
+			.getByRole("cell");
+		await expect(celleAda.nth(1)).toHaveText("1");
+		await expect(celleAda.nth(2)).toHaveText("0,5");
+		await expect(celleAda.nth(3)).toHaveText("1,5");
+
+		const celleAlan = matrice
+			.getByRole("row", { name: testoLetterale("Alan Turing") })
+			.getByRole("cell");
+		await expect(celleAlan.nth(1)).toHaveText("—");
+		await expect(celleAlan.nth(2)).toHaveText("2");
+		await expect(celleAlan.nth(3)).toHaveText("2");
+
+		const celleTotale = matrice
+			.getByRole("row", { name: testoLetterale("Totale mese") })
+			.getByRole("cell");
+		await expect(celleTotale.nth(1)).toHaveText("1");
+		await expect(celleTotale.nth(2)).toHaveText("2,5");
+		await expect(celleTotale.nth(3)).toHaveText("3,5");
+
+		await expect(indicatore(dettaglio, "Erogate")).toContainText(/3,5\s*gg/);
+	});
+
+	test("mostra il messaggio di assenza attività nella matrice", async ({
+		page,
+		factory,
+	}) => {
+		const codice = codiceUnivoco("MATRICE-VUOTA");
+		await factory.createClienteConOfferta(
+			{ ragioneSociale: `E2E Matrice Vuota ${codice}` },
+			{ codice, giorniPrevisti: 5 },
+		);
+
+		await apriPaginaOfferte(page);
+		await rigaOfferta(page, codice).getByText(codice, { exact: true }).click();
+
+		const dettaglio = dettaglioOfferta(page, codice);
+		await expect(dettaglio).toBeVisible();
+		await expect(
+			dettaglio.getByText("Nessuna attività registrata", { exact: true }),
+		).toBeVisible();
+		await expect(
+			dettaglio.getByRole("table", {
+				name: "Giornate erogate per collaboratore e mese",
+			}),
+		).toHaveCount(0);
+	});
+
+	test("la matrice scorre orizzontalmente senza allargare la pagina", async ({
+		page,
+		factory,
+	}) => {
+		const codice = codiceUnivoco("MATRICE-SCROLL");
+		const { cliente, offerta } = await factory.createClienteConOfferta(
+			{ ragioneSociale: `E2E Matrice Scroll ${codice}` },
+			{ codice, giorniPrevisti: 30 },
+		);
+		const collaboratore = await factory.createCollaboratore({
+			nome: "Grace",
+			cognome: "Hopper",
+		});
+
+		for (let mesiIndietro = 1; mesiIndietro <= 18; mesiIndietro += 1) {
+			await factory.createRigaAttivita({
+				cliente,
+				offerta,
+				collaboratore,
+				data: dataNelMeseUtc(mesePassatoRiservato("US-036", mesiIndietro), 10),
+				ore: "8.00",
+				fatturabile: true,
+			});
+		}
+
+		await apriPaginaOfferte(page);
+		await rigaOfferta(page, codice).getByText(codice, { exact: true }).click();
+
+		const dettaglio = dettaglioOfferta(page, codice);
+		await expect(dettaglio).toBeVisible();
+
+		const contenitoreMatrice = page.getByTestId("matrice-mensile-offerta");
+		await expect(contenitoreMatrice).toBeVisible();
+		await expect
+			.poll(async () =>
+				contenitoreMatrice.evaluate((el) => el.scrollWidth > el.clientWidth),
+			)
+			.toBe(true);
+
+		expect(
+			await page.evaluate(
+				() =>
+					document.documentElement.scrollWidth <=
+					document.documentElement.clientWidth,
+			),
+		).toBe(true);
 	});
 
 	test("reindirizza il vecchio report alle offerte e non lo espone nella navigazione", async ({

@@ -2,7 +2,7 @@
 type: domain
 title: Offerte
 description: Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
@@ -28,10 +28,6 @@ sources:
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
       role: verification
-review:
-    content_hash: sha256:9fdd910cb6072019e04d3e598a8285c1cad801a38b052f54902a993315326a6c
-    evidence_revision: 874f95f1f65926f1d837a345964ce90c654a449b
-    reviewed_at: "2026-07-20T14:00:41Z"
 ---
 # Offerte
 
@@ -48,6 +44,7 @@ Gestisce gli impegni commerciali associati a un cliente: codice, descrizione, ta
 - **Attiva**: offerta selezionabile per nuove righe attività.
 - **Giornate erogate, residuo, percentuale di utilizzo**: misure derivate dalle ore fatturabili.
 - **IN_CORSO, IN_ALLERTA, ESAURITA, OLTRE_BUDGET**: classificazioni calcolate, non lifecycle persistito.
+- **Matrice mensile**: ripartizione delle giornate erogate per collaboratore e mese solare, con colonna e riga di totale; è parte della stessa proiezione di avanzamento, non uno stato persistito.
 
 <!-- archetipo:wiki section=ownership -->
 ## Ownership
@@ -57,7 +54,7 @@ Possiede `Offerta`, i termini commerciali, il budget e il booleano `attiva`. Rif
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
-Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `offertaPerId`, `elencaOfferteConAvanzamento` ed `elencaOffertePerClienteConAvanzamento` sono riservate all'amministratore; le ultime due espongono percentuale di utilizzo e ripartizione per collaboratore. La query annidata filtra offerte e attività per cliente e le ordina per codice. Le attività consumano solo offerte attive del cliente selezionato.
+Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `offertaPerId`, `elencaOfferteConAvanzamento` ed `elencaOffertePerClienteConAvanzamento` sono riservate all'amministratore; le ultime due espongono percentuale di utilizzo, ripartizione per collaboratore e matrice mensile per collaboratore. La query annidata filtra offerte e attività per cliente e le ordina per codice. Le attività consumano solo offerte attive del cliente selezionato.
 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
@@ -68,6 +65,7 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 4. `eliminaOfferta` nello stesso file conta prima le righe attività e traduce anche l'errore FK da concorrenza; in presenza di righe invita a disattivare. La cancellazione non è una transizione di stato.
 5. `calcolaAvanzamentoOfferte` assegna una delle quattro classificazioni in base a residuo e soglia 85%. Non esiste una colonna `stato` né una write di transizione: ogni lettura ricalcola il valore.
 6. La tabella trasversale `/offerte` e quella annidata nel dettaglio cliente espandono una riga per mostrare classificazione, KPI, percentuale e ripartizione; nell'elenco cliente il link Modifica non attiva il toggle. Il toggle di attivazione della tabella trasversale conserva la riga espansa attraverso il redirect. La precedente rotta `/report/avanzamento-offerte` reindirizza a `/offerte`.
+7. Il pannello espanso mostra, sotto la ripartizione per collaboratore, una matrice mensile per collaboratore (una colonna per mese solare con attività, in ordine cronologico, colonna e riga di totale); per un'offerta senza attività mostra il messaggio "Nessuna attività registrata" al posto della matrice. Il componente è condiviso tra `/offerte` e l'elenco offerte del cliente, quindi la matrice compare in entrambe le viste.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
@@ -80,12 +78,12 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 | Validazione | `src/domain/anagrafiche/valida-offerta.ts` |
 | Avanzamento | `src/domain/consuntivi/index.ts`, `src/lib/offerte.ts`, `src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx` |
 | Dati | `prisma/schema.prisma` (`Offerta`) |
-| Test | `tests/unit/offerte-dal-actions.test.ts`, `tests/unit/elenca-offerte-con-avanzamento.test.ts`, `tests/unit/avanzamento-offerte.test.ts`, `tests/e2e/anagrafica-offerte.spec.ts`, `tests/e2e/gestione-offerte.spec.ts`, `tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts` |
+| Test | `tests/unit/offerte-dal-actions.test.ts`, `tests/unit/elenca-offerte-con-avanzamento.test.ts`, `tests/unit/avanzamento-offerte.test.ts`, `tests/e2e/anagrafica-offerte.spec.ts`, `tests/e2e/gestione-offerte.spec.ts`, `tests/e2e/dettaglio-avanzamento-offerta.spec.ts`, `tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts` |
 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
 
-Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali e giorni previsti interi positivi. Il database garantisce unicità `(codice, clienteId)` e le FK. Solo la creazione verifica che il cliente sia attivo: `cambiaStatoOfferta` può riattivare un'offerta di un cliente disattivato, anche se il front office continuerà a escluderla perché filtra anche i clienti. L'avanzamento usa esclusivamente ore fatturabili e la conversione fissa di 8 ore per giornata; include offerte senza attività. Le classificazioni di avanzamento sono temporanee e possono cambiare quando cambiano budget o attività.
+Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali e giorni previsti interi positivi. Il database garantisce unicità `(codice, clienteId)` e le FK. Solo la creazione verifica che il cliente sia attivo: `cambiaStatoOfferta` può riattivare un'offerta di un cliente disattivato, anche se il front office continuerà a escluderla perché filtra anche i clienti. L'avanzamento (ripartizione per collaboratore e matrice mensile) usa esclusivamente ore fatturabili e la conversione fissa di 8 ore per giornata; include offerte senza attività. Le classificazioni di avanzamento sono temporanee e possono cambiare quando cambiano budget o attività. Il mese di ogni riga è derivato in UTC dalla data dell'attività, indipendentemente dal fuso del server.
 
 <!-- archetipo:wiki section=verification -->
 ## Verifica

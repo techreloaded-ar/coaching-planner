@@ -71,6 +71,7 @@ function rigaConCollaboratore(
 		cognome?: string;
 		ore?: number;
 		fatturabile?: boolean;
+		data?: Date;
 	} = {},
 ) {
 	const collaboratoreId = modifiche.collaboratoreId ?? "collab-1";
@@ -80,6 +81,7 @@ function rigaConCollaboratore(
 		collaboratoreId,
 		ore: modifiche.ore ?? 8,
 		fatturabile: modifiche.fatturabile ?? true,
+		data: modifiche.data ?? new Date("2026-01-15T00:00:00.000Z"),
 		collaboratore: {
 			id: collaboratoreId,
 			nome: modifiche.nome ?? "Mario",
@@ -441,6 +443,92 @@ describe("elencaOfferteConAvanzamento", () => {
 		expect(voci.find((v) => v.offertaId === "off-oltre")!.stato).toBe(
 			"OLTRE_BUDGET",
 		);
+	});
+
+	// (f) matrice mensile ───────────────────────────────────────────
+
+	it("deriva il token mese (YYYY-MM) da RigaAttivita.data in UTC e ordina i mesi crescenti (AC-1)", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-1", giorniPrevisti: 10 }),
+		]);
+		// Stesso collaboratore, due mesi distinti; 2026-03 inserito prima di 2025-12
+		// per provare che l'ordinamento è per token e non per ordine di inserimento.
+		mockRigaAttivita.findMany.mockResolvedValue([
+			rigaConCollaboratore({
+				offertaId: "off-1",
+				ore: 8,
+				data: new Date("2026-03-05T00:00:00.000Z"),
+			}),
+			rigaConCollaboratore({
+				offertaId: "off-1",
+				ore: 4,
+				data: new Date("2025-12-20T00:00:00.000Z"),
+			}),
+		]);
+
+		const [voce] = await elencaOfferteConAvanzamento();
+
+		expect(voce.matriceMensile.mesi).toEqual(["2025-12", "2026-03"]);
+	});
+
+	it("costruisce una matrice mensile serializzabile con giornate per mese e totali quadrati (AC-2)", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-1", giorniPrevisti: 10 }),
+		]);
+		// 8h a marzo 2026 (1 giornata) e 4h a dicembre 2025 (0.5 giornate)
+		// dello stesso collaboratore → totale 1.5 giornate.
+		mockRigaAttivita.findMany.mockResolvedValue([
+			rigaConCollaboratore({
+				offertaId: "off-1",
+				collaboratoreId: "collab-1",
+				nome: "Mario",
+				cognome: "Rossi",
+				ore: 8,
+				data: new Date("2026-03-05T00:00:00.000Z"),
+			}),
+			rigaConCollaboratore({
+				offertaId: "off-1",
+				collaboratoreId: "collab-1",
+				nome: "Mario",
+				cognome: "Rossi",
+				ore: 4,
+				data: new Date("2025-12-20T00:00:00.000Z"),
+			}),
+		]);
+
+		const [voce] = await elencaOfferteConAvanzamento();
+
+		expect(voce.matriceMensile.mesi).toEqual(["2025-12", "2026-03"]);
+		expect(voce.matriceMensile.righe).toEqual([
+			{
+				collaboratoreId: "collab-1",
+				collaboratoreNome: "Mario Rossi",
+				giornatePerMese: { "2025-12": 0.5, "2026-03": 1 },
+				totaleGiornate: 1.5,
+			},
+		]);
+		expect(voce.matriceMensile.totaliPerMese).toEqual({
+			"2025-12": 0.5,
+			"2026-03": 1,
+		});
+		expect(voce.matriceMensile.totaleGiornate).toBe(1.5);
+		expect(voce.matriceMensile.totaleGiornate).toBe(voce.giornateErogate);
+	});
+
+	it("espone una matrice mensile vuota per un'offerta senza righe attività", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-vuota", giorniPrevisti: 7 }),
+		]);
+		mockRigaAttivita.findMany.mockResolvedValue([]);
+
+		const [voce] = await elencaOfferteConAvanzamento();
+
+		expect(voce.matriceMensile).toEqual({
+			mesi: [],
+			righe: [],
+			totaliPerMese: {},
+			totaleGiornate: 0,
+		});
 	});
 });
 

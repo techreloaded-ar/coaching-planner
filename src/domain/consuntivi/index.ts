@@ -526,6 +526,8 @@ export interface RigaAvanzamento {
   collaboratoreNome: string;
   ore: number;
   fatturabile: boolean;
+  /** Token mese YYYY-MM della data della riga */
+  mese: string;
 }
 
 /** Dettaglio dell'erogato per singolo collaboratore su un'offerta */
@@ -534,6 +536,22 @@ export interface VoceCollaboratoreAvanzamento {
   collaboratoreNome: string;
   oreErogate: number;
   giornateErogate: number;
+}
+
+/** Riga della matrice mensile: giornate erogate da un collaboratore, ripartite per mese */
+export interface RigaMatriceMensileAvanzamento {
+  collaboratoreId: string;
+  collaboratoreNome: string;
+  giornatePerMese: Record<string, number>;
+  totaleGiornate: number;
+}
+
+/** Matrice mensile (mese x collaboratore) delle giornate erogate su un'offerta */
+export interface MatriceMensileAvanzamento {
+  mesi: string[];
+  righe: RigaMatriceMensileAvanzamento[];
+  totaliPerMese: Record<string, number>;
+  totaleGiornate: number;
 }
 
 /** Voce di avanzamento di una singola offerta */
@@ -549,6 +567,7 @@ export interface VoceAvanzamentoOfferta {
   percentualeUtilizzo: number;
   stato: StatoAvanzamentoOfferta;
   perCollaboratore: VoceCollaboratoreAvanzamento[];
+  matriceMensile: MatriceMensileAvanzamento;
 }
 
 /** Report complessivo di avanzamento delle offerte, con totali di riepilogo */
@@ -579,12 +598,14 @@ export function calcolaAvanzamentoOfferte(
     collaboratoreId: string;
     collaboratoreNome: string;
     oreErogate: number;
+    orePerMese: Map<string, number>;
   }
 
   interface AccumulatoreOfferta {
     offertaId: string;
     oreErogateTotali: number;
     collaboratori: Map<string, AccumulatoreCollaboratore>;
+    mesi: Set<string>;
   }
 
   const accumulatori = new Map<string, AccumulatoreOfferta>();
@@ -600,11 +621,13 @@ export function calcolaAvanzamentoOfferte(
         offertaId: riga.offertaId,
         oreErogateTotali: 0,
         collaboratori: new Map(),
+        mesi: new Set(),
       };
       accumulatori.set(riga.offertaId, accumulatoreOfferta);
     }
 
     accumulatoreOfferta.oreErogateTotali += riga.ore;
+    accumulatoreOfferta.mesi.add(riga.mese);
 
     const accumulatoreCollaboratore = accumulatoreOfferta.collaboratori.get(
       riga.collaboratoreId,
@@ -612,8 +635,13 @@ export function calcolaAvanzamentoOfferte(
       collaboratoreId: riga.collaboratoreId,
       collaboratoreNome: riga.collaboratoreNome,
       oreErogate: 0,
+      orePerMese: new Map<string, number>(),
     };
     accumulatoreCollaboratore.oreErogate += riga.ore;
+    accumulatoreCollaboratore.orePerMese.set(
+      riga.mese,
+      (accumulatoreCollaboratore.orePerMese.get(riga.mese) ?? 0) + riga.ore,
+    );
     accumulatoreOfferta.collaboratori.set(riga.collaboratoreId, accumulatoreCollaboratore);
   }
 
@@ -646,21 +674,54 @@ export function calcolaAvanzamentoOfferte(
       stato = "IN_CORSO";
     }
 
-    const perCollaboratore: VoceCollaboratoreAvanzamento[] = Array.from(
+    const collaboratoriOrdinati = Array.from(
       accumulatoreOfferta?.collaboratori.values() ?? [],
-    )
-      .map((collaboratore) => ({
+    ).sort((a, b) => {
+      if (b.oreErogate !== a.oreErogate) {
+        return b.oreErogate - a.oreErogate;
+      }
+      return a.collaboratoreNome.localeCompare(b.collaboratoreNome);
+    });
+
+    const perCollaboratore: VoceCollaboratoreAvanzamento[] =
+      collaboratoriOrdinati.map((collaboratore) => ({
         collaboratoreId: collaboratore.collaboratoreId,
         collaboratoreNome: collaboratore.collaboratoreNome,
         oreErogate: collaboratore.oreErogate,
         giornateErogate: collaboratore.oreErogate / ORE_PER_GIORNATA,
-      }))
-      .sort((a, b) => {
-        if (b.giornateErogate !== a.giornateErogate) {
-          return b.giornateErogate - a.giornateErogate;
+      }));
+
+    const mesi = Array.from(accumulatoreOfferta?.mesi ?? []).sort();
+
+    const righeMatrice: RigaMatriceMensileAvanzamento[] =
+      collaboratoriOrdinati.map((collaboratore) => {
+        const giornatePerMese: Record<string, number> = {};
+        for (const [mese, ore] of collaboratore.orePerMese) {
+          giornatePerMese[mese] = ore / ORE_PER_GIORNATA;
         }
-        return a.collaboratoreNome.localeCompare(b.collaboratoreNome);
+        return {
+          collaboratoreId: collaboratore.collaboratoreId,
+          collaboratoreNome: collaboratore.collaboratoreNome,
+          giornatePerMese,
+          totaleGiornate: collaboratore.oreErogate / ORE_PER_GIORNATA,
+        };
       });
+
+    const totaliPerMese: Record<string, number> = {};
+    for (const mese of mesi) {
+      let sommaMese = 0;
+      for (const rigaMatrice of righeMatrice) {
+        sommaMese += rigaMatrice.giornatePerMese[mese] ?? 0;
+      }
+      totaliPerMese[mese] = sommaMese;
+    }
+
+    const matriceMensile: MatriceMensileAvanzamento = {
+      mesi,
+      righe: righeMatrice,
+      totaliPerMese,
+      totaleGiornate: giornateErogate,
+    };
 
     giornatePrevisteTotali += giornatePreviste;
     giornateErogateTotali += giornateErogate;
@@ -678,6 +739,7 @@ export function calcolaAvanzamentoOfferte(
       percentualeUtilizzo,
       stato,
       perCollaboratore,
+      matriceMensile,
     };
   });
 

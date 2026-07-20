@@ -14,6 +14,7 @@ import {
   type RigaAvanzamento,
   type StatoAvanzamentoOfferta,
   type VoceCollaboratoreAvanzamento,
+  type MatriceMensileAvanzamento,
 } from "@/domain/consuntivi";
 
 export interface OffertaConCliente extends Offerta {
@@ -45,6 +46,8 @@ export interface VoceElencoOfferta {
   stato: StatoAvanzamentoOfferta;
   /** Dettaglio delle giornate erogate per ciascun collaboratore. */
   perCollaboratore: VoceCollaboratoreAvanzamento[];
+  /** Matrice mensile (mese x collaboratore) delle giornate erogate. */
+  matriceMensile: MatriceMensileAvanzamento;
   numeroRigheAttivita: number;
 }
 
@@ -100,6 +103,7 @@ function costruisciVociElencoOfferte(
       collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
       fatturabile: riga.fatturabile,
+      mese: riga.data.toISOString().slice(0, 7),
     }),
   );
 
@@ -134,6 +138,12 @@ function costruisciVociElencoOfferte(
       percentualeUtilizzo: avanzamento?.percentualeUtilizzo ?? 0,
       stato: avanzamento?.stato ?? "IN_CORSO",
       perCollaboratore: avanzamento?.perCollaboratore ?? [],
+      matriceMensile: avanzamento?.matriceMensile ?? {
+        mesi: [],
+        righe: [],
+        totaliPerMese: {},
+        totaleGiornate: 0,
+      },
       numeroRigheAttivita: numeroRighePerOfferta.get(offerta.id) ?? 0,
     };
   });

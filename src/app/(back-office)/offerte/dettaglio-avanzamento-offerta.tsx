@@ -14,8 +14,19 @@ const formattatorePercentuale = new Intl.NumberFormat("it-IT", {
   maximumFractionDigits: 0,
 });
 
+const formattatoreMese = new Intl.DateTimeFormat("it-IT", {
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
 function formattaGiornate(valore: number): string {
   return formattatoreGiornate.format(valore);
+}
+
+function etichettaMese(mese: string): string {
+  const [anno, numeroMese] = mese.split("-").map(Number);
+  return formattatoreMese.format(new Date(Date.UTC(anno, numeroMese - 1, 1)));
 }
 
 function inizialiCollaboratore(nome: string): string {
@@ -244,6 +255,74 @@ export default function DettaglioAvanzamentoOfferta({
                   );
                 })}
               </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-zinc-200 dark:border-zinc-700">
+        <div className="flex items-center gap-2 px-[22px] pt-3 text-[10.5px] font-bold uppercase tracking-[.05em] text-zinc-400 dark:text-zinc-500">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[14px] w-[14px]">
+            <rect x="3" y="4.5" width="18" height="16" rx="2" />
+            <path d="M3 9h18M8 2.5v4M16 2.5v4" />
+          </svg>
+          Giornate erogate per mese
+        </div>
+        {offerta.matriceMensile.mesi.length === 0 ? (
+          <p className="px-[22px] py-4 text-[13px] italic text-zinc-400 dark:text-zinc-500">
+            Nessuna attività registrata
+          </p>
+        ) : (
+          <div className="overflow-x-auto" data-testid="matrice-mensile-offerta">
+            <table className="w-full border-collapse text-[13px]" aria-label="Giornate erogate per collaboratore e mese">
+              <thead>
+                <tr>
+                  <th className="px-[22px] py-2 text-left text-[10px] font-bold tracking-[.04em] text-zinc-400 dark:text-zinc-500">Collaboratore</th>
+                  {offerta.matriceMensile.mesi.map((mese) => (
+                    <th key={mese} className="px-[22px] py-2 text-right text-[10px] font-bold tracking-[.04em] whitespace-nowrap text-zinc-400 dark:text-zinc-500">
+                      {etichettaMese(mese)}
+                    </th>
+                  ))}
+                  <th className="px-[22px] py-2 text-right text-[10px] font-bold tracking-[.04em] whitespace-nowrap text-zinc-400 dark:text-zinc-500">Totale</th>
+                </tr>
+              </thead>
+              <tbody>
+                {offerta.matriceMensile.righe.map((riga) => (
+                  <tr key={riga.collaboratoreId} className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <td className="border-t border-zinc-100 px-[22px] py-[9px] align-middle dark:border-zinc-700/50">
+                      <div className="flex min-w-0 items-center gap-[10px]">
+                        <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-[10px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
+                          {inizialiCollaboratore(riga.collaboratoreNome)}
+                        </span>
+                        <span className="truncate text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">{riga.collaboratoreNome}</span>
+                      </div>
+                    </td>
+                    {offerta.matriceMensile.mesi.map((mese) => (
+                      <td key={mese} className="border-t border-zinc-100 px-[22px] py-[9px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-500 dark:border-zinc-700/50 dark:text-zinc-400">
+                        {mese in riga.giornatePerMese ? formattaGiornate(riga.giornatePerMese[mese]) : "—"}
+                      </td>
+                    ))}
+                    <td className="border-t border-zinc-100 px-[22px] py-[9px] text-right align-middle font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
+                      {formattaGiornate(riga.totaleGiornate)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td className="border-t border-zinc-200 px-[22px] py-[9px] text-left align-middle text-[10px] font-bold uppercase tracking-[.04em] text-zinc-400 dark:border-zinc-700 dark:text-zinc-500">
+                    Totale mese
+                  </td>
+                  {offerta.matriceMensile.mesi.map((mese) => (
+                    <td key={mese} className="border-t border-zinc-200 px-[22px] py-[9px] text-right align-middle font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700 dark:text-zinc-100">
+                      {formattaGiornate(offerta.matriceMensile.totaliPerMese[mese])}
+                    </td>
+                  ))}
+                  <td className="border-t border-zinc-200 px-[22px] py-[9px] text-right align-middle font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700 dark:text-zinc-100">
+                    {formattaGiornate(offerta.matriceMensile.totaleGiornate)}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
