@@ -160,10 +160,15 @@ test.describe("US-026 Demo", () => {
     ).toBeVisible();
 
     const rigaDisattivata = rigaOfferta(page, codiceNuova);
-    await expect(rigaDisattivata.getByText("Non attiva")).toBeVisible();
-    await expect(
-      rigaDisattivata.getByRole("button", { name: "Attiva", exact: true }),
-    ).toBeVisible();
+    const indicatoreDisattivato = rigaDisattivata.getByRole("button", {
+      name: "Attiva",
+      exact: true,
+    });
+    await expect(indicatoreDisattivato).toBeVisible();
+    await expect(indicatoreDisattivato).toHaveAttribute(
+      "title",
+      "Offerta non attiva",
+    );
 
     await rigaDisattivata
       .getByRole("button", { name: "Attiva", exact: true })

@@ -137,25 +137,37 @@ test.describe("Gestione offerte", () => {
 
 		await page.goto("/offerte");
 		const riga = rigaConCodice(page, offerta.codice);
-		await expect(riga.getByText("Attiva", { exact: true })).toBeVisible();
+		const indicatoreAttiva = riga.getByRole("button", { name: "Disattiva" });
+		await expect(indicatoreAttiva).toBeVisible();
+		await expect(indicatoreAttiva).toHaveAttribute("title", "Offerta attiva");
 
-		await riga.getByRole("button", { name: "Disattiva" }).click();
+		await indicatoreAttiva.click();
 		await page.waitForURL(/\/offerte\?esito=stato-offerta-aggiornato$/);
 
 		const rigaDisattivata = rigaConCodice(page, offerta.codice);
-		await expect(
-			rigaDisattivata.getByText("Non attiva", { exact: true }),
-		).toBeVisible();
+		const indicatoreNonAttiva = rigaDisattivata.getByRole("button", {
+			name: "Attiva",
+		});
+		await expect(indicatoreNonAttiva).toBeVisible();
+		await expect(indicatoreNonAttiva).toHaveAttribute(
+			"title",
+			"Offerta non attiva",
+		);
 
-		await rigaDisattivata.getByRole("button", { name: "Attiva" }).click();
+		await indicatoreNonAttiva.click();
 		await page.waitForURL(/\/offerte\?esito=stato-offerta-aggiornato$/);
 
 		const rigaRiattivata = rigaConCodice(page, offerta.codice);
+		const indicatoreRiattivata = rigaRiattivata.getByRole("button", {
+			name: "Disattiva",
+		});
+		await expect(indicatoreRiattivata).toBeVisible();
+		await expect(indicatoreRiattivata).toHaveAttribute(
+			"title",
+			"Offerta attiva",
+		);
 		await expect(
-			rigaRiattivata.getByText("Attiva", { exact: true }),
-		).toBeVisible();
-		await expect(
-			rigaRiattivata.getByText("Non attiva", { exact: true }),
+			rigaRiattivata.getByRole("button", { name: "Attiva", exact: true }),
 		).toHaveCount(0);
 	});
 
