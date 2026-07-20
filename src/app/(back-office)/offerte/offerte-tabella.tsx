@@ -123,9 +123,9 @@ export default function OfferteTabella({
       </div>
 
       {/* Tabella trasversale */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" data-testid="contenitore-tabella-offerte">
         <table
-          className="w-full border-collapse text-[13.5px]"
+          className="w-full table-fixed border-collapse text-[13.5px]"
           aria-label="Elenco offerte"
           data-idratata={idratata ? "true" : "false"}
         >
@@ -137,20 +137,11 @@ export default function OfferteTabella({
               <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Cliente
               </th>
-              <th className="whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="w-[170px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Tariffa giornaliera
               </th>
-              <th className="whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                Giorni previsti
-              </th>
-              <th className="whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                Erogate
-              </th>
-              <th className="whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                Residuo
-              </th>
-              <th className="w-[120px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                Stato
+              <th className="w-[140px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                Giorni erogati
               </th>
               <th className="w-[220px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Azioni
@@ -160,7 +151,7 @@ export default function OfferteTabella({
           <tbody>
             {offerteFiltrate.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
+                <td colSpan={5} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
                   Nessuna offerta corrisponde alla ricerca.
                 </td>
               </tr>
@@ -211,14 +202,10 @@ function RigaOfferta({
 }) {
   const oltreBudget = offerta.residuo < 0;
   const esaurita = offerta.residuo === 0 && offerta.giorniPrevisti > 0;
-  const critica = oltreBudget || esaurita;
   const percentuale =
     offerta.giorniPrevisti > 0
       ? Math.min((offerta.giornateErogate / offerta.giorniPrevisti) * 100, 100)
       : 0;
-
-  const residuoTesto =
-    (offerta.residuo < 0 ? "−" : "") + formattaGiornate(Math.abs(offerta.residuo));
 
   return (
     <Fragment key={offerta.offertaId}>
@@ -252,6 +239,27 @@ function RigaOfferta({
                 <path d="m9 6 6 6-6 6" />
               </svg>
             </button>
+            <form action={cambiaStatoOfferta} className="contents">
+              <input type="hidden" name="id" value={offerta.offertaId} />
+              <input type="hidden" name="attiva" value={offerta.attiva ? "false" : "true"} />
+              <input
+                type="hidden"
+                name="offertaEspansaId"
+                value={offertaEspansaId ?? ""}
+              />
+              <button
+                type="submit"
+                aria-label={offerta.attiva ? "Disattiva" : "Attiva"}
+                aria-pressed={offerta.attiva}
+                title={offerta.attiva ? "Offerta attiva" : "Offerta non attiva"}
+                onClick={(e) => e.stopPropagation()}
+                className={`mt-[4px] h-4 w-4 shrink-0 rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                  offerta.attiva
+                    ? "bg-emerald-500 hover:bg-emerald-600"
+                    : "bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-500"
+                }`}
+              />
+            </form>
             <div className="flex min-w-0 flex-col gap-[5px]">
               <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-white px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
                 {offerta.codice}
@@ -273,7 +281,7 @@ function RigaOfferta({
             {inizialiCliente(offerta.clienteRagioneSociale)}
           </span>
           <span
-            className="truncate text-[13.5px] text-zinc-700 dark:text-zinc-200"
+            className="min-w-0 truncate text-[13.5px] text-zinc-700 dark:text-zinc-200"
             title={offerta.clienteRagioneSociale}
           >
             {offerta.clienteRagioneSociale}
@@ -286,17 +294,13 @@ function RigaOfferta({
         {formattatoreEuro.format(Number(offerta.tariffaGiornaliera))}
       </td>
 
-      {/* Giorni previsti */}
-      <td className="px-4 py-[13px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-600 dark:text-zinc-300">
-        {formattaGiornate(offerta.giorniPrevisti)}
-        <span className="ml-[3px] text-[11.5px] text-zinc-400 dark:text-zinc-500">gg</span>
-      </td>
-
-      {/* Erogate + mini barra */}
+      {/* Giorni erogati: erogate/previste + mini barra + flag critici */}
       <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
         <div className="inline-flex flex-col items-end gap-[5px]">
           <span className="tabular-nums font-bold text-zinc-800 dark:text-zinc-100">
             {formattaGiornate(offerta.giornateErogate)}
+            <span className="font-semibold text-zinc-400 dark:text-zinc-500">/</span>
+            {formattaGiornate(offerta.giorniPrevisti)}
             <span className="ml-[3px] text-[11.5px] font-semibold text-zinc-400 dark:text-zinc-500">
               gg
             </span>
@@ -317,20 +321,6 @@ function RigaOfferta({
               style={{ width: `${percentuale}%` }}
             />
           </span>
-        </div>
-      </td>
-
-      {/* Residuo */}
-      <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
-        <div className="inline-flex flex-col items-end gap-[3px]">
-          <span
-            className={`tabular-nums font-bold ${
-              critica ? "text-red-600 dark:text-red-400" : "text-zinc-700 dark:text-zinc-200"
-            }`}
-          >
-            {residuoTesto}
-            <span className="ml-[3px] text-[11.5px] font-semibold opacity-70">gg</span>
-          </span>
           {oltreBudget && (
             <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-red-600 dark:text-red-400">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[12px] w-[12px]" strokeWidth={2.2}>
@@ -348,50 +338,6 @@ function RigaOfferta({
               Esaurita
             </span>
           )}
-        </div>
-      </td>
-
-      {/* Stato attiva/non attiva: interruttore + etichetta, coerente col mockup */}
-      <td
-        className="px-4 py-[13px] align-middle"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-[10px]">
-          <form action={cambiaStatoOfferta} className="contents">
-            <input type="hidden" name="id" value={offerta.offertaId} />
-            <input type="hidden" name="attiva" value={offerta.attiva ? "false" : "true"} />
-            <input
-              type="hidden"
-              name="offertaEspansaId"
-              value={offertaEspansaId ?? ""}
-            />
-            <button
-              type="submit"
-              aria-label={offerta.attiva ? "Disattiva" : "Attiva"}
-              aria-pressed={offerta.attiva}
-              title={offerta.attiva ? "Disattiva offerta" : "Attiva offerta"}
-              className={`relative inline-flex h-[21px] w-9 shrink-0 items-center rounded-full border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
-                offerta.attiva
-                  ? "border-indigo-500 bg-indigo-500"
-                  : "border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800"
-              }`}
-            >
-              <span
-                className={`absolute top-1/2 h-[15px] w-[15px] -translate-y-1/2 rounded-full bg-white shadow-sm transition-[left] duration-150 ${
-                  offerta.attiva ? "left-[17.5px]" : "left-[2.5px]"
-                }`}
-              />
-            </button>
-          </form>
-          <span
-            className={`text-[12.5px] font-semibold whitespace-nowrap ${
-              offerta.attiva
-                ? "text-zinc-600 dark:text-zinc-300"
-                : "text-zinc-400 dark:text-zinc-500"
-            }`}
-          >
-            {offerta.attiva ? "Attiva" : "Non attiva"}
-          </span>
         </div>
       </td>
 
@@ -426,7 +372,7 @@ function RigaOfferta({
       </tr>
       {espansa && (
         <tr>
-          <td colSpan={8} className="bg-zinc-100 p-0 dark:bg-zinc-800/50">
+          <td colSpan={5} className="bg-zinc-100 p-0 dark:bg-zinc-800/50">
             <DettaglioAvanzamentoOfferta offerta={offerta} />
           </td>
         </tr>

@@ -8,8 +8,9 @@ import { accediAlBackOfficeComeAdmin } from "./support/auth";
  * L'amministratore apre "Offerte" dalla sidebar (click sulla voce di
  * navigazione, non navigazione diretta via URL) e verifica l'elenco
  * trasversale di tutte le offerte di tutti i clienti, con cliente, codice,
- * giornate previste/erogate/residuo e stato, con valori coerenti con i dati
- * seed (prisma/seed.ts).
+ * giornate erogate/previste aggregate nella colonna "Giorni erogati" e stato
+ * espresso dall'indicatore circolare accanto al codice, con valori coerenti
+ * con i dati seed (prisma/seed.ts).
  *
  * Non registra video: la registrazione per la review è a cura della fase
  * successiva (archetipo-review via `archetipo e2e demo`), qui il test gira
@@ -35,12 +36,6 @@ import { accediAlBackOfficeComeAdmin } from "./support/auth";
  *   cliente in demo__report-fatturazione-clienti.spec.ts.
  */
 
-/** Converte un testo tipo "35,9gg" o "0gg" in number (formato it-IT). */
-function giornateANumero(testo: string): number {
-  const corrispondenza = testo.match(/-?\d+(?:,\d+)?/);
-  return corrispondenza ? Number(corrispondenza[0].replace(",", ".")) : NaN;
-}
-
 /**
  * Individua la riga della tabella "Elenco offerte" relativa a un'offerta,
  * filtrando per il suo codice (univoco, mostrato nel badge della prima cella).
@@ -53,19 +48,25 @@ function rigaOfferta(page: Page, codiceOfferta: string): Locator {
 }
 
 /**
- * Legge le giornate previste/erogate/residuo dalle rispettive celle della
- * riga (indici di colonna: 3 = giorni previsti, 4 = erogate, 5 = residuo).
+ * Legge le giornate erogate/previste dalla cella unica "Giorni erogati"
+ * (4ª cella, indice 3) nel formato "erogate/previste gg" (it-IT) e deriva il
+ * residuo come previste − erogate, mantenendo la stessa tupla di ritorno.
  */
 async function giornateDellaRiga(riga: Locator): Promise<{
   previste: number;
   erogate: number;
   residuo: number;
 }> {
-  const celle = riga.getByRole("cell");
-  const previste = giornateANumero(await celle.nth(3).innerText());
-  const erogate = giornateANumero(await celle.nth(4).innerText());
-  const residuo = giornateANumero(await celle.nth(5).innerText());
-  return { previste, erogate, residuo };
+  const testo = (await riga.getByRole("cell").nth(3).innerText()).trim();
+  const corrispondenza = testo.match(/^(-?\d+(?:,\d+)?)\/(-?\d+(?:,\d+)?)/);
+  if (!corrispondenza) {
+    throw new Error(
+      `Formato "erogate/previste" non riconosciuto nella cella "Giorni erogati": "${testo}"`,
+    );
+  }
+  const erogate = Number(corrispondenza[1].replace(",", "."));
+  const previste = Number(corrispondenza[2].replace(",", "."));
+  return { previste, erogate, residuo: previste - erogate };
 }
 
 test.use({
@@ -112,8 +113,10 @@ test.describe("US-025 Demo", () => {
     const giornateTs = await giornateDellaRiga(rigaTs);
     expect(giornateTs.previste).toBe(40);
     expect(giornateTs.erogate).toBeCloseTo(4.1, 1); // 33h → 4,125 gg, display 4,1
-    expect(giornateTs.residuo).toBeCloseTo(35.9, 1); // 40 − 4,125 → 35,875, display 35,9
-    await expect(rigaTs.getByRole("cell").nth(6)).toContainText("Attiva");
+    expect(giornateTs.residuo).toBeCloseTo(35.9, 1); // 40 − 4,1 → 35,9
+    const indicatoreTs = rigaTs.getByRole("button", { name: "Disattiva" });
+    await expect(indicatoreTs).toBeVisible();
+    await expect(indicatoreTs).toHaveAttribute("title", "Offerta attiva");
 
     // ── 4. GE-2024-03 (GreenEnergy, inattiva): valori a cifra fissa ─
     // Cliente/offerta inattivi, nessuna attività, non selezionabili altrove.
@@ -121,7 +124,9 @@ test.describe("US-025 Demo", () => {
     expect(giornateGe.previste).toBe(10);
     expect(giornateGe.erogate).toBe(0);
     expect(giornateGe.residuo).toBe(10);
-    await expect(rigaGe.getByRole("cell").nth(6)).toContainText("Non attiva");
+    const indicatoreGe = rigaGe.getByRole("button", { name: "Attiva" });
+    await expect(indicatoreGe).toBeVisible();
+    await expect(indicatoreGe).toHaveAttribute("title", "Offerta non attiva");
 
     // ── 5. DF-2025-02 (DataFlow): coerenza interna ─────────────────
     // Altri scenari e2e (US-012) aggiungono attività fatturabili su questa
@@ -135,7 +140,9 @@ test.describe("US-025 Demo", () => {
       giornateDf.previste - giornateDf.erogate,
       1,
     );
-    await expect(rigaDf.getByRole("cell").nth(6)).toContainText("Attiva");
+    const indicatoreDf = rigaDf.getByRole("button", { name: "Disattiva" });
+    await expect(indicatoreDf).toBeVisible();
+    await expect(indicatoreDf).toHaveAttribute("title", "Offerta attiva");
 
     // ── 6. Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);

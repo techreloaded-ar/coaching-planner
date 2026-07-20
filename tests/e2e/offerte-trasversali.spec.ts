@@ -14,7 +14,7 @@ test.describe("Pagina offerte trasversale", () => {
 		await accediAlBackOfficeComeAdmin(page);
 	});
 
-	test("elenca l'offerta con avanzamento: erogate e residuo coerenti", async ({
+	test("elenca l'offerta con avanzamento nel formato erogate/previste", async ({
 		page,
 		factory,
 	}) => {
@@ -48,14 +48,14 @@ test.describe("Pagina offerte trasversale", () => {
 		await expect(riga).toContainText("750,00");
 
 		const celle = riga.getByRole("cell");
-		await expect(celle.nth(3)).toHaveText(/^10\s*gg$/); // giorni previsti
-		await expect(celle.nth(4)).toHaveText(/^2\s*gg$/); // erogate
-		await expect(celle.nth(5)).toHaveText(/^8\s*gg$/); // residuo
+		await expect(celle.nth(3)).toHaveText(/^2\/10\s*gg$/); // erogate/previste
 
-		await expect(riga.getByText("Attiva", { exact: true })).toBeVisible();
+		const indicatore = riga.getByRole("button", { name: "Disattiva" });
+		await expect(indicatore).toBeVisible();
+		await expect(indicatore).toHaveAttribute("title", "Offerta attiva");
 	});
 
-	test("evidenzia offerte non attive ed esaurite con badge e flag dedicati", async ({
+	test("evidenzia offerte non attive, esaurite e oltre budget nella riga compatta", async ({
 		page,
 		factory,
 	}) => {
@@ -82,15 +82,34 @@ test.describe("Pagina offerte trasversale", () => {
 			fatturabile: true,
 		});
 
+		const codiceOltreBudget = `OFF-OVR-${token.toUpperCase()}`;
+		const offertaOltreBudget = await factory.createOfferta({
+			codice: codiceOltreBudget,
+			descrizione: `Offerta oltre budget ${token}`,
+			giorniPrevisti: 2,
+			attiva: true,
+		});
+		// 24 ore fatturabili su 2 giornate previste = 3 erogate, residuo −1 → Oltre budget.
+		await factory.createRigaAttivita({
+			offerta: offertaOltreBudget,
+			ore: "24.00",
+			fatturabile: true,
+		});
+
 		await apriPaginaOfferte(page);
 
 		const rigaNonAttiva = page.getByRole("row", {
 			name: comeRegExp(codiceNonAttiva),
 		});
 		await expect(rigaNonAttiva).toBeVisible();
-		await expect(
-			rigaNonAttiva.getByText("Non attiva", { exact: true }),
-		).toBeVisible();
+		const indicatoreNonAttiva = rigaNonAttiva.getByRole("button", {
+			name: "Attiva",
+		});
+		await expect(indicatoreNonAttiva).toBeVisible();
+		await expect(indicatoreNonAttiva).toHaveAttribute(
+			"title",
+			"Offerta non attiva",
+		);
 
 		const rigaEsaurita = page.getByRole("row", {
 			name: comeRegExp(codiceEsaurita),
@@ -99,8 +118,65 @@ test.describe("Pagina offerte trasversale", () => {
 		await expect(
 			rigaEsaurita.getByText("Esaurita", { exact: true }),
 		).toBeVisible();
+		const indicatoreEsaurita = rigaEsaurita.getByRole("button", {
+			name: "Disattiva",
+		});
+		await expect(indicatoreEsaurita).toBeVisible();
+		await expect(indicatoreEsaurita).toHaveAttribute("title", "Offerta attiva");
 		await expect(
-			rigaEsaurita.getByText("Attiva", { exact: true }),
+			rigaEsaurita.getByRole("img", { name: "Erogato 100% del previsto" }),
 		).toBeVisible();
+
+		const rigaOltreBudget = page.getByRole("row", {
+			name: comeRegExp(codiceOltreBudget),
+		});
+		await expect(rigaOltreBudget).toBeVisible();
+		await expect(
+			rigaOltreBudget.getByText("Oltre budget", { exact: true }),
+		).toBeVisible();
+	});
+});
+
+test.describe("Layout compatto a 1366px", () => {
+	test.use({ viewport: { width: 1366, height: 768 } });
+
+	test.beforeEach(async ({ page }) => {
+		await accediAlBackOfficeComeAdmin(page);
+	});
+
+	test("mostra tutte le colonne senza scorrimento orizzontale", async ({
+		page,
+		factory,
+	}) => {
+		const token = randomUUID().slice(0, 8);
+		const codice = `OFF-WIDE-${token.toUpperCase()}`;
+		const ragioneSociale = `E2E Società Consortile per l'Erogazione di Servizi di Ingegneria Integrata e Consulenza Direzionale ${token} S.p.A.`;
+		const descrizione = `Offerta quadro pluriennale per attività di analisi, sviluppo, manutenzione evolutiva e supporto operativo continuativo ${token}`;
+
+		await factory.createClienteConOfferta(
+			{ ragioneSociale },
+			{
+				codice,
+				descrizione,
+				tariffaGiornaliera: "750.00",
+				giorniPrevisti: 10,
+			},
+		);
+
+		await apriPaginaOfferte(page);
+
+		await expect(
+			page.getByRole("columnheader", { name: "Giorni erogati" }),
+		).toBeVisible();
+
+		const riga = page.getByRole("row", { name: comeRegExp(codice) });
+		await expect(riga).toBeVisible();
+		await expect(riga.getByRole("link", { name: "Modifica" })).toBeVisible();
+		await expect(riga.getByRole("button", { name: "Elimina" })).toBeVisible();
+
+		const contenitore = page.getByTestId("contenitore-tabella-offerte");
+		await expect
+			.poll(() => contenitore.evaluate((el) => el.scrollWidth - el.clientWidth))
+			.toBeLessThanOrEqual(0);
 	});
 });

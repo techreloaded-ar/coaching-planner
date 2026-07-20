@@ -266,8 +266,8 @@ test.describe("Dettaglio avanzamento offerta", () => {
 
 		const rigaBDisattivata = rigaOfferta(page, codiceB);
 		await expect(
-			rigaBDisattivata.getByText("Non attiva", { exact: true }),
-		).toBeVisible();
+			rigaBDisattivata.getByRole("button", { name: "Attiva" }),
+		).toHaveAttribute("title", "Offerta non attiva");
 		await expect(pulsanteDettaglio(rigaBDisattivata, codiceB)).toHaveAttribute(
 			"aria-expanded",
 			"false",
@@ -285,6 +285,50 @@ test.describe("Dettaglio avanzamento offerta", () => {
 		await modale.getByRole("button", { name: "Annulla" }).click();
 		await expect(modale).toHaveAttribute("aria-hidden", "true");
 		await expect(dettaglioA).toBeVisible();
+	});
+
+	test("il click sull'indicatore conserva l'espansione della stessa riga", async ({
+		page,
+		factory,
+	}) => {
+		const codice = codiceUnivoco("ESPANSA");
+		const { offerta } = await factory.createClienteConOfferta(
+			{ ragioneSociale: `E2E Dettaglio Espansa ${codice}` },
+			{ codice, attiva: true, giorniPrevisti: 8 },
+		);
+
+		await apriPaginaOfferte(page);
+
+		const riga = rigaOfferta(page, codice);
+		await riga.getByText(codice, { exact: true }).click();
+		await expect(dettaglioOfferta(page, codice)).toBeVisible();
+		await expect(pulsanteDettaglio(riga, codice)).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+
+		// L'indicatore di stato ha stopPropagation: il submit non deve
+		// chiudere la riga espansa.
+		await riga.getByRole("button", { name: "Disattiva" }).click();
+		await page.waitForURL(
+			(url) =>
+				url.pathname === "/offerte" &&
+				url.searchParams.get("esito") === "stato-offerta-aggiornato" &&
+				url.searchParams.get("offertaEspansaId") === offerta.id,
+		);
+		// Il redirect della server action ricarica la pagina: riattendere
+		// l'idratazione prima di asserire sugli handler client.
+		await attendiTabellaOfferteIdratata(page);
+
+		const rigaDisattivata = rigaOfferta(page, codice);
+		await expect(pulsanteDettaglio(rigaDisattivata, codice)).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+		await expect(dettaglioOfferta(page, codice)).toBeVisible();
+		await expect(
+			rigaDisattivata.getByRole("button", { name: "Attiva" }),
+		).toHaveAttribute("title", "Offerta non attiva");
 	});
 
 	test("reindirizza il vecchio report alle offerte e non lo espone nella navigazione", async ({
