@@ -2,7 +2,7 @@
 type: code-map
 title: Mappa del codice
 description: Matrice fisica fra capability candidate, codice, dati e test
-status: reviewed
+status: generated
 sources:
     - path: package.json
       role: manifest
@@ -85,10 +85,6 @@ coverage:
       status: mapped
       pages:
         - domains/politiche-rimborso
-review:
-    content_hash: sha256:1a1bf1dde3b2737e42ca545980311bc331abdb6dbc9dcad13acc6162a7c2a785
-    evidence_revision: 874f95f1f65926f1d837a345964ce90c654a449b
-    reviewed_at: "2026-07-20T14:00:41Z"
 ---
 # Mappa del codice
 

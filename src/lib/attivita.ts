@@ -21,6 +21,16 @@ export interface RigaAttivitaConContesto extends RigaAttivita {
   cliente: Cliente;
 }
 
+/** Sintesi delle ore di un cliente in un giorno */
+export interface SintesiClienteGiorno {
+  /** Id del cliente */
+  clienteId: string;
+  /** Ragione sociale del cliente */
+  ragioneSociale: string;
+  /** Ore sommate per il cliente nel giorno, su tutte le offerte */
+  ore: number;
+}
+
 /** Sintesi aggregata di un giorno */
 export interface SintesiGiorno {
   /** Data in formato YYYY-MM-DD */
@@ -29,8 +39,8 @@ export interface SintesiGiorno {
   righe: number;
   /** Ore totali */
   oreTotali: number;
-  /** Codici offerta distinti del giorno */
-  codici: string[];
+  /** Sintesi per cliente, in ordine di prima apparizione nel giorno */
+  clienti: SintesiClienteGiorno[];
 }
 
 /** Risultato completo del mese */
@@ -72,9 +82,10 @@ function formattaDataISO(data: Date): string {
  * - Se l'utente non è autenticato, lancia ErroreAutorizzazione(401)
  * - Se l'utente non ha un profilo Collaboratore, restituisce un risultato vuoto
  *
- * Le righe sono ordinate per data crescente e includono offerta e cliente.
- * L'aggregazione per giorno produce una sintesi con numero di righe, ore totali
- * e codici offerta distinti.
+ * Le righe sono ordinate per data crescente e, a parità di data, per data di
+ * creazione crescente; includono offerta e cliente. L'aggregazione per giorno
+ * produce una sintesi con numero di righe, ore totali e sintesi per cliente
+ * (ore sommate su più offerte, in ordine di prima apparizione nel giorno).
  *
  * @param token - Token YYYY-MM del mese
  * @returns AttivitaMese con righe complete e aggregazione per giorno
@@ -108,7 +119,7 @@ export async function attivitaDelMese(token: string): Promise<AttivitaMese> {
       offerta: true,
       cliente: true,
     },
-    orderBy: { data: "asc" },
+    orderBy: [{ data: "asc" }, { createdAt: "asc" }],
   });
 
   // Aggregazione per giorno
@@ -117,19 +128,36 @@ export async function attivitaDelMese(token: string): Promise<AttivitaMese> {
   for (const riga of righe) {
     const chiave = formattaDataISO(riga.data);
     const esistente = perGiorno.get(chiave);
+    const ore = Number(riga.ore);
 
     if (esistente) {
       esistente.righe += 1;
-      esistente.oreTotali += Number(riga.ore);
-      if (!esistente.codici.includes(riga.offerta.codice)) {
-        esistente.codici.push(riga.offerta.codice);
+      esistente.oreTotali += ore;
+
+      const sintesiCliente = esistente.clienti.find(
+        (c) => c.clienteId === riga.cliente.id
+      );
+      if (sintesiCliente) {
+        sintesiCliente.ore += ore;
+      } else {
+        esistente.clienti.push({
+          clienteId: riga.cliente.id,
+          ragioneSociale: riga.cliente.ragioneSociale,
+          ore,
+        });
       }
     } else {
       perGiorno.set(chiave, {
         data: chiave,
         righe: 1,
-        oreTotali: Number(riga.ore),
-        codici: [riga.offerta.codice],
+        oreTotali: ore,
+        clienti: [
+          {
+            clienteId: riga.cliente.id,
+            ragioneSociale: riga.cliente.ragioneSociale,
+            ore,
+          },
+        ],
       });
     }
   }
