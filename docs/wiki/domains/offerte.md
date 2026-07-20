@@ -2,32 +2,36 @@
 type: domain
 title: Offerte
 description: Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento
+status: reviewed
 classification: candidate
-status: generated
 sources:
-- path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
-  role: inbound-commands
-  symbol: creaOfferta, aggiornaOfferta
-- path: src/app/(back-office)/offerte/actions.ts
-  role: inbound-commands
-  symbol: cambiaStatoOfferta, eliminaOfferta
-- path: src/lib/offerte.ts
-  role: application-query
-  symbol: elencaOfferteConAvanzamento, elencaOffertePerClienteConAvanzamento
-- path: src/domain/anagrafiche/valida-offerta.ts
-  role: domain-validation
-- path: src/domain/consuntivi/index.ts
-  role: projection-calculation
-  symbol: calcolaAvanzamentoOfferte
-- path: prisma/schema.prisma
-  role: owned-data
-  symbol: Offerta
-- path: tests/unit/avanzamento-offerte.test.ts
-  role: verification
-- path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts
-  role: verification
-- path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
-  role: verification
+    - path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
+      role: inbound-commands
+      symbol: creaOfferta, aggiornaOfferta
+    - path: src/app/(back-office)/offerte/actions.ts
+      role: inbound-commands
+      symbol: cambiaStatoOfferta, eliminaOfferta
+    - path: src/lib/offerte.ts
+      role: application-query
+      symbol: elencaOfferteConAvanzamento, elencaOffertePerClienteConAvanzamento
+    - path: src/domain/anagrafiche/valida-offerta.ts
+      role: domain-validation
+    - path: src/domain/consuntivi/index.ts
+      role: projection-calculation
+      symbol: calcolaAvanzamentoOfferte
+    - path: prisma/schema.prisma
+      role: owned-data
+      symbol: Offerta
+    - path: tests/unit/avanzamento-offerte.test.ts
+      role: verification
+    - path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts
+      role: verification
+    - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
+      role: verification
+review:
+    content_hash: sha256:9fdd910cb6072019e04d3e598a8285c1cad801a38b052f54902a993315326a6c
+    evidence_revision: 874f95f1f65926f1d837a345964ce90c654a449b
+    reviewed_at: "2026-07-20T14:00:41Z"
 ---
 # Offerte
 
