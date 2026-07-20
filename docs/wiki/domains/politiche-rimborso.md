@@ -1,32 +1,25 @@
 ---
-id: domains.politiche-rimborso
 type: domain
+title: Politiche di rimborso trasferta
+description: Configurazione globale delle fasce chilometriche e calcolo del rimborso trasferta
 classification: candidate
-summary: Configurazione globale delle fasce chilometriche e calcolo del rimborso trasferta
 status: generated
-links:
-  - id: architecture.context-map
-    relation: participates-in
-  - id: domains.attivita
-    relation: supplies-reimbursement-policy
-  - id: domains.fatturazione-clienti
-    relation: supplies-reimbursement-policy
 sources:
-  - path: "src/app/(back-office)/anagrafiche/scaglioni/actions.ts"
-    role: inbound-commands
-    symbol: creaScaglione, aggiornaScaglione, eliminaScaglione
-  - path: "src/domain/anagrafiche/valida-scaglione.ts"
-    role: domain-validation
-  - path: "src/domain/consuntivi/index.ts"
-    role: policy-calculation
-    symbol: calcolaRimborsoTrasferta
-  - path: "src/lib/scaglioni.ts"
-    role: application-query
-  - path: "prisma/schema.prisma"
-    role: owned-data
-    symbol: ScaglioneKm
-  - path: "tests/unit/rimborso-trasferta.test.ts"
-    role: verification
+- path: src/app/(back-office)/anagrafiche/scaglioni/actions.ts
+  role: inbound-commands
+  symbol: creaScaglione, aggiornaScaglione, eliminaScaglione
+- path: src/domain/anagrafiche/valida-scaglione.ts
+  role: domain-validation
+- path: src/domain/consuntivi/index.ts
+  role: policy-calculation
+  symbol: calcolaRimborsoTrasferta
+- path: src/lib/scaglioni.ts
+  role: application-query
+- path: prisma/schema.prisma
+  role: owned-data
+  symbol: ScaglioneKm
+- path: tests/unit/rimborso-trasferta.test.ts
+  role: verification
 ---
 # Politiche di rimborso trasferta
 
@@ -82,3 +75,7 @@ Soglia e importo devono essere positivi; la soglia è un intero e l'importo ha m
 ## Verifica
 
 Test unitari coprono validazioni e rami del calcolo; test E2E coprono gestione e rifiuto di distanze non rimborsabili. Confidenza alta. La capability resta candidata perché condivide moduli e storage con le altre slice.
+
+## Concetti correlati
+
+Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Attività](/domains/attivita.md) e [Fatturazione clienti](/domains/fatturazione-clienti.md).

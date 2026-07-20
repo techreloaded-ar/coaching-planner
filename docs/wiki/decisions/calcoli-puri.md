@@ -1,31 +1,22 @@
 ---
-id: decisions.calcoli-puri
 type: decision
+title: Calcoli di dominio in funzioni pure
+description: Isolare validazioni e calcoli di consuntivazione in funzioni pure testabili
 decision_status: accepted
-summary: Isolare validazioni e calcoli di consuntivazione in funzioni pure testabili
 status: generated
-links:
-  - id: engineering.code-map
-    relation: affects
-  - id: domains.attivita
-    relation: affects
-  - id: domains.offerte
-    relation: affects
-  - id: domains.fatturazione-clienti
-    relation: affects
 sources:
-  - path: "docs/wiki/sources/prd.md"
-    role: decision-source
-  - path: "src/domain/consuntivi/index.ts"
-    role: implementation
-  - path: "src/domain/calendario/index.ts"
-    role: implementation
-  - path: "src/domain/anagrafiche/valida-cliente.ts"
-    role: implementation
-  - path: "tests/unit/riepilogo-mese.test.ts"
-    role: verification
-  - path: "tests/unit/avanzamento-offerte.test.ts"
-    role: verification
+- path: docs/PRD.md
+  role: decision-source
+- path: src/domain/consuntivi/index.ts
+  role: implementation
+- path: src/domain/calendario/index.ts
+  role: implementation
+- path: src/domain/anagrafiche/valida-cliente.ts
+  role: implementation
+- path: tests/unit/riepilogo-mese.test.ts
+  role: verification
+- path: tests/unit/avanzamento-offerte.test.ts
+  role: verification
 ---
 # Calcoli di dominio in funzioni pure
 
@@ -53,3 +44,7 @@ Le stesse regole possono essere riusate da UI, report e lista offerte e sono cop
 ## Verifica
 
 `src/domain/consuntivi/index.ts` non importa Next o Prisma e implementa validazione, rimborsi, riepilogo, fatturazione e avanzamento. Calendario e validatori anagrafici sono anch'essi puri. Le suite unitarie importano direttamente queste funzioni. La decisione è adottata, mentre orchestrazione e scritture restano correttamente nei moduli `lib` e nelle Server Action.
+
+## Concetti correlati
+
+La decisione deriva dal [PRD originale](/references/prd.md) e influenza [Attività](/domains/attivita.md), [Offerte](/domains/offerte.md), [Fatturazione clienti](/domains/fatturazione-clienti.md) e la [mappa del codice](/engineering/code-map.md).

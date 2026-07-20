@@ -1,32 +1,21 @@
 ---
-id: overview
 type: overview
-summary: Scopo, attori, stack e perimetro della mappa codebase-first di Coaching Planner
-status: reviewed
-links:
-    - id: architecture.context-map
-      relation: introduces
-    - id: engineering.code-map
-      relation: maps-code
-    - id: operations.development
-      relation: describes-operations
+title: Panoramica
+description: Scopo, attori, stack e perimetro della mappa codebase-first di Coaching Planner
+status: generated
 sources:
-    - path: prisma/schema.prisma
-      role: runtime-model
-    - path: src/app/page.tsx
-      role: public-entry-point
-    - path: src/lib/dal.ts
-      role: actor-and-access-policy
-    - path: src/lib/actions/righe-attivita.ts
-      role: primary-use-case
-    - path: src/lib/report.ts
-      role: administrative-use-cases
-    - path: package.json
-      role: stack-manifest
-review:
-    content_hash: sha256:f0ba1b122cf795e72468ee0c58906ebd9a7ba0c37c865bec508cb49f406f73c9
-    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
-    reviewed_at: "2026-07-16T17:30:56Z"
+- path: prisma/schema.prisma
+  role: runtime-model
+- path: src/app/page.tsx
+  role: public-entry-point
+- path: src/lib/dal.ts
+  role: actor-and-access-policy
+- path: src/lib/actions/righe-attivita.ts
+  role: primary-use-case
+- path: src/lib/report.ts
+  role: administrative-use-cases
+- path: package.json
+  role: stack-manifest
 ---
 # Panoramica
 
@@ -62,8 +51,12 @@ La mappa distingue sette capability candidate:
 
 ## Evidenza e limiti
 
-La revisione `f24f9fc866b6c8defde750b7b93b7040da734c96` è stata inventariata con `archetipo wiki inspect`. Sono stati letti manifest, configurazioni, schema e migrazioni, entry point e file riportati per ogni candidato, seguendo dipendenze e test pertinenti. L'inspector ha escluso metadata Git, dipendenze/build e questa Wiki; ha dichiarato campionamento rappresentativo per `docs`, `src` e `tests`. I file generati Prisma e gli asset binari non sono usati come fonte semantica primaria.
+La revisione `f1bc3e1b313048145f944d411938c0d76afc6031` è stata inventariata con `archetipo wiki inspect`. Sono stati letti manifest, configurazioni, schema e migrazioni, entry point e file riportati per ogni candidato, seguendo dipendenze e test pertinenti. L'inspector ha escluso metadata Git, dipendenze/build e questa Wiki; ha dichiarato campionamento rappresentativo per `docs`, `src` e `tests`. I file generati Prisma e gli asset binari non sono usati come fonte semantica primaria.
 
 ## Comportamento e intento
 
 Questa pagina descrive il comportamento osservato nell'eseguibile. Mockup, PRD e README sono fonti d'intento separate. In particolare, il README cita Auth.js, mentre il flusso runtime osservato usa `arctic`, `jose`, route Google personalizzate e un cookie JWT; `src/lib/auth.ts` è un placeholder. Non è stata inferita alcuna decisione architetturale o rationale dalla sola forma del codice.
+
+## Concetti correlati
+
+La panoramica introduce la [mappa dei contesti](/architecture/context-map.md), la [mappa del codice](/engineering/code-map.md), le [operazioni di sviluppo](/operations/development.md) e il [PRD originale](/references/prd.md).

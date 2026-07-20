@@ -1,45 +1,28 @@
 ---
-id: domains.attivita
 type: domain
-summary: Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore
-status: reviewed
+title: Attività e consuntivazione
+description: Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore
 classification: candidate
-links:
-    - id: architecture.context-map
-      relation: participates-in
-    - id: domains.collaboratori
-      relation: references-operational-profile
-    - id: domains.clienti
-      relation: references-client
-    - id: domains.offerte
-      relation: references-engagement
-    - id: domains.politiche-rimborso
-      relation: consumes-reimbursement-policy
-    - id: domains.fatturazione-clienti
-      relation: supplies-activity-facts
+status: generated
 sources:
-    - path: src/lib/actions/righe-attivita.ts
-      role: inbound-commands
-      symbol: creaRiga, modificaRiga, eliminaRiga, rimuoviTrasferta
-    - path: src/lib/attivita.ts
-      role: application-query
-      symbol: attivitaDelMese, righeDelGiorno, riepilogoMese
-    - path: src/domain/calendario/index.ts
-      role: supporting-domain
-    - path: src/domain/consuntivi/index.ts
-      role: domain-calculation
-      symbol: validaOre, validaKmTrasferta, calcolaRiepilogoMese
-    - path: prisma/schema.prisma
-      role: owned-data
-      symbol: RigaAttivita
-    - path: tests/unit/righe-attivita-actions.test.ts
-      role: verification
-    - path: tests/e2e/calendario-segregazione.spec.ts
-      role: verification
-review:
-    content_hash: sha256:aba114b4022ff7c22a2ff8296d1477cfe3052ea09126c2f87ebf5fd81af01d8b
-    evidence_revision: 82aa87a3bc73c8e8f42bf1d162c6973dbdf76978
-    reviewed_at: "2026-07-16T14:24:23Z"
+- path: src/lib/actions/righe-attivita.ts
+  role: inbound-commands
+  symbol: creaRiga, modificaRiga, eliminaRiga, rimuoviTrasferta
+- path: src/lib/attivita.ts
+  role: application-query
+  symbol: attivitaDelMese, righeDelGiorno, riepilogoMese
+- path: src/domain/calendario/index.ts
+  role: supporting-domain
+- path: src/domain/consuntivi/index.ts
+  role: domain-calculation
+  symbol: validaOre, validaKmTrasferta, calcolaRiepilogoMese
+- path: prisma/schema.prisma
+  role: owned-data
+  symbol: RigaAttivita
+- path: tests/unit/righe-attivita-actions.test.ts
+  role: verification
+- path: tests/e2e/calendario-segregazione.spec.ts
+  role: verification
 ---
 # Attività e consuntivazione
 
@@ -67,11 +50,12 @@ Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni perso
 ## Flussi osservati
 
 1. Le pagine e le action risolvono il profilo; solo l'esito derivato `ATTIVO` consente operazioni.
-2. La creazione verifica campi, coerenza offerta-cliente, stato offerta, ore, km/scaglione e formato data, poi scrive una nuova `RigaAttivita` per il collaboratore corrente.
-3. Modifica, eliminazione e rimozione trasferta verificano l'identificativo proprietario prima della write.
-4. La lettura mensile filtra sempre per `collaboratoreId` e intervallo del mese, poi aggrega per giorno.
-5. Il riepilogo somma ore, converte con 8 ore/giorno, include nell'imponibile solo ore fatturabili e aggiunge i rimborsi validi.
-6. Non esiste uno stato lifecycle persistito della riga. `fatturabile` e `trasfertaKm` sono campi direttamente aggiornabili; gli esiti del calcolo rimborso non sono transizioni.
+2. La creazione verifica campi, coerenza offerta-cliente, stato offerta, ore, km/scaglione e formato data, poi `src/lib/actions/righe-attivita.ts` (`creaRiga`) crea una `RigaAttivita` per il collaboratore corrente e assegna esattamente cliente, offerta, data, ore, nota, `fatturabile` e `trasfertaKm`.
+3. `modificaRiga`, `eliminaRiga` e `rimuoviTrasferta` verificano prima che `RigaAttivita.collaboratoreId` coincida con il collaboratore corrente. `rimuoviTrasferta` assegna esattamente `trasfertaKm: null` nello stesso file; l'eliminazione cancella il record e non è una transizione di stato.
+4. `modificaRiga` costruisce un aggiornamento parziale. Assegna `fatturabile` soltanto se il `FormData` contiene il campo; non legge uno stato sorgente né modella transizioni nominate.
+5. La lettura mensile filtra sempre per `collaboratoreId` e intervallo del mese, poi aggrega per giorno.
+6. Il riepilogo somma ore, converte con 8 ore/giorno, include nell'imponibile solo ore fatturabili e aggiunge i rimborsi validi.
+7. Non esiste uno stato lifecycle persistito della riga. Gli esiti del calcolo rimborso non sono transizioni.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
@@ -89,9 +73,13 @@ Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni perso
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
 
-Le ore devono essere maggiori di zero e non superiori a 24 per singola riga; non esiste un limite alla somma giornaliera. I km, se presenti, sono interi positivi coperti da uno scaglione. La proprietà è applicata da filtri e controlli applicativi. Lo schema ha tre FK separate e non impone che `RigaAttivita.clienteId` coincida con il cliente dell'offerta. La creazione verifica la coppia; `modificaRiga` la ricontrolla solo quando riceve insieme un nuovo cliente e una nuova offerta, quindi una chiamata parziale può produrre incoerenza semantica. La regex delle action verifica il formato data ma non la validità civile; `Date.UTC` normalizza date impossibili. Tariffa e scaglioni correnti ricalcolano retroattivamente il riepilogo.
+Le ore devono essere maggiori di zero e non superiori a 24 per singola riga; non esiste un limite alla somma giornaliera. I km, se presenti, sono interi positivi coperti da uno scaglione. La proprietà è applicata da filtri e controlli applicativi. Lo schema ha tre FK separate e non impone che `RigaAttivita.clienteId` coincida con il cliente dell'offerta. La creazione verifica la coppia; `modificaRiga` la ricontrolla solo quando riceve insieme un nuovo cliente e una nuova offerta, quindi una chiamata parziale può produrre incoerenza semantica. Inoltre `dettaglio-giornata.tsx` invia `fatturabile` soltanto quando la checkbox è selezionata e `modificaRiga` ignora il campo assente: dal flusso UI osservato una riga `true` non può quindi essere salvata come `false`. La regex delle action verifica il formato data ma non la validità civile; `Date.UTC` normalizza date impossibili. Tariffa e scaglioni correnti ricalcolano retroattivamente il riepilogo.
 
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
 La suite unit copre segregazione, CRUD, validazioni, calendario, rimborso e riepilogo. Gli E2E coprono flussi browser, ma alcuni scenari storici usano seed condivisi mentre i test mutanti recenti adottano factory e risorse riservate. Confidenza alta sul comportamento descritto; i limiti server-side sono osservazioni esplicite, non invarianti presunte.
+
+## Concetti correlati
+
+Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Collaboratori](/domains/collaboratori.md), [Clienti](/domains/clienti.md), [Offerte](/domains/offerte.md), [Politiche di rimborso](/domains/politiche-rimborso.md) e [Fatturazione clienti](/domains/fatturazione-clienti.md).

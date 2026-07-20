@@ -1,40 +1,17 @@
 ---
-id: architecture.context-map
 type: context-map
-summary: Relazioni tra capability candidate, infrastruttura condivisa e confini ancora da revisionare
-status: reviewed
-links:
-    - id: overview
-      relation: detailed-by
-    - id: engineering.code-map
-      relation: implemented-by
-    - id: domains.clienti
-      relation: includes-candidate
-    - id: domains.collaboratori
-      relation: includes-candidate
-    - id: domains.offerte
-      relation: includes-candidate
-    - id: domains.politiche-rimborso
-      relation: includes-candidate
-    - id: domains.attivita
-      relation: includes-candidate
-    - id: domains.fatturazione-clienti
-      relation: includes-candidate
-    - id: domains.identita-accesso
-      relation: includes-candidate
+title: Mappa dei contesti candidati
+description: Relazioni tra capability candidate, infrastruttura condivisa e confini ancora da revisionare
+status: generated
 sources:
-    - path: src/lib/actions/righe-attivita.ts
-      role: cross-capability-flow
-    - path: src/lib/report.ts
-      role: downstream-projections
-    - path: src/lib/dal.ts
-      role: shared-access-boundary
-    - path: prisma/schema.prisma
-      role: shared-storage
-review:
-    content_hash: sha256:c732db3187b8aee5286bde89c0af3c1644c1d34c6e076721adbe60d8f68d1d56
-    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
-    reviewed_at: "2026-07-16T17:30:56Z"
+- path: src/lib/actions/righe-attivita.ts
+  role: cross-capability-flow
+- path: src/lib/report.ts
+  role: downstream-projections
+- path: src/lib/dal.ts
+  role: shared-access-boundary
+- path: prisma/schema.prisma
+  role: shared-storage
 ---
 # Mappa dei contesti candidati
 
@@ -76,3 +53,7 @@ Il codice mostra dipendenze dirette e storage condiviso, ma non fornisce evidenz
 - `RigaAttivita` conserva sia `clienteId` sia `offertaId` con FK indipendenti. La creazione verifica coerenza, ma una modifica parziale può eluderla.
 - Tariffe e scaglioni non sono snapshot: riepiloghi e report storici sono ricalcolati con configurazione corrente.
 - Le capability condividono processo, database e application layer; la classificazione `candidate` descrive una mappa semantica, non isolamento di deploy.
+
+## Concetti correlati
+
+La vista logica completa la [panoramica](/overview.md) e la [mappa fisica del codice](/engineering/code-map.md). Collega [Clienti](/domains/clienti.md), [Collaboratori](/domains/collaboratori.md), [Offerte](/domains/offerte.md), [Politiche di rimborso](/domains/politiche-rimborso.md), [Attività](/domains/attivita.md), [Fatturazione clienti](/domains/fatturazione-clienti.md) e [Identità e accesso](/domains/identita-accesso.md).

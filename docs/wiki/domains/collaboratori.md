@@ -1,33 +1,26 @@
 ---
-id: domains.collaboratori
 type: domain
+title: Collaboratori
+description: Profili professionali dei collaboratori, tariffa e abilitazione operativa
 classification: candidate
-summary: Profili professionali dei collaboratori, tariffa e abilitazione operativa
 status: generated
-links:
-  - id: architecture.context-map
-    relation: participates-in
-  - id: domains.identita-accesso
-    relation: supplies-operational-profile
-  - id: domains.attivita
-    relation: supplies-collaborator-profile
 sources:
-  - path: "src/app/(back-office)/anagrafiche/collaboratori/actions.ts"
-    role: inbound-commands
-    symbol: creaCollaboratore, aggiornaCollaboratore, cambiaStatoCollaboratore
-  - path: "src/lib/collaboratori.ts"
-    role: application-query
-  - path: "src/domain/anagrafiche/valida-collaboratore.ts"
-    role: domain-validation
-    symbol: validaCollaboratore
-  - path: "src/lib/dal.ts"
-    role: outbound-consumer
-    symbol: risolviProfiloCollaboratoreCorrente
-  - path: "prisma/schema.prisma"
-    role: owned-data
-    symbol: Collaboratore
-  - path: "tests/e2e/anagrafica-collaboratori.spec.ts"
-    role: verification
+- path: src/app/(back-office)/anagrafiche/collaboratori/actions.ts
+  role: inbound-commands
+  symbol: creaCollaboratore, aggiornaCollaboratore, cambiaStatoCollaboratore
+- path: src/lib/collaboratori.ts
+  role: application-query
+- path: src/domain/anagrafiche/valida-collaboratore.ts
+  role: domain-validation
+  symbol: validaCollaboratore
+- path: src/lib/dal.ts
+  role: outbound-consumer
+  symbol: risolviProfiloCollaboratoreCorrente
+- path: prisma/schema.prisma
+  role: owned-data
+  symbol: Collaboratore
+- path: tests/e2e/anagrafica-collaboratori.spec.ts
+  role: verification
 ---
 # Collaboratori
 
@@ -57,11 +50,11 @@ Possiede `Collaboratore`, la tariffa e il booleano `attivo`. Coordina la creazio
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
 
-1. La creazione valida i dati, verifica l'email e scrive `Collaboratore.attivo = true`; se crea anche `Utente`, assegna esattamente il ruolo `COLLABORATORE`.
-2. Se esiste un amministratore senza profilo, la transazione lo riusa senza cambiare il ruolo.
-3. La modifica aggiorna profilo e utente nella stessa transazione.
-4. Il comando di stato assegna il booleano richiesto senza guardia sul valore sorgente; non è provata una macchina a stati più ricca.
-5. `risolviProfiloCollaboratoreCorrente` produce `ASSENTE`, `DISATTIVATO` o `ATTIVO` mediante branch di lettura: sono esiti derivati, non stati persistiti separatamente.
+1. `creaCollaboratore` in `src/app/(back-office)/anagrafiche/collaboratori/actions.ts` valida i dati e, nella transazione, crea `Collaboratore` assegnando esattamente `attivo: true`; quando crea anche `Utente`, assegna esattamente `ruolo: \"COLLABORATORE\"`.
+2. Se esiste un amministratore senza profilo, la stessa transazione lo riusa senza assegnare un nuovo ruolo.
+3. `aggiornaCollaboratore` nello stesso file aggiorna profilo e utente nella stessa transazione senza cambiare `attivo` o `ruolo`.
+4. `cambiaStatoCollaboratore` nello stesso file e l'adapter `cambia-stato-action.ts` assegnano direttamente il booleano richiesto a `Collaboratore.attivo` senza guardia sul valore sorgente; non è provata una macchina a stati più ricca.
+5. `risolviProfiloCollaboratoreCorrente` in `src/lib/dal.ts` produce `ASSENTE`, `DISATTIVATO` o `ATTIVO` mediante branch di lettura: sono esiti derivati, non stati persistiti separatamente.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
@@ -84,3 +77,7 @@ Nome, cognome, email, partita IVA e tariffa sono obbligatori lato applicazione; 
 ## Verifica
 
 Test unitari coprono transazioni, duplicati e guardie; gli E2E coprono gestione e revoca dopo disattivazione. Confidenza alta sul comportamento osservato; ownership condivisa di `Utente` resta una boundary candidata da sottoporre a review.
+
+## Concetti correlati
+
+Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Identità e accesso](/domains/identita-accesso.md) e [Attività](/domains/attivita.md).

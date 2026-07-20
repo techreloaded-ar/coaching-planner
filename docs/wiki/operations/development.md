@@ -1,32 +1,25 @@
 ---
-id: operations.development
 type: operations
-summary: Sviluppo locale, build, test, CI, database e vincoli operativi
+title: Sviluppo e operazioni
+description: Sviluppo locale, build, test, CI, database e vincoli operativi
 status: generated
-links:
-  - id: overview
-    relation: supports
-  - id: engineering.code-map
-    relation: operates
-  - id: domains.identita-accesso
-    relation: configures
 sources:
-  - path: "package.json"
-    role: command-manifest
-  - path: "README.md"
-    role: development-guide
-  - path: "docker-compose.yml"
-    role: local-infrastructure
-  - path: ".github/workflows/ci.yml"
-    role: automation
-  - path: "playwright.config.ts"
-    role: e2e-configuration
-  - path: "vitest.config.ts"
-    role: unit-test-configuration
-  - path: "prisma.config.ts"
-    role: database-configuration
-  - path: "src/lib/session-config.ts"
-    role: runtime-configuration
+- path: package.json
+  role: command-manifest
+- path: README.md
+  role: development-guide
+- path: docker-compose.yml
+  role: local-infrastructure
+- path: .github/workflows/ci.yml
+  role: automation
+- path: playwright.config.ts
+  role: e2e-configuration
+- path: vitest.config.ts
+  role: unit-test-configuration
+- path: prisma.config.ts
+  role: database-configuration
+- path: src/lib/session-config.ts
+  role: runtime-configuration
 ---
 # Sviluppo e operazioni
 
@@ -87,3 +80,7 @@ Non è presente una pipeline di deploy. SiteGround compare in uno script diagnos
 - Non leggere o versionare file `.env` reali.
 - Sessione e build falliscono rapidamente con `SESSION_SECRET` non valida.
 - Il commento interno dell'endpoint E2E cita un vecchio path `/api/__test/sessione`; il path eseguibile è `/api/e2e-test/sessione`.
+
+## Concetti correlati
+
+Le operazioni supportano la [panoramica](/overview.md), la [mappa del codice](/engineering/code-map.md) e il dominio [Identità e accesso](/domains/identita-accesso.md).

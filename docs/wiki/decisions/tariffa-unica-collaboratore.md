@@ -1,28 +1,23 @@
 ---
-id: decisions.tariffa-unica-collaboratore
 type: decision
+title: Tariffa unica per collaboratore
+description: Mantenere una sola tariffa giornaliera per ogni collaboratore nel MVP
 decision_status: accepted
-summary: Mantenere una sola tariffa giornaliera per ogni collaboratore nel MVP
 status: generated
-links:
-  - id: domains.collaboratori
-    relation: affects
-  - id: domains.attivita
-    relation: affects
 sources:
-  - path: "docs/wiki/sources/prd.md"
-    role: decision-source
-  - path: "prisma/schema.prisma"
-    role: implementation
-    symbol: Collaboratore.tariffaGiornaliera
-  - path: "src/lib/attivita.ts"
-    role: implementation
-    symbol: riepilogoMese
-  - path: "src/domain/consuntivi/index.ts"
-    role: implementation
-    symbol: calcolaRiepilogoMese
-  - path: "tests/unit/riepilogo-mese.test.ts"
-    role: verification
+- path: docs/PRD.md
+  role: decision-source
+- path: prisma/schema.prisma
+  role: implementation
+  symbol: Collaboratore.tariffaGiornaliera
+- path: src/lib/attivita.ts
+  role: implementation
+  symbol: riepilogoMese
+- path: src/domain/consuntivi/index.ts
+  role: implementation
+  symbol: calcolaRiepilogoMese
+- path: tests/unit/riepilogo-mese.test.ts
+  role: verification
 ---
 # Tariffa unica per collaboratore
 
@@ -50,3 +45,7 @@ Il calcolo della fattura personale è uniforme e la gestione anagrafica è sempl
 ## Verifica
 
 `Collaboratore` possiede un solo campo `tariffaGiornaliera`. `riepilogoMese` passa quella tariffa a `calcolaRiepilogoMese`; non esiste una tariffa collaboratore per offerta. I test coprono il calcolo. La tariffa dell'offerta esiste separatamente per la fatturazione cliente e non contraddice questa decisione.
+
+## Concetti correlati
+
+La decisione deriva dal [PRD originale](/references/prd.md) e influenza [Collaboratori](/domains/collaboratori.md) e [Attività](/domains/attivita.md).

@@ -1,32 +1,25 @@
 ---
-id: domains.clienti
 type: domain
+title: Clienti
+description: Anagrafica fiscale dei clienti e loro abilitazione operativa
 classification: candidate
-summary: Anagrafica fiscale dei clienti e loro abilitazione operativa
 status: generated
-links:
-  - id: architecture.context-map
-    relation: participates-in
-  - id: domains.offerte
-    relation: supplies-client-reference
-  - id: domains.attivita
-    relation: supplies-client-reference
 sources:
-  - path: "src/app/(back-office)/anagrafiche/clienti/actions.ts"
-    role: inbound-commands
-    symbol: creaCliente, aggiornaCliente, cambiaStatoCliente
-  - path: "src/lib/clienti.ts"
-    role: application-query
-  - path: "src/domain/anagrafiche/valida-cliente.ts"
-    role: domain-validation
-    symbol: validaCliente
-  - path: "prisma/schema.prisma"
-    role: owned-data
-    symbol: Cliente
-  - path: "tests/unit/clienti-dal-actions.test.ts"
-    role: verification
-  - path: "tests/e2e/anagrafica-clienti.spec.ts"
-    role: verification
+- path: src/app/(back-office)/anagrafiche/clienti/actions.ts
+  role: inbound-commands
+  symbol: creaCliente, aggiornaCliente, cambiaStatoCliente
+- path: src/lib/clienti.ts
+  role: application-query
+- path: src/domain/anagrafiche/valida-cliente.ts
+  role: domain-validation
+  symbol: validaCliente
+- path: prisma/schema.prisma
+  role: owned-data
+  symbol: Cliente
+- path: tests/unit/clienti-dal-actions.test.ts
+  role: verification
+- path: tests/e2e/anagrafica-clienti.spec.ts
+  role: verification
 ---
 # Clienti
 
@@ -56,9 +49,9 @@ Le Server Action `creaCliente`, `aggiornaCliente` e i due adapter di cambio stat
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
 
-1. La creazione normalizza i campi, applica `validaCliente` e scrive `Cliente.attivo = true`.
-2. La modifica aggiorna i dati fiscali senza cambiare lo stato.
-3. I comandi di stato assegnano direttamente a `Cliente.attivo` il booleano ricevuto dal form; non leggono né proteggono lo stato sorgente, quindi il codice non prova una macchina a stati con transizioni nominate.
+1. `creaCliente` in `src/app/(back-office)/anagrafiche/clienti/actions.ts` normalizza i campi, applica `validaCliente` e crea il record assegnando esattamente `attivo: true`.
+2. `aggiornaCliente` nello stesso file aggiorna i dati fiscali senza assegnare `attivo`.
+3. `cambiaStatoCliente` nello stesso file e l'adapter `cambia-stato-action.ts` assegnano direttamente a `Cliente.attivo` il booleano ricevuto dal form; non leggono né proteggono lo stato sorgente, quindi il codice non prova transizioni nominate fra stati sorgente e destinazione.
 4. Le letture per selezione filtrano `attivo: true`; disattivare non cancella dati né propaga modifiche alle offerte.
 
 <!-- archetipo:wiki section=code -->
@@ -82,3 +75,7 @@ Le action richiedono ragione sociale e partita IVA; validano partita IVA a 11 ci
 ## Verifica
 
 I test unitari coprono guardia amministratore, normalizzazione, scritture e filtri. `tests/e2e/anagrafica-clienti.spec.ts` verifica i principali flussi browser. Confidenza alta sui comandi e sui vincoli applicativi; la classificazione resta candidata fino a revisione semantica esplicita.
+
+## Concetti correlati
+
+Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Offerte](/domains/offerte.md) e [Attività](/domains/attivita.md).

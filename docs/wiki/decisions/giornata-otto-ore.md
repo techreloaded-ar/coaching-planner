@@ -1,28 +1,21 @@
 ---
-id: decisions.giornata-otto-ore
 type: decision
+title: Giornata equivalente a otto ore
+description: Convertire ore e giornate con la costante fissa di otto ore per giornata
 decision_status: accepted
-summary: Convertire ore e giornate con la costante fissa di otto ore per giornata
 status: generated
-links:
-  - id: domains.attivita
-    relation: affects
-  - id: domains.offerte
-    relation: affects
-  - id: domains.fatturazione-clienti
-    relation: affects
 sources:
-  - path: "docs/wiki/sources/prd.md"
-    role: decision-source
-  - path: "src/domain/types.ts"
-    role: implementation
-    symbol: ORE_PER_GIORNATA
-  - path: "src/domain/consuntivi/index.ts"
-    role: implementation
-  - path: "tests/unit/riepilogo-mese.test.ts"
-    role: verification
-  - path: "tests/unit/avanzamento-offerte.test.ts"
-    role: verification
+- path: docs/PRD.md
+  role: decision-source
+- path: src/domain/types.ts
+  role: implementation
+  symbol: ORE_PER_GIORNATA
+- path: src/domain/consuntivi/index.ts
+  role: implementation
+- path: tests/unit/riepilogo-mese.test.ts
+  role: verification
+- path: tests/unit/avanzamento-offerte.test.ts
+  role: verification
 ---
 # Giornata equivalente a otto ore
 
@@ -50,3 +43,7 @@ Riepilogo personale, fatturazione cliente e avanzamento offerta sono coerenti e 
 ## Verifica
 
 `src/domain/types.ts` esporta `ORE_PER_GIORNATA = 8`; `src/domain/consuntivi/index.ts` la usa nei tre calcoli. I test unitari verificano, fra gli altri casi, che 8 ore corrispondano a una giornata. La decisione è adottata.
+
+## Concetti correlati
+
+La decisione deriva dal [PRD originale](/references/prd.md) e influenza [Attività](/domains/attivita.md), [Offerte](/domains/offerte.md) e [Fatturazione clienti](/domains/fatturazione-clienti.md).

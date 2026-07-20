@@ -1,35 +1,22 @@
 ---
-id: domains.fatturazione-clienti
 type: domain
-summary: Proiezione amministrativa mensile degli importi da fatturare ai clienti
-status: reviewed
+title: Fatturazione clienti
+description: Proiezione amministrativa mensile degli importi da fatturare ai clienti
 classification: candidate
-links:
-    - id: architecture.context-map
-      relation: participates-in
-    - id: domains.attivita
-      relation: consumes-activity-facts
-    - id: domains.offerte
-      relation: consumes-commercial-rates
-    - id: domains.politiche-rimborso
-      relation: consumes-reimbursement-policy
+status: generated
 sources:
-    - path: src/lib/report.ts
-      role: application-query
-      symbol: reportFatturazioneClientiMese
-    - path: src/domain/consuntivi/index.ts
-      role: domain-calculation
-      symbol: calcolaReportFatturazioneClienti
-    - path: src/app/(back-office)/report/fatturazione-clienti/page.tsx
-      role: inbound-ui
-    - path: tests/unit/report-fatturazione-clienti.test.ts
-      role: verification
-    - path: tests/e2e/report-fatturazione-clienti.spec.ts
-      role: verification
-review:
-    content_hash: sha256:2662136a0b54f5a37c4939e23530539570942704c9f68cc0645d8df98bbe1a54
-    evidence_revision: d5a7bbe7cd96e946dce2920672fc29c1779b4e9b
-    reviewed_at: "2026-07-16T17:30:56Z"
+- path: src/lib/report.ts
+  role: application-query
+  symbol: reportFatturazioneClientiMese
+- path: src/domain/consuntivi/index.ts
+  role: domain-calculation
+  symbol: calcolaReportFatturazioneClienti
+- path: src/app/(back-office)/report/fatturazione-clienti/page.tsx
+  role: inbound-ui
+- path: tests/unit/report-fatturazione-clienti.test.ts
+  role: verification
+- path: tests/e2e/report-fatturazione-clienti.spec.ts
+  role: verification
 ---
 # Fatturazione clienti
 
@@ -83,3 +70,7 @@ Accesso solo amministratore. La tariffa è quella corrente dell'offerta e gli sc
 ## Verifica
 
 I test unitari coprono aggregazione, righe non fatturabili, rimborsi, ordinamento e formattazione. L'E2E usa factory e mese riservato per verificare risultati e stato vuoto. Confidenza alta sulla proiezione; l'indipendenza resta candidata perché il calcolo condivide il modulo fisico `consuntivi` con Attività e Offerte.
+
+## Concetti correlati
+
+Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Attività](/domains/attivita.md), [Offerte](/domains/offerte.md) e [Politiche di rimborso](/domains/politiche-rimborso.md).

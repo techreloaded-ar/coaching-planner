@@ -1,23 +1,20 @@
 ---
-id: decisions.postgres-siteground
 type: decision
+title: PostgreSQL con target SiteGround
+description: Usare PostgreSQL con target dichiarato SiteGround e sviluppo locale equivalente
 decision_status: accepted
-summary: Usare PostgreSQL con target dichiarato SiteGround e sviluppo locale equivalente
 status: generated
-links:
-  - id: operations.development
-    relation: affects
 sources:
-  - path: "docs/wiki/sources/prd.md"
-    role: decision-source
-  - path: "prisma/schema.prisma"
-    role: implementation
-  - path: "docker-compose.yml"
-    role: implementation
-  - path: "scripts/siteground-connectivity-check.ts"
-    role: verification-tool
-  - path: "docs/siteground-postgres-connectivity-spike.md"
-    role: verification-record
+- path: docs/PRD.md
+  role: decision-source
+- path: prisma/schema.prisma
+  role: implementation
+- path: docker-compose.yml
+  role: implementation
+- path: scripts/siteground-connectivity-check.ts
+  role: verification-tool
+- path: docs/siteground-postgres-connectivity-spike.md
+  role: verification-record
 ---
 # PostgreSQL con target SiteGround
 
@@ -45,3 +42,7 @@ Prisma e l'applicazione dipendono da PostgreSQL, mentre sviluppo ed E2E usano da
 ## Verifica
 
 Schema Prisma, migrazioni, Docker Compose e CI adottano PostgreSQL. Esistono uno spike documentato e uno script di connettività SiteGround, ma non una pipeline di deploy o evidenza runtime di produzione. Quindi l'adozione di PostgreSQL è provata; il target SiteGround resta intento esplicito con verifica operativa parziale.
+
+## Concetti correlati
+
+La decisione deriva dal [PRD originale](/references/prd.md) e influenza [operazioni di sviluppo](/operations/development.md).

@@ -1,46 +1,33 @@
 ---
-id: domains.offerte
 type: domain
-summary: Impegni commerciali per cliente, budget in giornate e monitoraggio dell'avanzamento
-status: reviewed
+title: Offerte
+description: Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento
 classification: candidate
-links:
-    - id: architecture.context-map
-      relation: participates-in
-    - id: domains.clienti
-      relation: references-client
-    - id: domains.attivita
-      relation: supplies-engagement-reference
-    - id: domains.fatturazione-clienti
-      relation: supplies-commercial-rates
+status: generated
 sources:
-    - path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
-      role: inbound-commands
-      symbol: creaOfferta, aggiornaOfferta
-    - path: src/app/(back-office)/offerte/actions.ts
-      role: inbound-commands
-      symbol: cambiaStatoOfferta, eliminaOfferta
-    - path: src/lib/offerte.ts
-      role: application-query
-      symbol: elencaOfferteConAvanzamento, elencaOffertePerClienteConAvanzamento
-    - path: src/domain/anagrafiche/valida-offerta.ts
-      role: domain-validation
-    - path: src/domain/consuntivi/index.ts
-      role: projection-calculation
-      symbol: calcolaAvanzamentoOfferte
-    - path: prisma/schema.prisma
-      role: owned-data
-      symbol: Offerta
-    - path: tests/unit/avanzamento-offerte.test.ts
-      role: verification
-    - path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts
-      role: verification
-    - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
-      role: verification
-review:
-    content_hash: sha256:8d316b9487d247f6fcef15d184beaa5f25240c529ad94da9362ddea90eee504c
-    evidence_revision: 89284123bc3a3a9931d727a2d22085aea7fe348c
-    reviewed_at: "2026-07-16T19:03:51Z"
+- path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
+  role: inbound-commands
+  symbol: creaOfferta, aggiornaOfferta
+- path: src/app/(back-office)/offerte/actions.ts
+  role: inbound-commands
+  symbol: cambiaStatoOfferta, eliminaOfferta
+- path: src/lib/offerte.ts
+  role: application-query
+  symbol: elencaOfferteConAvanzamento, elencaOffertePerClienteConAvanzamento
+- path: src/domain/anagrafiche/valida-offerta.ts
+  role: domain-validation
+- path: src/domain/consuntivi/index.ts
+  role: projection-calculation
+  symbol: calcolaAvanzamentoOfferte
+- path: prisma/schema.prisma
+  role: owned-data
+  symbol: Offerta
+- path: tests/unit/avanzamento-offerte.test.ts
+  role: verification
+- path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts
+  role: verification
+- path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
+  role: verification
 ---
 # Offerte
 
@@ -71,10 +58,10 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
 
-1. La creazione valida termini e budget, verifica il cliente e scrive `Offerta.attiva = true`.
-2. La modifica aggiorna codice, descrizione, tariffa e giorni previsti; il `clienteId` del form è usato per navigazione, non viene riscritto.
-3. Il comando di stato assegna direttamente a `attiva` il booleano del form, senza guardia sullo stato sorgente.
-4. L'eliminazione conta prima le righe attività e traduce anche l'errore FK da concorrenza; in presenza di righe invita a disattivare.
+1. `creaOfferta` in `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts` valida termini e budget, verifica il cliente e crea il record assegnando esattamente `attiva: true`.
+2. `aggiornaOfferta` nello stesso file aggiorna codice, descrizione, tariffa e giorni previsti senza assegnare `attiva`; il `clienteId` del form è usato per navigazione e non viene riscritto.
+3. `cambiaStatoOfferta` in `src/app/(back-office)/offerte/actions.ts` assegna direttamente a `attiva` il booleano del form, senza guardia sullo stato sorgente.
+4. `eliminaOfferta` nello stesso file conta prima le righe attività e traduce anche l'errore FK da concorrenza; in presenza di righe invita a disattivare. La cancellazione non è una transizione di stato.
 5. `calcolaAvanzamentoOfferte` assegna una delle quattro classificazioni in base a residuo e soglia 85%. Non esiste una colonna `stato` né una write di transizione: ogni lettura ricalcola il valore.
 6. La tabella trasversale `/offerte` e quella annidata nel dettaglio cliente espandono una riga per mostrare classificazione, KPI, percentuale e ripartizione; nell'elenco cliente il link Modifica non attiva il toggle. Il toggle di attivazione della tabella trasversale conserva la riga espansa attraverso il redirect. La precedente rotta `/report/avanzamento-offerte` reindirizza a `/offerte`.
 
@@ -94,9 +81,13 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
 
-Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali e giorni previsti interi positivi. Il database garantisce unicità `(codice, clienteId)` e le FK. Solo la creazione verifica che il cliente sia attivo. L'avanzamento usa esclusivamente ore fatturabili e la conversione fissa di 8 ore per giornata; include offerte senza attività. Le classificazioni di avanzamento sono temporanee e possono cambiare quando cambiano budget o attività.
+Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali e giorni previsti interi positivi. Il database garantisce unicità `(codice, clienteId)` e le FK. Solo la creazione verifica che il cliente sia attivo: `cambiaStatoOfferta` può riattivare un'offerta di un cliente disattivato, anche se il front office continuerà a escluderla perché filtra anche i clienti. L'avanzamento usa esclusivamente ore fatturabili e la conversione fissa di 8 ore per giornata; include offerte senza attività. Le classificazioni di avanzamento sono temporanee e possono cambiare quando cambiano budget o attività.
 
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
 Unit test coprono validazione, DAL, eliminazione, calcolo e le query di avanzamento trasversale e filtrata per cliente; E2E coprono gestione, viste annidate e trasversali, inclusi i dettagli espandibili, la navigazione a Modifica dall'elenco cliente e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer.
+
+## Concetti correlati
+
+Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Clienti](/domains/clienti.md), [Attività](/domains/attivita.md) e [Fatturazione clienti](/domains/fatturazione-clienti.md).

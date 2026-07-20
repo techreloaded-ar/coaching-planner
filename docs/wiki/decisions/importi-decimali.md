@@ -1,29 +1,20 @@
 ---
-id: decisions.importi-decimali
 type: decision
+title: Importi monetari decimali
+description: Persistire gli importi monetari come Decimal per evitare errori contabili
 decision_status: accepted
-summary: Persistire gli importi monetari come Decimal per evitare errori contabili
 status: generated
-links:
-  - id: domains.collaboratori
-    relation: affects
-  - id: domains.offerte
-    relation: affects
-  - id: domains.politiche-rimborso
-    relation: affects
-  - id: domains.fatturazione-clienti
-    relation: affects
 sources:
-  - path: "docs/wiki/sources/prd.md"
-    role: decision-source
-  - path: "prisma/schema.prisma"
-    role: implementation
-  - path: "src/domain/anagrafiche/valida-offerta.ts"
-    role: implementation
-  - path: "src/domain/consuntivi/index.ts"
-    role: implementation-status
-  - path: "tests/unit/report-fatturazione-clienti.test.ts"
-    role: verification
+- path: docs/PRD.md
+  role: decision-source
+- path: prisma/schema.prisma
+  role: implementation
+- path: src/domain/anagrafiche/valida-offerta.ts
+  role: implementation
+- path: src/domain/consuntivi/index.ts
+  role: implementation-status
+- path: tests/unit/report-fatturazione-clienti.test.ts
+  role: verification
 ---
 # Importi monetari decimali
 
@@ -51,3 +42,7 @@ Il database conserva tariffe e importi con scala due. I confini client devono se
 ## Verifica
 
 Prisma usa `Decimal(10,2)` per tariffa collaboratore, tariffa offerta e importo scaglione; i validatori normalizzano stringhe decimali. Tuttavia `src/domain/consuntivi/index.ts` converte vari importi in `number`/`parseFloat` per somme e moltiplicazioni prima di formattare a due decimali. La decisione è adottata nello storage ma non integralmente nella catena applicativa; i test verificano gli output correnti, non precisione arbitraria.
+
+## Concetti correlati
+
+La decisione deriva dal [PRD originale](/references/prd.md) e influenza [Collaboratori](/domains/collaboratori.md), [Offerte](/domains/offerte.md), [Politiche di rimborso](/domains/politiche-rimborso.md) e [Fatturazione clienti](/domains/fatturazione-clienti.md).

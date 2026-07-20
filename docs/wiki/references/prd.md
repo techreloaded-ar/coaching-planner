@@ -1,3 +1,12 @@
+---
+type: reference
+title: Documento dei Requisiti di Prodotto
+description: PRD originale di Coaching Planner, conservato come fonte di intento e decisioni attribuite
+status: generated
+sources:
+- path: docs/PRD.md
+  role: original
+---
 # Coaching Planner - Documento dei Requisiti di Prodotto (PRD)
 
 **Autore:** ARchetipo
@@ -315,4 +324,6 @@ Sviluppo locale su Windows 11 con Node.js LTS e un'istanza PostgreSQL locale (co
 _PRD generato tramite ARchetipo Product Inception - 2026-06-11_
 _Sessione condotta da: Stefano Marello con il team ARchetipo_
 
+## Concetti correlati
 
+Questa fonte d’intento è distinta dal comportamento osservato nella [panoramica](/overview.md) e alimenta le decisioni architetturali nella sezione [Decisioni](/decisions/unica-app-ruoli.md).
