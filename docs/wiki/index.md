@@ -33,7 +33,9 @@
 * [Plan for US-031](backlog/plans/US-031.md) - Implementation plan and executable tasks for US-031. _State: generated._
 * [Plan for US-032](backlog/plans/US-032.md) - Implementation plan and executable tasks for US-032. _State: generated._
 * [Plan for US-033](backlog/plans/US-033.md) - Implementation plan and executable tasks for US-033. _State: generated._
+* [Plan for US-034](backlog/plans/US-034.md) - Implementation plan and executable tasks for US-034. _State: generated._
 * [Plan for US-035](backlog/plans/US-035.md) - Implementation plan and executable tasks for US-035. _State: generated._
+* [Plan for US-036](backlog/plans/US-036.md) - Implementation plan and executable tasks for US-036. _State: generated._
 * [US-001: Scaffold dell'applicazione Next.js e ambiente di sviluppo](backlog/specs/US-001.md) - Delivery specification US-001. _State: generated._
 * [US-002: Database PostgreSQL con Prisma, migrazioni e seed](backlog/specs/US-002.md) - Delivery specification US-002. _State: generated._
 * [US-003: Suite di test e pipeline di integrazione continua](backlog/specs/US-003.md) - Delivery specification US-003. _State: generated._

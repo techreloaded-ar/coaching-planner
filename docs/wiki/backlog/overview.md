@@ -89,8 +89,8 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-026: Gestione delle offerte dalla pagina offerte](specs/US-026.md) — **DONE**, 3 point(s).
 - [US-032: Dettaglio avanzamento espandibile nella pagina Offerte e dismissione della pagina Avanzamento Offerte](specs/US-032.md) — **DONE**, 5 point(s).
 - [US-033: Dettaglio avanzamento espandibile nell'elenco offerte del cliente](specs/US-033.md) — **DONE**, 2 point(s).
-- [US-035: Riga compatta nell'elenco offerte con giorni erogati aggregati e stato a indicatore](specs/US-035.md) — **REVIEW**, 3 point(s).
-- [US-036: Matrice mensile per collaboratore nel dettaglio avanzamento offerta](specs/US-036.md) — **TODO**, 3 point(s).
+- [US-035: Riga compatta nell'elenco offerte con giorni erogati aggregati e stato a indicatore](specs/US-035.md) — **DONE**, 3 point(s).
+- [US-036: Matrice mensile per collaboratore nel dettaglio avanzamento offerta](specs/US-036.md) — **PLANNED**, 3 point(s).
 - [US-038: Pagina di dettaglio del collaboratore con storico attività mensile](specs/US-038.md) — **TODO**, 3 point(s).
 
 ## EP-003: Consuntivazione Attività
@@ -100,7 +100,7 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-011: Calendario mensile delle proprie attività](specs/US-011.md) — **DONE**, 3 point(s).
 - [US-012: Inserimento delle righe di attività giornaliere](specs/US-012.md) — **DONE**, 5 point(s).
 - [US-031: Apertura di qualsiasi giorno dal calendario per registrare attività](specs/US-031.md) — **DONE**, 2 point(s).
-- [US-034: Nome cliente e ore cumulate nelle celle del calendario attività](specs/US-034.md) — **TODO**, 2 point(s).
+- [US-034: Nome cliente e ore cumulate nelle celle del calendario attività](specs/US-034.md) — **REVIEW**, 2 point(s).
 
 ## EP-004: Reportistica
 
