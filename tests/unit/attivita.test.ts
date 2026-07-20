@@ -200,9 +200,9 @@ describe("attivitaDelMese", () => {
     });
 
     const righe = [
-      rigaFittizia(new Date(2026, 5, 2), 8, "TS-001", "TechSolutions Srl"),
-      rigaFittizia(new Date(2026, 5, 2), 4, "TS-001", "TechSolutions Srl"),
-      rigaFittizia(new Date(2026, 5, 2), 2, "DF-001", "DataFlow SpA"),
+      rigaFittizia(new Date(2026, 5, 2), 8, "TS-001", "TechSolutions Srl", "cliente-techsolutions", "offerta-ts-001"),
+      rigaFittizia(new Date(2026, 5, 2), 4, "TS-001", "TechSolutions Srl", "cliente-techsolutions", "offerta-ts-001"),
+      rigaFittizia(new Date(2026, 5, 2), 2, "DF-001", "DataFlow SpA", "cliente-dataflow", "offerta-df-001"),
     ];
     mockRigaAttivita.findMany.mockResolvedValue(righe);
 
