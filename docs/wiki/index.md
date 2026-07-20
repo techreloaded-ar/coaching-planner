@@ -94,7 +94,7 @@
 
 ## Engineering
 
-* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: reviewed._
+* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: stale._
 
 ## Operations
 

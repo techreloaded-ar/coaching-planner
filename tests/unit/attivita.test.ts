@@ -34,12 +34,14 @@ function rigaFittizia(
   ore: number,
   codiceOfferta: string,
   ragioneSociale: string,
+  clienteId = "cliente-1",
+  offertaId = "offerta-1",
 ): unknown {
   return {
     id: `riga-${data.toISOString()}`,
     collaboratoreId: "collab-1",
-    clienteId: "cliente-1",
-    offertaId: "offerta-1",
+    clienteId,
+    offertaId,
     data,
     ore,
     nota: null,
@@ -48,10 +50,10 @@ function rigaFittizia(
     createdAt: data,
     updatedAt: data,
     offerta: {
-      id: "offerta-1",
+      id: offertaId,
       codice: codiceOfferta,
       descrizione: "Consulenza",
-      clienteId: "cliente-1",
+      clienteId,
       tariffaGiornaliera: "550.00",
       giorniPrevisti: 40,
       attiva: true,
@@ -59,7 +61,7 @@ function rigaFittizia(
       updatedAt: data,
     },
     cliente: {
-      id: "cliente-1",
+      id: clienteId,
       ragioneSociale,
       partitaIva: null,
       codiceFiscale: null,
@@ -213,7 +215,6 @@ describe("attivitaDelMese", () => {
     expect(sintesi).toBeDefined();
     expect(sintesi!.righe).toBe(3);
     expect(sintesi!.oreTotali).toBe(14); // 8 + 4 + 2
-    expect(sintesi!.codici).toEqual(["TS-001", "DF-001"]);
   });
 
   it("aggrega correttamente giorni diversi", async () => {
@@ -259,7 +260,9 @@ describe("attivitaDelMese", () => {
     expect(g5!.oreTotali).toBe(4);
   });
 
-  it("i codici offerta sono distinti e senza duplicati", async () => {
+  // ── Sintesi per cliente ──────────────────────────────────────
+
+  it("somma le ore per cliente su più offerte diverse mantenendo invariati righe e ore totali del giorno", async () => {
     mockRichiediCollaboratoreCorrente.mockResolvedValue({
       id: "collab-1",
       userId: "user-1",
@@ -273,16 +276,132 @@ describe("attivitaDelMese", () => {
     });
 
     const righe = [
-      rigaFittizia(new Date(2026, 5, 15), 4, "TS-001", "TechSolutions"),
-      rigaFittizia(new Date(2026, 5, 15), 4, "TS-001", "TechSolutions"),
-      rigaFittizia(new Date(2026, 5, 15), 2, "TS-001", "TechSolutions"),
+      rigaFittizia(
+        new Date(2026, 5, 8),
+        4,
+        "TS-001",
+        "TechSolutions Srl",
+        "cliente-1",
+        "offerta-1",
+      ),
+      rigaFittizia(
+        new Date(2026, 5, 8),
+        2,
+        "TS-002",
+        "TechSolutions Srl",
+        "cliente-1",
+        "offerta-2",
+      ),
+      rigaFittizia(
+        new Date(2026, 5, 8),
+        3,
+        "DF-001",
+        "DataFlow SpA",
+        "cliente-2",
+        "offerta-3",
+      ),
     ];
     mockRigaAttivita.findMany.mockResolvedValue(righe);
 
     const result = await attivitaDelMese("2026-06");
-    const sintesi = result.perGiorno.get("2026-06-15");
-    // TS-001 deve apparire una sola volta
-    expect(sintesi!.codici).toEqual(["TS-001"]);
+    const sintesi = result.perGiorno.get("2026-06-08");
+
+    expect(sintesi!.righe).toBe(3);
+    expect(sintesi!.oreTotali).toBe(9);
+
+    expect(sintesi!.clienti).toHaveLength(2);
+    expect(sintesi!.clienti[0]).toEqual({
+      clienteId: "cliente-1",
+      ragioneSociale: "TechSolutions Srl",
+      ore: 6,
+    });
+    expect(sintesi!.clienti[1]).toEqual({
+      clienteId: "cliente-2",
+      ragioneSociale: "DataFlow SpA",
+      ore: 3,
+    });
+  });
+
+  it("elenca i clienti del giorno nell'ordine di prima apparizione", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue({
+      id: "collab-1",
+      userId: "user-1",
+      nome: "Giulia",
+      cognome: "Conti",
+      partitaIva: "IT12345678901",
+      tariffaGiornaliera: "350.00",
+      attivo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const righe = [
+      rigaFittizia(
+        new Date(2026, 5, 9),
+        2,
+        "DF-001",
+        "DataFlow SpA",
+        "cliente-2",
+        "offerta-2",
+      ),
+      rigaFittizia(
+        new Date(2026, 5, 9),
+        3,
+        "TS-001",
+        "TechSolutions Srl",
+        "cliente-1",
+        "offerta-1",
+      ),
+      rigaFittizia(
+        new Date(2026, 5, 9),
+        1,
+        "AC-001",
+        "Acme Spa",
+        "cliente-3",
+        "offerta-3",
+      ),
+    ];
+    mockRigaAttivita.findMany.mockResolvedValue(righe);
+
+    const result = await attivitaDelMese("2026-06");
+    const sintesi = result.perGiorno.get("2026-06-09");
+
+    expect(sintesi!.clienti.map((c) => c.clienteId)).toEqual([
+      "cliente-2",
+      "cliente-1",
+      "cliente-3",
+    ]);
+  });
+
+  it("non duplica il cliente quando più righe della stessa offerta ricadono nello stesso giorno", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue({
+      id: "collab-1",
+      userId: "user-1",
+      nome: "Giulia",
+      cognome: "Conti",
+      partitaIva: "IT12345678901",
+      tariffaGiornaliera: "350.00",
+      attivo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const righe = [
+      rigaFittizia(new Date(2026, 5, 22), 4, "TS-001", "TechSolutions Srl"),
+      rigaFittizia(new Date(2026, 5, 22), 2, "TS-001", "TechSolutions Srl"),
+    ];
+    mockRigaAttivita.findMany.mockResolvedValue(righe);
+
+    const result = await attivitaDelMese("2026-06");
+    const sintesi = result.perGiorno.get("2026-06-22");
+
+    expect(sintesi!.clienti).toEqual([
+      {
+        clienteId: "cliente-1",
+        ragioneSociale: "TechSolutions Srl",
+        ore: 6,
+      },
+    ]);
   });
 
   // ── Segregazione: il filtro è sul collaboratoreId della sessione ──
@@ -380,7 +499,7 @@ describe("attivitaDelMese", () => {
     await attivitaDelMese("2026-06");
 
     const chiamata = mockRigaAttivita.findMany.mock.calls[0][0];
-    expect(chiamata.orderBy).toEqual({ data: "asc" });
+    expect(chiamata.orderBy).toEqual([{ data: "asc" }, { createdAt: "asc" }]);
   });
 
   // ── Ore con decimali ────────────────────────────────────────

@@ -53,7 +53,7 @@ Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni perso
 2. La creazione verifica campi, coerenza offerta-cliente, stato offerta, ore, km/scaglione e formato data, poi `src/lib/actions/righe-attivita.ts` (`creaRiga`) crea una `RigaAttivita` per il collaboratore corrente e assegna esattamente cliente, offerta, data, ore, nota, `fatturabile` e `trasfertaKm`.
 3. `modificaRiga`, `eliminaRiga` e `rimuoviTrasferta` verificano prima che `RigaAttivita.collaboratoreId` coincida con il collaboratore corrente. `rimuoviTrasferta` assegna esattamente `trasfertaKm: null` nello stesso file; l'eliminazione cancella il record e non è una transizione di stato.
 4. `modificaRiga` costruisce un aggiornamento parziale. Assegna `fatturabile` soltanto se il `FormData` contiene il campo; non legge uno stato sorgente né modella transizioni nominate.
-5. La lettura mensile filtra sempre per `collaboratoreId` e intervallo del mese, poi aggrega per giorno.
+5. La lettura mensile filtra sempre per `collaboratoreId` e intervallo del mese (`orderBy: data asc, createdAt asc`), poi aggrega per giorno: numero righe, ore totali e, per ciascun cliente con attività quel giorno, ragione sociale e ore cumulate su tutte le sue offerte, in ordine di prima apparizione. La cella del calendario mostra fino a due etichette cliente con le ore, oltre le quali compare un indicatore "+N" con i clienti rimanenti; il codice offerta non è più mostrato nella cella.
 6. Il riepilogo somma ore, converte con 8 ore/giorno, include nell'imponibile solo ore fatturabili e aggiunge i rimborsi validi.
 7. Non esiste uno stato lifecycle persistito della riga. Gli esiti del calcolo rimborso non sono transizioni.
 

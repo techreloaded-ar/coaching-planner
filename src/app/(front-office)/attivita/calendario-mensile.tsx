@@ -285,18 +285,25 @@ export default function CalendarioMensile({
                         {sintesi[key].oreTotali.toFixed(1)} h
                       </span>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {sintesi[key].codici.slice(0, 2).map((codice) => (
+                    <div className="flex min-w-0 flex-wrap gap-1">
+                      {sintesi[key].clienti.slice(0, 2).map((cliente) => (
                         <span
-                          key={codice}
-                          className="rounded-md border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                          key={cliente.clienteId}
+                          data-testid="etichetta-cliente"
+                          className="max-w-full truncate rounded-md border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
                         >
-                          {codice}
+                          {cliente.ragioneSociale}{" "}
+                          <span className="tabular-nums">
+                            {cliente.ore.toFixed(1)} h
+                          </span>
                         </span>
                       ))}
-                      {sintesi[key].codici.length > 2 && (
-                        <span className="px-0.5 py-0.5 text-[10px] font-bold text-rose-800 dark:text-rose-300">
-                          +{sintesi[key].codici.length - 2}
+                      {sintesi[key].clienti.length > 2 && (
+                        <span
+                          data-testid="indicatore-altri-clienti"
+                          className="px-0.5 py-0.5 text-[10px] font-bold text-rose-800 dark:text-rose-300"
+                        >
+                          +{sintesi[key].clienti.length - 2}
                         </span>
                       )}
                     </div>
