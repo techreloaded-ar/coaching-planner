@@ -39,6 +39,7 @@
 * [Plan for US-037](backlog/plans/US-037.md) - Implementation plan and executable tasks for US-037. _State: generated._
 * [Plan for US-038](backlog/plans/US-038.md) - Implementation plan and executable tasks for US-038. _State: generated._
 * [Plan for US-039](backlog/plans/US-039.md) - Implementation plan and executable tasks for US-039. _State: generated._
+* [Plan for US-040](backlog/plans/US-040.md) - Implementation plan and executable tasks for US-040. _State: generated._
 * [US-001: Scaffold dell'applicazione Next.js e ambiente di sviluppo](backlog/specs/US-001.md) - Delivery specification US-001. _State: generated._
 * [US-002: Database PostgreSQL con Prisma, migrazioni e seed](backlog/specs/US-002.md) - Delivery specification US-002. _State: generated._
 * [US-003: Suite di test e pipeline di integrazione continua](backlog/specs/US-003.md) - Delivery specification US-003. _State: generated._
@@ -96,12 +97,12 @@
 * [Collaboratori](domains/collaboratori.md) - Profili professionali dei collaboratori, tariffa e abilitazione operativa. _State: reviewed._
 * [Fatturazione clienti](domains/fatturazione-clienti.md) - Proiezione amministrativa mensile degli importi da fatturare ai clienti. _State: reviewed._
 * [Identità, sessioni e accesso](domains/identita-accesso.md) - Censimento utenti, accesso Google, sessione JWT, ruoli, policy di rotta e segregazione dei dati. _State: reviewed._
-* [Offerte](domains/offerte.md) - Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento. _State: reviewed._
+* [Offerte](domains/offerte.md) - Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento. _State: stale._
 * [Politiche di rimborso trasferta](domains/politiche-rimborso.md) - Configurazione globale delle fasce chilometriche e calcolo del rimborso trasferta. _State: reviewed._
 
 ## Engineering
 
-* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: reviewed._
+* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: stale._
 
 ## Operations
 

@@ -21,8 +21,9 @@ See `tests/e2e/README.md` for the full e2e testing contract.
 
 ## Archetipo Review rules
 
-When running `/archetipo-review`, the review must include a CI status check:
+When running `/archetipo-review`, the review must include a **static CI impact assessment**. Do NOT contact GitHub, fetch workflow runs, or execute the pipeline — the goal is to predict, by reading, whether CI would break if the changes were approved:
 
-- verify that the latest CI run on the relevant branch/PR is green before approving the spec;
-- if CI is red or still running, the review must either block approval or wait for CI to pass;
-- document the CI result (link to the run, status) in the review notes.
+- read `.github/workflows/ci.yml` and walk through its steps (install, prisma migrate/seed, lint, unit tests, build, e2e) against the diff under review;
+- for each step, reason about whether the changes could make it fail — e.g. new dependencies not added to `package.json`, schema changes without a migration, seed data assumptions broken, lint rules violated (including the e2e anti-flakiness guardrail), type errors that would fail the build, or e2e tests relying on mutated seed entities;
+- if any step is judged likely to fail, block approval and report which step and why in the rework feedback;
+- document the assessment in the review notes: verdict (would pass / would fail / uncertain) plus a one-line rationale per step considered at risk.
