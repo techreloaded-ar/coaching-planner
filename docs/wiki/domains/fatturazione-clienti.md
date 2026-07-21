@@ -2,7 +2,7 @@
 type: domain
 title: Fatturazione clienti
 description: Proiezione amministrativa mensile degli importi da fatturare ai clienti
-status: generated
+status: reviewed
 classification: candidate
 sources:
     - path: src/lib/report.ts
@@ -17,6 +17,10 @@ sources:
       role: verification
     - path: tests/e2e/report-fatturazione-clienti.spec.ts
       role: verification
+review:
+    content_hash: sha256:66ac8f75541003ccba3017afd97bcfb1eb6ebb947f369d079bcca541104253a7
+    evidence_revision: 748954aeba137b973f082bfa1d04963eaf46083c
+    reviewed_at: "2026-07-21T07:43:18Z"
 ---
 # Fatturazione clienti
 

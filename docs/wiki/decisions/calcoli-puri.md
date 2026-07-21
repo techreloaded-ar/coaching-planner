@@ -19,8 +19,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:4d9a909dc2f03a0d5d51d3e302423fb4e31f61e263d4342a66c2455a1f8bd71a
-    evidence_revision: c7040852fffe26742e09689568666762e3d4ed82
-    reviewed_at: "2026-07-21T06:12:34Z"
+    evidence_revision: 748954aeba137b973f082bfa1d04963eaf46083c
+    reviewed_at: "2026-07-21T07:43:18Z"
 ---
 # Calcoli di dominio in funzioni pure
 
