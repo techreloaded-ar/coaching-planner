@@ -75,7 +75,7 @@ test.describe("Gestione utenti", () => {
 		).toBeVisible();
 	});
 
-	test("censisce un utente attivo e la sua email viene riconosciuta all'accesso", async ({
+	test("censisce un amministratore attivo e la sua email viene riconosciuta all'accesso", async ({
 		page,
 		browser,
 		factory,
@@ -94,9 +94,14 @@ test.describe("Gestione utenti", () => {
 		await page.getByLabel(/^Nome\b/).fill(nome);
 		await page.getByLabel(/^Email di accesso\b/).fill(email);
 		await page
-			.getByLabel(/^Ruolo\b/)
-			.selectOption({ label: "Collaboratore" });
-		await page.getByRole("button", { name: "Salva", exact: true }).click();
+			.getByRole("radio", { name: /^Amministratore\b/ })
+			.check({ force: true });
+		await expect(
+			page.getByRole("radio", { name: /^Amministratore\b/ }),
+		).toBeChecked();
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
 
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
 		await expect(page.getByRole("status")).toContainText(
@@ -107,6 +112,9 @@ test.describe("Gestione utenti", () => {
 		await expect(riga).toHaveCount(1);
 		await expect(riga.getByText(nome, { exact: true })).toBeVisible();
 		await expect(riga.getByText(email, { exact: true })).toBeVisible();
+		await expect(
+			riga.getByText("Amministratore", { exact: true }),
+		).toBeVisible();
 		await expect(riga.getByText("Attivo", { exact: true })).toBeVisible();
 
 		const contestoAccesso = await browser.newContext();
@@ -139,10 +147,12 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByLabel(/^Email di accesso\b/)
 			.fill(utenteEsistente.email);
+		await expect(
+			page.getByRole("radio", { name: /^Collaboratore\b/ }),
+		).toBeChecked();
 		await page
-			.getByLabel(/^Ruolo\b/)
-			.selectOption({ label: "Collaboratore" });
-		await page.getByRole("button", { name: "Salva", exact: true }).click();
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
 
 		await expect(
 			page.getByText("Esiste già un utente con questa email", { exact: true }),
@@ -179,10 +189,16 @@ test.describe("Gestione utenti", () => {
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
+		await expect(page.locator('input[name="ruolo"]')).toHaveCount(0);
+		await expect(
+			page.getByText("Collaboratore", { exact: true }),
+		).toBeVisible();
 
 		await page.getByLabel(/^Nome\b/).fill(nuovoNome);
 		await page.getByLabel(/^Email di accesso\b/).fill(nuovaEmail);
-		await page.getByRole("button", { name: "Salva", exact: true }).click();
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
 
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 		await expect(page.getByRole("status")).toContainText(

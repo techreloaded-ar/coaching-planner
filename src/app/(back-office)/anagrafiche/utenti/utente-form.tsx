@@ -20,6 +20,13 @@ const ETICHETTE_RUOLO: Record<RuoloAmmesso, string> = {
   COLLABORATORE: "Collaboratore",
 };
 
+const DESCRIZIONI_RUOLO: Record<RuoloAmmesso, string> = {
+  AMMINISTRATORE:
+    "Accede alla console e governa clienti, offerte e utenti.",
+  COLLABORATORE:
+    "Accede al front office per registrare le proprie attività.",
+};
+
 interface UtenteFormProps {
   utente?: {
     id: string;
@@ -181,35 +188,76 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                 </p>
               </div>
             ) : (
-              <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-1.5 max-[640px]:col-span-1">
-                <label
-                  htmlFor="ruolo"
-                  className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
-                >
+              <fieldset
+                role="radiogroup"
+                aria-invalid={!!stato.errori.ruolo}
+                aria-describedby={stato.errori.ruolo ? "errore-ruolo" : undefined}
+                className="col-span-2 mb-[18px] min-w-0 max-[640px]:col-span-1"
+              >
+                <legend className="mb-1.5 text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400">
                   Ruolo <span className="font-bold text-red-600 dark:text-red-400">*</span>
-                </label>
-                <select
-                  id="ruolo"
-                  name="ruolo"
-                  defaultValue="COLLABORATORE"
-                  aria-invalid={!!stato.errori.ruolo}
-                  aria-describedby={stato.errori.ruolo ? "errore-ruolo" : undefined}
-                  className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition dark:bg-zinc-900 dark:text-zinc-100 ${
-                    stato.errori.ruolo
-                      ? "border-red-600 shadow-[0_0_0_3px_rgb(239_68_68_/_0.08)]"
-                      : "border-zinc-200 focus:border-indigo-300 focus:shadow-[0_0_0_3px_rgb(99_102_241_/_0.12)] dark:border-zinc-700 dark:focus:border-indigo-500/50"
-                  }`}
-                >
-                  {RUOLI_AMMESSI.map((ruolo) => (
-                    <option key={ruolo} value={ruolo}>
-                      {ETICHETTE_RUOLO[ruolo]}
-                    </option>
-                  ))}
-                </select>
+                </legend>
+                <div className="grid grid-cols-2 gap-3 max-[640px]:grid-cols-1">
+                  {RUOLI_AMMESSI.map((ruolo) => {
+                    const etichettaId = `ruolo-${ruolo.toLowerCase()}-etichetta`;
+                    const descrizioneId = `ruolo-${ruolo.toLowerCase()}-descrizione`;
+
+                    return (
+                      <label key={ruolo} className="relative cursor-pointer">
+                        <input
+                          type="radio"
+                          name="ruolo"
+                          value={ruolo}
+                          defaultChecked={ruolo === "COLLABORATORE"}
+                          aria-labelledby={etichettaId}
+                          aria-describedby={descrizioneId}
+                          className="peer sr-only"
+                        />
+                        <span
+                          className={`flex min-h-[72px] items-start gap-[11px] rounded-xl border-[1.5px] bg-white px-[15px] py-3.5 pr-10 transition hover:border-indigo-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:shadow-[0_0_0_3px_rgb(99_102_241_/_0.1)] peer-checked:[&_.ruolo-check]:opacity-100 peer-checked:[&_.ruolo-icona]:border-indigo-500 peer-checked:[&_.ruolo-icona]:bg-indigo-500 peer-checked:[&_.ruolo-icona]:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-2 dark:bg-zinc-900 dark:hover:border-indigo-500/40 dark:peer-checked:border-indigo-500 dark:peer-checked:bg-indigo-500/10 dark:peer-checked:[&_.ruolo-icona]:border-indigo-500 dark:peer-checked:[&_.ruolo-icona]:bg-indigo-500 dark:peer-checked:[&_.ruolo-icona]:text-white dark:peer-focus-visible:ring-offset-zinc-900 ${
+                            stato.errori.ruolo
+                              ? "border-red-600"
+                              : "border-zinc-200 dark:border-zinc-700"
+                          }`}
+                        >
+                          <span className="ruolo-icona grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] border border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                            <IconaRuolo ruolo={ruolo} usaColoreCorrente />
+                          </span>
+                          <span className="min-w-0 leading-[1.3]">
+                            <span
+                              id={etichettaId}
+                              className="block text-[13.5px] font-bold text-zinc-800 dark:text-zinc-100"
+                            >
+                              {ETICHETTE_RUOLO[ruolo]}
+                            </span>
+                            <span
+                              id={descrizioneId}
+                              className="mt-0.5 block text-[12px] text-zinc-400 dark:text-zinc-500"
+                            >
+                              {DESCRIZIONI_RUOLO[ruolo]}
+                            </span>
+                          </span>
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            className="ruolo-check absolute right-[13px] top-3 h-4 w-4 text-indigo-600 opacity-0 transition-opacity dark:text-indigo-400"
+                            strokeWidth={2.4}
+                            aria-hidden="true"
+                          >
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
                 {stato.errori.ruolo && (
-                  <ErroreCampo id="errore-ruolo">{stato.errori.ruolo}</ErroreCampo>
+                  <div className="mt-1.5">
+                    <ErroreCampo id="errore-ruolo">{stato.errori.ruolo}</ErroreCampo>
+                  </div>
                 )}
-              </div>
+              </fieldset>
             )}
           </div>
         </div>
@@ -249,9 +297,19 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
               strokeWidth={2}
               aria-hidden="true"
             >
-              <path d="M20 6 9 17l-5-5" />
+              {inModifica ? (
+                <path d="M20 6 9 17l-5-5" />
+              ) : (
+                <path d="M12 5v14M5 12h14" />
+              )}
             </svg>
-            {inAttesa ? "Salvataggio…" : "Salva"}
+            {inAttesa
+              ? inModifica
+                ? "Salvataggio…"
+                : "Censimento…"
+              : inModifica
+                ? "Salva modifiche"
+                : "Censisci utente"}
           </button>
         </div>
       </form>
@@ -377,13 +435,19 @@ function SezioneForm({
   );
 }
 
-function IconaRuolo({ ruolo }: { ruolo: RuoloAmmesso }) {
+function IconaRuolo({
+  ruolo,
+  usaColoreCorrente = false,
+}: {
+  ruolo: RuoloAmmesso;
+  usaColoreCorrente?: boolean;
+}) {
   return ruolo === "AMMINISTRATORE" ? (
     <svg
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      className="h-4 w-4 text-indigo-600 dark:text-indigo-400"
+      className={`h-4 w-4 ${usaColoreCorrente ? "text-current" : "text-indigo-600 dark:text-indigo-400"}`}
       strokeWidth={2.2}
       aria-hidden="true"
     >
@@ -394,7 +458,7 @@ function IconaRuolo({ ruolo }: { ruolo: RuoloAmmesso }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      className="h-4 w-4 text-zinc-500 dark:text-zinc-400"
+      className={`h-4 w-4 ${usaColoreCorrente ? "text-current" : "text-zinc-500 dark:text-zinc-400"}`}
       strokeWidth={2.2}
       aria-hidden="true"
     >
