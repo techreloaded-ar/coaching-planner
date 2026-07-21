@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
 import type { Collaboratore } from "@/generated/prisma/client";
+import type { RigaAttivitaConContesto } from "@/lib/attivita";
 
 // ── API collaboratori (back office, solo amministratore) ─────────
 
@@ -51,5 +52,24 @@ export async function elencaCollaboratoriSelezionabili(): Promise<Collaboratore[
   return db.collaboratore.findMany({
     where: { attivo: true },
     orderBy: { cognome: "asc" },
+  });
+}
+
+/**
+ * Restituisce lo storico completo delle righe attività di un collaboratore,
+ * con offerta e cliente associati, ordinate per data crescente (a parità di
+ * data, per data di creazione crescente). Nessun filtro temporale: lo storico
+ * è completo, pronto per il raggruppamento mensile.
+ * Accesso riservato all'amministratore.
+ */
+export async function storicoAttivitaCollaboratore(
+  collaboratoreId: string,
+): Promise<RigaAttivitaConContesto[]> {
+  await richiediRuoloApi("AMMINISTRATORE");
+
+  return db.rigaAttivita.findMany({
+    where: { collaboratoreId },
+    include: { offerta: true, cliente: true },
+    orderBy: [{ data: "asc" }, { createdAt: "asc" }],
   });
 }

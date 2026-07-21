@@ -15,9 +15,14 @@ const mockUtente = vi.hoisted(() => ({
   update: vi.fn(),
 }));
 
+const mockRigaAttivita = vi.hoisted(() => ({
+  findMany: vi.fn(),
+}));
+
 const mockDb = vi.hoisted(() => ({
   collaboratore: mockCollaboratore,
   utente: mockUtente,
+  rigaAttivita: mockRigaAttivita,
   $transaction: vi.fn(),
 }));
 
@@ -85,6 +90,7 @@ import {
   elencaCollaboratori,
   elencaCollaboratoriSelezionabili,
   collaboratorePerId,
+  storicoAttivitaCollaboratore,
 } from "@/lib/collaboratori";
 import {
   creaCollaboratore,
@@ -254,6 +260,55 @@ describe("DAL collaboratori", () => {
         include: { utente: { select: { email: true } } },
       });
       expect(result).toBeNull();
+    });
+  });
+
+  // ── 10. storicoAttivitaCollaboratore ────────────────────────────
+
+  describe("storicoAttivitaCollaboratore", () => {
+    it("restituisce tutte le righe attività del collaboratore con cliente e offerta, ordinate per data", async () => {
+      const righe = [
+        {
+          id: "riga-1",
+          collaboratoreId: "collab-1",
+          data: new Date("2026-03-10"),
+          ore: 8,
+          fatturabile: true,
+          nota: "Sviluppo feature",
+          offerta: { codice: "OFF-1", descrizione: "Sviluppo" },
+          cliente: { ragioneSociale: "Acme S.r.l." },
+        },
+        {
+          id: "riga-2",
+          collaboratoreId: "collab-1",
+          data: new Date("2026-04-05"),
+          ore: 4,
+          fatturabile: false,
+          nota: null,
+          offerta: { codice: "OFF-1", descrizione: "Sviluppo" },
+          cliente: { ragioneSociale: "Acme S.r.l." },
+        },
+      ];
+      mockRigaAttivita.findMany.mockResolvedValue(righe);
+
+      const result = await storicoAttivitaCollaboratore("collab-1");
+
+      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRigaAttivita.findMany).toHaveBeenCalledWith({
+        where: { collaboratoreId: "collab-1" },
+        include: { offerta: true, cliente: true },
+        orderBy: [{ data: "asc" }, { createdAt: "asc" }],
+      });
+      expect(result).toEqual(righe);
+    });
+
+    it("propaga l'errore di richiediRuoloApi senza toccare il database", async () => {
+      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+
+      await expect(storicoAttivitaCollaboratore("collab-1")).rejects.toThrow(
+        "Accesso negato",
+      );
+      expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
     });
   });
 

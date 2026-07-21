@@ -868,3 +868,67 @@ export function calcolaAvanzamentoOfferte(
     },
   };
 }
+
+/** Riga elementare di attività per lo storico (serializzabile, senza dipendenze Prisma) */
+export interface RigaStoricoAttivita {
+  /** Data dell'attività in formato YYYY-MM-DD */
+  data: string;
+  clienteRagioneSociale: string;
+  offertaCodice: string;
+  offertaDescrizione: string;
+  ore: number;
+  fatturabile: boolean;
+  nota: string | null;
+}
+
+/** Gruppo mensile dello storico attività, con totali di ore e giornate equivalenti */
+export interface MeseStoricoAttivita {
+  /** Token del mese in formato YYYY-MM */
+  token: string;
+  righe: RigaStoricoAttivita[];
+  oreTotali: number;
+  giornateTotali: number;
+}
+
+/**
+ * Raggruppa le righe attività per mese solare (token YYYY-MM derivato dai
+ * primi 7 caratteri di `data`), calcolando per ciascun mese i totali di ore
+ * e di giornate equivalenti (ore / ORE_PER_GIORNATA), arrotondati a 2 decimali.
+ *
+ * Le righe dentro ogni gruppo preservano l'ordine di input (l'ordinamento per
+ * data crescente è responsabilità del chiamante). I gruppi sono restituiti in
+ * ordine di token decrescente (mese più recente prima).
+ *
+ * Funzione pura: nessuna dipendenza da framework o Prisma.
+ *
+ * @param righe - Righe elementari di attività da raggruppare
+ * @returns Gruppi mensili ordinati per token decrescente; array vuoto se input vuoto
+ */
+export function raggruppaAttivitaPerMese(
+  righe: RigaStoricoAttivita[],
+): MeseStoricoAttivita[] {
+  const gruppi = new Map<string, RigaStoricoAttivita[]>();
+
+  for (const riga of righe) {
+    const token = riga.data.slice(0, 7);
+    const gruppo = gruppi.get(token);
+    if (gruppo) {
+      gruppo.push(riga);
+    } else {
+      gruppi.set(token, [riga]);
+    }
+  }
+
+  return Array.from(gruppi.entries())
+    .map(([token, righeMese]) => {
+      const oreTotali = righeMese.reduce((somma, riga) => somma + riga.ore, 0);
+      return {
+        token,
+        righe: righeMese,
+        oreTotali: Math.round(oreTotali * 100) / 100,
+        giornateTotali:
+          Math.round((oreTotali / ORE_PER_GIORNATA) * 100) / 100,
+      };
+    })
+    .sort((a, b) => b.token.localeCompare(a.token));
+}

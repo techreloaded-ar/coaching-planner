@@ -2,7 +2,7 @@
 type: operations
 title: Deploy — Vercel + PostgreSQL SiteGround
 description: Guida operativa per portare Coaching Planner in staging e produzione su Vercel, con database PostgreSQL ospitato su SiteGround
-status: draft
+status: generated
 ---
 
 # Deploy — Vercel + PostgreSQL SiteGround

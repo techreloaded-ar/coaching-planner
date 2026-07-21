@@ -10,6 +10,7 @@ sources:
   symbol: creaCollaboratore, aggiornaCollaboratore, cambiaStatoCollaboratore
 - path: src/lib/collaboratori.ts
   role: application-query
+  symbol: collaboratorePerId, storicoAttivitaCollaboratore
 - path: src/domain/anagrafiche/valida-collaboratore.ts
   role: domain-validation
   symbol: validaCollaboratore
@@ -20,6 +21,8 @@ sources:
   role: owned-data
   symbol: Collaboratore
 - path: tests/e2e/anagrafica-collaboratori.spec.ts
+  role: verification
+- path: tests/e2e/dettaglio-collaboratore.spec.ts
   role: verification
 ---
 # Collaboratori
@@ -45,7 +48,7 @@ Possiede `Collaboratore`, la tariffa e il booleano `attivo`. Coordina la creazio
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
-`creaCollaboratore` crea in transazione il profilo e un nuovo utente di ruolo `COLLABORATORE`, oppure riusa un utente amministratore privo di profilo. `aggiornaCollaboratore` sincronizza profilo e nome/email utente. Il DAL espone `ATTIVO`, `ASSENTE` o `DISATTIVATO` come esiti derivati dalla presenza del profilo e dal booleano.
+`creaCollaboratore` crea in transazione il profilo e un nuovo utente di ruolo `COLLABORATORE`, oppure riusa un utente amministratore privo di profilo. `aggiornaCollaboratore` sincronizza profilo e nome/email utente. Il DAL espone `ATTIVO`, `ASSENTE` o `DISATTIVATO` come esiti derivati dalla presenza del profilo e dal booleano. `storicoAttivitaCollaboratore` in `src/lib/collaboratori.ts` è una query riservata all'amministratore che restituisce tutte le righe attività del collaboratore con cliente e offerta inclusi, ordinate per data crescente, senza filtro temporale.
 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
@@ -55,18 +58,19 @@ Possiede `Collaboratore`, la tariffa e il booleano `attivo`. Coordina la creazio
 3. `aggiornaCollaboratore` nello stesso file aggiorna profilo e utente nella stessa transazione senza cambiare `attivo` o `ruolo`.
 4. `cambiaStatoCollaboratore` nello stesso file e l'adapter `cambia-stato-action.ts` assegnano direttamente il booleano richiesto a `Collaboratore.attivo` senza guardia sul valore sorgente; non è provata una macchina a stati più ricca.
 5. `risolviProfiloCollaboratoreCorrente` in `src/lib/dal.ts` produce `ASSENTE`, `DISATTIVATO` o `ATTIVO` mediante branch di lettura: sono esiti derivati, non stati persistiti separatamente.
+6. La pagina di dettaglio `src/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx`, riservata all'amministratore e raggiungibile dal click sulla riga dell'elenco, mostra il profilo e lo storico completo delle attività: legge le righe via `storicoAttivitaCollaboratore` e le raggruppa per mese solare decrescente con la funzione pura `raggruppaAttivitaPerMese` di `src/domain/consuntivi/index.ts`, esponendo per ogni mese totale ore e giornate equivalenti (8 ore/giornata); senza righe mostra un messaggio esplicito di assenza di attività.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
 
 | Aspetto | Percorsi |
 |---|---|
-| UI e comandi | `src/app/(back-office)/anagrafiche/collaboratori/**` |
-| Query | `src/lib/collaboratori.ts` |
+| UI e comandi | `src/app/(back-office)/anagrafiche/collaboratori/**`, inclusa la pagina di dettaglio `[id]/page.tsx` con storico attività mensile |
+| Query | `src/lib/collaboratori.ts` (inclusa `storicoAttivitaCollaboratore`) |
 | Validazione | `src/domain/anagrafiche/valida-collaboratore.ts` |
 | Dati | `prisma/schema.prisma` (`Collaboratore`, relazione con `Utente`) |
 | Policy consumatrici | `src/lib/dal.ts`, `src/lib/attivita.ts` |
-| Test | `tests/unit/collaboratori-dal-actions.test.ts`, `tests/unit/valida-collaboratore.test.ts`, `tests/e2e/anagrafica-collaboratori.spec.ts` |
+| Test | `tests/unit/collaboratori-dal-actions.test.ts`, `tests/unit/valida-collaboratore.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/e2e/anagrafica-collaboratori.spec.ts`, `tests/e2e/dettaglio-collaboratore.spec.ts` |
 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti

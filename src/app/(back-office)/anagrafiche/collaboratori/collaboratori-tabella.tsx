@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type { CollaboratoreConUtente } from "@/lib/collaboratori";
 import { cambiaStatoAction } from "./cambia-stato-action";
 
@@ -23,6 +24,7 @@ interface CollaboratoriTabellaProps {
 // ── Componente ─────────────────────────────────────────────────
 
 export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTabellaProps) {
+  const router = useRouter();
   const [filtro, setFiltro] = useState("");
   const [collaboratoreDaDisattivare, setCollaboratoreDaDisattivare] = useState<CollaboratoreVista | null>(null);
   const [modaleAperta, setModaleAperta] = useState(false);
@@ -110,7 +112,8 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
                 return (
                   <tr
                     key={collaboratore.id}
-                    className={`transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 ${
+                    onClick={() => router.push(`/anagrafiche/collaboratori/${collaboratore.id}`)}
+                    className={`cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 ${
                       !collaboratore.attivo ? "text-zinc-400 dark:text-zinc-500" : ""
                     }`}
                   >
@@ -126,15 +129,16 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
                           {iniziali}
                         </div>
                         <div className="min-w-0 leading-[1.3]">
-                          <b
-                            className={`block overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold ${
+                          <a
+                            href={`/anagrafiche/collaboratori/${collaboratore.id}`}
+                            className={`block overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold no-underline ${
                               collaboratore.attivo
                                 ? "text-zinc-800 dark:text-zinc-100"
                                 : "text-zinc-400 line-through decoration-zinc-300/50 dark:text-zinc-500 dark:decoration-zinc-600/50"
                             }`}
                           >
                             {nomeCompleto}
-                          </b>
+                          </a>
                           <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
                             {collaboratore.attivo ? "Accesso Google attivo" : "Accesso revocato"}
                           </span>
@@ -166,7 +170,10 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
+                    <td
+                      className="px-4 py-[13px] text-right align-middle whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <a
                         href={`/anagrafiche/collaboratori/${collaboratore.id}/modifica`}
                         className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"

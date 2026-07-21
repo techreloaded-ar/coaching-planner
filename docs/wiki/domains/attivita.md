@@ -2,7 +2,7 @@
 type: domain
 title: Attività e consuntivazione
 description: Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/lib/actions/righe-attivita.ts
@@ -23,10 +23,6 @@ sources:
       role: verification
     - path: tests/e2e/calendario-segregazione.spec.ts
       role: verification
-review:
-    content_hash: sha256:0be683ccfbab7be7fb2594d73aad07715d32bec8b999b40bbcd01ee03a4492bb
-    evidence_revision: 748954aeba137b973f082bfa1d04963eaf46083c
-    reviewed_at: "2026-07-21T07:43:18Z"
 ---
 # Attività e consuntivazione
 
@@ -60,6 +56,7 @@ Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni perso
 5. La lettura mensile filtra sempre per `collaboratoreId` e intervallo del mese (`orderBy: data asc, createdAt asc`), poi aggrega per giorno: numero righe, ore totali e, per ciascun cliente con attività quel giorno, ragione sociale e ore cumulate su tutte le sue offerte, in ordine di prima apparizione. La cella del calendario mostra fino a due etichette cliente con le ore, oltre le quali compare un indicatore "+N" con i clienti rimanenti; il codice offerta non è più mostrato nella cella.
 6. Il riepilogo somma ore, converte con 8 ore/giorno, include nell'imponibile solo ore fatturabili e aggiunge i rimborsi validi.
 7. Non esiste uno stato lifecycle persistito della riga. Gli esiti del calcolo rimborso non sono transizioni.
+8. Un lettore amministrativo downstream, `storicoAttivitaCollaboratore` in `src/lib/collaboratori.ts`, legge tutte le righe di un collaboratore con cliente e offerta (`orderBy: data asc, createdAt asc`) per la pagina di dettaglio del collaboratore, che le raggruppa per mese solare decrescente con la funzione pura `raggruppaAttivitaPerMese` di `src/domain/consuntivi/index.ts` (totali ore e giornate equivalenti a 8 ore/giornata).
 
 <!-- archetipo:wiki section=code -->
 ## Codice
@@ -72,7 +69,7 @@ Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni perso
 | Calendario | `src/domain/calendario/index.ts` |
 | Regole e riepilogo | `src/domain/consuntivi/index.ts` |
 | Dati | `prisma/schema.prisma` (`RigaAttivita`) |
-| Test | `tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/unit/calendario.test.ts`, `tests/unit/riepilogo-mese.test.ts`, `tests/e2e/calendario-segregazione.spec.ts` e scenari attività dedicati |
+| Test | `tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/unit/calendario.test.ts`, `tests/unit/riepilogo-mese.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/e2e/calendario-segregazione.spec.ts` e scenari attività dedicati |
 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
