@@ -2,7 +2,7 @@
 type: domain
 title: Politiche di rimborso trasferta
 description: Configurazione globale delle fasce chilometriche e calcolo del rimborso trasferta
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/app/(back-office)/anagrafiche/scaglioni/actions.ts
@@ -20,10 +20,6 @@ sources:
       symbol: ScaglioneKm
     - path: tests/unit/rimborso-trasferta.test.ts
       role: verification
-review:
-    content_hash: sha256:4eadb5883e3d5115caa791f620cd36debb13011f704c965bb22d1d4210436f92
-    evidence_revision: 748954aeba137b973f082bfa1d04963eaf46083c
-    reviewed_at: "2026-07-21T07:43:18Z"
 ---
 # Politiche di rimborso trasferta
 

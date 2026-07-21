@@ -1,0 +1,405 @@
+"use client";
+
+import Link from "next/link";
+import { useActionState } from "react";
+import {
+  RUOLI_AMMESSI,
+} from "@/domain/anagrafiche/valida-utente";
+import {
+  aggiornaUtente,
+  creaUtente,
+  type StatoAction,
+} from "./actions";
+
+const statoIniziale: StatoAction = { errori: {} };
+
+type RuoloAmmesso = (typeof RUOLI_AMMESSI)[number];
+
+const ETICHETTE_RUOLO: Record<RuoloAmmesso, string> = {
+  AMMINISTRATORE: "Amministratore",
+  COLLABORATORE: "Collaboratore",
+};
+
+interface UtenteFormProps {
+  utente?: {
+    id: string;
+    nome: string;
+    email: string;
+    ruolo: RuoloAmmesso;
+    attivo: boolean;
+    collaboratore: { attivo: boolean } | null;
+  };
+}
+
+export default function UtenteForm({ utente }: UtenteFormProps) {
+  const inModifica = !!utente;
+  const [stato, azione, inAttesa] = useActionState<StatoAction, FormData>(
+    inModifica ? aggiornaUtente : creaUtente,
+    statoIniziale
+  );
+  const haErrori = Object.keys(stato.errori).length > 0;
+
+  return (
+    <div>
+      <Link
+        href="/anagrafiche/utenti"
+        className="mb-[14px] inline-flex items-center gap-[6px] text-[13px] font-semibold text-zinc-600 no-underline transition hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          className="h-[15px] w-[15px]"
+          strokeWidth={2.2}
+          aria-hidden="true"
+        >
+          <path d="M19 12H5m6 6-6-6 6-6" />
+        </svg>
+        Torna all&apos;elenco utenti
+      </Link>
+
+      <div className="mb-[22px]">
+        <div className="mb-1 text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
+          Amministrazione · Utenti
+        </div>
+        <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+          {inModifica ? "Modifica utente" : "Nuovo utente"}
+        </h1>
+        <p className="mt-[6px] max-w-[580px] text-[13px] leading-[1.55] text-zinc-400 dark:text-zinc-500">
+          {inModifica
+            ? "Aggiorna nome ed email dell'utente. Il ruolo è mostrato in sola lettura e non si modifica da qui."
+            : "Indica nome, email e ruolo. L'utente comparirà in elenco con stato attivo e la sua email sarà riconosciuta dal flusso di accesso."}
+        </p>
+      </div>
+
+      <form
+        noValidate
+        action={azione}
+        className="max-w-[720px] overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+      >
+        {inModifica && <input type="hidden" name="id" value={utente.id} />}
+
+        <div className="px-7 pb-2 pt-[26px]">
+          {haErrori && (
+            <div
+              role="alert"
+              className="mb-5 flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-[13px] font-semibold leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                className="mt-[1.5px] h-4 w-4 shrink-0"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path d="M12 9v4.5M12 17h.01" />
+                <path d="M10.3 3.9 2.6 17.4A2 2 0 0 0 4.3 20.4h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+              </svg>
+              <span>
+                {stato.errori._form ??
+                  "Controlla i campi evidenziati: alcuni dati obbligatori mancano o non sono validi."}
+              </span>
+            </div>
+          )}
+
+          {inModifica && utente.collaboratore && (
+            <div className="mb-5 flex items-start gap-[11px] rounded-[11px] border border-amber-200 bg-amber-50 p-[13px] text-[13px] leading-[1.5] text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                className="mt-0.5 h-4 w-4 shrink-0"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v5M12 7.6h.01" />
+              </svg>
+              <span>
+                Questo utente ha un profilo collaboratore. Il profilo operativo
+                (nome anagrafico, tariffa e attivazione) si gestisce
+                dall&apos;anagrafica collaboratori.
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-x-5 gap-y-0 max-[640px]:grid-cols-1">
+            <SezioneForm icona="anagrafica">Anagrafica</SezioneForm>
+            <Campo
+              label="Nome"
+              name="nome"
+              placeholder="Es. Laura Bianchi"
+              autoComplete="name"
+              defaultValue={utente?.nome ?? ""}
+              errore={stato.errori.nome}
+              hint="Nome e cognome in un unico campo, come mostrato in elenco."
+            />
+
+            <SezioneForm icona="accesso">Accesso</SezioneForm>
+            <Campo
+              label="Email di accesso"
+              name="email"
+              type="email"
+              placeholder="nome.cognome@coachingpartners.it"
+              autoComplete="email"
+              defaultValue={utente?.email ?? ""}
+              errore={stato.errori.email}
+              hint="È la credenziale con cui l'utente viene riconosciuto dal flusso di accesso."
+            />
+
+            <SezioneForm icona="ruolo">Ruolo</SezioneForm>
+            {inModifica ? (
+              <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-1.5 max-[640px]:col-span-1">
+                <p
+                  id="ruolo-label"
+                  className="m-0 text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
+                >
+                  Ruolo
+                </p>
+                <div
+                  aria-labelledby="ruolo-label"
+                  aria-readonly="true"
+                  className="flex items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-100 px-[13px] py-[10px] text-[14px] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                >
+                  <IconaRuolo ruolo={utente.ruolo} />
+                  <span className="font-semibold">{ETICHETTE_RUOLO[utente.ruolo]}</span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    className="ml-auto h-[14px] w-[14px] text-zinc-400 dark:text-zinc-500"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <rect x="5" y="11" width="14" height="9" rx="2" />
+                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                  </svg>
+                </div>
+                <p className="m-0 text-[12px] text-zinc-400 dark:text-zinc-500">
+                  Il cambio ruolo non è disponibile da qui.
+                </p>
+              </div>
+            ) : (
+              <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-1.5 max-[640px]:col-span-1">
+                <label
+                  htmlFor="ruolo"
+                  className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
+                >
+                  Ruolo <span className="font-bold text-red-600 dark:text-red-400">*</span>
+                </label>
+                <select
+                  id="ruolo"
+                  name="ruolo"
+                  defaultValue="COLLABORATORE"
+                  aria-invalid={!!stato.errori.ruolo}
+                  aria-describedby={stato.errori.ruolo ? "errore-ruolo" : undefined}
+                  className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition dark:bg-zinc-900 dark:text-zinc-100 ${
+                    stato.errori.ruolo
+                      ? "border-red-600 shadow-[0_0_0_3px_rgb(239_68_68_/_0.08)]"
+                      : "border-zinc-200 focus:border-indigo-300 focus:shadow-[0_0_0_3px_rgb(99_102_241_/_0.12)] dark:border-zinc-700 dark:focus:border-indigo-500/50"
+                  }`}
+                >
+                  {RUOLI_AMMESSI.map((ruolo) => (
+                    <option key={ruolo} value={ruolo}>
+                      {ETICHETTE_RUOLO[ruolo]}
+                    </option>
+                  ))}
+                </select>
+                {stato.errori.ruolo && (
+                  <ErroreCampo id="errore-ruolo">{stato.errori.ruolo}</ErroreCampo>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-[10px] border-t border-zinc-200 bg-zinc-50 px-7 py-4 dark:border-zinc-700 dark:bg-zinc-800/50 max-[520px]:flex-wrap">
+          {inModifica && (
+            <span className="mr-auto flex items-center gap-2 text-[12.5px] text-zinc-400 dark:text-zinc-500 max-[520px]:w-full">
+              Stato attuale:
+              <span
+                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-[9px] py-[3px] text-[11.5px] font-semibold ${
+                  utente.attivo
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-400"
+                    : "border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+                }`}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+                {utente.attivo ? "Attivo" : "Invalidato"}
+              </span>
+            </span>
+          )}
+          <Link
+            href="/anagrafiche/utenti"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm no-underline transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          >
+            Annulla
+          </Link>
+          <button
+            type="submit"
+            disabled={inAttesa}
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              className="h-4 w-4"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            {inAttesa ? "Salvataggio…" : "Salva"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+interface CampoProps {
+  label: string;
+  name: string;
+  placeholder: string;
+  type?: string;
+  autoComplete?: string;
+  defaultValue: string;
+  errore?: string;
+  hint?: string;
+}
+
+function Campo({
+  label,
+  name,
+  placeholder,
+  type = "text",
+  autoComplete,
+  defaultValue,
+  errore,
+  hint,
+}: CampoProps) {
+  const erroreId = `errore-${name}`;
+  const hintId = `hint-${name}`;
+
+  return (
+    <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-1.5 max-[640px]:col-span-1">
+      <label
+        htmlFor={name}
+        className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
+      >
+        {label} <span className="font-bold text-red-600 dark:text-red-400">*</span>
+      </label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        autoComplete={autoComplete}
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+        aria-invalid={!!errore}
+        aria-describedby={errore ? erroreId : hint ? hintId : undefined}
+        className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition placeholder:text-zinc-400 dark:bg-zinc-900 dark:text-zinc-100 ${
+          errore
+            ? "border-red-600 shadow-[0_0_0_3px_rgb(239_68_68_/_0.08)]"
+            : "border-zinc-200 focus:border-indigo-300 focus:shadow-[0_0_0_3px_rgb(99_102_241_/_0.12)] dark:border-zinc-700 dark:focus:border-indigo-500/50"
+        }`}
+      />
+      {errore ? (
+        <ErroreCampo id={erroreId}>{errore}</ErroreCampo>
+      ) : (
+        hint && (
+          <p id={hintId} className="m-0 text-[12px] text-zinc-400 dark:text-zinc-500">
+            {hint}
+          </p>
+        )
+      )}
+    </div>
+  );
+}
+
+function ErroreCampo({ id, children }: { id: string; children: string }) {
+  return (
+    <p
+      id={id}
+      className="m-0 inline-flex items-center gap-[5px] text-[12px] font-semibold text-red-600 dark:text-red-400"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        className="h-[13px] w-[13px] shrink-0"
+        strokeWidth={2.2}
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 8v5M12 16h.01" />
+      </svg>
+      {children}
+    </p>
+  );
+}
+
+function SezioneForm({
+  icona,
+  children,
+}: {
+  icona: "anagrafica" | "accesso" | "ruolo";
+  children: string;
+}) {
+  return (
+    <div className="col-span-2 mt-2 flex items-center gap-2 border-b border-zinc-100 pb-3 pt-1.5 text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 first:mt-0 dark:border-zinc-800 dark:text-zinc-500 max-[640px]:col-span-1">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        className="h-[14px] w-[14px] text-indigo-500"
+        strokeWidth={2}
+        aria-hidden="true"
+      >
+        {icona === "anagrafica" ? (
+          <>
+            <circle cx="12" cy="8" r="3.6" />
+            <path d="M5 20a7 7 0 0 1 14 0" />
+          </>
+        ) : icona === "accesso" ? (
+          <>
+            <rect x="4" y="10.5" width="16" height="10" rx="2" />
+            <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+          </>
+        ) : (
+          <path d="M12 3l7 2.5v5.2c0 4.3-2.9 7.4-7 8.8-4.1-1.4-7-4.5-7-8.8V5.5L12 3Z" />
+        )}
+      </svg>
+      {children}
+    </div>
+  );
+}
+
+function IconaRuolo({ ruolo }: { ruolo: RuoloAmmesso }) {
+  return ruolo === "AMMINISTRATORE" ? (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      className="h-4 w-4 text-indigo-600 dark:text-indigo-400"
+      strokeWidth={2.2}
+      aria-hidden="true"
+    >
+      <path d="M12 3l7 2.5v5.2c0 4.3-2.9 7.4-7 8.8-4.1-1.4-7-4.5-7-8.8V5.5L12 3Z" />
+    </svg>
+  ) : (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      className="h-4 w-4 text-zinc-500 dark:text-zinc-400"
+      strokeWidth={2.2}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8.5" r="3.3" />
+      <path d="M6 19a6 6 0 0 1 12 0" />
+    </svg>
+  );
+}

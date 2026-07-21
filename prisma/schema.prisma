@@ -24,6 +24,7 @@ model Utente {
   emailVerified DateTime?
   image         String?
   ruolo         Ruolo    @default(COLLABORATORE)
+  attivo        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

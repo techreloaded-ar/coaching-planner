@@ -2,7 +2,7 @@
 type: code-map
 title: Mappa del codice
 description: Matrice fisica fra capability candidate, codice, dati e test
-status: reviewed
+status: generated
 sources:
     - path: package.json
       role: manifest
@@ -50,6 +50,7 @@ coverage:
         - domains/collaboratori
         - domains/offerte
         - domains/politiche-rimborso
+        - domains/identita-accesso
     - kind: capability
       path: attivita
       status: mapped
@@ -85,10 +86,11 @@ coverage:
       status: mapped
       pages:
         - domains/politiche-rimborso
-review:
-    content_hash: sha256:1a1bf1dde3b2737e42ca545980311bc331abdb6dbc9dcad13acc6162a7c2a785
-    evidence_revision: 748954aeba137b973f082bfa1d04963eaf46083c
-    reviewed_at: "2026-07-21T07:43:18Z"
+    - kind: capability
+      path: utenti
+      status: mapped
+      pages:
+        - domains/identita-accesso
 ---
 # Mappa del codice
 
@@ -103,7 +105,7 @@ review:
 | Politiche rimborso | `src/app/(back-office)/anagrafiche/scaglioni/**` | `src/lib/scaglioni.ts`, validatore, `calcolaRimborsoTrasferta` | `ScaglioneKm` | Attività, Fatturazione | unit scaglioni/rimborso; E2E scaglioni/trasferta | `domains.politiche-rimborso` |
 | Attività | `src/app/(front-office)/attivita/**` | `src/lib/actions/righe-attivita.ts`, `src/lib/attivita.ts`, calendario e consuntivi | `RigaAttivita` | tutte le anagrafiche operative | unit attività/action/calendario/riepilogo; E2E attività | `domains.attivita` |
 | Fatturazione clienti | `src/app/(back-office)/report/fatturazione-clienti/**` | `src/lib/report.ts`, `calcolaReportFatturazioneClienti` | sola lettura di attività/offerte/clienti/scaglioni | nessuna esterna | unit ed E2E report fatturazione | `domains.fatturazione-clienti` |
-| Identità e accesso | route Google, root, proxy | OAuth adapter, session token/cookie, policy e DAL | `Utente`, `Account`; tabella `Session` non usata dal flusso | Google OIDC | unit session/proxy/DAL; E2E auth/ruoli | `domains.identita-accesso` |
+| Identità e accesso | route Google, root, proxy e `src/app/(back-office)/anagrafiche/utenti/**` | OAuth adapter, session token/cookie, policy e DAL; `src/lib/utenti.ts`, action e validatore utente | `Utente` con stato `attivo`, `Account`; tabella `Session` non usata dal flusso | Google OIDC, Collaboratori come writer coordinato di `Utente` | unit session/proxy/DAL, validazione/action utenti; E2E auth/ruoli e gestione utenti | `domains.identita-accesso` |
 
 <!-- archetipo:wiki section=shared -->
 ## Codice condiviso
@@ -127,7 +129,7 @@ review:
 <!-- archetipo:wiki section=coverage -->
 ## Copertura dell'ispezione
 
-Tutti i sei boundary e gli otto candidati restituiti da `archetipo wiki inspect` sono rappresentati nel frontmatter `coverage`. Root, Prisma e script sono mappati. `docs`, `src` e `tests` restano `partial` perché l'inspector li dichiara campionati; per i candidati sono stati comunque letti tutti i file riportati e le dipendenze/test pertinenti. `anagrafiche` è distribuito su quattro pagine; il dettaglio di avanzamento appartiene ora a Offerte, mentre `report` mappa solo Fatturazione clienti.
+Tutti i sei boundary e i nove candidati restituiti da `archetipo wiki inspect` sono rappresentati nel frontmatter `coverage`. Root, Prisma e script sono mappati. `docs`, `src` e `tests` restano `partial` perché l'inspector li dichiara campionati; per i candidati sono stati comunque letti tutti i file riportati e le dipendenze/test pertinenti. `anagrafiche` è distribuito sulle pagine di Clienti, Collaboratori, Offerte, Politiche rimborso e Identità/accesso; il candidato `utenti`, introdotto dalla UI `/anagrafiche/utenti`, è assegnato a Identità/accesso. Il dettaglio di avanzamento appartiene a Offerte, mentre `report` mappa solo Fatturazione clienti.
 
 ## Concetti correlati
 
