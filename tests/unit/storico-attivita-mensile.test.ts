@@ -5,8 +5,12 @@ import {
   type RigaStoricoAttivita,
 } from "@/domain/consuntivi";
 
+let contatoreId = 0;
+
 function riga(parziale: Partial<RigaStoricoAttivita> = {}): RigaStoricoAttivita {
+  contatoreId += 1;
   return {
+    id: `r${contatoreId}`,
     data: "2026-03-10",
     clienteRagioneSociale: "Cliente Uno",
     offertaCodice: "OFF-001",

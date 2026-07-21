@@ -871,6 +871,8 @@ export function calcolaAvanzamentoOfferte(
 
 /** Riga elementare di attività per lo storico (serializzabile, senza dipendenze Prisma) */
 export interface RigaStoricoAttivita {
+  /** Identificativo univoco della riga attività (id del record Prisma), usato come chiave stabile in UI */
+  id: string;
   /** Data dell'attività in formato YYYY-MM-DD */
   data: string;
   clienteRagioneSociale: string;

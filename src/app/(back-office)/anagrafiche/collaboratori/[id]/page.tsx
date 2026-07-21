@@ -49,6 +49,7 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
   const storico = await storicoAttivitaCollaboratore(id);
 
   const righe: RigaStoricoAttivita[] = storico.map((riga) => ({
+    id: riga.id,
     data: formattaDataISO(riga.data),
     clienteRagioneSociale: riga.cliente.ragioneSociale,
     offertaCodice: riga.offerta.codice,
@@ -180,7 +181,7 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
                     const { giorno, settimana } = etichettaGiorno(riga.data);
                     return (
                       <tr
-                        key={`${riga.data}-${riga.offertaCodice}-${riga.clienteRagioneSociale}-${riga.ore}`}
+                        key={riga.id}
                         className="border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800/60 dark:hover:bg-zinc-800/50"
                       >
                         <td className="px-4 py-[13px] align-middle whitespace-nowrap">

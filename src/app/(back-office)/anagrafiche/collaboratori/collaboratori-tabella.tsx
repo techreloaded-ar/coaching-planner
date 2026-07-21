@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CollaboratoreConUtente } from "@/lib/collaboratori";
 import { cambiaStatoAction } from "./cambia-stato-action";
@@ -129,8 +130,9 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
                           {iniziali}
                         </div>
                         <div className="min-w-0 leading-[1.3]">
-                          <a
+                          <Link
                             href={`/anagrafiche/collaboratori/${collaboratore.id}`}
+                            onClick={(e) => e.stopPropagation()}
                             className={`block overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold no-underline ${
                               collaboratore.attivo
                                 ? "text-zinc-800 dark:text-zinc-100"
@@ -138,7 +140,7 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
                             }`}
                           >
                             {nomeCompleto}
-                          </a>
+                          </Link>
                           <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
                             {collaboratore.attivo ? "Accesso Google attivo" : "Accesso revocato"}
                           </span>
