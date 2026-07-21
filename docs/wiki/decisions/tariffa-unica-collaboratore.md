@@ -20,8 +20,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:a6b5ee38c45859ea9be515dbab7f8dac4d31b0290c605e91aa87db485fe69de3
-    evidence_revision: a6643836528ddb3d9cdc13e1c9c39eca2c09262d
-    reviewed_at: "2026-07-21T09:35:02Z"
+    evidence_revision: 46dd4fb946ccda154bf8f442d9cde387bef88435
+    reviewed_at: "2026-07-21T12:26:44Z"
 ---
 # Tariffa unica per collaboratore
 

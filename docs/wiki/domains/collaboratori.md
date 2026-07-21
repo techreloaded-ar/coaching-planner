@@ -26,8 +26,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:42eabd31bf5e69f391ca5533dcf31e22b001a393cd7c457a52cddd048861ba99
-    evidence_revision: a6643836528ddb3d9cdc13e1c9c39eca2c09262d
-    reviewed_at: "2026-07-21T09:35:02Z"
+    evidence_revision: 46dd4fb946ccda154bf8f442d9cde387bef88435
+    reviewed_at: "2026-07-21T12:26:44Z"
 ---
 # Collaboratori
 
