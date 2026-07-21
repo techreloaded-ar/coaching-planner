@@ -32,7 +32,7 @@ export interface RisultatoReportFatturazione extends ReportFatturazioneClienti {
 interface RigaAttivitaConContesto extends RigaAttivita {
   offerta: Offerta;
   cliente: Cliente;
-  collaboratore: Collaboratore;
+  collaboratore: Pick<Collaboratore, "nome" | "cognome">;
 }
 
 // ── API pubblica ────────────────────────────────────────────────
@@ -85,7 +85,7 @@ export async function reportFatturazioneClientiMese(
     include: {
       offerta: true,
       cliente: true,
-      collaboratore: true,
+      collaboratore: { select: { nome: true, cognome: true } },
     },
     orderBy: { data: "asc" },
   });

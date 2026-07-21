@@ -530,7 +530,15 @@ export function calcolaReportFatturazioneClienti(
 
     // Allocazione a resto massimo (largest remainder) in centesimi interi
     // sull'elenco piatto di tutte le voci collaboratore del cliente, ancorata
-    // all'imponibile manodopera visualizzato del cliente.
+    // all'imponibile manodopera visualizzato del cliente (AC-2, requisito a
+    // livello cliente). La riconciliazione è quindi sul totale cliente, non
+    // per singola offerta: la somma dei collaboratori di un'offerta può
+    // discostarsi di massimo 1 centesimo dall'imponibile di quell'offerta,
+    // ma il dettaglio UI non mostra un subtotale per offerta, quindi lo
+    // scostamento non è osservabile. Ancorare anche per offerta romperebbe
+    // la garanzia a livello cliente se la somma degli imponibili di offerta
+    // arrotondati non coincide col totale cliente arrotondato (arrotondamenti
+    // indipendenti preesistenti, fuori perimetro di questa allocazione).
     const vociPiatte = perOfferta.flatMap((voce) => voce.perCollaboratore);
     if (vociPiatte.length > 0) {
       const targetCents = Math.round(

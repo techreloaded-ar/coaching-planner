@@ -207,7 +207,7 @@ export default function ReportFatturazioneClienti({
                     }
                     aria-expanded={espanso}
                     aria-controls={`dettaglio-collaboratori-${cliente.clienteId}`}
-                    aria-label={`Dettaglio collaboratori ${cliente.clienteRagioneSociale}`}
+                    aria-label={`Dettaglio collaboratori ${cliente.clienteRagioneSociale}, da fatturare ${formattaEuro(cliente.importoTotale)}`}
                     className="flex w-full flex-wrap items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50 px-5 py-4 text-left cursor-pointer dark:border-zinc-700 dark:bg-zinc-800/60"
                   >
                     <div className="flex min-w-0 items-center gap-[13px]">
@@ -300,15 +300,17 @@ export default function ReportFatturazioneClienti({
                     </table>
                   </div>
 
-                  {/* Dettaglio collaboratori per offerta (espandibile) */}
-                  {espanso && (
-                    <section
-                      role="region"
-                      id={`dettaglio-collaboratori-${cliente.clienteId}`}
-                      aria-label={`Dettaglio collaboratori ${cliente.clienteRagioneSociale}`}
-                      className="border-b border-zinc-200 bg-zinc-50/60 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/40"
-                    >
-                      <div className="mb-3 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
+                  {/* Dettaglio collaboratori per offerta (espandibile). Il nodo resta
+                      sempre nel DOM, nascosto con `hidden` quando collassato, così
+                      aria-controls del bottone punta sempre a un id esistente. */}
+                  <section
+                    role="region"
+                    id={`dettaglio-collaboratori-${cliente.clienteId}`}
+                    aria-label={`Dettaglio collaboratori ${cliente.clienteRagioneSociale}`}
+                    hidden={!espanso}
+                    className="border-b border-zinc-200 bg-zinc-50/60 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/40"
+                  >
+                    <div className="mb-3 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
                         <svg
                           viewBox="0 0 24 24"
                           fill="none"
@@ -332,7 +334,10 @@ export default function ReportFatturazioneClienti({
                       ) : (
                         <div className="flex flex-col gap-5">
                           {cliente.perOfferta.map((offerta) => (
-                            <div key={offerta.offertaId}>
+                            <div
+                              key={offerta.offertaId}
+                              data-testid={`dettaglio-offerta-${offerta.offertaCodice}`}
+                            >
                               <div className="mb-2 flex min-w-0 flex-col gap-1">
                                 <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
                                   {offerta.offertaCodice}
@@ -392,8 +397,7 @@ export default function ReportFatturazioneClienti({
                           ))}
                         </div>
                       )}
-                    </section>
-                  )}
+                  </section>
 
                   {/* Rimborsi trasferta ribaltati */}
                   <div className="flex items-center justify-between gap-[14px] border-b border-zinc-100 bg-white px-5 py-3 dark:border-zinc-700/50 dark:bg-zinc-800">

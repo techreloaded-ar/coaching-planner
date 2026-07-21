@@ -461,6 +461,55 @@ describe("calcolaReportFatturazioneClienti", () => {
       expect(sommaVoci).toBe(Number(cliente.imponibileManodopera));
     });
 
+    it("quadra con più di due collaboratori, distribuendo più centesimi residui in ordine di frazione", () => {
+      // Ogni riga vale 0.9375 (raw): naive toFixed(2) per riga arrotonderebbe
+      // ognuna a "0.94" (3 × 0.94 = 2.82), sforando l'imponibile visualizzato
+      // "2.81". L'allocazione a resto massimo deve invece assegnare i soli 2
+      // centesimi residui alle prime due voci in ordine (a parità di frazione,
+      // stesso ordine di Ada/Bruno/Carla) e lasciare la terza al valore
+      // inferiore, quadrando esattamente.
+      const righe = [
+        riga({
+          tariffaOffertaGiornaliera: 250,
+          collaboratoreId: "ada",
+          collaboratoreNome: "Ada",
+          ore: 0.03,
+        }),
+        riga({
+          tariffaOffertaGiornaliera: 250,
+          collaboratoreId: "bruno",
+          collaboratoreNome: "Bruno",
+          ore: 0.03,
+        }),
+        riga({
+          tariffaOffertaGiornaliera: 250,
+          collaboratoreId: "carla",
+          collaboratoreNome: "Carla",
+          ore: 0.03,
+        }),
+      ];
+
+      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+
+      const cliente = report.perCliente[0];
+      expect(cliente.imponibileManodopera).toBe("2.81");
+
+      const offerta = cliente.perOfferta[0];
+      const perNome = new Map(
+        offerta.perCollaboratore.map((v) => [v.collaboratoreNome, v.imponibile]),
+      );
+      expect(perNome.get("Ada")).toBe("0.94");
+      expect(perNome.get("Bruno")).toBe("0.94");
+      expect(perNome.get("Carla")).toBe("0.93");
+
+      const sommaVoci = offerta.perCollaboratore.reduce(
+        (somma, v) => somma + Number(v.imponibile),
+        0,
+      );
+      expect(sommaVoci).toBeCloseTo(2.81, 10);
+      expect(sommaVoci).not.toBeCloseTo(2.82, 10);
+    });
+
     it("include un cliente con soli rimborsi come voce priva di offerte", () => {
       const righe = [
         riga({ ore: 8, fatturabile: false, trasfertaKm: 150 }),

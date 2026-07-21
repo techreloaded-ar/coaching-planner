@@ -145,18 +145,15 @@ async function espandiDettaglio(
   }).toPass();
 }
 
-/** Localizza il gruppo-offerta nella region isolandolo tramite il codice offerta. */
+/** Localizza il gruppo-offerta nella region tramite il suo data-testid stabile. */
 function gruppoOffertaNelDettaglio(
   page: Page,
   ragioneSociale: string,
   codiceOfferta: string,
-  codiceAltraOfferta: string,
 ) {
-  return regionDettaglio(page, ragioneSociale)
-    .locator("div")
-    .filter({ has: page.getByRole("table") })
-    .filter({ has: page.getByText(codiceOfferta, { exact: true }) })
-    .filter({ hasNot: page.getByText(codiceAltraOfferta, { exact: true }) });
+  return regionDettaglio(page, ragioneSociale).getByTestId(
+    `dettaglio-offerta-${codiceOfferta}`,
+  );
 }
 
 function dataRiservataReport(codiceSpec: string, giorno: number): Date {
@@ -271,7 +268,6 @@ test.describe("Report fatturazione clienti", () => {
       page,
       cliente.ragioneSociale,
       offerta1.codice,
-      offerta2.codice,
     );
     const righeOfferta1 = gruppoOfferta1.getByRole("row");
     await expect(righeOfferta1).toHaveCount(3);
@@ -299,7 +295,6 @@ test.describe("Report fatturazione clienti", () => {
       page,
       cliente.ragioneSociale,
       offerta2.codice,
-      offerta1.codice,
     );
     await expect(gruppoOfferta2.getByRole("row")).toHaveCount(2);
     const celleGrace2 = gruppoOfferta2
