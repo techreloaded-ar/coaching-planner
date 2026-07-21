@@ -10,32 +10,20 @@ status: generated
 Guida per attivare due ambienti (staging e produzione) per Coaching Planner:
 hosting applicativo su **Vercel**, database **PostgreSQL su SiteGround** (già disponibile).
 
-## 0. Prerequisito bloccante da verificare: TLS su SiteGround Postgres
+## 0. TLS su SiteGround Postgres: rischio accettato
 
 Lo spike `docs/siteground-postgres-connectivity-spike.md` (US-004, giugno 2026) aveva rilevato che
-il server SiteGround **rifiutava esplicitamente le connessioni SSL/TLS** (`sslmode=require` falliva
-con `The server does not support SSL connections`), mentre la connessione in chiaro funzionava.
+il server SiteGround **rifiuta le connessioni SSL/TLS** (`sslmode=require` fallisce con
+`The server does not support SSL connections`), mentre la connessione in chiaro funziona.
 
-L'app gestisce dati personali e finanziari (anagrafiche collaboratori/clienti, tariffe, partite IVA):
-farli transitare senza cifratura tra Vercel e SiteGround su Internet pubblico è un rischio GDPR non
-banale. **Prima di procedere con il deploy in produzione, riverifica lo stato attuale** con lo script
-già presente nel repo:
+**Decisione (2026-07-21)**: il committente accetta consapevolmente il rischio e procede con
+connessioni non cifrate (`sslmode=disable`) sia in staging sia in produzione. Motivazioni, rischi
+residui e follow-up sono documentati nella decision record
+`docs/wiki/decisions/connessione-db-senza-tls.md`.
 
-```bash
-npx tsx scripts/siteground-connectivity-check.ts "postgresql://<utente>:<password>@<host>:5432/<db>?sslmode=require"
-```
-
-Due esiti possibili:
-
-- **TLS ora supportato** → usa `sslmode=require` (o `verify-full` se SiteGround fornisce una CA) in
-  tutte le `DATABASE_URL` di staging e produzione. Procedi pure con il resto della guida.
-- **TLS ancora non supportato** → prima di andare in produzione, apri un ticket con il supporto
-  SiteGround chiedendo l'attivazione di TLS sul piano Postgres. Nel frattempo puoi comunque allestire
-  **staging** (rischio minore, dati non reali) seguendo questa guida con `sslmode=disable`, ma tieni
-  la produzione in stand-by finché il punto non è chiuso o hai accettato consapevolmente il rischio.
-
-Il resto della guida usa `<SSLMODE>` come placeholder nelle stringhe di connessione: sostituiscilo con
-`require` o `disable` in base all'esito sopra.
+Resta aperto il follow-up di richiedere a SiteGround l'abilitazione del TLS: quando disponibile,
+basterà passare a `sslmode=require` nelle `DATABASE_URL` su Vercel (verificabile in ogni momento
+con `npx tsx scripts/siteground-connectivity-check.ts "<connection-string>?sslmode=require"`).
 
 ## 1. Panoramica architetturale
 
@@ -66,7 +54,7 @@ Due ambienti Vercel nello stesso progetto:
    Postgres quando più funzioni serverless si connettono in parallelo:
 
    ```
-   postgresql://<utente>:<password>@<host>:5432/coaching_planner?sslmode=<SSLMODE>&connection_limit=5
+   postgresql://<utente>:<password>@<host>:5432/coaching_planner?sslmode=disable&connection_limit=5
    ```
 
    Il valore `5` è un punto di partenza prudente: adegualo al `max_connections` effettivo del tuo
@@ -166,7 +154,7 @@ non deve mai essere `true` in staging o produzione.
 
 ## 8. Checklist go-live
 
-- [ ] Stato TLS su SiteGround Postgres verificato (punto 0) e `sslmode` coerente nelle connection string
+- [x] Decisione TLS presa: rischio accettato, `sslmode=disable` (vedi punto 0 e decision record)
 - [ ] Due database SiteGround creati, con utenti/credenziali dedicati
 - [ ] Redirect URI Google aggiornati per staging e produzione
 - [ ] Variabili d'ambiente impostate su Vercel, scoped correttamente per Production/Preview(`staging`)
@@ -181,7 +169,9 @@ non deve mai essere `true` in staging o produzione.
   `Utente` già censito manualmente; per permettere l'accesso automatico a chiunque abbia un account
   Google di quel dominio serve modificare `callback/route.ts` (verifica claim `hd` o suffisso email
   + creazione automatica dell'`Utente` con ruolo di default). Da specificare a parte, come indicato.
-- **Migrazione a TLS** sul database SiteGround, se allo stato attuale risultasse ancora non supportato.
+- **Migrazione a TLS** sul database SiteGround: richiedere al supporto l'abilitazione del TLS e,
+  quando disponibile, passare a `sslmode=require` nelle `DATABASE_URL` su Vercel (rischio accettato
+  nel frattempo — vedi `docs/wiki/decisions/connessione-db-senza-tls.md`).
 
 ## Concetti correlati
 

@@ -81,7 +81,7 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-029: Attivazione del proxy di autenticazione con rinnovo sliding della sessione](specs/US-029.md) — **DONE**, 3 point(s).
 - [US-030: Front office per tutti gli utenti e back office raggiungibile dagli admin](specs/US-030.md) — **DONE**, 5 point(s).
 - [US-039: Elenco e censimento degli utenti nella console di amministrazione](specs/US-039.md) — **DONE**, 3 point(s).
-- [US-040: Invalidazione, riattivazione e cambio ruolo degli utenti con auto-protezione](specs/US-040.md) — **REVIEW**, 3 point(s).
+- [US-040: Invalidazione, riattivazione e cambio ruolo degli utenti con auto-protezione](specs/US-040.md) — **DONE**, 3 point(s).
 
 ## EP-002: Anagrafiche e Configurazione
 
