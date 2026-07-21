@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { RisultatoReportFatturazione } from "@/lib/report";
 import type { VoceClienteReport } from "@/domain/consuntivi";
@@ -59,6 +60,8 @@ export default function ReportFatturazioneClienti({
 }: ReportFatturazioneClientiProps) {
   const clienti = report.perCliente;
   const vuoto = clienti.length === 0;
+
+  const [clienteEspansoId, setClienteEspansoId] = useState<string | null>(null);
 
   const giornateTotali = clienti.reduce(
     (totale, cliente) => totale + giornateCliente(cliente),
@@ -187,14 +190,26 @@ export default function ReportFatturazioneClienti({
           <div className="flex flex-col gap-[18px]">
             {clienti.map((cliente) => {
               const giornate = giornateCliente(cliente);
+              const espanso = clienteEspansoId === cliente.clienteId;
               return (
                 <div
                   key={cliente.clienteId}
                   data-testid={`report-client-${cliente.clienteId}`}
                   className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
                 >
-                  {/* Intestazione: ragione sociale + importo totale */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/60">
+                  {/* Intestazione: ragione sociale + importo totale (espande il dettaglio collaboratori) */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setClienteEspansoId(
+                        espanso ? null : cliente.clienteId,
+                      )
+                    }
+                    aria-expanded={espanso}
+                    aria-controls={`dettaglio-collaboratori-${cliente.clienteId}`}
+                    aria-label={`Dettaglio collaboratori ${cliente.clienteRagioneSociale}`}
+                    className="flex w-full flex-wrap items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50 px-5 py-4 text-left cursor-pointer dark:border-zinc-700 dark:bg-zinc-800/60"
+                  >
                     <div className="flex min-w-0 items-center gap-[13px]">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-indigo-50 text-[14px] font-extrabold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
                         {inizialiCliente(cliente.clienteRagioneSociale)}
@@ -209,15 +224,29 @@ export default function ReportFatturazioneClienti({
                         </span>
                       </div>
                     </div>
-                    <div className="text-right leading-[1.15]">
-                      <span className="mb-[3px] block text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
-                        Da fatturare
-                      </span>
-                      <span className="text-[26px] font-extrabold -tracking-[0.03em] tabular-nums text-indigo-600 dark:text-indigo-400">
-                        {formattaEuro(cliente.importoTotale)}
-                      </span>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right leading-[1.15]">
+                        <span className="mb-[3px] block text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
+                          Da fatturare
+                        </span>
+                        <span className="text-[26px] font-extrabold -tracking-[0.03em] tabular-nums text-indigo-600 dark:text-indigo-400">
+                          {formattaEuro(cliente.importoTotale)}
+                        </span>
+                      </div>
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2.2}
+                        className={`h-5 w-5 shrink-0 text-zinc-400 transition-transform dark:text-zinc-500 ${
+                          espanso ? "rotate-180" : ""
+                        }`}
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
                     </div>
-                  </div>
+                  </button>
 
                   {/* Tabella dettaglio per offerta */}
                   <div className="overflow-x-auto">
@@ -270,6 +299,101 @@ export default function ReportFatturazioneClienti({
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Dettaglio collaboratori per offerta (espandibile) */}
+                  {espanso && (
+                    <section
+                      role="region"
+                      id={`dettaglio-collaboratori-${cliente.clienteId}`}
+                      aria-label={`Dettaglio collaboratori ${cliente.clienteRagioneSociale}`}
+                      className="border-b border-zinc-200 bg-zinc-50/60 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/40"
+                    >
+                      <div className="mb-3 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          className="h-[14px] w-[14px]"
+                        >
+                          <circle cx="9" cy="8" r="3.2" />
+                          <path d="M2.8 19a6.2 6.2 0 0 1 12.4 0" />
+                          <circle cx="17.2" cy="9.2" r="2.4" />
+                          <path d="M15.5 14.3a5 5 0 0 1 5.7 4.7" />
+                        </svg>
+                        Ore erogate per collaboratore
+                      </div>
+
+                      {cliente.perOfferta.length === 0 ? (
+                        <p className="text-[13px] italic text-zinc-400 dark:text-zinc-500">
+                          Nessuna ora fatturabile nel mese: il cliente compare
+                          solo per rimborsi trasferta
+                        </p>
+                      ) : (
+                        <div className="flex flex-col gap-5">
+                          {cliente.perOfferta.map((offerta) => (
+                            <div key={offerta.offertaId}>
+                              <div className="mb-2 flex min-w-0 flex-col gap-1">
+                                <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                  {offerta.offertaCodice}
+                                </span>
+                                <span className="text-[12.5px] leading-snug text-zinc-500 dark:text-zinc-400">
+                                  {offerta.offertaDescrizione}
+                                </span>
+                              </div>
+                              <div className="overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-zinc-700">
+                                <table className="w-full border-collapse text-[13px]">
+                                  <thead>
+                                    <tr>
+                                      <th className="border-b border-zinc-200 bg-white px-4 py-2 text-left text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                                        Collaboratore
+                                      </th>
+                                      <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                                        Ore fatturabili
+                                      </th>
+                                      <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                                        Giornate
+                                      </th>
+                                      <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                                        Imponibile
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {offerta.perCollaboratore.map((voce) => (
+                                      <tr
+                                        key={voce.collaboratoreId}
+                                        className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                                      >
+                                        <td className="border-b border-zinc-100 px-4 py-[9px] align-middle font-semibold text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
+                                          {voce.collaboratoreNome}
+                                        </td>
+                                        <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-500 dark:border-zinc-700/50 dark:text-zinc-400">
+                                          {formattatoreGiornate.format(
+                                            voce.oreFatturabili,
+                                          )}{" "}
+                                          h
+                                        </td>
+                                        <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
+                                          {formattatoreGiornate.format(
+                                            voce.giornateFatturabili,
+                                          )}{" "}
+                                          gg
+                                        </td>
+                                        <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
+                                          {formattaEuro(voce.imponibile)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  )}
 
                   {/* Rimborsi trasferta ribaltati */}
                   <div className="flex items-center justify-between gap-[14px] border-b border-zinc-100 bg-white px-5 py-3 dark:border-zinc-700/50 dark:bg-zinc-800">

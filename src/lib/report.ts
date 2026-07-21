@@ -7,6 +7,7 @@ import type {
   RigaAttivita,
   Offerta,
   Cliente,
+  Collaboratore,
   ScaglioneKm,
 } from "@/generated/prisma/client";
 import {
@@ -31,6 +32,7 @@ export interface RisultatoReportFatturazione extends ReportFatturazioneClienti {
 interface RigaAttivitaConContesto extends RigaAttivita {
   offerta: Offerta;
   cliente: Cliente;
+  collaboratore: Collaboratore;
 }
 
 // ── API pubblica ────────────────────────────────────────────────
@@ -83,6 +85,7 @@ export async function reportFatturazioneClientiMese(
     include: {
       offerta: true,
       cliente: true,
+      collaboratore: true,
     },
     orderBy: { data: "asc" },
   });
@@ -104,6 +107,8 @@ export async function reportFatturazioneClientiMese(
       offertaCodice: riga.offerta.codice,
       offertaDescrizione: riga.offerta.descrizione,
       tariffaOffertaGiornaliera: riga.offerta.tariffaGiornaliera.toString(),
+      collaboratoreId: riga.collaboratoreId,
+      collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
       fatturabile: riga.fatturabile,
       trasfertaKm: riga.trasfertaKm,

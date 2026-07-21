@@ -18,6 +18,8 @@ function riga(
     offertaCodice: "OFF-001",
     offertaDescrizione: "Sviluppo software",
     tariffaOffertaGiornaliera: 500,
+    collaboratoreId: "collaboratore-1",
+    collaboratoreNome: "Mario Rossi",
     ore: 8,
     fatturabile: true,
     trasfertaKm: null,
@@ -273,5 +275,204 @@ describe("calcolaReportFatturazioneClienti", () => {
     );
 
     expect(report.perCliente[0].perOfferta[0].imponibile).toBe("500.00");
+  });
+
+  // ── Dettaglio per collaboratore ────────────────────────────
+
+  describe("Dettaglio per collaboratore", () => {
+    it("raggruppa i collaboratori per offerta con ore, giornate e imponibile", () => {
+      const righe = [
+        riga({
+          offertaId: "offerta-1",
+          offertaCodice: "OFF-001",
+          tariffaOffertaGiornaliera: 500,
+          collaboratoreId: "ada",
+          collaboratoreNome: "Ada",
+          ore: 8,
+        }),
+        riga({
+          offertaId: "offerta-1",
+          offertaCodice: "OFF-001",
+          tariffaOffertaGiornaliera: 500,
+          collaboratoreId: "bruno",
+          collaboratoreNome: "Bruno",
+          ore: 4,
+        }),
+        riga({
+          offertaId: "offerta-2",
+          offertaCodice: "OFF-002",
+          tariffaOffertaGiornaliera: 400,
+          collaboratoreId: "bruno",
+          collaboratoreNome: "Bruno",
+          ore: 8,
+        }),
+      ];
+
+      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+
+      const cliente = report.perCliente[0];
+      const off1 = cliente.perOfferta.find((o) => o.offertaCodice === "OFF-001")!;
+      const off2 = cliente.perOfferta.find((o) => o.offertaCodice === "OFF-002")!;
+
+      expect(off1.perCollaboratore).toEqual([
+        {
+          collaboratoreId: "ada",
+          collaboratoreNome: "Ada",
+          oreFatturabili: 8,
+          giornateFatturabili: 1,
+          imponibile: "500.00",
+        },
+        {
+          collaboratoreId: "bruno",
+          collaboratoreNome: "Bruno",
+          oreFatturabili: 4,
+          giornateFatturabili: 0.5,
+          imponibile: "250.00",
+        },
+      ]);
+
+      expect(off2.perCollaboratore).toEqual([
+        {
+          collaboratoreId: "bruno",
+          collaboratoreNome: "Bruno",
+          oreFatturabili: 8,
+          giornateFatturabili: 1,
+          imponibile: "400.00",
+        },
+      ]);
+    });
+
+    it("somma in un'unica voce le righe dello stesso collaboratore sulla stessa offerta", () => {
+      const righe = [
+        riga({ collaboratoreId: "ada", collaboratoreNome: "Ada", ore: 8 }),
+        riga({ collaboratoreId: "ada", collaboratoreNome: "Ada", ore: 4 }),
+      ];
+
+      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+
+      const perCollaboratore =
+        report.perCliente[0].perOfferta[0].perCollaboratore;
+      expect(perCollaboratore).toHaveLength(1);
+      expect(perCollaboratore[0]).toMatchObject({
+        collaboratoreId: "ada",
+        oreFatturabili: 12,
+        giornateFatturabili: 1.5,
+      });
+    });
+
+    it("esclude dal dettaglio le ore non fatturabili di un collaboratore senza alterare gli imponibili", () => {
+      const righe = [
+        riga({ collaboratoreId: "ada", collaboratoreNome: "Ada", ore: 8, fatturabile: true }),
+        riga({ collaboratoreId: "bruno", collaboratoreNome: "Bruno", ore: 8, fatturabile: false }),
+      ];
+
+      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+
+      const offerta = report.perCliente[0].perOfferta[0];
+      expect(offerta.perCollaboratore).toHaveLength(1);
+      expect(offerta.perCollaboratore[0].collaboratoreId).toBe("ada");
+      expect(offerta.imponibile).toBe("500.00");
+      expect(report.perCliente[0].imponibileManodopera).toBe("500.00");
+    });
+
+    it("ordina le voci per ore decrescenti e, a parità di ore, per nome crescente", () => {
+      const righe = [
+        riga({ collaboratoreId: "carla", collaboratoreNome: "Carla", ore: 4 }),
+        riga({ collaboratoreId: "ada", collaboratoreNome: "Ada", ore: 8 }),
+        riga({ collaboratoreId: "bruno", collaboratoreNome: "Bruno", ore: 4 }),
+      ];
+
+      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+
+      const nomi = report.perCliente[0].perOfferta[0].perCollaboratore.map(
+        (v) => v.collaboratoreNome,
+      );
+      expect(nomi).toEqual(["Ada", "Bruno", "Carla"]);
+    });
+
+    it("quadra gli imponibili arrotondati distribuendo il resto senza sforare il totale", () => {
+      const righe = [
+        riga({
+          tariffaOffertaGiornaliera: 100,
+          collaboratoreId: "ada",
+          collaboratoreNome: "Ada",
+          ore: 0.01,
+        }),
+        riga({
+          tariffaOffertaGiornaliera: 100,
+          collaboratoreId: "bruno",
+          collaboratoreNome: "Bruno",
+          ore: 0.01,
+        }),
+      ];
+
+      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+
+      const offerta = report.perCliente[0].perOfferta[0];
+      expect(report.perCliente[0].imponibileManodopera).toBe("0.25");
+
+      const perNome = new Map(
+        offerta.perCollaboratore.map((v) => [v.collaboratoreNome, v.imponibile]),
+      );
+      expect(perNome.get("Ada")).toBe("0.13");
+      expect(perNome.get("Bruno")).toBe("0.12");
+
+      const sommaVoci = offerta.perCollaboratore.reduce(
+        (somma, v) => somma + Number(v.imponibile),
+        0,
+      );
+      expect(sommaVoci).toBeCloseTo(0.25, 10);
+    });
+
+    it("mantiene la somma delle voci esattamente uguale all'imponibile manodopera del cliente", () => {
+      const righe = [
+        riga({
+          offertaId: "offerta-1",
+          offertaCodice: "OFF-001",
+          tariffaOffertaGiornaliera: 500,
+          collaboratoreId: "ada",
+          collaboratoreNome: "Ada",
+          ore: 8,
+        }),
+        riga({
+          offertaId: "offerta-1",
+          offertaCodice: "OFF-001",
+          tariffaOffertaGiornaliera: 500,
+          collaboratoreId: "bruno",
+          collaboratoreNome: "Bruno",
+          ore: 4,
+        }),
+        riga({
+          offertaId: "offerta-2",
+          offertaCodice: "OFF-002",
+          tariffaOffertaGiornaliera: 400,
+          collaboratoreId: "bruno",
+          collaboratoreNome: "Bruno",
+          ore: 8,
+        }),
+      ];
+
+      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+
+      const cliente = report.perCliente[0];
+      const sommaVoci = cliente.perOfferta
+        .flatMap((o) => o.perCollaboratore)
+        .reduce((somma, v) => somma + Number(v.imponibile), 0);
+      expect(sommaVoci).toBe(Number(cliente.imponibileManodopera));
+    });
+
+    it("include un cliente con soli rimborsi come voce priva di offerte", () => {
+      const righe = [
+        riga({ ore: 8, fatturabile: false, trasfertaKm: 150 }),
+      ];
+
+      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+
+      expect(report.perCliente).toHaveLength(1);
+      const cliente = report.perCliente[0];
+      expect(cliente.perOfferta).toEqual([]);
+      expect(cliente.rimborsiTrasferta).toBe("85.00");
+      expect(cliente.imponibileManodopera).toBe("0.00");
+    });
   });
 });

@@ -2,7 +2,7 @@
 type: domain
 title: Fatturazione clienti
 description: Proiezione amministrativa mensile degli importi da fatturare ai clienti
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/lib/report.ts
@@ -17,22 +17,18 @@ sources:
       role: verification
     - path: tests/e2e/report-fatturazione-clienti.spec.ts
       role: verification
-review:
-    content_hash: sha256:1d5fb5ab4ada03c115bffd68b4c5a0e0900511a87607718be912599843956b4f
-    evidence_revision: c7040852fffe26742e09689568666762e3d4ed82
-    reviewed_at: "2026-07-21T06:12:34Z"
 ---
 # Fatturazione clienti
 
 <!-- archetipo:wiki section=purpose -->
 ## Scopo
 
-Fornisce all'amministratore una proiezione mensile per cliente e offerta degli importi da fatturare: imponibile di manodopera, rimborsi trasferta e totale. È una capability di lettura con decisioni di calcolo proprie, non un documento fiscale persistito.
+Fornisce all'amministratore una proiezione mensile per cliente e offerta degli importi da fatturare: imponibile di manodopera, rimborsi trasferta e totale. Per ogni offerta del cliente, un dettaglio opzionale espone anche la ripartizione per singolo collaboratore. È una capability di lettura con decisioni di calcolo proprie, non un documento fiscale persistito.
 
 <!-- archetipo:wiki section=language -->
 ## Linguaggio
 
-Mese, cliente, offerta, tariffa giornaliera dell'offerta, ore fatturabili, giornate fatturabili, imponibile manodopera, rimborso trasferta e importo totale.
+Mese, cliente, offerta, tariffa giornaliera dell'offerta, ore fatturabili, giornate fatturabili, imponibile manodopera, rimborso trasferta, importo totale e dettaglio per collaboratore (ore fatturabili, giornate equivalenti e imponibile allocato).
 
 <!-- archetipo:wiki section=ownership -->
 ## Ownership
@@ -42,17 +38,18 @@ Possiede il contratto e le regole della proiezione, ma nessun aggregate persisti
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
-`reportFatturazioneClientiMese(token)` richiede ruolo amministratore e restituisce un risultato serializzabile con `perCliente` e totali. L'input dominio `RigaReportFatturazione` isola il calcolo puro da Prisma. Un token mese non valido restituisce un report vuoto nel service; la pagina UI lo normalizza al mese corrente.
+`reportFatturazioneClientiMese(token)` richiede ruolo amministratore e restituisce un risultato serializzabile con `perCliente` e totali; ogni voce `perOfferta` include ora `perCollaboratore`, il dettaglio fatturabile per collaboratore su quell'offerta. L'input dominio `RigaReportFatturazione` isola il calcolo puro da Prisma. Un token mese non valido restituisce un report vuoto nel service; la pagina UI lo normalizza al mese corrente.
 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
 
-1. Il service filtra tutte le righe nel mese, senza filtro collaboratore, e carica offerta e cliente.
+1. Il service filtra tutte le righe nel mese, senza filtro collaboratore, e carica offerta, cliente e collaboratore.
 2. Mappa Decimal e relazioni in input serializzabili, carica gli scaglioni e invoca `calcolaReportFatturazioneClienti`.
-3. Solo le ore con `fatturabile = true` incrementano l'imponibile; le giornate sono ore/8 e usano la tariffa dell'offerta.
-4. Una trasferta con rimborso `OK` viene ribaltata al cliente anche su riga non fatturabile.
-5. Clienti senza imponibile e senza rimborsi sono omessi; risultati e totali sono formattati a due decimali.
-6. Non esiste stato né write del report: ogni richiesta ricostruisce la proiezione.
+3. Solo le ore con `fatturabile = true` incrementano l'imponibile e alimentano il dettaglio `perCollaboratore`; le giornate sono ore/8 e usano la tariffa dell'offerta.
+4. Per ogni offerta, le voci `perCollaboratore` sono ordinate per ore fatturabili decrescenti (pareggio per nome) e i loro imponibili sono allocati a resto massimo in centesimi interi, ancorati al valore visualizzato di `imponibileManodopera` del cliente: la somma delle stringhe coincide sempre esattamente col totale, senza scostamenti di arrotondamento.
+5. Una trasferta con rimborso `OK` viene ribaltata al cliente anche su riga non fatturabile; questi clienti "solo rimborsi" hanno `perOfferta` vuoto, e la UI lo segnala esplicitamente nel dettaglio.
+6. Clienti senza imponibile e senza rimborsi sono omessi; risultati e totali sono formattati a due decimali.
+7. Non esiste stato né write del report: ogni richiesta ricostruisce la proiezione, incluso il dettaglio per collaboratore; l'espansione del dettaglio in UI è stato locale non persistito, esclusivo per una sola scheda cliente alla volta.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
@@ -73,7 +70,7 @@ Accesso solo amministratore. La tariffa è quella corrente dell'offerta e gli sc
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-I test unitari coprono aggregazione, righe non fatturabili, rimborsi, ordinamento e formattazione. L'E2E usa factory e mese riservato per verificare risultati e stato vuoto. Confidenza alta sulla proiezione; l'indipendenza resta candidata perché il calcolo condivide il modulo fisico `consuntivi` con Attività e Offerte.
+I test unitari coprono aggregazione, righe non fatturabili, rimborsi, ordinamento, formattazione e la ripartizione per collaboratore (raggruppamento, esclusione ore non fatturabili, ordinamento e quadratura esatta dell'allocazione a resto massimo, incluso il caso limite di arrotondamento). L'E2E usa factory e mese riservato per verificare risultati, stato vuoto, l'espansione esclusiva del dettaglio collaboratori e il messaggio per i clienti solo-rimborsi. Confidenza alta sulla proiezione; l'indipendenza resta candidata perché il calcolo condivide il modulo fisico `consuntivi` con Attività e Offerte.
 
 ## Concetti correlati
 
