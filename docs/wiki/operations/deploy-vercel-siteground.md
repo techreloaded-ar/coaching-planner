@@ -182,3 +182,7 @@ non deve mai essere `true` in staging o produzione.
   Google di quel dominio serve modificare `callback/route.ts` (verifica claim `hd` o suffisso email
   + creazione automatica dell'`Utente` con ruolo di default). Da specificare a parte, come indicato.
 - **Migrazione a TLS** sul database SiteGround, se allo stato attuale risultasse ancora non supportato.
+
+## Concetti correlati
+
+Per setup locale, migrazioni e controlli di qualità, vedi le [operazioni di sviluppo](/operations/development.md).

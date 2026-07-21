@@ -25,6 +25,13 @@ const IconCollaboratori = (
   </svg>
 );
 
+const IconUtenti = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
+    <circle cx="12" cy="8" r="3.6" /><path d="M5 20a7 7 0 0 1 14 0" />
+    <path d="M18 5.5V9M16.3 7.2h3.4" />
+  </svg>
+);
+
 const IconScaglioni = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
     <path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z" /><circle cx="12" cy="10" r="2.6" />
@@ -50,6 +57,7 @@ const NAV_ITEMS = [
   { href: "/anagrafiche/clienti", label: "Clienti", icon: IconClienti },
   { href: "/offerte", label: "Offerte", icon: IconOfferte },
   { href: "/anagrafiche/collaboratori", label: "Collaboratori", icon: IconCollaboratori },
+  { href: "/anagrafiche/utenti", label: "Utenti", icon: IconUtenti },
   { href: "/anagrafiche/scaglioni", label: "Scaglioni km", icon: IconScaglioni },
   { href: "/report/fatturazione-clienti", label: "Fatturazione clienti", icon: IconReport },
 ] as const;
