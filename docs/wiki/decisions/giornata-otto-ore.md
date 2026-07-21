@@ -18,8 +18,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:af115e4647d4ca91950930b6f8744e1b292b8fc5831625568b90b0c84ff54be9
-    evidence_revision: c7040852fffe26742e09689568666762e3d4ed82
-    reviewed_at: "2026-07-21T06:12:34Z"
+    evidence_revision: 748954aeba137b973f082bfa1d04963eaf46083c
+    reviewed_at: "2026-07-21T07:43:18Z"
 ---
 # Giornata equivalente a otto ore
 

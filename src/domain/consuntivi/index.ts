@@ -329,9 +329,22 @@ export interface RigaReportFatturazione {
   offertaDescrizione: string;
   /** Tariffa giornaliera dell'offerta (serializzabile come stringa o numero) */
   tariffaOffertaGiornaliera: string | number;
+  /** Identificativo del collaboratore autore della riga */
+  collaboratoreId: string;
+  /** Nome completo del collaboratore autore della riga */
+  collaboratoreNome: string;
   ore: number;
   fatturabile: boolean;
   trasfertaKm: number | null;
+}
+
+/** Dettaglio fatturabile di un collaboratore all'interno di una singola offerta */
+export interface VoceCollaboratoreOffertaReport {
+  collaboratoreId: string;
+  collaboratoreNome: string;
+  oreFatturabili: number;
+  giornateFatturabili: number;
+  imponibile: string;
 }
 
 /** Voce di dettaglio di una singola offerta nel report cliente */
@@ -342,6 +355,7 @@ export interface VoceOffertaReport {
   tariffaGiornaliera: string;
   giornateFatturabili: number;
   imponibile: string;
+  perCollaboratore: VoceCollaboratoreOffertaReport[];
 }
 
 /** Voce di report aggregata per singolo cliente */
@@ -379,12 +393,19 @@ export function calcolaReportFatturazioneClienti(
   righe: RigaReportFatturazione[],
   scaglioni: ScaglioneRimborso[],
 ): ReportFatturazioneClienti {
+  interface AccumulatoreCollaboratoreOfferta {
+    collaboratoreId: string;
+    collaboratoreNome: string;
+    oreFatturabili: number;
+  }
+
   interface AccumulatoreOfferta {
     offertaId: string;
     offertaCodice: string;
     offertaDescrizione: string;
     tariffaGiornaliera: number;
     oreFatturabili: number;
+    collaboratori: Map<string, AccumulatoreCollaboratoreOfferta>;
   }
 
   interface AccumulatoreCliente {
@@ -416,12 +437,21 @@ export function calcolaReportFatturazioneClienti(
         offertaDescrizione: riga.offertaDescrizione,
         tariffaGiornaliera: Number(riga.tariffaOffertaGiornaliera),
         oreFatturabili: 0,
+        collaboratori: new Map(),
       };
       cliente.offerte.set(riga.offertaId, offerta);
     }
 
     if (riga.fatturabile) {
       offerta.oreFatturabili += riga.ore;
+
+      const collaboratore = offerta.collaboratori.get(riga.collaboratoreId) ?? {
+        collaboratoreId: riga.collaboratoreId,
+        collaboratoreNome: riga.collaboratoreNome,
+        oreFatturabili: 0,
+      };
+      collaboratore.oreFatturabili += riga.ore;
+      offerta.collaboratori.set(riga.collaboratoreId, collaboratore);
     }
 
     if (riga.trasfertaKm != null) {
@@ -441,6 +471,10 @@ export function calcolaReportFatturazioneClienti(
   for (const cliente of clienti.values()) {
     const perOfferta: VoceOffertaReport[] = [];
     let imponibileManodoperaCliente = 0;
+    const imponibileGrezzoPerVoce = new Map<
+      VoceCollaboratoreOffertaReport,
+      number
+    >();
 
     for (const offerta of cliente.offerte.values()) {
       const giornateFatturabili = offerta.oreFatturabili / ORE_PER_GIORNATA;
@@ -448,6 +482,32 @@ export function calcolaReportFatturazioneClienti(
 
       if (giornateFatturabili > 0) {
         imponibileManodoperaCliente += imponibile;
+
+        const perCollaboratore: VoceCollaboratoreOffertaReport[] = Array.from(
+          offerta.collaboratori.values(),
+        )
+          .map((collaboratore) => {
+            const giornateCollaboratore =
+              collaboratore.oreFatturabili / ORE_PER_GIORNATA;
+            const imponibileGrezzo =
+              giornateCollaboratore * offerta.tariffaGiornaliera;
+            const voce: VoceCollaboratoreOffertaReport = {
+              collaboratoreId: collaboratore.collaboratoreId,
+              collaboratoreNome: collaboratore.collaboratoreNome,
+              oreFatturabili: collaboratore.oreFatturabili,
+              giornateFatturabili: giornateCollaboratore,
+              imponibile: imponibileGrezzo.toFixed(2),
+            };
+            imponibileGrezzoPerVoce.set(voce, imponibileGrezzo);
+            return voce;
+          })
+          .sort((a, b) => {
+            if (b.oreFatturabili !== a.oreFatturabili) {
+              return b.oreFatturabili - a.oreFatturabili;
+            }
+            return a.collaboratoreNome.localeCompare(b.collaboratoreNome);
+          });
+
         perOfferta.push({
           offertaId: offerta.offertaId,
           offertaCodice: offerta.offertaCodice,
@@ -455,6 +515,7 @@ export function calcolaReportFatturazioneClienti(
           tariffaGiornaliera: offerta.tariffaGiornaliera.toFixed(2),
           giornateFatturabili,
           imponibile: imponibile.toFixed(2),
+          perCollaboratore,
         });
       }
     }
@@ -466,6 +527,54 @@ export function calcolaReportFatturazioneClienti(
     }
 
     perOfferta.sort((a, b) => a.offertaCodice.localeCompare(b.offertaCodice));
+
+    // Allocazione a resto massimo (largest remainder) in centesimi interi
+    // sull'elenco piatto di tutte le voci collaboratore del cliente, ancorata
+    // all'imponibile manodopera visualizzato del cliente (AC-2, requisito a
+    // livello cliente). La riconciliazione è quindi sul totale cliente, non
+    // per singola offerta: la somma dei collaboratori di un'offerta può
+    // discostarsi di massimo 1 centesimo dall'imponibile di quell'offerta,
+    // ma il dettaglio UI non mostra un subtotale per offerta, quindi lo
+    // scostamento non è osservabile. Ancorare anche per offerta romperebbe
+    // la garanzia a livello cliente se la somma degli imponibili di offerta
+    // arrotondati non coincide col totale cliente arrotondato (arrotondamenti
+    // indipendenti preesistenti, fuori perimetro di questa allocazione).
+    const vociPiatte = perOfferta.flatMap((voce) => voce.perCollaboratore);
+    if (vociPiatte.length > 0) {
+      const targetCents = Math.round(
+        Number(imponibileManodoperaCliente.toFixed(2)) * 100,
+      );
+      const dettagli = vociPiatte.map((voce) => {
+        const rawCents = imponibileGrezzoPerVoce.get(voce)! * 100;
+        const floorCents = Math.floor(rawCents + 1e-6);
+        return { voce, floorCents, frazione: rawCents - floorCents };
+      });
+      const sommaFloorCents = dettagli.reduce((s, d) => s + d.floorCents, 0);
+      let residuoDaDistribuire = targetCents - sommaFloorCents;
+
+      const centesimiFinali = new Map(
+        dettagli.map((d) => [d.voce, d.floorCents]),
+      );
+      const perFrazione = dettagli
+        .map((d, indice) => ({ ...d, indice }))
+        .sort((a, b) => {
+          if (b.frazione !== a.frazione) {
+            return b.frazione - a.frazione;
+          }
+          return a.indice - b.indice;
+        });
+      for (const d of perFrazione) {
+        if (residuoDaDistribuire <= 0) {
+          break;
+        }
+        centesimiFinali.set(d.voce, centesimiFinali.get(d.voce)! + 1);
+        residuoDaDistribuire -= 1;
+      }
+
+      for (const voce of vociPiatte) {
+        voce.imponibile = (centesimiFinali.get(voce)! / 100).toFixed(2);
+      }
+    }
 
     const importoTotaleCliente = imponibileManodoperaCliente + rimborsiCliente;
 
