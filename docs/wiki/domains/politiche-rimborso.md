@@ -2,24 +2,28 @@
 type: domain
 title: Politiche di rimborso trasferta
 description: Configurazione globale delle fasce chilometriche e calcolo del rimborso trasferta
+status: reviewed
 classification: candidate
-status: generated
 sources:
-- path: src/app/(back-office)/anagrafiche/scaglioni/actions.ts
-  role: inbound-commands
-  symbol: creaScaglione, aggiornaScaglione, eliminaScaglione
-- path: src/domain/anagrafiche/valida-scaglione.ts
-  role: domain-validation
-- path: src/domain/consuntivi/index.ts
-  role: policy-calculation
-  symbol: calcolaRimborsoTrasferta
-- path: src/lib/scaglioni.ts
-  role: application-query
-- path: prisma/schema.prisma
-  role: owned-data
-  symbol: ScaglioneKm
-- path: tests/unit/rimborso-trasferta.test.ts
-  role: verification
+    - path: src/app/(back-office)/anagrafiche/scaglioni/actions.ts
+      role: inbound-commands
+      symbol: creaScaglione, aggiornaScaglione, eliminaScaglione
+    - path: src/domain/anagrafiche/valida-scaglione.ts
+      role: domain-validation
+    - path: src/domain/consuntivi/index.ts
+      role: policy-calculation
+      symbol: calcolaRimborsoTrasferta
+    - path: src/lib/scaglioni.ts
+      role: application-query
+    - path: prisma/schema.prisma
+      role: owned-data
+      symbol: ScaglioneKm
+    - path: tests/unit/rimborso-trasferta.test.ts
+      role: verification
+review:
+    content_hash: sha256:4eadb5883e3d5115caa791f620cd36debb13011f704c965bb22d1d4210436f92
+    evidence_revision: c7040852fffe26742e09689568666762e3d4ed82
+    reviewed_at: "2026-07-21T06:12:34Z"
 ---
 # Politiche di rimborso trasferta
 

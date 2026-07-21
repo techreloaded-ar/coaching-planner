@@ -2,19 +2,23 @@
 type: decision
 title: Importi monetari decimali
 description: Persistire gli importi monetari come Decimal per evitare errori contabili
+status: reviewed
 decision_status: accepted
-status: generated
 sources:
-- path: docs/PRD.md
-  role: decision-source
-- path: prisma/schema.prisma
-  role: implementation
-- path: src/domain/anagrafiche/valida-offerta.ts
-  role: implementation
-- path: src/domain/consuntivi/index.ts
-  role: implementation-status
-- path: tests/unit/report-fatturazione-clienti.test.ts
-  role: verification
+    - path: docs/PRD.md
+      role: decision-source
+    - path: prisma/schema.prisma
+      role: implementation
+    - path: src/domain/anagrafiche/valida-offerta.ts
+      role: implementation
+    - path: src/domain/consuntivi/index.ts
+      role: implementation-status
+    - path: tests/unit/report-fatturazione-clienti.test.ts
+      role: verification
+review:
+    content_hash: sha256:ba7516fcff1874e0ec3801f504ae59afdf44a78308b01de23de3b16dba765b32
+    evidence_revision: c7040852fffe26742e09689568666762e3d4ed82
+    reviewed_at: "2026-07-21T06:12:34Z"
 ---
 # Importi monetari decimali
 

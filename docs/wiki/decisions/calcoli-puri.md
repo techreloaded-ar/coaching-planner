@@ -2,21 +2,25 @@
 type: decision
 title: Calcoli di dominio in funzioni pure
 description: Isolare validazioni e calcoli di consuntivazione in funzioni pure testabili
+status: reviewed
 decision_status: accepted
-status: generated
 sources:
-- path: docs/PRD.md
-  role: decision-source
-- path: src/domain/consuntivi/index.ts
-  role: implementation
-- path: src/domain/calendario/index.ts
-  role: implementation
-- path: src/domain/anagrafiche/valida-cliente.ts
-  role: implementation
-- path: tests/unit/riepilogo-mese.test.ts
-  role: verification
-- path: tests/unit/avanzamento-offerte.test.ts
-  role: verification
+    - path: docs/PRD.md
+      role: decision-source
+    - path: src/domain/consuntivi/index.ts
+      role: implementation
+    - path: src/domain/calendario/index.ts
+      role: implementation
+    - path: src/domain/anagrafiche/valida-cliente.ts
+      role: implementation
+    - path: tests/unit/riepilogo-mese.test.ts
+      role: verification
+    - path: tests/unit/avanzamento-offerte.test.ts
+      role: verification
+review:
+    content_hash: sha256:4d9a909dc2f03a0d5d51d3e302423fb4e31f61e263d4342a66c2455a1f8bd71a
+    evidence_revision: c7040852fffe26742e09689568666762e3d4ed82
+    reviewed_at: "2026-07-21T06:12:34Z"
 ---
 # Calcoli di dominio in funzioni pure
 

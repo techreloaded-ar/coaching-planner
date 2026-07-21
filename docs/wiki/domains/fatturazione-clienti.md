@@ -2,21 +2,25 @@
 type: domain
 title: Fatturazione clienti
 description: Proiezione amministrativa mensile degli importi da fatturare ai clienti
+status: reviewed
 classification: candidate
-status: generated
 sources:
-- path: src/lib/report.ts
-  role: application-query
-  symbol: reportFatturazioneClientiMese
-- path: src/domain/consuntivi/index.ts
-  role: domain-calculation
-  symbol: calcolaReportFatturazioneClienti
-- path: src/app/(back-office)/report/fatturazione-clienti/page.tsx
-  role: inbound-ui
-- path: tests/unit/report-fatturazione-clienti.test.ts
-  role: verification
-- path: tests/e2e/report-fatturazione-clienti.spec.ts
-  role: verification
+    - path: src/lib/report.ts
+      role: application-query
+      symbol: reportFatturazioneClientiMese
+    - path: src/domain/consuntivi/index.ts
+      role: domain-calculation
+      symbol: calcolaReportFatturazioneClienti
+    - path: src/app/(back-office)/report/fatturazione-clienti/page.tsx
+      role: inbound-ui
+    - path: tests/unit/report-fatturazione-clienti.test.ts
+      role: verification
+    - path: tests/e2e/report-fatturazione-clienti.spec.ts
+      role: verification
+review:
+    content_hash: sha256:1d5fb5ab4ada03c115bffd68b4c5a0e0900511a87607718be912599843956b4f
+    evidence_revision: c7040852fffe26742e09689568666762e3d4ed82
+    reviewed_at: "2026-07-21T06:12:34Z"
 ---
 # Fatturazione clienti
 

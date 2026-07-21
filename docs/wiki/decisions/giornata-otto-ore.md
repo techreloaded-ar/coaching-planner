@@ -2,20 +2,24 @@
 type: decision
 title: Giornata equivalente a otto ore
 description: Convertire ore e giornate con la costante fissa di otto ore per giornata
+status: reviewed
 decision_status: accepted
-status: generated
 sources:
-- path: docs/PRD.md
-  role: decision-source
-- path: src/domain/types.ts
-  role: implementation
-  symbol: ORE_PER_GIORNATA
-- path: src/domain/consuntivi/index.ts
-  role: implementation
-- path: tests/unit/riepilogo-mese.test.ts
-  role: verification
-- path: tests/unit/avanzamento-offerte.test.ts
-  role: verification
+    - path: docs/PRD.md
+      role: decision-source
+    - path: src/domain/types.ts
+      role: implementation
+      symbol: ORE_PER_GIORNATA
+    - path: src/domain/consuntivi/index.ts
+      role: implementation
+    - path: tests/unit/riepilogo-mese.test.ts
+      role: verification
+    - path: tests/unit/avanzamento-offerte.test.ts
+      role: verification
+review:
+    content_hash: sha256:af115e4647d4ca91950930b6f8744e1b292b8fc5831625568b90b0c84ff54be9
+    evidence_revision: c7040852fffe26742e09689568666762e3d4ed82
+    reviewed_at: "2026-07-21T06:12:34Z"
 ---
 # Giornata equivalente a otto ore
 

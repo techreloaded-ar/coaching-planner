@@ -2,22 +2,26 @@
 type: decision
 title: Tariffa unica per collaboratore
 description: Mantenere una sola tariffa giornaliera per ogni collaboratore nel MVP
+status: reviewed
 decision_status: accepted
-status: generated
 sources:
-- path: docs/PRD.md
-  role: decision-source
-- path: prisma/schema.prisma
-  role: implementation
-  symbol: Collaboratore.tariffaGiornaliera
-- path: src/lib/attivita.ts
-  role: implementation
-  symbol: riepilogoMese
-- path: src/domain/consuntivi/index.ts
-  role: implementation
-  symbol: calcolaRiepilogoMese
-- path: tests/unit/riepilogo-mese.test.ts
-  role: verification
+    - path: docs/PRD.md
+      role: decision-source
+    - path: prisma/schema.prisma
+      role: implementation
+      symbol: Collaboratore.tariffaGiornaliera
+    - path: src/lib/attivita.ts
+      role: implementation
+      symbol: riepilogoMese
+    - path: src/domain/consuntivi/index.ts
+      role: implementation
+      symbol: calcolaRiepilogoMese
+    - path: tests/unit/riepilogo-mese.test.ts
+      role: verification
+review:
+    content_hash: sha256:a6b5ee38c45859ea9be515dbab7f8dac4d31b0290c605e91aa87db485fe69de3
+    evidence_revision: c7040852fffe26742e09689568666762e3d4ed82
+    reviewed_at: "2026-07-21T06:12:34Z"
 ---
 # Tariffa unica per collaboratore
 
