@@ -49,7 +49,11 @@ test.describe("US-030 Demo", () => {
 		const giornoConAttivita = page.locator(
 			`a[href="/attivita/${data}?mese=${mese}"]`,
 		);
-		await expect(giornoConAttivita).toContainText(offerta.codice);
+		// Dopo US-034 la cella mostra l'etichetta cliente con le ore cumulate,
+		// non più il codice offerta.
+		await expect(
+			giornoConAttivita.getByTestId("etichetta-cliente"),
+		).toHaveText(`${cliente.ragioneSociale} 6.0 h`);
 		await giornoConAttivita.click();
 		await expect(page.getByText(nota, { exact: true })).toBeVisible();
 

@@ -48,8 +48,15 @@ test.describe("US-033 Demo", () => {
 		await expect(dettaglio).toBeVisible();
 		await expect(dettaglio.getByText("In corso", { exact: true })).toBeVisible();
 		await expect(dettaglio.getByText("20%", { exact: true })).toBeVisible();
+		// Dopo US-036 il dettaglio contiene anche la matrice mensile: la riga
+		// del collaboratore va cercata nella sola tabella di riepilogo.
 		await expect(
-			dettaglio.getByRole("row", { name: new RegExp(`Ada ${codice}`) }),
+			dettaglio
+				.getByRole("table", {
+					name: "Giornate erogate per collaboratore",
+					exact: true,
+				})
+				.getByRole("row", { name: new RegExp(`Ada ${codice}`) }),
 		).toBeVisible();
 
 		await riga.getByText(codice, { exact: true }).click();

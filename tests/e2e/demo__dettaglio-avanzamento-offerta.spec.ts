@@ -49,7 +49,15 @@ test.describe("Demo US-032 — dettaglio avanzamento nelle Offerte", () => {
     await expect(dettaglio.getByText("20%", { exact: true })).toBeVisible();
     await expect(dettaglio.getByText("Previste", { exact: true }).locator("..")).toContainText(/10\s*gg/);
     await expect(dettaglio.getByText("Erogate", { exact: true }).locator("..")).toContainText(/2\s*gg/);
-    await expect(dettaglio.getByRole("row", { name: /Ada Lovelace/ })).toContainText("16 h");
+    // Dopo US-036 il dettaglio contiene anche la matrice mensile: la riga
+    // del collaboratore va cercata nella sola tabella di riepilogo.
+    const tabellaRiepilogo = dettaglio.getByRole("table", {
+      name: "Giornate erogate per collaboratore",
+      exact: true,
+    });
+    await expect(
+      tabellaRiepilogo.getByRole("row", { name: /Ada Lovelace/ }),
+    ).toContainText("16 h");
 
     // 4. Richiude il pannello e ritrova la tabella compatta.
     await riga.getByText(codice, { exact: true }).click();

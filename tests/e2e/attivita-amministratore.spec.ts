@@ -51,7 +51,11 @@ test.describe("US-030 Attività amministratore", () => {
 		const giornoConAttivita = page.locator(
 			`a[href="/attivita/${data}?mese=${mese}"]`,
 		);
-		await expect(giornoConAttivita).toContainText(offerta.codice);
+		// Dopo US-034 la cella mostra l'etichetta cliente con le ore cumulate,
+		// non più il codice offerta.
+		await expect(
+			giornoConAttivita.getByTestId("etichetta-cliente"),
+		).toHaveText(`${cliente.ragioneSociale} 7.5 h`);
 
 		await giornoConAttivita.click();
 		await page.waitForURL(`**/attivita/${data}?mese=${mese}`);

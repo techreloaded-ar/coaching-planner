@@ -91,8 +91,15 @@ test.describe("US-011 Demo", () => {
     // ── 7. Verifica sintesi visibile in una cella con attività ─────
 
     const primaCella = giorniConAttivita.first();
-    // Deve mostrare il numero di righe e le ore
-    await expect(primaCella.locator("text=/\\d+(\\.\\d+)?\\s*h/")).toBeVisible();
+    // Deve mostrare il numero di righe e le ore. Dopo US-034 la cella
+    // contiene più indicatori orari (totale giorno + etichette cliente):
+    // basta che il primo sia visibile.
+    await expect(
+      primaCella.locator("text=/\\d+(\\.\\d+)?\\s*h/").first()
+    ).toBeVisible();
+    await expect(
+      primaCella.getByTestId("etichetta-cliente").first()
+    ).toBeVisible();
 
     // ── 8. Clicca su un giorno con attività → pagina dettaglio ─────
 

@@ -488,12 +488,23 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			cognome: "Hopper",
 		});
 
+		// I mesi riservati singoli delle altre spec cadono al massimo 133 mesi
+		// indietro (offset base 12 + hash % 120 + mesiIndietro). Questa finestra
+		// contigua di 18 mesi parte oltre quella soglia per non scrivere righe
+		// nei mesi riservati altrui (es. totali globali del report fatturazione).
+		const offsetFinestraFuoriMesiRiservati = 150;
 		for (let mesiIndietro = 1; mesiIndietro <= 18; mesiIndietro += 1) {
 			await factory.createRigaAttivita({
 				cliente,
 				offerta,
 				collaboratore,
-				data: dataNelMeseUtc(mesePassatoRiservato("US-036", mesiIndietro), 10),
+				data: dataNelMeseUtc(
+					mesePassatoRiservato(
+						"US-036",
+						offsetFinestraFuoriMesiRiservati + mesiIndietro,
+					),
+					10,
+				),
 				ore: "8.00",
 				fatturabile: true,
 			});
