@@ -2,28 +2,32 @@
 type: domain
 title: Collaboratori
 description: Profili professionali dei collaboratori, tariffa e abilitazione operativa
+status: reviewed
 classification: candidate
-status: generated
 sources:
-- path: src/app/(back-office)/anagrafiche/collaboratori/actions.ts
-  role: inbound-commands
-  symbol: creaCollaboratore, aggiornaCollaboratore, cambiaStatoCollaboratore
-- path: src/lib/collaboratori.ts
-  role: application-query
-  symbol: collaboratorePerId, storicoAttivitaCollaboratore
-- path: src/domain/anagrafiche/valida-collaboratore.ts
-  role: domain-validation
-  symbol: validaCollaboratore
-- path: src/lib/dal.ts
-  role: outbound-consumer
-  symbol: risolviProfiloCollaboratoreCorrente
-- path: prisma/schema.prisma
-  role: owned-data
-  symbol: Collaboratore
-- path: tests/e2e/anagrafica-collaboratori.spec.ts
-  role: verification
-- path: tests/e2e/dettaglio-collaboratore.spec.ts
-  role: verification
+    - path: src/app/(back-office)/anagrafiche/collaboratori/actions.ts
+      role: inbound-commands
+      symbol: creaCollaboratore, aggiornaCollaboratore, cambiaStatoCollaboratore
+    - path: src/lib/collaboratori.ts
+      role: application-query
+      symbol: collaboratorePerId, storicoAttivitaCollaboratore
+    - path: src/domain/anagrafiche/valida-collaboratore.ts
+      role: domain-validation
+      symbol: validaCollaboratore
+    - path: src/lib/dal.ts
+      role: outbound-consumer
+      symbol: risolviProfiloCollaboratoreCorrente
+    - path: prisma/schema.prisma
+      role: owned-data
+      symbol: Collaboratore
+    - path: tests/e2e/anagrafica-collaboratori.spec.ts
+      role: verification
+    - path: tests/e2e/dettaglio-collaboratore.spec.ts
+      role: verification
+review:
+    content_hash: sha256:42eabd31bf5e69f391ca5533dcf31e22b001a393cd7c457a52cddd048861ba99
+    evidence_revision: a6643836528ddb3d9cdc13e1c9c39eca2c09262d
+    reviewed_at: "2026-07-21T09:35:02Z"
 ---
 # Collaboratori
 

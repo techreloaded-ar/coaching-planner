@@ -17,8 +17,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:ba7516fcff1874e0ec3801f504ae59afdf44a78308b01de23de3b16dba765b32
-    evidence_revision: 748954aeba137b973f082bfa1d04963eaf46083c
-    reviewed_at: "2026-07-21T07:43:18Z"
+    evidence_revision: a6643836528ddb3d9cdc13e1c9c39eca2c09262d
+    reviewed_at: "2026-07-21T09:35:02Z"
 ---
 # Importi monetari decimali
 

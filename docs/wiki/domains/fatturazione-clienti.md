@@ -19,8 +19,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:66ac8f75541003ccba3017afd97bcfb1eb6ebb947f369d079bcca541104253a7
-    evidence_revision: 748954aeba137b973f082bfa1d04963eaf46083c
-    reviewed_at: "2026-07-21T07:43:18Z"
+    evidence_revision: a6643836528ddb3d9cdc13e1c9c39eca2c09262d
+    reviewed_at: "2026-07-21T09:35:02Z"
 ---
 # Fatturazione clienti
 
