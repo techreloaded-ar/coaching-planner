@@ -56,9 +56,9 @@ order:
     - US-035
     - US-036
     - US-037
-    - US-038
     - US-039
     - US-040
+    - US-038
 ---
 # Backlog
 
@@ -95,7 +95,7 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-033: Dettaglio avanzamento espandibile nell'elenco offerte del cliente](specs/US-033.md) — **DONE**, 2 point(s).
 - [US-035: Riga compatta nell'elenco offerte con giorni erogati aggregati e stato a indicatore](specs/US-035.md) — **DONE**, 3 point(s).
 - [US-036: Matrice mensile per collaboratore nel dettaglio avanzamento offerta](specs/US-036.md) — **DONE**, 3 point(s).
-- [US-038: Pagina di dettaglio del collaboratore con storico attività mensile](specs/US-038.md) — **TODO**, 3 point(s).
+- [US-038: Pagina di dettaglio del collaboratore con storico attività mensile](specs/US-038.md) — **DONE**, 3 point(s).
 
 ## EP-003: Consuntivazione Attività
 

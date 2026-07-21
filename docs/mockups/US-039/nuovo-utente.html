@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuovo utente — Coaching Planner (US-039)</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div class="console">
+
+  <!-- ============ SIDEBAR DI NAVIGAZIONE ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">CP</div>
+      <div class="brand-name">
+        <b>Coaching Planner</b>
+        <span>Console gestionale</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" aria-label="Navigazione principale">
+      <span class="nav-label">Gestione</span>
+      <a class="nav-item" href="#" onclick="return false" title="Clienti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V8.5L9 4l6 4.5V21"/><path d="M15 21h6V11l-6-3"/><path d="M7.5 21v-4.5h3V21"/><path d="M7 9.5h.01M11 9.5h.01M7 13h.01M11 13h.01"/></svg>
+        <span class="lbl">Clienti</span>
+      </a>
+      <a class="nav-item" href="#" onclick="return false" title="Offerte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        <span class="lbl">Offerte</span>
+      </a>
+      <a class="nav-item" href="#" onclick="return false" title="Collaboratori">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0"/><circle cx="17.2" cy="9.4" r="2.6"/><path d="M15.4 14.6a5 5 0 0 1 5.8 4.8"/></svg>
+        <span class="lbl">Collaboratori</span>
+      </a>
+      <a class="nav-item active" href="index.html" aria-current="page" title="Utenti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/><path d="M18 5.5V9M16.3 7.2h3.4" /></svg>
+        <span class="lbl">Utenti</span>
+      </a>
+      <a class="nav-item" href="#" onclick="return false" title="Scaglioni km">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        <span class="lbl">Scaglioni km</span>
+      </a>
+      <span class="nav-label" style="margin-top:8px;">Amministrazione</span>
+      <a class="nav-item" href="#" onclick="return false" title="Report da fatturare">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7.5 15.5v-4M12 15.5V7.5M16.5 15.5v-6"/></svg>
+        <span class="lbl">Report da fatturare</span>
+      </a>
+    </nav>
+
+    <div class="side-foot">
+      <div class="side-user">
+        <div class="avatar">SM</div>
+        <div class="meta">
+          <b>Stefano Marello</b>
+          <span>Amministratore</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+          <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm esci-btn" type="button" title="Disconnessione">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+        <span class="lbl">Esci</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ AREA CONTENUTO — NUOVO UTENTE (US-039) ============ -->
+  <div class="main">
+    <main class="content">
+
+      <!-- Breadcrumb -->
+      <nav class="crumbs" aria-label="Percorso">
+        <a href="index.html" title="Torna all'elenco Utenti">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg>
+          Utenti
+        </a>
+        <span class="sep">/</span>
+        <span class="corrente">Nuovo utente</span>
+      </nav>
+
+      <!-- Intestazione di vista -->
+      <div class="view-head">
+        <div class="vh-testi">
+          <div class="kicker">Amministrazione · Utenti</div>
+          <h1>Nuovo utente</h1>
+          <p class="sub">Indica nome, email e ruolo. L'utente comparirà in elenco con stato attivo e la sua email sarà riconosciuta dal flusso di accesso.</p>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <form class="card form-card" id="form-utente" novalidate>
+
+        <!-- Alert email duplicata (compare col toggle demo) -->
+        <div class="form-body">
+          <div class="alert err alert-duplicata" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.3 3.9 2.6 17.4A2 2 0 0 0 4.3 20.4h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4.5M12 17h.01"/></svg>
+            <span><b>Email già presente.</b> Esiste già un utente censito con questa email: l'elenco resta invariato. Usa un indirizzo diverso.</span>
+          </div>
+
+          <div class="form-grid">
+            <!-- Dati anagrafici -->
+            <div class="form-sezione">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+              Anagrafica
+            </div>
+
+            <div class="campo full">
+              <label for="nome">Nome <span class="obb">*</span></label>
+              <input id="nome" name="nome" type="text" placeholder="Es. Laura Bianchi" autocomplete="name">
+              <p class="hint">Nome e cognome in un unico campo, come mostrato in elenco.</p>
+            </div>
+
+            <!-- Accesso -->
+            <div class="form-sezione">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+              Accesso
+            </div>
+
+            <div class="campo full campo-email">
+              <label for="email">Email <span class="obb">*</span></label>
+              <input id="email" name="email" type="email" placeholder="nome.cognome@coachingpartners.it" autocomplete="email" value="giulia.conti@coachingpartners.it">
+              <p class="msg-errore">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                Esiste già un utente con questa email.
+              </p>
+            </div>
+
+            <!-- Ruolo -->
+            <div class="form-sezione">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l7 2.5v5.2c0 4.3-2.9 7.4-7 8.8-4.1-1.4-7-4.5-7-8.8V5.5L12 3Z"/></svg>
+              Ruolo
+            </div>
+
+            <div class="ruolo-scelte" role="radiogroup" aria-label="Ruolo dell'utente">
+              <label class="ruolo-opt">
+                <input type="radio" name="ruolo" value="AMMINISTRATORE">
+                <span class="box">
+                  <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l7 2.5v5.2c0 4.3-2.9 7.4-7 8.8-4.1-1.4-7-4.5-7-8.8V5.5L12 3Z"/><path d="m9.2 12 1.9 1.9 3.7-3.9"/></svg></span>
+                  <span class="t"><b>Amministratore</b><span>Accede alla console e governa clienti, offerte e utenti.</span></span>
+                </span>
+                <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg></span>
+              </label>
+
+              <label class="ruolo-opt">
+                <input type="radio" name="ruolo" value="COLLABORATORE" checked>
+                <span class="box">
+                  <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8.5" r="3.3"/><path d="M6 19a6 6 0 0 1 12 0"/></svg></span>
+                  <span class="t"><b>Collaboratore</b><span>Accede al front office per registrare le proprie attività.</span></span>
+                </span>
+                <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="form-foot">
+          <a class="btn btn-ghost" href="index.html">Annulla</a>
+          <button class="btn btn-primary" type="submit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+            Censisci utente
+          </button>
+        </div>
+      </form>
+
+      <!-- Barra demo: mostra lo stato di errore email duplicata (AC-4) -->
+      <div class="demo-bar">
+        <span class="demo-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          Anteprima dello stato AC-4: censimento rifiutato per email già presente, con errore inline ed elenco invariato.
+        </span>
+        <button class="btn btn-ghost btn-sm" id="toggle-errore" type="button" aria-pressed="false">Mostra errore email duplicata</button>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  CP.initTheme();
+  CP.initNuovo();
+</script>
+</body>
+</html>
