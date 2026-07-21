@@ -2,45 +2,49 @@
 type: domain
 title: Identità, sessioni e accesso
 description: Censimento utenti, accesso Google, sessione JWT, ruoli, policy di rotta e segregazione dei dati
+status: reviewed
 classification: candidate
-status: generated
 sources:
-- path: src/app/api/auth/google/route.ts
-  role: inbound-api
-  symbol: GET
-- path: src/app/api/auth/google/callback/route.ts
-  role: inbound-api
-  symbol: GET
-- path: src/lib/session-token.ts
-  role: session-domain
-- path: src/proxy.ts
-  role: access-policy-adapter
-  symbol: proxy
-- path: src/lib/dal.ts
-  role: authorization
-- path: src/app/(back-office)/anagrafiche/utenti/actions.ts
-  role: identity-commands
-  symbol: creaUtente, aggiornaUtente
-- path: src/lib/utenti.ts
-  role: identity-queries
-  symbol: elencaUtenti, utentePerId
-- path: src/domain/anagrafiche/valida-utente.ts
-  role: identity-validation
-- path: src/app/(back-office)/anagrafiche/utenti/page.tsx
-  role: identity-administration-ui
-- path: prisma/schema.prisma
-  role: identity-data
-  symbol: Utente, Account, Ruolo
-- path: tests/unit/dal-guards.test.ts
-  role: verification
-- path: tests/unit/utenti-actions.test.ts
-  role: verification
-- path: tests/unit/valida-utente.test.ts
-  role: verification
-- path: tests/e2e/autorizzazione-ruoli.spec.ts
-  role: verification
-- path: tests/e2e/gestione-utenti.spec.ts
-  role: verification
+    - path: src/app/api/auth/google/route.ts
+      role: inbound-api
+      symbol: GET
+    - path: src/app/api/auth/google/callback/route.ts
+      role: inbound-api
+      symbol: GET
+    - path: src/lib/session-token.ts
+      role: session-domain
+    - path: src/proxy.ts
+      role: access-policy-adapter
+      symbol: proxy
+    - path: src/lib/dal.ts
+      role: authorization
+    - path: src/app/(back-office)/anagrafiche/utenti/actions.ts
+      role: identity-commands
+      symbol: creaUtente, aggiornaUtente
+    - path: src/lib/utenti.ts
+      role: identity-queries
+      symbol: elencaUtenti, utentePerId
+    - path: src/domain/anagrafiche/valida-utente.ts
+      role: identity-validation
+    - path: src/app/(back-office)/anagrafiche/utenti/page.tsx
+      role: identity-administration-ui
+    - path: prisma/schema.prisma
+      role: identity-data
+      symbol: Utente, Account, Ruolo
+    - path: tests/unit/dal-guards.test.ts
+      role: verification
+    - path: tests/unit/utenti-actions.test.ts
+      role: verification
+    - path: tests/unit/valida-utente.test.ts
+      role: verification
+    - path: tests/e2e/autorizzazione-ruoli.spec.ts
+      role: verification
+    - path: tests/e2e/gestione-utenti.spec.ts
+      role: verification
+review:
+    content_hash: sha256:ab50a4ac1f013f7631a40316ea35eae752b4afa3a5f68525ec91c1b7f0ebaafa
+    evidence_revision: 28ad77ed6df92a9bb9e2f82506973195dd01f161
+    reviewed_at: "2026-07-21T12:22:18Z"
 ---
 # Identità, sessioni e accesso
 
