@@ -438,6 +438,102 @@ test.describe("Gestione utenti", () => {
 		}
 	});
 
+	test("demo__invalida-riattiva-e-promuove-un-collaboratore", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		const collaboratore = await factory.createCollaboratore({
+			utenteOptions: {
+				nome: `${factory.namespace} Collaboratore demo`,
+				email: `${factory.namespace}-demo@e2e.invalid`,
+				ruolo: "COLLABORATORE",
+			},
+		});
+		const contestoUtente = await browser.newContext();
+
+		try {
+			const paginaUtente = await contestoUtente.newPage();
+			await accediCome(paginaUtente, collaboratore.utente.email);
+			await expect(paginaUtente.getByRole("heading", { name: "Attività" })).toBeVisible();
+
+			await apriElencoUtenti(page);
+			await filtraUtenti(page, collaboratore.utente.email);
+			const riga = rigaUtente(page, collaboratore.utente.email);
+			await expect(riga).toBeVisible();
+			await riga.getByRole("button", { name: "Invalida", exact: true }).click();
+			const modale = page.getByRole("dialog", {
+				name: `Invalidare «${collaboratore.utente.nome}»?`,
+			});
+			await expect(modale).toBeVisible();
+			await modale
+				.getByRole("button", { name: "Invalida utente", exact: true })
+				.click();
+			await expect(page.getByRole("status")).toContainText(
+				"Utente invalidato: l'accesso è revocato e il record resta in elenco",
+			);
+			await expect(riga.getByText("Invalidato", { exact: true })).toBeVisible();
+
+			await page.getByRole("link", { name: "Collaboratori", exact: true }).click();
+			await expect(page.getByRole("heading", { name: "Collaboratori" })).toBeVisible();
+			await page
+				.getByRole("searchbox", { name: "Cerca collaboratore" })
+				.fill(collaboratore.utente.email);
+			await expect(
+				rigaCollaboratore(page, collaboratore.utente.email).getByText(
+					"Disattivato",
+					{ exact: true },
+				),
+			).toBeVisible();
+
+			await paginaUtente.goto("/attivita");
+			await expect(
+				paginaUtente.getByRole("button", { name: "Accedi con Google" }),
+			).toBeVisible();
+
+			await apriElencoUtenti(page);
+			await filtraUtenti(page, collaboratore.utente.email);
+			await riga
+				.getByRole("button", { name: "Riattiva", exact: true })
+				.click();
+			await expect(page.getByRole("status")).toContainText(
+				"Utente riattivato: può accedere di nuovo all'applicazione",
+			);
+			await expect(riga.getByText("Attivo", { exact: true })).toBeVisible();
+
+			await riga.getByRole("link", { name: "Modifica", exact: true }).click();
+			await expect(
+				page.getByRole("heading", { name: "Modifica utente" }),
+			).toBeVisible();
+			await page
+				.getByRole("radio", { name: /^Amministratore\b/ })
+				.check({ force: true });
+			await expect(
+				page.getByRole("radio", { name: /^Amministratore\b/ }),
+			).toBeChecked();
+			await page
+				.getByRole("button", { name: "Salva modifiche", exact: true })
+				.click();
+			await expect(page.getByRole("status")).toContainText(
+				"Modifiche all'utente salvate",
+			);
+
+			const contestoPromosso = await browser.newContext();
+			try {
+				const paginaPromosso = await contestoPromosso.newPage();
+				await accediCome(paginaPromosso, collaboratore.utente.email);
+				await paginaPromosso.goto("/anagrafiche");
+				await expect(
+					paginaPromosso.getByRole("heading", { name: "Clienti", exact: true }),
+				).toBeVisible();
+			} finally {
+				await contestoPromosso.close();
+			}
+		} finally {
+			await contestoUtente.close();
+		}
+	});
+
 	test("mostra l'errore di protezione dell'ultimo amministratore", async ({
 		page,
 	}) => {
