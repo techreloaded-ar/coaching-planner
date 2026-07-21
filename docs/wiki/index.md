@@ -97,12 +97,12 @@
 * [Collaboratori](domains/collaboratori.md) - Profili professionali dei collaboratori, tariffa e abilitazione operativa. _State: generated._
 * [Fatturazione clienti](domains/fatturazione-clienti.md) - Proiezione amministrativa mensile degli importi da fatturare ai clienti. _State: reviewed._
 * [Identità, sessioni e accesso](domains/identita-accesso.md) - Censimento utenti, accesso Google, sessione JWT, ruoli, policy di rotta e segregazione dei dati. _State: generated._
-* [Offerte](domains/offerte.md) - Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento. _State: stale._
+* [Offerte](domains/offerte.md) - Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento. _State: generated._
 * [Politiche di rimborso trasferta](domains/politiche-rimborso.md) - Configurazione globale delle fasce chilometriche e calcolo del rimborso trasferta. _State: reviewed._
 
 ## Engineering
 
-* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: stale._
+* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: generated._
 
 ## Operations
 
