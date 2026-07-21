@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockUtente = vi.hoisted(() => ({
-  findUnique: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
+const mockDb = vi.hoisted(() => ({
+  utente: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+    update: vi.fn(),
+  },
+  $transaction: vi.fn(),
 }));
+const mockUtente = mockDb.utente;
 
 vi.mock("@/lib/db", () => ({
-  db: { utente: mockUtente },
+  db: mockDb,
 }));
 
 const { mockRichiediRuoloApi } = vi.hoisted(() => ({
@@ -65,6 +70,9 @@ describe("Server Actions utenti", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockDb.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockDb) => unknown) => callback(mockDb),
+    );
   });
 
   describe("creaUtente", () => {
@@ -72,7 +80,7 @@ describe("Server Actions utenti", () => {
       mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(
-        creaUtente(statoIniziale(), formNuovoUtente())
+        creaUtente(statoIniziale(), formNuovoUtente()),
       ).rejects.toThrow("Accesso negato");
 
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
@@ -131,7 +139,7 @@ describe("Server Actions utenti", () => {
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=creato"
+        "/anagrafiche/utenti?esito=creato",
       );
     });
 
@@ -154,10 +162,11 @@ describe("Server Actions utenti", () => {
       mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(
-        aggiornaUtente(statoIniziale(), formModificaUtente())
+        aggiornaUtente(statoIniziale(), formModificaUtente()),
       ).rejects.toThrow("Accesso negato");
 
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
       expect(mockUtente.findUnique).not.toHaveBeenCalled();
       expect(mockUtente.update).not.toHaveBeenCalled();
     });
@@ -169,6 +178,19 @@ describe("Server Actions utenti", () => {
       const result = await aggiornaUtente(statoIniziale(), formData);
 
       expect(result.errori).toEqual({ _form: "ID utente mancante" });
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
+      expect(mockUtente.findUnique).not.toHaveBeenCalled();
+      expect(mockUtente.update).not.toHaveBeenCalled();
+    });
+
+    it("rifiuta un ruolo inviato dal form non valido senza accedere al database", async () => {
+      const formData = formModificaUtente();
+      formData.set("ruolo", "SUPERVISORE");
+
+      const result = await aggiornaUtente(statoIniziale(), formData);
+
+      expect(result.errori).toEqual({ ruolo: "Seleziona un ruolo valido" });
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
       expect(mockUtente.findUnique).not.toHaveBeenCalled();
       expect(mockUtente.update).not.toHaveBeenCalled();
     });
@@ -178,40 +200,79 @@ describe("Server Actions utenti", () => {
 
       const result = await aggiornaUtente(
         statoIniziale(),
-        formModificaUtente()
+        formModificaUtente(),
       );
 
+      expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
       expect(mockUtente.findUnique).toHaveBeenCalledWith({
         where: { id: "utente-1" },
-        select: { ruolo: true },
+        select: { ruolo: true, attivo: true },
       });
       expect(result.errori).toEqual({ _form: "Utente non trovato" });
       expect(mockUtente.update).not.toHaveBeenCalled();
     });
 
-    it("aggiorna esattamente nome ed email normalizzati senza ruolo né stato, poi redirige", async () => {
-      mockUtente.findUnique.mockResolvedValue({ ruolo: "COLLABORATORE" });
+    it("promuove un collaboratore salvando ruolo, nome ed email normalizzati", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "COLLABORATORE",
+        attivo: true,
+      });
       mockUtente.update.mockResolvedValue({ id: "utente-1" });
 
       await aggiornaUtente(statoIniziale(), formModificaUtente());
 
+      expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockUtente.count).not.toHaveBeenCalled();
       expect(mockUtente.update).toHaveBeenCalledWith({
         where: { id: "utente-1" },
         data: {
           nome: "Laura Verdi",
           email: "laura.verdi@example.com",
+          ruolo: "AMMINISTRATORE",
         },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=salvato"
+        "/anagrafiche/utenti?esito=salvato",
       );
     });
 
-    it("usa il ruolo persistito per la validazione reale e non quello inviato dal form", async () => {
-      mockUtente.findUnique.mockResolvedValue({ ruolo: "COLLABORATORE" });
+    it("blocca la retrocessione dell'ultimo amministratore attivo", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "AMMINISTRATORE",
+        attivo: true,
+      });
+      mockUtente.count.mockResolvedValue(0);
       const formData = formModificaUtente();
-      formData.set("ruolo", "SUPERVISORE");
+      formData.set("ruolo", "COLLABORATORE");
+
+      const result = await aggiornaUtente(statoIniziale(), formData);
+
+      expect(mockUtente.count).toHaveBeenCalledWith({
+        where: {
+          ruolo: "AMMINISTRATORE",
+          attivo: true,
+          id: { not: "utente-1" },
+        },
+      });
+      expect(result.errori).toEqual({
+        _form:
+          "Operazione non consentita: è l'ultimo amministratore attivo del sistema",
+      });
+      expect(mockUtente.update).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
+    it("retrocede un amministratore quando ne resta almeno un altro attivo", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "AMMINISTRATORE",
+        attivo: true,
+      });
+      mockUtente.count.mockResolvedValue(1);
+      mockUtente.update.mockResolvedValue({ id: "utente-1" });
+      const formData = formModificaUtente();
+      formData.set("ruolo", "COLLABORATORE");
 
       await aggiornaUtente(statoIniziale(), formData);
 
@@ -220,17 +281,59 @@ describe("Server Actions utenti", () => {
         data: {
           nome: "Laura Verdi",
           email: "laura.verdi@example.com",
+          ruolo: "COLLABORATORE",
+        },
+      });
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "/anagrafiche/utenti?esito=salvato",
+      );
+    });
+
+    it("usa l'isolamento serializzabile e ritenta un conflitto P2034", async () => {
+      mockDb.$transaction
+        .mockRejectedValueOnce({ code: "P2034" })
+        .mockImplementationOnce(
+          async (callback: (tx: typeof mockDb) => unknown) => callback(mockDb),
+        );
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "COLLABORATORE",
+        attivo: true,
+      });
+
+      await aggiornaUtente(statoIniziale(), formModificaUtente());
+
+      expect(mockDb.$transaction).toHaveBeenCalledTimes(2);
+      expect(mockDb.$transaction).toHaveBeenNthCalledWith(
+        1,
+        expect.any(Function),
+        { isolationLevel: "Serializable" },
+      );
+      expect(mockDb.$transaction).toHaveBeenNthCalledWith(
+        2,
+        expect.any(Function),
+        { isolationLevel: "Serializable" },
+      );
+      expect(mockUtente.update).toHaveBeenCalledWith({
+        where: { id: "utente-1" },
+        data: {
+          nome: "Laura Verdi",
+          email: "laura.verdi@example.com",
+          ruolo: "AMMINISTRATORE",
         },
       });
     });
 
     it("traduce il vincolo unique P2002 in errore email duplicata", async () => {
-      mockUtente.findUnique.mockResolvedValue({ ruolo: "COLLABORATORE" });
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "COLLABORATORE",
+        attivo: true,
+      });
       mockUtente.update.mockRejectedValue({ code: "P2002" });
 
       const result = await aggiornaUtente(
         statoIniziale(),
-        formModificaUtente()
+        formModificaUtente(),
       );
 
       expect(result.errori).toEqual({

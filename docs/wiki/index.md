@@ -2,7 +2,7 @@
 
 ## Architecture
 
-* [Mappa dei contesti candidati](architecture/context-map.md) - Relazioni tra capability candidate, infrastruttura condivisa e confini ancora da revisionare. _State: generated._
+* [Mappa dei contesti candidati](architecture/context-map.md) - Relazioni tra capability candidate, infrastruttura condivisa e confini ancora da revisionare. _State: reviewed._
 
 ## Backlog
 
@@ -83,6 +83,7 @@
 
 ## Decisions
 
+* [Autorità sul ruolo nel DAL](decisions/autorita-ruolo-dal.md) - Il proxy garantisce la sola autenticazione; il ruolo autorevole è quello a database letto dal DAL a ogni accesso protetto. _State: reviewed._
 * [Calcoli di dominio in funzioni pure](decisions/calcoli-puri.md) - Isolare validazioni e calcoli di consuntivazione in funzioni pure testabili. _State: reviewed._
 * [Giornata equivalente a otto ore](decisions/giornata-otto-ore.md) - Convertire ore e giornate con la costante fissa di otto ore per giornata. _State: reviewed._
 * [Importi monetari decimali](decisions/importi-decimali.md) - Persistire gli importi monetari come Decimal per evitare errori contabili. _State: reviewed._
@@ -111,7 +112,7 @@
 
 ## Project
 
-* [Panoramica](overview.md) - Scopo, attori, stack e perimetro della mappa codebase-first di Coaching Planner. _State: generated._
+* [Panoramica](overview.md) - Scopo, attori, stack e perimetro della mappa codebase-first di Coaching Planner. _State: reviewed._
 
 ## References
 

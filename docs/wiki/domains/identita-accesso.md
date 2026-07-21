@@ -21,6 +21,12 @@ sources:
     - path: src/app/(back-office)/anagrafiche/utenti/actions.ts
       role: identity-commands
       symbol: creaUtente, aggiornaUtente
+    - path: src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts
+      role: identity-lifecycle-command
+      symbol: cambiaStatoUtenteAction
+    - path: src/domain/anagrafiche/protezione-amministratore.ts
+      role: identity-invariant
+      symbol: violaProtezioneUltimoAmministratore
     - path: src/lib/utenti.ts
       role: identity-queries
       symbol: elencaUtenti, utentePerId
@@ -37,21 +43,27 @@ sources:
       role: verification
     - path: tests/unit/valida-utente.test.ts
       role: verification
+    - path: tests/unit/cambia-stato-utente.test.ts
+      role: verification
+    - path: tests/unit/google-callback.test.ts
+      role: verification
+    - path: tests/unit/protezione-amministratore.test.ts
+      role: verification
     - path: tests/e2e/autorizzazione-ruoli.spec.ts
       role: verification
     - path: tests/e2e/gestione-utenti.spec.ts
       role: verification
 review:
-    content_hash: sha256:ab50a4ac1f013f7631a40316ea35eae752b4afa3a5f68525ec91c1b7f0ebaafa
-    evidence_revision: 28ad77ed6df92a9bb9e2f82506973195dd01f161
-    reviewed_at: "2026-07-21T12:22:18Z"
+    content_hash: sha256:df35cf4890d4d86301eaf184b630da484e9a59cfc5957c25b5b3563aba7b481b
+    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
+    reviewed_at: "2026-07-21T14:41:50Z"
 ---
 # Identità, sessioni e accesso
 
 <!-- archetipo:wiki section=purpose -->
 ## Scopo
 
-Censisce le identità autorizzate, autentica tramite Google persone già censite, emette una sessione stateless, protegge le rotte in base a sessione e ruolo e riconcilia l'identità con il database prima delle operazioni applicative.
+Censisce le identità autorizzate, autentica tramite Google persone già censite, emette una sessione stateless e governa stato e ruolo dell'utente. Il DAL riconcilia l'identità con il database prima delle operazioni applicative e applica l'autorizzazione autorevole.
 
 <!-- archetipo:wiki section=language -->
 ## Linguaggio
@@ -66,20 +78,21 @@ Possiede `Utente`, compresi identità anagrafica, email di accesso, ruolo e stat
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
-`GET /api/auth/google` avvia OAuth; il callback accetta `code`, `state` e cookie temporanei. Il JWT contiene `utenteId`, ruolo, nome, email ed `expiresAt`. Il proxy classifica root, OAuth, seam E2E e rotte protette. Il DAL espone guardie con redirect per RSC e `ErroreAutorizzazione(401|403)` per API/action. Le pagine `/anagrafiche/utenti`, `/anagrafiche/utenti/nuovo` e `/anagrafiche/utenti/[id]/modifica`, le query `elencaUtenti`/`utentePerId` e le action `creaUtente`/`aggiornaUtente` richiedono il ruolo amministratore.
+`GET /api/auth/google` avvia OAuth; il callback accetta `code`, `state` e cookie temporanei e rifiuta con il messaggio generico anche un `Utente.attivo = false`. Il JWT contiene `utenteId`, ruolo, nome, email ed `expiresAt`. Il proxy classifica root, OAuth, seam E2E e rotte protette e verifica soltanto la sessione JWT. Il DAL espone guardie con redirect per RSC e `ErroreAutorizzazione(401|403)` per API/action, rileggendo a database stato e ruolo. Le pagine `/anagrafiche/utenti`, `/anagrafiche/utenti/nuovo` e `/anagrafiche/utenti/[id]/modifica`, le query `elencaUtenti`/`utentePerId` e le action `creaUtente`, `aggiornaUtente` e `cambiaStatoUtenteAction` richiedono il ruolo amministratore.
 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
 
 1. L'avvio genera `state` e code verifier e li scrive in cookie HttpOnly per 10 minuti.
-2. Il callback verifica cookie, query, state, scambio Google, email verificata e presenza dell'utente; rifiuta un collaboratore censito con profilo esplicitamente disattivato.
+2. Il callback verifica cookie, query, state, scambio Google, email verificata e presenza dell'utente; rifiuta con lo stesso errore generico un utente invalidato (`Utente.attivo = false`) e un collaboratore censito con profilo esplicitamente disattivato.
 3. `src/app/api/auth/google/callback/route.ts` esegue `db.account.upsert`: il ramo create assegna `userId`, provider, subject e access token; il ramo update assegna soltanto l'access token. `createSession` in `src/lib/session.ts` scrive poi il cookie JWT e il callback reindirizza a `/attivita`.
 4. `verificaERinnovaTokenSessione` in `src/lib/session-token.ts` assegna nel nuovo token `expiresAt = now + 8h`; `src/proxy.ts` riscrive il cookie sulle richieste previste. Non esiste una write alla tabella Prisma `Session` nel flusso osservato.
 5. Logout e pulizia token in `src/lib/session.ts` impostano il cookie vuoto con `maxAge: 0`.
-6. Il proxy usa il ruolo firmato per la prima decisione; il DAL rilegge `Utente` e stato profilo dal database prima dei dati protetti.
+6. Il proxy verifica e rinnova il solo JWT per consentire l'accesso a una rotta protetta, senza consultare il database né decidere per ruolo. Il DAL rilegge invece `Utente`, inclusi `attivo`, ruolo e stato profilo, prima dei dati protetti: una sessione già aperta di utente invalidato diventa non autenticata al primo consumer DAL e un cambio ruolo ha effetto al primo accesso protetto successivo.
 7. L'amministratore raggiunge `/anagrafiche/utenti` dalla console, ricerca e legge nome, email, ruolo, `Utente.attivo` e l'eventuale stato separato del profilo collaboratore.
-8. `creaUtente` normalizza nome ed email, valida nome/email/ruolo, impedisce duplicati anche traducendo il vincolo Prisma `P2002` e crea un utente con `attivo = true` per default di schema. `aggiornaUtente` modifica soltanto nome ed email: ruolo e stato sono mostrati in sola lettura.
-9. Non è osservata alcuna write di cambio ruolo. `creaCollaboratore` assegna `COLLABORATORE` soltanto quando crea un nuovo utente; un amministratore riusato mantiene il suo ruolo.
+8. `creaUtente` normalizza nome ed email, valida nome/email/ruolo, impedisce duplicati anche traducendo il vincolo Prisma `P2002` e crea un utente con `attivo = true` per default di schema. `aggiornaUtente` modifica nome, email e ruolo nella transazione.
+9. `cambiaStatoUtenteAction` invalida o riattiva nella stessa transazione `Utente.attivo` e, se presente, `Collaboratore.attivo`; rivalida entrambe le anagrafiche. L'invalidazione non elimina il record.
+10. La retrocessione di un amministratore attivo e la sua invalidazione contano gli altri amministratori attivi nella transazione e vengono rifiutate se rimuoverebbero l'ultimo; la promozione e gli altri cambi ruolo sono salvati da `aggiornaUtente`. `creaCollaboratore` assegna `COLLABORATORE` soltanto quando crea un nuovo utente; un amministratore riusato mantiene il suo ruolo.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
@@ -90,20 +103,20 @@ Possiede `Utente`, compresi identità anagrafica, email di accesso, ruolo e stat
 | Sessione | `src/lib/session-config.ts`, `src/lib/session-token.ts`, `src/lib/session.ts` |
 | Policy anticipata | `src/proxy.ts`, `src/lib/policy-rotte.ts` |
 | Identità autorevole e guardie | `src/lib/dal.ts` |
-| Amministrazione utenti | `src/app/(back-office)/anagrafiche/utenti/**`, `src/lib/utenti.ts`, `src/domain/anagrafiche/valida-utente.ts` |
+| Amministrazione utenti | `src/app/(back-office)/anagrafiche/utenti/**`, `src/lib/utenti.ts`, `src/domain/anagrafiche/valida-utente.ts`, `src/domain/anagrafiche/protezione-amministratore.ts` |
 | Fail-fast | `src/instrumentation.ts`, `next.config.ts` |
 | Dati | `prisma/schema.prisma` e `prisma/migrations/20260721084945_aggiungi_stato_attivo_utente/migration.sql` (`Utente`, `Account`; `Session` e `VerificationToken` dichiarati ma non usati dal flusso corrente) |
-| Test | test unit `session*`, `proxy`, `policy-rotte`, `dal-guards`, `utenti-actions`, `valida-utente`; E2E auth, ruoli, gestione utenti, root e sessione proxy |
+| Test | test unit `session*`, `proxy`, `policy-rotte`, `dal-guards`, `utenti-actions`, `valida-utente`, `cambia-stato-utente`, `google-callback`, `protezione-amministratore`; E2E auth, ruoli, gestione utenti, root e sessione proxy |
 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
 
-JWT firmato HS256, payload validato, `exp === expiresAt`, durata sliding 8 ore. `SESSION_SECRET` deve avere almeno 32 caratteri e non essere il placeholder. Cookie HttpOnly, SameSite=Lax, Secure in produzione. Google non autocrea utenti: richiede email verificata e già censita. `Utente.email`, account provider e profilo utente sono unici a database; `Utente.attivo` è non nullo e vale `true` per default. La UI introdotta espone lo stato ma non offre una transizione, e callback e DAL non consultano ancora `Utente.attivo`: il solo valore `false` non revoca quindi l'accesso nel flusso osservato. Il callback risolve l'utente per email verificata ma l'upsert per subject Google, quando trova un `Account` esistente, aggiorna soltanto l'access token e non verifica che `Account.userId` coincida con l'utente risolto: il binding fra subject ed email non è quindi imposto esplicitamente dall'applicazione. Il proxy non consulta il database: revoca del profilo e cambiamenti al ruolo diventano autorevoli quando il consumer invoca il DAL. L'endpoint `/api/e2e-test/sessione` è escluso dalle guardie proxy ma risponde 403 salvo `E2E_TEST_MODE=true`. `src/lib/auth.ts` è un placeholder; Auth.js non è una dipendenza runtime osservata.
+JWT firmato HS256, payload validato, `exp === expiresAt`, durata sliding 8 ore. `SESSION_SECRET` deve avere almeno 32 caratteri e non essere il placeholder. Cookie HttpOnly, SameSite=Lax, Secure in produzione. Google non autocrea utenti: richiede email verificata e già censita; callback e DAL applicano inoltre `Utente.attivo`. `Utente.email`, account provider e profilo utente sono unici a database; `Utente.attivo` è non nullo e vale `true` per default. Deve restare almeno un amministratore attivo: invalidare o retrocedere l'ultimo è rifiutato prima di ogni write. Il proxy non consulta il database e svolge solo autenticazione/rinnovo della sessione JWT; il DAL è l'autorità del ruolo e dello stato correnti, quindi revoca e cambio ruolo diventano effettivi al primo accesso protetto che lo invoca. Il callback risolve l'utente per email verificata ma l'upsert per subject Google, quando trova un `Account` esistente, aggiorna soltanto l'access token e non verifica che `Account.userId` coincida con l'utente risolto: il binding fra subject ed email non è quindi imposto esplicitamente dall'applicazione. L'endpoint `/api/e2e-test/sessione` è escluso dalle guardie proxy ma risponde 403 salvo `E2E_TEST_MODE=true`. `src/lib/auth.ts` è un placeholder; Auth.js non è una dipendenza runtime osservata.
 
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Test unitari coprono secret, token, rinnovo, proxy, policy, guardie DAL, validazione utente e action amministrative; gli E2E coprono ruoli, root, logout, revoca integrata ed elenco/creazione/modifica utenti con factory isolate. Le route Google reali non hanno test unitari diretti: `auth-helpers.test.ts` replica parte delle decisioni e gli E2E usano un seam. Confidenza alta su sessione, autorizzazione e censimento utenti, media sul callback reale. La classificazione resta candidata perché lo stato `Utente.attivo` è persistito e rappresentato ma non ancora applicato dalle guardie di accesso.
+Test unitari coprono secret, token, rinnovo, proxy, policy, guardie DAL, validazione e action utenti. `google-callback.test.ts` verifica che il callback respinga l'utente invalidato senza creare account o sessione; `cambia-stato-utente.test.ts` copre cascata utente/profilo, riattivazione e rifiuto dell'ultimo amministratore; `protezione-amministratore.test.ts` copre l'invariante pura. Gli E2E di gestione utenti coprono invalidazione, riattivazione, ruolo autorevole al successivo accesso protetto e stato del profilo con factory isolate. Confidenza alta su sessione, autorizzazione e ciclo di vita utenti; la classificazione resta candidata per il binding non imposto fra subject Google ed email.
 
 ## Concetti correlati
 

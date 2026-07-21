@@ -69,12 +69,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         ruolo: true,
         nome: true,
         email: true,
+        attivo: true,
         collaboratore: { select: { attivo: true } },
       },
     });
 
     if (!utente) {
       // Email non censita → accesso negato, messaggio generico
+      return redirectWithError();
+    }
+
+    if (utente.attivo === false) {
+      // Utente disattivato → accesso negato, stesso messaggio generico
       return redirectWithError();
     }
 

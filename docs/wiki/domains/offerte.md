@@ -30,8 +30,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:97c513b9b17c5500a5caa12c8a5ac43b6632ceeab5bcb079417140e73e449a83
-    evidence_revision: 46dd4fb946ccda154bf8f442d9cde387bef88435
-    reviewed_at: "2026-07-21T12:26:44Z"
+    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
+    reviewed_at: "2026-07-21T14:41:50Z"
 ---
 # Offerte
 

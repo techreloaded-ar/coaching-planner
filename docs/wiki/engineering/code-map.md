@@ -92,9 +92,9 @@ coverage:
       pages:
         - domains/identita-accesso
 review:
-    content_hash: sha256:be133e088cdf6fb592a9001c541bf452e22b4207fff7b69b95f34e9f86235e3f
-    evidence_revision: 46dd4fb946ccda154bf8f442d9cde387bef88435
-    reviewed_at: "2026-07-21T12:26:44Z"
+    content_hash: sha256:05c105121d93e8cfd44e85368fc1633a1a08fe3ff1b928f7ff100bae76044210
+    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
+    reviewed_at: "2026-07-21T14:41:50Z"
 ---
 # Mappa del codice
 
@@ -104,12 +104,12 @@ review:
 | Capability | UI / ingresso | Applicazione e dominio | Dati | Integrazioni | Test principali | Wiki |
 |---|---|---|---|---|---|---|
 | Clienti | `src/app/(back-office)/anagrafiche/clienti/**` | `src/lib/clienti.ts`, `src/domain/anagrafiche/valida-cliente.ts` | `Cliente` | Offerte, Attività, report | unit clienti/validazione; E2E anagrafica clienti | `domains.clienti` |
-| Collaboratori | `src/app/(back-office)/anagrafiche/collaboratori/**` | `src/lib/collaboratori.ts`, validatore, parti di `dal.ts` | `Collaboratore`, scritture coordinate su `Utente` | Identità, Attività | unit collaboratori/DAL; E2E collaboratori | `domains.collaboratori` |
+| Collaboratori | `src/app/(back-office)/anagrafiche/collaboratori/**` | `src/lib/collaboratori.ts`, validatore, parti di `dal.ts`; la lifecycle action utenti sincronizza il profilo | `Collaboratore`, sincronizzazione coordinata con `Utente.attivo` | Identità, Attività | unit collaboratori/DAL e cambio stato utente; E2E collaboratori e gestione utenti | `domains.collaboratori` |
 | Offerte | UI annidata cliente, compresa `offerte-cliente-tabella.tsx`, e `src/app/(back-office)/offerte/**`, entrambe con dettaglio avanzamento espandibile | `src/lib/offerte.ts`, inclusa query filtrata per cliente, validatore offerta, `calcolaAvanzamentoOfferte` | `Offerta` | Clienti, Attività | unit offerte/avanzamento; E2E offerte e dettaglio avanzamento nelle viste trasversale e cliente | `domains.offerte` |
 | Politiche rimborso | `src/app/(back-office)/anagrafiche/scaglioni/**` | `src/lib/scaglioni.ts`, validatore, `calcolaRimborsoTrasferta` | `ScaglioneKm` | Attività, Fatturazione | unit scaglioni/rimborso; E2E scaglioni/trasferta | `domains.politiche-rimborso` |
 | Attività | `src/app/(front-office)/attivita/**` | `src/lib/actions/righe-attivita.ts`, `src/lib/attivita.ts`, calendario e consuntivi | `RigaAttivita` | tutte le anagrafiche operative | unit attività/action/calendario/riepilogo; E2E attività | `domains.attivita` |
 | Fatturazione clienti | `src/app/(back-office)/report/fatturazione-clienti/**` | `src/lib/report.ts`, `calcolaReportFatturazioneClienti` | sola lettura di attività/offerte/clienti/scaglioni | nessuna esterna | unit ed E2E report fatturazione | `domains.fatturazione-clienti` |
-| Identità e accesso | route Google, root, proxy e `src/app/(back-office)/anagrafiche/utenti/**` | OAuth adapter, session token/cookie, policy e DAL; `src/lib/utenti.ts`, action e validatore utente | `Utente` con stato `attivo`, `Account`; tabella `Session` non usata dal flusso | Google OIDC, Collaboratori come writer coordinato di `Utente` | unit session/proxy/DAL, validazione/action utenti; E2E auth/ruoli e gestione utenti | `domains.identita-accesso` |
+| Identità e accesso | route Google, root, proxy e `src/app/(back-office)/anagrafiche/utenti/**` | OAuth adapter, session token/cookie, proxy di sola autenticazione e DAL autorevole; `src/lib/utenti.ts`, action, validatore e protezione ultimo amministratore | `Utente` con stato `attivo` e ruolo, `Account`; tabella `Session` non usata dal flusso | Google OIDC, Collaboratori per la sincronizzazione del profilo | unit session/proxy/DAL, callback e action utenti; E2E auth/ruoli e gestione utenti | `domains.identita-accesso` |
 
 <!-- archetipo:wiki section=shared -->
 ## Codice condiviso

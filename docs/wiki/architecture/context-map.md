@@ -2,7 +2,7 @@
 type: context-map
 title: Mappa dei contesti candidati
 description: Relazioni tra capability candidate, infrastruttura condivisa e confini ancora da revisionare
-status: generated
+status: reviewed
 sources:
     - path: src/lib/actions/righe-attivita.ts
       role: cross-capability-flow
@@ -12,6 +12,10 @@ sources:
       role: shared-access-boundary
     - path: prisma/schema.prisma
       role: shared-storage
+review:
+    content_hash: sha256:e9040ed550e9b951ec404c6dd0c754350c1e7f191bbd22b624b7b035a116bc4f
+    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
+    reviewed_at: "2026-07-21T14:41:50Z"
 ---
 # Mappa dei contesti candidati
 

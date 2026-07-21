@@ -16,6 +16,16 @@ function rigaUtente(page: Page, email: string) {
 		.filter({ has: page.getByText(email, { exact: true }) });
 }
 
+function tabellaCollaboratori(page: Page) {
+	return page.getByRole("table", { name: "Elenco collaboratori" });
+}
+
+function rigaCollaboratore(page: Page, email: string) {
+	return tabellaCollaboratori(page)
+		.getByRole("row")
+		.filter({ has: page.getByText(email, { exact: true }) });
+}
+
 async function apriElencoUtenti(page: Page): Promise<void> {
 	await page.getByRole("link", { name: "Utenti", exact: true }).click();
 	await expect(page).toHaveURL(/\/anagrafiche\/utenti$/);
@@ -23,7 +33,15 @@ async function apriElencoUtenti(page: Page): Promise<void> {
 }
 
 async function filtraUtenti(page: Page, valore: string): Promise<void> {
-	await page.getByRole("searchbox", { name: "Cerca utente" }).fill(valore);
+	const ricerca = page.getByRole("searchbox", { name: "Cerca utente" });
+
+	await expect
+		.poll(async () => {
+			await ricerca.fill("");
+			await ricerca.fill(valore);
+			return tabellaUtenti(page).getByRole("row").count();
+		})
+		.toBe(2);
 }
 
 test.describe("Gestione utenti", () => {
@@ -189,10 +207,9 @@ test.describe("Gestione utenti", () => {
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
-		await expect(page.locator('input[name="ruolo"]')).toHaveCount(0);
 		await expect(
-			page.getByText("Collaboratore", { exact: true }),
-		).toBeVisible();
+			page.getByRole("radio", { name: /^Collaboratore\b/ }),
+		).toBeChecked();
 
 		await page.getByLabel(/^Nome\b/).fill(nuovoNome);
 		await page.getByLabel(/^Email di accesso\b/).fill(nuovaEmail);
@@ -213,5 +230,329 @@ test.describe("Gestione utenti", () => {
 		await expect(
 			rigaModificata.getByText(nuovaEmail, { exact: true }),
 		).toBeVisible();
+	});
+
+	test("invalida un collaboratore: elenco, profilo operativo e sessione aperta", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		const collaboratore = await factory.createCollaboratore({
+			utenteOptions: {
+				nome: `${factory.namespace} Collaboratore da invalidare`,
+				email: `${factory.namespace}-da-invalidare@e2e.invalid`,
+				ruolo: "COLLABORATORE",
+			},
+		});
+		const contestoUtente = await browser.newContext();
+
+		try {
+			const paginaUtente = await contestoUtente.newPage();
+			await accediCome(paginaUtente, collaboratore.utente.email);
+			await expect(paginaUtente).toHaveURL(/\/attivita/);
+
+			await apriElencoUtenti(page);
+			await filtraUtenti(page, collaboratore.utente.email);
+			const riga = rigaUtente(page, collaboratore.utente.email);
+			await riga.getByRole("button", { name: "Invalida", exact: true }).click();
+
+			const modale = page.getByRole("dialog", {
+				name: `Invalidare «${collaboratore.utente.nome}»?`,
+			});
+			await expect(modale).toBeVisible();
+			await modale
+				.getByRole("button", { name: "Invalida utente", exact: true })
+				.click();
+
+			await expect(page).toHaveURL(
+				/\/anagrafiche\/utenti\?esito=invalidato$/,
+			);
+			await expect(page.getByRole("status")).toContainText(
+				"Utente invalidato: l'accesso è revocato e il record resta in elenco",
+			);
+			await expect(riga).toHaveCount(1);
+			await expect(riga.getByText("Invalidato", { exact: true })).toBeVisible();
+
+			await page.getByRole("link", { name: "Collaboratori", exact: true }).click();
+			await expect(page).toHaveURL(/\/anagrafiche\/collaboratori$/);
+			await page
+				.getByRole("searchbox", { name: "Cerca collaboratore" })
+				.fill(collaboratore.utente.email);
+			const rigaProfilo = rigaCollaboratore(page, collaboratore.utente.email);
+			await expect(rigaProfilo).toHaveCount(1);
+			await expect(
+				rigaProfilo.getByText("Disattivato", { exact: true }),
+			).toBeVisible();
+
+			await paginaUtente.goto("/attivita");
+			await expect(paginaUtente).toHaveURL(/\/$/);
+			await expect(
+				paginaUtente.getByRole("button", { name: "Accedi con Google" }),
+			).toBeVisible();
+		} finally {
+			await contestoUtente.close();
+		}
+	});
+
+	test("riattiva un utente invalidato: accesso e profilo ripristinati", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		const collaboratore = await factory.createCollaboratore({
+			utenteOptions: {
+				nome: `${factory.namespace} Collaboratore da riattivare`,
+				email: `${factory.namespace}-da-riattivare@e2e.invalid`,
+				ruolo: "COLLABORATORE",
+			},
+		});
+
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, collaboratore.utente.email);
+		const riga = rigaUtente(page, collaboratore.utente.email);
+		await riga.getByRole("button", { name: "Invalida", exact: true }).click();
+		const modale = page.getByRole("dialog", {
+			name: `Invalidare «${collaboratore.utente.nome}»?`,
+		});
+		await expect(modale).toBeVisible();
+		await modale
+			.getByRole("button", { name: "Invalida utente", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=invalidato$/);
+
+		await riga.getByRole("button", { name: "Riattiva", exact: true }).click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=riattivato$/);
+		await expect(page.getByRole("status")).toContainText(
+			"Utente riattivato: può accedere di nuovo all'applicazione",
+		);
+		await expect(riga.getByText("Attivo", { exact: true })).toBeVisible();
+
+		await page.getByRole("link", { name: "Collaboratori", exact: true }).click();
+		await expect(page).toHaveURL(/\/anagrafiche\/collaboratori$/);
+		await page
+			.getByRole("searchbox", { name: "Cerca collaboratore" })
+			.fill(collaboratore.utente.email);
+		await expect(
+			rigaCollaboratore(page, collaboratore.utente.email).getByText("Attivo", {
+				exact: true,
+			}),
+		).toBeVisible();
+
+		const contestoUtente = await browser.newContext();
+		try {
+			const paginaUtente = await contestoUtente.newPage();
+			await accediCome(paginaUtente, collaboratore.utente.email);
+			await expect(paginaUtente).toHaveURL(/\/attivita/);
+		} finally {
+			await contestoUtente.close();
+		}
+	});
+
+	test("promuove un collaboratore: la sessione aperta raggiunge il back office", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		const utente = await factory.createUtente({
+			nome: `${factory.namespace} Collaboratore da promuovere`,
+			email: `${factory.namespace}-da-promuovere@e2e.invalid`,
+			ruolo: "COLLABORATORE",
+		});
+		const contestoUtente = await browser.newContext();
+
+		try {
+			const paginaUtente = await contestoUtente.newPage();
+			await accediCome(paginaUtente, utente.email);
+			await expect(paginaUtente).toHaveURL(/\/attivita/);
+
+			await apriElencoUtenti(page);
+			await filtraUtenti(page, utente.email);
+			await rigaUtente(page, utente.email)
+				.getByRole("link", { name: "Modifica", exact: true })
+				.click();
+			await expect(
+				page.getByRole("heading", { name: "Modifica utente" }),
+			).toBeVisible();
+			await page
+				.getByRole("radio", { name: /^Amministratore\b/ })
+				.check({ force: true });
+			await page
+				.getByRole("button", { name: "Salva modifiche", exact: true })
+				.click();
+			await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
+			await filtraUtenti(page, utente.email);
+			await expect(
+				rigaUtente(page, utente.email).getByText("Amministratore", {
+					exact: true,
+				}),
+			).toBeVisible();
+
+			await paginaUtente.goto("/anagrafiche");
+			await expect(paginaUtente).toHaveURL(/\/anagrafiche\/clienti$/);
+			await expect(
+				paginaUtente.getByRole("heading", { name: "Clienti", exact: true }),
+			).toBeVisible();
+		} finally {
+			await contestoUtente.close();
+		}
+	});
+
+	test("retrocede un amministratore: la sessione aperta perde il back office", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		const utente = await factory.createUtente({
+			nome: `${factory.namespace} Amministratore da retrocedere`,
+			email: `${factory.namespace}-da-retrocedere@e2e.invalid`,
+			ruolo: "AMMINISTRATORE",
+		});
+		const contestoUtente = await browser.newContext();
+
+		try {
+			const paginaUtente = await contestoUtente.newPage();
+			await accediCome(paginaUtente, utente.email);
+			await paginaUtente.goto("/anagrafiche");
+			await expect(paginaUtente).toHaveURL(/\/anagrafiche\/clienti$/);
+
+			await apriElencoUtenti(page);
+			await filtraUtenti(page, utente.email);
+			await rigaUtente(page, utente.email)
+				.getByRole("link", { name: "Modifica", exact: true })
+				.click();
+			await expect(
+				page.getByRole("heading", { name: "Modifica utente" }),
+			).toBeVisible();
+			await page
+				.getByRole("radio", { name: /^Collaboratore\b/ })
+				.check({ force: true });
+			await page
+				.getByRole("button", { name: "Salva modifiche", exact: true })
+				.click();
+			await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
+
+			await paginaUtente.goto("/anagrafiche");
+			await expect(paginaUtente).toHaveURL(/\/attivita/);
+		} finally {
+			await contestoUtente.close();
+		}
+	});
+
+	test("demo__invalida-riattiva-e-promuove-un-collaboratore", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		const collaboratore = await factory.createCollaboratore({
+			utenteOptions: {
+				nome: `${factory.namespace} Collaboratore demo`,
+				email: `${factory.namespace}-demo@e2e.invalid`,
+				ruolo: "COLLABORATORE",
+			},
+		});
+		const contestoUtente = await browser.newContext();
+
+		try {
+			const paginaUtente = await contestoUtente.newPage();
+			await accediCome(paginaUtente, collaboratore.utente.email);
+			await expect(paginaUtente.getByRole("heading", { name: "Attività" })).toBeVisible();
+
+			await apriElencoUtenti(page);
+			await filtraUtenti(page, collaboratore.utente.email);
+			const riga = rigaUtente(page, collaboratore.utente.email);
+			await expect(riga).toBeVisible();
+			await riga.getByRole("button", { name: "Invalida", exact: true }).click();
+			const modale = page.getByRole("dialog", {
+				name: `Invalidare «${collaboratore.utente.nome}»?`,
+			});
+			await expect(modale).toBeVisible();
+			await modale
+				.getByRole("button", { name: "Invalida utente", exact: true })
+				.click();
+			await expect(page.getByRole("status")).toContainText(
+				"Utente invalidato: l'accesso è revocato e il record resta in elenco",
+			);
+			await expect(riga.getByText("Invalidato", { exact: true })).toBeVisible();
+
+			await page.getByRole("link", { name: "Collaboratori", exact: true }).click();
+			await expect(page.getByRole("heading", { name: "Collaboratori" })).toBeVisible();
+			await page
+				.getByRole("searchbox", { name: "Cerca collaboratore" })
+				.fill(collaboratore.utente.email);
+			await expect(
+				rigaCollaboratore(page, collaboratore.utente.email).getByText(
+					"Disattivato",
+					{ exact: true },
+				),
+			).toBeVisible();
+
+			await paginaUtente.goto("/attivita");
+			await expect(
+				paginaUtente.getByRole("button", { name: "Accedi con Google" }),
+			).toBeVisible();
+
+			await apriElencoUtenti(page);
+			await filtraUtenti(page, collaboratore.utente.email);
+			await riga
+				.getByRole("button", { name: "Riattiva", exact: true })
+				.click();
+			await expect(page.getByRole("status")).toContainText(
+				"Utente riattivato: può accedere di nuovo all'applicazione",
+			);
+			await expect(riga.getByText("Attivo", { exact: true })).toBeVisible();
+
+			await riga.getByRole("link", { name: "Modifica", exact: true }).click();
+			await expect(
+				page.getByRole("heading", { name: "Modifica utente" }),
+			).toBeVisible();
+			await page
+				.getByRole("radio", { name: /^Amministratore\b/ })
+				.check({ force: true });
+			await expect(
+				page.getByRole("radio", { name: /^Amministratore\b/ }),
+			).toBeChecked();
+			await page
+				.getByRole("button", { name: "Salva modifiche", exact: true })
+				.click();
+			await expect(page.getByRole("status")).toContainText(
+				"Modifiche all'utente salvate",
+			);
+
+			const contestoPromosso = await browser.newContext();
+			try {
+				const paginaPromosso = await contestoPromosso.newPage();
+				await accediCome(paginaPromosso, collaboratore.utente.email);
+				await paginaPromosso.goto("/anagrafiche");
+				await expect(
+					paginaPromosso.getByRole("heading", { name: "Clienti", exact: true }),
+				).toBeVisible();
+			} finally {
+				await contestoPromosso.close();
+			}
+		} finally {
+			await contestoUtente.close();
+		}
+	});
+
+	test("mostra l'errore di protezione dell'ultimo amministratore", async ({
+		page,
+	}) => {
+		// Il rifiuto reale richiederebbe di mutare l'admin del seed, vietato in e2e;
+		// la logica è coperta da tests/unit/cambia-stato-utente.test.ts e
+		// tests/unit/utenti-actions.test.ts.
+		await page.goto("/anagrafiche/utenti?errore=ultimo-amministratore");
+		await expect(page).toHaveURL(
+			/\/anagrafiche\/utenti\?errore=ultimo-amministratore$/,
+		);
+		await expect(
+			page
+				.getByRole("alert")
+				.filter({
+					hasText:
+						"Operazione non consentita: è l'ultimo amministratore attivo del sistema",
+				}),
+		).toContainText(
+			"Operazione non consentita: è l'ultimo amministratore attivo del sistema",
+		);
 	});
 });
