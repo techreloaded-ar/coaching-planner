@@ -55,10 +55,10 @@ order:
     - US-034
     - US-035
     - US-036
-    - US-037
     - US-039
     - US-040
     - US-038
+    - US-037
 ---
 # Backlog
 
@@ -80,7 +80,7 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-027: Accesso diretto dalla pagina radice con brand Agile Reloaded](specs/US-027.md) — **DONE**, 3 point(s).
 - [US-029: Attivazione del proxy di autenticazione con rinnovo sliding della sessione](specs/US-029.md) — **DONE**, 3 point(s).
 - [US-030: Front office per tutti gli utenti e back office raggiungibile dagli admin](specs/US-030.md) — **DONE**, 5 point(s).
-- [US-039: Elenco e censimento degli utenti nella console di amministrazione](specs/US-039.md) — **TODO**, 3 point(s).
+- [US-039: Elenco e censimento degli utenti nella console di amministrazione](specs/US-039.md) — **REVIEW**, 3 point(s).
 - [US-040: Invalidazione, riattivazione e cambio ruolo degli utenti con auto-protezione](specs/US-040.md) — **TODO**, 3 point(s).
 
 ## EP-002: Anagrafiche e Configurazione
@@ -110,7 +110,7 @@ This page is the canonical delivery index managed by `archetipo`.
 
 - [US-016: Vista avanzamento offerte con residuo giornate](specs/US-016.md) — **DONE**, 3 point(s).
 - [US-015: Report mensile degli importi da fatturare per cliente](specs/US-015.md) — **DONE**, 3 point(s).
-- [US-037: Dettaglio ore erogate per collaboratore nel report Fatturazione Clienti](specs/US-037.md) — **REVIEW**, 3 point(s).
+- [US-037: Dettaglio ore erogate per collaboratore nel report Fatturazione Clienti](specs/US-037.md) — **DONE**, 3 point(s).
 
 ## EP-005: Evoluzioni Post-MVP
 
