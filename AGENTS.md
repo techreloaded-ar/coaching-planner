@@ -18,3 +18,11 @@ When adding or changing Playwright e2e tests, preserve the deterministic approac
 - run `npm run lint` after e2e changes, because it includes the e2e anti-flakiness guardrail.
 
 See `tests/e2e/README.md` for the full e2e testing contract.
+
+## Archetipo Review rules
+
+When running `/archetipo-review`, the review must include a CI status check:
+
+- verify that the latest CI run on the relevant branch/PR is green before approving the spec;
+- if CI is red or still running, the review must either block approval or wait for CI to pass;
+- document the CI result (link to the run, status) in the review notes.
