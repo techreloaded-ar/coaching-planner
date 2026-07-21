@@ -121,6 +121,61 @@ describe("richiediSessioneApi", () => {
     expect(sessione.ruolo).toBe("AMMINISTRATORE");
   });
 
+  it("lancia 401 se il collaboratore è inattivo", async () => {
+    mockGetSessionCookie.mockResolvedValue(
+      sessioneCookie("col-inattivo", "COLLABORATORE")
+    );
+    mockUtente.findUnique.mockResolvedValue({
+      id: "col-inattivo",
+      ruolo: "COLLABORATORE",
+      nome: "Collaboratore inattivo",
+      email: "collaboratore.inattivo@test.local",
+      attivo: false,
+      collaboratore: { attivo: true },
+    });
+
+    await expect(richiediSessioneApi()).rejects.toMatchObject({
+      statusCode: 401,
+    });
+  });
+
+  it("lancia 401 se l'amministratore è inattivo", async () => {
+    mockGetSessionCookie.mockResolvedValue(
+      sessioneCookie("admin-inattivo", "AMMINISTRATORE")
+    );
+    mockUtente.findUnique.mockResolvedValue({
+      id: "admin-inattivo",
+      ruolo: "AMMINISTRATORE",
+      nome: "Admin inattivo",
+      email: "admin.inattivo@test.local",
+      attivo: false,
+      collaboratore: null,
+    });
+
+    await expect(richiediSessioneApi()).rejects.toMatchObject({
+      statusCode: 401,
+    });
+  });
+
+  it("restituisce la sessione se l'utente è attivo", async () => {
+    mockGetSessionCookie.mockResolvedValue(
+      sessioneCookie("admin-attivo", "AMMINISTRATORE")
+    );
+    mockUtente.findUnique.mockResolvedValue({
+      id: "admin-attivo",
+      ruolo: "AMMINISTRATORE",
+      nome: "Admin attivo",
+      email: "admin.attivo@test.local",
+      attivo: true,
+      collaboratore: null,
+    });
+
+    await expect(richiediSessioneApi()).resolves.toMatchObject({
+      utenteId: "admin-attivo",
+      ruolo: "AMMINISTRATORE",
+    });
+  });
+
   it("lancia 401 se il collaboratore è stato disattivato (profilo collaboratore.attivo === false)", async () => {
     mockGetSessionCookie.mockResolvedValue(
       sessioneCookie("col-1", "COLLABORATORE")

@@ -74,7 +74,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
         </h1>
         <p className="mt-[6px] max-w-[580px] text-[13px] leading-[1.55] text-zinc-400 dark:text-zinc-500">
           {inModifica
-            ? "Aggiorna nome ed email dell'utente. Il ruolo è mostrato in sola lettura e non si modifica da qui."
+            ? "Aggiorna nome, email e ruolo dell'utente. Il nuovo ruolo ha effetto al primo accesso protetto successivo."
             : "Indica nome, email e ruolo. L'utente comparirà in elenco con stato attivo e la sua email sarà riconosciuta dal flusso di accesso."}
         </p>
       </div>
@@ -156,39 +156,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
             />
 
             <SezioneForm icona="ruolo">Ruolo</SezioneForm>
-            {inModifica ? (
-              <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-1.5 max-[640px]:col-span-1">
-                <p
-                  id="ruolo-label"
-                  className="m-0 text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
-                >
-                  Ruolo
-                </p>
-                <div
-                  aria-labelledby="ruolo-label"
-                  aria-readonly="true"
-                  className="flex items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-100 px-[13px] py-[10px] text-[14px] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                >
-                  <IconaRuolo ruolo={utente.ruolo} />
-                  <span className="font-semibold">{ETICHETTE_RUOLO[utente.ruolo]}</span>
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    className="ml-auto h-[14px] w-[14px] text-zinc-400 dark:text-zinc-500"
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  >
-                    <rect x="5" y="11" width="14" height="9" rx="2" />
-                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-                  </svg>
-                </div>
-                <p className="m-0 text-[12px] text-zinc-400 dark:text-zinc-500">
-                  Il cambio ruolo non è disponibile da qui.
-                </p>
-              </div>
-            ) : (
-              <fieldset
+            <fieldset
                 role="radiogroup"
                 aria-invalid={!!stato.errori.ruolo}
                 aria-describedby={stato.errori.ruolo ? "errore-ruolo" : undefined}
@@ -208,7 +176,11 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                           type="radio"
                           name="ruolo"
                           value={ruolo}
-                          defaultChecked={ruolo === "COLLABORATORE"}
+                          defaultChecked={
+                            inModifica
+                              ? ruolo === utente.ruolo
+                              : ruolo === "COLLABORATORE"
+                          }
                           aria-labelledby={etichettaId}
                           aria-describedby={descrizioneId}
                           className="peer sr-only"
@@ -258,7 +230,6 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                   </div>
                 )}
               </fieldset>
-            )}
           </div>
         </div>
 

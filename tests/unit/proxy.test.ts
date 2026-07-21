@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { proxy, config } from "@/proxy";
-import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 import {
   DURATA_SESSIONE_SECONDI,
   NOME_COOKIE_SESSIONE,
@@ -110,7 +109,7 @@ describe("proxy", () => {
     }
   );
 
-  it("reindirizza il collaboratore dalla rotta AMMINISTRATORE alla home autenticata rinnovando il cookie", async () => {
+  it("lascia passare il collaboratore sulla rotta AMMINISTRATORE rinnovando il cookie", async () => {
     const now = 1_700_000_000;
     vi.setSystemTime(new Date(now * 1000));
     const sessione = await creaTokenSessione(
@@ -125,10 +124,7 @@ describe("proxy", () => {
 
     const response = await proxy(creaRequest("/anagrafiche", sessione.token));
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(
-      `${BASE_URL}${HOME_AUTENTICATA}`
-    );
+    expect(response.headers.get("location")).toBeNull();
     expect(response.headers.get("set-cookie")).toContain(NOME_COOKIE_SESSIONE);
   });
 

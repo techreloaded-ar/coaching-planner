@@ -1,10 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
-  HOME_AUTENTICATA,
-  type PoliticaAccesso,
-  politicaAccessoPerRotta,
-} from "@/lib/policy-rotte";
-import {
   NOME_COOKIE_SESSIONE,
   dataScadenzaSessione,
   opzioniCookieSessione,
@@ -25,7 +20,6 @@ type TipoRichiesta =
 
 interface ClassificazioneRichiesta {
   tipo: TipoRichiesta;
-  politicaAccesso: PoliticaAccesso | null;
 }
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
@@ -59,40 +53,27 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return pulisciCookie(redirectAllaRadice(request));
   }
 
-  if (
-    classificazione.politicaAccesso === "AMMINISTRATORE" &&
-    sessione.payload.ruolo !== "AMMINISTRATORE"
-  ) {
-    return applicaRinnovo(
-      NextResponse.redirect(new URL(HOME_AUTENTICATA, request.url)),
-      sessione
-    );
-  }
-
   return applicaRinnovo(NextResponse.next(), sessione);
 }
 
 function classificaRichiesta(pathname: string): ClassificazioneRichiesta {
   if (pathname === "/") {
-    return { tipo: "root", politicaAccesso: null };
+    return { tipo: "root" };
   }
 
   if (pathname === "/login") {
-    return { tipo: "login-tombstone", politicaAccesso: null };
+    return { tipo: "login-tombstone" };
   }
 
   if (pathname === "/api/auth/google" || pathname.startsWith("/api/auth/google/")) {
-    return { tipo: "auth-public", politicaAccesso: null };
+    return { tipo: "auth-public" };
   }
 
   if (pathname === "/api/e2e-test" || pathname.startsWith("/api/e2e-test/")) {
-    return { tipo: "e2e-public", politicaAccesso: null };
+    return { tipo: "e2e-public" };
   }
 
-  return {
-    tipo: "protected",
-    politicaAccesso: politicaAccessoPerRotta(pathname),
-  };
+  return { tipo: "protected" };
 }
 
 function applicaRinnovo(

@@ -1,23 +1,29 @@
 import Link from "next/link";
+import { MESSAGGIO_ULTIMO_AMMINISTRATORE } from "@/domain/anagrafiche/protezione-amministratore";
 import { richiediRuolo } from "@/lib/dal";
 import { elencaUtenti } from "@/lib/utenti";
 import UtentiTabella from "./utenti-tabella";
 
 interface UtentiPageProps {
-  searchParams: Promise<{ esito?: string }>;
+  searchParams: Promise<{ esito?: string; errore?: string }>;
 }
 
 export default async function UtentiPage({ searchParams }: UtentiPageProps) {
   await richiediRuolo("AMMINISTRATORE");
   const utenti = await elencaUtenti();
-  const { esito } = await searchParams;
+  const { esito, errore } = await searchParams;
 
   const messaggioEsito =
     esito === "creato"
       ? "Utente censito: può accedere all'applicazione con il suo account Google"
       : esito === "salvato"
         ? "Modifiche all'utente salvate"
-        : null;
+        : esito === "invalidato"
+          ? "Utente invalidato: l'accesso è revocato e il record resta in elenco"
+          : esito === "riattivato"
+            ? "Utente riattivato: può accedere di nuovo all'applicazione"
+            : null;
+  const erroreUltimoAmministratore = errore === "ultimo-amministratore";
 
   return (
     <div>
@@ -38,6 +44,26 @@ export default async function UtentiPage({ searchParams }: UtentiPageProps) {
             <path d="m8.5 12.5 2.5 2.5 5-5" />
           </svg>
           <span>{messaggioEsito}</span>
+        </div>
+      )}
+
+      {erroreUltimoAmministratore && (
+        <div
+          role="alert"
+          className="mb-[18px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-[13px] font-semibold leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            className="mt-[1.5px] h-4 w-4 shrink-0"
+            strokeWidth={2}
+            aria-hidden="true"
+          >
+            <path d="M12 9v4.5M12 17h.01" />
+            <path d="M10.3 3.9 2.6 17.4A2 2 0 0 0 4.3 20.4h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+          </svg>
+          <span>{MESSAGGIO_ULTIMO_AMMINISTRATORE}</span>
         </div>
       )}
 

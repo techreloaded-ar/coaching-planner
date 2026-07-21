@@ -35,11 +35,17 @@ async function _risolviSessione(): Promise<SessioneUtente | null> {
       ruolo: true,
       nome: true,
       email: true,
+      attivo: true,
       collaboratore: { select: { attivo: true } },
     },
   });
 
   if (!utente) return null;
+
+  if (utente.attivo === false) {
+    // Utente disattivato → sessione non valida
+    return null;
+  }
 
   if (
     utente.ruolo === "COLLABORATORE" &&

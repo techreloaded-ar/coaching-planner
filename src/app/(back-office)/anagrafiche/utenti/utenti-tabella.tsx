@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { UtenteConProfiloCollaboratore } from "@/lib/utenti";
+import { cambiaStatoUtenteAction } from "./cambia-stato-utente-action";
 
 interface UtentiTabellaProps {
   utenti: UtenteConProfiloCollaboratore[];
@@ -33,6 +34,9 @@ function IconaRuolo({ amministratore }: { amministratore: boolean }) {
 
 export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
   const [filtro, setFiltro] = useState("");
+  const [utenteDaInvalidare, setUtenteDaInvalidare] =
+    useState<UtenteConProfiloCollaboratore | null>(null);
+  const [modaleAperta, setModaleAperta] = useState(false);
   const filtroNormalizzato = filtro.trim().toLocaleLowerCase("it");
   const utentiFiltrati = utenti.filter((utente) =>
     `${utente.nome} ${utente.email}`
@@ -41,7 +45,18 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
   );
   const attivi = utenti.filter((utente) => utente.attivo).length;
 
+  const chiudiModale = useCallback(() => setModaleAperta(false), []);
+
+  const apriModaleInvalidazione = useCallback(
+    (utente: UtenteConProfiloCollaboratore) => {
+      setUtenteDaInvalidare(utente);
+      setModaleAperta(true);
+    },
+    []
+  );
+
   return (
+    <>
     <section className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-4 py-[14px] dark:border-zinc-800">
         <label className="flex max-w-[340px] flex-1 items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-100 px-3 py-2 text-zinc-400 transition focus-within:border-indigo-300 focus-within:bg-white focus-within:ring-3 focus-within:ring-indigo-500/10 dark:border-zinc-700 dark:bg-zinc-800 dark:focus-within:bg-zinc-900">
@@ -182,6 +197,32 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
                         </svg>
                         Modifica
                       </Link>
+                      {utente.attivo ? (
+                        <button
+                          type="button"
+                          onClick={() => apriModaleInvalidazione(utente)}
+                          className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
+                            <circle cx="12" cy="12" r="8.6" /><path d="M6 6l12 12" />
+                          </svg>
+                          Invalida
+                        </button>
+                      ) : (
+                        <form action={cambiaStatoUtenteAction} className="inline">
+                          <input type="hidden" name="id" value={utente.id} />
+                          <input type="hidden" name="attivo" value="true" />
+                          <button
+                            type="submit"
+                            className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-zinc-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
+                              <path d="M4.5 12a7.5 7.5 0 1 1 2.2 5.3" /><path d="M4.5 17.5V12H10" />
+                            </svg>
+                            Riattiva
+                          </button>
+                        </form>
+                      )}
                     </td>
                   </tr>
                 );
@@ -191,5 +232,66 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
         </table>
       </div>
     </section>
+
+      <div
+        className={`fixed inset-0 z-[60] grid place-items-center bg-zinc-900/45 p-5 backdrop-blur-[3px] transition-opacity duration-[.18s] ${
+          modaleAperta ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modale-titolo"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) chiudiModale();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") chiudiModale();
+        }}
+      >
+        <div
+          className={`w-full max-w-[440px] rounded-[14px] border border-zinc-200 bg-white p-[22px] shadow-xl transition-transform duration-[.18s] dark:border-zinc-700 dark:bg-zinc-900 ${
+            modaleAperta ? "scale-100 translate-y-0" : "scale-[.98] translate-y-2"
+          }`}
+        >
+          <div className="mb-[13px] flex h-10 w-10 items-center justify-center rounded-[12px] bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5" strokeWidth={2} aria-hidden="true">
+              <path d="M18.4 5.6 5.6 18.4M5.6 5.6l12.8 12.8" /><circle cx="12" cy="12" r="9.2" />
+            </svg>
+          </div>
+          <h3 id="modale-titolo" className="mb-[7px] text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
+            {utenteDaInvalidare
+              ? `Invalidare «${utenteDaInvalidare.nome}»?`
+              : "Invalidare l'utente?"}
+          </h3>
+          <p className="mb-[18px] text-[13px] leading-[1.55] text-zinc-600 dark:text-zinc-400">
+            L&apos;accesso sarà <b>revocato</b> e una sessione già aperta verrà bloccata al primo accesso successivo.
+            {utenteDaInvalidare !== null && utenteDaInvalidare.collaboratore !== null && (
+              <> Anche il profilo operativo verrà <b>disattivato</b>.</>
+            )} Potrai riattivarlo in qualsiasi momento; nessun dato viene eliminato.
+          </p>
+          <div className="flex justify-end gap-[9px]">
+            <button
+              type="button"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750"
+              onClick={chiudiModale}
+            >
+              Annulla
+            </button>
+            {utenteDaInvalidare && (
+              <form action={cambiaStatoUtenteAction}>
+                <input type="hidden" name="id" value={utenteDaInvalidare.id} />
+                <input type="hidden" name="attivo" value="false" />
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:brightness-[.92]"
+                  onClick={chiudiModale}
+                >
+                  Invalida utente
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
