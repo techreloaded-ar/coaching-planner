@@ -57,6 +57,8 @@ order:
     - US-036
     - US-037
     - US-038
+    - US-039
+    - US-040
 ---
 # Backlog
 
@@ -78,6 +80,8 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-027: Accesso diretto dalla pagina radice con brand Agile Reloaded](specs/US-027.md) — **DONE**, 3 point(s).
 - [US-029: Attivazione del proxy di autenticazione con rinnovo sliding della sessione](specs/US-029.md) — **DONE**, 3 point(s).
 - [US-030: Front office per tutti gli utenti e back office raggiungibile dagli admin](specs/US-030.md) — **DONE**, 5 point(s).
+- [US-039: Elenco e censimento degli utenti nella console di amministrazione](specs/US-039.md) — **TODO**, 3 point(s).
+- [US-040: Invalidazione, riattivazione e cambio ruolo degli utenti con auto-protezione](specs/US-040.md) — **TODO**, 3 point(s).
 
 ## EP-002: Anagrafiche e Configurazione
 
@@ -90,7 +94,7 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-032: Dettaglio avanzamento espandibile nella pagina Offerte e dismissione della pagina Avanzamento Offerte](specs/US-032.md) — **DONE**, 5 point(s).
 - [US-033: Dettaglio avanzamento espandibile nell'elenco offerte del cliente](specs/US-033.md) — **DONE**, 2 point(s).
 - [US-035: Riga compatta nell'elenco offerte con giorni erogati aggregati e stato a indicatore](specs/US-035.md) — **DONE**, 3 point(s).
-- [US-036: Matrice mensile per collaboratore nel dettaglio avanzamento offerta](specs/US-036.md) — **PLANNED**, 3 point(s).
+- [US-036: Matrice mensile per collaboratore nel dettaglio avanzamento offerta](specs/US-036.md) — **DONE**, 3 point(s).
 - [US-038: Pagina di dettaglio del collaboratore con storico attività mensile](specs/US-038.md) — **TODO**, 3 point(s).
 
 ## EP-003: Consuntivazione Attività
@@ -100,13 +104,13 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-011: Calendario mensile delle proprie attività](specs/US-011.md) — **DONE**, 3 point(s).
 - [US-012: Inserimento delle righe di attività giornaliere](specs/US-012.md) — **DONE**, 5 point(s).
 - [US-031: Apertura di qualsiasi giorno dal calendario per registrare attività](specs/US-031.md) — **DONE**, 2 point(s).
-- [US-034: Nome cliente e ore cumulate nelle celle del calendario attività](specs/US-034.md) — **REVIEW**, 2 point(s).
+- [US-034: Nome cliente e ore cumulate nelle celle del calendario attività](specs/US-034.md) — **DONE**, 2 point(s).
 
 ## EP-004: Reportistica
 
 - [US-016: Vista avanzamento offerte con residuo giornate](specs/US-016.md) — **DONE**, 3 point(s).
 - [US-015: Report mensile degli importi da fatturare per cliente](specs/US-015.md) — **DONE**, 3 point(s).
-- [US-037: Dettaglio ore erogate per collaboratore nel report Fatturazione Clienti](specs/US-037.md) — **TODO**, 3 point(s).
+- [US-037: Dettaglio ore erogate per collaboratore nel report Fatturazione Clienti](specs/US-037.md) — **REVIEW**, 3 point(s).
 
 ## EP-005: Evoluzioni Post-MVP
 
