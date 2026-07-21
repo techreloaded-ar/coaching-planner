@@ -2,7 +2,7 @@
 type: domain
 title: Identità, sessioni e accesso
 description: Censimento utenti, accesso Google, sessione JWT, ruoli, policy di rotta e segregazione dei dati
-status: generated
+status: reviewed
 classification: candidate
 sources:
     - path: src/app/api/auth/google/route.ts
@@ -53,6 +53,10 @@ sources:
       role: verification
     - path: tests/e2e/gestione-utenti.spec.ts
       role: verification
+review:
+    content_hash: sha256:df35cf4890d4d86301eaf184b630da484e9a59cfc5957c25b5b3563aba7b481b
+    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
+    reviewed_at: "2026-07-21T14:41:50Z"
 ---
 # Identità, sessioni e accesso
 

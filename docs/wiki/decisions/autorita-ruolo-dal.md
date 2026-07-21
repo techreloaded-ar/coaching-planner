@@ -2,7 +2,7 @@
 type: decision
 title: Autorità sul ruolo nel DAL
 description: Il proxy garantisce la sola autenticazione; il ruolo autorevole è quello a database letto dal DAL a ogni accesso protetto
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: src/proxy.ts
@@ -16,6 +16,10 @@ sources:
       role: verification
     - path: tests/e2e/gestione-utenti.spec.ts
       role: verification
+review:
+    content_hash: sha256:7597ce9a1366beb8220402c1498902944e8ec6732e703330c2a9a745d7de3f1c
+    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
+    reviewed_at: "2026-07-21T14:41:50Z"
 ---
 # Autorità sul ruolo nel DAL
 
