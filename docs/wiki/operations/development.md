@@ -2,26 +2,30 @@
 type: operations
 title: Sviluppo e operazioni
 description: Sviluppo locale, build, test, CI, database e vincoli operativi
-status: generated
+status: reviewed
 sources:
-- path: package.json
-  role: command-manifest
-- path: README.md
-  role: development-guide
-- path: docker-compose.yml
-  role: local-infrastructure
-- path: .github/workflows/ci.yml
-  role: automation
-- path: playwright.config.ts
-  role: e2e-configuration
-- path: vitest.config.ts
-  role: unit-test-configuration
-- path: prisma.config.ts
-  role: database-configuration
-- path: src/lib/session-config.ts
-  role: runtime-configuration
-- path: scripts/bootstrap-amministratore-iniziale.ts
-  role: deploy-bootstrap-command
+    - path: package.json
+      role: command-manifest
+    - path: README.md
+      role: development-guide
+    - path: docker-compose.yml
+      role: local-infrastructure
+    - path: .github/workflows/ci.yml
+      role: automation
+    - path: playwright.config.ts
+      role: e2e-configuration
+    - path: vitest.config.ts
+      role: unit-test-configuration
+    - path: prisma.config.ts
+      role: database-configuration
+    - path: src/lib/session-config.ts
+      role: runtime-configuration
+    - path: scripts/bootstrap-amministratore-iniziale.ts
+      role: deploy-bootstrap-command
+review:
+    content_hash: sha256:beb4d36f7cbbe705c0a2a3131799761f244c8fe52140df028eb5e4f75041d86f
+    evidence_revision: ed27f9987a6998a79deff1caff15324bf7e54d3e
+    reviewed_at: "2026-07-22T09:15:46Z"
 ---
 # Sviluppo e operazioni
 
