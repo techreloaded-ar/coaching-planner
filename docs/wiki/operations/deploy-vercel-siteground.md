@@ -101,11 +101,12 @@ collaboratore prima che possa accedere, in entrambi gli ambienti.
 5. **Build Command** (Settings → Build & Development Settings), sovrascrivi il default con:
 
    ```
-   prisma generate && prisma migrate deploy && next build
+   prisma generate && prisma migrate deploy && npx tsx scripts/bootstrap-amministratore-iniziale.ts && next build
    ```
 
-   Così ogni deploy applica automaticamente le migrazioni pendenti sul database
-   dell'ambiente corrispondente prima della build.
+   Così ogni deploy applica le migrazioni pendenti sul database dell'ambiente
+   corrispondente **e** garantisce in modo idempotente l'esistenza del primo
+   amministratore, nella stessa fase, prima che l'applicazione serva traffico.
 6. **Branch di produzione**: lascia `main` come Production Branch (default).
 7. Crea (se non esiste) un branch `staging` nel repo e collega a Vercel un ambiente Preview con
    variabili d'ambiente scoped su quel branch (vedi punto 5).
@@ -125,6 +126,7 @@ vive (Production / Preview / Development) e, per Preview, restringerla a un bran
 | `GOOGLE_CLIENT_SECRET` | client secret | idem |
 | `GOOGLE_REDIRECT_URI` | `https://<dominio-produzione>/api/auth/google/callback` | `https://<dominio-staging>/api/auth/google/callback` |
 | `NEXT_PUBLIC_APP_URL` | `https://<dominio-produzione>` | `https://<dominio-staging>` |
+| `AMMINISTRATORE_INIZIALE_EMAIL` | email dell'amministratore garantito al deploy, es. `admin@agilereloaded.it` | email dell'amministratore garantito al deploy in staging, es. `admin-staging@agilereloaded.it` |
 | `E2E_TEST_MODE` | non impostata (o `false`) | non impostata (o `false`) — **mai `true` fuori da CI/e2e** |
 
 `E2E_TEST_MODE=true` abilita endpoint riservati ai test che accettano richieste senza autenticazione:
@@ -147,10 +149,14 @@ non deve mai essere `true` in staging o produzione.
   staging: lo script (`prisma/seed.ts`) **cancella tutte le tabelle applicative** e le ripopola con
   dati demo (pensato solo per sviluppo/e2e).
 - Le migrazioni vengono applicate automaticamente dal build command (punto 4.5).
-- Poiché non esiste auto-provisioning, dopo la primissima migrazione il database è vuoto: censisci
-  manualmente il primo `Utente` con `ruolo = AMMINISTRATORE` (via Prisma Studio puntato alla
-  `DATABASE_URL` di produzione, o una query diretta), altrimenti nessuno può accedere al back-office
-  per censire gli altri collaboratori.
+- Poiché non esiste auto-provisioning, dopo la primissima migrazione il database sarebbe vuoto: il
+  build command esegue subito dopo `scripts/bootstrap-amministratore-iniziale.ts`, che garantisce in
+  modo idempotente l'esistenza di un `Utente` con `ruolo = AMMINISTRATORE` per l'email indicata in
+  `AMMINISTRATORE_INIZIALE_EMAIL` (crea l'utente solo se non esiste già, senza promuovere o
+  riattivare utenti esistenti), così l'amministratore può accedere al back-office fin dal primo
+  avvio per censire gli altri collaboratori.
+- Per demo o ambienti locali, l'equivalente manuale dello stesso bootstrap è:
+  `AMMINISTRATORE_INIZIALE_EMAIL=<email> npm run db:bootstrap-amministratore`.
 
 ## 8. Checklist go-live
 
@@ -160,7 +166,7 @@ non deve mai essere `true` in staging o produzione.
 - [x] Variabili d'ambiente impostate su Vercel, scoped correttamente per Production/Preview(`staging`)
 - [x] Build command con `prisma migrate deploy` configurato
 - [x] Dominio collegato, DNS propagato, certificato Vercel attivo
-- [ ] Primo `Utente` AMMINISTRATORE censito manualmente nel DB di produzione
+- [ ] `AMMINISTRATORE_INIZIALE_EMAIL` configurata su Vercel e bootstrap dell'amministratore incluso nel build command
 - [ ] Smoke test end-to-end manuale in staging (login Google, CRUD principali) prima di promuovere in produzione
 
 ## 9. Follow-up da pianificare in una spec separata
