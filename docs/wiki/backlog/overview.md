@@ -72,7 +72,7 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-002: Database PostgreSQL con Prisma, migrazioni e seed](specs/US-002.md) — **DONE**, 2 point(s).
 - [US-003: Suite di test e pipeline di integrazione continua](specs/US-003.md) — **DONE**, 2 point(s).
 - [US-023: Rendere deterministica la suite e2e Playwright](specs/US-023.md) — **DONE**, 5 point(s).
-- [US-041: Bootstrap idempotente dell'amministratore iniziale al deploy](specs/US-041.md) — **REVIEW**, 2 point(s).
+- [US-041: Bootstrap idempotente dell'amministratore iniziale al deploy](specs/US-041.md) — **DONE**, 2 point(s).
 
 ## EP-001: Autenticazione e Ruoli
 
