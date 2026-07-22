@@ -87,7 +87,7 @@
 
 * [Autorità sul ruolo nel DAL](decisions/autorita-ruolo-dal.md) - Il proxy garantisce la sola autenticazione; il ruolo autorevole è quello a database letto dal DAL a ogni accesso protetto. _State: reviewed._
 * [Calcoli di dominio in funzioni pure](decisions/calcoli-puri.md) - Isolare validazioni e calcoli di consuntivazione in funzioni pure testabili. _State: reviewed._
-* [Connessione al database senza TLS (rischio accettato)](decisions/connessione-db-senza-tls.md) - Accettazione consapevole del rischio di connessione in chiaro tra Vercel e il PostgreSQL SiteGround, in attesa del supporto TLS del provider. _State: generated._
+* [Connessione al database senza TLS (rischio accettato)](decisions/connessione-db-senza-tls.md) - Accettazione consapevole del rischio di connessione in chiaro tra Vercel e il PostgreSQL SiteGround, in attesa del supporto TLS del provider. _State: reviewed._
 * [Giornata equivalente a otto ore](decisions/giornata-otto-ore.md) - Convertire ore e giornate con la costante fissa di otto ore per giornata. _State: reviewed._
 * [Importi monetari decimali](decisions/importi-decimali.md) - Persistire gli importi monetari come Decimal per evitare errori contabili. _State: reviewed._
 * [PostgreSQL con target SiteGround](decisions/postgres-siteground.md) - Usare PostgreSQL con target dichiarato SiteGround e sviluppo locale equivalente. _State: generated._
@@ -110,8 +110,8 @@
 
 ## Operations
 
-* [Deploy — Vercel + PostgreSQL SiteGround](operations/deploy-vercel-siteground.md) - Guida operativa per portare Coaching Planner in staging e produzione su Vercel, con database PostgreSQL ospitato su SiteGround. _State: generated._
-* [Sviluppo e operazioni](operations/development.md) - Sviluppo locale, build, test, CI, database e vincoli operativi. _State: generated._
+* [Deploy — Vercel + PostgreSQL SiteGround](operations/deploy-vercel-siteground.md) - Guida operativa per portare Coaching Planner in staging e produzione su Vercel, con database PostgreSQL ospitato su SiteGround. _State: reviewed._
+* [Sviluppo e operazioni](operations/development.md) - Sviluppo locale, build, test, CI, database e vincoli operativi. _State: reviewed._
 
 ## Project
 

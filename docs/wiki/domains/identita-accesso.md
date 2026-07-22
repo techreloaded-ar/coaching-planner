@@ -18,6 +18,9 @@ sources:
       symbol: proxy
     - path: src/lib/dal.ts
       role: authorization
+    - path: scripts/bootstrap-amministratore-iniziale.ts
+      role: identity-bootstrap-command
+      symbol: eseguiBootstrapAmministratoreIniziale, validaEmailAmministratoreIniziale
     - path: src/app/(back-office)/anagrafiche/utenti/actions.ts
       role: identity-commands
       symbol: creaUtente, aggiornaUtente
@@ -53,10 +56,12 @@ sources:
       role: verification
     - path: tests/e2e/gestione-utenti.spec.ts
       role: verification
+    - path: tests/unit/bootstrap-amministratore-iniziale.test.ts
+      role: verification
 review:
-    content_hash: sha256:df35cf4890d4d86301eaf184b630da484e9a59cfc5957c25b5b3563aba7b481b
-    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
-    reviewed_at: "2026-07-21T14:41:50Z"
+    content_hash: sha256:fb383c25877b79bb8290318f3a442c01e13433686c063c3d92af1a25705561b8
+    evidence_revision: ed27f9987a6998a79deff1caff15324bf7e54d3e
+    reviewed_at: "2026-07-22T09:15:46Z"
 ---
 # Identità, sessioni e accesso
 
@@ -73,7 +78,7 @@ Utente censito, utente attivo o invalidato, account Google, email verificata, st
 <!-- archetipo:wiki section=ownership -->
 ## Ownership
 
-Possiede `Utente`, compresi identità anagrafica, email di accesso, ruolo e stato `attivo`, oltre a integrazione Google, `Account`, token/cookie, validità della sessione, policy di rotta e guardie. Le action Collaboratori restano un writer coordinato quando creano o allineano l'utente collegato; `Collaboratore.attivo` e la transizione del profilo operativo appartengono invece a Collaboratori.
+Possiede `Utente`, compresi identità anagrafica, email di accesso, ruolo e stato `attivo`, oltre a integrazione Google, `Account`, token/cookie, validità della sessione, policy di rotta e guardie. Le action Collaboratori restano un writer coordinato quando creano o allineano l'utente collegato; `Collaboratore.attivo` e la transizione del profilo operativo appartengono invece a Collaboratori. Lo script di deploy `scripts/bootstrap-amministratore-iniziale.ts` è un writer aggiuntivo, ma limitato alla sola creazione idempotente del primo `Utente AMMINISTRATORE` da `AMMINISTRATORE_INIZIALE_EMAIL`: non promuove né riattiva utenti già censiti.
 
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
@@ -93,6 +98,7 @@ Possiede `Utente`, compresi identità anagrafica, email di accesso, ruolo e stat
 8. `creaUtente` normalizza nome ed email, valida nome/email/ruolo, impedisce duplicati anche traducendo il vincolo Prisma `P2002` e crea un utente con `attivo = true` per default di schema. `aggiornaUtente` modifica nome, email e ruolo nella transazione.
 9. `cambiaStatoUtenteAction` invalida o riattiva nella stessa transazione `Utente.attivo` e, se presente, `Collaboratore.attivo`; rivalida entrambe le anagrafiche. L'invalidazione non elimina il record.
 10. La retrocessione di un amministratore attivo e la sua invalidazione contano gli altri amministratori attivi nella transazione e vengono rifiutate se rimuoverebbero l'ultimo; la promozione e gli altri cambi ruolo sono salvati da `aggiornaUtente`. `creaCollaboratore` assegna `COLLABORATORE` soltanto quando crea un nuovo utente; un amministratore riusato mantiene il suo ruolo.
+11. Al deploy, `scripts/bootstrap-amministratore-iniziale.ts` valida `AMMINISTRATORE_INIZIALE_EMAIL` prima di aprire qualunque connessione al database; cerca l'utente per email normalizzata (`trim` + `toLowerCase`) e, solo se assente, crea un `Utente` con ruolo `AMMINISTRATORE`, nome predefinito e `attivo = true` da default di schema. Se l'utente esiste già (qualunque ruolo o stato) termina con successo senza scrivere nulla.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
@@ -104,6 +110,7 @@ Possiede `Utente`, compresi identità anagrafica, email di accesso, ruolo e stat
 | Policy anticipata | `src/proxy.ts`, `src/lib/policy-rotte.ts` |
 | Identità autorevole e guardie | `src/lib/dal.ts` |
 | Amministrazione utenti | `src/app/(back-office)/anagrafiche/utenti/**`, `src/lib/utenti.ts`, `src/domain/anagrafiche/valida-utente.ts`, `src/domain/anagrafiche/protezione-amministratore.ts` |
+| Bootstrap deploy | `scripts/bootstrap-amministratore-iniziale.ts` |
 | Fail-fast | `src/instrumentation.ts`, `next.config.ts` |
 | Dati | `prisma/schema.prisma` e `prisma/migrations/20260721084945_aggiungi_stato_attivo_utente/migration.sql` (`Utente`, `Account`; `Session` e `VerificationToken` dichiarati ma non usati dal flusso corrente) |
 | Test | test unit `session*`, `proxy`, `policy-rotte`, `dal-guards`, `utenti-actions`, `valida-utente`, `cambia-stato-utente`, `google-callback`, `protezione-amministratore`; E2E auth, ruoli, gestione utenti, root e sessione proxy |
@@ -116,7 +123,7 @@ JWT firmato HS256, payload validato, `exp === expiresAt`, durata sliding 8 ore. 
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Test unitari coprono secret, token, rinnovo, proxy, policy, guardie DAL, validazione e action utenti. `google-callback.test.ts` verifica che il callback respinga l'utente invalidato senza creare account o sessione; `cambia-stato-utente.test.ts` copre cascata utente/profilo, riattivazione e rifiuto dell'ultimo amministratore; `protezione-amministratore.test.ts` copre l'invariante pura. Gli E2E di gestione utenti coprono invalidazione, riattivazione, ruolo autorevole al successivo accesso protetto e stato del profilo con factory isolate. Confidenza alta su sessione, autorizzazione e ciclo di vita utenti; la classificazione resta candidata per il binding non imposto fra subject Google ed email.
+Test unitari coprono secret, token, rinnovo, proxy, policy, guardie DAL, validazione e action utenti. `google-callback.test.ts` verifica che il callback respinga l'utente invalidato senza creare account o sessione; `cambia-stato-utente.test.ts` copre cascata utente/profilo, riattivazione e rifiuto dell'ultimo amministratore; `protezione-amministratore.test.ts` copre l'invariante pura. `bootstrap-amministratore-iniziale.test.ts` prova creazione, idempotenza (nessuna scrittura se l'utente esiste già) e uscita in errore senza connessione quando `AMMINISTRATORE_INIZIALE_EMAIL` manca, contro un client Prisma iniettato. Gli E2E di gestione utenti coprono invalidazione, riattivazione, ruolo autorevole al successivo accesso protetto e stato del profilo con factory isolate. Confidenza alta su sessione, autorizzazione e ciclo di vita utenti; la classificazione resta candidata per il binding non imposto fra subject Google ed email.
 
 ## Concetti correlati
 

@@ -2,24 +2,30 @@
 type: operations
 title: Sviluppo e operazioni
 description: Sviluppo locale, build, test, CI, database e vincoli operativi
-status: generated
+status: reviewed
 sources:
-- path: package.json
-  role: command-manifest
-- path: README.md
-  role: development-guide
-- path: docker-compose.yml
-  role: local-infrastructure
-- path: .github/workflows/ci.yml
-  role: automation
-- path: playwright.config.ts
-  role: e2e-configuration
-- path: vitest.config.ts
-  role: unit-test-configuration
-- path: prisma.config.ts
-  role: database-configuration
-- path: src/lib/session-config.ts
-  role: runtime-configuration
+    - path: package.json
+      role: command-manifest
+    - path: README.md
+      role: development-guide
+    - path: docker-compose.yml
+      role: local-infrastructure
+    - path: .github/workflows/ci.yml
+      role: automation
+    - path: playwright.config.ts
+      role: e2e-configuration
+    - path: vitest.config.ts
+      role: unit-test-configuration
+    - path: prisma.config.ts
+      role: database-configuration
+    - path: src/lib/session-config.ts
+      role: runtime-configuration
+    - path: scripts/bootstrap-amministratore-iniziale.ts
+      role: deploy-bootstrap-command
+review:
+    content_hash: sha256:beb4d36f7cbbe705c0a2a3131799761f244c8fe52140df028eb5e4f75041d86f
+    evidence_revision: ed27f9987a6998a79deff1caff15324bf7e54d3e
+    reviewed_at: "2026-07-22T09:15:46Z"
 ---
 # Sviluppo e operazioni
 
@@ -42,6 +48,7 @@ CI usa Node.js 22. Il progetto usa npm, PostgreSQL e Prisma; Docker Compose forn
 | Migrazione sviluppo | `npm run db:migrate` |
 | Migrazione deploy | `npm run db:migrate:deploy` |
 | Seed | `npm run db:seed` |
+| Bootstrap amministratore iniziale | `npm run db:bootstrap-amministratore` |
 | Database locale | `docker compose up -d` |
 
 `dev`, `build` e `postinstall` generano il client Prisma.
@@ -54,6 +61,7 @@ CI usa Node.js 22. Il progetto usa npm, PostgreSQL e Prisma; Docker Compose forn
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`: integrazione Google.
 - `NEXT_PUBLIC_APP_URL`: base per redirect.
 - `E2E_TEST_MODE`: abilita il seam `/api/e2e-test/sessione` soltanto negli E2E.
+- `AMMINISTRATORE_INIZIALE_EMAIL`: email garantita come `Utente AMMINISTRATORE` da `scripts/bootstrap-amministratore-iniziale.ts`, eseguito nella stessa fase di `prisma migrate deploy` (vedi [guida di deploy](/operations/deploy-vercel-siteground.md)).
 
 Il file autorizzato di esempio è `.env.example`; i segreti reali non fanno parte della Wiki. I cookie sono Secure solo in produzione.
 

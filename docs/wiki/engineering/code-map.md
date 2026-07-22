@@ -92,9 +92,9 @@ coverage:
       pages:
         - domains/identita-accesso
 review:
-    content_hash: sha256:05c105121d93e8cfd44e85368fc1633a1a08fe3ff1b928f7ff100bae76044210
-    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
-    reviewed_at: "2026-07-21T14:41:50Z"
+    content_hash: sha256:61a62d82234d6ff5760457c386f1febf659601c52397c556d5499a01ac9fa6e6
+    evidence_revision: ed27f9987a6998a79deff1caff15324bf7e54d3e
+    reviewed_at: "2026-07-22T09:15:46Z"
 ---
 # Mappa del codice
 
@@ -109,7 +109,7 @@ review:
 | Politiche rimborso | `src/app/(back-office)/anagrafiche/scaglioni/**` | `src/lib/scaglioni.ts`, validatore, `calcolaRimborsoTrasferta` | `ScaglioneKm` | Attività, Fatturazione | unit scaglioni/rimborso; E2E scaglioni/trasferta | `domains.politiche-rimborso` |
 | Attività | `src/app/(front-office)/attivita/**` | `src/lib/actions/righe-attivita.ts`, `src/lib/attivita.ts`, calendario e consuntivi | `RigaAttivita` | tutte le anagrafiche operative | unit attività/action/calendario/riepilogo; E2E attività | `domains.attivita` |
 | Fatturazione clienti | `src/app/(back-office)/report/fatturazione-clienti/**` | `src/lib/report.ts`, `calcolaReportFatturazioneClienti` | sola lettura di attività/offerte/clienti/scaglioni | nessuna esterna | unit ed E2E report fatturazione | `domains.fatturazione-clienti` |
-| Identità e accesso | route Google, root, proxy e `src/app/(back-office)/anagrafiche/utenti/**` | OAuth adapter, session token/cookie, proxy di sola autenticazione e DAL autorevole; `src/lib/utenti.ts`, action, validatore e protezione ultimo amministratore | `Utente` con stato `attivo` e ruolo, `Account`; tabella `Session` non usata dal flusso | Google OIDC, Collaboratori per la sincronizzazione del profilo | unit session/proxy/DAL, callback e action utenti; E2E auth/ruoli e gestione utenti | `domains.identita-accesso` |
+| Identità e accesso | route Google, root, proxy e `src/app/(back-office)/anagrafiche/utenti/**` | OAuth adapter, session token/cookie, proxy di sola autenticazione e DAL autorevole; `src/lib/utenti.ts`, action, validatore, protezione ultimo amministratore e `scripts/bootstrap-amministratore-iniziale.ts` (bootstrap idempotente al deploy) | `Utente` con stato `attivo` e ruolo, `Account`; tabella `Session` non usata dal flusso | Google OIDC, Collaboratori per la sincronizzazione del profilo | unit session/proxy/DAL, callback, action utenti e bootstrap amministratore; E2E auth/ruoli e gestione utenti | `domains.identita-accesso` |
 
 <!-- archetipo:wiki section=shared -->
 ## Codice condiviso
@@ -126,7 +126,7 @@ review:
 
 - `docs/mockups/**` sono prototipi isolati e fonti d'intento, non runtime.
 - `src/generated/prisma/**` è codice generato.
-- `scripts/check-e2e-guardrails.ts` e `scripts/siteground-connectivity-check.ts` sono tooling operativo.
+- `scripts/check-e2e-guardrails.ts`, `scripts/siteground-connectivity-check.ts` e `scripts/bootstrap-amministratore-iniziale.ts` sono tooling operativo.
 - Asset binari, favicon, `.DS_Store`, output Playwright e directory build/dependency non rappresentano capability.
 - I modelli Prisma `Session` e `VerificationToken` e `src/lib/auth.ts` sono dichiarati/placeholder ma non partecipano al flusso di sessione osservato.
 
