@@ -5,7 +5,7 @@ import {
   verificaSessione,
 } from "@/lib/dal";
 import { righeDelGiorno, clientiAttiviPerSelezione, scaglioniRimborsoTrasferta } from "@/lib/attivita";
-import { calcolaRimborsoTrasferta, type RisultatoCalcoloRimborso, type ScaglioneRimborso } from "@/domain/consuntivi";
+import { calcolaRimborsoTrasferta, type RisultatoCalcoloRimborso } from "@/domain/consuntivi";
 import DettaglioGiornata from "./dettaglio-giornata";
 import StatoProfiloCollaboratore from "../stato-profilo-collaboratore";
 

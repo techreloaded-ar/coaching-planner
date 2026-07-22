@@ -7,14 +7,6 @@ import {
 
 // ── Scaglioni di esempio ────────────────────────────────────────
 
-function scaglioni(importi: (string | number)[]): ScaglioneRimborso[] {
-  return [
-    { finoAKm: 50, importo: importi[0] },
-    { finoAKm: 100, importo: importi[1] },
-    { finoAKm: 250, importo: importi[2] },
-  ];
-}
-
 const scaglioniDefault: ScaglioneRimborso[] = [
   { finoAKm: 50, importo: "15.00" },
   { finoAKm: 100, importo: "28.00" },

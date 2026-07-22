@@ -69,12 +69,3 @@ function matchPrefisso(
     (p) => normalised === p || normalised.startsWith(p + "/")
   );
 }
-
-/**
- * Compatibilità temporanea della vecchia API di landing per ruolo.
- *
- * @deprecated Usa HOME_AUTENTICATA.
- */
-export function homePerRuolo(_ruolo: Ruolo): string {
-  return HOME_AUTENTICATA;
-}
