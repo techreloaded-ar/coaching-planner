@@ -155,11 +155,11 @@ non deve mai essere `true` in staging o produzione.
 ## 8. Checklist go-live
 
 - [x] Decisione TLS presa: rischio accettato, `sslmode=disable` (vedi punto 0 e decision record)
-- [ ] Due database SiteGround creati, con utenti/credenziali dedicati
-- [ ] Redirect URI Google aggiornati per staging e produzione
-- [ ] Variabili d'ambiente impostate su Vercel, scoped correttamente per Production/Preview(`staging`)
-- [ ] Build command con `prisma migrate deploy` configurato
-- [ ] Dominio collegato, DNS propagato, certificato Vercel attivo
+- [x] Due database SiteGround creati, con utenti/credenziali dedicati
+- [x] Redirect URI Google aggiornati per staging e produzione
+- [x] Variabili d'ambiente impostate su Vercel, scoped correttamente per Production/Preview(`staging`)
+- [x] Build command con `prisma migrate deploy` configurato
+- [x] Dominio collegato, DNS propagato, certificato Vercel attivo
 - [ ] Primo `Utente` AMMINISTRATORE censito manualmente nel DB di produzione
 - [ ] Smoke test end-to-end manuale in staging (login Google, CRUD principali) prima di promuovere in produzione
 

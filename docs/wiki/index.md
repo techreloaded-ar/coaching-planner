@@ -40,6 +40,7 @@
 * [Plan for US-038](backlog/plans/US-038.md) - Implementation plan and executable tasks for US-038. _State: generated._
 * [Plan for US-039](backlog/plans/US-039.md) - Implementation plan and executable tasks for US-039. _State: generated._
 * [Plan for US-040](backlog/plans/US-040.md) - Implementation plan and executable tasks for US-040. _State: generated._
+* [Plan for US-041](backlog/plans/US-041.md) - Implementation plan and executable tasks for US-041. _State: generated._
 * [US-001: Scaffold dell'applicazione Next.js e ambiente di sviluppo](backlog/specs/US-001.md) - Delivery specification US-001. _State: generated._
 * [US-002: Database PostgreSQL con Prisma, migrazioni e seed](backlog/specs/US-002.md) - Delivery specification US-002. _State: generated._
 * [US-003: Suite di test e pipeline di integrazione continua](backlog/specs/US-003.md) - Delivery specification US-003. _State: generated._
@@ -80,6 +81,7 @@
 * [US-038: Pagina di dettaglio del collaboratore con storico attività mensile](backlog/specs/US-038.md) - Delivery specification US-038. _State: generated._
 * [US-039: Elenco e censimento degli utenti nella console di amministrazione](backlog/specs/US-039.md) - Delivery specification US-039. _State: generated._
 * [US-040: Invalidazione, riattivazione e cambio ruolo degli utenti con auto-protezione](backlog/specs/US-040.md) - Delivery specification US-040. _State: generated._
+* [US-041: Bootstrap idempotente dell'amministratore iniziale al deploy](backlog/specs/US-041.md) - Delivery specification US-041. _State: generated._
 
 ## Decisions
 
