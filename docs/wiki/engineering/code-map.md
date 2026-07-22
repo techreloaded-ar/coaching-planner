@@ -2,7 +2,7 @@
 type: code-map
 title: Mappa del codice
 description: Matrice fisica fra capability candidate, codice, dati e test
-status: reviewed
+status: generated
 sources:
     - path: package.json
       role: manifest
@@ -91,10 +91,6 @@ coverage:
       status: mapped
       pages:
         - domains/identita-accesso
-review:
-    content_hash: sha256:61a62d82234d6ff5760457c386f1febf659601c52397c556d5499a01ac9fa6e6
-    evidence_revision: ed27f9987a6998a79deff1caff15324bf7e54d3e
-    reviewed_at: "2026-07-22T09:15:46Z"
 ---
 # Mappa del codice
 
@@ -104,8 +100,8 @@ review:
 | Capability | UI / ingresso | Applicazione e dominio | Dati | Integrazioni | Test principali | Wiki |
 |---|---|---|---|---|---|---|
 | Clienti | `src/app/(back-office)/anagrafiche/clienti/**` | `src/lib/clienti.ts`, `src/domain/anagrafiche/valida-cliente.ts` | `Cliente` | Offerte, Attività, report | unit clienti/validazione; E2E anagrafica clienti | `domains.clienti` |
-| Collaboratori | `src/app/(back-office)/anagrafiche/collaboratori/**` | `src/lib/collaboratori.ts`, validatore, parti di `dal.ts`; la lifecycle action utenti sincronizza il profilo | `Collaboratore`, sincronizzazione coordinata con `Utente.attivo` | Identità, Attività | unit collaboratori/DAL e cambio stato utente; E2E collaboratori e gestione utenti | `domains.collaboratori` |
-| Offerte | UI annidata cliente, compresa `offerte-cliente-tabella.tsx`, e `src/app/(back-office)/offerte/**`, entrambe con dettaglio avanzamento espandibile | `src/lib/offerte.ts`, inclusa query filtrata per cliente, validatore offerta, `calcolaAvanzamentoOfferte` | `Offerta` | Clienti, Attività | unit offerte/avanzamento; E2E offerte e dettaglio avanzamento nelle viste trasversale e cliente | `domains.offerte` |
+| Collaboratori | `src/app/(back-office)/anagrafiche/collaboratori/**`, inclusa la sezione `[id]/abilitazioni-offerte.tsx` con dialog di ricerca e selezione multipla | `src/lib/collaboratori.ts`, validatore, parti di `dal.ts`; la lifecycle action utenti sincronizza il profilo; `src/lib/abilitazioni.ts` e `[id]/abilitazioni-actions.ts` per l'abilitazione esplicita su offerte; `scripts/backfill-abilitazioni-iniziali.ts` (pre-popolamento una tantum, esposto da `npm run db:backfill-abilitazioni` e agganciato anche a `prisma/seed.ts`) | `Collaboratore`, sincronizzazione coordinata con `Utente.attivo`; `AbilitazioneOfferta` | Identità, Attività, Offerte | unit collaboratori/DAL, cambio stato utente, abilitazioni/DAL e backfill abilitazioni; E2E collaboratori, gestione utenti e abilitazioni | `domains.collaboratori` |
+| Offerte | UI annidata cliente, compresa `offerte-cliente-tabella.tsx`, e `src/app/(back-office)/offerte/**`, entrambe con dettaglio avanzamento espandibile | `src/lib/offerte.ts`, inclusa query filtrata per cliente, validatore offerta, `calcolaAvanzamentoOfferte` | `Offerta`, relazione inversa `abilitazioniCollaboratori` verso `AbilitazioneOfferta` (posseduta da Collaboratori) | Clienti, Attività, Collaboratori | unit offerte/avanzamento; E2E offerte e dettaglio avanzamento nelle viste trasversale e cliente | `domains.offerte` |
 | Politiche rimborso | `src/app/(back-office)/anagrafiche/scaglioni/**` | `src/lib/scaglioni.ts`, validatore, `calcolaRimborsoTrasferta` | `ScaglioneKm` | Attività, Fatturazione | unit scaglioni/rimborso; E2E scaglioni/trasferta | `domains.politiche-rimborso` |
 | Attività | `src/app/(front-office)/attivita/**` | `src/lib/actions/righe-attivita.ts`, `src/lib/attivita.ts`, calendario e consuntivi | `RigaAttivita` | tutte le anagrafiche operative | unit attività/action/calendario/riepilogo; E2E attività | `domains.attivita` |
 | Fatturazione clienti | `src/app/(back-office)/report/fatturazione-clienti/**` | `src/lib/report.ts`, `calcolaReportFatturazioneClienti` | sola lettura di attività/offerte/clienti/scaglioni | nessuna esterna | unit ed E2E report fatturazione | `domains.fatturazione-clienti` |
@@ -126,7 +122,7 @@ review:
 
 - `docs/mockups/**` sono prototipi isolati e fonti d'intento, non runtime.
 - `src/generated/prisma/**` è codice generato.
-- `scripts/check-e2e-guardrails.ts`, `scripts/siteground-connectivity-check.ts` e `scripts/bootstrap-amministratore-iniziale.ts` sono tooling operativo.
+- `scripts/check-e2e-guardrails.ts`, `scripts/siteground-connectivity-check.ts`, `scripts/bootstrap-amministratore-iniziale.ts` e `scripts/backfill-abilitazioni-iniziali.ts` sono tooling operativo.
 - Asset binari, favicon, `.DS_Store`, output Playwright e directory build/dependency non rappresentano capability.
 - I modelli Prisma `Session` e `VerificationToken` e `src/lib/auth.ts` sono dichiarati/placeholder ma non partecipano al flusso di sessione osservato.
 

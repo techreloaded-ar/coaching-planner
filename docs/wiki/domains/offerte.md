@@ -2,7 +2,7 @@
 type: domain
 title: Offerte
 description: Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
@@ -22,16 +22,15 @@ sources:
     - path: prisma/schema.prisma
       role: owned-data
       symbol: Offerta
+    - path: src/lib/abilitazioni.ts
+      role: outbound-consumer
+      symbol: elencaOfferteAbilitabili
     - path: tests/unit/avanzamento-offerte.test.ts
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
       role: verification
-review:
-    content_hash: sha256:97c513b9b17c5500a5caa12c8a5ac43b6632ceeab5bcb079417140e73e449a83
-    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
-    reviewed_at: "2026-07-21T14:41:50Z"
 ---
 # Offerte
 
@@ -49,16 +48,19 @@ Gestisce gli impegni commerciali associati a un cliente: codice, descrizione, ta
 - **Giornate erogate, residuo, percentuale di utilizzo**: misure derivate dalle ore fatturabili.
 - **IN_CORSO, IN_ALLERTA, ESAURITA, OLTRE_BUDGET**: classificazioni calcolate, non lifecycle persistito.
 - **Matrice mensile**: ripartizione delle giornate erogate per collaboratore e mese solare, con colonna e riga di totale; è parte della stessa proiezione di avanzamento, non uno stato persistito.
+- **Abilitazione esplicita**: relazione persistita e revocabile tra un collaboratore e un'offerta, posseduta dalla capability Collaboratori, che determina quali collaboratori possono registrare nuove attività sull'offerta; si veda la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md).
 
 <!-- archetipo:wiki section=ownership -->
 ## Ownership
 
-Possiede `Offerta`, i termini commerciali, il budget e il booleano `attiva`. Riferisce un cliente posseduto da Clienti. Le ore erogate appartengono alle attività; la vista di avanzamento è una proiezione calcolata e non modifica l'offerta.
+Possiede `Offerta`, i termini commerciali, il budget e il booleano `attiva`. Riferisce un cliente posseduto da Clienti. Le ore erogate appartengono alle attività; la vista di avanzamento è una proiezione calcolata e non modifica l'offerta. L'abilitazione esplicita che regola quali collaboratori possono operare su un'offerta è posseduta dalla capability Collaboratori (`AbilitazioneOfferta`); Offerte ne è solo il riferimento passivo tramite la relazione Prisma `abilitazioniCollaboratori` e non impone invarianti propri su quella tabella.
 
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
 Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `offertaPerId`, `elencaOfferteConAvanzamento` ed `elencaOffertePerClienteConAvanzamento` sono riservate all'amministratore; le ultime due espongono percentuale di utilizzo, ripartizione per collaboratore e matrice mensile per collaboratore. La query annidata filtra offerte e attività per cliente e le ordina per codice. Le attività consumano solo offerte attive del cliente selezionato.
+
+`elencaOfferteAbilitabili` in `src/lib/abilitazioni.ts` filtra le offerte attive prive di un'abilitazione per il collaboratore dato, usando la relazione Prisma `abilitazioniCollaboratori`; è una query dell'ambito Collaboratori che legge `Offerta` in sola lettura, senza scrivere né validare dati di questa capability.
 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
@@ -81,7 +83,7 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 | Query | `src/lib/offerte.ts` |
 | Validazione | `src/domain/anagrafiche/valida-offerta.ts` |
 | Avanzamento | `src/domain/consuntivi/index.ts`, `src/lib/offerte.ts`, `src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx` |
-| Dati | `prisma/schema.prisma` (`Offerta`) |
+| Dati | `prisma/schema.prisma` (`Offerta`; relazione inversa `abilitazioniCollaboratori` verso `AbilitazioneOfferta`, posseduta da Collaboratori) |
 | Test | `tests/unit/offerte-dal-actions.test.ts`, `tests/unit/elenca-offerte-con-avanzamento.test.ts`, `tests/unit/avanzamento-offerte.test.ts`, `tests/e2e/anagrafica-offerte.spec.ts`, `tests/e2e/gestione-offerte.spec.ts`, `tests/e2e/dettaglio-avanzamento-offerta.spec.ts`, `tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts` |
 
 <!-- archetipo:wiki section=invariants -->
@@ -92,8 +94,8 @@ Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Unit test coprono validazione, DAL, eliminazione, calcolo e le query di avanzamento trasversale e filtrata per cliente; E2E coprono gestione, viste annidate e trasversali, inclusi i dettagli espandibili, la navigazione a Modifica dall'elenco cliente e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer.
+Unit test coprono validazione, DAL, eliminazione, calcolo e le query di avanzamento trasversale e filtrata per cliente; E2E coprono gestione, viste annidate e trasversali, inclusi i dettagli espandibili, la navigazione a Modifica dall'elenco cliente e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer. La relazione con le abilitazioni esplicite è verificata dai test della capability Collaboratori (`tests/unit/abilitazioni-dal-actions.test.ts`, `tests/e2e/abilitazioni-collaboratore.spec.ts`), non da test propri di Offerte.
 
 ## Concetti correlati
 
-Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Clienti](/domains/clienti.md), [Attività](/domains/attivita.md) e [Fatturazione clienti](/domains/fatturazione-clienti.md).
+Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Clienti](/domains/clienti.md), [Attività](/domains/attivita.md), [Fatturazione clienti](/domains/fatturazione-clienti.md) e [Collaboratori](/domains/collaboratori.md), ed è coinvolta dalla decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md).

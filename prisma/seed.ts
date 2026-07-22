@@ -1,5 +1,6 @@
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { eseguiBackfillAbilitazioniIniziali } from "../scripts/backfill-abilitazioni-iniziali";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
@@ -311,6 +312,15 @@ async function main() {
   ]);
   console.log(
     `✓ Create ${attivitaSecondoCollaboratore.length} attività del secondo collaboratore`
+  );
+
+  // ── Backfill abilitazioni iniziali (US-042) ──────────────────
+  // Il seed svuota le tabelle all'avvio, quindi il guard "tabella vuota"
+  // del backfill una tantum è sempre soddisfatto: ogni collaboratore viene
+  // abilitato sulle offerte attive su cui ha almeno una riga di attività.
+  const esitoBackfill = await eseguiBackfillAbilitazioniIniziali(prisma);
+  console.log(
+    `✓ Backfill abilitazioni iniziali: ${esitoBackfill.inserite} abilitazioni inserite (esito: ${esitoBackfill.esito})`
   );
 
   console.log("\n🔐 Accesso tramite Google OAuth:");

@@ -2,11 +2,7 @@
 type: operations
 title: Deploy — Vercel + PostgreSQL SiteGround
 description: Guida operativa per portare Coaching Planner in staging e produzione su Vercel, con database PostgreSQL ospitato su SiteGround
-status: reviewed
-review:
-    content_hash: sha256:8bc004a959f08f1c056c6c4373aed297bea89d387901df4e42f5c56f44ce5ea9
-    evidence_revision: ed27f9987a6998a79deff1caff15324bf7e54d3e
-    reviewed_at: "2026-07-22T09:15:46Z"
+status: generated
 ---
 
 # Deploy — Vercel + PostgreSQL SiteGround
@@ -161,6 +157,16 @@ non deve mai essere `true` in staging o produzione.
   avvio per censire gli altri collaboratori.
 - Per demo o ambienti locali, l'equivalente manuale dello stesso bootstrap è:
   `AMMINISTRATORE_INIZIALE_EMAIL=<email> npm run db:bootstrap-amministratore`.
+- **Passo manuale una tantum al primo rilascio (US-042)**: subito dopo `db:migrate:deploy`, esegui
+  manualmente `npm run db:backfill-abilitazioni` contro il database dell'ambiente appena migrato. La
+  tabella `AbilitazioneOfferta` nasce vuota e questo script la pre-popola con le coppie
+  collaboratore/offerta già desumibili dalle righe attività storiche su offerte attive; una guardia
+  interna salta la scrittura se la tabella contiene già almeno una riga, quindi rieseguirlo dopo il
+  primo rilascio non ha effetto (a meno che la tabella non sia stata svuotata manualmente). A
+  differenza del bootstrap amministratore, questo passo **non** è incluso nel build command Vercel:
+  va lanciato a mano, una sola volta per ambiente (staging e produzione), perché agisce su dati
+  applicativi derivati e non su un prerequisito di accesso al back-office. Dettagli e alternative
+  scartate nella decisione `docs/wiki/decisions/abilitazioni-offerte-esplicite.md`.
 
 ## 8. Checklist go-live
 
@@ -171,6 +177,7 @@ non deve mai essere `true` in staging o produzione.
 - [x] Build command con `prisma migrate deploy` configurato
 - [x] Dominio collegato, DNS propagato, certificato Vercel attivo
 - [ ] `AMMINISTRATORE_INIZIALE_EMAIL` configurata su Vercel e bootstrap dell'amministratore incluso nel build command
+- [ ] `npm run db:backfill-abilitazioni` eseguito manualmente subito dopo `db:migrate:deploy` al primo rilascio, in ciascun ambiente (staging e produzione)
 - [ ] Smoke test end-to-end manuale in staging (login Google, CRUD principali) prima di promuovere in produzione
 
 ## 9. Follow-up da pianificare in una spec separata
@@ -185,4 +192,4 @@ non deve mai essere `true` in staging o produzione.
 
 ## Concetti correlati
 
-Per setup locale, migrazioni e controlli di qualità, vedi le [operazioni di sviluppo](/operations/development.md).
+Per setup locale, migrazioni e controlli di qualità, vedi le [operazioni di sviluppo](/operations/development.md). Per il razionale del passo di backfill una tantum, vedi la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md).

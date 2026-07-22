@@ -86,6 +86,7 @@ model Collaboratore {
 
   utente          Utente          @relation(fields: [userId], references: [id])
   righeAttivita    RigaAttivita[]
+  abilitazioniOfferte AbilitazioneOfferta[]
 }
 
 // ── Clienti ─────────────────────────────────────────────────────
@@ -124,6 +125,7 @@ model Offerta {
 
   cliente        Cliente         @relation(fields: [clienteId], references: [id])
   righeAttivita  RigaAttivita[]
+  abilitazioniCollaboratori AbilitazioneOfferta[]
 
   @@unique([codice, clienteId])
 }
@@ -156,4 +158,18 @@ model RigaAttivita {
   collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
   cliente       Cliente       @relation(fields: [clienteId], references: [id])
   offerta       Offerta       @relation(fields: [offertaId], references: [id])
+}
+
+// ── Abilitazioni Collaboratore su Offerta ────────────────────────
+
+model AbilitazioneOfferta {
+  id              String   @id @default(uuid())
+  collaboratoreId String
+  offertaId       String
+  createdAt       DateTime @default(now())
+
+  collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
+  offerta       Offerta       @relation(fields: [offertaId], references: [id])
+
+  @@unique([collaboratoreId, offertaId])
 }

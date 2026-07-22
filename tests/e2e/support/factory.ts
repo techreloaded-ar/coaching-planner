@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type {
+	AbilitazioneOfferta,
 	Cliente,
 	Collaboratore,
 	Offerta,
@@ -74,6 +75,11 @@ export type CreateRigaAttivitaOptions = {
 export type CreateScaglioneKmOptions = {
 	finoAKm: number;
 	importo: string | number;
+};
+
+export type CreateAbilitazioneOffertaOptions = {
+	collaboratore: Collaboratore | CollaboratoreTestData;
+	offerta: Offerta;
 };
 
 function slugify(value: string): string {
@@ -293,6 +299,25 @@ export class E2eDataFactory {
 			 VALUES ($1, $2, $3, $4, $4)
 			 RETURNING *`,
 			[randomUUID(), options.finoAKm, options.importo, now],
+		);
+	}
+
+	async createAbilitazioneOfferta(
+		options: CreateAbilitazioneOffertaOptions,
+	): Promise<AbilitazioneOfferta> {
+		const now = new Date();
+
+		return insertReturning<AbilitazioneOfferta>(
+			this.prisma,
+			`INSERT INTO "AbilitazioneOfferta" ("id", "collaboratoreId", "offertaId", "createdAt")
+			 VALUES ($1, $2, $3, $4)
+			 RETURNING *`,
+			[
+				randomUUID(),
+				resolveCollaboratoreId(options.collaboratore),
+				options.offerta.id,
+				now,
+			],
 		);
 	}
 

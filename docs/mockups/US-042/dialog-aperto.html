@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abilita offerte — dialog aperto — Coaching Planner (US-042)</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div class="console">
+
+  <!-- ============ SIDEBAR DI NAVIGAZIONE ============ -->
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-mark">CP</div>
+      <div class="brand-name">
+        <b>Coaching Planner</b>
+        <span>Console gestionale</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" aria-label="Navigazione principale">
+      <span class="nav-label">Gestione</span>
+
+      <a class="nav-item" href="#" onclick="return false" title="Clienti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V8.5L9 4l6 4.5V21"/><path d="M15 21h6V11l-6-3"/><path d="M7.5 21v-4.5h3V21"/><path d="M7 9.5h.01M11 9.5h.01M7 13h.01M11 13h.01"/></svg>
+        <span class="lbl">Clienti</span>
+      </a>
+
+      <a class="nav-item" href="#" onclick="return false" title="Offerte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+        <span class="lbl">Offerte</span>
+      </a>
+
+      <a class="nav-item active" href="#" aria-current="page" title="Collaboratori">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0"/><circle cx="17.2" cy="9.4" r="2.6"/><path d="M15.4 14.6a5 5 0 0 1 5.8 4.8"/></svg>
+        <span class="lbl">Collaboratori</span>
+      </a>
+
+      <a class="nav-item" href="#" onclick="return false" title="Scaglioni km">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        <span class="lbl">Scaglioni km</span>
+      </a>
+
+      <span class="nav-label" style="margin-top:8px;">Amministrazione</span>
+
+      <a class="nav-item" href="#" onclick="return false" title="Report da fatturare">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7.5 15.5v-4M12 15.5V7.5M16.5 15.5v-6"/></svg>
+        <span class="lbl">Report da fatturare</span>
+      </a>
+    </nav>
+
+    <div class="side-foot">
+      <div class="side-user">
+        <div class="avatar">SM</div>
+        <div class="meta">
+          <b>Stefano Marello</b>
+          <span>Amministratore</span>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+          <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm esci-btn" type="button" title="Disconnessione">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+        <span class="lbl">Esci</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ============ AREA CONTENUTO (US-042) ============ -->
+  <div class="main">
+    <main class="content">
+
+      <nav class="crumbs" aria-label="Percorso">
+        <a href="index.html" title="Torna al dettaglio collaboratore">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg>
+          Collaboratori
+        </a>
+        <span class="sep">/</span>
+        <span class="corrente">Giulia Conti</span>
+      </nav>
+
+      <!-- Header di profilo -->
+      <section class="card profilo" id="profilo"><!-- generato da JS --></section>
+
+      <!-- Sezione offerte abilitate -->
+      <section class="abilitazioni" aria-labelledby="titoloAbil">
+        <div class="sezione-head">
+          <div class="titolo">
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/></svg>
+            </span>
+            <div>
+              <h2 id="titoloAbil">Offerte abilitate</h2>
+              <span class="sub">Offerte su cui il collaboratore può inserire ore</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span class="conteggio" id="contaAbil"><!-- generato da JS --></span>
+            <button class="btn btn-primary btn-abilita" id="btnApriDialog" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+              Abilita offerte
+            </button>
+          </div>
+        </div>
+
+        <div class="off-lista" id="offLista"><!-- generato da JS --></div>
+      </section>
+
+      <hr class="sep-storico">
+
+      <!-- Storico attività per mese (contesto) -->
+      <div class="sezione-head">
+        <div class="titolo">
+          <span class="ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+          </span>
+          <div>
+            <h2>Storico attività</h2>
+            <span class="sub">Attività registrate, raggruppate per mese</span>
+          </div>
+        </div>
+      </div>
+      <div class="timeline" id="timeline"><!-- generata da JS --></div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============ DIALOG MODALE: Abilita offerte (aperto) ============ -->
+<div class="modal-overlay" id="modalAbilita" role="dialog" aria-modal="true" aria-labelledby="modalTit">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="m-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/></svg>
+      </span>
+      <div class="m-tit">
+        <h3 id="modalTit">Abilita offerte</h3>
+        <p>Seleziona le offerte attive su cui abilitare Giulia Conti.</p>
+      </div>
+      <button class="modal-close" id="modalClose" type="button" aria-label="Chiudi la finestra">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-search">
+      <div class="search-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="modalSearch" placeholder="Cerca per codice, descrizione o cliente…" aria-label="Cerca offerte">
+      </div>
+    </div>
+
+    <div class="modal-body" id="modalBody"><!-- generato da JS: filtrato su "Meridiano", 2 selezionate --></div>
+
+    <div class="modal-foot">
+      <span class="riepilogo-sel vuoto" id="riepilogoSel"><!-- generato da JS --></span>
+      <button class="btn btn-ghost" id="btnAnnulla" type="button">Annulla</button>
+      <button class="btn btn-primary" id="btnAbilitaSelezionate" type="button" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+        Abilita selezionate
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  CP.initTheme();
+  CP.initDialogAperto();
+</script>
+</body>
+</html>

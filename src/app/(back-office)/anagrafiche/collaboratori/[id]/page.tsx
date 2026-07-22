@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { richiediRuolo } from "@/lib/dal";
 import { collaboratorePerId, storicoAttivitaCollaboratore } from "@/lib/collaboratori";
+import { elencaOfferteAbilitate, elencaOfferteAbilitabili } from "@/lib/abilitazioni";
 import { raggruppaAttivitaPerMese, type RigaStoricoAttivita } from "@/domain/consuntivi";
 import { etichettaMese } from "@/domain/calendario";
+import AbilitazioniOfferte from "./abilitazioni-offerte";
 
 // ── Utilità ────────────────────────────────────────────────────
 
@@ -46,7 +48,11 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
     notFound();
   }
 
-  const storico = await storicoAttivitaCollaboratore(id);
+  const [storico, abilitate, abilitabili] = await Promise.all([
+    storicoAttivitaCollaboratore(id),
+    elencaOfferteAbilitate(id),
+    elencaOfferteAbilitabili(id),
+  ]);
 
   const righe: RigaStoricoAttivita[] = storico.map((riga) => ({
     id: riga.id,
@@ -119,6 +125,13 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
           </div>
         </div>
       </div>
+
+      {/* Offerte abilitate */}
+      <AbilitazioniOfferte
+        collaboratoreId={id}
+        abilitate={abilitate}
+        abilitabili={abilitabili}
+      />
 
       {/* Storico attività per mese */}
       {mesi.length === 0 ? (
