@@ -243,15 +243,16 @@ export async function clientiAttiviPerSelezione(): Promise<
 }
 
 /**
- * Restituisce le offerte attive per un cliente specifico.
+ * Restituisce le offerte attive del cliente su cui il collaboratore corrente
+ * è abilitato.
  *
  * Accessibile al collaboratore autenticato. Lancia ErroreAutorizzazione
  * se non autenticato o se non è un collaboratore.
  *
  * @param clienteId - ID del cliente di cui recuperare le offerte attive
- * @returns Lista offerte attive con id, codice e descrizione, ordinate per codice
+ * @returns Lista offerte attive e abilitate con id, codice e descrizione, ordinate per codice
  */
-export async function offerteAttivePerCliente(
+export async function offerteAbilitatePerCliente(
   clienteId: string
 ): Promise<{ id: string; codice: string; descrizione: string }[]> {
   const collaboratore = await richiediCollaboratoreCorrente();
@@ -266,6 +267,7 @@ export async function offerteAttivePerCliente(
     where: {
       clienteId,
       attiva: true,
+      abilitazioniCollaboratori: { some: { collaboratoreId: collaboratore.id } },
     },
     select: {
       id: true,

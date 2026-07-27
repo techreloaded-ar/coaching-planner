@@ -15,11 +15,17 @@ import { test, expect } from "./support/fixtures";
 test.describe("US-031 Demo", () => {
   test("demo apertura di un giorno vuoto e del mese adiacente", async ({
     page,
+    factory,
     collaboratore,
     clienteConOfferta,
   }) => {
     const mese = meseRiservato("US-031-demo");
     const dataVuota = dataNelMese(mese, 10);
+
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: clienteConOfferta.offerta,
+    });
 
     await accediComeCollaboratore(page, collaboratore.utente.email);
     await page.goto(`/attivita?mese=${mese}`);

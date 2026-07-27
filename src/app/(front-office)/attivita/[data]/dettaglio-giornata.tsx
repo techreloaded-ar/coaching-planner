@@ -112,6 +112,11 @@ export default function DettaglioGiornata({
     return { nRighe, oreTotali, oreFatturabili, totaleRimborsi };
   }, [righe]);
 
+  // ── Assenza di offerte abilitate per il cliente selezionato ─
+
+  const nessunaOffertaAbilitata =
+    clienteId !== "" && !offerteLoading && offerte.length === 0 && !modificaId;
+
   // ── Preview rimborso dalla distanza inserita ───────────────
 
   const previewRimborso = useMemo(() => {
@@ -274,7 +279,20 @@ export default function DettaglioGiornata({
       try {
         const result = await fetchOffertePerCliente(riga.cliente.id);
         if (result.success && result.data) {
-          setOfferte(result.data);
+          const offerteCaricate = result.data;
+          const offertaPresente = offerteCaricate.some((o) => o.id === riga.offerta.id);
+          setOfferte(
+            offertaPresente
+              ? offerteCaricate
+              : [
+                  ...offerteCaricate,
+                  {
+                    id: riga.offerta.id,
+                    codice: riga.offerta.codice,
+                    descrizione: riga.offerta.descrizione,
+                  },
+                ]
+          );
           setOffertaId(riga.offerta.id);
         }
       } catch {
@@ -609,7 +627,7 @@ export default function DettaglioGiornata({
                   : !clienteId
                     ? "Seleziona prima un cliente"
                     : offerte.length === 0
-                      ? "Nessuna offerta attiva"
+                      ? "Nessuna offerta abilitata"
                       : "Seleziona un'offerta"}
               </option>
               {offerte.map((o) => (
@@ -618,6 +636,24 @@ export default function DettaglioGiornata({
                 </option>
               ))}
             </select>
+            {nessunaOffertaAbilitata && (
+              <div
+                data-testid="nessuna-offerta-abilitata"
+                className="mt-2 flex items-start gap-2 rounded-[9px] border border-amber-200 bg-amber-50 p-[10px_13px] text-[12.5px] font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  className="mt-px h-[14px] w-[14px] flex-none"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 11v5M12 7.6h.01" />
+                </svg>
+                Nessuna offerta abilitata per questo cliente. Chiedi a un amministratore di abilitarti.
+              </div>
+            )}
           </div>
 
           {/* Ore */}
@@ -761,7 +797,7 @@ export default function DettaglioGiornata({
           <div className="flex items-center gap-3 pt-0.5">
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || nessunaOffertaAbilitata}
               className="inline-flex items-center gap-[7px] rounded-[10px] bg-rose-600 px-[18px] py-[9px] text-[13.5px] font-bold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-rose-500 dark:hover:bg-rose-600"
             >
               <svg

@@ -2,7 +2,7 @@
 type: domain
 title: Offerte
 description: Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
@@ -31,10 +31,6 @@ sources:
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
       role: verification
-review:
-    content_hash: sha256:7c13c4808b87df225f8e8ce446798d42158e75a26d68d1b49f6d462277398378
-    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
-    reviewed_at: "2026-07-27T09:41:32Z"
 ---
 # Offerte
 
@@ -52,7 +48,7 @@ Gestisce gli impegni commerciali associati a un cliente: codice, descrizione, ta
 - **Giornate erogate, residuo, percentuale di utilizzo**: misure derivate dalle ore fatturabili.
 - **IN_CORSO, IN_ALLERTA, ESAURITA, OLTRE_BUDGET**: classificazioni calcolate, non lifecycle persistito.
 - **Matrice mensile**: ripartizione delle giornate erogate per collaboratore e mese solare, con colonna e riga di totale; è parte della stessa proiezione di avanzamento, non uno stato persistito.
-- **Abilitazione esplicita**: relazione persistita e revocabile tra un collaboratore e un'offerta, posseduta dalla capability Collaboratori, che determina quali collaboratori possono registrare nuove attività sull'offerta; si veda la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md).
+- **Abilitazione esplicita**: relazione persistita e revocabile tra un collaboratore e un'offerta, posseduta dalla capability Collaboratori, che determina quali collaboratori possono registrare nuove attività sull'offerta. Il vincolo è applicato lato server dalla capability Attività (selezione, creazione e modifica riga); si veda la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md).
 
 <!-- archetipo:wiki section=ownership -->
 ## Ownership
@@ -62,7 +58,7 @@ Possiede `Offerta`, i termini commerciali, il budget e il booleano `attiva`. Rif
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
-Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `offertaPerId`, `elencaOfferteConAvanzamento` ed `elencaOffertePerClienteConAvanzamento` sono riservate all'amministratore; le ultime due espongono percentuale di utilizzo, ripartizione per collaboratore e matrice mensile per collaboratore. La query annidata filtra offerte e attività per cliente e le ordina per codice. Le attività consumano solo offerte attive del cliente selezionato.
+Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `offertaPerId`, `elencaOfferteConAvanzamento` ed `elencaOffertePerClienteConAvanzamento` sono riservate all'amministratore; le ultime due espongono percentuale di utilizzo, ripartizione per collaboratore e matrice mensile per collaboratore. La query annidata filtra offerte e attività per cliente e le ordina per codice. Le attività consumano solo offerte attive del cliente selezionato **e abilitate per il collaboratore corrente**: sia la query di selezione (`offerteAbilitatePerCliente` nella capability Attività) sia le action di creazione e modifica riga applicano il filtro/vincolo sull'abilitazione esplicita, non solo l'appartenenza al cliente e lo stato attivo.
 
 `elencaOfferteAbilitabili` in `src/lib/abilitazioni.ts` filtra le offerte attive prive di un'abilitazione per il collaboratore dato, usando la relazione Prisma `abilitazioniCollaboratori`; è una query dell'ambito Collaboratori che legge `Offerta` in sola lettura, senza scrivere né validare dati di questa capability.
 
@@ -98,7 +94,7 @@ Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Unit test coprono validazione, DAL, eliminazione, calcolo e le query di avanzamento trasversale e filtrata per cliente; E2E coprono gestione, viste annidate e trasversali, inclusi i dettagli espandibili, la navigazione a Modifica dall'elenco cliente e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer. La relazione con le abilitazioni esplicite è verificata dai test della capability Collaboratori (`tests/unit/abilitazioni-dal-actions.test.ts`, `tests/e2e/abilitazioni-collaboratore.spec.ts`), non da test propri di Offerte.
+Unit test coprono validazione, DAL, eliminazione, calcolo e le query di avanzamento trasversale e filtrata per cliente; E2E coprono gestione, viste annidate e trasversali, inclusi i dettagli espandibili, la navigazione a Modifica dall'elenco cliente e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer. La relazione con le abilitazioni esplicite è verificata dai test della capability Collaboratori (`tests/unit/abilitazioni-dal-actions.test.ts`, `tests/e2e/abilitazioni-collaboratore.spec.ts`) per la gestione delle abilitazioni, e dai test della capability Attività (`tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/e2e/offerte-abilitate-inserimento.spec.ts`) per l'enforcement del vincolo in selezione, creazione e modifica riga.
 
 ## Concetti correlati
 

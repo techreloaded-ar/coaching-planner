@@ -82,6 +82,11 @@ async function creaScenarioTrasferta(factory: E2eDataFactory): Promise<ScenarioT
     },
   );
 
+  await factory.createAbilitazioneOfferta({
+    collaboratore,
+    offerta: clienteConOfferta.offerta,
+  });
+
   return {
     mese,
     data: dataNelMese(mese, 12),

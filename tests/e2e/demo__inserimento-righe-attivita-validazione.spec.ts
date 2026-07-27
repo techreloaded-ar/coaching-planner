@@ -15,10 +15,16 @@ test.use({
 test.describe("US-012 Validazione — ore non valide", () => {
   test("mostra errori per input ore non validi", async ({
     page,
+    factory,
     collaboratore,
     clienteConOfferta,
   }) => {
     test.setTimeout(60_000);
+
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: clienteConOfferta.offerta,
+    });
 
     await accediComeCollaboratore(page, collaboratore.utente.email);
 

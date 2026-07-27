@@ -130,6 +130,14 @@ async function creaScenarioRiepilogo(
     trasfertaKm: baselineTrasfertaKm ?? null,
   });
 
+  // Gli scenari che usano questa fixture aggiungono righe anche dal form
+  // (`aggiungiRiga`), quindi il collaboratore deve essere abilitato
+  // sull'offerta factory anche se la riga baseline è scritta direttamente a DB.
+  await factory.createAbilitazioneOfferta({
+    collaboratore,
+    offerta: clienteConOfferta.offerta,
+  });
+
   return { mese, collaboratore, clienteConOfferta };
 }
 

@@ -24,6 +24,7 @@ function cardAttivitaPerNota(page: Page, nota: string): Locator {
 test.describe("US-012 Mese concluso — nessun blocco temporale", () => {
   test("aggiunta, modifica ed eliminazione su data passata", async ({
     page,
+    factory,
     collaboratore,
     clienteConOfferta,
   }) => {
@@ -33,6 +34,11 @@ test.describe("US-012 Mese concluso — nessun blocco temporale", () => {
     const dataPassata = dataNelMesePassatoRiservato(codiceSpec, 2);
     const mesePassato = mesePassatoRiservato(codiceSpec);
     const notaUnivoca = `US-023 mese concluso ${randomUUID()}`;
+
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: clienteConOfferta.offerta,
+    });
 
     await accediComeCollaboratore(page, collaboratore.utente.email);
 

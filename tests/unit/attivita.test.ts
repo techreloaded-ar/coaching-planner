@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { attivitaDelMese } from "@/lib/attivita";
+import { attivitaDelMese, offerteAbilitatePerCliente } from "@/lib/attivita";
+import { ErroreAutorizzazione } from "@/lib/dal";
 
 // ── Mock di Prisma ──────────────────────────────────────────────
 
@@ -7,9 +8,14 @@ const mockRigaAttivita = vi.hoisted(() => ({
   findMany: vi.fn(),
 }));
 
+const mockOfferta = vi.hoisted(() => ({
+  findMany: vi.fn(),
+}));
+
 vi.mock("@/lib/db", () => ({
   db: {
     rigaAttivita: mockRigaAttivita,
+    offerta: mockOfferta,
   },
 }));
 
@@ -526,5 +532,59 @@ describe("attivitaDelMese", () => {
     const result = await attivitaDelMese("2026-06");
     const sintesi = result.perGiorno.get("2026-06-10");
     expect(sintesi!.oreTotali).toBe(11.0); // 7.25 + 3.75 = 11.0
+  });
+});
+
+describe("offerteAbilitatePerCliente", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("interroga il DB filtrando su clienteId, offerte attive e abilitazione del collaboratore corrente", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue({
+      id: "collab-giulia",
+      userId: "user-giulia",
+      nome: "Giulia",
+      cognome: "Conti",
+      partitaIva: "IT12345678901",
+      tariffaGiornaliera: "350.00",
+      attivo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const offerteAttese = [
+      { id: "offerta-1", codice: "TS-001", descrizione: "Consulenza" },
+    ];
+    mockOfferta.findMany.mockResolvedValue(offerteAttese);
+
+    const result = await offerteAbilitatePerCliente("cliente-techsolutions");
+
+    expect(mockOfferta.findMany).toHaveBeenCalledTimes(1);
+    expect(mockOfferta.findMany).toHaveBeenCalledWith({
+      where: {
+        clienteId: "cliente-techsolutions",
+        attiva: true,
+        abilitazioniCollaboratori: {
+          some: { collaboratoreId: "collab-giulia" },
+        },
+      },
+      select: {
+        id: true,
+        codice: true,
+        descrizione: true,
+      },
+      orderBy: { codice: "asc" },
+    });
+    expect(result).toBe(offerteAttese);
+  });
+
+  it("lancia ErroreAutorizzazione se non c'è un collaboratore corrente", async () => {
+    mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
+
+    await expect(
+      offerteAbilitatePerCliente("cliente-techsolutions")
+    ).rejects.toBeInstanceOf(ErroreAutorizzazione);
+    expect(mockOfferta.findMany).not.toHaveBeenCalled();
   });
 });

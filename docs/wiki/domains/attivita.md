@@ -2,15 +2,15 @@
 type: domain
 title: Attività e consuntivazione
 description: Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/lib/actions/righe-attivita.ts
       role: inbound-commands
-      symbol: creaRiga, modificaRiga, eliminaRiga, rimuoviTrasferta
+      symbol: creaRiga, modificaRiga, eliminaRiga, rimuoviTrasferta, verificaAbilitazioneOfferta, caricaRigaDelCollaboratore
     - path: src/lib/attivita.ts
       role: application-query
-      symbol: attivitaDelMese, righeDelGiorno, riepilogoMese
+      symbol: attivitaDelMese, righeDelGiorno, riepilogoMese, offerteAbilitatePerCliente
     - path: src/domain/calendario/index.ts
       role: supporting-domain
     - path: src/domain/consuntivi/index.ts
@@ -21,12 +21,12 @@ sources:
       symbol: RigaAttivita
     - path: tests/unit/righe-attivita-actions.test.ts
       role: verification
+    - path: tests/unit/attivita.test.ts
+      role: verification
     - path: tests/e2e/calendario-segregazione.spec.ts
       role: verification
-review:
-    content_hash: sha256:69d43e480a29955bd953fc9c7c5e20a2c708b64e59789fff8fafae03ee373197
-    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
-    reviewed_at: "2026-07-27T09:44:49Z"
+    - path: tests/e2e/offerte-abilitate-inserimento.spec.ts
+      role: verification
 ---
 # Attività e consuntivazione
 
@@ -48,15 +48,15 @@ Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni perso
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
-`creaRiga`, `modificaRiga`, `eliminaRiga` e `rimuoviTrasferta` restituiscono `{ success, error? }`. Le query espongono attività per giorno/mese e un `RisultatoRiepilogoMese` serializzabile. Il profilo deve essere `ATTIVO`; le offerte selezionabili devono appartenere al cliente ed essere attive.
+`creaRiga`, `modificaRiga`, `eliminaRiga` e `rimuoviTrasferta` restituiscono `{ success, error? }`. Le query espongono attività per giorno/mese e un `RisultatoRiepilogoMese` serializzabile. Il profilo deve essere `ATTIVO`; le offerte selezionabili devono appartenere al cliente, essere attive ed essere abilitate per il collaboratore corrente tramite `AbilitazioneOfferta` (si veda la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md)). `creaRiga` rifiuta con errore visibile la creazione su un'offerta non abilitata, senza scrivere alcuna riga. `modificaRiga` richiede l'abilitazione solo quando la riga cambia offerta; a parità di offerta non la ricontrolla, così una riga storica su un'offerta nel frattempo non più abilitata resta modificabile ed eliminabile dal proprietario.
 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
 
 1. Le pagine e le action risolvono il profilo; solo l'esito derivato `ATTIVO` consente operazioni.
-2. La creazione verifica campi, coerenza offerta-cliente, stato offerta, ore, km/scaglione e formato data, poi `src/lib/actions/righe-attivita.ts` (`creaRiga`) crea una `RigaAttivita` per il collaboratore corrente e assegna esattamente cliente, offerta, data, ore, nota, `fatturabile` e `trasfertaKm`.
-3. `modificaRiga`, `eliminaRiga` e `rimuoviTrasferta` verificano prima che `RigaAttivita.collaboratoreId` coincida con il collaboratore corrente. `rimuoviTrasferta` assegna esattamente `trasfertaKm: null` nello stesso file; l'eliminazione cancella il record e non è una transizione di stato.
-4. `modificaRiga` costruisce un aggiornamento parziale. Assegna `fatturabile` soltanto se il `FormData` contiene il campo; non legge uno stato sorgente né modella transizioni nominate.
+2. La creazione verifica campi, coerenza offerta-cliente, stato offerta, abilitazione del collaboratore sull'offerta, ore, km/scaglione e formato data, poi `src/lib/actions/righe-attivita.ts` (`creaRiga`) crea una `RigaAttivita` per il collaboratore corrente e assegna esattamente cliente, offerta, data, ore, nota, `fatturabile` e `trasfertaKm`.
+3. `modificaRiga`, `eliminaRiga` e `rimuoviTrasferta` caricano prima la riga corrente e verificano che `RigaAttivita.collaboratoreId` coincida con il collaboratore corrente (`caricaRigaDelCollaboratore`). `rimuoviTrasferta` assegna esattamente `trasfertaKm: null` nello stesso file; l'eliminazione cancella il record e non è una transizione di stato.
+4. `modificaRiga` costruisce un aggiornamento parziale. Assegna `fatturabile` soltanto se il `FormData` contiene il campo; non legge uno stato sorgente né modella transizioni nominate. Quando il form invia un'`offertaId` diversa da quella della riga, `modificaRiga` riverifica coerenza offerta-cliente (usando il cliente del form o, in assenza, quello della riga) e abilitazione sulla nuova offerta, rifiutando l'aggiornamento con errore visibile in caso contrario; a parità di offerta nessuna delle due verifiche viene ripetuta.
 5. La lettura mensile filtra sempre per `collaboratoreId` e intervallo del mese (`orderBy: data asc, createdAt asc`), poi aggrega per giorno: numero righe, ore totali e, per ciascun cliente con attività quel giorno, ragione sociale e ore cumulate su tutte le sue offerte, in ordine di prima apparizione. La cella del calendario mostra fino a due etichette cliente con le ore, oltre le quali compare un indicatore "+N" con i clienti rimanenti; il codice offerta non è più mostrato nella cella.
 6. Il riepilogo somma ore, converte con 8 ore/giorno, include nell'imponibile solo ore fatturabili e aggiunge i rimborsi validi.
 7. Non esiste uno stato lifecycle persistito della riga. Gli esiti del calcolo rimborso non sono transizioni.
@@ -73,17 +73,17 @@ Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni perso
 | Calendario | `src/domain/calendario/index.ts` |
 | Regole e riepilogo | `src/domain/consuntivi/index.ts` |
 | Dati | `prisma/schema.prisma` (`RigaAttivita`) |
-| Test | `tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/unit/calendario.test.ts`, `tests/unit/riepilogo-mese.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/e2e/calendario-segregazione.spec.ts` e scenari attività dedicati |
+| Test | `tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/unit/calendario.test.ts`, `tests/unit/riepilogo-mese.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/e2e/calendario-segregazione.spec.ts`, `tests/e2e/offerte-abilitate-inserimento.spec.ts` e scenari attività dedicati |
 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
 
-Le ore devono essere maggiori di zero e non superiori a 24 per singola riga; non esiste un limite alla somma giornaliera. I km, se presenti, sono interi positivi coperti da uno scaglione. La proprietà è applicata da filtri e controlli applicativi. Lo schema ha tre FK separate e non impone che `RigaAttivita.clienteId` coincida con il cliente dell'offerta. La creazione verifica la coppia; `modificaRiga` la ricontrolla solo quando riceve insieme un nuovo cliente e una nuova offerta, quindi una chiamata parziale può produrre incoerenza semantica. Inoltre `dettaglio-giornata.tsx` invia `fatturabile` soltanto quando la checkbox è selezionata e `modificaRiga` ignora il campo assente: dal flusso UI osservato una riga `true` non può quindi essere salvata come `false`. La regex delle action verifica il formato data ma non la validità civile; `Date.UTC` normalizza date impossibili. Tariffa e scaglioni correnti ricalcolano retroattivamente il riepilogo.
+Le ore devono essere maggiori di zero e non superiori a 24 per singola riga; non esiste un limite alla somma giornaliera. I km, se presenti, sono interi positivi coperti da uno scaglione. La proprietà è applicata da filtri e controlli applicativi. Lo schema ha tre FK separate e non impone che `RigaAttivita.clienteId` coincida con il cliente dell'offerta. La creazione verifica sempre la coppia offerta-cliente e l'abilitazione; `modificaRiga` le ricontrolla entrambe non appena il form invia un'offerta diversa da quella corrente, usando il cliente del form o, in assenza, quello della riga — una modifica che lascia l'offerta invariata non le rivaluta. Inoltre `dettaglio-giornata.tsx` invia `fatturabile` soltanto quando la checkbox è selezionata e `modificaRiga` ignora il campo assente: dal flusso UI osservato una riga `true` non può quindi essere salvata come `false`. La regex delle action verifica il formato data ma non la validità civile; `Date.UTC` normalizza date impossibili. Tariffa e scaglioni correnti ricalcolano retroattivamente il riepilogo.
 
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-La suite unit copre segregazione, CRUD, validazioni, calendario, rimborso e riepilogo. Gli E2E coprono flussi browser, ma alcuni scenari storici usano seed condivisi mentre i test mutanti recenti adottano factory e risorse riservate. Confidenza alta sul comportamento descritto; i limiti server-side sono osservazioni esplicite, non invarianti presunte.
+La suite unit copre segregazione, CRUD, validazioni, calendario, rimborso, riepilogo e l'enforcement dell'abilitazione offerta in `creaRiga`/`modificaRiga` (`tests/unit/righe-attivita-actions.test.ts`) e il filtro della query `offerteAbilitatePerCliente` (`tests/unit/attivita.test.ts`). Gli E2E coprono flussi browser, ma alcuni scenari storici usano seed condivisi mentre i test mutanti recenti adottano factory e risorse riservate; `tests/e2e/offerte-abilitate-inserimento.spec.ts` copre la select filtrata, il messaggio di assenza offerte abilitate e la modifica/eliminazione di una riga storica su offerta non abilitata. Confidenza alta sul comportamento descritto; i limiti server-side sono osservazioni esplicite, non invarianti presunte.
 
 ## Concetti correlati
 

@@ -16,9 +16,15 @@ import { test, expect } from "./support/fixtures";
 test.describe("US-031 Apertura di qualsiasi giorno dal calendario", () => {
   test("un giorno senza attività si apre e consente l'inserimento", async ({
     page,
+    factory,
     collaboratore,
     clienteConOfferta,
   }) => {
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: clienteConOfferta.offerta,
+    });
+
     await accediComeCollaboratore(page, collaboratore.utente.email);
 
     const mese = meseRiservato("US-031");

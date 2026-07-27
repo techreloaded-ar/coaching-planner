@@ -15,9 +15,10 @@ test.describe("US-030 Demo", () => {
 		factory,
 	}) => {
 		const utente = await factory.createUtente({ ruolo: "AMMINISTRATORE" });
-		await factory.createCollaboratore({ utente });
+		const collaboratore = await factory.createCollaboratore({ utente });
 		const cliente = await factory.createCliente();
 		const offerta = await factory.createOfferta({ cliente });
+		await factory.createAbilitazioneOfferta({ collaboratore, offerta });
 		const mese = meseRiservato(CODICE_SPEC_DEMO);
 		const data = dataNelMeseRiservato(CODICE_SPEC_DEMO, 17);
 		const nota = `Demo attività amministratore ${factory.namespace}`;

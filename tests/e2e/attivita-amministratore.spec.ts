@@ -10,9 +10,10 @@ test.describe("US-030 Attività amministratore", () => {
 		factory,
 	}) => {
 		const utente = await factory.createUtente({ ruolo: "AMMINISTRATORE" });
-		await factory.createCollaboratore({ utente });
+		const collaboratore = await factory.createCollaboratore({ utente });
 		const cliente = await factory.createCliente();
 		const offerta = await factory.createOfferta({ cliente });
+		await factory.createAbilitazioneOfferta({ collaboratore, offerta });
 		const mese = meseRiservato(CODICE_SPEC);
 		const data = dataNelMeseRiservato(CODICE_SPEC, 15);
 		const nota = `Attività amministratore ${factory.namespace}`;

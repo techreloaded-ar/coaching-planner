@@ -18,11 +18,16 @@ const mockOfferta = vi.hoisted(() => ({
   findUnique: vi.fn(),
 }));
 
+const mockAbilitazioneOfferta = vi.hoisted(() => ({
+  findUnique: vi.fn(),
+}));
+
 vi.mock("@/lib/db", () => ({
   db: {
     rigaAttivita: mockRigaAttivita,
     scaglioneKm: mockScaglioneKm,
     offerta: mockOfferta,
+    abilitazioneOfferta: mockAbilitazioneOfferta,
   },
 }));
 
@@ -93,6 +98,11 @@ describe("creaRiga", () => {
     mockOfferta.findUnique.mockResolvedValue({
       clienteId: "cliente-1",
       attiva: true,
+    });
+    // Mock abilitazione presente per tutte le chiamate (necessario per verificaAbilitazioneOfferta)
+    mockAbilitazioneOfferta.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-1",
     });
     // Mock scaglioni per validazione km (quando presente)
     mockScaglioneKm.findMany.mockResolvedValue([
@@ -307,6 +317,29 @@ describe("creaRiga", () => {
     expect(mockRigaAttivita.create).not.toHaveBeenCalled();
   });
 
+  it("rifiuta offerta non abilitata per il collaboratore (AC-2)", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockAbilitazioneOfferta.findUnique.mockResolvedValue(null);
+
+    const fd = creaFormData({
+      clienteId: "cliente-1",
+      offertaId: "offerta-1",
+      ore: "8",
+      data: "2026-07-01",
+    });
+
+    const result = await creaRiga(fd);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Non sei abilitato a registrare attività su questa offerta",
+    });
+    expect(mockRigaAttivita.create).not.toHaveBeenCalled();
+  });
+
   it("scrive l'attività dell'amministratore sul suo profilo collegato", async () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
       stato: "ATTIVO",
@@ -359,6 +392,15 @@ describe("modificaRiga", () => {
       { finoAKm: 100, importo: "28.00" },
       { finoAKm: 250, importo: "85.00" },
     ]);
+    // Mock offerta e abilitazione presente, usati solo quando cambia l'offerta della riga
+    mockOfferta.findUnique.mockResolvedValue({
+      clienteId: "cliente-1",
+      attiva: true,
+    });
+    mockAbilitazioneOfferta.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-2",
+    });
   });
 
   it("aggiorna i campi modificati", async () => {
@@ -437,6 +479,139 @@ describe("modificaRiga", () => {
     expect(result.success).toBe(true);
     const chiamata = mockRigaAttivita.update.mock.calls[0][0];
     expect(chiamata.data.trasfertaKm).toBeNull();
+  });
+
+  it("a parità di offerta aggiorna le ore senza consultare l'abilitazione (AC-4)", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-1",
+      clienteId: "cliente-1",
+    });
+    mockRigaAttivita.update.mockResolvedValue({ id: "riga-1" });
+
+    const fd = creaFormData({
+      rigaId: "riga-1",
+      offertaId: "offerta-1",
+      ore: "5",
+      data: "2026-07-01",
+    });
+
+    const result = await modificaRiga(fd);
+
+    expect(result.success).toBe(true);
+    expect(mockOfferta.findUnique).not.toHaveBeenCalled();
+    expect(mockAbilitazioneOfferta.findUnique).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("rifiuta l'aggiornamento del clienteId quando l'offerta resta la stessa ma non gli appartiene (fix regressione)", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-1",
+      clienteId: "cliente-1",
+    });
+
+    const fd = creaFormData({
+      rigaId: "riga-1",
+      offertaId: "offerta-1",
+      clienteId: "cliente-2",
+      data: "2026-07-01",
+    });
+
+    const result = await modificaRiga(fd);
+
+    expect(result).toEqual({
+      success: false,
+      error: "L'offerta non appartiene al cliente selezionato",
+    });
+    expect(mockRigaAttivita.update).not.toHaveBeenCalled();
+  });
+
+  it("aggiorna il clienteId quando corrisponde al reale proprietario dell'offerta invariata", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-1",
+      clienteId: "cliente-2",
+    });
+    mockRigaAttivita.update.mockResolvedValue({ id: "riga-1" });
+
+    const fd = creaFormData({
+      rigaId: "riga-1",
+      offertaId: "offerta-1",
+      clienteId: "cliente-1",
+      data: "2026-07-01",
+    });
+
+    const result = await modificaRiga(fd);
+
+    expect(result.success).toBe(true);
+    expect(mockAbilitazioneOfferta.findUnique).not.toHaveBeenCalled();
+    const chiamata = mockRigaAttivita.update.mock.calls[0][0];
+    expect(chiamata.data.clienteId).toBe("cliente-1");
+  });
+
+  it("aggiorna quando cambia verso un'offerta abilitata del cliente", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-1",
+      clienteId: "cliente-1",
+    });
+    mockRigaAttivita.update.mockResolvedValue({ id: "riga-1" });
+
+    const fd = creaFormData({
+      rigaId: "riga-1",
+      offertaId: "offerta-2",
+      data: "2026-07-01",
+    });
+
+    const result = await modificaRiga(fd);
+
+    expect(result.success).toBe(true);
+    const chiamata = mockRigaAttivita.update.mock.calls[0][0];
+    expect(chiamata.data.offertaId).toBe("offerta-2");
+  });
+
+  it("rifiuta il cambio verso un'offerta non abilitata (AC-5)", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-1",
+      clienteId: "cliente-1",
+    });
+    mockAbilitazioneOfferta.findUnique.mockResolvedValue(null);
+
+    const fd = creaFormData({
+      rigaId: "riga-1",
+      offertaId: "offerta-3",
+      data: "2026-07-01",
+    });
+
+    const result = await modificaRiga(fd);
+
+    expect(result).toEqual({
+      success: false,
+      error: "Non sei abilitato a registrare attività su questa offerta",
+    });
+    expect(mockRigaAttivita.update).not.toHaveBeenCalled();
   });
 
   it("rifiuta riga di altro collaboratore", async () => {
@@ -522,6 +697,32 @@ describe("eliminaRiga", () => {
       where: { id: "riga-1" },
     });
     expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita/2026-07-01");
+  });
+
+  it("elimina la riga anche se l'offerta non è più abilitata, senza consultare l'abilitazione (AC-4)", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique
+      // Prima chiamata: caricaRigaDelCollaboratore
+      .mockResolvedValueOnce({
+        collaboratoreId: "collab-giulia",
+        offertaId: "offerta-1",
+        clienteId: "cliente-1",
+      })
+      // Seconda chiamata: recupera la data per revalidate
+      .mockResolvedValueOnce({ data: new Date(2026, 6, 1) });
+    mockAbilitazioneOfferta.findUnique.mockResolvedValue(null);
+    mockRigaAttivita.delete.mockResolvedValue({ id: "riga-1" });
+
+    const result = await eliminaRiga("riga-1");
+
+    expect(result.success).toBe(true);
+    expect(mockRigaAttivita.delete).toHaveBeenCalledWith({
+      where: { id: "riga-1" },
+    });
+    expect(mockAbilitazioneOfferta.findUnique).not.toHaveBeenCalled();
   });
 
   it("rifiuta riga di altro collaboratore", async () => {

@@ -14,7 +14,12 @@ import { test, expect } from "./support/fixtures";
  */
 
 test.describe("US-013 Validazione — Trasferta km", () => {
-  test.beforeEach(async ({ page, collaboratore, clienteConOfferta }) => {
+  test.beforeEach(async ({ page, factory, collaboratore, clienteConOfferta }) => {
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: clienteConOfferta.offerta,
+    });
+
     await accediComeCollaboratore(page, collaboratore.utente.email);
 
     const dataGiorno7 = dataOggiOffset(7);

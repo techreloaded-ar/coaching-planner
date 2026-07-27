@@ -8,7 +8,7 @@ import {
 } from "@/lib/dal";
 import type { Collaboratore } from "@/generated/prisma/client";
 import { validaOre, validaKmTrasferta, calcolaRimborsoTrasferta } from "@/domain/consuntivi";
-import { offerteAttivePerCliente, scaglioniRimborsoTrasferta } from "@/lib/attivita";
+import { offerteAbilitatePerCliente, scaglioniRimborsoTrasferta } from "@/lib/attivita";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -41,29 +41,35 @@ async function richiediCollaboratoreOperativo(): Promise<
 }
 
 /**
- * Verifica che la riga appartenga al collaboratore corrente.
+ * Verifica che la riga appartenga al collaboratore corrente e ne restituisce
+ * i dati essenziali (offertaId, clienteId) per i controlli successivi.
  */
-async function verificaProprietario(
+async function caricaRigaDelCollaboratore(
   rigaId: string,
   collaboratoreId: string
-): Promise<ActionResult | null> {
+): Promise<{ errore: ActionResult | null; riga?: { offertaId: string; clienteId: string } }> {
   const riga = await db.rigaAttivita.findUnique({
     where: { id: rigaId },
-    select: { collaboratoreId: true },
+    select: { collaboratoreId: true, offertaId: true, clienteId: true },
   });
 
   if (!riga) {
-    return { success: false, error: "Riga non trovata" };
+    return { errore: { success: false, error: "Riga non trovata" } };
   }
 
   if (riga.collaboratoreId !== collaboratoreId) {
     return {
-      success: false,
-      error: "Non puoi modificare le attività di un altro collaboratore",
+      errore: {
+        success: false,
+        error: "Non puoi modificare le attività di un altro collaboratore",
+      },
     };
   }
 
-  return null; // ok
+  return {
+    errore: null,
+    riga: { offertaId: riga.offertaId, clienteId: riga.clienteId },
+  };
 }
 
 /**
@@ -89,6 +95,31 @@ async function verificaOffertaCliente(
 
   if (!offerta.attiva) {
     return { success: false, error: "L'offerta non è più attiva" };
+  }
+
+  return null;
+}
+
+/**
+ * Verifica che il collaboratore sia abilitato a registrare attività
+ * sull'offerta indicata.
+ * Restituisce null se ok, altrimenti un ActionResult con errore.
+ */
+async function verificaAbilitazioneOfferta(
+  collaboratoreId: string,
+  offertaId: string
+): Promise<ActionResult | null> {
+  const abilitazione = await db.abilitazioneOfferta.findUnique({
+    where: {
+      collaboratoreId_offertaId: { collaboratoreId, offertaId },
+    },
+  });
+
+  if (!abilitazione) {
+    return {
+      success: false,
+      error: "Non sei abilitato a registrare attività su questa offerta",
+    };
   }
 
   return null;
@@ -164,6 +195,10 @@ export async function creaRiga(
   const erroreOfferta = await verificaOffertaCliente(offertaId, clienteId);
   if (erroreOfferta) return erroreOfferta;
 
+  // Verifica abilitazione del collaboratore sull'offerta
+  const erroreAbilitazione = await verificaAbilitazioneOfferta(collaboratore.id, offertaId);
+  if (erroreAbilitazione) return erroreAbilitazione;
+
   // Validazione ore
   const risultatoOre = validaOre(oreRaw);
   if (!risultatoOre.valido) {
@@ -227,7 +262,10 @@ export async function modificaRiga(
   }
 
   // Verifica proprietà
-  const erroreProprietario = await verificaProprietario(rigaId, collaboratore.id);
+  const { errore: erroreProprietario, riga } = await caricaRigaDelCollaboratore(
+    rigaId,
+    collaboratore.id
+  );
   if (erroreProprietario) return erroreProprietario;
 
   // Costruisci i dati da aggiornare
@@ -237,14 +275,30 @@ export async function modificaRiga(
   const offertaId = formData.get("offertaId") as string;
 
   if (clienteId) updateData.clienteId = clienteId;
+  if (offertaId) updateData.offertaId = offertaId;
 
-  if (offertaId) {
-    updateData.offertaId = offertaId;
-    // Se stiamo cambiando offerta, verifica che appartenga al cliente
-    const clienteDaVerificare = clienteId || undefined;
-    if (clienteDaVerificare) {
-      const erroreOfferta = await verificaOffertaCliente(offertaId, clienteDaVerificare);
-      if (erroreOfferta) return erroreOfferta;
+  // Valori risultanti dopo l'eventuale aggiornamento (quelli inviati dal form,
+  // altrimenti quelli già presenti sulla riga).
+  const offertaFinale = offertaId || riga!.offertaId;
+  const clienteFinale = clienteId || riga!.clienteId;
+
+  // Se la coppia offerta-cliente risultante differisce da quella attuale della
+  // riga (perché è cambiata l'offerta, il cliente, o entrambi), verifica
+  // sempre che l'offerta appartenga davvero al cliente indicato: il controllo
+  // di coerenza non deve mai essere saltato solo perché l'offerta è rimasta
+  // invariata. La verifica di ABILITAZIONE invece resta legata al solo
+  // cambio di offerta: righe storiche su offerte non più abilitate restano
+  // modificabili finché l'offerta non cambia (AC-4/AC-5).
+  if (offertaFinale !== riga!.offertaId || clienteFinale !== riga!.clienteId) {
+    const erroreOfferta = await verificaOffertaCliente(offertaFinale, clienteFinale);
+    if (erroreOfferta) return erroreOfferta;
+
+    if (offertaFinale !== riga!.offertaId) {
+      const erroreAbilitazione = await verificaAbilitazioneOfferta(
+        collaboratore.id,
+        offertaFinale
+      );
+      if (erroreAbilitazione) return erroreAbilitazione;
     }
   }
 
@@ -318,7 +372,10 @@ export async function eliminaRiga(
   }
 
   // Verifica proprietà
-  const erroreProprietario = await verificaProprietario(rigaId, collaboratore.id);
+  const { errore: erroreProprietario } = await caricaRigaDelCollaboratore(
+    rigaId,
+    collaboratore.id
+  );
   if (erroreProprietario) return erroreProprietario;
 
   // Recupera la data della riga per il revalidate
@@ -360,7 +417,10 @@ export async function rimuoviTrasferta(
   }
 
   // Verifica proprietà (riusa helper esistente)
-  const erroreProprietario = await verificaProprietario(rigaId, collaboratore.id);
+  const { errore: erroreProprietario } = await caricaRigaDelCollaboratore(
+    rigaId,
+    collaboratore.id
+  );
   if (erroreProprietario) return erroreProprietario;
 
   // Recupera la data della riga per il revalidate
@@ -385,7 +445,8 @@ export async function rimuoviTrasferta(
 }
 
 /**
- * Server Action per recuperare le offerte attive di un cliente.
+ * Server Action per recuperare le offerte attive di un cliente su cui il
+ * collaboratore corrente è abilitato.
  * Chiamabile dal client per il cascade select cliente → offerta.
  */
 export async function fetchOffertePerCliente(
@@ -397,7 +458,7 @@ export async function fetchOffertePerCliente(
   }
 
   try {
-    const offerte = await offerteAttivePerCliente(clienteId);
+    const offerte = await offerteAbilitatePerCliente(clienteId);
     return { success: true, data: offerte };
   } catch {
     return { success: false, error: "Errore nel recupero delle offerte" };

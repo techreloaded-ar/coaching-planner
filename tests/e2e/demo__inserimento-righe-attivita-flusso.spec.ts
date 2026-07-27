@@ -33,6 +33,7 @@ function cardAttivitaPerNota(page: Page, nota: string): Locator {
 test.describe("US-012 Demo — Inserimento righe attività", () => {
   test("pilota fixture: collaboratore dedicato inserisce una riga per cliente e offerta creati", async ({
     page,
+    factory,
     collaboratore,
     clienteConOfferta,
   }) => {
@@ -43,6 +44,11 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     const meseControllato = meseRiservato("US-023-TASK-05");
     const notaUnivoca = `US-023 fixture pilota ${seed}`;
     const clienteLabel = clienteConOfferta.cliente.ragioneSociale;
+
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: clienteConOfferta.offerta,
+    });
 
     await accediComeCollaboratore(page, collaboratore.utente.email);
 
@@ -81,6 +87,15 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     );
     const notaNuova = `Test e2e — nuova riga ${seed}`;
     const notaSeconda = `Test e2e — seconda riga non fatturabile ${seed}`;
+
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: clienteConOfferta.offerta,
+    });
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: secondaClienteConOfferta.offerta,
+    });
 
     await accediComeCollaboratore(page, collaboratore.utente.email);
 
