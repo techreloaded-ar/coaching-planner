@@ -131,7 +131,7 @@ This page is the canonical delivery index managed by `archetipo`.
 - [US-028: Logo Agile Reloaded nelle aree interne dell'applicazione](specs/US-028.md) — **TODO**, 2 point(s).
 - [US-043: Inserimento ore consentito solo sulle offerte abilitate](specs/US-043.md) — **REVIEW**, 3 point(s).
 - [US-044: Gestione dei collaboratori ingaggiati dalla pagina offerte](specs/US-044.md) — **TODO**, 2 point(s).
-- [US-045: Creazione di un utente con ruoli combinabili e profilo collaboratore immediato](specs/US-045.md) — **TODO**, 3 point(s).
+- [US-045: Creazione di un utente con ruoli combinabili e profilo collaboratore immediato](specs/US-045.md) — **PLANNED**, 3 point(s).
 - [US-046: Aggiunta e rimozione del ruolo Collaboratore su un utente esistente](specs/US-046.md) — **TODO**, 3 point(s).
 - [US-047: Anagrafica collaboratori dedicata alla sola modifica del profilo](specs/US-047.md) — **TODO**, 2 point(s).
 - [US-042: Abilitazione dei collaboratori sulle offerte dal dettaglio collaboratore](specs/US-042.md) — **DONE**, 3 point(s).
