@@ -2,7 +2,7 @@
 type: domain
 title: Offerte
 description: Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento
-status: generated
+status: reviewed
 classification: candidate
 sources:
     - path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
@@ -31,6 +31,10 @@ sources:
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
       role: verification
+review:
+    content_hash: sha256:7c13c4808b87df225f8e8ce446798d42158e75a26d68d1b49f6d462277398378
+    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
+    reviewed_at: "2026-07-27T09:41:32Z"
 ---
 # Offerte
 

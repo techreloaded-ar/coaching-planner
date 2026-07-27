@@ -18,8 +18,8 @@ sources:
       role: stack-manifest
 review:
     content_hash: sha256:f7551c631684774a7b575d4366f127e234dea3a374f05ad8f96c9ed5ac219911
-    evidence_revision: ed27f9987a6998a79deff1caff15324bf7e54d3e
-    reviewed_at: "2026-07-22T09:15:46Z"
+    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
+    reviewed_at: "2026-07-27T09:44:49Z"
 ---
 # Panoramica
 

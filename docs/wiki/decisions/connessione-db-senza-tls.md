@@ -13,8 +13,8 @@ sources:
       role: operational-guide
 review:
     content_hash: sha256:1081c97e341df8d699f7d55d05507086680dc422f582794e6d96f65e92dbac03
-    evidence_revision: 19b1bddd8d9e7f9dfce3aeedcb035802dc877dd7
-    reviewed_at: "2026-07-22T09:22:27Z"
+    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
+    reviewed_at: "2026-07-27T09:44:49Z"
 ---
 # Connessione al database senza TLS (rischio accettato)
 

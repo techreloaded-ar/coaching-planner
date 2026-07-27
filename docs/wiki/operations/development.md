@@ -23,9 +23,9 @@ sources:
     - path: scripts/bootstrap-amministratore-iniziale.ts
       role: deploy-bootstrap-command
 review:
-    content_hash: sha256:beb4d36f7cbbe705c0a2a3131799761f244c8fe52140df028eb5e4f75041d86f
-    evidence_revision: ed27f9987a6998a79deff1caff15324bf7e54d3e
-    reviewed_at: "2026-07-22T09:15:46Z"
+    content_hash: sha256:50444daeaab6b12d6efbe74a04cb732389eaa3d99d5ae1c97bc98e3d7326ab09
+    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
+    reviewed_at: "2026-07-27T09:44:49Z"
 ---
 # Sviluppo e operazioni
 
@@ -49,6 +49,7 @@ CI usa Node.js 22. Il progetto usa npm, PostgreSQL e Prisma; Docker Compose forn
 | Migrazione deploy | `npm run db:migrate:deploy` |
 | Seed | `npm run db:seed` |
 | Bootstrap amministratore iniziale | `npm run db:bootstrap-amministratore` |
+| Backfill abilitazioni offerte iniziale | `npm run db:backfill-abilitazioni` |
 | Database locale | `docker compose up -d` |
 
 `dev`, `build` e `postinstall` generano il client Prisma.
@@ -62,12 +63,13 @@ CI usa Node.js 22. Il progetto usa npm, PostgreSQL e Prisma; Docker Compose forn
 - `NEXT_PUBLIC_APP_URL`: base per redirect.
 - `E2E_TEST_MODE`: abilita il seam `/api/e2e-test/sessione` soltanto negli E2E.
 - `AMMINISTRATORE_INIZIALE_EMAIL`: email garantita come `Utente AMMINISTRATORE` da `scripts/bootstrap-amministratore-iniziale.ts`, eseguito nella stessa fase di `prisma migrate deploy` (vedi [guida di deploy](/operations/deploy-vercel-siteground.md)).
+- `scripts/backfill-abilitazioni-iniziali.ts` popola una tantum `AbilitazioneOfferta` dalle righe attività storiche su offerte attive; a differenza del bootstrap amministratore non è agganciato al build command e va eseguito manualmente una sola volta per ambiente subito dopo `db:migrate:deploy` (vedi [guida di deploy](/operations/deploy-vercel-siteground.md) e la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md)); è invece già agganciato in coda a `prisma/seed.ts`.
 
 Il file autorizzato di esempio è `.env.example`; i segreti reali non fanno parte della Wiki. I cookie sono Secure solo in produzione.
 
 ## Database e migrazioni
 
-Prisma genera il client in `src/generated/prisma`. Lo schema corrente definisce identità/account, profili, clienti, offerte, scaglioni e righe attività. Le migrazioni creano lo schema iniziale, aggiungono campi fiscali cliente e rendono unica `ScaglioneKm.finoAKm`. Il seed cancella e ricrea dati dimostrativi; non va eseguito contro un database da preservare.
+Prisma genera il client in `src/generated/prisma`. Lo schema corrente definisce identità/account, profili, clienti, offerte, scaglioni, righe attività e abilitazioni collaboratore-offerta. Le migrazioni creano lo schema iniziale, aggiungono campi fiscali cliente e rendono unica `ScaglioneKm.finoAKm`. Il seed cancella e ricrea dati dimostrativi; non va eseguito contro un database da preservare.
 
 ## Test
 

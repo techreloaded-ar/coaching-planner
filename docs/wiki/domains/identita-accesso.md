@@ -60,8 +60,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:fb383c25877b79bb8290318f3a442c01e13433686c063c3d92af1a25705561b8
-    evidence_revision: ed27f9987a6998a79deff1caff15324bf7e54d3e
-    reviewed_at: "2026-07-22T09:15:46Z"
+    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
+    reviewed_at: "2026-07-27T09:44:49Z"
 ---
 # Identità, sessioni e accesso
 

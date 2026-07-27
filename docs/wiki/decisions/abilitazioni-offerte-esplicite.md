@@ -2,7 +2,7 @@
 type: decision
 title: Abilitazioni esplicite collaboratore-offerta
 description: Persistere l'ingaggio collaboratore-offerta in una tabella dedicata, revocabile, con pre-popolamento una tantum
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: prisma/schema.prisma
@@ -16,6 +16,10 @@ sources:
       role: verification
     - path: tests/e2e/abilitazioni-collaboratore.spec.ts
       role: verification
+review:
+    content_hash: sha256:ab2541387f5eb1e924903ffbfbbe9e53419aa444b1ce248efd2e77f6cb11f7b1
+    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
+    reviewed_at: "2026-07-27T09:41:32Z"
 ---
 # Abilitazioni esplicite collaboratore-offerta
 

@@ -13,9 +13,9 @@ sources:
     - path: prisma/schema.prisma
       role: shared-storage
 review:
-    content_hash: sha256:e9040ed550e9b951ec404c6dd0c754350c1e7f191bbd22b624b7b035a116bc4f
-    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
-    reviewed_at: "2026-07-21T14:41:50Z"
+    content_hash: sha256:2badadaee74be69ce3516dcb9f9efd322d9a52528ad70fc2bc7dde9944eff5c6
+    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
+    reviewed_at: "2026-07-27T09:44:49Z"
 ---
 # Mappa dei contesti candidati
 
@@ -25,7 +25,7 @@ review:
 | Candidato | Responsabilità osservata | Dati/decisioni principali |
 |---|---|---|
 | Clienti | Identità fiscale e abilitazione del cliente | `Cliente`, dati fiscali, `attivo` |
-| Collaboratori | Profilo professionale e operatività | `Collaboratore`, tariffa, `attivo` |
+| Collaboratori | Profilo professionale, operatività e abilitazione esplicita sulle offerte | `Collaboratore`, tariffa, `attivo`, `AbilitazioneOfferta` |
 | Offerte | Termini commerciali, budget e avanzamento derivato | `Offerta`, tariffa, giorni previsti, `attiva` |
 | Politiche di rimborso | Configurazione e selezione fascia chilometrica | `ScaglioneKm`, calcolo rimborso |
 | Attività | Registrazione, proprietà e riepilogo personale | `RigaAttivita`, ore, fatturabilità, trasferta |
@@ -39,6 +39,7 @@ review:
 - Offerte riferisce Clienti; la creazione richiede un cliente attivo. Le attività fatturabili sono input della proiezione di avanzamento dell'offerta.
 - Fatturazione clienti legge fatti da Attività, tariffa e metadati da Offerte, ragione sociale da Clienti e fasce da Politiche di rimborso.
 - Identità e accesso consulta `Collaboratore.attivo` per la revoca operativa; Collaboratori crea o sincronizza anche `Utente`, oggi condiviso nello stesso database.
+- Collaboratori possiede ora anche `AbilitazioneOfferta`, una relazione esplicita e revocabile verso Offerte (coppia unica collaboratore-offerta) che rappresenta l'ingaggio corrente, indipendente dalle righe attività storiche.
 - Tutti i flussi amministrativi e operativi dipendono dalle guardie di Identità e accesso.
 
 Il codice mostra dipendenze dirette e storage condiviso, ma non fornisce evidenza sufficiente per assegnare nomi DDD specializzati alle relazioni o per dichiarare governance autonoma.

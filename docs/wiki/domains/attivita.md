@@ -25,8 +25,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:69d43e480a29955bd953fc9c7c5e20a2c708b64e59789fff8fafae03ee373197
-    evidence_revision: 46dd4fb946ccda154bf8f442d9cde387bef88435
-    reviewed_at: "2026-07-21T12:26:44Z"
+    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
+    reviewed_at: "2026-07-27T09:44:49Z"
 ---
 # Attività e consuntivazione
 
