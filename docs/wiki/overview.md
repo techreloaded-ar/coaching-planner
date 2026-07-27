@@ -2,7 +2,7 @@
 type: overview
 title: Panoramica
 description: Scopo, attori, stack e perimetro della mappa codebase-first di Coaching Planner
-status: generated
+status: reviewed
 sources:
     - path: prisma/schema.prisma
       role: runtime-model
@@ -16,6 +16,10 @@ sources:
       role: administrative-use-cases
     - path: package.json
       role: stack-manifest
+review:
+    content_hash: sha256:f7551c631684774a7b575d4366f127e234dea3a374f05ad8f96c9ed5ac219911
+    evidence_revision: 5fc9a7123a36f4df4547156da614e3de5f037e58
+    reviewed_at: "2026-07-27T12:56:47Z"
 ---
 # Panoramica
 
