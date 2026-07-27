@@ -684,7 +684,7 @@ describe("eliminaRiga", () => {
       collaboratore: collaboratoreMock(),
     });
     mockRigaAttivita.findUnique
-      // Prima chiamata: verificaProprietario
+      // Prima chiamata: caricaRigaDelCollaboratore
       .mockResolvedValueOnce({ collaboratoreId: "collab-giulia" })
       // Seconda chiamata: recupera la data per revalidate
       .mockResolvedValueOnce({ data: new Date(2026, 6, 1) });

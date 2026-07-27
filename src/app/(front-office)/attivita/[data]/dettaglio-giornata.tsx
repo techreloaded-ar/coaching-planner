@@ -95,6 +95,12 @@ export default function DettaglioGiornata({
   const [offerte, setOfferte] = useState<OffertaSelect[]>([]);
   const [offerteLoading, setOfferteLoading] = useState(false);
 
+  // Traccia se, durante la modifica di una riga, l'utente ha esplicitamente
+  // cambiato il cliente selezionato (a differenza del cliente/offerta della
+  // riga storica caricati automaticamente da handleModifica)
+  const [clienteCambiatoDuranteModifica, setClienteCambiatoDuranteModifica] =
+    useState(false);
+
   // ── Riepilogo ──────────────────────────────────────────────
 
   const riepilogo = useMemo(() => {
@@ -114,8 +120,17 @@ export default function DettaglioGiornata({
 
   // ── Assenza di offerte abilitate per il cliente selezionato ─
 
+  // In modifica, la riga storica può avere un'offerta non più abilitata:
+  // handleModifica la aggiunge comunque all'elenco `offerte` per mantenere
+  // la riga modificabile (AC-4), quindi `offerte` non risulta mai vuoto in
+  // quel caso e il banner non deve comparire. Il banner deve invece comparire
+  // se l'utente, durante la modifica, cambia esplicitamente il cliente verso
+  // uno per cui il fetch restituisce un elenco offerte vuoto (AC-3).
   const nessunaOffertaAbilitata =
-    clienteId !== "" && !offerteLoading && offerte.length === 0 && !modificaId;
+    clienteId !== "" &&
+    !offerteLoading &&
+    offerte.length === 0 &&
+    (!modificaId || clienteCambiatoDuranteModifica);
 
   // ── Preview rimborso dalla distanza inserita ───────────────
 
@@ -133,6 +148,9 @@ export default function DettaglioGiornata({
       setClienteId(nuovoClienteId);
       setOffertaId("");
       setOfferte([]);
+      // Se siamo in modifica, questo è un cambio cliente esplicito dell'utente
+      // (a differenza del caricamento iniziale della riga in handleModifica)
+      setClienteCambiatoDuranteModifica(modificaId !== null);
 
       if (!nuovoClienteId) return;
 
@@ -148,7 +166,7 @@ export default function DettaglioGiornata({
         setOfferteLoading(false);
       }
     },
-    []
+    [modificaId]
   );
 
   // ── Validazione ore inline ─────────────────────────────────
@@ -256,6 +274,7 @@ export default function DettaglioGiornata({
       setModificaId(null);
       setOfferte([]);
       setErroreSubmit(null);
+      setClienteCambiatoDuranteModifica(false);
     },
     [clienteId, offertaId, ore, nota, fatturabile, trasfertaKmRaw, erroreKm, data, modificaId, router]
   );
@@ -273,6 +292,10 @@ export default function DettaglioGiornata({
       setErroreOre(null);
       setErroreKm(null);
       setErroreSubmit(null);
+      // Ingresso in modifica sulla riga storica: non è un cambio cliente
+      // esplicito dell'utente, quindi il banner "nessuna offerta" non deve
+      // comparire anche se, per un errore di fetch, `offerte` restasse vuoto.
+      setClienteCambiatoDuranteModifica(false);
 
       // Carica le offerte di quel cliente
       setOfferteLoading(true);
@@ -324,6 +347,7 @@ export default function DettaglioGiornata({
     setErroreKm(null);
     setOfferte([]);
     setErroreSubmit(null);
+    setClienteCambiatoDuranteModifica(false);
   }, []);
 
   // ── Elimina riga ───────────────────────────────────────────

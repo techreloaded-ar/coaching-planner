@@ -267,6 +267,12 @@ export async function modificaRiga(
     collaboratore.id
   );
   if (erroreProprietario) return erroreProprietario;
+  // caricaRigaDelCollaboratore garantisce `riga` valorizzato quando non c'è
+  // errore; questo controllo esplicito restringe il tipo (niente `riga!`) e
+  // resta robusto anche a refactoring futuri del contratto della funzione.
+  if (!riga) {
+    return { success: false, error: "Riga non trovata" };
+  }
 
   // Costruisci i dati da aggiornare
   const updateData: Record<string, unknown> = {};
@@ -279,8 +285,8 @@ export async function modificaRiga(
 
   // Valori risultanti dopo l'eventuale aggiornamento (quelli inviati dal form,
   // altrimenti quelli già presenti sulla riga).
-  const offertaFinale = offertaId || riga!.offertaId;
-  const clienteFinale = clienteId || riga!.clienteId;
+  const offertaFinale = offertaId || riga.offertaId;
+  const clienteFinale = clienteId || riga.clienteId;
 
   // Se la coppia offerta-cliente risultante differisce da quella attuale della
   // riga (perché è cambiata l'offerta, il cliente, o entrambi), verifica
@@ -289,11 +295,11 @@ export async function modificaRiga(
   // invariata. La verifica di ABILITAZIONE invece resta legata al solo
   // cambio di offerta: righe storiche su offerte non più abilitate restano
   // modificabili finché l'offerta non cambia (AC-4/AC-5).
-  if (offertaFinale !== riga!.offertaId || clienteFinale !== riga!.clienteId) {
+  if (offertaFinale !== riga.offertaId || clienteFinale !== riga.clienteId) {
     const erroreOfferta = await verificaOffertaCliente(offertaFinale, clienteFinale);
     if (erroreOfferta) return erroreOfferta;
 
-    if (offertaFinale !== riga!.offertaId) {
+    if (offertaFinale !== riga.offertaId) {
       const erroreAbilitazione = await verificaAbilitazioneOfferta(
         collaboratore.id,
         offertaFinale
