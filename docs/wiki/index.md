@@ -41,6 +41,7 @@
 * [Plan for US-039](backlog/plans/US-039.md) - Implementation plan and executable tasks for US-039. _State: generated._
 * [Plan for US-040](backlog/plans/US-040.md) - Implementation plan and executable tasks for US-040. _State: generated._
 * [Plan for US-041](backlog/plans/US-041.md) - Implementation plan and executable tasks for US-041. _State: generated._
+* [Plan for US-042](backlog/plans/US-042.md) - Implementation plan and executable tasks for US-042. _State: generated._
 * [US-001: Scaffold dell'applicazione Next.js e ambiente di sviluppo](backlog/specs/US-001.md) - Delivery specification US-001. _State: generated._
 * [US-002: Database PostgreSQL con Prisma, migrazioni e seed](backlog/specs/US-002.md) - Delivery specification US-002. _State: generated._
 * [US-003: Suite di test e pipeline di integrazione continua](backlog/specs/US-003.md) - Delivery specification US-003. _State: generated._
@@ -82,6 +83,12 @@
 * [US-039: Elenco e censimento degli utenti nella console di amministrazione](backlog/specs/US-039.md) - Delivery specification US-039. _State: generated._
 * [US-040: Invalidazione, riattivazione e cambio ruolo degli utenti con auto-protezione](backlog/specs/US-040.md) - Delivery specification US-040. _State: generated._
 * [US-041: Bootstrap idempotente dell'amministratore iniziale al deploy](backlog/specs/US-041.md) - Delivery specification US-041. _State: generated._
+* [US-042: Abilitazione dei collaboratori sulle offerte dal dettaglio collaboratore](backlog/specs/US-042.md) - Delivery specification US-042. _State: generated._
+* [US-043: Inserimento ore consentito solo sulle offerte abilitate](backlog/specs/US-043.md) - Delivery specification US-043. _State: generated._
+* [US-044: Gestione dei collaboratori ingaggiati dalla pagina offerte](backlog/specs/US-044.md) - Delivery specification US-044. _State: generated._
+* [US-045: Creazione di un utente con ruoli combinabili e profilo collaboratore immediato](backlog/specs/US-045.md) - Delivery specification US-045. _State: generated._
+* [US-046: Aggiunta e rimozione del ruolo Collaboratore su un utente esistente](backlog/specs/US-046.md) - Delivery specification US-046. _State: generated._
+* [US-047: Anagrafica collaboratori dedicata alla sola modifica del profilo](backlog/specs/US-047.md) - Delivery specification US-047. _State: generated._
 
 ## Decisions
 
