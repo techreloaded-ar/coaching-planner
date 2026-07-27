@@ -22,8 +22,10 @@ sources:
       symbol: cambiaStatoUtenteAction
     - path: src/app/(back-office)/anagrafiche/utenti/actions.ts
       role: coordinated-creation-command
-      symbol: creaUtente
+      symbol: creaUtente, aggiornaUtente
     - path: src/app/(back-office)/anagrafiche/utenti/utenti-tabella.tsx
+      role: coordinated-administration-ui
+    - path: src/app/(back-office)/anagrafiche/utenti/utente-form.tsx
       role: coordinated-administration-ui
     - path: prisma/schema.prisma
       role: owned-data
@@ -48,6 +50,8 @@ sources:
       role: verification
     - path: tests/unit/utenti-actions.test.ts
       role: verification
+    - path: tests/unit/valida-utente.test.ts
+      role: verification
     - path: tests/e2e/anagrafica-collaboratori.spec.ts
       role: verification
     - path: tests/e2e/gestione-utenti.spec.ts
@@ -57,9 +61,9 @@ sources:
     - path: tests/e2e/abilitazioni-collaboratore.spec.ts
       role: verification
 review:
-    content_hash: sha256:b4dc8dac5e91a3979c12a49dd1bd3b903a9fd07440dbfb4a125c43c89dddfb83
-    evidence_revision: 890806d032087262f749403c8ddeece2f1ff4f94
-    reviewed_at: "2026-07-27T14:16:58Z"
+    content_hash: sha256:d0ef375b6499596b3fb405dcee9c6ec7276813a7ea26d10abbd76d66077d6229
+    evidence_revision: 286dd44439ff94b648969fe2519a454984989a7d
+    reviewed_at: "2026-07-27T17:39:37Z"
 ---
 # Collaboratori
 
@@ -82,12 +86,12 @@ Gestisce il profilo professionale usato per consuntivare: identità anagrafica, 
 
 Possiede `Collaboratore`, la tariffa e il booleano `attivo`. Coordina la creazione e la sincronizzazione di nome/email sul record `Utente`, ma ruolo, account provider e sessione sono decisioni della capability Identità e accesso. L'invalidazione o riattivazione dell'utente è un comando di Identità e accesso che sincronizza nello stesso writer lo stato del profilo collegato. Le righe attività dipendono dall'identificativo collaboratore. Possiede anche `AbilitazioneOfferta`, l'abilitazione esplicita e revocabile che stabilisce su quali offerte il collaboratore può operare; riferisce le offerte possedute dalla capability Offerte senza modificarle.
 
-`creaUtente` (capability Identità e accesso) è un secondo writer coordinato di `Collaboratore`: quando l'amministratore seleziona il ruolo Collaboratore nel censimento di un nuovo utente, crea il profilo con `attivo: true` nella stessa transazione dell'utente, riusando gli identici helper di validazione di partita IVA e tariffa (`validaCampoPartitaIva`, `validaCampoTariffaGiornaliera`, ora esportati da questo modulo) ma senza la logica di riuso di un amministratore esistente propria di `creaCollaboratore` — vedi la decisione [Ruoli combinabili derivati dal profilo collaboratore](/decisions/ruoli-combinabili-profilo-derivato.md). Il ruolo di accesso "Collaboratore" resta comunque derivato dalla presenza del profilo, non da un flag distinto.
+`creaUtente` e `aggiornaUtente` (capability Identità e accesso) sono un secondo e un terzo writer coordinato di `Collaboratore`. `creaUtente`, quando l'amministratore seleziona il ruolo Collaboratore nel censimento di un nuovo utente, crea il profilo con `attivo: true` nella stessa transazione dell'utente, riusando gli identici helper di validazione di partita IVA e tariffa (`validaCampoPartitaIva`, `validaCampoTariffaGiornaliera`, ora esportati da questo modulo) ma senza la logica di riuso di un amministratore esistente propria di `creaCollaboratore`. `aggiornaUtente` estende la stessa derivazione al ciclo di vita di un utente già censito: aggiungere il ruolo Collaboratore crea il profilo (se assente) o lo riattiva conservando partita IVA e tariffa (se disattivato); toglierlo lo disattiva, senza mai cancellarlo — vedi la decisione [Ruoli combinabili derivati dal profilo collaboratore](/decisions/ruoli-combinabili-profilo-derivato.md). Il ruolo di accesso "Collaboratore" resta comunque derivato dalla presenza e dallo stato del profilo, non da un flag distinto.
 
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
-`creaCollaboratore` crea in transazione il profilo e un nuovo utente di ruolo `COLLABORATORE`, oppure riusa un utente amministratore privo di profilo. `aggiornaCollaboratore` sincronizza profilo e nome/email utente. `creaUtente`, quando il ruolo Collaboratore è selezionato nel censimento utenti, crea nella stessa transazione utente e profilo (`attivo: true`) senza tentare alcun riuso: un'email già presente è sempre un errore di duplicato. `cambiaStatoUtenteAction`, riservata all'amministratore, sincronizza il booleano richiesto sul profilo collegato nella stessa transazione dell'invalidazione o riattivazione di `Utente`. Il DAL espone `ATTIVO`, `ASSENTE` o `DISATTIVATO` come esiti derivati dalla presenza del profilo e dal booleano. `storicoAttivitaCollaboratore` in `src/lib/collaboratori.ts` è una query riservata all'amministratore che restituisce tutte le righe attività del collaboratore con cliente e offerta inclusi, ordinate per data crescente, senza filtro temporale.
+`creaCollaboratore` crea in transazione il profilo e un nuovo utente di ruolo `COLLABORATORE`, oppure riusa un utente amministratore privo di profilo. `aggiornaCollaboratore` sincronizza profilo e nome/email utente. `creaUtente`, quando il ruolo Collaboratore è selezionato nel censimento utenti, crea nella stessa transazione utente e profilo (`attivo: true`) senza tentare alcun riuso: un'email già presente è sempre un errore di duplicato. `aggiornaUtente`, in modifica, calcola dai due checkbox di ruolo il nuovo ruolo e applica nella stessa transazione esattamente una delle quattro transizioni sul profilo esistente: crea (`attivo: true`, con i dati profilo raccolti dal form) se il ruolo Collaboratore viene aggiunto e il profilo è assente; riattiva (solo `attivo: true`, senza richiedere nuovamente i dati) se viene aggiunto e il profilo esiste disattivato; disattiva (`attivo: false`, mai una delete) se il ruolo Collaboratore viene tolto e il profilo è attivo; nessuna scrittura sul profilo negli altri casi. `cambiaStatoUtenteAction`, riservata all'amministratore, sincronizza il booleano richiesto sul profilo collegato nella stessa transazione dell'invalidazione o riattivazione di `Utente`. Il DAL espone `ATTIVO`, `ASSENTE` o `DISATTIVATO` come esiti derivati dalla presenza del profilo e dal booleano. `storicoAttivitaCollaboratore` in `src/lib/collaboratori.ts` è una query riservata all'amministratore che restituisce tutte le righe attività del collaboratore con cliente e offerta inclusi, ordinate per data crescente, senza filtro temporale.
 
 `elencaOfferteAbilitate` ed `elencaOfferteAbilitabili` in `src/lib/abilitazioni.ts`, riservate all'amministratore, restituiscono rispettivamente le offerte già abilitate per il collaboratore (incluse quelle nel frattempo disattivate, con `offertaAttiva: false`) e le offerte attive non ancora abilitate, entrambe ordinate per ragione sociale del cliente e poi per codice offerta. `abilitaCollaboratoreSuOfferte` crea in blocco le coppie `(collaboratoreId, offertaId)` mancanti verificando prima che ciascuna offerta selezionata sia attiva, ignorando i duplicati grazie al vincolo unico; `revocaAbilitazioneCollaboratore` elimina la singola coppia bersaglio. Entrambe le action sono riservate all'amministratore e rivalidano la pagina di dettaglio del collaboratore.
 
@@ -97,7 +101,8 @@ Possiede `Collaboratore`, la tariffa e il booleano `attivo`. Coordina la creazio
 1. `creaCollaboratore` in `src/app/(back-office)/anagrafiche/collaboratori/actions.ts` valida i dati e, nella transazione, crea `Collaboratore` assegnando esattamente `attivo: true`; quando crea anche `Utente`, assegna esattamente `ruolo: \"COLLABORATORE\"`.
 2. Se esiste un amministratore senza profilo, la stessa transazione lo riusa senza assegnare un nuovo ruolo.
 3. `creaUtente` in `src/app/(back-office)/anagrafiche/utenti/actions.ts` offre un secondo percorso di creazione: quando l'amministratore seleziona il ruolo Collaboratore nel censimento, la transazione crea `Utente` (ruolo `AMMINISTRATORE` o `COLLABORATORE` secondo i checkbox selezionati) e, in aggiunta, `Collaboratore` con `attivo: true`, componendo `Utente.nome` come `"{nome} {cognome}"`. Non riusa mai un utente esistente: un'email già presente produce sempre l'esito di duplicato senza scritture.
-4. `aggiornaCollaboratore` nello stesso file aggiorna profilo e utente nella stessa transazione senza cambiare `attivo` o `ruolo`.
+3bis. `aggiornaUtente` nello stesso file, in modifica, legge utente e profilo fuori transazione per decidere se i campi profilo sono richiesti (`validaModificaUtente` con `profiloPresente`), poi nella transazione aggiorna `Utente` e applica sul profilo esattamente una transizione: crea (`attivo: true`, componendo `Utente.nome` come in creazione) se il ruolo Collaboratore è aggiunto senza profilo preesistente; riattiva (solo `attivo: true`) se il profilo esiste disattivato; disattiva (`attivo: false`) se il ruolo Collaboratore è tolto e il profilo era attivo; nessuna scrittura sul profilo se lo stato richiesto coincide con quello attuale. La protezione dell'ultimo amministratore attivo si applica al ruolo derivato dai checkbox esattamente come prima di US-046. Rivalida l'anagrafica utenti sempre e quella collaboratori solo quando il profilo è stato toccato.
+4. `aggiornaCollaboratore` nello stesso file (anagrafica collaboratori) aggiorna profilo e utente nella stessa transazione senza cambiare `attivo` o `ruolo`.
 5. `cambiaStatoCollaboratore` nello stesso file e l'adapter `cambia-stato-action.ts` assegnano direttamente il booleano richiesto a `Collaboratore.attivo` senza guardia sul valore sorgente; non è provata una macchina a stati più ricca.
 6. L'invalidazione di `Utente` scrive `false` anche in `Collaboratore.attivo` se il profilo è presente; la riattivazione scrive `true` su entrambi. Senza profilo non viene tentata la cascata. Il comando rivalida elenco utenti e collaboratori e non elimina attività o record.
 7. `risolviProfiloCollaboratoreCorrente` in `src/lib/dal.ts` produce `ASSENTE`, `DISATTIVATO` o `ATTIVO` mediante branch di lettura: sono esiti derivati, non stati persistiti separatamente.
@@ -110,14 +115,14 @@ Possiede `Collaboratore`, la tariffa e il booleano `attivo`. Coordina la creazio
 
 | Aspetto | Percorsi |
 |---|---|
-| UI e comandi | `src/app/(back-office)/anagrafiche/collaboratori/**`, inclusa la pagina di dettaglio `[id]/page.tsx` con storico attività mensile e la sezione `[id]/abilitazioni-offerte.tsx` con dialog di ricerca e selezione multipla; `utenti/cambia-stato-utente-action.ts` per la cascata da utente; `utenti/actions.ts` (`creaUtente`) e `utenti/utenti-tabella.tsx` (badge multipli) per la creazione combinata e la sua rappresentazione nell'elenco utenti |
+| UI e comandi | `src/app/(back-office)/anagrafiche/collaboratori/**`, inclusa la pagina di dettaglio `[id]/page.tsx` con storico attività mensile e la sezione `[id]/abilitazioni-offerte.tsx` con dialog di ricerca e selezione multipla; `utenti/cambia-stato-utente-action.ts` per la cascata da utente; `utenti/actions.ts` (`creaUtente`, `aggiornaUtente`), `utenti/utente-form.tsx` (fieldset a checkbox condiviso fra creazione e modifica) e `utenti/utenti-tabella.tsx` (badge multipli) per la creazione e modifica combinate e la loro rappresentazione nell'elenco utenti |
 | Query | `src/lib/collaboratori.ts` (inclusa `storicoAttivitaCollaboratore`), `src/lib/abilitazioni.ts` (`elencaOfferteAbilitate`, `elencaOfferteAbilitabili`) |
 | Action abilitazioni | `[id]/abilitazioni-actions.ts` (`abilitaCollaboratoreSuOfferte`, `revocaAbilitazioneCollaboratore`) |
-| Validazione | `src/domain/anagrafiche/valida-collaboratore.ts` |
+| Validazione | `src/domain/anagrafiche/valida-collaboratore.ts`, `src/domain/anagrafiche/valida-utente.ts` (`validaCensimentoUtente`, `validaModificaUtente`, obbligo condizionale dei campi profilo) |
 | Dati | `prisma/schema.prisma` (`Collaboratore`, relazione con `Utente`; `AbilitazioneOfferta`, coppia unica `collaboratoreId`/`offertaId` con `Offerta`) |
 | Pre-popolamento una tantum | `scripts/backfill-abilitazioni-iniziali.ts`, esposto da `npm run db:backfill-abilitazioni` e agganciato a `prisma/seed.ts` |
 | Policy consumatrici | `src/lib/dal.ts`, `src/lib/attivita.ts` |
-| Test | `tests/unit/collaboratori-dal-actions.test.ts`, `tests/unit/cambia-stato-utente.test.ts`, `tests/unit/valida-collaboratore.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/unit/abilitazioni-dal-actions.test.ts`, `tests/unit/backfill-abilitazioni-iniziali.test.ts`, `tests/unit/utenti-actions.test.ts`, `tests/e2e/anagrafica-collaboratori.spec.ts`, `tests/e2e/dettaglio-collaboratore.spec.ts`, `tests/e2e/abilitazioni-collaboratore.spec.ts`, `tests/e2e/gestione-utenti.spec.ts` |
+| Test | `tests/unit/collaboratori-dal-actions.test.ts`, `tests/unit/cambia-stato-utente.test.ts`, `tests/unit/valida-collaboratore.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/unit/abilitazioni-dal-actions.test.ts`, `tests/unit/backfill-abilitazioni-iniziali.test.ts`, `tests/unit/utenti-actions.test.ts`, `tests/unit/valida-utente.test.ts`, `tests/e2e/anagrafica-collaboratori.spec.ts`, `tests/e2e/dettaglio-collaboratore.spec.ts`, `tests/e2e/abilitazioni-collaboratore.spec.ts`, `tests/e2e/gestione-utenti.spec.ts` |
 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
@@ -127,7 +132,7 @@ Nome, cognome, email, partita IVA e tariffa sono obbligatori lato applicazione; 
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Test unitari coprono transazioni, duplicati e guardie; `cambia-stato-utente.test.ts` verifica la cascata atomica da invalidazione/riattivazione utente al profilo, incluso il caso senza profilo. `abilitazioni-dal-actions.test.ts` copre le query e le action di abilitazione/revoca, inclusi idempotenza e rifiuto di offerte non attive; `backfill-abilitazioni-iniziali.test.ts` copre la logica di pre-popolamento e la guardia tabella-vuota. `utenti-actions.test.ts` copre ora anche `creaUtente` come secondo writer di `Collaboratore`: le tre combinazioni di ruoli con i payload esatti di `utente.create`/`collaboratore.create`, l'assenza di scritture sugli esiti di rifiuto (nessun ruolo, partita IVA invalida, email duplicata) e la revalidate di entrambe le anagrafiche. Gli E2E di gestione utenti verificano che invalidazione e riattivazione risultino nell'anagrafica collaboratori, che l'accesso segua lo stato, e che il censimento con ruolo Collaboratore produca una riga coerente nell'anagrafica collaboratori più il primo accesso al calendario delle attività; `abilitazioni-collaboratore.spec.ts` verifica end-to-end abilitazione e revoca con collaboratori e offerte creati da factory. Confidenza alta sul comportamento osservato; ownership condivisa di `Utente` resta una boundary candidata da sottoporre a review.
+Test unitari coprono transazioni, duplicati e guardie; `cambia-stato-utente.test.ts` verifica la cascata atomica da invalidazione/riattivazione utente al profilo, incluso il caso senza profilo. `abilitazioni-dal-actions.test.ts` copre le query e le action di abilitazione/revoca, inclusi idempotenza e rifiuto di offerte non attive; `backfill-abilitazioni-iniziali.test.ts` copre la logica di pre-popolamento e la guardia tabella-vuota. `utenti-actions.test.ts` copre ora anche `creaUtente` e `aggiornaUtente` come secondo e terzo writer di `Collaboratore`: le tre combinazioni di ruoli con i payload esatti di `utente.create`/`collaboratore.create` in creazione; le quattro transizioni di profilo (creazione, riattivazione, disattivazione, nessuna scrittura) con i payload esatti di `collaboratore.create`/`collaboratore.update` in modifica, la revalidate condizionale dell'anagrafica collaboratori e la protezione dell'ultimo amministratore applicata al ruolo derivato dai checkbox; l'assenza di scritture sugli esiti di rifiuto (nessun ruolo, partita IVA invalida, email duplicata) in entrambi i flussi. `valida-utente.test.ts` copre `validaCensimentoUtente` e `validaModificaUtente`, incluso l'obbligo condizionale dei campi profilo. Gli E2E di gestione utenti verificano che invalidazione e riattivazione risultino nell'anagrafica collaboratori, che l'accesso segua lo stato, che il censimento con ruolo Collaboratore produca una riga coerente nell'anagrafica collaboratori più il primo accesso al calendario delle attività, e che aggiungere o togliere il ruolo Collaboratore su un utente esistente crei, riattivi o disattivi il profilo conservando lo storico attività e senza richiedere nuovamente i dati già noti alla riattivazione; `abilitazioni-collaboratore.spec.ts` verifica end-to-end abilitazione e revoca con collaboratori e offerte creati da factory. Confidenza alta sul comportamento osservato; ownership condivisa di `Utente` resta una boundary candidata da sottoporre a review.
 
 ## Concetti correlati
 

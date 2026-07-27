@@ -8,11 +8,10 @@ import {
   violaProtezioneUltimoAmministratore,
 } from "@/domain/anagrafiche/protezione-amministratore";
 import {
-  RUOLI_AMMESSI,
   validaCensimentoUtente,
-  validaUtente,
+  validaModificaUtente,
   type DatiCensimentoUtenteInput,
-  type DatiUtenteInput,
+  type DatiModificaUtenteInput,
   type ErroriValidazione,
 } from "@/domain/anagrafiche/valida-utente";
 import { normalizzaTariffaGiornaliera } from "@/domain/anagrafiche/valida-collaboratore";
@@ -24,15 +23,22 @@ export interface StatoAction {
   successo?: boolean;
 }
 
-function datiDaForm(formData: FormData): DatiUtenteInput {
+function datiCensimentoDaForm(formData: FormData): DatiCensimentoUtenteInput {
   return {
     nome: ((formData.get("nome") as string) ?? "").trim(),
     email: ((formData.get("email") as string) ?? "").trim().toLowerCase(),
-    ruolo: (formData.get("ruolo") as string) ?? "",
+    ruoloAmministratore: formData.get("ruoloAmministratore") === "on",
+    ruoloCollaboratore: formData.get("ruoloCollaboratore") === "on",
+    cognome: ((formData.get("cognome") as string) ?? "").trim(),
+    partitaIva: ((formData.get("partitaIva") as string) ?? "").trim(),
+    tariffaGiornaliera: ((formData.get("tariffaGiornaliera") as string) ?? "")
+      .trim(),
   };
 }
 
-function datiCensimentoDaForm(formData: FormData): DatiCensimentoUtenteInput {
+function datiModificaDaForm(
+  formData: FormData,
+): Omit<DatiModificaUtenteInput, "profiloPresente"> {
   return {
     nome: ((formData.get("nome") as string) ?? "").trim(),
     email: ((formData.get("email") as string) ?? "").trim().toLowerCase(),
@@ -86,6 +92,36 @@ function erroreEmailDuplicata(): StatoAction {
   return {
     errori: { email: "Esiste già un utente con questa email" },
   };
+}
+
+// Nella transazione di aggiornaUtente convivono due vincoli unique distinti
+// (Utente.email e Collaboratore.userId): senza distinguerli, un conflitto
+// sul profilo verrebbe segnalato all'amministratore come email duplicata.
+function erroreVincoloUnicoAggiornamento(error: unknown): StatoAction {
+  const meta =
+    typeof error === "object" && error !== null && "meta" in error
+      ? (error as { meta?: unknown }).meta
+      : undefined;
+  const target =
+    typeof meta === "object" && meta !== null && "target" in meta
+      ? (meta as { target?: unknown }).target
+      : undefined;
+  const campi = Array.isArray(target)
+    ? target
+    : typeof target === "string"
+      ? [target]
+      : [];
+  const riguardaProfiloCollaboratore = campi.some(
+    (campo) => typeof campo === "string" && campo.toLowerCase().includes("userid"),
+  );
+
+  return riguardaProfiloCollaboratore
+    ? {
+        errori: {
+          _form: "Esiste già un profilo collaboratore per questo utente",
+        },
+      }
+    : erroreEmailDuplicata();
 }
 
 export async function creaUtente(
@@ -161,6 +197,11 @@ export async function creaUtente(
   redirect("/anagrafiche/utenti?esito=creato");
 }
 
+type EsitoAggiornamento =
+  | "NON_TROVATO"
+  | "ULTIMO_AMMINISTRATORE"
+  | { stato: "AGGIORNATO"; profiloModificato: boolean };
+
 export async function aggiornaUtente(
   _prevState: StatoAction,
   formData: FormData,
@@ -172,23 +213,41 @@ export async function aggiornaUtente(
     return { errori: { _form: "ID utente mancante" } };
   }
 
-  const dati = datiDaForm(formData);
-  const errori = validaUtente(dati);
+  const dati = datiModificaDaForm(formData);
 
+  const utenteCorrente = await db.utente.findUnique({
+    where: { id },
+    include: { collaboratore: { select: { attivo: true } } },
+  });
+
+  if (!utenteCorrente) {
+    return { errori: { _form: "Utente non trovato" } };
+  }
+
+  const profiloPresente = utenteCorrente.collaboratore !== null;
+
+  const errori = validaModificaUtente({ ...dati, profiloPresente });
   if (Object.keys(errori).length > 0) {
     return { errori };
   }
 
-  const ruolo = dati.ruolo as (typeof RUOLI_AMMESSI)[number];
-  let esito: "NON_TROVATO" | "ULTIMO_AMMINISTRATORE" | "AGGIORNATO";
+  const nuovoRuolo = dati.ruoloAmministratore
+    ? "AMMINISTRATORE"
+    : "COLLABORATORE";
+
+  let esito: EsitoAggiornamento;
 
   try {
     esito = await eseguiConRetrySerializzazione(() =>
       db.$transaction(
-        async (tx) => {
+        async (tx): Promise<EsitoAggiornamento> => {
           const utenteEsistente = await tx.utente.findUnique({
             where: { id },
-            select: { ruolo: true, attivo: true },
+            select: {
+              ruolo: true,
+              attivo: true,
+              collaboratore: { select: { attivo: true } },
+            },
           });
 
           if (!utenteEsistente) {
@@ -198,7 +257,7 @@ export async function aggiornaUtente(
           if (
             utenteEsistente.ruolo === "AMMINISTRATORE" &&
             utenteEsistente.attivo &&
-            ruolo !== "AMMINISTRATORE"
+            nuovoRuolo !== "AMMINISTRATORE"
           ) {
             const altriAmministratoriAttivi = await tx.utente.count({
               where: {
@@ -211,7 +270,7 @@ export async function aggiornaUtente(
             if (
               violaProtezioneUltimoAmministratore(
                 utenteEsistente,
-                { tipo: "CAMBIO_RUOLO", nuovoRuolo: ruolo },
+                { tipo: "CAMBIO_RUOLO", nuovoRuolo },
                 altriAmministratoriAttivi,
               )
             ) {
@@ -219,23 +278,76 @@ export async function aggiornaUtente(
             }
           }
 
+          const profiloAttuale = utenteEsistente.collaboratore;
+          // La decisione di creare il profilo è basata sulla lettura fatta
+          // DENTRO la transazione (non su `profiloPresente` esterno, letto
+          // prima di aprire la transazione): così un eventuale tentativo
+          // concorrente di aggiungere lo stesso profilo, in isolamento
+          // Serializable, produce un conflitto di serializzazione ritentato
+          // da eseguiConRetrySerializzazione invece di una corsa fra due
+          // `collaboratore.create` sullo stesso utente. L'invariante di sola
+          // disattivazione (mai una delete) garantisce che se il profilo è
+          // assente qui lo era anche alla lettura esterna usata per la
+          // validazione, quindi i campi profilo erano già stati richiesti e
+          // validati quando serve crearlo.
+          const creaProfilo = dati.ruoloCollaboratore && profiloAttuale === null;
+          const tariffa = creaProfilo
+            ? normalizzaTariffaGiornaliera(dati.tariffaGiornaliera)
+            : null;
+
           await tx.utente.update({
             where: { id },
             data: {
-              nome: dati.nome,
               email: dati.email,
-              ruolo,
+              ruolo: nuovoRuolo,
+              nome: creaProfilo ? `${dati.nome} ${dati.cognome}` : dati.nome,
             },
           });
 
-          return "AGGIORNATO";
+          let profiloModificato = false;
+
+          if (creaProfilo) {
+            await tx.collaboratore.create({
+              data: {
+                userId: id,
+                nome: dati.nome,
+                cognome: dati.cognome,
+                partitaIva: dati.partitaIva,
+                tariffaGiornaliera: tariffa!.valore,
+                attivo: true,
+              },
+            });
+            profiloModificato = true;
+          } else if (
+            dati.ruoloCollaboratore &&
+            profiloAttuale !== null &&
+            !profiloAttuale.attivo
+          ) {
+            await tx.collaboratore.update({
+              where: { userId: id },
+              data: { attivo: true },
+            });
+            profiloModificato = true;
+          } else if (
+            !dati.ruoloCollaboratore &&
+            profiloAttuale !== null &&
+            profiloAttuale.attivo
+          ) {
+            await tx.collaboratore.update({
+              where: { userId: id },
+              data: { attivo: false },
+            });
+            profiloModificato = true;
+          }
+
+          return { stato: "AGGIORNATO", profiloModificato };
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       ),
     );
   } catch (error) {
     if (isPrismaUniqueConstraintError(error)) {
-      return erroreEmailDuplicata();
+      return erroreVincoloUnicoAggiornamento(error);
     }
     throw error;
   }
@@ -249,5 +361,8 @@ export async function aggiornaUtente(
   }
 
   revalidatePath("/anagrafiche/utenti");
+  if (esito.profiloModificato) {
+    revalidatePath("/anagrafiche/collaboratori");
+  }
   redirect("/anagrafiche/utenti?esito=salvato");
 }

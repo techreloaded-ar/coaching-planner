@@ -45,11 +45,32 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
     statoIniziale
   );
   const haErrori = Object.keys(stato.errori).length > 0;
-  // In modalità modifica il checkbox e la sezione profilo condizionale non
-  // esistono (si usa ancora il radiogroup): il valore iniziale conta solo in
-  // creazione, dove il checkbox Collaboratore parte selezionato.
+  // Default dei due checkbox ruolo, condivisi da creazione e modifica.
+  // In creazione: Amministratore deselezionato, Collaboratore selezionato.
+  // In modifica: derivati da ruolo e profilo collaboratore.
+  const amministratoreDefault = inModifica
+    ? utente.ruolo === "AMMINISTRATORE"
+    : false;
+  const collaboratoreDefault = inModifica
+    ? utente.collaboratore
+      ? utente.collaboratore.attivo
+      : utente.ruolo === "COLLABORATORE"
+    : true;
+  // Checkbox controllati (non defaultChecked/uncontrolled): dopo un submit
+  // fallito React 19 resetta i campi non controllati del form allo stato
+  // iniziale del DOM, ma non lo stato React — con un checkbox uncontrolled
+  // la sezione profilo (pilotata dallo stato) resterebbe visibile mentre il
+  // checkbox torna deselezionato, disallineando silenziosamente il valore
+  // inviato al server dai dati che l'utente vede compilati a schermo.
+  const [amministratoreSelezionato, setAmministratoreSelezionato] =
+    useState(amministratoreDefault);
   const [collaboratoreSelezionato, setCollaboratoreSelezionato] =
-    useState(!inModifica);
+    useState(collaboratoreDefault);
+  // La sezione "Profilo collaboratore" serve solo quando il collaboratore è
+  // selezionato e non esiste ancora un profilo: in modifica con profilo (attivo
+  // o disattivato) non deve mai comparire.
+  const mostraProfiloCollaboratore =
+    collaboratoreSelezionato && (!inModifica || utente.collaboratore === null);
 
   return (
     <div>
@@ -79,7 +100,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
         </h1>
         <p className="mt-[6px] max-w-[580px] text-[13px] leading-[1.55] text-zinc-400 dark:text-zinc-500">
           {inModifica
-            ? "Aggiorna nome, email e ruolo dell'utente. Il nuovo ruolo ha effetto al primo accesso protetto successivo."
+            ? "Aggiorna nome, email e ruoli dell'utente: Amministratore e Collaboratore sono combinabili. Il nuovo assetto ha effetto al primo accesso protetto successivo."
             : "Indica nome, email e ruolo. L'utente comparirà in elenco con stato attivo e la sua email sarà riconosciuta dal flusso di accesso."}
         </p>
       </div>
@@ -146,7 +167,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
               defaultValue={utente?.nome ?? ""}
               errore={stato.errori.nome}
               hint={
-                !inModifica && collaboratoreSelezionato
+                mostraProfiloCollaboratore
                   ? "Solo il nome: il cognome va nel campo dedicato del profilo collaboratore."
                   : "Nome e cognome in un unico campo, come mostrato in elenco."
               }
@@ -165,83 +186,11 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
             />
 
             <SezioneForm icona="ruolo">Ruolo</SezioneForm>
-            {inModifica ? (
-              <fieldset
-                role="radiogroup"
-                aria-invalid={!!stato.errori.ruolo}
-                aria-describedby={stato.errori.ruolo ? "errore-ruolo" : undefined}
-                className="col-span-2 mb-[18px] min-w-0 max-[640px]:col-span-1"
-              >
-                <legend className="mb-1.5 text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400">
-                  Ruolo <span className="font-bold text-red-600 dark:text-red-400">*</span>
-                </legend>
-                <div className="grid grid-cols-2 gap-3 max-[640px]:grid-cols-1">
-                  {RUOLI_AMMESSI.map((ruolo) => {
-                    const etichettaId = `ruolo-${ruolo.toLowerCase()}-etichetta`;
-                    const descrizioneId = `ruolo-${ruolo.toLowerCase()}-descrizione`;
-
-                    return (
-                      <label key={ruolo} className="relative cursor-pointer">
-                        <input
-                          type="radio"
-                          name="ruolo"
-                          value={ruolo}
-                          defaultChecked={ruolo === utente.ruolo}
-                          aria-labelledby={etichettaId}
-                          aria-describedby={descrizioneId}
-                          className="peer sr-only"
-                        />
-                        <span
-                          className={`flex min-h-[72px] items-start gap-[11px] rounded-xl border-[1.5px] bg-white px-[15px] py-3.5 pr-10 transition hover:border-indigo-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:shadow-[0_0_0_3px_rgb(99_102_241_/_0.1)] peer-checked:[&_.ruolo-check]:opacity-100 peer-checked:[&_.ruolo-icona]:border-indigo-500 peer-checked:[&_.ruolo-icona]:bg-indigo-500 peer-checked:[&_.ruolo-icona]:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-2 dark:bg-zinc-900 dark:hover:border-indigo-500/40 dark:peer-checked:border-indigo-500 dark:peer-checked:bg-indigo-500/10 dark:peer-checked:[&_.ruolo-icona]:border-indigo-500 dark:peer-checked:[&_.ruolo-icona]:bg-indigo-500 dark:peer-checked:[&_.ruolo-icona]:text-white dark:peer-focus-visible:ring-offset-zinc-900 ${
-                            stato.errori.ruolo
-                              ? "border-red-600"
-                              : "border-zinc-200 dark:border-zinc-700"
-                          }`}
-                        >
-                          <span className="ruolo-icona grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] border border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                            <IconaRuolo ruolo={ruolo} usaColoreCorrente />
-                          </span>
-                          <span className="min-w-0 leading-[1.3]">
-                            <span
-                              id={etichettaId}
-                              className="block text-[13.5px] font-bold text-zinc-800 dark:text-zinc-100"
-                            >
-                              {ETICHETTE_RUOLO[ruolo]}
-                            </span>
-                            <span
-                              id={descrizioneId}
-                              className="mt-0.5 block text-[12px] text-zinc-400 dark:text-zinc-500"
-                            >
-                              {DESCRIZIONI_RUOLO[ruolo]}
-                            </span>
-                          </span>
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            className="ruolo-check absolute right-[13px] top-3 h-4 w-4 text-indigo-600 opacity-0 transition-opacity dark:text-indigo-400"
-                            strokeWidth={2.4}
-                            aria-hidden="true"
-                          >
-                            <path d="M20 6 9 17l-5-5" />
-                          </svg>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-                {stato.errori.ruolo && (
-                  <div className="mt-1.5">
-                    <ErroreCampo id="errore-ruolo">{stato.errori.ruolo}</ErroreCampo>
-                  </div>
-                )}
-              </fieldset>
-            ) : (
-              <fieldset
-                role="group"
-                aria-describedby={stato.errori.ruoli ? "errore-ruoli" : undefined}
-                className="col-span-2 mb-[18px] min-w-0 max-[640px]:col-span-1"
-              >
+            <fieldset
+              role="group"
+              aria-describedby={stato.errori.ruoli ? "errore-ruoli" : undefined}
+              className="col-span-2 mb-[18px] min-w-0 max-[640px]:col-span-1"
+            >
                 <legend className="mb-1.5 text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400">
                   Ruolo <span className="font-bold text-red-600 dark:text-red-400">*</span>
                 </legend>
@@ -259,14 +208,19 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                         <input
                           type="checkbox"
                           name={nomeCampo}
-                          defaultChecked={eCollaboratore}
-                          onChange={
+                          checked={
                             eCollaboratore
-                              ? (evento) =>
-                                  setCollaboratoreSelezionato(
-                                    evento.target.checked,
-                                  )
-                              : undefined
+                              ? collaboratoreSelezionato
+                              : amministratoreSelezionato
+                          }
+                          onChange={(evento) =>
+                            eCollaboratore
+                              ? setCollaboratoreSelezionato(
+                                  evento.target.checked,
+                                )
+                              : setAmministratoreSelezionato(
+                                  evento.target.checked,
+                                )
                           }
                           aria-labelledby={etichettaId}
                           aria-describedby={descrizioneId}
@@ -316,10 +270,9 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                     <ErroreCampo id="errore-ruoli">{stato.errori.ruoli}</ErroreCampo>
                   </div>
                 )}
-              </fieldset>
-            )}
+            </fieldset>
 
-            {!inModifica && collaboratoreSelezionato && (
+            {mostraProfiloCollaboratore && (
               <>
                 <SezioneForm icona="anagrafica">
                   Profilo collaboratore
