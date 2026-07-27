@@ -42,6 +42,7 @@
 * [Plan for US-040](backlog/plans/US-040.md) - Implementation plan and executable tasks for US-040. _State: generated._
 * [Plan for US-041](backlog/plans/US-041.md) - Implementation plan and executable tasks for US-041. _State: generated._
 * [Plan for US-042](backlog/plans/US-042.md) - Implementation plan and executable tasks for US-042. _State: generated._
+* [Plan for US-043](backlog/plans/US-043.md) - Implementation plan and executable tasks for US-043. _State: generated._
 * [US-001: Scaffold dell'applicazione Next.js e ambiente di sviluppo](backlog/specs/US-001.md) - Delivery specification US-001. _State: generated._
 * [US-002: Database PostgreSQL con Prisma, migrazioni e seed](backlog/specs/US-002.md) - Delivery specification US-002. _State: generated._
 * [US-003: Suite di test e pipeline di integrazione continua](backlog/specs/US-003.md) - Delivery specification US-003. _State: generated._
@@ -95,7 +96,7 @@
 * [Abilitazioni esplicite collaboratore-offerta](decisions/abilitazioni-offerte-esplicite.md) - Persistere l'ingaggio collaboratore-offerta in una tabella dedicata, revocabile, con pre-popolamento una tantum. _State: reviewed._
 * [Autorità sul ruolo nel DAL](decisions/autorita-ruolo-dal.md) - Il proxy garantisce la sola autenticazione; il ruolo autorevole è quello a database letto dal DAL a ogni accesso protetto. _State: reviewed._
 * [Calcoli di dominio in funzioni pure](decisions/calcoli-puri.md) - Isolare validazioni e calcoli di consuntivazione in funzioni pure testabili. _State: reviewed._
-* [Connessione al database senza TLS (rischio accettato)](decisions/connessione-db-senza-tls.md) - Accettazione consapevole del rischio di connessione in chiaro tra Vercel e il PostgreSQL SiteGround, in attesa del supporto TLS del provider. _State: stale._
+* [Connessione al database senza TLS (rischio accettato)](decisions/connessione-db-senza-tls.md) - Accettazione consapevole del rischio di connessione in chiaro tra Vercel e il PostgreSQL SiteGround, in attesa del supporto TLS del provider. _State: generated._
 * [Giornata equivalente a otto ore](decisions/giornata-otto-ore.md) - Convertire ore e giornate con la costante fissa di otto ore per giornata. _State: reviewed._
 * [Importi monetari decimali](decisions/importi-decimali.md) - Persistire gli importi monetari come Decimal per evitare errori contabili. _State: reviewed._
 * [PostgreSQL con target SiteGround](decisions/postgres-siteground.md) - Usare PostgreSQL con target dichiarato SiteGround e sviluppo locale equivalente. _State: generated._
@@ -114,7 +115,7 @@
 
 ## Engineering
 
-* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: stale._
+* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: generated._
 
 ## Operations
 
