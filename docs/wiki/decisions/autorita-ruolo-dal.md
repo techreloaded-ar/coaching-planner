@@ -18,8 +18,8 @@ sources:
       role: verification
 review:
     content_hash: sha256:7597ce9a1366beb8220402c1498902944e8ec6732e703330c2a9a745d7de3f1c
-    evidence_revision: de84792d71cd8c5f1c5c54a01da1aad798f78aef
-    reviewed_at: "2026-07-21T14:41:50Z"
+    evidence_revision: 890806d032087262f749403c8ddeece2f1ff4f94
+    reviewed_at: "2026-07-27T14:16:58Z"
 ---
 # Autorità sul ruolo nel DAL
 
