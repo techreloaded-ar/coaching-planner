@@ -2,7 +2,7 @@
 type: decision
 title: Ruoli combinabili derivati dal profilo collaboratore
 description: Derivare il ruolo Collaboratore dalla presenza del profilo, riusando enum e relazione 1:1 esistenti senza modifiche allo schema
-status: reviewed
+status: generated
 decision_status: accepted
 sources:
     - path: prisma/schema.prisma
@@ -10,32 +10,35 @@ sources:
       symbol: Utente, Collaboratore
     - path: src/app/(back-office)/anagrafiche/utenti/actions.ts
       role: implementation
-      symbol: creaUtente
+      symbol: creaUtente, aggiornaUtente
+    - path: src/domain/anagrafiche/valida-utente.ts
+      role: implementation
+      symbol: validaCensimentoUtente, validaModificaUtente
     - path: src/lib/dal.ts
       role: implementation
       symbol: risolviProfiloCollaboratoreCorrente
     - path: src/app/(back-office)/anagrafiche/utenti/utenti-tabella.tsx
       role: implementation
+    - path: src/app/(back-office)/anagrafiche/utenti/utente-form.tsx
+      role: implementation
     - path: tests/unit/utenti-actions.test.ts
+      role: verification
+    - path: tests/unit/valida-utente.test.ts
       role: verification
     - path: tests/e2e/gestione-utenti.spec.ts
       role: verification
-review:
-    content_hash: sha256:7660da70d6716242126ad2f9f26bce0f5c179c4e3fad2d004eb9ddc16f34c439
-    evidence_revision: 890806d032087262f749403c8ddeece2f1ff4f94
-    reviewed_at: "2026-07-27T14:16:58Z"
 ---
 # Ruoli combinabili derivati dal profilo collaboratore
 
 <!-- archetipo:wiki section=context -->
 ## Contesto
 
-US-045, US-046 e US-047 richiedono che la creazione di un utente supporti ruoli combinabili Amministratore e Collaboratore, con creazione immediata del profilo collaboratore quando il ruolo operativo è attribuito. Le combinazioni ammesse sono tre: solo Amministratore, solo Collaboratore, ed entrambi. Il modello dati esistente rappresenta già l'utente con un enum `Utente.ruolo` e una relazione 1:1 opzionale verso `Collaboratore`, e il DAL consente a un amministratore dotato di profilo attivo di consuntivare nel front office. Occorre decidere come rappresentare la combinabilità dei ruoli senza introdurre due fonti di verità sullo stesso fatto.
+US-045, US-046 e US-047 richiedono che sia la creazione sia la modifica di un utente supportino ruoli combinabili Amministratore e Collaboratore, con creazione, riattivazione o disattivazione del profilo collaboratore in risposta al cambio di ruolo. Le combinazioni ammesse sono tre: solo Amministratore, solo Collaboratore, ed entrambi. Il modello dati esistente rappresenta già l'utente con un enum `Utente.ruolo` e una relazione 1:1 opzionale verso `Collaboratore`, e il DAL consente a un amministratore dotato di profilo attivo di consuntivare nel front office. Occorre decidere come rappresentare la combinabilità dei ruoli, in creazione e nell'intero ciclo di vita successivo, senza introdurre due fonti di verità sullo stesso fatto.
 
 <!-- archetipo:wiki section=decision -->
 ## Decisione
 
-Derivare il ruolo di accesso "Collaboratore" dalla presenza del profilo `Collaboratore`, senza modifiche allo schema Prisma. Il modello esistente — enum `Utente.ruolo` più relazione 1:1 opzionale `Collaboratore` — rappresenta già le tre combinazioni ammesse: solo Amministratore (`ruolo = AMMINISTRATORE`, nessun profilo); solo Collaboratore (`ruolo = COLLABORATORE` con record `Collaboratore`); entrambi (`ruolo = AMMINISTRATORE` con record `Collaboratore`, combinazione già supportata dal DAL che consente a un amministratore con profilo attivo di consuntivare nel front office). `creaUtente` crea l'utente e, quando il ruolo operativo è attribuito, il profilo collaboratore corrispondente nella stessa operazione; `risolviProfiloCollaboratoreCorrente` rilegge ruolo e profilo a ogni accesso protetto, così l'abilitazione operativa resta allineata allo stato a database.
+Derivare il ruolo di accesso "Collaboratore" dalla presenza e dallo stato del profilo `Collaboratore`, senza modifiche allo schema Prisma. Il modello esistente — enum `Utente.ruolo` più relazione 1:1 opzionale `Collaboratore` — rappresenta già le tre combinazioni ammesse: solo Amministratore (`ruolo = AMMINISTRATORE`, nessun profilo o profilo disattivato); solo Collaboratore (`ruolo = COLLABORATORE` con record `Collaboratore` attivo); entrambi (`ruolo = AMMINISTRATORE` con record `Collaboratore` attivo, combinazione già supportata dal DAL che consente a un amministratore con profilo attivo di consuntivare nel front office). `creaUtente` crea l'utente e, quando il ruolo operativo è attribuito, il profilo collaboratore corrispondente nella stessa operazione. US-046 estende la stessa derivazione al ciclo di vita di un utente già censito: `aggiornaUtente` (form a checkbox anche in modifica, come in creazione) calcola il nuovo ruolo dai due checkbox e applica la transizione di profilo coerente nella stessa transazione — crea il profilo (attivo, con i dati raccolti) se il ruolo Collaboratore viene aggiunto e il profilo non esiste; lo riattiva conservando partita IVA e tariffa se esiste già disattivato; lo disattiva, senza mai cancellarlo, se il ruolo Collaboratore viene tolto. La disattivazione reversibile — già in uso per l'invalidazione utente — è quindi il meccanismo unico anche per la rimozione del ruolo. `risolviProfiloCollaboratoreCorrente` rilegge ruolo e profilo a ogni accesso protetto, così l'abilitazione operativa resta allineata allo stato a database in entrambi i flussi.
 
 <!-- archetipo:wiki section=alternatives -->
 ## Alternative
@@ -52,7 +55,7 @@ Il ruolo di accesso "Collaboratore" resta accoppiato all'esistenza del profilo o
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-`tests/unit/utenti-actions.test.ts` copre in isolamento `creaUtente`, verificando che ciascuna delle tre combinazioni produca lo stato utente-profilo atteso. `tests/e2e/gestione-utenti.spec.ts` prova end-to-end che le tre combinazioni di ruolo producano gli accessi attesi al back office e alla consuntivazione nel front office, tramite utenti e collaboratori creati da factory secondo il contratto e2e del progetto.
+`tests/unit/utenti-actions.test.ts` copre in isolamento sia `creaUtente` sia `aggiornaUtente`, verificando che ciascuna delle tre combinazioni produca lo stato utente-profilo atteso in creazione e che le quattro transizioni di profilo (creazione, riattivazione, disattivazione, nessuna scrittura) producano i payload Prisma esatti in modifica, protezione dell'ultimo amministratore inclusa. `tests/unit/valida-utente.test.ts` copre `validaCensimentoUtente` e `validaModificaUtente`, incluso l'obbligo condizionale dei campi profilo. `tests/e2e/gestione-utenti.spec.ts` prova end-to-end che le tre combinazioni di ruolo producano gli accessi attesi al back office e alla consuntivazione nel front office sia in creazione sia in modifica, incluse la disattivazione con storico attività conservato, il messaggio di profilo disattivato al front office e la riattivazione senza richiesta dei dati già noti, tramite utenti e collaboratori creati da factory secondo il contratto e2e del progetto.
 
 ## Concetti correlati
 

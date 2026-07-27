@@ -4,6 +4,7 @@ import {
 	accediAlBackOfficeComeAdmin,
 	accediCome,
 } from "./support/auth";
+import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
 
 function tabellaUtenti(page: Page) {
@@ -73,6 +74,50 @@ async function impostaRuolo(
 			return ruoloImpostatoCorrettamente();
 		})
 		.toBe(true);
+}
+
+/**
+ * Commuta un checkbox di ruolo guardando solo lo stato del checkbox, non la
+ * sezione "Profilo collaboratore": serve sugli utenti che hanno già un profilo
+ * collaboratore (attivo o disattivato), dove la sezione non compare mai e quindi
+ * `impostaRuolo` — che l'attende — non converge. Come `impostaRuolo`, clicca la
+ * card visibile (il checkbox è `sr-only`) con `expect.poll` per assorbire i
+ * click "persi" prima dell'idratazione, senza hard wait.
+ */
+async function commutaRuolo(
+	page: Page,
+	etichetta: "Amministratore" | "Collaboratore",
+	selezionato: boolean,
+): Promise<void> {
+	const gruppoRuolo = page.getByRole("group", { name: /^Ruolo/ });
+	const card = gruppoRuolo.getByText(etichetta, { exact: true });
+	const checkbox = gruppoRuolo.getByRole("checkbox", {
+		name: new RegExp(`^${etichetta}\\b`),
+	});
+
+	await expect
+		.poll(async () => {
+			if ((await checkbox.isChecked()) === selezionato) {
+				return true;
+			}
+			await card.click();
+			return (await checkbox.isChecked()) === selezionato;
+		})
+		.toBe(true);
+}
+
+async function apriElencoCollaboratori(
+	page: Page,
+	email: string,
+): Promise<void> {
+	await page.goto("/anagrafiche/collaboratori");
+	await expect(
+		page.getByRole("heading", { name: "Collaboratori", exact: true }),
+	).toBeVisible();
+	await page
+		.getByRole("searchbox", { name: "Cerca collaboratore" })
+		.fill(email);
+	await expect(rigaCollaboratore(page, email)).toHaveCount(1);
 }
 
 async function filtraUtenti(page: Page, valore: string): Promise<void> {
@@ -443,10 +488,12 @@ test.describe("Gestione utenti", () => {
 		page,
 		factory,
 	}) => {
-		const utente = await factory.createUtente({
-			nome: `${factory.namespace} Utente da modificare`,
-			email: `${factory.namespace}-da-modificare@e2e.invalid`,
-			ruolo: "COLLABORATORE",
+		const { utente } = await factory.createCollaboratore({
+			utenteOptions: {
+				nome: `${factory.namespace} Utente da modificare`,
+				email: `${factory.namespace}-da-modificare@e2e.invalid`,
+				ruolo: "COLLABORATORE",
+			},
 		});
 		const nuovoNome = `${factory.namespace} Utente modificato`;
 		const nuovaEmail = `${factory.namespace}-modificato@e2e.invalid`;
@@ -460,7 +507,7 @@ test.describe("Gestione utenti", () => {
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
 		await expect(
-			page.getByRole("radio", { name: /^Collaboratore\b/ }),
+			page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
 		).toBeChecked();
 
 		await page.getByLabel(/^Nome\b/).fill(nuovoNome);
@@ -605,10 +652,12 @@ test.describe("Gestione utenti", () => {
 		browser,
 		factory,
 	}) => {
-		const utente = await factory.createUtente({
-			nome: `${factory.namespace} Collaboratore da promuovere`,
-			email: `${factory.namespace}-da-promuovere@e2e.invalid`,
-			ruolo: "COLLABORATORE",
+		const { utente } = await factory.createCollaboratore({
+			utenteOptions: {
+				nome: `${factory.namespace} Collaboratore da promuovere`,
+				email: `${factory.namespace}-da-promuovere@e2e.invalid`,
+				ruolo: "COLLABORATORE",
+			},
 		});
 		const contestoUtente = await browser.newContext();
 
@@ -625,9 +674,8 @@ test.describe("Gestione utenti", () => {
 			await expect(
 				page.getByRole("heading", { name: "Modifica utente" }),
 			).toBeVisible();
-			await page
-				.getByRole("radio", { name: /^Amministratore\b/ })
-				.check({ force: true });
+			// Promozione: aggiunge Amministratore lasciando Collaboratore invariato.
+			await impostaRuolo(page, "Amministratore", true);
 			await page
 				.getByRole("button", { name: "Salva modifiche", exact: true })
 				.click();
@@ -654,10 +702,12 @@ test.describe("Gestione utenti", () => {
 		browser,
 		factory,
 	}) => {
-		const utente = await factory.createUtente({
-			nome: `${factory.namespace} Amministratore da retrocedere`,
-			email: `${factory.namespace}-da-retrocedere@e2e.invalid`,
-			ruolo: "AMMINISTRATORE",
+		const { utente } = await factory.createCollaboratore({
+			utenteOptions: {
+				nome: `${factory.namespace} Amministratore da retrocedere`,
+				email: `${factory.namespace}-da-retrocedere@e2e.invalid`,
+				ruolo: "AMMINISTRATORE",
+			},
 		});
 		const contestoUtente = await browser.newContext();
 
@@ -675,9 +725,12 @@ test.describe("Gestione utenti", () => {
 			await expect(
 				page.getByRole("heading", { name: "Modifica utente" }),
 			).toBeVisible();
-			await page
-				.getByRole("radio", { name: /^Collaboratore\b/ })
-				.check({ force: true });
+			// Retrocessione: l'utente ha già il profilo, quindi Collaboratore è
+			// selezionato e basta deselezionare Amministratore.
+			await expect(
+				page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
+			).toBeChecked();
+			await impostaRuolo(page, "Amministratore", false);
 			await page
 				.getByRole("button", { name: "Salva modifiche", exact: true })
 				.click();
@@ -757,11 +810,9 @@ test.describe("Gestione utenti", () => {
 			await expect(
 				page.getByRole("heading", { name: "Modifica utente" }),
 			).toBeVisible();
-			await page
-				.getByRole("radio", { name: /^Amministratore\b/ })
-				.check({ force: true });
+			await impostaRuolo(page, "Amministratore", true);
 			await expect(
-				page.getByRole("radio", { name: /^Amministratore\b/ }),
+				page.getByRole("checkbox", { name: /^Amministratore\b/ }),
 			).toBeChecked();
 			await page
 				.getByRole("button", { name: "Salva modifiche", exact: true })
@@ -894,6 +945,390 @@ test.describe("Gestione utenti", () => {
 			page.getByText("La partita IVA è obbligatoria", { exact: true }),
 		).toBeVisible();
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\/nuovo$/);
+	});
+
+	test("aggiunge il ruolo Collaboratore a un amministratore: campi obbligatori e profilo attivo", async ({
+		page,
+		factory,
+	}) => {
+		const nome = `${factory.namespace} Da promuovere a collaboratore`;
+		const cognome = "Ferrari";
+		const partitaIva = "02233445566";
+		const utente = await factory.createUtente({
+			nome,
+			email: `${factory.namespace}-aggiunge-collaboratore@e2e.invalid`,
+			ruolo: "AMMINISTRATORE",
+		});
+
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, utente.email);
+		await rigaUtente(page, utente.email)
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Modifica utente" }),
+		).toBeVisible();
+
+		// AC-1: l'aggiunta del ruolo Collaboratore fa comparire la sezione profilo.
+		await impostaRuolo(page, "Collaboratore", true);
+		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
+
+		// AC-1: senza dati profilo il salvataggio è rifiutato con i tre obblighi.
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await expect(
+			page.getByText("Il cognome è obbligatorio", { exact: true }),
+		).toBeVisible();
+		await expect(
+			page.getByText("La partita IVA è obbligatoria", { exact: true }),
+		).toBeVisible();
+		await expect(
+			page.getByText("La tariffa giornaliera è obbligatoria", {
+				exact: true,
+			}),
+		).toBeVisible();
+
+		// AC-1: compilati i campi, il salvataggio crea il profilo collaboratore.
+		// Il submit fallito resetta i campi non controllati del form (React 19),
+		// deselezionando il checkbox Collaboratore: va riportato a selezionato.
+		await impostaRuolo(page, "Collaboratore", true);
+		await page.getByLabel(/^Cognome\b/).fill(cognome);
+		await page.getByLabel(/^Partita IVA\b/).fill(partitaIva);
+		await page.getByLabel(/^Tariffa giornaliera\b/).fill("420");
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
+
+		// AC-1: il nuovo profilo è presente e attivo in anagrafica collaboratori.
+		await apriElencoCollaboratori(page, utente.email);
+		const rigaProfilo = rigaCollaboratore(page, utente.email);
+		await expect(
+			rigaProfilo.getByText(partitaIva, { exact: true }),
+		).toBeVisible();
+		await expect(
+			rigaProfilo.getByText("Attivo", { exact: true }),
+		).toBeVisible();
+	});
+
+	test("rimuove e ri-aggiunge il ruolo Collaboratore: disattivazione, storico e riattivazione senza nuovi dati", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		const partitaIva = "03344556677";
+		const { cliente, offerta } = await factory.createClienteConOfferta();
+		const collaboratore = await factory.createCollaboratore({
+			partitaIva,
+			tariffaGiornaliera: "480.00",
+			utenteOptions: {
+				nome: `${factory.namespace} Collaboratore con attività`,
+				email: `${factory.namespace}-rimuove-collaboratore@e2e.invalid`,
+				ruolo: "COLLABORATORE",
+			},
+		});
+		const email = collaboratore.utente.email;
+		const nomeCompleto = `${collaboratore.collaboratore.nome} ${collaboratore.collaboratore.cognome}`;
+		const nota = `Attività storica ${factory.namespace}`;
+		await factory.createRigaAttivita({
+			collaboratore,
+			cliente,
+			offerta,
+			data: new Date(`${dataNelMese(meseRiservato("US-046"), 12)}T00:00:00.000Z`),
+			ore: "8",
+			nota,
+			fatturabile: true,
+		});
+
+		// AC-3: rimozione del ruolo Collaboratore lasciando l'accesso Amministratore.
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, email);
+		await rigaUtente(page, email)
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Modifica utente" }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
+		).toBeChecked();
+		// Profilo già presente: si agisce sul checkbox, la sezione non compare mai.
+		await commutaRuolo(page, "Collaboratore", false);
+		await commutaRuolo(page, "Amministratore", true);
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
+
+		// AC-3: il profilo risulta disattivato nell'anagrafica collaboratori.
+		await apriElencoCollaboratori(page, email);
+		await expect(
+			rigaCollaboratore(page, email).getByText("Disattivato", {
+				exact: true,
+			}),
+		).toBeVisible();
+
+		// AC-3: lo storico attività resta consultabile dal dettaglio collaboratore.
+		await page.goto(
+			`/anagrafiche/collaboratori/${collaboratore.collaboratore.id}`,
+		);
+		await expect(
+			page.getByRole("heading", { name: nomeCompleto }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("table", { name: /^Attività di / }),
+		).toHaveCount(1);
+		await expect(page.getByText(nota)).toBeVisible();
+
+		// AC-4: al login il collaboratore vede il profilo disattivato e nessuna
+		// interfaccia di registrazione ore.
+		const contestoUtente = await browser.newContext();
+		try {
+			const paginaUtente = await contestoUtente.newPage();
+			await accediCome(paginaUtente, email);
+			await paginaUtente.goto("/attivita");
+			await expect(
+				paginaUtente.getByRole("heading", {
+					name: "Attività non disponibili",
+				}),
+			).toBeVisible();
+			await expect(
+				paginaUtente.getByText(
+					"Il tuo profilo Collaboratore è disattivato. Non puoi registrare o consultare attività finché non viene riattivato.",
+					{ exact: true },
+				),
+			).toBeVisible();
+			await expect(
+				paginaUtente.getByRole("table", { name: /^Attività di / }),
+			).toHaveCount(0);
+		} finally {
+			await contestoUtente.close();
+		}
+
+		// AC-2: ri-aggiunta del ruolo senza che partita IVA e tariffa siano richieste.
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, email);
+		await rigaUtente(page, email)
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Modifica utente" }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
+		).not.toBeChecked();
+		await commutaRuolo(page, "Collaboratore", true);
+		// La sezione profilo NON deve comparire: il profilo esiste già.
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
+
+		// AC-2: il profilo torna attivo con partita IVA e tariffa originarie.
+		await apriElencoCollaboratori(page, email);
+		const rigaRiattivata = rigaCollaboratore(page, email);
+		await expect(
+			rigaRiattivata.getByText("Attivo", { exact: true }),
+		).toBeVisible();
+		await expect(
+			rigaRiattivata.getByText(partitaIva, { exact: true }),
+		).toBeVisible();
+		await expect(rigaRiattivata.getByText(/480,00/)).toBeVisible();
+	});
+
+	test("la modifica di un collaboratore attivo nasconde i campi profilo e rimanda all'anagrafica", async ({
+		page,
+		factory,
+	}) => {
+		const collaboratore = await factory.createCollaboratore({
+			utenteOptions: {
+				nome: `${factory.namespace} Collaboratore attivo`,
+				email: `${factory.namespace}-collaboratore-attivo@e2e.invalid`,
+				ruolo: "COLLABORATORE",
+			},
+		});
+		const email = collaboratore.utente.email;
+
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, email);
+		await rigaUtente(page, email)
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Modifica utente" }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
+		).toBeChecked();
+
+		// AC-5: nessun campo profilo nel form di modifica.
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
+
+		// AC-5: box informativo che rimanda all'anagrafica collaboratori.
+		await expect(
+			page.getByText(
+				"Questo utente ha un profilo collaboratore. Il profilo operativo (nome anagrafico, tariffa e attivazione) si gestisce dall'anagrafica collaboratori.",
+				{ exact: true },
+			),
+		).toBeVisible();
+	});
+
+	test("demo__aggiunta-rimozione-ruolo-collaboratore", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		// Utente solo Amministratore senza profilo: sarà promosso a collaboratore.
+		const nomeDaPromuovere = `${factory.namespace} Demo da promuovere`;
+		const cognomeDaPromuovere = "Colombo";
+		const partitaIvaNuova = "04455667788";
+		const utenteDaPromuovere = await factory.createUtente({
+			nome: nomeDaPromuovere,
+			email: `${factory.namespace}-demo-da-promuovere@e2e.invalid`,
+			ruolo: "AMMINISTRATORE",
+		});
+
+		// Collaboratore con attività registrate: sarà disattivato e riattivato.
+		const partitaIvaEsistente = "05566778899";
+		const { cliente, offerta } = await factory.createClienteConOfferta();
+		const collaboratore = await factory.createCollaboratore({
+			partitaIva: partitaIvaEsistente,
+			tariffaGiornaliera: "510.00",
+			utenteOptions: {
+				nome: `${factory.namespace} Demo collaboratore`,
+				email: `${factory.namespace}-demo-collaboratore@e2e.invalid`,
+				ruolo: "COLLABORATORE",
+			},
+		});
+		const emailCollaboratore = collaboratore.utente.email;
+		const nomeCompletoCollaboratore = `${collaboratore.collaboratore.nome} ${collaboratore.collaboratore.cognome}`;
+		const notaStorica = `Attività demo ${factory.namespace}`;
+		await factory.createRigaAttivita({
+			collaboratore,
+			cliente,
+			offerta,
+			data: new Date(`${dataNelMese(meseRiservato("US-046"), 14)}T00:00:00.000Z`),
+			ore: "8",
+			nota: notaStorica,
+			fatturabile: true,
+		});
+
+		// 1. Aggiunta del ruolo Collaboratore con i dati obbligatori richiesti.
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, utenteDaPromuovere.email);
+		await rigaUtente(page, utenteDaPromuovere.email)
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await impostaRuolo(page, "Collaboratore", true);
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await expect(
+			page.getByText("Il cognome è obbligatorio", { exact: true }),
+		).toBeVisible();
+		await expect(
+			page.getByText("La partita IVA è obbligatoria", { exact: true }),
+		).toBeVisible();
+		await expect(
+			page.getByText("La tariffa giornaliera è obbligatoria", {
+				exact: true,
+			}),
+		).toBeVisible();
+		// Il submit fallito resetta i campi non controllati del form (React 19),
+		// deselezionando il checkbox Collaboratore: va riportato a selezionato.
+		await impostaRuolo(page, "Collaboratore", true);
+		await page.getByLabel(/^Cognome\b/).fill(cognomeDaPromuovere);
+		await page.getByLabel(/^Partita IVA\b/).fill(partitaIvaNuova);
+		await page.getByLabel(/^Tariffa giornaliera\b/).fill("470");
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
+
+		// Verifica del nuovo profilo attivo nell'anagrafica collaboratori.
+		await apriElencoCollaboratori(page, utenteDaPromuovere.email);
+		await expect(
+			rigaCollaboratore(page, utenteDaPromuovere.email).getByText("Attivo", {
+				exact: true,
+			}),
+		).toBeVisible();
+
+		// 2. Rimozione del ruolo Collaboratore dall'utente con attività.
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, emailCollaboratore);
+		await rigaUtente(page, emailCollaboratore)
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await commutaRuolo(page, "Collaboratore", false);
+		await commutaRuolo(page, "Amministratore", true);
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
+
+		// Il profilo risulta disattivato in anagrafica, con storico ancora leggibile.
+		await apriElencoCollaboratori(page, emailCollaboratore);
+		await expect(
+			rigaCollaboratore(page, emailCollaboratore).getByText("Disattivato", {
+				exact: true,
+			}),
+		).toBeVisible();
+		await page.goto(
+			`/anagrafiche/collaboratori/${collaboratore.collaboratore.id}`,
+		);
+		await expect(
+			page.getByRole("heading", { name: nomeCompletoCollaboratore }),
+		).toBeVisible();
+		await expect(page.getByText(notaStorica)).toBeVisible();
+
+		// 3. Al login il collaboratore vede il messaggio di profilo disattivato.
+		const contestoUtente = await browser.newContext();
+		try {
+			const paginaUtente = await contestoUtente.newPage();
+			await accediCome(paginaUtente, emailCollaboratore);
+			await paginaUtente.goto("/attivita");
+			await expect(
+				paginaUtente.getByText(
+					"Il tuo profilo Collaboratore è disattivato. Non puoi registrare o consultare attività finché non viene riattivato.",
+					{ exact: true },
+				),
+			).toBeVisible();
+			await expect(
+				paginaUtente.getByRole("table", { name: /^Attività di / }),
+			).toHaveCount(0);
+		} finally {
+			await contestoUtente.close();
+		}
+
+		// 4. Ri-aggiunta del ruolo: nessun dato richiesto, profilo riattivato.
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, emailCollaboratore);
+		await rigaUtente(page, emailCollaboratore)
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await commutaRuolo(page, "Collaboratore", true);
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
+
+		await apriElencoCollaboratori(page, emailCollaboratore);
+		const rigaRiattivata = rigaCollaboratore(page, emailCollaboratore);
+		await expect(
+			rigaRiattivata.getByText("Attivo", { exact: true }),
+		).toBeVisible();
+		await expect(
+			rigaRiattivata.getByText(partitaIvaEsistente, { exact: true }),
+		).toBeVisible();
+		await expect(rigaRiattivata.getByText(/510,00/)).toBeVisible();
 	});
 
 	test("mostra l'errore di protezione dell'ultimo amministratore", async ({

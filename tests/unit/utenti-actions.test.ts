@@ -9,6 +9,8 @@ const mockDb = vi.hoisted(() => ({
   },
   collaboratore: {
     create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
   $transaction: vi.fn(),
 }));
@@ -78,7 +80,7 @@ function formModificaUtente(): FormData {
   formData.set("id", "utente-1");
   formData.set("nome", "  Laura Verdi  ");
   formData.set("email", "  LAURA.VERDI@EXAMPLE.COM  ");
-  formData.set("ruolo", "AMMINISTRATORE");
+  formData.set("ruoloAmministratore", "on");
   return formData;
 }
 
@@ -304,19 +306,7 @@ describe("Server Actions utenti", () => {
       expect(mockUtente.update).not.toHaveBeenCalled();
     });
 
-    it("rifiuta un ruolo inviato dal form non valido senza accedere al database", async () => {
-      const formData = formModificaUtente();
-      formData.set("ruolo", "SUPERVISORE");
-
-      const result = await aggiornaUtente(statoIniziale(), formData);
-
-      expect(result.errori).toEqual({ ruolo: "Seleziona un ruolo valido" });
-      expect(mockDb.$transaction).not.toHaveBeenCalled();
-      expect(mockUtente.findUnique).not.toHaveBeenCalled();
-      expect(mockUtente.update).not.toHaveBeenCalled();
-    });
-
-    it("restituisce un errore quando l'utente non esiste", async () => {
+    it("restituisce un errore quando l'utente non esiste, senza aprire transazioni", async () => {
       mockUtente.findUnique.mockResolvedValue(null);
 
       const result = await aggiornaUtente(
@@ -324,19 +314,20 @@ describe("Server Actions utenti", () => {
         formModificaUtente(),
       );
 
-      expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
       expect(mockUtente.findUnique).toHaveBeenCalledWith({
         where: { id: "utente-1" },
-        select: { ruolo: true, attivo: true },
+        include: { collaboratore: { select: { attivo: true } } },
       });
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
       expect(result.errori).toEqual({ _form: "Utente non trovato" });
       expect(mockUtente.update).not.toHaveBeenCalled();
     });
 
-    it("promuove un collaboratore salvando ruolo, nome ed email normalizzati", async () => {
+    it("promuove un utente senza profilo ad amministratore senza toccare il collaboratore", async () => {
       mockUtente.findUnique.mockResolvedValue({
         ruolo: "COLLABORATORE",
         attivo: true,
+        collaboratore: null,
       });
       mockUtente.update.mockResolvedValue({ id: "utente-1" });
 
@@ -352,20 +343,28 @@ describe("Server Actions utenti", () => {
           ruolo: "AMMINISTRATORE",
         },
       });
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.update).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(1);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRevalidatePath).not.toHaveBeenCalledWith(
+        "/anagrafiche/collaboratori",
+      );
       expect(mockRedirect).toHaveBeenCalledWith(
         "/anagrafiche/utenti?esito=salvato",
       );
     });
 
-    it("blocca la retrocessione dell'ultimo amministratore attivo", async () => {
+    it("AC-6: blocca la retrocessione dell'ultimo amministratore attivo senza scritture", async () => {
       mockUtente.findUnique.mockResolvedValue({
         ruolo: "AMMINISTRATORE",
         attivo: true,
+        collaboratore: { attivo: false },
       });
       mockUtente.count.mockResolvedValue(0);
       const formData = formModificaUtente();
-      formData.set("ruolo", "COLLABORATORE");
+      formData.delete("ruoloAmministratore");
+      formData.set("ruoloCollaboratore", "on");
 
       const result = await aggiornaUtente(statoIniziale(), formData);
 
@@ -381,6 +380,8 @@ describe("Server Actions utenti", () => {
           "Operazione non consentita: è l'ultimo amministratore attivo del sistema",
       });
       expect(mockUtente.update).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.update).not.toHaveBeenCalled();
       expect(mockRevalidatePath).not.toHaveBeenCalled();
       expect(mockRedirect).not.toHaveBeenCalled();
     });
@@ -389,11 +390,13 @@ describe("Server Actions utenti", () => {
       mockUtente.findUnique.mockResolvedValue({
         ruolo: "AMMINISTRATORE",
         attivo: true,
+        collaboratore: { attivo: true },
       });
       mockUtente.count.mockResolvedValue(1);
       mockUtente.update.mockResolvedValue({ id: "utente-1" });
       const formData = formModificaUtente();
-      formData.set("ruolo", "COLLABORATORE");
+      formData.delete("ruoloAmministratore");
+      formData.set("ruoloCollaboratore", "on");
 
       await aggiornaUtente(statoIniziale(), formData);
 
@@ -405,7 +408,176 @@ describe("Server Actions utenti", () => {
           ruolo: "COLLABORATORE",
         },
       });
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.update).not.toHaveBeenCalled();
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "/anagrafiche/utenti?esito=salvato",
+      );
+    });
+
+    it("AC-1: crea il profilo collaboratore per un utente che non lo aveva", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "AMMINISTRATORE",
+        attivo: true,
+        collaboratore: null,
+      });
+      mockUtente.update.mockResolvedValue({ id: "utente-1" });
+      const formData = new FormData();
+      formData.set("id", "utente-1");
+      formData.set("nome", "  Mario  ");
+      formData.set("email", "  MARIO.ROSSI@EXAMPLE.COM  ");
+      formData.set("ruoloAmministratore", "on");
+      formData.set("ruoloCollaboratore", "on");
+      formData.set("cognome", "  Rossi  ");
+      formData.set("partitaIva", "  12345678901  ");
+      formData.set("tariffaGiornaliera", "  450,00  ");
+
+      await aggiornaUtente(statoIniziale(), formData);
+
+      expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockUtente.update).toHaveBeenCalledWith({
+        where: { id: "utente-1" },
+        data: {
+          nome: "Mario Rossi",
+          email: "mario.rossi@example.com",
+          ruolo: "AMMINISTRATORE",
+        },
+      });
+      expect(mockCollaboratore.create).toHaveBeenCalledWith({
+        data: {
+          userId: "utente-1",
+          nome: "Mario",
+          cognome: "Rossi",
+          partitaIva: "12345678901",
+          tariffaGiornaliera: "450.00",
+          attivo: true,
+        },
+      });
+      expect(mockCollaboratore.update).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRevalidatePath).toHaveBeenCalledWith(
+        "/anagrafiche/collaboratori",
+      );
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(2);
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "/anagrafiche/utenti?esito=salvato",
+      );
+    });
+
+    it("AC-1: senza profilo e con Collaboratore selezionato ma campi vuoti segnala i tre errori senza scritture", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "COLLABORATORE",
+        attivo: true,
+        collaboratore: null,
+      });
+      const formData = new FormData();
+      formData.set("id", "utente-1");
+      formData.set("nome", "  Mario  ");
+      formData.set("email", "  MARIO.ROSSI@EXAMPLE.COM  ");
+      formData.set("ruoloCollaboratore", "on");
+
+      const result = await aggiornaUtente(statoIniziale(), formData);
+
+      expect(result.errori).toEqual({
+        cognome: "Il cognome è obbligatorio",
+        partitaIva: "La partita IVA è obbligatoria",
+        tariffaGiornaliera: "La tariffa giornaliera è obbligatoria",
+      });
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
+      expect(mockUtente.update).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.update).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
+    it("AC-2: riattiva un profilo disattivato quando il Collaboratore torna selezionato", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "COLLABORATORE",
+        attivo: true,
+        collaboratore: { attivo: false },
+      });
+      mockUtente.update.mockResolvedValue({ id: "utente-1" });
+      const formData = new FormData();
+      formData.set("id", "utente-1");
+      formData.set("nome", "  Laura Verdi  ");
+      formData.set("email", "  LAURA.VERDI@EXAMPLE.COM  ");
+      formData.set("ruoloCollaboratore", "on");
+
+      await aggiornaUtente(statoIniziale(), formData);
+
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.update).toHaveBeenCalledWith({
+        where: { userId: "utente-1" },
+        data: { attivo: true },
+      });
+      expect(mockCollaboratore.update).toHaveBeenCalledTimes(1);
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRevalidatePath).toHaveBeenCalledWith(
+        "/anagrafiche/collaboratori",
+      );
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "/anagrafiche/utenti?esito=salvato",
+      );
+    });
+
+    it("AC-3: disattiva il profilo quando il Collaboratore viene deselezionato, senza cancellarlo", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "COLLABORATORE",
+        attivo: true,
+        collaboratore: { attivo: true },
+      });
+      mockUtente.update.mockResolvedValue({ id: "utente-1" });
+
+      await aggiornaUtente(statoIniziale(), formModificaUtente());
+
+      expect(mockCollaboratore.update).toHaveBeenCalledWith({
+        where: { userId: "utente-1" },
+        data: { attivo: false },
+      });
+      expect(mockCollaboratore.update).toHaveBeenCalledTimes(1);
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.delete).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRevalidatePath).toHaveBeenCalledWith(
+        "/anagrafiche/collaboratori",
+      );
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "/anagrafiche/utenti?esito=salvato",
+      );
+    });
+
+    it("con profilo attivo e Collaboratore ancora selezionato non scrive sul collaboratore né rivalida i collaboratori", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "COLLABORATORE",
+        attivo: true,
+        collaboratore: { attivo: true },
+      });
+      mockUtente.update.mockResolvedValue({ id: "utente-1" });
+      const formData = new FormData();
+      formData.set("id", "utente-1");
+      formData.set("nome", "  Laura Verdi  ");
+      formData.set("email", "  LAURA.VERDI@EXAMPLE.COM  ");
+      formData.set("ruoloCollaboratore", "on");
+
+      await aggiornaUtente(statoIniziale(), formData);
+
+      expect(mockUtente.update).toHaveBeenCalledWith({
+        where: { id: "utente-1" },
+        data: {
+          nome: "Laura Verdi",
+          email: "laura.verdi@example.com",
+          ruolo: "COLLABORATORE",
+        },
+      });
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.update).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(1);
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRevalidatePath).not.toHaveBeenCalledWith(
+        "/anagrafiche/collaboratori",
+      );
       expect(mockRedirect).toHaveBeenCalledWith(
         "/anagrafiche/utenti?esito=salvato",
       );
@@ -420,6 +592,7 @@ describe("Server Actions utenti", () => {
       mockUtente.findUnique.mockResolvedValue({
         ruolo: "COLLABORATORE",
         attivo: true,
+        collaboratore: null,
       });
 
       await aggiornaUtente(statoIniziale(), formModificaUtente());
@@ -449,6 +622,7 @@ describe("Server Actions utenti", () => {
       mockUtente.findUnique.mockResolvedValue({
         ruolo: "COLLABORATORE",
         attivo: true,
+        collaboratore: null,
       });
       mockUtente.update.mockRejectedValue({ code: "P2002" });
 

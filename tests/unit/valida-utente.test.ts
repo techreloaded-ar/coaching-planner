@@ -1,21 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   validaCensimentoUtente,
-  validaUtente,
+  validaModificaUtente,
   type DatiCensimentoUtenteInput,
-  type DatiUtenteInput,
+  type DatiModificaUtenteInput,
 } from "@/domain/anagrafiche/valida-utente";
-
-function baseInput(
-  overrides: Partial<DatiUtenteInput> = {}
-): DatiUtenteInput {
-  return {
-    nome: "Mario Rossi",
-    email: "mario.rossi@example.com",
-    ruolo: "COLLABORATORE",
-    ...overrides,
-  };
-}
 
 function baseCensimentoInput(
   overrides: Partial<DatiCensimentoUtenteInput> = {}
@@ -32,57 +21,21 @@ function baseCensimentoInput(
   };
 }
 
-describe("validaUtente", () => {
-  it("restituisce un oggetto vuoto per dati validi", () => {
-    expect(validaUtente(baseInput())).toEqual({});
-  });
-
-  it.each(["", "   "])("rifiuta il nome mancante %#", (nome) => {
-    expect(validaUtente(baseInput({ nome })).nome).toBe(
-      "Il nome è obbligatorio"
-    );
-  });
-
-  it.each(["", "   "])("rifiuta l'email mancante %#", (email) => {
-    expect(validaUtente(baseInput({ email })).email).toBe(
-      "L'email di accesso è obbligatoria"
-    );
-  });
-
-  it.each(["senza-chiocciola", "spazi @dominio"])(
-    "rifiuta l'email non valida %s",
-    (email) => {
-      expect(validaUtente(baseInput({ email })).email).toBe(
-        "Inserisci un indirizzo email valido"
-      );
-    }
-  );
-
-  it("accetta un'email valida", () => {
-    expect(
-      validaUtente(baseInput({ email: "anna.verdi@example.com" })).email
-    ).toBeUndefined();
-  });
-
-  it("rifiuta il ruolo mancante", () => {
-    expect(validaUtente(baseInput({ ruolo: "" })).ruolo).toBe(
-      "Seleziona un ruolo valido"
-    );
-  });
-
-  it("rifiuta un ruolo fuori enum", () => {
-    expect(validaUtente(baseInput({ ruolo: "SUPERVISORE" })).ruolo).toBe(
-      "Seleziona un ruolo valido"
-    );
-  });
-
-  it.each(["AMMINISTRATORE", "COLLABORATORE"])(
-    "accetta il ruolo %s",
-    (ruolo) => {
-      expect(validaUtente(baseInput({ ruolo })).ruolo).toBeUndefined();
-    }
-  );
-});
+function baseModificaInput(
+  overrides: Partial<DatiModificaUtenteInput> = {}
+): DatiModificaUtenteInput {
+  return {
+    nome: "Mario Rossi",
+    email: "mario.rossi@example.com",
+    ruoloAmministratore: false,
+    ruoloCollaboratore: true,
+    cognome: "Rossi",
+    partitaIva: "12345678901",
+    tariffaGiornaliera: "650,00",
+    profiloPresente: false,
+    ...overrides,
+  };
+}
 
 describe("validaCensimentoUtente", () => {
   // ── (a) Le tre combinazioni valide di ruoli ─────────────────────
@@ -244,4 +197,88 @@ describe("validaCensimentoUtente", () => {
       ).email
     ).toBeUndefined();
   });
+});
+
+describe("validaModificaUtente", () => {
+  // ── (a) Caso valido: solo amministratore, profilo assente ───────
+
+  it("accetta solo amministratore con profilo assente e campi profilo vuoti", () => {
+    expect(
+      validaModificaUtente(
+        baseModificaInput({
+          ruoloAmministratore: true,
+          ruoloCollaboratore: false,
+          profiloPresente: false,
+          cognome: "",
+          partitaIva: "",
+          tariffaGiornaliera: "",
+        })
+      )
+    ).toEqual({});
+  });
+
+  // ── (b) Nessun ruolo selezionato ────────────────────────────────
+
+  it("rifiuta l'assenza di ruoli", () => {
+    const errori = validaModificaUtente(
+      baseModificaInput({
+        ruoloAmministratore: false,
+        ruoloCollaboratore: false,
+      })
+    );
+    expect(errori.ruoli).toBe("Seleziona almeno un ruolo");
+  });
+
+  // ── (c) Collaboratore con profilo assente: campi obbligatori ────
+
+  it("rifiuta i campi profilo vuoti quando il Collaboratore è selezionato e il profilo è assente", () => {
+    const errori = validaModificaUtente(
+      baseModificaInput({
+        ruoloCollaboratore: true,
+        profiloPresente: false,
+        cognome: "",
+        partitaIva: "",
+        tariffaGiornaliera: "",
+      })
+    );
+    expect(errori.cognome).toBe("Il cognome è obbligatorio");
+    expect(errori.partitaIva).toBe("La partita IVA è obbligatoria");
+    expect(errori.tariffaGiornaliera).toBe(
+      "La tariffa giornaliera è obbligatoria"
+    );
+  });
+
+  // ── (d) Collaboratore con profilo presente: campi ignorati ──────
+
+  it("non segnala errori sui campi profilo quando il Collaboratore è selezionato e il profilo è già presente", () => {
+    const errori = validaModificaUtente(
+      baseModificaInput({
+        ruoloCollaboratore: true,
+        profiloPresente: true,
+        cognome: "",
+        partitaIva: "",
+        tariffaGiornaliera: "",
+      })
+    );
+    expect(errori.cognome).toBeUndefined();
+    expect(errori.partitaIva).toBeUndefined();
+    expect(errori.tariffaGiornaliera).toBeUndefined();
+  });
+
+  // ── (e) Nome ed email validati come in validaUtente ─────────────
+
+  it.each(["", "   "])("rifiuta il nome mancante %#", (nome) => {
+    expect(validaModificaUtente(baseModificaInput({ nome })).nome).toBe(
+      "Il nome è obbligatorio"
+    );
+  });
+
+  it.each(["senza-chiocciola", "spazi @dominio"])(
+    "rifiuta l'email non valida %s",
+    (email) => {
+      expect(validaModificaUtente(baseModificaInput({ email })).email).toBe(
+        "Inserisci un indirizzo email valido"
+      );
+    }
+  );
 });
