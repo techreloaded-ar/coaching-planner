@@ -101,17 +101,12 @@ export async function creaUtente(
     return { errori };
   }
 
+  // validaCensimentoUtente ha già validato la tariffa (validaCampoTariffaGiornaliera):
+  // per un utente Collaboratore normalizzaTariffaGiornaliera non può restituire null qui.
+  // Manteniamo la chiamata solo per ottenere il valore normalizzato usato più sotto.
   const tariffa = dati.ruoloCollaboratore
     ? normalizzaTariffaGiornaliera(dati.tariffaGiornaliera)
     : null;
-
-  if (dati.ruoloCollaboratore && !tariffa) {
-    return {
-      errori: {
-        tariffaGiornaliera: "Importo non valido: usa massimo 2 decimali",
-      },
-    };
-  }
 
   try {
     const esito = await db.$transaction(async (tx) => {

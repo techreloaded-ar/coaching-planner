@@ -33,45 +33,46 @@ async function apriElencoUtenti(page: Page): Promise<void> {
 }
 
 /**
- * Attende che React abbia idratato il form: il checkbox Collaboratore è non
- * controllato e il suo `onChange` (che pilota la sezione profilo) è attivo solo
- * dopo l'idratazione. Un click precedente all'idratazione toggla lo stato nativo
- * ma non lo stato React, desincronizzandoli. Attendiamo quindi in modo
- * deterministico (nessun hard wait) che React abbia agganciato il proprio fiber
- * al checkbox prima di interagire.
- */
-async function attendiIdratazioneForm(page: Page): Promise<void> {
-	await page.waitForFunction(() => {
-		const checkbox = document.querySelector('input[name="ruoloCollaboratore"]');
-		return (
-			checkbox !== null &&
-			Object.keys(checkbox).some((chiave) => chiave.startsWith("__reactFiber$"))
-		);
-	});
-}
-
-/**
  * Commuta un checkbox di ruolo con un click reale sulla card (l'etichetta
- * visibile), perché il checkbox è `sr-only`. Presuppone il form già idratato.
+ * visibile), perché il checkbox è `sr-only`. Il checkbox è non controllato:
+ * un click nativo ne aggiorna subito lo stato DOM anche prima che React abbia
+ * idratato il form, ma il suo `onChange` (che per Collaboratore pilota la
+ * comparsa/scomparsa della sezione profilo) è attivo solo dopo l'idratazione.
+ * Un click "perso" prima dell'idratazione lascia quindi checkbox e sezione
+ * profilo disallineati fra loro: finché non sono di nuovo coerenti l'uno con
+ * l'altra continuiamo a cliccare, con `expect.poll` (nessun hard wait), invece
+ * di ispezionare un dettaglio interno di React come `__reactFiber$`. Una volta
+ * idratato, ogni click sincronizza subito i due, quindi il ciclo converge.
  */
 async function impostaRuolo(
 	page: Page,
 	etichetta: "Amministratore" | "Collaboratore",
 	selezionato: boolean,
 ): Promise<void> {
-	await attendiIdratazioneForm(page);
-
 	const gruppoRuolo = page.getByRole("group", { name: /^Ruolo/ });
 	const card = gruppoRuolo.getByText(etichetta, { exact: true });
 	const checkbox = gruppoRuolo.getByRole("checkbox", {
 		name: new RegExp(`^${etichetta}\\b`),
 	});
+	const sezioneProfilo = page.getByLabel(/^Cognome\b/);
 
-	if ((await checkbox.isChecked()) !== selezionato) {
-		await card.click();
+	async function ruoloImpostatoCorrettamente(): Promise<boolean> {
+		const checkboxOk = (await checkbox.isChecked()) === selezionato;
+		if (etichetta !== "Collaboratore") {
+			return checkboxOk;
+		}
+		return checkboxOk && (await sezioneProfilo.isVisible()) === selezionato;
 	}
 
-	await expect(checkbox).toBeChecked({ checked: selezionato });
+	await expect
+		.poll(async () => {
+			if (await ruoloImpostatoCorrettamente()) {
+				return true;
+			}
+			await card.click();
+			return ruoloImpostatoCorrettamente();
+		})
+		.toBe(true);
 }
 
 async function filtraUtenti(page: Page, valore: string): Promise<void> {

@@ -45,8 +45,11 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
     statoIniziale
   );
   const haErrori = Object.keys(stato.errori).length > 0;
+  // In modalità modifica il checkbox e la sezione profilo condizionale non
+  // esistono (si usa ancora il radiogroup): il valore iniziale conta solo in
+  // creazione, dove il checkbox Collaboratore parte selezionato.
   const [collaboratoreSelezionato, setCollaboratoreSelezionato] =
-    useState(true);
+    useState(!inModifica);
 
   return (
     <div>
