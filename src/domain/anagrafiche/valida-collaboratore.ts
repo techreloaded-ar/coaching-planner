@@ -56,6 +56,48 @@ export function normalizzaTariffaGiornaliera(
 }
 
 // ---------------------------------------------------------------------------
+// Helper di campo riusabili (profilo collaboratore)
+// ---------------------------------------------------------------------------
+
+/**
+ * Valida il campo partita IVA con gli identici controlli e messaggi
+ * dell'anagrafica collaboratori.
+ *
+ * Restituisce `null` se il valore è valido, altrimenti il messaggio di errore.
+ */
+export function validaCampoPartitaIva(valore: string): string | null {
+  if (!valore || valore.trim() === "") {
+    return "La partita IVA è obbligatoria";
+  }
+  if (!RE_CIFRE_11.test(valore.trim())) {
+    return "La partita IVA deve essere di 11 cifre";
+  }
+  return null;
+}
+
+/**
+ * Valida il campo tariffa giornaliera con gli identici controlli e messaggi
+ * dell'anagrafica collaboratori.
+ *
+ * Restituisce `null` se il valore è valido, altrimenti il messaggio di errore.
+ */
+export function validaCampoTariffaGiornaliera(valore: string): string | null {
+  if (!valore || valore.trim() === "") {
+    return "La tariffa giornaliera è obbligatoria";
+  }
+
+  const tariffa = normalizzaTariffaGiornaliera(valore);
+
+  if (!tariffa) {
+    return "Importo non valido: usa massimo 2 decimali";
+  }
+  if (tariffa.centesimi <= BigInt(0)) {
+    return "La tariffa giornaliera deve essere maggiore di zero";
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Validazione
 // ---------------------------------------------------------------------------
 
@@ -84,24 +126,14 @@ export function validaCollaboratore(
     errori.email = "Inserisci un indirizzo email valido";
   }
 
-  if (!dati.partitaIva || dati.partitaIva.trim() === "") {
-    errori.partitaIva = "La partita IVA è obbligatoria";
-  } else if (!RE_CIFRE_11.test(dati.partitaIva.trim())) {
-    errori.partitaIva = "La partita IVA deve essere di 11 cifre";
+  const errorePartitaIva = validaCampoPartitaIva(dati.partitaIva);
+  if (errorePartitaIva) {
+    errori.partitaIva = errorePartitaIva;
   }
 
-  if (!dati.tariffaGiornaliera || dati.tariffaGiornaliera.trim() === "") {
-    errori.tariffaGiornaliera = "La tariffa giornaliera è obbligatoria";
-  } else {
-    const tariffa = normalizzaTariffaGiornaliera(dati.tariffaGiornaliera);
-
-    if (!tariffa) {
-      errori.tariffaGiornaliera =
-        "Importo non valido: usa massimo 2 decimali";
-    } else if (tariffa.centesimi <= BigInt(0)) {
-      errori.tariffaGiornaliera =
-        "La tariffa giornaliera deve essere maggiore di zero";
-    }
+  const erroreTariffa = validaCampoTariffaGiornaliera(dati.tariffaGiornaliera);
+  if (erroreTariffa) {
+    errori.tariffaGiornaliera = erroreTariffa;
   }
 
   return errori;

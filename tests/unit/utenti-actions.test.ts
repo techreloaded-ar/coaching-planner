@@ -7,9 +7,13 @@ const mockDb = vi.hoisted(() => ({
     count: vi.fn(),
     update: vi.fn(),
   },
+  collaboratore: {
+    create: vi.fn(),
+  },
   $transaction: vi.fn(),
 }));
 const mockUtente = mockDb.utente;
+const mockCollaboratore = mockDb.collaboratore;
 
 vi.mock("@/lib/db", () => ({
   db: mockDb,
@@ -53,7 +57,19 @@ function formNuovoUtente(): FormData {
   const formData = new FormData();
   formData.set("nome", "  Laura Bianchi  ");
   formData.set("email", "  LAURA.BIANCHI@EXAMPLE.COM  ");
-  formData.set("ruolo", "AMMINISTRATORE");
+  formData.set("ruoloAmministratore", "on");
+  return formData;
+}
+
+function formNuovoUtenteConProfilo(): FormData {
+  const formData = new FormData();
+  formData.set("nome", "  Mario  ");
+  formData.set("email", "  MARIO.ROSSI@EXAMPLE.COM  ");
+  formData.set("ruoloAmministratore", "on");
+  formData.set("ruoloCollaboratore", "on");
+  formData.set("cognome", "  Rossi  ");
+  formData.set("partitaIva", "  12345678901  ");
+  formData.set("tariffaGiornaliera", "  450,00  ");
   return formData;
 }
 
@@ -92,7 +108,6 @@ describe("Server Actions utenti", () => {
       const formData = new FormData();
       formData.set("nome", "  ");
       formData.set("email", "senza-chiocciola");
-      formData.set("ruolo", "SUPERVISORE");
 
       const result = await creaUtente(statoIniziale(), formData);
 
@@ -100,10 +115,44 @@ describe("Server Actions utenti", () => {
       expect(result.errori).toEqual({
         nome: "Il nome è obbligatorio",
         email: "Inserisci un indirizzo email valido",
-        ruolo: "Seleziona un ruolo valido",
+        ruoli: "Seleziona almeno un ruolo",
       });
       expect(mockUtente.findUnique).not.toHaveBeenCalled();
       expect(mockUtente.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
+    it("senza alcun ruolo selezionato restituisce errore ruoli e non tocca il database", async () => {
+      const formData = new FormData();
+      formData.set("nome", "  Laura Bianchi  ");
+      formData.set("email", "  LAURA.BIANCHI@EXAMPLE.COM  ");
+
+      const result = await creaUtente(statoIniziale(), formData);
+
+      expect(result.errori).toEqual({ ruoli: "Seleziona almeno un ruolo" });
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
+      expect(mockUtente.findUnique).not.toHaveBeenCalled();
+      expect(mockUtente.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
+    it("rifiuta una partita IVA non valida con ruolo Collaboratore senza toccare il database", async () => {
+      const formData = formNuovoUtenteConProfilo();
+      formData.set("partitaIva", "123");
+
+      const result = await creaUtente(statoIniziale(), formData);
+
+      expect(result.errori).toEqual({
+        partitaIva: "La partita IVA deve essere di 11 cifre",
+      });
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
+      expect(mockUtente.findUnique).not.toHaveBeenCalled();
+      expect(mockUtente.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
       expect(mockRevalidatePath).not.toHaveBeenCalled();
       expect(mockRedirect).not.toHaveBeenCalled();
     });
@@ -120,11 +169,12 @@ describe("Server Actions utenti", () => {
         email: "Esiste già un utente con questa email",
       });
       expect(mockUtente.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
       expect(mockRevalidatePath).not.toHaveBeenCalled();
       expect(mockRedirect).not.toHaveBeenCalled();
     });
 
-    it("crea un utente con dati normalizzati e ruolo scelto, poi aggiorna la pagina e redirige", async () => {
+    it("con solo il ruolo amministratore crea l'utente senza profilo collaboratore", async () => {
       mockUtente.findUnique.mockResolvedValue(null);
       mockUtente.create.mockResolvedValue({ id: "utente-1" });
 
@@ -137,7 +187,78 @@ describe("Server Actions utenti", () => {
           ruolo: "AMMINISTRATORE",
         },
       });
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(1);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "/anagrafiche/utenti?esito=creato",
+      );
+    });
+
+    it("con entrambi i ruoli crea utente amministratore e profilo collaboratore nella stessa transazione", async () => {
+      mockUtente.findUnique.mockResolvedValue(null);
+      mockUtente.create.mockResolvedValue({ id: "utente-1" });
+
+      await creaUtente(statoIniziale(), formNuovoUtenteConProfilo());
+
+      expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockUtente.create).toHaveBeenCalledWith({
+        data: {
+          nome: "Mario Rossi",
+          email: "mario.rossi@example.com",
+          ruolo: "AMMINISTRATORE",
+        },
+      });
+      expect(mockCollaboratore.create).toHaveBeenCalledWith({
+        data: {
+          userId: "utente-1",
+          nome: "Mario",
+          cognome: "Rossi",
+          partitaIva: "12345678901",
+          tariffaGiornaliera: "450.00",
+          attivo: true,
+        },
+      });
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRevalidatePath).toHaveBeenCalledWith(
+        "/anagrafiche/collaboratori",
+      );
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(2);
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "/anagrafiche/utenti?esito=creato",
+      );
+    });
+
+    it("con solo il ruolo collaboratore crea utente collaboratore e relativo profilo", async () => {
+      mockUtente.findUnique.mockResolvedValue(null);
+      mockUtente.create.mockResolvedValue({ id: "utente-2" });
+      const formData = formNuovoUtenteConProfilo();
+      formData.delete("ruoloAmministratore");
+
+      await creaUtente(statoIniziale(), formData);
+
+      expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockUtente.create).toHaveBeenCalledWith({
+        data: {
+          nome: "Mario Rossi",
+          email: "mario.rossi@example.com",
+          ruolo: "COLLABORATORE",
+        },
+      });
+      expect(mockCollaboratore.create).toHaveBeenCalledWith({
+        data: {
+          userId: "utente-2",
+          nome: "Mario",
+          cognome: "Rossi",
+          partitaIva: "12345678901",
+          tariffaGiornaliera: "450.00",
+          attivo: true,
+        },
+      });
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRevalidatePath).toHaveBeenCalledWith(
+        "/anagrafiche/collaboratori",
+      );
       expect(mockRedirect).toHaveBeenCalledWith(
         "/anagrafiche/utenti?esito=creato",
       );

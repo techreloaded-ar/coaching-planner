@@ -35,7 +35,12 @@ sources:
       symbol: elencaUtenti, utentePerId
     - path: src/domain/anagrafiche/valida-utente.ts
       role: identity-validation
+      symbol: validaUtente, validaCensimentoUtente
     - path: src/app/(back-office)/anagrafiche/utenti/page.tsx
+      role: identity-administration-ui
+    - path: src/app/(back-office)/anagrafiche/utenti/utente-form.tsx
+      role: identity-administration-ui
+    - path: src/app/(back-office)/anagrafiche/utenti/utenti-tabella.tsx
       role: identity-administration-ui
     - path: prisma/schema.prisma
       role: identity-data
@@ -59,9 +64,9 @@ sources:
     - path: tests/unit/bootstrap-amministratore-iniziale.test.ts
       role: verification
 review:
-    content_hash: sha256:fb383c25877b79bb8290318f3a442c01e13433686c063c3d92af1a25705561b8
-    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
-    reviewed_at: "2026-07-27T09:44:49Z"
+    content_hash: sha256:498f2d4fd987a72502f161c192419fbf0a398da265de3d07dfaa7141316ec3af
+    evidence_revision: 890806d032087262f749403c8ddeece2f1ff4f94
+    reviewed_at: "2026-07-27T14:16:58Z"
 ---
 # Identità, sessioni e accesso
 
@@ -78,12 +83,14 @@ Utente censito, utente attivo o invalidato, account Google, email verificata, st
 <!-- archetipo:wiki section=ownership -->
 ## Ownership
 
-Possiede `Utente`, compresi identità anagrafica, email di accesso, ruolo e stato `attivo`, oltre a integrazione Google, `Account`, token/cookie, validità della sessione, policy di rotta e guardie. Le action Collaboratori restano un writer coordinato quando creano o allineano l'utente collegato; `Collaboratore.attivo` e la transizione del profilo operativo appartengono invece a Collaboratori. Lo script di deploy `scripts/bootstrap-amministratore-iniziale.ts` è un writer aggiuntivo, ma limitato alla sola creazione idempotente del primo `Utente AMMINISTRATORE` da `AMMINISTRATORE_INIZIALE_EMAIL`: non promuove né riattiva utenti già censiti.
+Possiede `Utente`, compresi identità anagrafica, email di accesso, ruolo e stato `attivo`, oltre a integrazione Google, `Account`, token/cookie, validità della sessione, policy di rotta e guardie. I ruoli Amministratore e Collaboratore sono combinabili sullo stesso utente: il ruolo di accesso "Collaboratore" è derivato dalla presenza del profilo `Collaboratore` (enum `ruolo` più profilo opzionale coprono le tre combinazioni ammesse), non da un set di ruoli persistito — vedi la decisione [Ruoli combinabili derivati dal profilo collaboratore](/decisions/ruoli-combinabili-profilo-derivato.md). `creaUtente` in censimento diventa così essa stessa un writer coordinato di `Collaboratore`, in aggiunta alle action Collaboratori, quando l'amministratore seleziona il ruolo Collaboratore contestualmente alla creazione dell'utente; `Collaboratore.attivo` e la transizione successiva del profilo operativo restano di proprietà di Collaboratori. Lo script di deploy `scripts/bootstrap-amministratore-iniziale.ts` è un writer aggiuntivo, ma limitato alla sola creazione idempotente del primo `Utente AMMINISTRATORE` da `AMMINISTRATORE_INIZIALE_EMAIL`: non promuove né riattiva utenti già censiti.
 
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
 
 `GET /api/auth/google` avvia OAuth; il callback accetta `code`, `state` e cookie temporanei e rifiuta con il messaggio generico anche un `Utente.attivo = false`. Il JWT contiene `utenteId`, ruolo, nome, email ed `expiresAt`. Il proxy classifica root, OAuth, seam E2E e rotte protette e verifica soltanto la sessione JWT. Il DAL espone guardie con redirect per RSC e `ErroreAutorizzazione(401|403)` per API/action, rileggendo a database stato e ruolo. Le pagine `/anagrafiche/utenti`, `/anagrafiche/utenti/nuovo` e `/anagrafiche/utenti/[id]/modifica`, le query `elencaUtenti`/`utentePerId` e le action `creaUtente`, `aggiornaUtente` e `cambiaStatoUtenteAction` richiedono il ruolo amministratore.
+
+In creazione, `creaUtente` accetta i due ruoli come checkbox indipendenti (`ruoloAmministratore`, `ruoloCollaboratore`, entrambi opzionali ma non simultaneamente assenti) validati da `validaCensimentoUtente`: nessun ruolo selezionato è rifiutato con l'errore "Seleziona almeno un ruolo" senza alcuna scrittura. Quando è selezionato il ruolo Collaboratore, il censimento richiede in più cognome, partita IVA e tariffa giornaliera con gli stessi controlli e messaggi dell'anagrafica collaboratori (helper condivisi `validaCampoPartitaIva`/`validaCampoTariffaGiornaliera` di `src/domain/anagrafiche/valida-collaboratore.ts`). La modalità modifica (`aggiornaUtente`) non è interessata: mantiene il ruolo singolo a radio invariato.
 
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
@@ -95,7 +102,7 @@ Possiede `Utente`, compresi identità anagrafica, email di accesso, ruolo e stat
 5. Logout e pulizia token in `src/lib/session.ts` impostano il cookie vuoto con `maxAge: 0`.
 6. Il proxy verifica e rinnova il solo JWT per consentire l'accesso a una rotta protetta, senza consultare il database né decidere per ruolo. Il DAL rilegge invece `Utente`, inclusi `attivo`, ruolo e stato profilo, prima dei dati protetti: una sessione già aperta di utente invalidato diventa non autenticata al primo consumer DAL e un cambio ruolo ha effetto al primo accesso protetto successivo.
 7. L'amministratore raggiunge `/anagrafiche/utenti` dalla console, ricerca e legge nome, email, ruolo, `Utente.attivo` e l'eventuale stato separato del profilo collaboratore.
-8. `creaUtente` normalizza nome ed email, valida nome/email/ruolo, impedisce duplicati anche traducendo il vincolo Prisma `P2002` e crea un utente con `attivo = true` per default di schema. `aggiornaUtente` modifica nome, email e ruolo nella transazione.
+8. `creaUtente` normalizza nome ed email, valida nome/email e i ruoli combinabili con `validaCensimentoUtente`, impedisce duplicati anche traducendo il vincolo Prisma `P2002` (l'email già esistente è sempre un errore di duplicato, non viene mai riusato un utente esistente) e crea in un'unica transazione un utente con `attivo = true` per default di schema; assegna `ruolo: "AMMINISTRATORE"` se il ruolo Amministratore è selezionato, altrimenti `"COLLABORATORE"`. Se il ruolo Collaboratore è selezionato, la stessa transazione crea anche `Collaboratore` (`userId`, cognome, partita IVA, tariffa normalizzata, `attivo: true`) componendo `Utente.nome` come `"{nome} {cognome}"`; l'elenco utenti deriva quindi due badge di ruolo indipendenti (Amministratore dall'enum, Collaboratore dall'enum oppure dalla sola presenza del profilo). `aggiornaUtente` modifica nome, email e ruolo (singolo) nella transazione e resta invariata da questa capability combinata.
 9. `cambiaStatoUtenteAction` invalida o riattiva nella stessa transazione `Utente.attivo` e, se presente, `Collaboratore.attivo`; rivalida entrambe le anagrafiche. L'invalidazione non elimina il record.
 10. La retrocessione di un amministratore attivo e la sua invalidazione contano gli altri amministratori attivi nella transazione e vengono rifiutate se rimuoverebbero l'ultimo; la promozione e gli altri cambi ruolo sono salvati da `aggiornaUtente`. `creaCollaboratore` assegna `COLLABORATORE` soltanto quando crea un nuovo utente; un amministratore riusato mantiene il suo ruolo.
 11. Al deploy, `scripts/bootstrap-amministratore-iniziale.ts` valida `AMMINISTRATORE_INIZIALE_EMAIL` prima di aprire qualunque connessione al database; cerca l'utente per email normalizzata (`trim` + `toLowerCase`) e, solo se assente, crea un `Utente` con ruolo `AMMINISTRATORE`, nome predefinito e `attivo = true` da default di schema. Se l'utente esiste già (qualunque ruolo o stato) termina con successo senza scrivere nulla.
@@ -123,8 +130,8 @@ JWT firmato HS256, payload validato, `exp === expiresAt`, durata sliding 8 ore. 
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Test unitari coprono secret, token, rinnovo, proxy, policy, guardie DAL, validazione e action utenti. `google-callback.test.ts` verifica che il callback respinga l'utente invalidato senza creare account o sessione; `cambia-stato-utente.test.ts` copre cascata utente/profilo, riattivazione e rifiuto dell'ultimo amministratore; `protezione-amministratore.test.ts` copre l'invariante pura. `bootstrap-amministratore-iniziale.test.ts` prova creazione, idempotenza (nessuna scrittura se l'utente esiste già) e uscita in errore senza connessione quando `AMMINISTRATORE_INIZIALE_EMAIL` manca, contro un client Prisma iniettato. Gli E2E di gestione utenti coprono invalidazione, riattivazione, ruolo autorevole al successivo accesso protetto e stato del profilo con factory isolate. Confidenza alta su sessione, autorizzazione e ciclo di vita utenti; la classificazione resta candidata per il binding non imposto fra subject Google ed email.
+Test unitari coprono secret, token, rinnovo, proxy, policy, guardie DAL, validazione e action utenti. `google-callback.test.ts` verifica che il callback respinga l'utente invalidato senza creare account o sessione; `cambia-stato-utente.test.ts` copre cascata utente/profilo, riattivazione e rifiuto dell'ultimo amministratore; `protezione-amministratore.test.ts` copre l'invariante pura. `bootstrap-amministratore-iniziale.test.ts` prova creazione, idempotenza (nessuna scrittura se l'utente esiste già) e uscita in errore senza connessione quando `AMMINISTRATORE_INIZIALE_EMAIL` manca, contro un client Prisma iniettato. `valida-utente.test.ts` e `utenti-actions.test.ts` coprono ora anche `validaCensimentoUtente` e la creazione transazionale combinata utente+profilo, incluse le tre combinazioni di ruoli e l'assenza di scritture sugli esiti di rifiuto. Gli E2E di gestione utenti coprono invalidazione, riattivazione, ruolo autorevole al successivo accesso protetto, stato del profilo con factory isolate e il censimento con ruoli combinabili (checkbox, campi profilo condizionali, badge multipli, primo accesso del nuovo collaboratore). Confidenza alta su sessione, autorizzazione e ciclo di vita utenti; la classificazione resta candidata per il binding non imposto fra subject Google ed email.
 
 ## Concetti correlati
 
-Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Collaboratori](/domains/collaboratori.md) e [operazioni di sviluppo](/operations/development.md).
+Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Collaboratori](/domains/collaboratori.md) e [operazioni di sviluppo](/operations/development.md), ed è disciplinata dalla decisione [Ruoli combinabili derivati dal profilo collaboratore](/decisions/ruoli-combinabili-profilo-derivato.md).

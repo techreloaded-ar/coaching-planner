@@ -32,6 +32,49 @@ async function apriElencoUtenti(page: Page): Promise<void> {
 	await expect(page.getByRole("heading", { name: "Utenti" })).toBeVisible();
 }
 
+/**
+ * Commuta un checkbox di ruolo con un click reale sulla card (l'etichetta
+ * visibile), perché il checkbox è `sr-only`. Il checkbox è non controllato:
+ * un click nativo ne aggiorna subito lo stato DOM anche prima che React abbia
+ * idratato il form, ma il suo `onChange` (che per Collaboratore pilota la
+ * comparsa/scomparsa della sezione profilo) è attivo solo dopo l'idratazione.
+ * Un click "perso" prima dell'idratazione lascia quindi checkbox e sezione
+ * profilo disallineati fra loro: finché non sono di nuovo coerenti l'uno con
+ * l'altra continuiamo a cliccare, con `expect.poll` (nessun hard wait), invece
+ * di ispezionare un dettaglio interno di React come `__reactFiber$`. Una volta
+ * idratato, ogni click sincronizza subito i due, quindi il ciclo converge.
+ */
+async function impostaRuolo(
+	page: Page,
+	etichetta: "Amministratore" | "Collaboratore",
+	selezionato: boolean,
+): Promise<void> {
+	const gruppoRuolo = page.getByRole("group", { name: /^Ruolo/ });
+	const card = gruppoRuolo.getByText(etichetta, { exact: true });
+	const checkbox = gruppoRuolo.getByRole("checkbox", {
+		name: new RegExp(`^${etichetta}\\b`),
+	});
+	const sezioneProfilo = page.getByLabel(/^Cognome\b/);
+
+	async function ruoloImpostatoCorrettamente(): Promise<boolean> {
+		const checkboxOk = (await checkbox.isChecked()) === selezionato;
+		if (etichetta !== "Collaboratore") {
+			return checkboxOk;
+		}
+		return checkboxOk && (await sezioneProfilo.isVisible()) === selezionato;
+	}
+
+	await expect
+		.poll(async () => {
+			if (await ruoloImpostatoCorrettamente()) {
+				return true;
+			}
+			await card.click();
+			return ruoloImpostatoCorrettamente();
+		})
+		.toBe(true);
+}
+
 async function filtraUtenti(page: Page, valore: string): Promise<void> {
 	const ricerca = page.getByRole("searchbox", { name: "Cerca utente" });
 
@@ -111,12 +154,8 @@ test.describe("Gestione utenti", () => {
 
 		await page.getByLabel(/^Nome\b/).fill(nome);
 		await page.getByLabel(/^Email di accesso\b/).fill(email);
-		await page
-			.getByRole("radio", { name: /^Amministratore\b/ })
-			.check({ force: true });
-		await expect(
-			page.getByRole("radio", { name: /^Amministratore\b/ }),
-		).toBeChecked();
+		await impostaRuolo(page, "Amministratore", true);
+		await impostaRuolo(page, "Collaboratore", false);
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
@@ -166,8 +205,11 @@ test.describe("Gestione utenti", () => {
 			.getByLabel(/^Email di accesso\b/)
 			.fill(utenteEsistente.email);
 		await expect(
-			page.getByRole("radio", { name: /^Collaboratore\b/ }),
+			page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
 		).toBeChecked();
+		await page.getByLabel(/^Cognome\b/).fill("Duplicato");
+		await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
+		await page.getByLabel(/^Tariffa giornaliera\b/).fill("400");
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
@@ -185,6 +227,216 @@ test.describe("Gestione utenti", () => {
 			.click();
 		await filtraUtenti(page, utenteEsistente.email);
 		await expect(rigaUtente(page, utenteEsistente.email)).toHaveCount(1);
+	});
+
+	test("censisce un utente con entrambi i ruoli e profilo collaboratore immediato", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		const nome = `${factory.namespace} Combinato`;
+		const cognome = "Rossi";
+		const email = `${factory.namespace}-combinato@e2e.invalid`;
+
+		await apriElencoUtenti(page);
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Nuovo utente" }),
+		).toBeVisible();
+
+		// AC-3: i campi del profilo compaiono e scompaiono col checkbox Collaboratore.
+		await impostaRuolo(page, "Collaboratore", false);
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
+		await impostaRuolo(page, "Collaboratore", true);
+		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toBeVisible();
+
+		// AC-7: entrambi i ruoli selezionati contemporaneamente.
+		await impostaRuolo(page, "Amministratore", true);
+		await page.getByLabel(/^Nome\b/).fill(nome);
+		await page.getByLabel(/^Email di accesso\b/).fill(email);
+		await page.getByLabel(/^Cognome\b/).fill(cognome);
+		await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
+		await page.getByLabel(/^Tariffa giornaliera\b/).fill("450");
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
+
+		// AC-1, AC-7: la riga utente mostra entrambi i badge di ruolo.
+		await filtraUtenti(page, email);
+		const riga = rigaUtente(page, email);
+		await expect(riga).toHaveCount(1);
+		await expect(
+			riga.getByText("Amministratore", { exact: true }),
+		).toBeVisible();
+		await expect(
+			riga.getByText("Collaboratore", { exact: true }),
+		).toBeVisible();
+
+		// AC-4: il profilo collaboratore è disponibile subito nell'anagrafica dedicata.
+		await page
+			.getByRole("link", { name: "Collaboratori", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/collaboratori$/);
+		await page
+			.getByRole("searchbox", { name: "Cerca collaboratore" })
+			.fill(email);
+		const rigaProfilo = rigaCollaboratore(page, email);
+		await expect(rigaProfilo).toHaveCount(1);
+		await expect(
+			rigaProfilo.getByText(`${nome} ${cognome}`, { exact: true }),
+		).toBeVisible();
+		await expect(
+			rigaProfilo.getByText("01234567890", { exact: true }),
+		).toBeVisible();
+
+		// AC-5: al primo accesso il nuovo utente raggiunge il calendario attività.
+		const contestoAccesso = await browser.newContext();
+		try {
+			const paginaAccesso = await contestoAccesso.newPage();
+			await accediCome(paginaAccesso, email);
+			await expect(
+				paginaAccesso.getByRole("heading", { name: "Attività" }),
+			).toBeVisible();
+			await expect(
+				paginaAccesso.getByText("Attività non disponibili"),
+			).toHaveCount(0);
+		} finally {
+			await contestoAccesso.close();
+		}
+	});
+
+	test("censisce un utente solo amministratore senza profilo collaboratore", async ({
+		page,
+		factory,
+	}) => {
+		const nome = `${factory.namespace} Solo admin`;
+		const email = `${factory.namespace}-solo-admin@e2e.invalid`;
+
+		await apriElencoUtenti(page);
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Nuovo utente" }),
+		).toBeVisible();
+
+		await impostaRuolo(page, "Collaboratore", false);
+		await impostaRuolo(page, "Amministratore", true);
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
+
+		await page.getByLabel(/^Nome\b/).fill(nome);
+		await page.getByLabel(/^Email di accesso\b/).fill(email);
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
+
+		// AC-1: solo il badge Amministratore, nessun badge Collaboratore.
+		await filtraUtenti(page, email);
+		const riga = rigaUtente(page, email);
+		await expect(riga).toHaveCount(1);
+		await expect(
+			riga.getByText("Amministratore", { exact: true }),
+		).toBeVisible();
+		await expect(riga.getByText("Collaboratore", { exact: true })).toHaveCount(
+			0,
+		);
+
+		// AC-4 negativo: nessun profilo collaboratore per questa email.
+		await page
+			.getByRole("link", { name: "Collaboratori", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/collaboratori$/);
+		await page
+			.getByRole("searchbox", { name: "Cerca collaboratore" })
+			.fill(email);
+		await expect(rigaCollaboratore(page, email)).toHaveCount(0);
+	});
+
+	test("rifiuta il salvataggio senza alcun ruolo selezionato", async ({
+		page,
+		factory,
+	}) => {
+		const email = `${factory.namespace}-senza-ruolo@e2e.invalid`;
+
+		await apriElencoUtenti(page);
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Nuovo utente" }),
+		).toBeVisible();
+
+		await page.getByLabel(/^Nome\b/).fill(`${factory.namespace} Senza ruolo`);
+		await page.getByLabel(/^Email di accesso\b/).fill(email);
+		await impostaRuolo(page, "Collaboratore", false);
+		await impostaRuolo(page, "Amministratore", false);
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+
+		// AC-2: errore esplicito e permanenza sulla pagina di censimento.
+		await expect(
+			page.getByText("Seleziona almeno un ruolo", { exact: true }),
+		).toBeVisible();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\/nuovo$/);
+	});
+
+	test("rifiuta una partita IVA non valida senza creare l'utente", async ({
+		page,
+		factory,
+	}) => {
+		const email = `${factory.namespace}-piva-invalida@e2e.invalid`;
+
+		await apriElencoUtenti(page);
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Nuovo utente" }),
+		).toBeVisible();
+
+		await expect(
+			page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
+		).toBeChecked();
+		await page.getByLabel(/^Nome\b/).fill(`${factory.namespace} PIVA corta`);
+		await page.getByLabel(/^Email di accesso\b/).fill(email);
+		await page.getByLabel(/^Cognome\b/).fill("Verdi");
+		await page.getByLabel(/^Partita IVA\b/).fill("123");
+		await page.getByLabel(/^Tariffa giornaliera\b/).fill("300");
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+
+		// AC-6: la validazione blocca il salvataggio con messaggio esplicito.
+		await expect(
+			page.getByText("La partita IVA deve essere di 11 cifre", {
+				exact: true,
+			}),
+		).toBeVisible();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\/nuovo$/);
+
+		// AC-6: nessun utente creato con quella email.
+		await page
+			.getByRole("link", {
+				name: "Torna all'elenco utenti",
+				exact: true,
+			})
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti$/);
+		await page.getByRole("searchbox", { name: "Cerca utente" }).fill(email);
+		await expect(rigaUtente(page, email)).toHaveCount(0);
 	});
 
 	test("salva nome ed email modificati e li mostra nell'elenco", async ({
@@ -532,6 +784,116 @@ test.describe("Gestione utenti", () => {
 		} finally {
 			await contestoUtente.close();
 		}
+	});
+
+	test("demo__censimento-ruoli-combinati", async ({
+		page,
+		browser,
+		factory,
+	}) => {
+		const nome = `${factory.namespace} Demo combinato`;
+		const cognome = "Bianchi";
+		const email = `${factory.namespace}-demo-combinato@e2e.invalid`;
+
+		// 1. Censimento con entrambi i ruoli e comparsa dei campi profilo.
+		await apriElencoUtenti(page);
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Nuovo utente" }),
+		).toBeVisible();
+
+		await impostaRuolo(page, "Collaboratore", false);
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await impostaRuolo(page, "Collaboratore", true);
+		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
+
+		await impostaRuolo(page, "Amministratore", true);
+		await page.getByLabel(/^Nome\b/).fill(nome);
+		await page.getByLabel(/^Email di accesso\b/).fill(email);
+		await page.getByLabel(/^Cognome\b/).fill(cognome);
+		await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
+		await page.getByLabel(/^Tariffa giornaliera\b/).fill("500");
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
+
+		// 2. Verifica nei due elenchi.
+		await filtraUtenti(page, email);
+		const riga = rigaUtente(page, email);
+		await expect(
+			riga.getByText("Amministratore", { exact: true }),
+		).toBeVisible();
+		await expect(
+			riga.getByText("Collaboratore", { exact: true }),
+		).toBeVisible();
+
+		await page
+			.getByRole("link", { name: "Collaboratori", exact: true })
+			.click();
+		await page
+			.getByRole("searchbox", { name: "Cerca collaboratore" })
+			.fill(email);
+		await expect(
+			rigaCollaboratore(page, email).getByText(`${nome} ${cognome}`, {
+				exact: true,
+			}),
+		).toBeVisible();
+
+		// 3. Primo accesso del nuovo utente al calendario.
+		const contestoAccesso = await browser.newContext();
+		try {
+			const paginaAccesso = await contestoAccesso.newPage();
+			await accediCome(paginaAccesso, email);
+			await expect(
+				paginaAccesso.getByRole("heading", { name: "Attività" }),
+			).toBeVisible();
+		} finally {
+			await contestoAccesso.close();
+		}
+
+		// 4. Censimento solo amministratore, senza campi profilo.
+		const emailSoloAdmin = `${factory.namespace}-demo-solo-admin@e2e.invalid`;
+		await apriElencoUtenti(page);
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await impostaRuolo(page, "Collaboratore", false);
+		await impostaRuolo(page, "Amministratore", true);
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await page
+			.getByLabel(/^Nome\b/)
+			.fill(`${factory.namespace} Demo solo admin`);
+		await page.getByLabel(/^Email di accesso\b/).fill(emailSoloAdmin);
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
+		await filtraUtenti(page, emailSoloAdmin);
+		await expect(
+			rigaUtente(page, emailSoloAdmin).getByText("Collaboratore", {
+				exact: true,
+			}),
+		).toHaveCount(0);
+
+		// 5. Tentativo con partita IVA vuota rifiutato sul campo.
+		const emailPivaVuota = `${factory.namespace}-demo-piva-vuota@e2e.invalid`;
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await page.getByLabel(/^Nome\b/).fill(`${factory.namespace} Demo PIVA vuota`);
+		await page.getByLabel(/^Email di accesso\b/).fill(emailPivaVuota);
+		await page.getByLabel(/^Cognome\b/).fill("Neri");
+		await page.getByLabel(/^Tariffa giornaliera\b/).fill("400");
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+		await expect(
+			page.getByText("La partita IVA è obbligatoria", { exact: true }),
+		).toBeVisible();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\/nuovo$/);
 	});
 
 	test("mostra l'errore di protezione dell'ultimo amministratore", async ({

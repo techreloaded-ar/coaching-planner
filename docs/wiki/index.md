@@ -101,6 +101,7 @@
 * [Giornata equivalente a otto ore](decisions/giornata-otto-ore.md) - Convertire ore e giornate con la costante fissa di otto ore per giornata. _State: reviewed._
 * [Importi monetari decimali](decisions/importi-decimali.md) - Persistire gli importi monetari come Decimal per evitare errori contabili. _State: reviewed._
 * [PostgreSQL con target SiteGround](decisions/postgres-siteground.md) - Usare PostgreSQL con target dichiarato SiteGround e sviluppo locale equivalente. _State: generated._
+* [Ruoli combinabili derivati dal profilo collaboratore](decisions/ruoli-combinabili-profilo-derivato.md) - Derivare il ruolo Collaboratore dalla presenza del profilo, riusando enum e relazione 1:1 esistenti senza modifiche allo schema. _State: reviewed._
 * [Tariffa unica per collaboratore](decisions/tariffa-unica-collaboratore.md) - Mantenere una sola tariffa giornaliera per ogni collaboratore nel MVP. _State: reviewed._
 * [Unica applicazione con aree a ruolo](decisions/unica-app-ruoli.md) - Servire front office e back office da un’unica applicazione con ruoli distinti. _State: generated._
 
@@ -116,7 +117,7 @@
 
 ## Engineering
 
-* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: generated._
+* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: reviewed._
 
 ## Operations
 

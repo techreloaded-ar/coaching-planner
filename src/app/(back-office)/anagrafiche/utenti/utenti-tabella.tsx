@@ -110,7 +110,10 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
               </tr>
             ) : (
               utentiFiltrati.map((utente) => {
-                const amministratore = utente.ruolo === "AMMINISTRATORE";
+                const haRuoloAmministratore = utente.ruolo === "AMMINISTRATORE";
+                const haRuoloCollaboratore =
+                  utente.ruolo === "COLLABORATORE" ||
+                  utente.collaboratore !== null;
                 const profiloCollaboratoreDisattivato =
                   utente.collaboratore?.attivo === false;
 
@@ -127,7 +130,7 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
                           className={`relative grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full text-[13px] font-bold ${
                             !utente.attivo
                               ? "border border-dashed border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
-                              : amministratore
+                              : haRuoloAmministratore
                                 ? "bg-linear-to-br from-indigo-500 to-indigo-700 text-white shadow-sm"
                                 : "border border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                           }`}
@@ -135,7 +138,7 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
                         >
                           {iniziali(utente.nome)}
                           <span className="absolute -right-[3px] -bottom-[3px] grid h-[17px] w-[17px] place-items-center rounded-full border-2 border-white bg-white text-zinc-500 shadow-sm dark:border-zinc-900 dark:bg-zinc-900 dark:text-zinc-400">
-                            <IconaRuolo amministratore={amministratore} />
+                            <IconaRuolo amministratore={haRuoloAmministratore} />
                           </span>
                         </span>
                         <span className="min-w-0 leading-[1.3]">
@@ -164,16 +167,20 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
                       </span>
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-[13px] align-middle dark:border-zinc-800/60">
-                      <span
-                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-[10px] py-1 text-[11.5px] font-bold ${
-                          amministratore
-                            ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-400/30 dark:bg-indigo-500/10 dark:text-indigo-300"
-                            : "border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
-                        }`}
-                      >
-                        <IconaRuolo amministratore={amministratore} />
-                        {amministratore ? "Amministratore" : "Collaboratore"}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {haRuoloAmministratore && (
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-[10px] py-1 text-[11.5px] font-bold border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-400/30 dark:bg-indigo-500/10 dark:text-indigo-300">
+                            <IconaRuolo amministratore={true} />
+                            Amministratore
+                          </span>
+                        )}
+                        {haRuoloCollaboratore && (
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-[10px] py-1 text-[11.5px] font-bold border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                            <IconaRuolo amministratore={false} />
+                            Collaboratore
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="border-b border-zinc-100 px-4 py-[13px] align-middle dark:border-zinc-800/60">
                       <span
