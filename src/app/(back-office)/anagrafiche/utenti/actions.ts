@@ -94,6 +94,36 @@ function erroreEmailDuplicata(): StatoAction {
   };
 }
 
+// Nella transazione di aggiornaUtente convivono due vincoli unique distinti
+// (Utente.email e Collaboratore.userId): senza distinguerli, un conflitto
+// sul profilo verrebbe segnalato all'amministratore come email duplicata.
+function erroreVincoloUnicoAggiornamento(error: unknown): StatoAction {
+  const meta =
+    typeof error === "object" && error !== null && "meta" in error
+      ? (error as { meta?: unknown }).meta
+      : undefined;
+  const target =
+    typeof meta === "object" && meta !== null && "target" in meta
+      ? (meta as { target?: unknown }).target
+      : undefined;
+  const campi = Array.isArray(target)
+    ? target
+    : typeof target === "string"
+      ? [target]
+      : [];
+  const riguardaProfiloCollaboratore = campi.some(
+    (campo) => typeof campo === "string" && campo.toLowerCase().includes("userid"),
+  );
+
+  return riguardaProfiloCollaboratore
+    ? {
+        errori: {
+          _form: "Esiste già un profilo collaboratore per questo utente",
+        },
+      }
+    : erroreEmailDuplicata();
+}
+
 export async function creaUtente(
   _prevState: StatoAction,
   formData: FormData,
@@ -204,14 +234,6 @@ export async function aggiornaUtente(
   const nuovoRuolo = dati.ruoloAmministratore
     ? "AMMINISTRATORE"
     : "COLLABORATORE";
-  const creaProfilo = dati.ruoloCollaboratore && !profiloPresente;
-
-  // validaModificaUtente ha già validato la tariffa quando si crea il profilo
-  // (validaCampoTariffaGiornaliera): normalizzaTariffaGiornaliera non può
-  // restituire null in quel caso. La chiamata serve solo per il valore normalizzato.
-  const tariffa = creaProfilo
-    ? normalizzaTariffaGiornaliera(dati.tariffaGiornaliera)
-    : null;
 
   let esito: EsitoAggiornamento;
 
@@ -256,6 +278,23 @@ export async function aggiornaUtente(
             }
           }
 
+          const profiloAttuale = utenteEsistente.collaboratore;
+          // La decisione di creare il profilo è basata sulla lettura fatta
+          // DENTRO la transazione (non su `profiloPresente` esterno, letto
+          // prima di aprire la transazione): così un eventuale tentativo
+          // concorrente di aggiungere lo stesso profilo, in isolamento
+          // Serializable, produce un conflitto di serializzazione ritentato
+          // da eseguiConRetrySerializzazione invece di una corsa fra due
+          // `collaboratore.create` sullo stesso utente. L'invariante di sola
+          // disattivazione (mai una delete) garantisce che se il profilo è
+          // assente qui lo era anche alla lettura esterna usata per la
+          // validazione, quindi i campi profilo erano già stati richiesti e
+          // validati quando serve crearlo.
+          const creaProfilo = dati.ruoloCollaboratore && profiloAttuale === null;
+          const tariffa = creaProfilo
+            ? normalizzaTariffaGiornaliera(dati.tariffaGiornaliera)
+            : null;
+
           await tx.utente.update({
             where: { id },
             data: {
@@ -265,7 +304,6 @@ export async function aggiornaUtente(
             },
           });
 
-          const profiloAttuale = utenteEsistente.collaboratore;
           let profiloModificato = false;
 
           if (creaProfilo) {
@@ -309,7 +347,7 @@ export async function aggiornaUtente(
     );
   } catch (error) {
     if (isPrismaUniqueConstraintError(error)) {
-      return erroreEmailDuplicata();
+      return erroreVincoloUnicoAggiornamento(error);
     }
     throw error;
   }

@@ -637,5 +637,35 @@ describe("Server Actions utenti", () => {
       expect(mockRevalidatePath).not.toHaveBeenCalled();
       expect(mockRedirect).not.toHaveBeenCalled();
     });
+
+    it("distingue il vincolo unico sul profilo collaboratore dal duplicato email", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "AMMINISTRATORE",
+        attivo: true,
+        collaboratore: null,
+      });
+      mockUtente.update.mockResolvedValue({ id: "utente-1" });
+      mockCollaboratore.create.mockRejectedValue({
+        code: "P2002",
+        meta: { target: ["userId"] },
+      });
+      const formData = new FormData();
+      formData.set("id", "utente-1");
+      formData.set("nome", "  Mario  ");
+      formData.set("email", "  MARIO.ROSSI@EXAMPLE.COM  ");
+      formData.set("ruoloAmministratore", "on");
+      formData.set("ruoloCollaboratore", "on");
+      formData.set("cognome", "  Rossi  ");
+      formData.set("partitaIva", "  12345678901  ");
+      formData.set("tariffaGiornaliera", "  450,00  ");
+
+      const result = await aggiornaUtente(statoIniziale(), formData);
+
+      expect(result.errori).toEqual({
+        _form: "Esiste già un profilo collaboratore per questo utente",
+      });
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
   });
 });
