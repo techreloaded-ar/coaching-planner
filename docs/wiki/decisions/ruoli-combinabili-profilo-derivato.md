@@ -2,7 +2,7 @@
 type: decision
 title: Ruoli combinabili derivati dal profilo collaboratore
 description: Derivare il ruolo Collaboratore dalla presenza del profilo, riusando enum e relazione 1:1 esistenti senza modifiche allo schema
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: prisma/schema.prisma
@@ -27,6 +27,10 @@ sources:
       role: verification
     - path: tests/e2e/gestione-utenti.spec.ts
       role: verification
+review:
+    content_hash: sha256:4b5d3a73930cf3552337bc85f0ccef68ed4854718e8dca1e6f12ed9356fef736
+    evidence_revision: 286dd44439ff94b648969fe2519a454984989a7d
+    reviewed_at: "2026-07-27T17:39:37Z"
 ---
 # Ruoli combinabili derivati dal profilo collaboratore
 
