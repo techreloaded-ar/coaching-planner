@@ -31,7 +31,7 @@ sources:
 <!-- archetipo:wiki section=relationships -->
 ## Relazioni osservate
 
-- Attività consulta Collaboratori per il profilo operativo, Clienti e Offerte per i riferimenti selezionabili e Politiche di rimborso per validare la trasferta.
+- Attività consulta Collaboratori per il profilo operativo e per l'abilitazione esplicita del collaboratore sull'offerta, Clienti e Offerte per i riferimenti selezionabili e Politiche di rimborso per validare la trasferta. La selezione dell'offerta, la creazione e la modifica riga leggono `AbilitazioneOfferta` e rifiutano l'operazione quando manca.
 - Offerte riferisce Clienti; la creazione richiede un cliente attivo. Le attività fatturabili sono input della proiezione di avanzamento dell'offerta.
 - Fatturazione clienti legge fatti da Attività, tariffa e metadati da Offerte, ragione sociale da Clienti e fasce da Politiche di rimborso.
 - Identità e accesso consulta `Collaboratore.attivo` per la revoca operativa; Collaboratori crea o sincronizza anche `Utente`, oggi condiviso nello stesso database.
@@ -51,7 +51,7 @@ Il codice mostra dipendenze dirette e storage condiviso, ma non fornisce evidenz
 - `Utente` è scritto da Collaboratori e letto da Identità e accesso; l'ownership logica richiede review.
 - La macro-area fisica `anagrafiche` non ha ciclo o decisioni proprie e viene mappata su quattro capability.
 - Il candidato fisico `report` combina fatturazione clienti e avanzamento offerte; quest'ultimo riusa la stessa proiezione anche nella lista Offerte.
-- `RigaAttivita` conserva sia `clienteId` sia `offertaId` con FK indipendenti. La creazione verifica coerenza, ma una modifica parziale può eluderla.
+- `RigaAttivita` conserva sia `clienteId` sia `offertaId` con FK indipendenti. La creazione verifica sempre coerenza offerta-cliente e abilitazione; la modifica le riverifica entrambe quando il form invia un'offerta o un cliente diversi da quelli già sulla riga, ma non le rivaluta se la coppia resta invariata.
 - Tariffe e scaglioni non sono snapshot: riepiloghi e report storici sono ricalcolati con configurazione corrente.
 - Le capability condividono processo, database e application layer; la classificazione `candidate` descrive una mappa semantica, non isolamento di deploy.
 
