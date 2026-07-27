@@ -9,10 +9,13 @@ import {
 } from "@/domain/anagrafiche/protezione-amministratore";
 import {
   RUOLI_AMMESSI,
+  validaCensimentoUtente,
   validaUtente,
+  type DatiCensimentoUtenteInput,
   type DatiUtenteInput,
   type ErroriValidazione,
 } from "@/domain/anagrafiche/valida-utente";
+import { normalizzaTariffaGiornaliera } from "@/domain/anagrafiche/valida-collaboratore";
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
 
@@ -26,6 +29,19 @@ function datiDaForm(formData: FormData): DatiUtenteInput {
     nome: ((formData.get("nome") as string) ?? "").trim(),
     email: ((formData.get("email") as string) ?? "").trim().toLowerCase(),
     ruolo: (formData.get("ruolo") as string) ?? "",
+  };
+}
+
+function datiCensimentoDaForm(formData: FormData): DatiCensimentoUtenteInput {
+  return {
+    nome: ((formData.get("nome") as string) ?? "").trim(),
+    email: ((formData.get("email") as string) ?? "").trim().toLowerCase(),
+    ruoloAmministratore: formData.get("ruoloAmministratore") === "on",
+    ruoloCollaboratore: formData.get("ruoloCollaboratore") === "on",
+    cognome: ((formData.get("cognome") as string) ?? "").trim(),
+    partitaIva: ((formData.get("partitaIva") as string) ?? "").trim(),
+    tariffaGiornaliera: ((formData.get("tariffaGiornaliera") as string) ?? "")
+      .trim(),
   };
 }
 
@@ -78,29 +94,64 @@ export async function creaUtente(
 ): Promise<StatoAction> {
   await guardiaAmministratore();
 
-  const dati = datiDaForm(formData);
-  const errori = validaUtente(dati);
+  const dati = datiCensimentoDaForm(formData);
+  const errori = validaCensimentoUtente(dati);
 
   if (Object.keys(errori).length > 0) {
     return { errori };
   }
 
+  const tariffa = dati.ruoloCollaboratore
+    ? normalizzaTariffaGiornaliera(dati.tariffaGiornaliera)
+    : null;
+
+  if (dati.ruoloCollaboratore && !tariffa) {
+    return {
+      errori: {
+        tariffaGiornaliera: "Importo non valido: usa massimo 2 decimali",
+      },
+    };
+  }
+
   try {
-    const utenteEsistente = await db.utente.findUnique({
-      where: { email: dati.email },
+    const esito = await db.$transaction(async (tx) => {
+      const utenteEsistente = await tx.utente.findUnique({
+        where: { email: dati.email },
+      });
+
+      if (utenteEsistente) {
+        return "EMAIL_DUPLICATA" as const;
+      }
+
+      const utente = await tx.utente.create({
+        data: {
+          nome: dati.ruoloCollaboratore
+            ? `${dati.nome} ${dati.cognome}`
+            : dati.nome,
+          email: dati.email,
+          ruolo: dati.ruoloAmministratore ? "AMMINISTRATORE" : "COLLABORATORE",
+        },
+      });
+
+      if (dati.ruoloCollaboratore) {
+        await tx.collaboratore.create({
+          data: {
+            userId: utente.id,
+            nome: dati.nome,
+            cognome: dati.cognome,
+            partitaIva: dati.partitaIva,
+            tariffaGiornaliera: tariffa!.valore,
+            attivo: true,
+          },
+        });
+      }
+
+      return "CREATO" as const;
     });
 
-    if (utenteEsistente) {
+    if (esito === "EMAIL_DUPLICATA") {
       return erroreEmailDuplicata();
     }
-
-    await db.utente.create({
-      data: {
-        nome: dati.nome,
-        email: dati.email,
-        ruolo: dati.ruolo as (typeof RUOLI_AMMESSI)[number],
-      },
-    });
   } catch (error) {
     if (isPrismaUniqueConstraintError(error)) {
       return erroreEmailDuplicata();
@@ -109,6 +160,9 @@ export async function creaUtente(
   }
 
   revalidatePath("/anagrafiche/utenti");
+  if (dati.ruoloCollaboratore) {
+    revalidatePath("/anagrafiche/collaboratori");
+  }
   redirect("/anagrafiche/utenti?esito=creato");
 }
 

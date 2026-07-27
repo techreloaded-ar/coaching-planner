@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   RUOLI_AMMESSI,
 } from "@/domain/anagrafiche/valida-utente";
@@ -45,6 +45,8 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
     statoIniziale
   );
   const haErrori = Object.keys(stato.errori).length > 0;
+  const [collaboratoreSelezionato, setCollaboratoreSelezionato] =
+    useState(true);
 
   return (
     <div>
@@ -140,7 +142,11 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
               autoComplete="name"
               defaultValue={utente?.nome ?? ""}
               errore={stato.errori.nome}
-              hint="Nome e cognome in un unico campo, come mostrato in elenco."
+              hint={
+                !inModifica && collaboratoreSelezionato
+                  ? "Solo il nome: il cognome va nel campo dedicato del profilo collaboratore."
+                  : "Nome e cognome in un unico campo, come mostrato in elenco."
+              }
             />
 
             <SezioneForm icona="accesso">Accesso</SezioneForm>
@@ -156,7 +162,8 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
             />
 
             <SezioneForm icona="ruolo">Ruolo</SezioneForm>
-            <fieldset
+            {inModifica ? (
+              <fieldset
                 role="radiogroup"
                 aria-invalid={!!stato.errori.ruolo}
                 aria-describedby={stato.errori.ruolo ? "errore-ruolo" : undefined}
@@ -176,11 +183,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                           type="radio"
                           name="ruolo"
                           value={ruolo}
-                          defaultChecked={
-                            inModifica
-                              ? ruolo === utente.ruolo
-                              : ruolo === "COLLABORATORE"
-                          }
+                          defaultChecked={ruolo === utente.ruolo}
                           aria-labelledby={etichettaId}
                           aria-describedby={descrizioneId}
                           className="peer sr-only"
@@ -230,6 +233,121 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                   </div>
                 )}
               </fieldset>
+            ) : (
+              <fieldset
+                role="group"
+                aria-describedby={stato.errori.ruoli ? "errore-ruoli" : undefined}
+                className="col-span-2 mb-[18px] min-w-0 max-[640px]:col-span-1"
+              >
+                <legend className="mb-1.5 text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400">
+                  Ruolo <span className="font-bold text-red-600 dark:text-red-400">*</span>
+                </legend>
+                <div className="grid grid-cols-2 gap-3 max-[640px]:grid-cols-1">
+                  {RUOLI_AMMESSI.map((ruolo) => {
+                    const etichettaId = `ruolo-${ruolo.toLowerCase()}-etichetta`;
+                    const descrizioneId = `ruolo-${ruolo.toLowerCase()}-descrizione`;
+                    const eCollaboratore = ruolo === "COLLABORATORE";
+                    const nomeCampo = eCollaboratore
+                      ? "ruoloCollaboratore"
+                      : "ruoloAmministratore";
+
+                    return (
+                      <label key={ruolo} className="relative cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name={nomeCampo}
+                          defaultChecked={eCollaboratore}
+                          onChange={
+                            eCollaboratore
+                              ? (evento) =>
+                                  setCollaboratoreSelezionato(
+                                    evento.target.checked,
+                                  )
+                              : undefined
+                          }
+                          aria-labelledby={etichettaId}
+                          aria-describedby={descrizioneId}
+                          className="peer sr-only"
+                        />
+                        <span
+                          className={`flex min-h-[72px] items-start gap-[11px] rounded-xl border-[1.5px] bg-white px-[15px] py-3.5 pr-10 transition hover:border-indigo-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:shadow-[0_0_0_3px_rgb(99_102_241_/_0.1)] peer-checked:[&_.ruolo-check]:opacity-100 peer-checked:[&_.ruolo-icona]:border-indigo-500 peer-checked:[&_.ruolo-icona]:bg-indigo-500 peer-checked:[&_.ruolo-icona]:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-2 dark:bg-zinc-900 dark:hover:border-indigo-500/40 dark:peer-checked:border-indigo-500 dark:peer-checked:bg-indigo-500/10 dark:peer-checked:[&_.ruolo-icona]:border-indigo-500 dark:peer-checked:[&_.ruolo-icona]:bg-indigo-500 dark:peer-checked:[&_.ruolo-icona]:text-white dark:peer-focus-visible:ring-offset-zinc-900 ${
+                            stato.errori.ruoli
+                              ? "border-red-600"
+                              : "border-zinc-200 dark:border-zinc-700"
+                          }`}
+                        >
+                          <span className="ruolo-icona grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] border border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                            <IconaRuolo ruolo={ruolo} usaColoreCorrente />
+                          </span>
+                          <span className="min-w-0 leading-[1.3]">
+                            <span
+                              id={etichettaId}
+                              className="block text-[13.5px] font-bold text-zinc-800 dark:text-zinc-100"
+                            >
+                              {ETICHETTE_RUOLO[ruolo]}
+                            </span>
+                            <span
+                              id={descrizioneId}
+                              className="mt-0.5 block text-[12px] text-zinc-400 dark:text-zinc-500"
+                            >
+                              {DESCRIZIONI_RUOLO[ruolo]}
+                            </span>
+                          </span>
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            className="ruolo-check absolute right-[13px] top-3 h-4 w-4 text-indigo-600 opacity-0 transition-opacity dark:text-indigo-400"
+                            strokeWidth={2.4}
+                            aria-hidden="true"
+                          >
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {stato.errori.ruoli && (
+                  <div className="mt-1.5">
+                    <ErroreCampo id="errore-ruoli">{stato.errori.ruoli}</ErroreCampo>
+                  </div>
+                )}
+              </fieldset>
+            )}
+
+            {!inModifica && collaboratoreSelezionato && (
+              <>
+                <SezioneForm icona="anagrafica">
+                  Profilo collaboratore
+                </SezioneForm>
+                <Campo
+                  label="Cognome"
+                  name="cognome"
+                  placeholder="Es. Mantovani"
+                  autoComplete="family-name"
+                  defaultValue=""
+                  errore={stato.errori.cognome}
+                  hint="Cognome anagrafico del collaboratore, distinto dal campo Nome."
+                />
+                <Campo
+                  label="Partita IVA"
+                  name="partitaIva"
+                  placeholder="11 cifre, es. 03481920457"
+                  defaultValue=""
+                  errore={stato.errori.partitaIva}
+                  hint="Undici cifre numeriche, senza spazi né prefissi."
+                />
+                <Campo
+                  label="Tariffa giornaliera"
+                  name="tariffaGiornaliera"
+                  placeholder="Es. 520,00"
+                  defaultValue=""
+                  errore={stato.errori.tariffaGiornaliera}
+                  hint="Importo in euro, virgola per i decimali (massimo 2)."
+                />
+              </>
+            )}
           </div>
         </div>
 
