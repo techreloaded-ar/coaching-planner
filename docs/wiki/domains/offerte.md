@@ -2,7 +2,7 @@
 type: domain
 title: Offerte
 description: Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
@@ -25,16 +25,18 @@ sources:
     - path: src/lib/abilitazioni.ts
       role: outbound-consumer
       symbol: elencaOfferteAbilitabili
+    - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx
+      role: coordinated-administration-ui
+    - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-collaboratori.tsx
+      role: coordinated-administration-ui
     - path: tests/unit/avanzamento-offerte.test.ts
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
       role: verification
-review:
-    content_hash: sha256:f65d146a77e37fb26836de35dd89050491b2c6185adf048ae626258b37d4ebe1
-    evidence_revision: 5fc9a7123a36f4df4547156da614e3de5f037e58
-    reviewed_at: "2026-07-27T12:56:47Z"
+    - path: tests/e2e/ingaggi-offerta.spec.ts
+      role: verification
 ---
 # Offerte
 
@@ -66,6 +68,8 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 
 `elencaOfferteAbilitabili` in `src/lib/abilitazioni.ts` filtra le offerte attive prive di un'abilitazione per il collaboratore dato, usando la relazione Prisma `abilitazioniCollaboratori`; è una query dell'ambito Collaboratori che legge `Offerta` in sola lettura, senza scrivere né validare dati di questa capability.
 
+La pagina `/offerte/{offertaId}/collaboratori` (`src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx` e `ingaggi-collaboratori.tsx`) è fisicamente ospitata sotto la rotta Offerte ma opera esclusivamente su `AbilitazioneOfferta`, di proprietà della capability Collaboratori: legge `offertaPerId` di questa capability solo per l'intestazione (codice, descrizione, ragione sociale del cliente) e delega interamente lettura e scrittura dei collaboratori ingaggiati alle query e action dell'ambito Collaboratori. È raggiunta da un link "Collaboratori" nella colonna Azioni della tabella trasversale `/offerte`.
+
 <!-- archetipo:wiki section=flows -->
 ## Flussi osservati
 
@@ -76,6 +80,7 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 5. `calcolaAvanzamentoOfferte` assegna una delle quattro classificazioni in base a residuo e soglia 85%. Non esiste una colonna `stato` né una write di transizione: ogni lettura ricalcola il valore.
 6. La tabella trasversale `/offerte` e quella annidata nel dettaglio cliente espandono una riga per mostrare classificazione, KPI, percentuale e ripartizione; nell'elenco cliente il link Modifica non attiva il toggle. Il toggle di attivazione della tabella trasversale conserva la riga espansa attraverso il redirect. La precedente rotta `/report/avanzamento-offerte` reindirizza a `/offerte`.
 7. Il pannello espanso mostra, sotto la ripartizione per collaboratore, una matrice mensile per collaboratore (una colonna per mese solare con attività, in ordine cronologico, colonna e riga di totale); per un'offerta senza attività mostra il messaggio "Nessuna attività registrata" al posto della matrice. Il componente è condiviso tra `/offerte` e l'elenco offerte del cliente, quindi la matrice compare in entrambe le viste.
+8. Il link "Collaboratori" nella colonna Azioni di `offerte-tabella.tsx` apre `/offerte/{offertaId}/collaboratori`, dove l'amministratore vede la tabella "Collaboratori ingaggiati" e ingaggia o revoca collaboratori tramite un dialog di ricerca e selezione multipla; è la vista speculare, dal lato offerta, della sezione "Offerte abilitate" del dettaglio collaboratore, sulla stessa tabella `AbilitazioneOfferta`.
 
 <!-- archetipo:wiki section=code -->
 ## Codice
@@ -84,6 +89,7 @@ Le offerte possono essere create dalle viste annidate cliente o trasversali. La 
 |---|---|
 | UI annidata | `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/**`, `src/app/(back-office)/anagrafiche/clienti/[id]/offerte-cliente-tabella.tsx` |
 | UI trasversale e stato | `src/app/(back-office)/offerte/**` |
+| Ingaggio collaboratori (di proprietà Collaboratori) | `src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx`, `ingaggi-collaboratori.tsx`, `ingaggi-actions.ts` |
 | Query | `src/lib/offerte.ts` |
 | Validazione | `src/domain/anagrafiche/valida-offerta.ts` |
 | Avanzamento | `src/domain/consuntivi/index.ts`, `src/lib/offerte.ts`, `src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx` |
@@ -98,7 +104,7 @@ Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Unit test coprono validazione, DAL, eliminazione, calcolo e le query di avanzamento trasversale e filtrata per cliente; E2E coprono gestione, viste annidate e trasversali, inclusi i dettagli espandibili, la navigazione a Modifica dall'elenco cliente e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer. La relazione con le abilitazioni esplicite è verificata dai test della capability Collaboratori (`tests/unit/abilitazioni-dal-actions.test.ts`, `tests/e2e/abilitazioni-collaboratore.spec.ts`) per la gestione delle abilitazioni, e dai test della capability Attività (`tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/e2e/offerte-abilitate-inserimento.spec.ts`) per l'enforcement del vincolo in selezione, creazione e modifica riga.
+Unit test coprono validazione, DAL, eliminazione, calcolo e le query di avanzamento trasversale e filtrata per cliente; E2E coprono gestione, viste annidate e trasversali, inclusi i dettagli espandibili, la navigazione a Modifica dall'elenco cliente e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer. La relazione con le abilitazioni esplicite è verificata dai test della capability Collaboratori (`tests/unit/abilitazioni-dal-actions.test.ts`, `tests/e2e/abilitazioni-collaboratore.spec.ts`) per la gestione delle abilitazioni, dai test della capability Attività (`tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/e2e/offerte-abilitate-inserimento.spec.ts`) per l'enforcement del vincolo in selezione, creazione e modifica riga, e dai test della capability Collaboratori (`tests/unit/ingaggi-offerta-dal-actions.test.ts`, `tests/e2e/ingaggi-offerta.spec.ts`) per la vista speculare di ingaggio e revoca dalla pagina offerta.
 
 ## Concetti correlati
 

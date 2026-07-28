@@ -84,3 +84,74 @@ export async function elencaOfferteAbilitabili(
     clienteRagioneSociale: offerta.cliente.ragioneSociale,
   }));
 }
+
+export interface CollaboratoreIngaggiato {
+  collaboratoreId: string;
+  nome: string;
+  cognome: string;
+  collaboratoreAttivo: boolean;
+}
+
+export interface CollaboratoreIngaggiabile {
+  collaboratoreId: string;
+  nome: string;
+  cognome: string;
+}
+
+/**
+ * Elenca i collaboratori ingaggiati sull'offerta, con nome e cognome, ordinati
+ * per cognome e poi per nome.
+ *
+ * Un collaboratore ingaggiato e poi disattivato resta elencato (con
+ * collaboratoreAttivo a false): l'ingaggio storico non viene rimosso.
+ *
+ * Accesso riservato all'amministratore.
+ */
+export async function elencaCollaboratoriIngaggiati(
+  offertaId: string,
+): Promise<CollaboratoreIngaggiato[]> {
+  await richiediRuoloApi("AMMINISTRATORE");
+
+  const abilitazioni = await db.abilitazioneOfferta.findMany({
+    where: { offertaId },
+    include: { collaboratore: true },
+    orderBy: [
+      { collaboratore: { cognome: "asc" } },
+      { collaboratore: { nome: "asc" } },
+    ],
+  });
+
+  return abilitazioni.map((abilitazione) => ({
+    collaboratoreId: abilitazione.collaboratore.id,
+    nome: abilitazione.collaboratore.nome,
+    cognome: abilitazione.collaboratore.cognome,
+    collaboratoreAttivo: abilitazione.collaboratore.attivo,
+  }));
+}
+
+/**
+ * Elenca i collaboratori attivi non ancora ingaggiati sull'offerta, con nome e
+ * cognome, ordinati per cognome e poi per nome. Fonte per il dialog di ricerca
+ * e selezione.
+ *
+ * Accesso riservato all'amministratore.
+ */
+export async function elencaCollaboratoriIngaggiabili(
+  offertaId: string,
+): Promise<CollaboratoreIngaggiabile[]> {
+  await richiediRuoloApi("AMMINISTRATORE");
+
+  const collaboratori = await db.collaboratore.findMany({
+    where: {
+      attivo: true,
+      abilitazioniOfferte: { none: { offertaId } },
+    },
+    orderBy: [{ cognome: "asc" }, { nome: "asc" }],
+  });
+
+  return collaboratori.map((collaboratore) => ({
+    collaboratoreId: collaboratore.id,
+    nome: collaboratore.nome,
+    cognome: collaboratore.cognome,
+  }));
+}

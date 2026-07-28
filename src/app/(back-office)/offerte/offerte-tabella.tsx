@@ -143,7 +143,7 @@ export default function OfferteTabella({
               <th className="w-[140px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Giorni erogati
               </th>
-              <th className="w-[220px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="w-[360px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Azioni
               </th>
             </tr>
@@ -341,12 +341,22 @@ function RigaOfferta({
         </div>
       </td>
 
-      {/* Azioni: modifica, elimina */}
+      {/* Azioni: collaboratori, modifica, elimina */}
       <td
         className="px-4 py-[13px] text-right align-middle whitespace-nowrap"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="inline-flex items-center gap-[2px]">
+          <Link
+            href={`/offerte/${offerta.offertaId}/collaboratori`}
+            className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
+              <path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.4 4.3a3.5 3.5 0 0 1 0 6.8" />
+            </svg>
+            Collaboratori
+          </Link>
+
           <Link
             href={`/offerte/${offerta.offertaId}`}
             className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
