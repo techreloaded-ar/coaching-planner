@@ -13,7 +13,6 @@ function baseInput(
   return {
     nome: "Mario",
     cognome: "Rossi",
-    email: "mario.rossi@example.com",
     partitaIva: "12345678901",
     tariffaGiornaliera: "650,00",
     ...overrides,
@@ -54,25 +53,6 @@ describe("validaCollaboratore — campi obbligatori", () => {
     it("non segnala errore sul cognome se valorizzato", () => {
       const errori = validaCollaboratore(baseInput({ cognome: "Bianchi" }));
       expect(errori.cognome).toBeUndefined();
-    });
-  });
-
-  describe("email", () => {
-    it("restituisce errore se l'email è vuota", () => {
-      const errori = validaCollaboratore(baseInput({ email: "" }));
-      expect(errori.email).toBe("L'email di accesso è obbligatoria");
-    });
-
-    it("restituisce errore se l'email è composta solo da spazi", () => {
-      const errori = validaCollaboratore(baseInput({ email: "   " }));
-      expect(errori.email).toBe("L'email di accesso è obbligatoria");
-    });
-
-    it("non segnala errore sull'email se valorizzata correttamente", () => {
-      const errori = validaCollaboratore(
-        baseInput({ email: "anna.verdi@example.com" })
-      );
-      expect(errori.email).toBeUndefined();
     });
   });
 
@@ -125,29 +105,6 @@ describe("validaCollaboratore — campi obbligatori", () => {
   it("non segnala errori quando tutti i campi obbligatori sono presenti", () => {
     const errori = validaCollaboratore(baseInput());
     expect(errori).toEqual({});
-  });
-});
-
-// ── 2. Email — formato ─────────────────────────────────────────
-
-describe("validaCollaboratore — formato email", () => {
-  it("rifiuta un'email senza @", () => {
-    const errori = validaCollaboratore(
-      baseInput({ email: "marioexample.com" })
-    );
-    expect(errori.email).toBe("Inserisci un indirizzo email valido");
-  });
-
-  it("rifiuta un'email senza dominio dopo la @", () => {
-    const errori = validaCollaboratore(baseInput({ email: "mario@" }));
-    expect(errori.email).toBe("Inserisci un indirizzo email valido");
-  });
-
-  it("accetta un'email con sottodominio", () => {
-    const errori = validaCollaboratore(
-      baseInput({ email: "mario.rossi@coaching.example.com" })
-    );
-    expect(errori.email).toBeUndefined();
   });
 });
 

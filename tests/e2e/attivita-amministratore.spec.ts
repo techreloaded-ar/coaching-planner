@@ -1,8 +1,55 @@
+import type { Page } from "@playwright/test";
+
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
 
 const CODICE_SPEC = "US-030-TASK-08-ATTIVITA-AMMINISTRATORE";
+
+function rigaUtente(page: Page, email: string) {
+	return page
+		.getByRole("table", { name: "Elenco utenti" })
+		.getByRole("row")
+		.filter({ has: page.getByText(email, { exact: true }) });
+}
+
+/**
+ * Commuta il checkbox di ruolo Collaboratore con un click reale sulla card
+ * (l'etichetta visibile), perché il checkbox è `sr-only`. Replica localmente
+ * il pattern documentato in gestione-utenti.spec.ts: il checkbox non
+ * controllato reagisce subito al click nativo, ma il suo `onChange` (che
+ * pilota la comparsa della sezione profilo) è attivo solo dopo l'idratazione,
+ * quindi si continua a cliccare con `expect.poll` finché checkbox e sezione
+ * profilo non sono coerenti, senza hard wait.
+ */
+async function impostaRuoloCollaboratore(
+	page: Page,
+	selezionato: boolean,
+): Promise<void> {
+	const gruppoRuolo = page.getByRole("group", { name: /^Ruolo/ });
+	const card = gruppoRuolo.getByText("Collaboratore", { exact: true });
+	const checkbox = gruppoRuolo.getByRole("checkbox", {
+		name: /^Collaboratore\b/,
+	});
+	const sezioneProfilo = page.getByLabel(/^Cognome\b/);
+
+	async function ruoloImpostatoCorrettamente(): Promise<boolean> {
+		return (
+			(await checkbox.isChecked()) === selezionato &&
+			(await sezioneProfilo.isVisible()) === selezionato
+		);
+	}
+
+	await expect
+		.poll(async () => {
+			if (await ruoloImpostatoCorrettamente()) {
+				return true;
+			}
+			await card.click();
+			return ruoloImpostatoCorrettamente();
+		})
+		.toBe(true);
+}
 
 test.describe("US-030 Attività amministratore", () => {
 	test("amministratore con profilo attivo registra attività e naviga tra front office e console", async ({
@@ -120,21 +167,25 @@ test.describe("US-030 Attività amministratore", () => {
 			})
 			.click();
 		await page.waitForURL("**/anagrafiche/collaboratori");
-		await page
-			.getByRole("link", { name: "Nuovo collaboratore", exact: true })
+
+		await page.goto("/anagrafiche/utenti");
+		await page.waitForURL("**/anagrafiche/utenti");
+		await expect(page.getByRole("heading", { name: "Utenti" })).toBeVisible();
+		await rigaUtente(page, amministratore.email)
+			.getByRole("link", { name: "Modifica", exact: true })
 			.click();
-		await page.waitForURL("**/anagrafiche/collaboratori/nuovo");
-		await page.getByRole("textbox", { name: "Nome *", exact: true }).fill("Admin");
-		await page.getByRole("textbox", { name: "Cognome *", exact: true }).fill("E2E");
+		await expect(
+			page.getByRole("heading", { name: "Modifica utente" }),
+		).toBeVisible();
+
+		await impostaRuoloCollaboratore(page, true);
+		await page.getByLabel(/^Cognome\b/).fill("E2E");
+		await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
+		await page.getByLabel(/^Tariffa giornaliera\b/).fill("450,00");
 		await page
-			.getByRole("textbox", { name: "Email di accesso *", exact: true })
-			.fill(amministratore.email);
-		await page.getByRole("textbox", { name: "Partita IVA *", exact: true }).fill("01234567890");
-		await page
-			.getByRole("textbox", { name: "Tariffa giornaliera *", exact: true })
-			.fill("450,00");
-		await page.getByRole("button", { name: "Crea collaboratore" }).click();
-		await page.waitForURL("**/anagrafiche/collaboratori?esito=creato");
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await page.waitForURL("**/anagrafiche/utenti?esito=salvato");
 
 		await page.goto("/attivita");
 		await page.waitForURL("**/attivita");

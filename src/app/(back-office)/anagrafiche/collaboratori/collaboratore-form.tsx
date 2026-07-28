@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import {
-  creaCollaboratore,
-  aggiornaCollaboratore,
-  type StatoAction,
-} from "./actions";
+import { aggiornaCollaboratore, type StatoAction } from "./actions";
 
 // ── Stato iniziale per useActionState ──────────────────────────
 
@@ -15,8 +11,7 @@ const statoIniziale: StatoAction = { errori: {} };
 // ── Props ──────────────────────────────────────────────────────
 
 interface CollaboratoreFormProps {
-  /** Se presente, il form è in modalità modifica con dati precompilati */
-  collaboratore?: {
+  collaboratore: {
     id: string;
     nome: string;
     cognome: string;
@@ -30,19 +25,15 @@ interface CollaboratoreFormProps {
 // ── Componente ─────────────────────────────────────────────────
 
 export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormProps) {
-  const inModifica = !!collaboratore;
-
   const [stato, azione] = useActionState<StatoAction, FormData>(
-    inModifica ? aggiornaCollaboratore : creaCollaboratore,
+    aggiornaCollaboratore,
     statoIniziale
   );
 
-  const tariffaIniziale = collaboratore
-    ? new Intl.NumberFormat("it-IT", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(Number(collaboratore.tariffaGiornaliera))
-    : "";
+  const tariffaIniziale = new Intl.NumberFormat("it-IT", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(collaboratore.tariffaGiornaliera));
 
   return (
     <div>
@@ -63,7 +54,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
           Anagrafiche · Collaboratori
         </div>
         <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
-          {inModifica ? "Modifica collaboratore" : "Nuovo collaboratore"}
+          Modifica collaboratore
         </h1>
         <p className="mt-[6px] max-w-[560px] text-[13px] text-zinc-400 dark:text-zinc-500">
           Dati anagrafici, partita IVA e tariffa giornaliera; l&apos;email è la credenziale con cui il
@@ -77,7 +68,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
         action={azione}
         className="max-w-[760px] rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
-        {inModifica && <input type="hidden" name="id" value={collaboratore!.id} />}
+        <input type="hidden" name="id" value={collaboratore.id} />
 
         <div className="px-7 pb-[10px] pt-[26px]">
           {/* Alert errori generali */}
@@ -105,7 +96,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               name="nome"
               placeholder="Es. Giulia"
               autoComplete="given-name"
-              defaultValue={collaboratore?.nome ?? ""}
+              defaultValue={collaboratore.nome}
               errore={stato.errori.nome}
               obbligatorio
             />
@@ -115,7 +106,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               name="cognome"
               placeholder="Es. Mantovani"
               autoComplete="family-name"
-              defaultValue={collaboratore?.cognome ?? ""}
+              defaultValue={collaboratore.cognome}
               errore={stato.errori.cognome}
               obbligatorio
             />
@@ -132,12 +123,11 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               label="Email di accesso"
               name="email"
               type="email"
-              placeholder="nome.cognome@gmail.com"
-              autoComplete="email"
-              defaultValue={collaboratore?.utente.email ?? ""}
+              defaultValue={collaboratore.utente.email}
               errore={stato.errori.email}
-              obbligatorio
               fullWidth
+              soloLettura
+              hint="L'email di accesso si modifica dalla schermata Utenti"
             />
 
             <div className="col-span-2 mb-[18px] flex items-start gap-[11px] rounded-[11px] border border-indigo-200 bg-indigo-50 p-[13px] text-[13px] text-zinc-600 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-zinc-400">
@@ -146,7 +136,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               </svg>
               <span>
                 <b className="text-indigo-600 dark:text-indigo-400">Accesso con Google, nessuna password da impostare</b> —
-                il collaboratore entrerà nel front office accedendo con il proprio account Google
+                il collaboratore accede al front office con il proprio account Google
                 corrispondente a questa email, con ruolo <b>collaboratore</b>.
               </span>
             </div>
@@ -165,7 +155,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               placeholder="11 cifre, es. 03481920457"
               inputMode="numeric"
               maxLength={11}
-              defaultValue={collaboratore?.partitaIva ?? ""}
+              defaultValue={collaboratore.partitaIva}
               errore={stato.errori.partitaIva}
               obbligatorio
             />
@@ -186,22 +176,20 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
 
         {/* Footer del form */}
         <div className="flex items-center justify-end gap-[10px] rounded-b-[11px] border-t border-zinc-200 bg-zinc-50 px-7 py-4 dark:border-zinc-700 dark:bg-zinc-800/50">
-          {inModifica && (
-            <span className="mr-auto flex items-center gap-[9px] text-[12.5px] text-zinc-400 dark:text-zinc-500">
-              Stato attuale:{" "}
-              {collaboratore!.attivo ? (
-                <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                  <span className="h-[6px] w-[6px] rounded-full bg-current" />
-                  Attivo
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-[5px] rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
-                  <span className="h-[6px] w-[6px] rounded-full bg-current" />
-                  Disattivato
-                </span>
-              )}
-            </span>
-          )}
+          <span className="mr-auto flex items-center gap-[9px] text-[12.5px] text-zinc-400 dark:text-zinc-500">
+            Stato attuale:{" "}
+            {collaboratore.attivo ? (
+              <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <span className="h-[6px] w-[6px] rounded-full bg-current" />
+                Attivo
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-[5px] rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                <span className="h-[6px] w-[6px] rounded-full bg-current" />
+                Disattivato
+              </span>
+            )}
+          </span>
           <Link
             href="/anagrafiche/collaboratori"
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm no-underline transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750"
@@ -215,7 +203,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
               <path d="M20 6 9 17l-5-5" />
             </svg>
-            {inModifica ? "Salva modifiche" : "Crea collaboratore"}
+            Salva modifiche
           </button>
         </div>
       </form>
@@ -240,6 +228,8 @@ interface CampoProps {
   fullWidth?: boolean;
   uppercase?: boolean;
   hint?: string;
+  /** Campo in sola lettura: non modificabile e non inviato nel FormData */
+  soloLettura?: boolean;
 }
 
 function Campo({
@@ -257,6 +247,7 @@ function Campo({
   fullWidth,
   uppercase,
   hint,
+  soloLettura,
 }: CampoProps) {
   return (
     <div
@@ -272,17 +263,22 @@ function Campo({
       </label>
       <input
         id={name}
-        name={name}
+        name={soloLettura ? undefined : name}
         type={type}
         inputMode={inputMode}
         maxLength={maxLength}
         autoComplete={autoComplete}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition placeholder:text-zinc-400 dark:bg-zinc-900 dark:text-zinc-100 ${
-          errore
-            ? "border-red-600 shadow-[0_0_0_3px_rgb(239_68_68_/_0.08)] dark:shadow-[0_0_0_3px_rgb(239_68_68_/_0.1)]"
-            : "border-zinc-200 focus:border-indigo-300 focus:shadow-[0_0_0_3px_rgb(99_102_241_/_0.12)] dark:border-zinc-700 dark:focus:border-indigo-500/50"
+        readOnly={soloLettura}
+        className={`w-full rounded-[10px] border px-[13px] py-[10px] font-[inherit] text-[14px] outline-none transition placeholder:text-zinc-400 ${
+          soloLettura
+            ? "cursor-default border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400"
+            : `bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 ${
+                errore
+                  ? "border-red-600 shadow-[0_0_0_3px_rgb(239_68_68_/_0.08)] dark:shadow-[0_0_0_3px_rgb(239_68_68_/_0.1)]"
+                  : "border-zinc-200 focus:border-indigo-300 focus:shadow-[0_0_0_3px_rgb(99_102_241_/_0.12)] dark:border-zinc-700 dark:focus:border-indigo-500/50"
+              }`
         }`}
         style={uppercase ? { textTransform: "uppercase" } : undefined}
       />

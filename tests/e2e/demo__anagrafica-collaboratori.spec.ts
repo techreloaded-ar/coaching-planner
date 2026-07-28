@@ -2,12 +2,14 @@ import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
 
 /**
- * Demo scenario — US-009: Anagrafica collaboratori con tariffa e credenziali di accesso
+ * Demo scenario — US-047: Anagrafica collaboratori sola-modifica
  *
- * Dimostra il flusso completo: l'amministratore entra nella console, crea un nuovo
- * collaboratore con tariffa giornaliera e credenziali di accesso; il collaboratore
- * appena creato si autentica (tramite endpoint di test) e atterra nel front office
- * su /attivita.
+ * Dimostra il nuovo perimetro della schermata Collaboratori dopo US-047:
+ * censimento e stato (attivazione/disattivazione) si governano esclusivamente
+ * dalla schermata Utenti, mentre qui restano modificabili solo i dati
+ * anagrafici, la partita IVA e la tariffa giornaliera; l'email di accesso è
+ * in sola lettura. Il pulsante "Nuovo collaboratore" non esiste più e la
+ * vecchia rotta di censimento reindirizza a /anagrafiche/utenti.
  *
  * Registra un video per la review.
  */
@@ -18,12 +20,14 @@ test.use({
   launchOptions: { slowMo: 300 },
 });
 
-test.describe("US-009 Demo", () => {
-  test("crea collaboratore con tariffa e credenziali → il collaboratore accede al front office", async ({
+test.describe("US-047 Demo", () => {
+  test("collaboratori è sola-modifica: niente censimento, stato in sola lettura, tariffa aggiornabile", async ({
     page,
-    factory,
+    collaboratore,
   }) => {
     test.setTimeout(60_000);
+
+    const nomeCompleto = `${collaboratore.collaboratore.nome} ${collaboratore.collaboratore.cognome}`;
 
     // ── 1. Login amministratore tramite endpoint e2e ───────────────
 
@@ -42,48 +46,13 @@ test.describe("US-009 Demo", () => {
       page.getByRole("heading", { name: "Collaboratori" })
     ).toBeVisible();
 
-    // ── 3. Clicca "Nuovo collaboratore" ─────────────────────────────
+    // ── 3. Il censimento non esiste più: nessun "Nuovo collaboratore" ──
 
-    await page.getByRole("link", { name: "Nuovo collaboratore" }).click();
-    await page.waitForURL("**/anagrafiche/collaboratori/nuovo");
     await expect(
-      page.getByRole("heading", { name: "Nuovo collaboratore" })
-    ).toBeVisible();
+      page.getByRole("link", { name: "Nuovo collaboratore" })
+    ).toHaveCount(0);
 
-    // ── 4. Compila tutti i campi del form ──────────────────────────
-
-    const nome = "Luca";
-    const cognome = `Bianchi ${factory.namespace}`;
-    const email = `${factory.namespace}@e2e.invalid`;
-    const nomeCompleto = `${nome} ${cognome}`;
-
-    await page.getByLabel(/^Nome\b/).fill(nome);
-    await expect(page.getByLabel(/^Nome\b/)).toHaveValue(nome);
-
-    await page.getByLabel("Cognome").fill(cognome);
-    await expect(page.getByLabel("Cognome")).toHaveValue(cognome);
-
-    await page.getByLabel("Email di accesso").fill(email);
-    await expect(page.getByLabel("Email di accesso")).toHaveValue(email);
-
-    await page.getByLabel("Partita IVA").fill("04127730961");
-    await expect(page.getByLabel("Partita IVA")).toHaveValue("04127730961");
-
-    await page.getByLabel("Tariffa giornaliera").fill("520,00");
-    await expect(page.getByLabel("Tariffa giornaliera")).toHaveValue("520,00");
-
-    // ── 5. Invia il form ────────────────────────────────────────────
-
-    await page.getByRole("button", { name: "Crea collaboratore" }).click();
-
-    // ── 6. Verifica redirect alla lista con successo ────────────────
-
-    await page.waitForURL("**/anagrafiche/collaboratori?esito=creato");
-    await expect(
-      page.getByRole("heading", { name: "Collaboratori" })
-    ).toBeVisible();
-
-    // ── 7. Trova il collaboratore appena creato nella lista ─────────
+    // ── 4. La riga del collaboratore mostra lo stato in sola lettura ──
 
     const rigaCollaboratore = page
       .locator("table[aria-label='Elenco collaboratori'] tbody tr")
@@ -91,39 +60,72 @@ test.describe("US-009 Demo", () => {
       .first();
     await expect(rigaCollaboratore.getByText(nomeCompleto)).toBeVisible();
     await expect(rigaCollaboratore.getByText("Attivo", { exact: true })).toBeVisible();
-
-    // ── 8. Il collaboratore appena creato accede tramite endpoint di test ──
-
-    const contestoCollaboratore = await page.context().browser()!.newContext();
-    const paginaCollaboratore = await contestoCollaboratore.newPage();
-
-    await paginaCollaboratore.goto("/");
     await expect(
-      paginaCollaboratore.getByRole("button", { name: "Accedi con Google" })
+      rigaCollaboratore.getByRole("button", { name: "Disattiva" })
+    ).toHaveCount(0);
+    await expect(
+      rigaCollaboratore.getByRole("button", { name: "Riattiva" })
+    ).toHaveCount(0);
+
+    // ── 5. La vecchia rotta di censimento reindirizza a Utenti ─────
+
+    await page.goto("/anagrafiche/collaboratori/nuovo");
+    await page.waitForURL("**/anagrafiche/utenti");
+    await expect(page.getByRole("heading", { name: "Utenti" })).toBeVisible();
+
+    // ── 6. Torna all'elenco collaboratori ───────────────────────────
+
+    await page
+      .getByRole("link", { name: "Collaboratori", exact: true })
+      .click();
+    await page.waitForURL("**/anagrafiche/collaboratori");
+
+    // ── 7. Apre la modifica del collaboratore ───────────────────────
+
+    const rigaDaModificare = page
+      .locator("table[aria-label='Elenco collaboratori'] tbody tr")
+      .filter({ hasText: nomeCompleto })
+      .first();
+    await rigaDaModificare.getByRole("link", { name: "Modifica" }).click();
+
+    await page.waitForURL(/\/anagrafiche\/collaboratori\/[^/]+\/modifica$/);
+    await expect(
+      page.getByRole("heading", { name: "Modifica collaboratore" })
     ).toBeVisible();
 
-    const destinazione = await paginaCollaboratore.evaluate(async (emailCollaboratore) => {
-      const res = await fetch("/api/e2e-test/sessione", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailCollaboratore }),
-      });
-      return res.json();
-    }, email);
+    // ── 8. L'email di accesso è in sola lettura ─────────────────────
 
-    expect(destinazione.redirect).toBe("/attivita");
+    const campoEmail = page.getByLabel("Email di accesso");
+    await expect(campoEmail).toHaveJSProperty("readOnly", true);
+    await expect(campoEmail).toHaveValue(collaboratore.utente.email);
 
-    // ── 9. Naviga a /attivita e verifica l'atterraggio nel front office ──
+    // ── 9. Modifica la tariffa giornaliera ──────────────────────────
 
-    await paginaCollaboratore.goto("/attivita");
-    await paginaCollaboratore.waitForURL("**/attivita**");
+    const nuovaTariffa = "610,00";
+    const campoTariffa = page.getByLabel("Tariffa giornaliera");
+    await campoTariffa.clear();
+    await campoTariffa.fill(nuovaTariffa);
+
+    // ── 10. Salva le modifiche ───────────────────────────────────────
+
+    await page.getByRole("button", { name: "Salva modifiche" }).click();
+
+    // ── 11. Verifica il redirect con esito salvato ──────────────────
+
+    await page.waitForURL("**/anagrafiche/collaboratori?esito=salvato");
     await expect(
-      paginaCollaboratore.getByRole("heading", { name: "Le mie attività", exact: true })
+      page.getByRole("heading", { name: "Collaboratori" })
     ).toBeVisible();
 
-    await contestoCollaboratore.close();
+    // ── 12. La nuova tariffa è visibile nell'elenco ─────────────────
 
-    // ── 10. Mantieni lo stato finale visibile per almeno 1.5 secondi ─
+    const rigaAggiornata = page
+      .locator("table[aria-label='Elenco collaboratori'] tbody tr")
+      .filter({ hasText: nomeCompleto })
+      .first();
+    await expect(rigaAggiornata.getByText(nuovaTariffa)).toBeVisible();
+
+    // ── 13. Mantieni lo stato finale visibile per almeno 1.5 secondi ─
 
     // Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);

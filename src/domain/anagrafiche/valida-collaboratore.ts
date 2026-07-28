@@ -5,7 +5,6 @@
 export interface DatiCollaboratoreInput {
   nome: string;
   cognome: string;
-  email: string;
   partitaIva: string;
   tariffaGiornaliera: string;
 }
@@ -18,8 +17,6 @@ export type ErroriValidazione = Record<string, string>;
 // ---------------------------------------------------------------------------
 
 const RE_CIFRE_11 = /^\d{11}$/;
-const RE_EMAIL =
-  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 const RE_IMPORTO = /^\d+(?:[.,]\d{1,2})?$/;
 
 // ---------------------------------------------------------------------------
@@ -118,12 +115,6 @@ export function validaCollaboratore(
 
   if (!dati.cognome || dati.cognome.trim() === "") {
     errori.cognome = "Il cognome è obbligatorio";
-  }
-
-  if (!dati.email || dati.email.trim() === "") {
-    errori.email = "L'email di accesso è obbligatoria";
-  } else if (!RE_EMAIL.test(dati.email.trim())) {
-    errori.email = "Inserisci un indirizzo email valido";
   }
 
   const errorePartitaIva = validaCampoPartitaIva(dati.partitaIva);

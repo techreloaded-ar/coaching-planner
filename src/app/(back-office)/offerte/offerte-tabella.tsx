@@ -245,7 +245,10 @@ function RigaOfferta({
               />
             </form>
             <div className="flex min-w-0 flex-col gap-[5px]">
-              <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-white px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+              <span
+                className="block max-w-full truncate rounded-[6px] border border-zinc-200 bg-white px-2 py-[2px] text-[11px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                title={offerta.codice}
+              >
                 {offerta.codice}
               </span>
               <span

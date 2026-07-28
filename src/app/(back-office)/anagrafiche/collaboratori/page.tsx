@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { richiediRuolo } from "@/lib/dal";
 import { elencaCollaboratori } from "@/lib/collaboratori";
 import CollaboratoriTabella from "./collaboratori-tabella";
@@ -12,12 +11,7 @@ export default async function CollaboratoriPage({ searchParams }: CollaboratoriP
   const collaboratori = await elencaCollaboratori();
   const { esito } = await searchParams;
 
-  const messaggioEsito =
-    esito === "creato"
-      ? "Collaboratore creato: può accedere al front office con il suo account Google"
-      : esito === "salvato"
-        ? "Modifiche al collaboratore salvate"
-        : null;
+  const messaggioEsito = esito === "salvato" ? "Modifiche al collaboratore salvate" : null;
 
   return (
     <div>
@@ -41,20 +35,9 @@ export default async function CollaboratoriPage({ searchParams }: CollaboratoriP
             Collaboratori
           </h1>
           <p className="mt-[6px] max-w-[560px] text-[13px] text-zinc-400 dark:text-zinc-500">
-            Ogni collaboratore accede al front office con il proprio account Google; la disattivazione revoca
-            l&apos;accesso ma conserva lo storico delle attività.
+            Il censimento e lo stato dei collaboratori si governano dalla schermata Utenti; qui restano
+            modificabili i dati anagrafici e di costo.
           </p>
-        </div>
-        <div className="mt-1 flex shrink-0 items-center gap-[10px]">
-          <Link
-            href="/anagrafiche/collaboratori/nuovo"
-            className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[15px] py-[9px] text-[13.5px] font-semibold text-white shadow-sm no-underline transition hover:bg-indigo-600"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Nuovo collaboratore
-          </Link>
         </div>
       </div>
 

@@ -92,11 +92,7 @@ import {
   collaboratorePerId,
   storicoAttivitaCollaboratore,
 } from "@/lib/collaboratori";
-import {
-  creaCollaboratore,
-  aggiornaCollaboratore,
-  cambiaStatoCollaboratore,
-} from "@/app/(back-office)/anagrafiche/collaboratori/actions";
+import { aggiornaCollaboratore } from "@/app/(back-office)/anagrafiche/collaboratori/actions";
 
 // ═══════════════════════════════════════════════════════════════════
 // Helper
@@ -110,16 +106,6 @@ const TARIFFA_NORMALIZZATA = {
   valore: "150.00",
   centesimi: BigInt(15000),
 };
-
-function formDatiCollaboratore(): FormData {
-  const formData = new FormData();
-  formData.set("nome", "Mario");
-  formData.set("cognome", "Bianchi");
-  formData.set("email", "mario.bianchi@example.com");
-  formData.set("partitaIva", "11111111111");
-  formData.set("tariffaGiornaliera", "150");
-  return formData;
-}
 
 // ═══════════════════════════════════════════════════════════════════
 // DAL collaboratori
@@ -349,132 +335,6 @@ describe("Server Actions collaboratori", () => {
     mockDb.$transaction.mockImplementation((cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
   });
 
-  // ── 5-7. creaCollaboratore ─────────────────────────────────────
-
-  describe("creaCollaboratore", () => {
-    it("con dati non validi restituisce errori senza scrivere a DB", async () => {
-      mockValidaCollaboratore.mockReturnValue({
-        nome: "Il nome è obbligatorio",
-        email: "L'email di accesso è obbligatoria",
-      });
-
-      const formData = new FormData();
-      formData.set("nome", "");
-      formData.set("cognome", "Bianchi");
-      formData.set("email", "");
-      formData.set("partitaIva", "11111111111");
-      formData.set("tariffaGiornaliera", "100");
-
-      const result = await creaCollaboratore(statoIniziale(), formData);
-
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
-      expect(mockValidaCollaboratore).toHaveBeenCalled();
-      expect(result.errori).toHaveProperty("nome");
-      expect(result.errori).toHaveProperty("email");
-      expect(mockDb.$transaction).not.toHaveBeenCalled();
-      expect(mockUtente.create).not.toHaveBeenCalled();
-      expect(mockCollaboratore.create).not.toHaveBeenCalled();
-      expect(mockRedirect).not.toHaveBeenCalled();
-    });
-
-    it("con dati validi crea Utente e Collaboratore in transazione, poi redirige", async () => {
-      mockValidaCollaboratore.mockReturnValue({});
-      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
-      mockUtente.findUnique.mockResolvedValue(null);
-      mockUtente.create.mockResolvedValue({ id: "utente-1" });
-
-      await creaCollaboratore(statoIniziale(), formDatiCollaboratore());
-
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
-      expect(mockDb.$transaction).toHaveBeenCalled();
-      expect(mockUtente.findUnique).toHaveBeenCalledWith({
-        where: { email: "mario.bianchi@example.com" },
-        include: { collaboratore: { select: { id: true } } },
-      });
-      expect(mockUtente.create).toHaveBeenCalledWith({
-        data: {
-          email: "mario.bianchi@example.com",
-          nome: "Mario Bianchi",
-          ruolo: "COLLABORATORE",
-        },
-      });
-      expect(mockCollaboratore.create).toHaveBeenCalledWith({
-        data: {
-          userId: "utente-1",
-          nome: "Mario",
-          cognome: "Bianchi",
-          partitaIva: "11111111111",
-          tariffaGiornaliera: TARIFFA_NORMALIZZATA.valore,
-          attivo: true,
-        },
-      });
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/collaboratori");
-      expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/collaboratori?esito=creato");
-    });
-
-    it("collega un admin esistente senza profilo preservandone ruolo ed email", async () => {
-      mockValidaCollaboratore.mockReturnValue({});
-      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
-      mockUtente.findUnique.mockResolvedValue({
-        id: "admin-1",
-        email: "mario.bianchi@example.com",
-        ruolo: "AMMINISTRATORE",
-        collaboratore: null,
-      });
-      mockUtente.update.mockResolvedValue({ id: "admin-1" });
-
-      await creaCollaboratore(statoIniziale(), formDatiCollaboratore());
-
-      expect(mockUtente.create).not.toHaveBeenCalled();
-      expect(mockUtente.update).toHaveBeenCalledWith({
-        where: { id: "admin-1" },
-        data: { nome: "Mario Bianchi" },
-      });
-      expect(mockCollaboratore.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ userId: "admin-1" }),
-      });
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/collaboratori");
-      expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/collaboratori?esito=creato");
-    });
-
-    it("rifiuta un'email già associata a un profilo senza effettuare write", async () => {
-      mockValidaCollaboratore.mockReturnValue({});
-      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
-      mockUtente.findUnique.mockResolvedValue({
-        id: "admin-1",
-        ruolo: "AMMINISTRATORE",
-        collaboratore: { id: "collaboratore-1" },
-      });
-
-      const result = await creaCollaboratore(statoIniziale(), formDatiCollaboratore());
-
-      expect(result.errori).toEqual({ email: "Esiste già un utente con questa email" });
-      expect(mockUtente.create).not.toHaveBeenCalled();
-      expect(mockUtente.update).not.toHaveBeenCalled();
-      expect(mockCollaboratore.create).not.toHaveBeenCalled();
-      expect(mockRevalidatePath).not.toHaveBeenCalled();
-      expect(mockRedirect).not.toHaveBeenCalled();
-    });
-
-    it("traduce una race P2002 della transazione senza confermare scritture parziali", async () => {
-      mockValidaCollaboratore.mockReturnValue({});
-      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
-      mockUtente.findUnique.mockResolvedValue(null);
-      mockUtente.create.mockResolvedValue({ id: "utente-1" });
-      mockDb.$transaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => {
-        await cb(mockDb);
-        throw { code: "P2002" };
-      });
-
-      const result = await creaCollaboratore(statoIniziale(), formDatiCollaboratore());
-
-      expect(result.errori).toEqual({ email: "Esiste già un utente con questa email" });
-      expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
-      expect(mockRevalidatePath).not.toHaveBeenCalled();
-      expect(mockRedirect).not.toHaveBeenCalled();
-    });
-  });
-
   // ── 8. aggiornaCollaboratore ────────────────────────────────────
 
   describe("aggiornaCollaboratore", () => {
@@ -487,7 +347,6 @@ describe("Server Actions collaboratori", () => {
       formData.set("id", "collab-1");
       formData.set("nome", "Mario");
       formData.set("cognome", "Bianchi");
-      formData.set("email", "mario.bianchi@example.com");
       formData.set("partitaIva", "11111111111");
       formData.set("tariffaGiornaliera", "150");
 
@@ -510,13 +369,33 @@ describe("Server Actions collaboratori", () => {
       });
       expect(mockUtente.update).toHaveBeenCalledWith({
         where: { id: "utente-1" },
-        data: {
-          nome: "Mario Bianchi",
-          email: "mario.bianchi@example.com",
-        },
+        data: { nome: "Mario Bianchi" },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/collaboratori");
       expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/collaboratori?esito=salvato");
+    });
+
+    it("ignora un'email eventualmente presente nel FormData: utente.update riceve solo il nome", async () => {
+      mockValidaCollaboratore.mockReturnValue({});
+      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
+      mockCollaboratore.findUnique.mockResolvedValue({ userId: "utente-1" });
+
+      const formData = new FormData();
+      formData.set("id", "collab-1");
+      formData.set("nome", "Mario");
+      formData.set("cognome", "Bianchi");
+      formData.set("email", "mario.bianchi@example.com");
+      formData.set("partitaIva", "11111111111");
+      formData.set("tariffaGiornaliera", "150");
+
+      await aggiornaCollaboratore(statoIniziale(), formData);
+
+      expect(mockUtente.update).toHaveBeenCalledWith({
+        where: { id: "utente-1" },
+        data: { nome: "Mario Bianchi" },
+      });
+      const datiUtenteAggiornati = mockUtente.update.mock.calls[0][0].data;
+      expect(datiUtenteAggiornati).not.toHaveProperty("email");
     });
 
     it("restituisce errore se il collaboratore non esiste", async () => {
@@ -528,7 +407,6 @@ describe("Server Actions collaboratori", () => {
       formData.set("id", "collab-inesistente");
       formData.set("nome", "Mario");
       formData.set("cognome", "Bianchi");
-      formData.set("email", "mario.bianchi@example.com");
       formData.set("partitaIva", "11111111111");
       formData.set("tariffaGiornaliera", "150");
 
@@ -540,59 +418,9 @@ describe("Server Actions collaboratori", () => {
     });
   });
 
-  // ── 9. cambiaStatoCollaboratore ─────────────────────────────────
-
-  describe("cambiaStatoCollaboratore", () => {
-    it("attiva un collaboratore impostando attivo a true", async () => {
-      const formData = new FormData();
-      formData.set("id", "collab-1");
-      formData.set("attivo", "true");
-
-      const result = await cambiaStatoCollaboratore(statoIniziale(), formData);
-
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
-      expect(mockCollaboratore.update).toHaveBeenCalledWith({
-        where: { id: "collab-1" },
-        data: { attivo: true },
-      });
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/collaboratori");
-      expect(result.successo).toBe(true);
-      expect(result.errori).toEqual({});
-    });
-
-    it("disattiva un collaboratore impostando attivo a false", async () => {
-      const formData = new FormData();
-      formData.set("id", "collab-2");
-      formData.set("attivo", "false");
-
-      const result = await cambiaStatoCollaboratore(statoIniziale(), formData);
-
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
-      expect(mockCollaboratore.update).toHaveBeenCalledWith({
-        where: { id: "collab-2" },
-        data: { attivo: false },
-      });
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/collaboratori");
-      expect(result.successo).toBe(true);
-      expect(result.errori).toEqual({});
-    });
-  });
-
   // ── 1. Guardie di ruolo Server Actions ───────────────────────────
 
   describe("guardie di ruolo — Server Actions", () => {
-    it("creaCollaboratore propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
-
-      const formData = new FormData();
-      formData.set("nome", "Mario");
-
-      await expect(
-        creaCollaboratore(statoIniziale(), formData)
-      ).rejects.toThrow("Accesso negato");
-      expect(mockDb.$transaction).not.toHaveBeenCalled();
-    });
-
     it("aggiornaCollaboratore propaga l'errore di richiediRuoloApi", async () => {
       mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
 
@@ -603,19 +431,6 @@ describe("Server Actions collaboratori", () => {
         aggiornaCollaboratore(statoIniziale(), formData)
       ).rejects.toThrow("Accesso negato");
       expect(mockCollaboratore.findUnique).not.toHaveBeenCalled();
-    });
-
-    it("cambiaStatoCollaboratore propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
-
-      const formData = new FormData();
-      formData.set("id", "collab-1");
-      formData.set("attivo", "true");
-
-      await expect(
-        cambiaStatoCollaboratore(statoIniziale(), formData)
-      ).rejects.toThrow("Accesso negato");
-      expect(mockCollaboratore.update).not.toHaveBeenCalled();
     });
   });
 });
