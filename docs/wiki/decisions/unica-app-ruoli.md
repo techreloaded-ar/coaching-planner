@@ -2,19 +2,24 @@
 type: decision
 title: Unica applicazione con aree a ruolo
 description: Servire front office e back office da un’unica applicazione con ruoli distinti
+status: reviewed
 decision_status: accepted
-status: generated
 sources:
-- path: docs/PRD.md
-  role: decision-source
-- path: src/app/(front-office)/layout.tsx
-  role: implementation
-- path: src/app/(back-office)/layout.tsx
-  role: implementation
-- path: src/lib/policy-rotte.ts
-  role: implementation
-- path: tests/e2e/autorizzazione-ruoli.spec.ts
-  role: verification
+    - path: docs/PRD.md
+      role: decision-source
+    - path: src/app/(front-office)/layout.tsx
+      role: implementation
+    - path: src/app/(back-office)/layout.tsx
+      role: implementation
+    - path: src/lib/policy-rotte.ts
+      role: implementation
+    - path: tests/e2e/autorizzazione-ruoli.spec.ts
+      role: verification
+review:
+    content_hash: sha256:9047dcf13653556982dd0e9e75f4806ceb235cf5fd60f185184d907bb0f268a1
+    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
+    evidence_hash: sha256:8e6a5409a9b28f500e36fe42729b898e1cbcf4c5e50eeb7aadb5e91811b5704c
+    reviewed_at: "2026-07-28T10:51:15Z"
 ---
 # Unica applicazione con aree a ruolo
 

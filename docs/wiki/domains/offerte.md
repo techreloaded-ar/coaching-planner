@@ -40,10 +40,10 @@ sources:
     - path: tests/e2e/ingaggi-offerta.spec.ts
       role: verification
 review:
-    content_hash: sha256:08c4956b60c9975d09b5bc3769fced82642999b6ef6ca4991bea480f3ac40694
-    evidence_revision: 8b80fd72aea9faf21254febe77b3a54d017062e3
-    evidence_hash: sha256:c1c317b5e1b0adb23d7e67a8ed998c35f2ff23677e69647706ba869299c7facb
-    reviewed_at: "2026-07-28T08:34:51Z"
+    content_hash: sha256:d004f3a752e82a16c5ee4cbd4a4b0654621a7ed9aa8ba5272e738bce16f15d44
+    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
+    evidence_hash: sha256:7a49623ce8bab3adaa2899e494359531cbdcf06ab77cd4d765608a537a0b41f4
+    reviewed_at: "2026-07-28T10:51:15Z"
 ---
 # Offerte
 
@@ -106,7 +106,7 @@ La pagina `/offerte/{offertaId}/collaboratori` (`src/app/(back-office)/offerte/[
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
 
-Codice e descrizione sono obbligatori; tariffa positiva con massimo due decimali e giorni previsti interi positivi. Il database garantisce unicità `(codice, clienteId)` e le FK. Solo la creazione verifica che il cliente sia attivo: `cambiaStatoOfferta` può riattivare un'offerta di un cliente disattivato, anche se il front office continuerà a escluderla perché filtra anche i clienti. L'avanzamento (ripartizione per collaboratore e matrice mensile) usa esclusivamente ore fatturabili e la conversione fissa di 8 ore per giornata; include offerte senza attività. Le classificazioni di avanzamento sono temporanee e possono cambiare quando cambiano budget o attività. Il mese di ogni riga è derivato in UTC dalla data dell'attività, indipendentemente dal fuso del server.
+Codice e descrizione sono obbligatori; il codice non può superare 60 caratteri (`LUNGHEZZA_MASSIMA_CODICE` in `src/domain/anagrafiche/valida-offerta.ts`); tariffa positiva con massimo due decimali e giorni previsti interi positivi. Il database garantisce unicità `(codice, clienteId)` e le FK. Solo la creazione verifica che il cliente sia attivo: `cambiaStatoOfferta` può riattivare un'offerta di un cliente disattivato, anche se il front office continuerà a escluderla perché filtra anche i clienti. L'avanzamento (ripartizione per collaboratore e matrice mensile) usa esclusivamente ore fatturabili e la conversione fissa di 8 ore per giornata; include offerte senza attività. Le classificazioni di avanzamento sono temporanee e possono cambiare quando cambiano budget o attività. Il mese di ogni riga è derivato in UTC dalla data dell'attività, indipendentemente dal fuso del server.
 
 <!-- archetipo:wiki section=verification -->
 ## Verifica

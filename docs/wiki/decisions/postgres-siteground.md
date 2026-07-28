@@ -2,19 +2,24 @@
 type: decision
 title: PostgreSQL con target SiteGround
 description: Usare PostgreSQL con target dichiarato SiteGround e sviluppo locale equivalente
+status: reviewed
 decision_status: accepted
-status: generated
 sources:
-- path: docs/PRD.md
-  role: decision-source
-- path: prisma/schema.prisma
-  role: implementation
-- path: docker-compose.yml
-  role: implementation
-- path: scripts/siteground-connectivity-check.ts
-  role: verification-tool
-- path: docs/siteground-postgres-connectivity-spike.md
-  role: verification-record
+    - path: docs/PRD.md
+      role: decision-source
+    - path: prisma/schema.prisma
+      role: implementation
+    - path: docker-compose.yml
+      role: implementation
+    - path: scripts/siteground-connectivity-check.ts
+      role: verification-tool
+    - path: docs/siteground-postgres-connectivity-spike.md
+      role: verification-record
+review:
+    content_hash: sha256:fc728a3031b08293b9e8ef7a26d08a3b98fa69bdf126061e169fce902be2fadd
+    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
+    evidence_hash: sha256:ec5dcd1fe4ff7479c7bee3ddedfaf88e1c701ac1d0136a725b877cea1c203d05
+    reviewed_at: "2026-07-28T10:51:15Z"
 ---
 # PostgreSQL con target SiteGround
 

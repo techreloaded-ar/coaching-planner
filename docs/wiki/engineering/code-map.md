@@ -92,9 +92,10 @@ coverage:
       pages:
         - domains/identita-accesso
 review:
-    content_hash: sha256:27c85d59614093b0b49cc4dfc6e756611469bd68dba62df0eaa02853ec9ed46c
-    evidence_revision: 286dd44439ff94b648969fe2519a454984989a7d
-    reviewed_at: "2026-07-27T17:39:37Z"
+    content_hash: sha256:79d71e20ddf1e249f0f414328503f52324ca950f0f13ba65dc7e169728121786
+    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
+    evidence_hash: sha256:f2612e1f9c9f2836c5443530c4f72f09326eff1fd52639d7781ee0f0ae6acc3c
+    reviewed_at: "2026-07-28T10:51:15Z"
 ---
 # Mappa del codice
 
@@ -116,6 +117,7 @@ review:
 
 - `src/lib/db.ts` e `src/generated/prisma/**`: accesso e client generato; infrastruttura, non dominio autonomo.
 - `src/lib/dal.ts`: guardie comuni e risoluzione profilo.
+- `src/lib/formattazione.ts`: formattatore euro e iniziali cliente condivisi, usati dalle viste di Clienti, Collaboratori, Offerte, Politiche rimborso e Fatturazione clienti.
 - `src/domain/consuntivi/index.ts`: validazioni e calcoli usati da più capability.
 - `src/domain/calendario/index.ts`: value object e griglia mensile per Attività.
 - `src/app/layout.tsx`, layout front/back office, `globals.css`, sidebar e `src/components/index.ts`: shell UI condivisa; il barrel componenti è vuoto.

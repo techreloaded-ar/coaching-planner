@@ -2,7 +2,7 @@
 type: decision
 title: Connessione al database senza TLS (rischio accettato)
 description: Accettazione consapevole del rischio di connessione in chiaro tra Vercel e il PostgreSQL SiteGround, in attesa del supporto TLS del provider
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: docs/siteground-postgres-connectivity-spike.md
@@ -11,6 +11,11 @@ sources:
       role: verification-tool
     - path: docs/wiki/operations/deploy-vercel-siteground.md
       role: operational-guide
+review:
+    content_hash: sha256:1081c97e341df8d699f7d55d05507086680dc422f582794e6d96f65e92dbac03
+    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
+    evidence_hash: sha256:51476444204c2a18ce76f6016ed7ccfa86c9a33208194b6dd2e61a70c1fd8253
+    reviewed_at: "2026-07-28T10:51:15Z"
 ---
 # Connessione al database senza TLS (rischio accettato)
 

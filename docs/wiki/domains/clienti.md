@@ -2,24 +2,29 @@
 type: domain
 title: Clienti
 description: Anagrafica fiscale dei clienti e loro abilitazione operativa
+status: reviewed
 classification: candidate
-status: generated
 sources:
-- path: src/app/(back-office)/anagrafiche/clienti/actions.ts
-  role: inbound-commands
-  symbol: creaCliente, aggiornaCliente, cambiaStatoCliente
-- path: src/lib/clienti.ts
-  role: application-query
-- path: src/domain/anagrafiche/valida-cliente.ts
-  role: domain-validation
-  symbol: validaCliente
-- path: prisma/schema.prisma
-  role: owned-data
-  symbol: Cliente
-- path: tests/unit/clienti-dal-actions.test.ts
-  role: verification
-- path: tests/e2e/anagrafica-clienti.spec.ts
-  role: verification
+    - path: src/app/(back-office)/anagrafiche/clienti/actions.ts
+      role: inbound-commands
+      symbol: creaCliente, aggiornaCliente, cambiaStatoCliente
+    - path: src/lib/clienti.ts
+      role: application-query
+    - path: src/domain/anagrafiche/valida-cliente.ts
+      role: domain-validation
+      symbol: validaCliente
+    - path: prisma/schema.prisma
+      role: owned-data
+      symbol: Cliente
+    - path: tests/unit/clienti-dal-actions.test.ts
+      role: verification
+    - path: tests/e2e/anagrafica-clienti.spec.ts
+      role: verification
+review:
+    content_hash: sha256:d44ac4e8158b3649c76fa7c8989b2da3ee96a0ee811a9e5c8407e4e11ce6bf85
+    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
+    evidence_hash: sha256:96b60e6bec4b7d9445dbb2cbfae72f42a019b46ab4162c6cfb1a48759f4e94b8
+    reviewed_at: "2026-07-28T10:51:15Z"
 ---
 # Clienti
 

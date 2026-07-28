@@ -2,10 +2,15 @@
 type: reference
 title: Documento dei Requisiti di Prodotto
 description: PRD originale di Coaching Planner, conservato come fonte di intento e decisioni attribuite
-status: generated
+status: reviewed
 sources:
-- path: docs/PRD.md
-  role: original
+    - path: docs/PRD.md
+      role: original
+review:
+    content_hash: sha256:54621186195155a042a26f13a7dfc50383b5e745f14bfede805b5157c7be1b9e
+    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
+    evidence_hash: sha256:72d9e11ae2e234a0ea190d62076f235fa34415f270e1d9d66227d983592c86d4
+    reviewed_at: "2026-07-28T10:51:15Z"
 ---
 # Coaching Planner - Documento dei Requisiti di Prodotto (PRD)
 
