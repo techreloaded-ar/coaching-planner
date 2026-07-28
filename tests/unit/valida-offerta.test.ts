@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+	LUNGHEZZA_MASSIMA_CODICE,
 	normalizzaTariffaGiornaliera,
 	validaOfferta,
 	type DatiOffertaInput,
@@ -26,6 +27,22 @@ describe("validaOfferta — campi obbligatori", () => {
 	it("restituisce errore se la descrizione è vuota", () => {
 		const errori = validaOfferta(baseInput({ descrizione: "" }));
 		expect(errori.descrizione).toBe("La descrizione è obbligatoria");
+	});
+});
+
+describe("validaOfferta — lunghezza codice", () => {
+	it("accetta un codice lungo esattamente il limite massimo", () => {
+		const codice = "A".repeat(LUNGHEZZA_MASSIMA_CODICE);
+		const errori = validaOfferta(baseInput({ codice }));
+		expect(errori.codice).toBeUndefined();
+	});
+
+	it("rifiuta un codice oltre il limite massimo", () => {
+		const codice = "A".repeat(LUNGHEZZA_MASSIMA_CODICE + 1);
+		const errori = validaOfferta(baseInput({ codice }));
+		expect(errori.codice).toBe(
+			`Il codice offerta non può superare ${LUNGHEZZA_MASSIMA_CODICE} caratteri`,
+		);
 	});
 });
 

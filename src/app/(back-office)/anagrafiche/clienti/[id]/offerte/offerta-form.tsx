@@ -7,6 +7,7 @@ import {
   aggiornaOfferta,
   type StatoActionOfferta,
 } from "./actions";
+import { LUNGHEZZA_MASSIMA_CODICE } from "@/domain/anagrafiche/valida-offerta";
 
 interface OffertaFormProps {
   /**
@@ -179,6 +180,7 @@ export default function OffertaForm({
               errore={stato.errori.codice}
               obbligatorio
               uppercase
+              maxLength={LUNGHEZZA_MASSIMA_CODICE}
             />
 
             <Campo
@@ -310,6 +312,7 @@ interface CampoProps {
   uppercase?: boolean;
   suffisso?: string;
   hint?: string;
+  maxLength?: number;
 }
 
 function Campo({
@@ -322,6 +325,7 @@ function Campo({
   uppercase,
   suffisso,
   hint,
+  maxLength,
 }: CampoProps) {
   return (
     <div className="mb-[18px] flex min-w-0 flex-col gap-[6px] text-left">
@@ -334,6 +338,7 @@ function Campo({
           name={name}
           defaultValue={defaultValue}
           placeholder={placeholder}
+          maxLength={maxLength}
           className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition placeholder:text-zinc-400 dark:bg-zinc-900 dark:text-zinc-100 ${
             suffisso ? "pr-11" : ""
           } ${

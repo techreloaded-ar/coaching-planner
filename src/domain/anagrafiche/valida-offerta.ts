@@ -15,6 +15,9 @@ export type ErroriValidazioneOfferta = Record<string, string>;
 const RE_IMPORTO = /^\d+(?:[.,]\d{1,2})?$/;
 const RE_INTERO = /^-?\d+$/;
 
+/** Lunghezza massima ammessa per il codice offerta: sufficiente per gli schemi in uso, evita badge illimitati in UI. */
+export const LUNGHEZZA_MASSIMA_CODICE = 60;
+
 export interface TariffaNormalizzata {
 	valore: string;
 	centesimi: bigint;
@@ -55,6 +58,8 @@ export function validaOfferta(
 
 	if (!dati.codice || dati.codice.trim() === "") {
 		errori.codice = "Il codice offerta è obbligatorio";
+	} else if (dati.codice.trim().length > LUNGHEZZA_MASSIMA_CODICE) {
+		errori.codice = `Il codice offerta non può superare ${LUNGHEZZA_MASSIMA_CODICE} caratteri`;
 	}
 
 	if (!dati.descrizione || dati.descrizione.trim() === "") {

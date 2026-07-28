@@ -77,7 +77,7 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
             <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
               Stato
             </th>
-            <th className="w-[200px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+            <th className="w-[120px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
               <span className="sr-only">Azioni</span>
             </th>
           </tr>
