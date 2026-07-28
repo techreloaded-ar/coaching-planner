@@ -38,12 +38,12 @@ worktree: .archetipo/worktrees/US-042
 fork_base: 4130b9894c7c5e80d67edf3ad56bb97c230fabf0
 history:
   - status: TODO
-    at: '2026-07-22T11:57:43Z'
+    at: "2026-07-22T11:57:43Z"
   - status: PLANNED
-    at: '2026-07-22T12:46:59Z'
+    at: "2026-07-22T12:46:59Z"
   - status: IN PROGRESS
-    at: '2026-07-22T13:37:11Z'
+    at: "2026-07-22T13:37:11Z"
   - status: REVIEW
-    at: '2026-07-22T14:20:10Z'
+    at: "2026-07-22T14:20:10Z"
   - status: DONE
-    at: '2026-07-27T09:52:34Z'
+    at: "2026-07-27T09:52:34Z"

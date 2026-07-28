@@ -35,12 +35,12 @@ body: |-
   - domains.clienti
 history:
   - status: TODO
-    at: '2026-07-16T15:40:04Z'
+    at: "2026-07-16T15:40:04Z"
   - status: PLANNED
-    at: '2026-07-20T14:58:32Z'
+    at: "2026-07-20T14:58:32Z"
   - status: IN PROGRESS
-    at: '2026-07-20T15:07:14Z'
+    at: "2026-07-20T15:07:14Z"
   - status: REVIEW
-    at: '2026-07-20T15:25:13Z'
+    at: "2026-07-20T15:25:13Z"
   - status: DONE
-    at: '2026-07-20T17:24:47Z'
+    at: "2026-07-20T17:24:47Z"

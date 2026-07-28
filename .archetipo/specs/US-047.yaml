@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: MEDIUM
 points: 2
-status: TODO
+status: DONE
 blocked_by:
   - US-045
   - US-046
@@ -38,4 +38,12 @@ body: |-
   `domains/collaboratori`, `domains/identita-accesso`
 history:
   - status: TODO
-    at: '2026-07-22T12:29:10Z'
+    at: "2026-07-22T12:29:10Z"
+  - status: PLANNED
+    at: "2026-07-28T09:37:57Z"
+  - status: IN PROGRESS
+    at: "2026-07-28T09:42:34Z"
+  - status: REVIEW
+    at: "2026-07-28T10:28:37Z"
+  - status: DONE
+    at: "2026-07-28T10:45:50Z"

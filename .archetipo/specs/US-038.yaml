@@ -35,6 +35,6 @@ body: |-
   `domains/collaboratori.md`, `domains/attivita.md`, `decisions/giornata-otto-ore.md`
 history:
   - status: TODO
-    at: '2026-07-20T11:08:18Z'
+    at: "2026-07-20T11:08:18Z"
   - status: DONE
-    at: '2026-07-21T09:36:30Z'
+    at: "2026-07-21T09:36:30Z"

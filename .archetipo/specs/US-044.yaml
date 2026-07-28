@@ -34,12 +34,12 @@ body: |-
   `domains/offerte`, `domains/collaboratori`
 history:
   - status: TODO
-    at: '2026-07-22T11:57:43Z'
+    at: "2026-07-22T11:57:43Z"
   - status: PLANNED
-    at: '2026-07-28T06:35:41Z'
+    at: "2026-07-28T06:35:41Z"
   - status: IN PROGRESS
-    at: '2026-07-28T06:46:07Z'
+    at: "2026-07-28T06:46:07Z"
   - status: REVIEW
-    at: '2026-07-28T07:12:15Z'
+    at: "2026-07-28T07:12:15Z"
   - status: DONE
-    at: '2026-07-28T08:36:27Z'
+    at: "2026-07-28T08:36:27Z"

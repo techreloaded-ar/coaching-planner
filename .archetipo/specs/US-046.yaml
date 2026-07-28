@@ -38,12 +38,12 @@ body: |-
   `domains/identita-accesso`, `domains/collaboratori`
 history:
   - status: TODO
-    at: '2026-07-22T12:29:10Z'
+    at: "2026-07-22T12:29:10Z"
   - status: PLANNED
-    at: '2026-07-27T14:32:35Z'
+    at: "2026-07-27T14:32:35Z"
   - status: IN PROGRESS
-    at: '2026-07-27T14:39:46Z'
+    at: "2026-07-27T14:39:46Z"
   - status: REVIEW
-    at: '2026-07-27T16:56:43Z'
+    at: "2026-07-27T16:56:43Z"
   - status: DONE
-    at: '2026-07-27T17:40:15Z'
+    at: "2026-07-27T17:40:15Z"

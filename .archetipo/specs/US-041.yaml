@@ -36,12 +36,12 @@ body: |-
   - `operations/deploy-vercel-siteground.md`
 history:
   - status: TODO
-    at: '2026-07-22T08:34:32Z'
+    at: "2026-07-22T08:34:32Z"
   - status: PLANNED
-    at: '2026-07-22T08:41:01Z'
+    at: "2026-07-22T08:41:01Z"
   - status: IN PROGRESS
-    at: '2026-07-22T08:43:00Z'
+    at: "2026-07-22T08:43:00Z"
   - status: REVIEW
-    at: '2026-07-22T08:56:34Z'
+    at: "2026-07-22T08:56:34Z"
   - status: DONE
-    at: '2026-07-22T09:22:54Z'
+    at: "2026-07-22T09:22:54Z"

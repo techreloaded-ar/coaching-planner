@@ -35,12 +35,12 @@ body: |-
   `domains/identita-accesso.md`, `domains/collaboratori.md`
 history:
   - status: TODO
-    at: '2026-07-21T07:10:53Z'
+    at: "2026-07-21T07:10:53Z"
   - status: PLANNED
-    at: '2026-07-21T09:53:08Z'
+    at: "2026-07-21T09:53:08Z"
   - status: IN PROGRESS
-    at: '2026-07-21T09:53:27Z'
+    at: "2026-07-21T09:53:27Z"
   - status: REVIEW
-    at: '2026-07-21T09:53:41Z'
+    at: "2026-07-21T09:53:41Z"
   - status: DONE
-    at: '2026-07-21T12:24:33Z'
+    at: "2026-07-21T12:24:33Z"

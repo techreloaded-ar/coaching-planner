@@ -1,0 +1,468 @@
+schema: archetipo/plan/v2
+spec_code: US-047
+body: |-
+  # US-047: Anagrafica collaboratori dedicata alla sola modifica del profilo — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-07-28
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** MEDIUM | **Punti:** 2
+  **Bloccata da:** US-045 (DONE), US-046 (DONE) — nessun rischio di dipendenza
+
+  **Storia Utente**
+  Come amministratore, voglio che l'anagrafica collaboratori non permetta più censimento, eliminazione o cambio di stato dei collaboratori, così che il ciclo di vita di utenze e ruoli sia governato solo dalla schermata utenti, mentre lì restano modificabili i dati anagrafici e di costo.
+
+  **Criteri di Accettazione**
+  - AC-1 — Il pulsante "Nuovo collaboratore" non è più presente e l'accesso diretto alla pagina di censimento reindirizza alla schermata utenti
+  - AC-2 — Le azioni Disattiva e Riattiva non sono più presenti nell'elenco né nella modifica
+  - AC-3 — Lo stato attivo/disattivato resta visibile in sola lettura nell'elenco
+  - AC-4 — La modifica di nome, cognome, partita IVA e tariffa giornaliera resta possibile e persistita
+  - AC-5 — Il campo email è in sola lettura nella modifica ed è modificabile solo dalla schermata utenti
+
+  ---
+
+  ## Soluzione Tecnica
+
+  La spec è una rimozione controllata di percorsi duplicati resi obsoleti da US-045/US-046: il ciclo di vita di utenze, ruoli e stato è già interamente governabile da `/anagrafiche/utenti`. L'anagrafica collaboratori resta la sede dei soli dati anagrafici e di costo.
+
+  - **Censimento (AC-1):** `page.tsx` dell'elenco perde il pulsante "Nuovo collaboratore" (e il ramo morto del banner `esito=creato`, che nessun flusso produce più); `nuovo/page.tsx` smette di renderizzare il form e diventa `redirect("/anagrafiche/utenti")` dopo la guardia `richiediRuolo("AMMINISTRATORE")`.
+  - **Cambio di stato (AC-2, AC-3):** `collaboratori-tabella.tsx` perde il bottone Disattiva, il form Riattiva, la modale di conferma e l'import di `cambiaStatoAction`; il file `cambia-stato-action.ts` dei collaboratori viene eliminato (quello dei clienti è una copia indipendente e resta). Il badge Attivo/Disattivato e il contatore in toolbar restano invariati in sola lettura. La pagina di dettaglio `[id]/page.tsx` non ha azioni di stato (verificato) e resta fuori perimetro.
+  - **Form solo modifica (AC-4, AC-5):** `collaboratore-form.tsx` diventa edit-only (prop `collaboratore` obbligatoria, niente ramo creazione né import di `creaCollaboratore`); il campo email diventa un input `readOnly` senza attributo `name` (non viene inviato), con hint che rimanda alla schermata utenti.
+  - **Server action e validazione (AC-4, AC-5 lato server):** in `actions.ts` si eliminano `creaCollaboratore` e `cambiaStatoCollaboratore` con i loro helper (`isPrismaUniqueConstraintError`, `erroreEmailDuplicata`, import `Prisma`); `aggiornaCollaboratore` smette di leggere e scrivere l'email — `utente.update` sincronizza solo `nome` (il sync del nome resta come oggi, da perimetro) — e il try/catch P2002 decade perché nessun campo unico viene più scritto. In `valida-collaboratore.ts` il campo `email` esce da `DatiCollaboratoreInput` e da `validaCollaboratore` (la regex `RE_EMAIL` diventa inutilizzata e si rimuove); `valida-utente.ts` ha la propria copia di `RE_EMAIL` e i propri controlli email, nessun impatto. `creaUtente`/`aggiornaUtente` importano solo `normalizzaTariffaGiornaliera`, `validaCampoPartitaIva`, `validaCampoTariffaGiornaliera`: invariati.
+  - **Test esistenti impattati (da riscrivere, non da aggirare):** `tests/e2e/anagrafica-collaboratori.spec.ts` (tutti gli scenari usano censimento e Disattiva/Riattiva), `tests/e2e/demo__anagrafica-collaboratori.spec.ts` (demo US-009 basata sul censimento, gira in CI), `tests/e2e/attivita-amministratore.spec.ts` (auto-censimento del profilo via `/collaboratori/nuovo`, da migrare al flusso US-046 via modifica utente), `tests/unit/collaboratori-dal-actions.test.ts` e `tests/unit/valida-collaboratore.test.ts`.
+
+  ### Decisioni Architetturali
+
+  Nessuna nuova ADR: la spec applica la decisione esistente [Ruoli combinabili derivati dal profilo collaboratore](decisions/ruoli-combinabili-profilo-derivato) consolidando la schermata utenti come unico punto di governo del ciclo di vita. Non esistono alternative progettuali sopra soglia: è la rimozione dell'ultimo percorso ridondante.
+
+  ---
+
+  ## Baseline
+
+  Eseguita il 2026-07-28 su `main` pulito (workdir = project root, nessun worktree).
+
+  | Verifica | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm run lint` | ✅ passa (ESLint + guardrail anti-flakiness e2e) | I task devono lasciarlo verde; il guardrail vincola lo stile dei nuovi e2e |
+  | `npx tsc --noEmit` | ✅ passa (exit 0) | Nessun file toccato può introdurre nuovi diagnostici |
+  | `npx vitest run tests/unit/collaboratori-dal-actions.test.ts tests/unit/valida-collaboratore.test.ts tests/unit/utenti-actions.test.ts` | ✅ 79 test passano | Le suite riscritte devono ripassare; `utenti-actions.test.ts` non va toccata e deve restare verde |
+
+  **Prerequisiti d'ambiente per gli e2e (separati dai fallimenti di codice):** gli e2e non sono stati eseguiti in baseline perché richiedono infrastruttura, non perché falliscano. Servono: PostgreSQL locale con `DATABASE_URL` e `E2E_DATABASE_URL`, `npx prisma migrate deploy`, `npx prisma db seed`, `npx playwright install chromium`, `E2E_TEST_MODE=true`. La CI esegue l'intera suite (`npm run test:e2e`) su questa stessa sequenza; il contratto completo è in `tests/e2e/README.md`.
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task produttore |
+  |---|---|---|---|---|
+  | AC-1 | Admin autenticato; nessuna fixture aggiuntiva | e2e browser | Sull'elenco, `getByRole("link", { name: "Nuovo collaboratore" })` ha count 0; `page.goto("/anagrafiche/collaboratori/nuovo")` termina con `waitForURL("**/anagrafiche/utenti")` | TASK-06 |
+  | AC-2 | Collaboratore attivo + collaboratore disattivato creati da factory | e2e browser | Nella riga elenco e nella pagina di modifica, `getByRole("button", { name: "Disattiva" })` e `{ name: "Riattiva" }` hanno count 0 | TASK-06 |
+  | AC-3 | Stesse fixture di AC-2 | e2e browser | Badge testuale "Attivo" (exact) visibile sulla riga del collaboratore attivo e "Disattivato" su quella del disattivato, senza controlli interattivi associati | TASK-06 |
+  | AC-4 | Collaboratore attivo da factory | e2e browser + unit | e2e: modifica di nome e tariffa → redirect `**/anagrafiche/collaboratori?esito=salvato` → nuovi valori visibili in elenco anche dopo `page.reload()`; unit: `collaboratore.update` riceve esattamente nome/cognome/partitaIva/tariffa normalizzata | TASK-05, TASK-06 |
+  | AC-5 | Collaboratore attivo da factory | e2e browser + unit | e2e: input email con `toHaveJSProperty("readOnly", true)` e, dopo un salvataggio, email invariata in elenco; unit: `utente.update` riceve solo `{ nome }`, senza campo `email`, anche se il FormData contiene una email diversa | TASK-05, TASK-06 |
+
+  ---
+
+  ## Strategia di Test
+
+  Due livelli complementari: unit sui contratti esatti delle action (payload Prisma, guardie, assenza di scritture indebite) ed e2e browser sull'esperienza dell'amministratore, obbligatori perché i criteri attraversano rotte, redirect server-side, autorizzazione e persistenza.
+
+  - Gli e2e usano esclusivamente collaboratori creati da factory (`tests/e2e/support/fixtures.ts`), mai le entità seed (Giulia Conti), selezione per label/nome esatto, web-first `expect`, nessun hard wait — come da guardrail.
+  - Le suite unit riscritte verificano anche il negativo: una email presente nel FormData non deve produrre alcuna scrittura su `utente.email`.
+  - `attivita-amministratore.spec.ts` migra il journey di auto-censimento al flusso sancito da US-046 (modifica utente + checkbox Collaboratore), riusando i pattern di interazione già collaudati in `gestione-utenti.spec.ts`.
+  - La demo US-009 viene riscritta sul nuovo comportamento della pagina, che è esattamente la Dimostrazione di US-047.
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (già configurato; nessun setup aggiuntivo necessario)
+  **Video demo:** atteso e filmabile (flusso back-office interamente osservabile; registrazione a carico di `archetipo-review`)
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Censimento non disponibile | Admin apre l'elenco collaboratori: nessun pulsante "Nuovo collaboratore"; naviga direttamente a `/anagrafiche/collaboratori/nuovo` e atterra su `/anagrafiche/utenti` |
+  | Stato in sola lettura | Admin osserva i badge Attivo/Disattivato su collaboratori factory senza azioni Disattiva/Riattiva né in elenco né in modifica |
+  | Modifica profilo persistita | Admin apre la modifica, cambia nome e tariffa, salva, rivede i nuovi valori in elenco dopo reload |
+  | Email non modificabile | Admin osserva il campo email in sola lettura; il salvataggio non altera l'email mostrata in elenco |
+  | Auto-provisioning profilo admin (migrato) | Admin senza profilo vede lo stato vuoto nel front office, aggiunge a sé stesso il ruolo Collaboratore dalla schermata utenti e torna a vedere "Le mie attività" |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/collaboratori, decisions/ruoli-combinabili-profilo-derivato]
+    update_after_acceptance: [domains/collaboratori]
+    create: []
+  ```
+
+  `wiki affected` sui path del piano restituisce `domains/collaboratori` ed `engineering/code-map`. La prima entra nel contratto: contratti e flussi osservati (`creaCollaboratore`, `cambiaStatoCollaboratore`, flussi 1, 2 e 5) cambiano semanticamente. `engineering/code-map` resta fuori: è già in stato `stale` e la sua natura di matrice fisica la rende co-citazione da rinfrescare con i normali cicli wiki, non conoscenza alterata da questa spec. `domains/identita-accesso` (citata nel contesto della spec) non cambia: la schermata utenti non viene toccata.
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-07-28_
+tasks:
+  - id: TASK-01
+    title: 'Rimuovi il censimento: pulsante "Nuovo collaboratore" e redirect della pagina nuovo'
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      L'elenco collaboratori non offre più il censimento e l'accesso diretto a `/anagrafiche/collaboratori/nuovo` reindirizza alla schermata utenti.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/collaboratori/page.tsx — pulsante "Nuovo collaboratore" (righe ~48-58), ramo `esito === "creato"` del banner, import di `Link`
+      - src/app/(back-office)/anagrafiche/collaboratori/nuovo/page.tsx — attuale rendering di `CollaboratoreForm`
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/collaboratori/page.tsx — rimuovi il blocco `<Link href="/anagrafiche/collaboratori/nuovo">…Nuovo collaboratore…</Link>` con il suo contenitore `div`; rimuovi il ramo `esito === "creato"` dal calcolo di `messaggioEsito` (resta solo `salvato`); rimuovi l'import di `Link` se non più usato; aggiorna il sottotitolo descrittivo per riflettere che il ciclo di vita si governa dalla schermata utenti (es. "Il censimento e lo stato dei collaboratori si governano dalla schermata Utenti; qui restano modificabili i dati anagrafici e di costo.")
+      - src/app/(back-office)/anagrafiche/collaboratori/nuovo/page.tsx — sostituisci il rendering del form con `redirect("/anagrafiche/utenti")` da `next/navigation`, mantenendo `await richiediRuolo("AMMINISTRATORE")` come prima istruzione; rimuovi l'import di `CollaboratoreForm`
+      - Non toccare: `collaboratori-tabella.tsx` (TASK-02), `collaboratore-form.tsx` (TASK-03), la pagina di dettaglio `[id]/page.tsx`
+
+      ## Steps
+      1. In `nuovo/page.tsx` sostituisci il body con guardia + `redirect("/anagrafiche/utenti")` e sistema gli import.
+      2. In `page.tsx` rimuovi pulsante, ramo `creato` e import inutilizzati; aggiorna il sottotitolo.
+      3. Compila il progetto per verificare l'assenza di import pendenti.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0 (baseline verde, nessun nuovo diagnostico)
+      - Run: `npx eslint "src/app/(back-office)/anagrafiche/collaboratori/page.tsx" "src/app/(back-office)/anagrafiche/collaboratori/nuovo/page.tsx"`
+      - Expect: nessun errore
+
+      ## Done
+      - [ ] AC-1 — Il pulsante "Nuovo collaboratore" non è più renderizzato nell'elenco e `/anagrafiche/collaboratori/nuovo` esegue un redirect server-side a `/anagrafiche/utenti` per l'amministratore autenticato
+      - [ ] Il banner `esito=creato` (ramo morto) è rimosso; `esito=salvato` funziona come prima
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Rimuovi le azioni Disattiva/Riattiva dall'elenco e l'action di cambio stato
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      L'elenco collaboratori mostra lo stato attivo/disattivato in sola lettura, senza azioni di cambio stato, e l'action server dedicata non esiste più.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratori-tabella.tsx — import `cambiaStatoAction`, stati `collaboratoreDaDisattivare`/`modaleAperta`, callback `chiudiModale`/`apriModaleDisattiva`, bottone Disattiva (righe ~183-193), form Riattiva (~195-208), modale di conferma (~218-276)
+      - src/app/(back-office)/anagrafiche/collaboratori/cambia-stato-action.ts — file da eliminare (attenzione: `clienti/cambia-stato-action.ts` è una copia indipendente della capability Clienti e NON va toccata)
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratori-tabella.tsx — rimuovi bottone Disattiva, form Riattiva, l'intera modale di conferma, gli stati e i callback correlati, gli import di `cambiaStatoAction` e `useCallback` (se non più usato); conserva: filtro di ricerca, contatore "N attivi · N disattivati", badge di stato Attivo/Disattivato, link Modifica, navigazione al dettaglio; la colonna azioni resta con il solo link Modifica
+      - src/app/(back-office)/anagrafiche/collaboratori/cambia-stato-action.ts — elimina il file
+      - Non toccare: `actions.ts` (`cambiaStatoCollaboratore` viene rimossa in TASK-04)
+
+      ## Steps
+      1. Elimina dalla tabella la modale, i due controlli di stato e tutto lo stato React che li serviva.
+      2. Sistema gli import residui del componente.
+      3. Elimina `cambia-stato-action.ts` dei collaboratori.
+      4. Verifica con grep che non restino riferimenti: `grep -rn "cambia-stato-action" "src/app/(back-office)/anagrafiche/collaboratori"` deve restituire vuoto.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0
+      - Run: `npx eslint "src/app/(back-office)/anagrafiche/collaboratori/collaboratori-tabella.tsx"`
+      - Expect: nessun errore
+
+      ## Done
+      - [ ] AC-2 — Nessun bottone Disattiva/Riattiva né modale di conferma nell'elenco collaboratori
+      - [ ] AC-3 — Il badge di stato Attivo/Disattivato e il contatore restano visibili invariati, in sola lettura
+      - [ ] Il file `cambia-stato-action.ts` dei collaboratori non esiste più; quello dei clienti è intatto
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Riduci il form collaboratore alla sola modifica con email in sola lettura
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      `CollaboratoreForm` funziona solo in modifica: email visibile ma in sola lettura e non inviata al server; nome, cognome, partita IVA e tariffa restano modificabili.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratore-form.tsx — prop opzionale `collaboratore`, flag `inModifica`, scelta tra `creaCollaboratore`/`aggiornaCollaboratore` in `useActionState` (riga ~36), campo email (righe ~131-141), componente interno `Campo`
+      - src/app/(back-office)/anagrafiche/collaboratori/[id]/modifica/page.tsx — unico chiamante rimasto dopo TASK-01 (non richiede modifiche)
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratore-form.tsx — rendi la prop `collaboratore` obbligatoria; elimina il flag `inModifica` e tutti i suoi rami (titolo fisso "Modifica collaboratore", bottone fisso "Salva modifiche", hidden input `id` sempre presente); usa solo `aggiornaCollaboratore` in `useActionState` e rimuovi l'import di `creaCollaboratore`; trasforma il campo email in input in sola lettura: `readOnly`, SENZA attributo `name` (così non entra nel FormData), stile visivamente distinto (es. sfondo `bg-zinc-50 dark:bg-zinc-800/50` e `cursor-default`) e hint "L'email di accesso si modifica dalla schermata Utenti"; per farlo estendi `Campo` con una prop `soloLettura?: boolean` che applica `readOnly`, omette `name` e cambia lo stile, oppure renderizza l'email con un blocco dedicato — scegli l'estensione di `Campo` per coerenza col resto del form; aggiorna il box informativo "Accesso con Google" se il testo presuppone la creazione; rimuovi il ramo `?? ""` sui default ora che la prop è certa
+      - Non toccare: `actions.ts` (TASK-04), il footer con badge "Stato attuale" che resta com'è (sola lettura, coerente con AC-3)
+
+      ## Steps
+      1. Rendi obbligatoria la prop e rimuovi i rami di creazione (titolo, bottone, action, hidden id condizionale).
+      2. Estendi `Campo` con `soloLettura` e applicala al campo email con il nuovo hint.
+      3. Verifica che il FormData inviato non contenga `email` (l'input non ha `name`).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0 (in questo momento `aggiornaCollaboratore` valida ancora l'email lato server: il flusso end-to-end torna coerente con TASK-04, immediatamente successivo)
+      - Run: `npx eslint "src/app/(back-office)/anagrafiche/collaboratori/collaboratore-form.tsx"`
+      - Expect: nessun errore
+
+      ## Done
+      - [ ] AC-5 (lato client) — Il campo email è renderizzato `readOnly`, senza `name`, con hint che rimanda alla schermata utenti
+      - [ ] AC-4 (lato client) — Nome, cognome, partita IVA e tariffa restano input modificabili e inviati
+      - [ ] Il form non referenzia più `creaCollaboratore` né alcun ramo di creazione
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Elimina le action di censimento e cambio stato; l'aggiornamento non tocca più l'email
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+      - TASK-03
+    body: |-
+      ## Objective
+      `actions.ts` espone solo `aggiornaCollaboratore`, che aggiorna profilo e nome utente senza mai scrivere `utente.email`; la validazione di dominio non contempla più l'email.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/collaboratori/actions.ts — `creaCollaboratore` (righe ~72-148), `cambiaStatoCollaboratore` (~229-252), helper `isPrismaUniqueConstraintError`/`erroreEmailDuplicata`, `datiDaForm`, corpo di `aggiornaCollaboratore` (`utente.update` con `email` a riga ~204-210, try/catch P2002)
+      - src/domain/anagrafiche/valida-collaboratore.ts — `DatiCollaboratoreInput.email`, blocco email in `validaCollaboratore` (righe ~123-127), costante `RE_EMAIL`
+      - src/domain/anagrafiche/valida-utente.ts — conferma che ha una propria `RE_EMAIL` e importa solo `validaCampoPartitaIva`/`validaCampoTariffaGiornaliera`: nessun impatto
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/collaboratori/actions.ts — elimina `creaCollaboratore`, `cambiaStatoCollaboratore`, `isPrismaUniqueConstraintError`, `erroreEmailDuplicata` e l'import di `Prisma`; in `datiDaForm` rimuovi l'estrazione di `email`; in `aggiornaCollaboratore` il `tx.utente.update` scrive solo `{ nome: `${dati.nome} ${dati.cognome}` }` e il try/catch P2002 viene rimosso (nessun campo unico viene più scritto); aggiorna il commento JSDoc dell'action
+      - src/domain/anagrafiche/valida-collaboratore.ts — rimuovi `email` da `DatiCollaboratoreInput`, il blocco di validazione email da `validaCollaboratore` e la costante `RE_EMAIL` ormai inutilizzata; non toccare `validaCampoPartitaIva`, `validaCampoTariffaGiornaliera`, `normalizzaTariffaGiornaliera` (riusati da `valida-utente.ts` e `utenti/actions.ts`)
+      - Non toccare: `src/app/(back-office)/anagrafiche/utenti/**`, `src/lib/collaboratori.ts`
+
+      ## Steps
+      1. Rimuovi le due action e gli helper dedicati, sistemando gli import.
+      2. Aggiorna `datiDaForm` e `aggiornaCollaboratore` (niente email, niente try/catch).
+      3. Snellisci `valida-collaboratore.ts` come sopra.
+      4. Verifica con grep l'assenza di riferimenti residui: `grep -rn "creaCollaboratore\|cambiaStatoCollaboratore" src/` deve restituire vuoto.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0
+      - Run: `npx vitest run tests/unit/utenti-actions.test.ts tests/unit/valida-utente.test.ts`
+      - Expect: tutti verdi (nessuna regressione sui riusi condivisi). Nota: `tests/unit/collaboratori-dal-actions.test.ts` e `tests/unit/valida-collaboratore.test.ts` a questo punto NON compilano più — è atteso e viene sanato da TASK-05, immediatamente successivo
+
+      ## Done
+      - [ ] AC-5 (lato server) — `aggiornaCollaboratore` non legge né scrive `utente.email` in alcun percorso
+      - [ ] AC-4 (lato server) — L'aggiornamento di nome, cognome, partita IVA e tariffa resta transazionale e sincronizza `utente.nome`
+      - [ ] `creaCollaboratore` e `cambiaStatoCollaboratore` non esistono più nel codebase
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Riscrivi i test unit di action e validazione collaboratore
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      Le suite unit riflettono il nuovo contratto: niente censimento né cambio stato, aggiornamento senza email, validazione senza campo email.
+
+      ## Read
+      - tests/unit/collaboratori-dal-actions.test.ts — import (righe ~96-98), describe `creaCollaboratore` (~352-476), describe `aggiornaCollaboratore` (~478-541, incluso l'expect su `utente.update` con `email`), describe `cambiaStatoCollaboratore` (~543 ss.), guardie di ruolo (~584-616)
+      - tests/unit/valida-collaboratore.test.ts — casi sul campo email
+      - src/app/(back-office)/anagrafiche/collaboratori/actions.ts — contratto post TASK-04
+
+      ## Change
+      - tests/unit/collaboratori-dal-actions.test.ts — elimina i describe `creaCollaboratore` e `cambiaStatoCollaboratore` e le relative guardie di ruolo; aggiorna `aggiornaCollaboratore`: il FormData di test non include email nei casi standard, `utente.update` è atteso con esattamente `{ nome: "Mario Bianchi" }` (nessuna chiave `email`); AGGIUNGI un caso negativo: FormData contenente `email` estranea → `utente.update` comunque invocata senza chiave `email` (l'email nel form viene ignorata); conserva i test su elenco/dettaglio query e la guardia `richiediRuoloApi` per `aggiornaCollaboratore`
+      - tests/unit/valida-collaboratore.test.ts — rimuovi i casi sul campo email (obbligatorietà e formato); i dati di input di test non hanno più la proprietà `email`; conserva integralmente i casi di partita IVA, tariffa e normalizzazione
+      - Non toccare: tests/unit/utenti-actions.test.ts, tests/unit/valida-utente.test.ts
+
+      ## Steps
+      1. Aggiorna gli import e rimuovi i describe delle action eliminate.
+      2. Riallinea le aspettative di `aggiornaCollaboratore` e aggiungi il caso email-ignorata.
+      3. Snellisci `valida-collaboratore.test.ts`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/collaboratori-dal-actions.test.ts tests/unit/valida-collaboratore.test.ts tests/unit/utenti-actions.test.ts tests/unit/valida-utente.test.ts`
+      - Expect: tutti verdi (baseline: le tre suite preesistenti contavano 79 test; il conteggio scende per i describe rimossi e questo è atteso)
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0
+
+      ## Done
+      - [ ] AC-4 — Test verde che prova il payload esatto di `collaboratore.update` (nome, cognome, partitaIva, tariffa normalizzata) e il redirect `?esito=salvato`
+      - [ ] AC-5 — Test verde che prova che `utente.update` riceve solo `{ nome }` anche quando il FormData contiene una email
+      - [ ] Nessun riferimento residuo a `creaCollaboratore`/`cambiaStatoCollaboratore` nei test
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Riscrivi la suite e2e dell'anagrafica collaboratori sui nuovi criteri
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      `tests/e2e/anagrafica-collaboratori.spec.ts` prova AC-1, AC-2, AC-3, AC-4 e AC-5 nel browser con dati creati da factory.
+
+      ## Read
+      - tests/e2e/anagrafica-collaboratori.spec.ts — suite attuale interamente basata su censimento e Disattiva/Riattiva, da sostituire
+      - tests/e2e/support/fixtures.ts — fixture `factory` e `collaboratore`; `factory.createCollaboratore()` accetta opzioni (es. `{ attivo: false }`, vedi uso in attivita-amministratore.spec.ts riga ~157)
+      - tests/e2e/README.md — contratto anti-flakiness
+      - tests/e2e/gestione-utenti.spec.ts — pattern di selezione righe per email/nome factory
+
+      ## Change
+      - tests/e2e/anagrafica-collaboratori.spec.ts — riscrivi la suite (aggiorna l'intestazione del file a US-047) con questi scenari, usando `test` da `./support/fixtures` e admin via `accediComeAdmin`:
+        1. **Censimento non disponibile (AC-1):** sull'elenco `getByRole("link", { name: "Nuovo collaboratore" })` → `toHaveCount(0)`; `page.goto("/anagrafiche/collaboratori/nuovo")` → `waitForURL("**/anagrafiche/utenti")` e heading della schermata utenti visibile
+        2. **Stato sola lettura (AC-2, AC-3):** crea con factory un collaboratore attivo e uno `{ attivo: false }`; sulla riga del primo badge "Attivo" (exact) visibile, su quella del secondo "Disattivato" visibile; in entrambe `getByRole("button", { name: "Disattiva" })` e `{ name: "Riattiva" }` → `toHaveCount(0)`; apri la modifica del collaboratore attivo e verifica count 0 anche lì
+        3. **Modifica persistita (AC-4):** dalla riga del collaboratore factory clicca "Modifica", cambia nome e tariffa (valore univoco es. "777,50"), salva → `waitForURL("**/anagrafiche/collaboratori?esito=salvato")` → nuovi valori visibili nella riga; `page.reload()` → ancora visibili
+        4. **Email sola lettura (AC-5):** nella modifica, input email → `toHaveJSProperty("readOnly", true)`; salva senza toccarla → email invariata nella riga dell'elenco
+      - Rispetta il guardrail: nessun `selectOption` per indice, nessun hard wait, nessuna classe Tailwind come selettore, nessuna mutazione di entità seed
+
+      ## Steps
+      1. Riscrivi la suite con i quattro scenari sopra, righe individuate con `.filter({ hasText: nomeCompletoFactory })`.
+      2. Esegui il guardrail lint e la suite in locale (prerequisiti d'ambiente in Baseline: Postgres, migrate, seed, chromium).
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: verde, incluso il guardrail anti-flakiness
+      - Run: `npm run test:e2e -- tests/e2e/anagrafica-collaboratori.spec.ts`
+      - Expect: tutti gli scenari verdi (richiede l'ambiente e2e descritto nella Baseline del piano)
+
+      ## Done
+      - [ ] AC-1 — Scenario 1 verde con entrambi gli oracoli (assenza link + redirect)
+      - [ ] AC-2 — Scenario 2 verde: nessun controllo Disattiva/Riattiva in elenco né in modifica
+      - [ ] AC-3 — Scenario 2 verde: badge di stato visibili per attivo e disattivato
+      - [ ] AC-4 — Scenario 3 verde: valori modificati persistiti dopo reload
+      - [ ] AC-5 — Scenario 4 verde: email readOnly e invariata dopo salvataggio
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Migra il test attività-amministratore al flusso di auto-provisioning via schermata utenti
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      Il journey "amministratore senza profilo crea il proprio profilo" in `attivita-amministratore.spec.ts` usa il flusso US-046 (modifica utente + ruolo Collaboratore) invece della pagina di censimento rimossa.
+
+      ## Read
+      - tests/e2e/attivita-amministratore.spec.ts — test alle righe ~99-148: dopo lo stato vuoto clicca "Apri Anagrafica collaboratori" → "Nuovo collaboratore" → compila il form rimosso
+      - tests/e2e/gestione-utenti.spec.ts — helper locali per commutare il checkbox di ruolo `sr-only` cliccando la card (righe ~37-105) e pattern di compilazione dei campi profilo (Cognome, Partita IVA, Tariffa giornaliera)
+      - src/app/(back-office)/anagrafiche/utenti/utenti-tabella.tsx — come raggiungere la modifica di un utente dall'elenco
+
+      ## Change
+      - tests/e2e/attivita-amministratore.spec.ts — nel test dell'auto-provisioning: conserva le asserzioni sullo stato vuoto del front office e il click su "Apri Anagrafica collaboratori" (il link resta, fuori perimetro); sostituisci il passaggio per `/anagrafiche/collaboratori/nuovo` con: naviga a `/anagrafiche/utenti`, individua la riga dell'amministratore factory per email, apri la modifica, seleziona il ruolo Collaboratore con il pattern di click-sulla-card usato in `gestione-utenti.spec.ts` (replicando localmente l'helper minimo necessario, senza importare tra file spec), compila Cognome/Partita IVA (11 cifre es. "01234567890")/Tariffa giornaliera ("450,00"), salva; poi `page.goto("/attivita")` e conserva le asserzioni esistenti su "Le mie attività" e la console amministrativa
+      - Non toccare gli altri test del file
+
+      ## Steps
+      1. Replica l'helper minimo di commutazione ruolo nel file (o inline), coerente con l'approccio anti-flakiness di gestione-utenti.
+      2. Sostituisci il segmento di censimento con il flusso via utenti.
+      3. Esegui la suite in locale.
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: verde, incluso il guardrail
+      - Run: `npm run test:e2e -- tests/e2e/attivita-amministratore.spec.ts`
+      - Expect: tutti i test del file verdi (ambiente e2e come da Baseline)
+
+      ## Done
+      - [ ] Il journey di auto-provisioning passa dalla schermata utenti e termina con "Le mie attività" visibile
+      - [ ] Nessun riferimento residuo a `/anagrafiche/collaboratori/nuovo` nel file
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Riscrivi la demo e2e dell'anagrafica collaboratori sulla dimostrazione di US-047
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      `demo__anagrafica-collaboratori.spec.ts` registra il nuovo comportamento della pagina (la Dimostrazione di US-047) invece del censimento rimosso, restando verde in CI.
+
+      ## Read
+      - tests/e2e/demo__anagrafica-collaboratori.spec.ts — demo attuale US-009 basata su "Nuovo collaboratore"; nota `test.use` (video on, slowMo) e uso di `factory.namespace`
+      - tests/e2e/support/fixtures.ts — `factory.createCollaboratore()` per predisporre il collaboratore da modificare
+
+      ## Change
+      - tests/e2e/demo__anagrafica-collaboratori.spec.ts — riscrivi lo scenario mantenendo `test.use` e lo stile registrabile (pausa finale di ritmo video consentita): intestazione aggiornata a US-047; flusso: login admin → sidebar "Collaboratori" → osserva assenza del pulsante "Nuovo collaboratore" (`toHaveCount(0)`) e badge di stato in sola lettura sulla riga del collaboratore factory → `page.goto("/anagrafiche/collaboratori/nuovo")` → atterra su `/anagrafiche/utenti` → torna all'elenco collaboratori → apre la modifica del collaboratore factory → mostra l'email `readOnly` (`toHaveJSProperty("readOnly", true)`) → cambia la tariffa (es. "610,00") → salva → `?esito=salvato` → nuovo valore visibile in elenco
+      - Usa solo il collaboratore creato da factory, mai le entità seed
+
+      ## Steps
+      1. Riscrivi la demo con il flusso sopra.
+      2. Esegui in locale con l'ambiente e2e.
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: verde, incluso il guardrail
+      - Run: `npm run test:e2e -- tests/e2e/demo__anagrafica-collaboratori.spec.ts`
+      - Expect: demo verde con video registrato (ambiente e2e come da Baseline)
+
+      ## Done
+      - [ ] La demo percorre esattamente la Dimostrazione di US-047 (niente censimento, redirect, stato sola lettura, tariffa modificata e persistita, email readOnly)
+      - [ ] Nessun riferimento residuo al flusso "Crea collaboratore"
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: 'Gate finale: regressione completa e verifica di chiusura spec'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+    body: |-
+      ## Objective
+      Tutte le verifiche del repository sono verdi sull'increment completo e la spec è pronta per la review senza task residui.
+
+      ## Read
+      - .github/workflows/ci.yml — sequenza di riferimento: lint → unit → build → e2e
+      - Sezione Baseline del piano — comandi e prerequisiti d'ambiente e2e
+
+      ## Change
+      - Nessuna modifica di codice prevista. Solo correzioni puntuali se una verifica fallisce (e in tal caso rieseguire l'intero gate).
+
+      ## Steps
+      1. Esegui nell'ordine i comandi in Verify dal project root.
+      2. Se tutto è verde, marca questo task `DONE` tramite il connettore.
+      3. Dal project root esegui `archetipo spec show US-047` e verifica nel JSON che OGNI task del piano (TASK-01…TASK-09) sia in stato `DONE` e nessuno resti `TODO`.
+      4. Solo dopo questa conferma è consentito richiedere la review con `archetipo spec review US-047`.
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: verde (ESLint + guardrail anti-flakiness)
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessun nuovo diagnostico rispetto alla baseline (che era pulita)
+      - Run: `npm test`
+      - Expect: intera suite unit verde
+      - Run: `npm run build`
+      - Expect: build Next.js completata senza errori
+      - Run: `npm run test:e2e -- tests/e2e/anagrafica-collaboratori.spec.ts tests/e2e/attivita-amministratore.spec.ts tests/e2e/demo__anagrafica-collaboratori.spec.ts tests/e2e/gestione-utenti.spec.ts tests/e2e/dettaglio-collaboratore.spec.ts`
+      - Expect: verdi — i tre file riscritti più le due suite adiacenti non modificate (gestione utenti e dettaglio collaboratore) come regressione mirata; prerequisiti d'ambiente come da Baseline
+      - Run: `npm run test:e2e`
+      - Expect: intera suite e2e verde (equivalente al gate CI)
+
+      ## Done
+      - [ ] Tutti i comandi sopra verdi nell'ordine indicato
+      - [ ] AC-1…AC-5 provati dalle suite riscritte (TASK-05…TASK-08) all'interno della regressione completa
+      - [ ] `archetipo spec show US-047` conferma tutti i task `DONE`; solo allora viene richiesta la review
+
+      ## Blockers
+      None.
+    ref: TASK-09

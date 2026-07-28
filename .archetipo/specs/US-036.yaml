@@ -34,12 +34,12 @@ body: |-
   `domains/offerte.md`, `domains/attivita.md`, `decisions/giornata-otto-ore.md`
 history:
   - status: TODO
-    at: '2026-07-20T11:08:18Z'
+    at: "2026-07-20T11:08:18Z"
   - status: PLANNED
-    at: '2026-07-20T15:13:59Z'
+    at: "2026-07-20T15:13:59Z"
   - status: IN PROGRESS
-    at: '2026-07-20T17:27:24Z'
+    at: "2026-07-20T17:27:24Z"
   - status: REVIEW
-    at: '2026-07-20T17:47:49Z'
+    at: "2026-07-20T17:47:49Z"
   - status: DONE
-    at: '2026-07-21T06:13:33Z'
+    at: "2026-07-21T06:13:33Z"
