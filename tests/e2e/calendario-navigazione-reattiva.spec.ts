@@ -75,13 +75,9 @@ test.describe("US-050 Navigazione mese reattiva", () => {
     // AC-2 / AC-4: celle del nuovo mese valorizzate, indicatore scomparso.
     const cella = page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`);
     await expect(cella).toHaveAttribute("data-con-attivita", "true");
-    await expect(cella.getByText("3.0 h", { exact: true })).toBeVisible();
-    await expect(
-      cella.getByText(
-        `${clienteConOfferta.cliente.ragioneSociale} 3.0 h`,
-        { exact: true },
-      ),
-    ).toBeVisible();
+    await expect(cella.getByTestId("etichetta-cliente")).toHaveText(
+      `${clienteConOfferta.cliente.ragioneSociale} 3.0 h`,
+    );
     await expect(page.getByTestId("indicatore-caricamento-mese")).toBeHidden();
     await expect(calendario).toHaveAttribute("aria-busy", "false");
 
@@ -122,6 +118,8 @@ test.describe("US-050 Navigazione mese reattiva", () => {
     // AC-3: l'indirizzo condiviso apre direttamente il mese richiesto, valorizzato.
     const cella = page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`);
     await expect(cella).toHaveAttribute("data-con-attivita", "true");
-    await expect(cella.getByText("3.0 h", { exact: true })).toBeVisible();
+    await expect(cella.getByTestId("etichetta-cliente")).toHaveText(
+      `${clienteConOfferta.cliente.ragioneSociale} 3.0 h`,
+    );
   });
 });

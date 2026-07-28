@@ -44,10 +44,22 @@ test.describe("US-050 Prefetch mesi adiacenti", () => {
       ore: "2.00",
     });
 
-    // Contatore registrato prima del goto: intercetta anche il prefetch al mount.
+    // Conta solo le richieste della PAGINA del mese di arrivo: i `<Link>` delle
+    // celle giorno puntano a `/attivita/{data}?mese={meseArrivo}` e vengono
+    // prefetchati dal viewport, quindi un confronto sulla sola query string
+    // conterebbe anche quelli. Il contatore è registrato prima del goto perché
+    // il prefetch del mese adiacente parte già al mount.
+    const paginaMeseArrivo = (grezzo: string) => {
+      const url = new URL(grezzo);
+      return (
+        url.pathname === "/attivita" &&
+        url.searchParams.get("mese") === meseArrivo
+      );
+    };
+
     const richiesteMeseArrivo: string[] = [];
     page.on("request", (richiesta) => {
-      if (richiesta.url().includes(`mese=${meseArrivo}`)) {
+      if (paginaMeseArrivo(richiesta.url())) {
         richiesteMeseArrivo.push(richiesta.url());
       }
     });
@@ -60,20 +72,28 @@ test.describe("US-050 Prefetch mesi adiacenti", () => {
 
     // Attesa event-driven del prefetch reale: nessun hard wait.
     await page.waitForResponse(
-      (risposta) =>
-        risposta.url().includes(`mese=${meseArrivo}`) && risposta.ok(),
+      (risposta) => paginaMeseArrivo(risposta.url()) && risposta.ok(),
     );
-    const richiesteDopoPrefetch = richiesteMeseArrivo.length;
-    expect(richiesteDopoPrefetch).toBeGreaterThan(0);
+    expect(richiesteMeseArrivo.length).toBeGreaterThan(0);
+
+    // Oracolo del cache-hit: da qui in avanti la rete verso la pagina del mese
+    // di arrivo è tagliata. Se il mese si renderizza comunque, il payload non
+    // può che provenire dalla cache client prefetchata. È più forte del solo
+    // conteggio delle richieste, che sarebbe sensibile ai ri-prefetch di
+    // background emessi da `onInvalidate` durante la navigazione.
+    await page.route(
+      (url) => paginaMeseArrivo(url.toString()),
+      (route) => route.abort(),
+    );
 
     await page.getByLabel("Mese precedente").click();
 
+    // AC-1: mese valorizzato e URL aggiornato senza alcun round-trip possibile.
     const cella = page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`);
     await expect(cella).toHaveAttribute("data-con-attivita", "true");
-    await expect(cella.getByText("2.0 h", { exact: true })).toBeVisible();
+    await expect(cella.getByTestId("etichetta-cliente")).toHaveText(
+      `${clienteConOfferta.cliente.ragioneSociale} 2.0 h`,
+    );
     await expect(page).toHaveURL(new RegExp(`mese=${meseArrivo}`));
-
-    // AC-1: il mese è arrivato dalla cache client, non da un nuovo round-trip.
-    expect(richiesteMeseArrivo.length).toBe(richiesteDopoPrefetch);
   });
 });
