@@ -129,7 +129,7 @@ function RigaCollaboratoreIngaggiato({
   offertaId: string;
   codiceOfferta: string;
 }) {
-  const [, azione] = useActionState(revocaIngaggioCollaboratore, statoIniziale);
+  const [statoRevoca, azione] = useActionState(revocaIngaggioCollaboratore, statoIniziale);
   const nomeCompleto = `${collaboratore.nome} ${collaboratore.cognome}`;
 
   return (
@@ -145,8 +145,13 @@ function RigaCollaboratoreIngaggiato({
           >
             {inizialiPersona(collaboratore.nome, collaboratore.cognome)}
           </span>
-          <span className="min-w-0 truncate text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100" title={nomeCompleto}>
-            {nomeCompleto}
+          <span className="min-w-0">
+            <span className="block truncate text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100" title={nomeCompleto}>
+              {nomeCompleto}
+            </span>
+            <span className="block truncate text-[12px] text-zinc-400 dark:text-zinc-500">
+              {collaboratore.email}
+            </span>
           </span>
         </div>
       </td>
@@ -178,6 +183,11 @@ function RigaCollaboratoreIngaggiato({
             Revoca
           </button>
         </form>
+        {statoRevoca.errori?._form && (
+          <p role="alert" className="mt-1 text-[11.5px] font-semibold whitespace-normal text-red-600 dark:text-red-400">
+            {statoRevoca.errori._form}
+          </p>
+        )}
       </td>
     </tr>
   );
@@ -401,8 +411,13 @@ function DialogIngaggia({
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                         {inizialiPersona(collaboratore.nome, collaboratore.cognome)}
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
-                        {collaboratore.nome} {collaboratore.cognome}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
+                          {collaboratore.nome} {collaboratore.cognome}
+                        </span>
+                        <span className="block truncate text-[11.5px] text-zinc-400 dark:text-zinc-500">
+                          {collaboratore.email}
+                        </span>
                       </span>
                     </label>
                   );

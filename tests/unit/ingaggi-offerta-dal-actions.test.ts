@@ -12,9 +12,14 @@ const mockCollaboratore = vi.hoisted(() => ({
   findMany: vi.fn(),
 }));
 
+const mockOfferta = vi.hoisted(() => ({
+  findUnique: vi.fn(),
+}));
+
 const mockDb = vi.hoisted(() => ({
   abilitazioneOfferta: mockAbilitazioneOfferta,
   collaboratore: mockCollaboratore,
+  offerta: mockOfferta,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -39,16 +44,6 @@ const { mockRevalidatePath } = vi.hoisted(() => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: mockRevalidatePath,
-}));
-
-// ── Mock di next/navigation ────────────────────────────────────────
-
-const { mockRedirect } = vi.hoisted(() => ({
-  mockRedirect: vi.fn(),
-}));
-
-vi.mock("next/navigation", () => ({
-  redirect: mockRedirect,
 }));
 
 // ── Import dei moduli sotto test ───────────────────────────────────
@@ -97,7 +92,7 @@ describe("DAL ingaggi offerta — query", () => {
   // ── 1. elencaCollaboratoriIngaggiati ───────────────────────────
 
   describe("elencaCollaboratoriIngaggiati", () => {
-    it("interroga con where, include e orderBy attesi e mappa nome e cognome", async () => {
+    it("interroga con where, select e orderBy attesi e mappa nome, cognome ed email", async () => {
       const abilitazioni = [
         {
           collaboratoreId: "collab-1",
@@ -107,6 +102,7 @@ describe("DAL ingaggi offerta — query", () => {
             nome: "Giulia",
             cognome: "Bianchi",
             attivo: true,
+            utente: { email: "giulia.bianchi@example.com" },
           },
         },
         {
@@ -117,6 +113,7 @@ describe("DAL ingaggi offerta — query", () => {
             nome: "Marco",
             cognome: "Rossi",
             attivo: true,
+            utente: { email: "marco.rossi@example.com" },
           },
         },
       ];
@@ -127,7 +124,17 @@ describe("DAL ingaggi offerta — query", () => {
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
       expect(mockAbilitazioneOfferta.findMany).toHaveBeenCalledWith({
         where: { offertaId: "off-1" },
-        include: { collaboratore: true },
+        include: {
+          collaboratore: {
+            select: {
+              id: true,
+              nome: true,
+              cognome: true,
+              attivo: true,
+              utente: { select: { email: true } },
+            },
+          },
+        },
         orderBy: [
           { collaboratore: { cognome: "asc" } },
           { collaboratore: { nome: "asc" } },
@@ -138,12 +145,14 @@ describe("DAL ingaggi offerta — query", () => {
           collaboratoreId: "collab-1",
           nome: "Giulia",
           cognome: "Bianchi",
+          email: "giulia.bianchi@example.com",
           collaboratoreAttivo: true,
         },
         {
           collaboratoreId: "collab-2",
           nome: "Marco",
           cognome: "Rossi",
+          email: "marco.rossi@example.com",
           collaboratoreAttivo: true,
         },
       ]);
@@ -159,6 +168,7 @@ describe("DAL ingaggi offerta — query", () => {
             nome: "Anna",
             cognome: "Verdi",
             attivo: false,
+            utente: { email: "anna.verdi@example.com" },
           },
         },
       ]);
@@ -170,6 +180,7 @@ describe("DAL ingaggi offerta — query", () => {
           collaboratoreId: "collab-3",
           nome: "Anna",
           cognome: "Verdi",
+          email: "anna.verdi@example.com",
           collaboratoreAttivo: false,
         },
       ]);
@@ -185,7 +196,7 @@ describe("DAL ingaggi offerta — query", () => {
           id: "collab-4",
           nome: "Luca",
           cognome: "Neri",
-          attivo: true,
+          utente: { email: "luca.neri@example.com" },
         },
       ];
       mockCollaboratore.findMany.mockResolvedValue(collaboratori);
@@ -198,6 +209,12 @@ describe("DAL ingaggi offerta — query", () => {
           attivo: true,
           abilitazioniOfferte: { none: { offertaId: "off-1" } },
         },
+        select: {
+          id: true,
+          nome: true,
+          cognome: true,
+          utente: { select: { email: true } },
+        },
         orderBy: [{ cognome: "asc" }, { nome: "asc" }],
       });
       expect(result).toEqual([
@@ -205,6 +222,7 @@ describe("DAL ingaggi offerta — query", () => {
           collaboratoreId: "collab-4",
           nome: "Luca",
           cognome: "Neri",
+          email: "luca.neri@example.com",
         },
       ]);
     });
@@ -245,6 +263,7 @@ describe("Server Actions ingaggi offerta", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockOfferta.findUnique.mockResolvedValue({ attiva: true });
   });
 
   // ── 4. ingaggiaCollaboratoriSuOfferta ──────────────────────────
@@ -265,6 +284,10 @@ describe("Server Actions ingaggi offerta", () => {
       const result = await ingaggiaCollaboratoriSuOfferta(statoIniziale(), formData);
 
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockOfferta.findUnique).toHaveBeenCalledWith({
+        where: { id: "off-1" },
+        select: { attiva: true },
+      });
       expect(mockCollaboratore.findMany).toHaveBeenCalledWith({
         where: { id: { in: ["collab-1", "collab-2"] }, attivo: true },
         select: { id: true },
@@ -321,6 +344,38 @@ describe("Server Actions ingaggi offerta", () => {
 
       const result = await ingaggiaCollaboratoriSuOfferta(statoIniziale(), formData);
 
+      expect(mockAbilitazioneOfferta.createMany).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(result.errori._form).toBeTruthy();
+      expect(result.successo).toBeUndefined();
+    });
+
+    it("se l'offerta non esiste non scrive e valorizza errori._form", async () => {
+      mockOfferta.findUnique.mockResolvedValue(null);
+
+      const formData = new FormData();
+      formData.set("offertaId", "off-inesistente");
+      formData.append("collaboratoreId", "collab-1");
+
+      const result = await ingaggiaCollaboratoriSuOfferta(statoIniziale(), formData);
+
+      expect(mockCollaboratore.findMany).not.toHaveBeenCalled();
+      expect(mockAbilitazioneOfferta.createMany).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(result.errori._form).toBeTruthy();
+      expect(result.successo).toBeUndefined();
+    });
+
+    it("se l'offerta non è attiva non scrive e valorizza errori._form", async () => {
+      mockOfferta.findUnique.mockResolvedValue({ attiva: false });
+
+      const formData = new FormData();
+      formData.set("offertaId", "off-1");
+      formData.append("collaboratoreId", "collab-1");
+
+      const result = await ingaggiaCollaboratoriSuOfferta(statoIniziale(), formData);
+
+      expect(mockCollaboratore.findMany).not.toHaveBeenCalled();
       expect(mockAbilitazioneOfferta.createMany).not.toHaveBeenCalled();
       expect(mockRevalidatePath).not.toHaveBeenCalled();
       expect(result.errori._form).toBeTruthy();
@@ -391,6 +446,7 @@ describe("Server Actions ingaggi offerta", () => {
       await expect(
         ingaggiaCollaboratoriSuOfferta(statoIniziale(), formData),
       ).rejects.toThrow(ErroreAutorizzazione);
+      expect(mockOfferta.findUnique).not.toHaveBeenCalled();
       expect(mockCollaboratore.findMany).not.toHaveBeenCalled();
       expect(mockAbilitazioneOfferta.createMany).not.toHaveBeenCalled();
     });

@@ -89,6 +89,7 @@ export interface CollaboratoreIngaggiato {
   collaboratoreId: string;
   nome: string;
   cognome: string;
+  email: string;
   collaboratoreAttivo: boolean;
 }
 
@@ -96,11 +97,12 @@ export interface CollaboratoreIngaggiabile {
   collaboratoreId: string;
   nome: string;
   cognome: string;
+  email: string;
 }
 
 /**
- * Elenca i collaboratori ingaggiati sull'offerta, con nome e cognome, ordinati
- * per cognome e poi per nome.
+ * Elenca i collaboratori ingaggiati sull'offerta, con nome, cognome ed email,
+ * ordinati per cognome e poi per nome.
  *
  * Un collaboratore ingaggiato e poi disattivato resta elencato (con
  * collaboratoreAttivo a false): l'ingaggio storico non viene rimosso.
@@ -114,7 +116,17 @@ export async function elencaCollaboratoriIngaggiati(
 
   const abilitazioni = await db.abilitazioneOfferta.findMany({
     where: { offertaId },
-    include: { collaboratore: true },
+    include: {
+      collaboratore: {
+        select: {
+          id: true,
+          nome: true,
+          cognome: true,
+          attivo: true,
+          utente: { select: { email: true } },
+        },
+      },
+    },
     orderBy: [
       { collaboratore: { cognome: "asc" } },
       { collaboratore: { nome: "asc" } },
@@ -125,14 +137,15 @@ export async function elencaCollaboratoriIngaggiati(
     collaboratoreId: abilitazione.collaboratore.id,
     nome: abilitazione.collaboratore.nome,
     cognome: abilitazione.collaboratore.cognome,
+    email: abilitazione.collaboratore.utente.email,
     collaboratoreAttivo: abilitazione.collaboratore.attivo,
   }));
 }
 
 /**
- * Elenca i collaboratori attivi non ancora ingaggiati sull'offerta, con nome e
- * cognome, ordinati per cognome e poi per nome. Fonte per il dialog di ricerca
- * e selezione.
+ * Elenca i collaboratori attivi non ancora ingaggiati sull'offerta, con nome,
+ * cognome ed email, ordinati per cognome e poi per nome. Fonte per il dialog
+ * di ricerca e selezione.
  *
  * Accesso riservato all'amministratore.
  */
@@ -146,6 +159,12 @@ export async function elencaCollaboratoriIngaggiabili(
       attivo: true,
       abilitazioniOfferte: { none: { offertaId } },
     },
+    select: {
+      id: true,
+      nome: true,
+      cognome: true,
+      utente: { select: { email: true } },
+    },
     orderBy: [{ cognome: "asc" }, { nome: "asc" }],
   });
 
@@ -153,5 +172,6 @@ export async function elencaCollaboratoriIngaggiabili(
     collaboratoreId: collaboratore.id,
     nome: collaboratore.nome,
     cognome: collaboratore.cognome,
+    email: collaboratore.utente.email,
   }));
 }

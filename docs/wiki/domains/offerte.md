@@ -29,6 +29,8 @@ sources:
       role: coordinated-administration-ui
     - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-collaboratori.tsx
       role: coordinated-administration-ui
+    - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts
+      role: coordinated-administration-ui
     - path: tests/unit/avanzamento-offerte.test.ts
       role: verification
     - path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts

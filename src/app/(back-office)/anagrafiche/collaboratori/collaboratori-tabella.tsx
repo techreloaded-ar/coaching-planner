@@ -4,13 +4,8 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CollaboratoreConUtente } from "@/lib/collaboratori";
+import { formattaEuro } from "@/lib/formattazione";
 import { cambiaStatoAction } from "./cambia-stato-action";
-
-// ── Utilità ────────────────────────────────────────────────────
-
-function formattaEuro(valore: number | string) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(valore));
-}
 
 // ── Props ──────────────────────────────────────────────────────
 

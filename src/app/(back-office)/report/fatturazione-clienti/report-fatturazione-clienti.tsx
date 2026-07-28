@@ -4,33 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import type { RisultatoReportFatturazione } from "@/lib/report";
 import type { VoceClienteReport } from "@/domain/consuntivi";
+import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
 
 // ── Formattatori ────────────────────────────────────────────────
-
-const formattatoreEuro = new Intl.NumberFormat("it-IT", {
-  style: "currency",
-  currency: "EUR",
-});
 
 const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 1,
 });
-
-/** Formatta una stringa importo (es. "750.00") in euro con separatori italiani. */
-function formattaEuro(importo: string): string {
-  return formattatoreEuro.format(Number(importo));
-}
-
-/** Iniziali della ragione sociale per il badge del cliente. */
-function inizialiCliente(ragioneSociale: string): string {
-  return ragioneSociale
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parola) => parola[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 /** Somma le giornate fatturabili di tutte le offerte di un cliente. */
 function giornateCliente(cliente: VoceClienteReport): number {

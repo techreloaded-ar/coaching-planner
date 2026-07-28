@@ -3,22 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useActionState } from "react";
 import type { OffertaAbilitata, OffertaAbilitabile } from "@/lib/abilitazioni";
 import type { StatoAction } from "../actions";
+import { inizialiCliente } from "@/lib/formattazione";
 import {
   abilitaCollaboratoreSuOfferte,
   revocaAbilitazioneCollaboratore,
 } from "./abilitazioni-actions";
 
 const statoIniziale: StatoAction = { errori: {} };
-
-/** Iniziali della ragione sociale del cliente per l'avatar quadrato. */
-function inizialiCliente(ragioneSociale: string): string {
-  return ragioneSociale
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parola) => parola[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 // ── Props ───────────────────────────────────────────────────────
 

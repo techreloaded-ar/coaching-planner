@@ -4,6 +4,7 @@ import { Fragment, useState, useActionState } from "react";
 import Link from "next/link";
 import { useIdratata } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
+import { inizialiCliente } from "@/lib/formattazione";
 import DettaglioAvanzamentoOfferta from "./dettaglio-avanzamento-offerta";
 import {
   cambiaStatoOfferta,
@@ -30,16 +31,6 @@ const formattatoreEuro = new Intl.NumberFormat("it-IT", {
 /** Formatta un numero di giornate con al massimo un decimale, stile it-IT. */
 function formattaGiornate(valore: number): string {
   return formattatoreGiornate.format(valore);
-}
-
-/** Iniziali della ragione sociale del cliente per l'avatar quadrato. */
-function inizialiCliente(ragioneSociale: string): string {
-  return ragioneSociale
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parola) => parola[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 /** Un'offerta attiva è critica quando ha esaurito o superato il budget. */
@@ -125,7 +116,7 @@ export default function OfferteTabella({
       {/* Tabella trasversale */}
       <div className="overflow-x-auto" data-testid="contenitore-tabella-offerte">
         <table
-          className="w-full table-fixed border-collapse text-[13.5px]"
+          className="w-full min-w-[960px] table-fixed border-collapse text-[13.5px]"
           aria-label="Elenco offerte"
           data-idratata={idratata ? "true" : "false"}
         >

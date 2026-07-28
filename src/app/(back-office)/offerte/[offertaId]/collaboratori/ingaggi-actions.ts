@@ -37,6 +37,19 @@ export async function ingaggiaCollaboratoriSuOfferta(
     return { errori: { _form: "Seleziona almeno un collaboratore da ingaggiare" } };
   }
 
+  const offerta = await db.offerta.findUnique({
+    where: { id: offertaId },
+    select: { attiva: true },
+  });
+
+  if (!offerta) {
+    return { errori: { _form: "Offerta non trovata" } };
+  }
+
+  if (!offerta.attiva) {
+    return { errori: { _form: "L'offerta non è attiva" } };
+  }
+
   const collaboratoriDisponibili = await db.collaboratore.findMany({
     where: { id: { in: idsCollaboratori }, attivo: true },
     select: { id: true },

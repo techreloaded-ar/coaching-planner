@@ -2,13 +2,8 @@
 
 import { useState, useCallback } from "react";
 import type { ScaglioneKm } from "@/generated/prisma/client";
+import { formattaEuro } from "@/lib/formattazione";
 import { eliminaScaglione } from "./actions";
-
-// ── Utilità ────────────────────────────────────────────────────
-
-function formattaEuro(valore: number | string) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(valore));
-}
 
 /** Etichetta leggibile della fascia: «Da A a B km» / «Fino a B km». */
 function etichettaFascia(da: number, a: number) {

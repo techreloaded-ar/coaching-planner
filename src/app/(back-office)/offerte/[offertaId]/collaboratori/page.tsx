@@ -6,21 +6,8 @@ import {
   elencaCollaboratoriIngaggiati,
   elencaCollaboratoriIngaggiabili,
 } from "@/lib/abilitazioni";
+import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
 import IngaggiCollaboratori from "./ingaggi-collaboratori";
-
-function formattaEuro(valore: number) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(valore);
-}
-
-/** Iniziali della ragione sociale del cliente per l'avatar quadrato. */
-function inizialiCliente(ragioneSociale: string): string {
-  return ragioneSociale
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parola) => parola[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 interface CollaboratoriOffertaPageProps {
   params: Promise<{ offertaId: string }>;
@@ -101,6 +88,18 @@ export default async function CollaboratoriOffertaPage({
               </span>
             </div>
           </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col justify-center border-l border-zinc-200 py-1 pl-5 text-right dark:border-zinc-800">
+          <span className="mb-1 text-[10px] font-bold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+            Squadra
+          </span>
+          <span className="text-[22px] font-extrabold tracking-tight text-zinc-800 tabular-nums dark:text-zinc-100">
+            {ingaggiati.length}
+          </span>
+          <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
+            {ingaggiati.length === 1 ? "collaboratore" : "collaboratori"}
+          </span>
         </div>
       </div>
 
