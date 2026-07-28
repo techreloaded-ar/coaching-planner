@@ -43,6 +43,7 @@
 * [Plan for US-041](backlog/plans/US-041.md) - Implementation plan and executable tasks for US-041. _State: generated._
 * [Plan for US-042](backlog/plans/US-042.md) - Implementation plan and executable tasks for US-042. _State: generated._
 * [Plan for US-043](backlog/plans/US-043.md) - Implementation plan and executable tasks for US-043. _State: generated._
+* [Plan for US-044](backlog/plans/US-044.md) - Implementation plan and executable tasks for US-044. _State: generated._
 * [Plan for US-045](backlog/plans/US-045.md) - Implementation plan and executable tasks for US-045. _State: generated._
 * [Plan for US-046](backlog/plans/US-046.md) - Implementation plan and executable tasks for US-046. _State: generated._
 * [US-001: Scaffold dell'applicazione Next.js e ambiente di sviluppo](backlog/specs/US-001.md) - Delivery specification US-001. _State: generated._
