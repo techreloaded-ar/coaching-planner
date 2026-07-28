@@ -21,18 +21,6 @@ interface CellaGiornoClient {
 
 // ── Helpers ─────────────────────────────────────────────────────
 
-/**
- * Payload di prefetch completo, equivalente a `<Link prefetch>`.
- *
- * Next 16.2.9 dichiara `kind` obbligatorio in `router.prefetch` senza esportare
- * pubblicamente l'enum `PrefetchKind`, da cui il cast sul tipo del parametro.
- * Il valore "auto" non basta: `/attivita` è una rotta dinamica, quindi
- * scaricherebbe il solo guscio statico e non i dati del mese.
- */
-const PREFETCH_PAYLOAD_COMPLETO = "full" as NonNullable<
-  Parameters<ReturnType<typeof useRouter>["prefetch"]>[1]
->["kind"];
-
 /** Mantiene il giorno civile delle date del calendario tra server e browser. */
 function dataCalendario(data: Date | string): Date {
   if (typeof data !== "string") return data;
@@ -107,36 +95,6 @@ export default function CalendarioMensile({
   useEffect(() => {
     ultimaDestinazione.current = null;
   }, [token]);
-
-  /**
-   * Prefetch dei mesi raggiungibili dai controlli di navigazione: in produzione
-   * il cambio mese è servito dalla cache client senza round-trip verso il server.
-   * `onInvalidate` ri-prefetcha quando Next segnala il payload come stantio.
-   */
-  useEffect(() => {
-    const destinazioni = [
-      `/attivita?mese=${mesePrecedente(token)}`,
-      `/attivita?mese=${meseSuccessivo(token)}`,
-      "/attivita",
-    ];
-
-    let annullato = false;
-
-    for (const href of destinazioni) {
-      const prefetch = () => {
-        if (annullato) return;
-        router.prefetch(href, {
-          kind: PREFETCH_PAYLOAD_COMPLETO,
-          onInvalidate: prefetch,
-        });
-      };
-      prefetch();
-    }
-
-    return () => {
-      annullato = true;
-    };
-  }, [token, router]);
 
   function navigaVersoMese(calcolaDestinazione: (base: string) => string) {
     const base = ultimaDestinazione.current ?? token;

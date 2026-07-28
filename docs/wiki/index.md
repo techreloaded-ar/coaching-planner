@@ -20,7 +20,7 @@
 
 ## Domains
 
-* [Attività e consuntivazione](domains/attivita.md) - Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore. _State: stale._
+* [Attività e consuntivazione](domains/attivita.md) - Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore. _State: generated._
 * [Clienti](domains/clienti.md) - Anagrafica fiscale dei clienti e loro abilitazione operativa. _State: stale._
 * [Collaboratori](domains/collaboratori.md) - Profili professionali dei collaboratori, tariffa e abilitazione operativa. _State: reviewed._
 * [Fatturazione clienti](domains/fatturazione-clienti.md) - Proiezione amministrativa mensile degli importi da fatturare ai clienti. _State: reviewed._
