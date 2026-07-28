@@ -679,6 +679,64 @@ test.describe("Gestione utenti", () => {
 		).toBeVisible();
 	});
 
+	test("demo__cognome-anagrafica-utente", async ({ page, factory }) => {
+		const nome = `${factory.namespace} Demo cognome`;
+		const cognome = "Ferraro";
+		const email = `${factory.namespace}-demo-cognome@e2e.invalid`;
+
+		// 1. Nuovo utente: Nome e Cognome sono campi distinti in Anagrafica.
+		await apriElencoUtenti(page);
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Nuovo utente" }),
+		).toBeVisible();
+		await expect(page.getByLabel(/^Nome\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
+
+		// 2. Selezionando il ruolo Collaboratore, la sezione profilo chiede
+		// solo Partita IVA e Tariffa giornaliera (il Cognome resta unico,
+		// nella sezione Anagrafica).
+		await impostaRuolo(page, "Collaboratore", true);
+		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(1);
+
+		// 3. Censimento di un utente solo-amministratore con Nome e Cognome
+		// distinti.
+		await impostaRuolo(page, "Collaboratore", false);
+		await impostaRuolo(page, "Amministratore", true);
+		await page.getByLabel(/^Nome\b/).fill(nome);
+		await page.getByLabel(/^Cognome\b/).fill(cognome);
+		await page.getByLabel(/^Email di accesso\b/).fill(email);
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
+
+		// 4. L'utente compare in elenco con il nominativo completo.
+		await filtraUtenti(page, email);
+		await expect(
+			rigaUtente(page, email).getByText(`${nome} ${cognome}`, {
+				exact: true,
+			}),
+		).toBeVisible();
+
+		// 5. Apertura in modifica di un utente preesistente di seed: Nome e
+		// Cognome compaiono già separati e popolati (sola lettura, nessun
+		// salvataggio: l'utente seed non viene mutato).
+		await filtraUtenti(page, "giulia.conti@agilereloaded.it");
+		await rigaUtente(page, "giulia.conti@agilereloaded.it")
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Modifica utente" }),
+		).toBeVisible();
+		await expect(page.getByLabel(/^Nome\b/)).toHaveValue("Giulia");
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveValue("Conti");
+	});
+
 	test("salva nome ed email modificati e li mostra nell'elenco", async ({
 		page,
 		factory,
