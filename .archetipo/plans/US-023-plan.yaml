@@ -1,0 +1,529 @@
+schema: archetipo/plan/v2
+spec_code: US-023
+body: "# US-023: Rendere deterministica la suite e2e Playwright — Piano di implementazione\n\n**Generato da:** ARchetipo Planning Team  \n**Data:** 2026-07-05\n\n---\n\n## Contesto\n\n**Epic:** EP-000 — Fondazione del Progetto  \n**Priorità:** HIGH | **Punti:** 5\n\nLa suite Playwright è già configurata con `fullyParallel: true`, `E2E_DATABASE_URL`, `globalSetup` e `globalTeardown`, ma oggi molti scenari mutano risorse condivise: Giulia Conti, DataFlow SpA, offerte selezionate con `selectOption({ index: 1 })`, giorni del mese corrente, aggregati mensili di back office e scaglioni chilometrici globali. Il blocco dichiarato `US-003` risulta completato, quindi la pianificazione può procedere senza dipendenze aperte.\n\n---\n\n## Soluzione tecnica\n\nL’approccio scelto è isolamento logico dei dati per test tramite fixture Playwright e factory Prisma, completato da due registri espliciti per le risorse che non sono namespaceabili: mesi riservati per gli aggregati amministrativi e intervalli km riservati per gli scaglioni. Non si introduce serializzazione globale, non si riduce il numero di worker e non si aggiunge un database per worker: il server Next.js resta unico e usa `E2E_DATABASE_URL`, mentre i test creano entità univoche nel database e2e già dedicato.\n\n- Creare `tests/e2e/support/` con client Prisma, factory tipizzate e fixture Playwright per utenti, collaboratori, clienti, offerte e righe attività, usando namespace univoci leggibili e collegandosi solo a `E2E_DATABASE_URL`.\n- Standardizzare login e helper data; anticipare il registro dei mesi riservati prima della migrazione dei writer, così `mese-concluso` non scrive più nel mese precedente globale che il report amministrativo considera vuoto.\n- Trattare gli scaglioni km come risorsa globale: il seed mantiene soglie sotto 1000 km; `anagrafica-scaglioni` usa 9000-9999; il demo usa 6000-6999; nuovi test usano intervalli documentati da 10000 in su. Le soglie vanno derivate da `testInfo.workerIndex` o UUID numerico, non da collision-prone `Date.now() % 900`.\n- Migrare prima i writer front-office, poi riepilogo/trasferta, report, anagrafiche e pulizia selettori. Le asserzioni indebolite con lower bound o EPS devono tornare a uguaglianze o delta esatti sui dati creati dal test.\n- Per i report amministrativi, isolare per mese: ogni spec crea il proprio dataset in un mese passato riservato e naviga direttamente quel mese. Per viste globali non mensili, come avanzamento offerte, i test devono asserire riga-per-riga sulla propria offerta e non su conteggi globali di portafoglio.\n- Aggiungere guardrail in lint/CI contro `selectOption({ index })`, email seed hardcoded nei test mutanti, date helper fuori dalle fixture, nav con match parziali, classi Tailwind come selettori, hard wait usati come sincronizzazione e uso non registrato degli intervalli km.\n- Conservare `slowMo` e pause finali solo quando servono al ritmo dei video demo; la sincronizzazione funzionale deve usare asserzioni web-first, locator stabili ed eventi osservabili.\n\n---\n\n## Strategia di test\n\nLa verifica deve dimostrare che la suite non è più stabile per fortuna o retry, ma per assenza di contese sui dati mutabili e sulle risorse globali. La migrazione deve essere validata incrementalmente per gruppi di file e poi con stress test completo.\n\n- Dopo fixture e registri, eseguire uno scenario front-office pilota con collaboratore, cliente, offerta e data controllata.\n- Dopo la stabilizzazione degli scaglioni, eseguire gli spec scaglioni e i test trasferta a `--retries=0`, verificando che importi seed 35/60/110 non siano alterati da soglie create da altri test.\n- Dopo la migrazione dei writer front-office, verificare che `mese-concluso` usi un mese riservato e non possa più rompere il report amministrativo del mese precedente.\n- Dopo la migrazione dei report, verificare totali esatti su mesi riservati e rimuovere le assunzioni sul mese precedente vuoto globale.\n- Dopo guardrail e documentazione, eseguire `npm run lint` e tre run consecutive di `npx playwright test --retries=0` mantenendo `fullyParallel: true`.\n\n### Test E2E — Simulazione utente\n\n**Framework:** Playwright (`@playwright/test`, configurato in `playwright.config.ts`)  \n**Demo video:** non atteso come incremento UI filmabile per US-023; la review può usare l’output terminale delle tre run complete. Gli spec demo esistenti possono mantenere video e slowMo per leggibilità, non per sincronizzazione.\n\n| Scenario | Flusso utente simulato |\n|---|---|\n| Collaboratore isolato inserisce attività | Il test crea collaboratore, cliente e offerta propri, accede con l’email generata, apre un giorno controllato, seleziona cliente/offerta per label e verifica riepilogo con delta esatto. |\n| Mese concluso senza collisione report | Il test crea attività in un mese passato riservato e verifica la modifica su date concluse senza scrivere nel mese precedente globale. |\n| Collaboratore isolato gestisce trasferta | Il test usa dati propri e scaglioni seed stabili, verifica preview, salvataggio, modifica e rimozione della trasferta con asserzioni web-first. |\n| Amministratore legge report in mese riservato | Il test crea attività e trasferte in un mese dedicato, apre `/report/fatturazione-clienti?mese=YYYY-MM` e verifica righe, imponibili, rimborsi e totale con valori esatti. |\n| Anagrafica e scaglioni mutano risorse proprie o intervalli riservati | I test back-office modificano entità create dal test; gli scaglioni usano solo soglie nel proprio intervallo registrato. |\n| Suite completa deterministica | Uno sviluppatore esegue tre volte `npx playwright test --retries=0`; la suite resta parallela e tutte le run passano senza retry, serializzazione o mascheramento delle race. |\n\n---\n\n## Note operative\n\nLa soluzione non richiede mockup perché non introduce nuove schermate o componenti utente. Eventuali `data-testid` aggiunti per stabilizzare selettori esistenti devono essere minimi e descrittivi, senza cambiare layout o comportamento. Al termine della migrazione è opportuno impostare `retries: 0` come default o documentare esplicitamente che il gate richiesto usa sempre `--retries=0`, per evitare che i retry continuino a mascherare regressioni di isolamento.\n\n_Piano aggiornato via ARchetipo Planning — 2026-07-05_"
+tasks:
+  - id: TASK-01
+    title: Creare factory Prisma e fixture e2e isolate
+    type: Impl
+    status: DONE
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** introdurre il layer condiviso che crea dati e2e isolati senza passare dal seed mutabile.
+
+      **Leggere:** `prisma/schema.prisma`, `tests/e2e/e2e-database-safety.ts`, `tests/e2e/global-setup.ts`, `tests/e2e/global-teardown.ts`, `playwright.config.ts`.
+
+      **Cambiare:** creare `tests/e2e/support/prisma.ts`, `tests/e2e/support/factory.ts` e `tests/e2e/support/fixtures.ts`.
+
+      **Passi:**
+      1. Creare un client Prisma per i test che usi esclusivamente `process.env.E2E_DATABASE_URL` tramite `PrismaPg`, fallendo se la variabile manca.
+      2. Implementare factory per `Utente`, `Collaboratore`, `Cliente`, `Offerta` e `RigaAttivita`, con nomi/email/codici univoci e leggibili.
+      3. Implementare una fixture Playwright `test.extend` che esponga almeno dati collaboratore, cliente con offerta, factory e namespace da `testInfo`.
+      4. Documentare nel codice che il cleanup ordinario avviene nel `globalTeardown`; l’isolamento è garantito da namespace e relazioni proprie, non da cancellazioni concorrenti.
+
+      **Verifica:** eseguire `npm run lint`.
+
+      **Fatto:** gli helper sono importabili dai test e non leggono database diversi da `E2E_DATABASE_URL`.
+
+      **Bloccanti:** fermarsi se il client Prisma generato non è importabile nel contesto Playwright Node.
+
+      ## File Coinvolti
+      - `tests/e2e/support/prisma.ts` — client Prisma e2e
+      - `tests/e2e/support/factory.ts` — factory dati isolate
+      - `tests/e2e/support/fixtures.ts` — fixture Playwright condivise
+      - `tests/e2e/e2e-database-safety.ts` — riferimento safety
+
+      ## Criteri di Completamento
+      - [ ] Le factory creano collaboratore, utente, cliente, offerta e righe attività con valori univoci.
+      - [ ] Le fixture sono tipizzate e riutilizzabili dagli spec.
+      - [ ] Nessun helper usa `DATABASE_URL` direttamente quando è richiesto `E2E_DATABASE_URL`.
+      - [ ] `npm run lint` passa sui nuovi file.
+    ref: TASK-01
+  - id: TASK-02
+    title: Standardizzare login, date e registri e2e
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** centralizzare login, helper data e registri delle risorse globali non namespaceabili prima delle migrazioni.
+
+      **Leggere:** `src/app/api/e2e-test/sessione/route.ts`, `tests/e2e/demo__inserimento-righe-attivita.helpers.ts`, `tests/e2e/anagrafica-scaglioni.spec.ts`, `tests/e2e/demo__anagrafica-scaglioni.spec.ts`.
+
+      **Cambiare:** creare o estendere `tests/e2e/support/auth.ts`, `tests/e2e/support/date.ts`, `tests/e2e/support/reserved-resources.ts`; aggiornare helper legacy come shim temporaneo.
+
+      **Passi:**
+      1. Implementare `accediCome(page, email)` e helper admin/collaboratore se utili.
+      2. Centralizzare `dataNelMese`, `meseCorrenteToken`, `meseRiservato(codiceSpec)` e helper per mesi passati riservati.
+      3. Definire il registro scaglioni km: seed sotto 1000 km, `anagrafica-scaglioni` 9000-9999, demo scaglioni 6000-6999, nuovi test da 10000 in su con intervalli espliciti.
+      4. Esportare helper per generare soglie stabili dentro un intervallo riservato a partire da `testInfo.workerIndex` o da UUID numerico, evitando `Date.now() % 900`.
+
+      **Verifica:** eseguire uno smoke con il nuovo login, ad esempio `npx playwright test tests/e2e/auth-flows.spec.ts --retries=0`, e `npm run lint`.
+
+      **Fatto:** tutte le migrazioni successive possono importare mesi riservati e intervalli km da un solo punto.
+
+      **Bloccanti:** non introdurre nuovi endpoint di test né leggere `.env`.
+
+      ## File Coinvolti
+      - `tests/e2e/support/auth.ts` — login parametrico
+      - `tests/e2e/support/date.ts` — date e mesi riservati
+      - `tests/e2e/support/reserved-resources.ts` — registro intervalli km e risorse globali
+      - `tests/e2e/demo__inserimento-righe-attivita.helpers.ts` — shim legacy
+
+      ## Criteri di Completamento
+      - [ ] Esiste un helper unico per il login e2e parametrico.
+      - [ ] I mesi riservati sono centralizzati e usabili da writer e report.
+      - [ ] Gli intervalli km riservati sono centralizzati e documentati nel codice.
+      - [ ] `npm run lint` passa.
+    ref: TASK-02
+  - id: TASK-03
+    title: Validare fixture con uno scenario pilota front-office
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** dimostrare che un collaboratore creato dal test può usare il front-office con cliente/offerta propri.
+
+      **Leggere:** `tests/e2e/demo__inserimento-righe-attivita-flusso.spec.ts`, `src/app/(front-office)/attivita/[data]/page.tsx`, `src/lib/attivita.ts`.
+
+      **Cambiare:** scegliere uno scenario pilota nel file di inserimento righe o in un piccolo spec temporaneo da integrare.
+
+      **Passi:**
+      1. Usare la fixture per creare collaboratore, cliente e offerta.
+      2. Accedere con l’email creata.
+      3. Aprire una data controllata e selezionare cliente/offerta tramite label o valore, mai tramite indice.
+      4. Inserire una riga e verificarla tramite nota univoca.
+
+      **Verifica:** eseguire `npx playwright test <file-pilota> --retries=0`.
+
+      **Fatto:** la fixture è provata end-to-end prima della migrazione massiva.
+
+      **Bloccanti:** fermarsi se `clientiAttiviPerSelezione` non rende selezionabile il cliente creato.
+
+      ## File Coinvolti
+      - `tests/e2e/demo__inserimento-righe-attivita-flusso.spec.ts`
+      - `tests/e2e/support/fixtures.ts`
+      - `src/lib/attivita.ts`
+
+      ## Criteri di Completamento
+      - [ ] Lo scenario pilota passa con dati creati dal test.
+      - [ ] Lo scenario non contiene `selectOption({ index: ... })`.
+      - [ ] Le asserzioni individuano la riga tramite nota/codice univoco.
+      - [ ] Il fallimento del pilota è diagnostico.
+    ref: TASK-03
+  - id: TASK-04
+    title: Stabilizzare gli scaglioni km globali
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** gestire gli scaglioni km come risorsa globale non namespaceabile, evitando collisioni fra spec e proteggendo gli importi seed usati dalle trasferte.
+
+      **Leggere:** `tests/e2e/anagrafica-scaglioni.spec.ts`, `tests/e2e/demo__anagrafica-scaglioni.spec.ts`, `prisma/seed.ts`, `src/lib/attivita.ts` o il modulo che calcola i rimborsi.
+
+      **Cambiare:** i due spec scaglioni e gli helper in `tests/e2e/support/reserved-resources.ts`.
+
+      **Passi:**
+      1. Sostituire ogni soglia generata con `Date.now() % 900` con helper che produce valori dentro l’intervallo riservato al file.
+      2. Tenere `anagrafica-scaglioni.spec.ts` nell’intervallo 9000-9999 e `demo__anagrafica-scaglioni.spec.ts` nel 6000-6999, con valori derivati da `testInfo.workerIndex` o UUID numerico.
+      3. Verificare che i test non creino soglie sotto 1000 km, così gli scaglioni seed 50/100/250 e importi 35/60/110 restano stabili per i test trasferta.
+      4. Aggiungere commenti brevi che spiegano perché qui un registro esplicito è legittimo: la tabella è globale e le soglie sono uniche.
+
+      **Verifica:** eseguire `npx playwright test tests/e2e/anagrafica-scaglioni.spec.ts tests/e2e/demo__anagrafica-scaglioni.spec.ts --retries=0`.
+
+      **Fatto:** gli spec scaglioni non collidono fra loro e non alterano i calcoli delle trasferte sotto 250 km.
+
+      **Bloccanti:** non modificare gli scaglioni seed sotto 1000 km per far passare i test; correggere invece gli intervalli riservati dei test.
+
+      ## File Coinvolti
+      - `tests/e2e/anagrafica-scaglioni.spec.ts`
+      - `tests/e2e/demo__anagrafica-scaglioni.spec.ts`
+      - `tests/e2e/support/reserved-resources.ts`
+      - `prisma/seed.ts` — solo lettura per verificare soglie seed
+
+      ## Criteri di Completamento
+      - [ ] Gli spec scaglioni usano intervalli km distinti e documentati.
+      - [ ] Non rimane generazione collision-prone con `Date.now() % 900`.
+      - [ ] Nessun test scaglioni crea soglie sotto 1000 km.
+      - [ ] I due spec scaglioni passano con `--retries=0`.
+    ref: TASK-04
+  - id: TASK-05
+    title: Migrare i writer front-office di inserimento righe
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** eliminare la contesa su Giulia, mese corrente, DataFlow/TechSolutions e indici select nei test che inseriscono o validano righe attività.
+
+      **Leggere:** `tests/e2e/demo__inserimento-righe-attivita-flusso.spec.ts`, `tests/e2e/demo__inserimento-righe-attivita-mese-concluso.spec.ts`, `tests/e2e/demo__inserimento-righe-attivita-validazione.spec.ts`, `tests/e2e/trasferta-rimborso-validazione.spec.ts`, `tests/e2e/demo__inserimento-righe-attivita.helpers.ts`.
+
+      **Cambiare:** gli stessi file, importando la fixture condivisa quando lo scenario scrive dati.
+
+      **Passi:**
+      1. Sostituire `loginComeGiulia` con login al collaboratore creato dalla fixture nei test mutanti.
+      2. Selezionare cliente/offerta per valore o label derivati dalla factory, mai per indice.
+      3. Rendere note e codici univoci e usarli per localizzare card e righe.
+      4. Migrare `mese-concluso` a un mese passato riservato preso dagli helper di `TASK-02`; la feature è scrivere su date passate, non sul mese precedente globale.
+      5. Rimuovere commenti-registro sui giorni liberi condivisi.
+
+      **Verifica:** eseguire `npx playwright test tests/e2e/demo__inserimento-righe-attivita-flusso.spec.ts tests/e2e/demo__inserimento-righe-attivita-mese-concluso.spec.ts tests/e2e/demo__inserimento-righe-attivita-validazione.spec.ts tests/e2e/trasferta-rimborso-validazione.spec.ts --retries=0`.
+
+      **Fatto:** questi file non scrivono più attività su Giulia, offerte seed o mese precedente globale.
+
+      **Bloccanti:** se uno scenario è volutamente read-only sul seed, documentarlo e inserirlo nell’allowlist del guardrail.
+
+      ## File Coinvolti
+      - `tests/e2e/demo__inserimento-righe-attivita-flusso.spec.ts`
+      - `tests/e2e/demo__inserimento-righe-attivita-mese-concluso.spec.ts`
+      - `tests/e2e/demo__inserimento-righe-attivita-validazione.spec.ts`
+      - `tests/e2e/trasferta-rimborso-validazione.spec.ts`
+      - `tests/e2e/support/date.ts`
+
+      ## Criteri di Completamento
+      - [ ] Nessuno dei writer migrati usa `giulia.conti@agilereloaded.it`.
+      - [ ] Nessuno dei writer migrati usa `selectOption({ index: ... })`.
+      - [ ] `mese-concluso` usa un mese riservato e non può rompere il report del mese precedente.
+      - [ ] Il gruppo di spec passa con `--retries=0`.
+    ref: TASK-05
+  - id: TASK-06
+    title: Migrare riepilogo mensile e trasferta demo a dati propri
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-04
+      - TASK-05
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** riportare a valori esatti gli scenari oggi indeboliti da EPS/lower bound e rimuovere race sui rimborsi DataFlow.
+
+      **Leggere:** `tests/e2e/demo__riepilogo-mensile-fattura.spec.ts`, `tests/e2e/demo__trasferta-rimborso-automatico.spec.ts`, `src/domain/consuntivi/index.ts`, `src/lib/attivita.ts`.
+
+      **Cambiare:** i due spec demo e helper condivisi se necessari.
+
+      **Passi:**
+      1. Creare dati propri per ogni test: collaboratore con tariffa nota, cliente/offerta con tariffa nota e righe iniziali se servono baseline.
+      2. Rimuovere affidamento a DataFlow/TechSolutions e ai giorni 4/6/15 di Giulia.
+      3. Convertire le asserzioni da lower bound a delta esatti su ore, imponibile e rimborsi.
+      4. Nel test trasferta, verificare preview, salvataggio, modifica e rimozione su una riga creata dal test, usando scaglioni seed stabili garantiti da `TASK-04`.
+      5. Conservare `video: on` e `slowMo` dove servono al ritmo del video; vietato usarli come sincronizzazione al posto di expect web-first.
+
+      **Verifica:** eseguire `npx playwright test tests/e2e/demo__riepilogo-mensile-fattura.spec.ts tests/e2e/demo__trasferta-rimborso-automatico.spec.ts --retries=0`.
+
+      **Fatto:** i due demo restano filmabili ma non dipendono più da stato condiviso mutabile.
+
+      **Bloccanti:** se un valore UI è arrotondato, usare tolleranza solo per formattazione, non per race concorrenti.
+
+      ## File Coinvolti
+      - `tests/e2e/demo__riepilogo-mensile-fattura.spec.ts`
+      - `tests/e2e/demo__trasferta-rimborso-automatico.spec.ts`
+      - `tests/e2e/support/factory.ts`
+      - `tests/e2e/support/reserved-resources.ts`
+
+      ## Criteri di Completamento
+      - [ ] I commenti che giustificano EPS/lower bound per contesa sono rimossi.
+      - [ ] Le asserzioni principali sono esatte rispetto al dataset creato dal test.
+      - [ ] Nessuno scenario modifica rimborsi o attività di seed.
+      - [ ] Entrambi gli spec passano con `--retries=0`.
+    ref: TASK-06
+  - id: TASK-07
+    title: Preparare dataset a mese riservato per report
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** fornire helper per report amministrativi che aggregano globalmente tutti i collaboratori e richiedono isolamento temporale.
+
+      **Leggere:** `tests/e2e/report-fatturazione-clienti.spec.ts`, `tests/e2e/demo__report-fatturazione-clienti.spec.ts`, `src/app/(back-office)/report/fatturazione-clienti`, `src/domain/consuntivi` se presente.
+
+      **Cambiare:** `tests/e2e/support/factory.ts`, `tests/e2e/support/date.ts` e/o nuovo `tests/e2e/support/report-data.ts`.
+
+      **Passi:**
+      1. Usare il registro di `TASK-02` per mesi passati riservati e stabili.
+      2. Creare factory per cliente, offerta, collaboratori, righe fatturabili/non fatturabili e trasferte nel mese riservato.
+      3. Restituire totali attesi: giornate, imponibile, rimborsi e totale per cliente/offerta.
+      4. Documentare che i report non devono asserire su mese corrente globale né su mese precedente vuoto condiviso.
+
+      **Verifica:** eseguire uno spec report aggiornato o un pilota con `--retries=0`.
+
+      **Fatto:** i report possono essere testati con dati propri pur restando aggregati globali.
+
+      **Bloccanti:** se la UI non consente query `?mese=YYYY-MM`, usare i controlli UI o aggiungere test id minimi senza cambiare logica.
+
+      ## File Coinvolti
+      - `tests/e2e/support/report-data.ts`
+      - `tests/e2e/support/factory.ts`
+      - `tests/e2e/support/date.ts`
+      - `tests/e2e/report-fatturazione-clienti.spec.ts`
+
+      ## Criteri di Completamento
+      - [ ] Esiste un helper per creare dati report in un mese riservato.
+      - [ ] L’helper restituisce valori attesi calcolabili nel test.
+      - [ ] I mesi riservati sono passati e non dipendono dal mese corrente.
+      - [ ] La documentazione inline spiega il partizionamento per mese.
+    ref: TASK-07
+  - id: TASK-08
+    title: Migrare i report fatturazione clienti a totali esatti
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-07
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** eliminare la flakiness degli aggregati mensili e le asserzioni su valori fissi di seed nei report amministrativi.
+
+      **Leggere:** `tests/e2e/report-fatturazione-clienti.spec.ts`, `tests/e2e/demo__report-fatturazione-clienti.spec.ts`, `tests/e2e/support/report-data.ts`, componenti del report sotto `src/app/(back-office)/report/fatturazione-clienti`.
+
+      **Cambiare:** i due spec report e helper correlati.
+
+      **Passi:**
+      1. Creare dataset report dedicato usando mese riservato.
+      2. Navigare direttamente a `/report/fatturazione-clienti?mese=<mese-riservato>` o tramite controlli UI.
+      3. Verificare cliente/offerta creati dal test, tariffa, giornate, imponibile, rimborsi e totale con valori esatti.
+      4. Per stato vuoto, usare un mese riservato esplicitamente privo di righe del test, non mese precedente globale.
+      5. Ancorare la navigazione report con `getByRole('link', { name, exact: true })` o locator accessibili.
+
+      **Verifica:** eseguire `npx playwright test tests/e2e/report-fatturazione-clienti.spec.ts tests/e2e/demo__report-fatturazione-clienti.spec.ts --retries=0`.
+
+      **Fatto:** i report non falliscono se altri worker inseriscono righe nel mese corrente o precedente.
+
+      **Bloccanti:** se il demo deve mostrare seed per narrativa, mantenerlo read-only ma non lasciare il gate dipendente dal seed globale.
+
+      ## File Coinvolti
+      - `tests/e2e/report-fatturazione-clienti.spec.ts`
+      - `tests/e2e/demo__report-fatturazione-clienti.spec.ts`
+      - `tests/e2e/support/report-data.ts`
+      - `src/app/(back-office)/report/fatturazione-clienti`
+
+      ## Criteri di Completamento
+      - [ ] I report usano mesi riservati e dati propri.
+      - [ ] Non ci sono asserzioni seed su `2.268,75`, `95,00`, `110,00` o `205,00` come contratto principale.
+      - [ ] Lo stato vuoto non dipende dal mese precedente globale.
+      - [ ] Entrambi gli spec passano con `--retries=0`.
+    ref: TASK-08
+  - id: TASK-09
+    title: Migrare anagrafiche back-office che mutano seed
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** impedire che i test di anagrafica spostino indici, disattivino DataFlow o creino offerte su clienti condivisi. Gli scaglioni km sono gestiti separatamente da `TASK-04`.
+
+      **Leggere:** `tests/e2e/anagrafica-clienti.spec.ts`, `tests/e2e/demo__anagrafica-clienti.spec.ts`, `tests/e2e/anagrafica-offerte.spec.ts`, `tests/e2e/demo__anagrafica-offerte.spec.ts`, `tests/e2e/anagrafica-collaboratori.spec.ts`, `tests/e2e/demo__anagrafica-collaboratori.spec.ts`.
+
+      **Cambiare:** gli spec di anagrafica mutanti e factory admin/back-office.
+
+      **Passi:**
+      1. Nei test clienti, creare un cliente proprio prima di modificarlo/disattivarlo/riattivarlo.
+      2. Nei test offerte, creare o usare un cliente proprio e creare offerte su quel cliente.
+      3. Nei test collaboratori, mantenere il controllo duplicato su Giulia solo se è read-only/validazione duplicato; per mutazioni usare collaboratori generati.
+      4. Nei demo con nomi che precedono alfabeticamente i seed, usare nomi non interferenti o disattivazione immediata dopo verifica.
+
+      **Verifica:** eseguire `npx playwright test tests/e2e/anagrafica-clienti.spec.ts tests/e2e/demo__anagrafica-clienti.spec.ts tests/e2e/anagrafica-offerte.spec.ts tests/e2e/demo__anagrafica-offerte.spec.ts --retries=0`.
+
+      **Fatto:** le anagrafiche non mutano più entità seed condivise salvo validazioni intenzionali.
+
+      **Bloccanti:** non ridurre la copertura CRUD per evitare la migrazione.
+
+      ## File Coinvolti
+      - `tests/e2e/anagrafica-clienti.spec.ts`
+      - `tests/e2e/demo__anagrafica-clienti.spec.ts`
+      - `tests/e2e/anagrafica-offerte.spec.ts`
+      - `tests/e2e/demo__anagrafica-offerte.spec.ts`
+      - `tests/e2e/anagrafica-collaboratori.spec.ts`
+      - `tests/e2e/support/factory.ts`
+
+      ## Criteri di Completamento
+      - [ ] Nessun test modifica o disattiva la prima riga senza averla creata.
+      - [ ] Le offerte create nei test appartengono a clienti propri del test.
+      - [ ] I test collaboratori mutanti usano identità generate.
+      - [ ] Il gruppo anagrafiche passa con `--retries=0`.
+    ref: TASK-09
+  - id: TASK-10
+    title: Pulire selettori fragili e hard wait
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-05
+      - TASK-08
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** ridurre falsi negativi dovuti a selettori non semantici e a sincronizzazioni temporali arbitrarie.
+
+      **Leggere:** output di `rg` su `hasText`, classi Tailwind come selettori, XPath su fratelli, navigazione sidebar e `waitForTimeout` in `tests/e2e/`.
+
+      **Cambiare:** spec e2e interessati; componenti UI solo per `data-testid` o label accessibili minimi.
+
+      **Passi:**
+      1. Sostituire link di navigazione con `getByRole('link', { name, exact: true })` quando possibile.
+      2. Sostituire selettori CSS di classi Tailwind con ruoli, label, heading, test id o testo accessibile stabile.
+      3. Ridurre XPath su fratelli usando contenitori scoped individuati da heading, card o righe con testo univoco.
+      4. Sostituire `waitForTimeout(300/500/1000)` usati come sincronizzazione con `expect`, `waitForURL`, locator web-first o polling su stato osservabile.
+      5. Lasciare allowlist solo per pause finali di video demo esplicitamente commentate come ritmo di registrazione, non sincronizzazione.
+
+      **Verifica:** eseguire `npm run lint` e gli spec toccati con `--retries=0`.
+
+      **Fatto:** i test critici non dipendono più da classi, match parziali ambigui o attese temporali arbitrarie.
+
+      **Bloccanti:** non introdurre test id generici o duplicati; preferire ruoli accessibili.
+
+      ## File Coinvolti
+      - `tests/e2e/report-fatturazione-clienti.spec.ts`
+      - `tests/e2e/demo__report-fatturazione-clienti.spec.ts`
+      - `tests/e2e/demo__calendario-mensile.spec.ts`
+      - `tests/e2e/demo__trasferta-rimborso-automatico.spec.ts`
+      - altri `tests/e2e/*.spec.ts` individuati da ricerca
+
+      ## Criteri di Completamento
+      - [ ] I link nav principali sono ancorati con ruolo/nome esatto.
+      - [ ] Le classi Tailwind non sono contratti primari dei test migrati.
+      - [ ] Gli hard wait di sincronizzazione sono sostituiti da attese web-first.
+      - [ ] I file toccati passano con `--retries=0`.
+    ref: TASK-10
+  - id: TASK-11
+    title: Aggiungere guardrail automatici anti-flakiness
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+      - TASK-06
+      - TASK-08
+      - TASK-09
+      - TASK-10
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** impedire che nuovi test reintroducano pattern di contesa, selezione fragile o uso scorretto di risorse globali.
+
+      **Leggere:** `eslint.config.mjs`, `package.json`, `tests/e2e/support/reserved-resources.ts`, pattern rimasti in `tests/e2e/`.
+
+      **Cambiare:** aggiungere uno script di guardrail, ad esempio `scripts/check-e2e-guardrails.ts`, e integrarlo negli script npm o in CI.
+
+      **Passi:**
+      1. Fallire su `selectOption({ index`, email seed hardcoded in file non allowlist, date helper legacy fuori dagli helper, nav con match parziali, classi Tailwind come selettori e `waitForTimeout` non allowlist.
+      2. Fallire su creazione/modifica di scaglioni km fuori dagli intervalli registrati o su uso di `Date.now() % 900` nei test scaglioni.
+      3. Definire allowlist esplicita per test read-only sul seed e pause finali dei video demo.
+      4. Integrare il comando in `package.json`, preferibilmente dentro `npm run lint` o nella CI esistente.
+
+      **Verifica:** introdurre temporaneamente un pattern vietato o coprire lo script con fixture interna, confermare fallimento, poi ripristinare e confermare `npm run lint` verde.
+
+      **Fatto:** la CI intercetta automaticamente i pattern ad alto rischio.
+
+      **Bloccanti:** non bloccare test read-only legittimi; usare allowlist tracciabile invece di regole troppo ampie.
+
+      ## File Coinvolti
+      - `package.json`
+      - `eslint.config.mjs`
+      - `scripts/check-e2e-guardrails.ts`
+      - `tests/e2e/support/reserved-resources.ts`
+      - `tests/e2e/`
+
+      ## Criteri di Completamento
+      - [ ] Il guardrail fallisce su `selectOption({ index: ... })` nei nuovi spec non allowlist.
+      - [ ] Il guardrail copre email seed, hard wait, nav fragile e selettori Tailwind.
+      - [ ] Il guardrail copre scaglioni km fuori registro e `Date.now() % 900`.
+      - [ ] `npm run lint` passa sul repository ripulito.
+    ref: TASK-11
+  - id: TASK-12
+    title: Documentare setup, teardown e regole per nuovi e2e
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-11
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** rendere chiaro a chi scrive nuovi test quale stato viene creato, isolato e ripulito.
+
+      **Leggere:** `tests/e2e/global-setup.ts`, `tests/e2e/global-teardown.ts`, `tests/e2e/e2e-database-safety.ts`, `tests/e2e/support/reserved-resources.ts`, `README.md`.
+
+      **Cambiare:** commenti nei file setup/teardown e una sezione in `tests/e2e/README.md` o `README.md`.
+
+      **Passi:**
+      1. Documentare che `globalSetup` prepara schema e seed solo come baseline read-only/smoke.
+      2. Documentare che i test mutanti devono usare fixture/factory e namespace univoci.
+      3. Documentare cleanup finale, nessun cleanup concorrente per-test e gate con `npx playwright test --retries=0`.
+      4. Documentare il registro mesi riservati e il registro scaglioni km, spiegando che gli scaglioni sono globali e non namespaceabili.
+      5. Documentare la regola per futuri aggregati globali tipo avanzamento offerte: asserire riga-per-riga sulla propria offerta e mai su conteggi/totali globali di portafoglio.
+      6. Chiarire che `slowMo` è ammesso per ritmo video, mentre `waitForTimeout` e slowMo non sono meccanismi di sincronizzazione funzionale.
+
+      **Verifica:** eseguire `npm run lint` se applicabile e controllare i riferimenti ai percorsi.
+
+      **Fatto:** un contributor può scrivere nuovi e2e senza reintrodurre dipendenze da stato condiviso.
+
+      **Bloccanti:** non inserire segreti o valori reali di `.env`; non leggere né modificare `.env`.
+
+      ## File Coinvolti
+      - `tests/e2e/README.md`
+      - `tests/e2e/global-setup.ts`
+      - `tests/e2e/global-teardown.ts`
+      - `tests/e2e/support/reserved-resources.ts`
+      - `README.md`
+
+      ## Criteri di Completamento
+      - [ ] La documentazione distingue seed read-only e test mutanti con fixture.
+      - [ ] Sono documentati mesi riservati e intervalli km.
+      - [ ] Sono documentate regole per aggregati globali futuri come US-016.
+      - [ ] Sono chiariti slowMo, hard wait e comando finale `--retries=0`.
+    ref: TASK-12
+  - id: TASK-13
+    title: Validare suite completa tre volte senza retry
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-11
+      - TASK-12
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** chiudere la spec con una prova ripetibile che dimostri assenza di flakiness nota mantenendo parallelismo attivo.
+
+      **Leggere:** `playwright.config.ts`, output dei task precedenti, eventuali report Playwright falliti.
+
+      **Cambiare:** `playwright.config.ts` solo se si decide di portare il default `retries` a 0; non cambiare `fullyParallel: true` e non limitare i worker a uno.
+
+      **Passi:**
+      1. Verificare che `fullyParallel: true` sia rimasto attivo.
+      2. Eseguire `npm run lint` e correggere eventuali guardrail falliti.
+      3. Eseguire tre volte consecutive `npx playwright test --retries=0`, senza `--workers=1` e senza serializzare l’intera suite.
+      4. Se una run fallisce, correggere isolamento dati, risorsa globale o selettore; non aumentare retry e non serializzare come fix.
+      5. Riportare nel risultato finale il riepilogo delle tre run.
+
+      **Verifica:** `npx playwright test --retries=0` deve passare tre volte consecutive con exit code 0.
+
+      **Fatto:** i criteri di accettazione sono dimostrati dal gate finale.
+
+      **Bloccanti:** bloccare se la soluzione richiede `workers: 1`, `fullyParallel: false`, serializzazione globale o aumento retry.
+
+      ## File Coinvolti
+      - `playwright.config.ts`
+      - `package.json`
+      - `docs/test-results/` — eventuale output riepilogativo se usato
+
+      ## Criteri di Completamento
+      - [ ] `npm run lint` passa.
+      - [ ] `fullyParallel: true` è mantenuto.
+      - [ ] Tre run consecutive di `npx playwright test --retries=0` passano con exit code 0.
+      - [ ] Non sono introdotti retry maggiori, `workers: 1` o serializzazione globale.
+    ref: TASK-13

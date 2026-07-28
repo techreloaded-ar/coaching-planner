@@ -2,7 +2,7 @@
 type: decision
 title: Abilitazioni esplicite collaboratore-offerta
 description: Persistere l'ingaggio collaboratore-offerta in una tabella dedicata, revocabile, con pre-popolamento una tantum
-status: reviewed
+status: generated
 decision_status: accepted
 sources:
     - path: prisma/schema.prisma
@@ -16,10 +16,6 @@ sources:
       role: verification
     - path: tests/e2e/abilitazioni-collaboratore.spec.ts
       role: verification
-review:
-    content_hash: sha256:ab2541387f5eb1e924903ffbfbbe9e53419aa444b1ce248efd2e77f6cb11f7b1
-    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
-    reviewed_at: "2026-07-27T09:41:32Z"
 ---
 # Abilitazioni esplicite collaboratore-offerta
 
@@ -58,4 +54,4 @@ Il primo rilascio in produzione richiede l'esecuzione manuale di `npm run db:bac
 
 ## Concetti correlati
 
-La decisione supporta [Collaboratori](/domains/collaboratori.md) e [Offerte](/domains/offerte.md) ed è collegata alle specifiche US-042, US-043 e US-044 nel [Backlog](/backlog/overview.md).
+La decisione supporta [Collaboratori](/domains/collaboratori.md) e [Offerte](/domains/offerte.md) ed è collegata alle specifiche US-042, US-043 e US-044 del backlog di delivery (`.archetipo/backlog.yaml`).

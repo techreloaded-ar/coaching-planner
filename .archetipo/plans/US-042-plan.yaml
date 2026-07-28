@@ -1,0 +1,569 @@
+schema: archetipo/plan/v2
+spec_code: US-042
+body: |-
+  # US-042: Abilitazione dei collaboratori sulle offerte dal dettaglio collaboratore — Piano di Implementazione
+
+  **Generato da:** Team di Planning ARchetipo
+  **Data:** 2026-07-22 (rev. 2 — design della sezione rivisto su indicazione del committente)
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** HIGH | **Punti:** 3
+
+  **Storia Utente**
+  Come amministratore, voglio vedere e gestire dal dettaglio di un collaboratore l'elenco delle offerte su cui è abilitato, così da controllare chi è ingaggiato su ciascun impegno commerciale prima di vincolare l'inserimento delle ore.
+
+  **Criteri di Accettazione**
+  - AC-1 — Nel dettaglio di un collaboratore l'amministratore vede l'elenco delle offerte con l'indicazione, per ciascuna, se il collaboratore è abilitato, insieme a codice offerta e cliente di appartenenza
+  - AC-2 — L'amministratore abilita un collaboratore su un'offerta e l'abilitazione risulta persistita: dopo il ricaricamento della pagina l'offerta compare come abilitata
+  - AC-3 — L'amministratore revoca un'abilitazione esistente e, dopo il ricaricamento, l'offerta risulta non abilitata; le altre abilitazioni del collaboratore restano invariate
+  - AC-4 — Al primo rilascio ogni collaboratore risulta già abilitato su tutte le offerte attive su cui ha almeno una riga di attività registrata
+  - AC-5 — Un utente con ruolo collaboratore che tenta di accedere alla gestione delle abilitazioni riceve il medesimo esito di accesso negato già previsto per le rotte del back office
+
+  **Interpretazione di AC-1 confermata dal committente (2026-07-22):** la pagina NON elenca tutte le offerte del sistema (non scala con molte offerte attive). L'elenco mostra le sole offerte **abilitate**; le offerte attive non ancora abilitate sono raggiungibili tramite l'azione "Abilita offerte" con ricerca e selezione multipla. L'indicazione di abilitazione è quindi data dall'appartenenza all'elenco.
+
+  ---
+
+  ## Soluzione Tecnica
+
+  L'abilitazione diventa un fatto persistito di prima classe: un nuovo modello `AbilitazioneOfferta` (coppia unica collaboratore–offerta) alimenta la sezione "Offerte abilitate" del dettaglio collaboratore e costituisce il contratto che sarà consumato da US-043 (vincolo sull'inserimento ore) e US-044 (gestione lato offerta). La UI mostra solo le abilitazioni esistenti; le nuove abilitazioni passano da un dialog di ricerca e selezione multipla.
+
+  - **Modello dati**: `AbilitazioneOfferta { id, collaboratoreId, offertaId, createdAt }` con `@@unique([collaboratoreId, offertaId])` e relazioni verso `Collaboratore` e `Offerta`; migrazione `aggiungi_abilitazione_offerta` senza backfill SQL.
+  - **Query** nel nuovo `src/lib/abilitazioni.ts` (pattern di `src/lib/collaboratori.ts`, entrambe riservate all'amministratore via `richiediRuoloApi("AMMINISTRATORE")`):
+    - `elencaOfferteAbilitate(collaboratoreId)`: le sole abilitazioni del collaboratore con codice, descrizione, ragione sociale del cliente e stato `attiva` dell'offerta, ordinate per cliente e codice;
+    - `elencaOfferteAbilitabili(collaboratoreId)`: le offerte **attive non ancora abilitate** (filtro `abilitazioniCollaboratori: { none: { collaboratoreId } }`), dati per il dialog di selezione.
+  - **Comandi** in `abilitazioni-actions.ts` accanto alla pagina di dettaglio, con guardia amministratore e `revalidatePath` del dettaglio:
+    - `abilitaCollaboratoreSuOfferte` accetta **una o più** offerte (`formData.getAll("offertaId")`), verifica che tutte esistano e siano attive, poi `createMany` con `skipDuplicates: true` (idempotente);
+    - `revocaAbilitazioneCollaboratore` con `deleteMany` mirato sulla singola coppia (idempotente).
+  - **UI**: sezione "Offerte abilitate" fra intestazione profilo e storico attività in `src/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx`: tabella accessibile delle sole abilitazioni con azione "Revoca" per riga; bottone primario "Abilita offerte" che apre un **dialog modale** con campo di ricerca (filtro client-side su codice, descrizione e cliente dei dati caricati server-side — nessuna nuova API), checkbox per la selezione multipla e conferma "Abilita selezionate" in un'unica action. Client component con `useActionState`. Riferimento visivo in `docs/mockups/US-042/`.
+  - **Pre-popolamento (AC-4)**: script idempotente `scripts/backfill-abilitazioni-iniziali.ts` sul precedente di US-041 (client iniettabile a tipi strutturali minimi): se la tabella `AbilitazioneOfferta` è vuota inserisce le coppie distinte (collaboratore, offerta attiva con almeno una riga attività); altrimenti non scrive nulla (garanzia una tantum: le revoche non vengono ricreate ai run successivi). Esposto come `npm run db:backfill-abilitazioni`, da eseguire una volta al primo rilascio dopo `db:migrate:deploy`; invocato anche in coda a `prisma/seed.ts`, così ambienti locali e CI rappresentano lo stato post primo rilascio (osservabile in e2e sulla collaboratrice seed Giulia Conti).
+  - **AC-5**: la pagina è già protetta da `richiediRuolo("AMMINISTRATORE")` (redirect a `/attivita` per i non amministratori); le nuove query e action usano `richiediRuoloApi` → `ErroreAutorizzazione(403)`, il medesimo esito delle altre rotte back office.
+
+  **Assunzioni registrate**
+  - Un'offerta abilitata che viene poi disattivata resta elencata fra le abilitate (con la revoca disponibile); il dialog propone solo offerte attive non ancora abilitate.
+  - La ricerca del dialog filtra lato client i dati caricati dal server al render della pagina: nessun endpoint di ricerca dedicato finché il volume non lo richiede.
+  - Lo script di pre-popolamento agisce solo a tabella completamente vuota: una tabella svuotata manualmente dopo il primo rilascio verrebbe ri-popolata da un run successivo — limite accettato e documentato nell'ADR.
+
+  ### Decisioni Architetturali
+
+  **Nuova ADR `decisions/abilitazioni-offerte-esplicite`** — Abilitazioni esplicite persistite con pre-popolamento una tantum. Alternative valutate:
+  1. **Abilitazione derivata dalle righe attività** (scartata): renderebbe impossibile revocare un'abilitazione pre-popolata e contraddice US-043, che prevede righe preesistenti su offerte non abilitate.
+  2. **Backfill dentro la migrazione SQL** (scartata): non verificabile unitariamente né osservabile negli ambienti e2e/CI, che migrano un database vuoto; lo script iniettabile segue il precedente di US-041 ed è testabile sul confine di persistenza.
+
+  La scelta tocca il modello dati persistente e definisce la politica trasversale consumata da US-042/US-043/US-044: supera la soglia ADR. Ricerca fra le decisioni esistenti eseguita (`archetipo wiki search --type decision abilitazione`): nessuna pagina copre le abilitazioni, quindi l'ID è nuovo. Il pattern di interazione (elenco delle sole abilitate + dialog di ricerca) è una scelta di UI reversibile e non entra nell'ADR.
+
+  ---
+
+  ## Baseline
+
+  Eseguita il 2026-07-22 su `/Users/smarello/repo/coaching-planner` (nessun worktree: `workdir` = project root).
+
+  | Verifica | Esito prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm run lint` | ✅ passa (incluso guardrail anti-flakiness e2e) | I file toccati non devono introdurre nuovi errori lint |
+  | `npx tsc --noEmit` | ✅ exit 0 | Le task promettono type-check verde |
+  | `npx prisma validate` | ✅ schema valido | La migrazione deve mantenere lo schema valido |
+  | `npm run test` | ✅ 519 test / 34 file verdi | Il gate finale richiede l'intera suite verde |
+  | `npx playwright test tests/e2e/dettaglio-collaboratore.spec.ts` | ✅ 2 passed | La pagina modificata non deve rompere lo spec esistente |
+  | `npm run build` | ✅ build completata | Il gate finale richiede build verde |
+
+  **Prerequisiti d'ambiente** (separati dai fallimenti di codice): `DATABASE_URL` configurata; database migrato e seminato (`npm run db:migrate` + `npm run db:seed`); client Prisma generato automaticamente dagli script npm (`prisma generate`). Gli e2e assumono il seed presente (login con utenti seed via seam `/api/e2e-test/sessione`); dopo TASK-05 va rieseguito `npm run db:seed` perché il seed includa il backfill.
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task produttrice |
+  |---|---|---|---|---|
+  | AC-1 | Collaboratore factory + tre offerte attive factory (A con abilitazione pre-creata via factory, B e C senza) | e2e browser | La sezione "Offerte abilitate" mostra la riga di A con codice e ragione sociale del cliente; B e C NON compaiono nell'elenco | TASK-09 |
+  | AC-2 | B e C non abilitate | e2e browser (+ unit sul contratto createMany) | Dal dialog "Abilita offerte": ricerca per codice, selezione di B e C, conferma unica; le due righe compaiono nell'elenco e restano dopo `page.reload()` | TASK-09 (contratto: TASK-04) |
+  | AC-3 | A abilitata (pre-creata), B e C abilitate via dialog | e2e browser (+ unit sul delete mirato) | Dopo "Revoca" sulla riga di B e reload: B assente dall'elenco, A e C restano presenti | TASK-09 (contratto: TASK-04) |
+  | AC-4 | Unit: client finto con coppie su offerte attive e non; e2e: collaboratrice seed Giulia Conti (righe attività su TS-2025-01 e DF-2025-02, backfill eseguito dal seed) | unit sul confine di persistenza + e2e read-only | Unit: `createMany` con le sole coppie distinte su offerte attive e nessuna scrittura se la tabella non è vuota; e2e: l'elenco "Offerte abilitate" di Giulia Conti contiene TS-2025-01 senza alcuna azione dell'amministratore | TASK-06, TASK-09 |
+  | AC-5 | Unit: guardia che rifiuta il ruolo COLLABORATORE; e2e: utente collaboratore factory autenticato | unit + e2e browser | Unit: query e action propagano `ErroreAutorizzazione(403)` senza toccare il database; e2e: la navigazione al dettaglio reindirizza a `/attivita` (medesimo esito back office) | TASK-04, TASK-09 |
+
+  Nota sugli oracoli: i test unit usano il mock di `@/lib/db` già in uso nel progetto per i contratti di chiamata; ogni esito utente-visibile (righe presenti/assenti nell'elenco, persistenza dopo reload, dialog, redirect) resta in carico all'e2e browser, quindi nessun oracolo di accettazione è nascosto dietro un test double.
+
+  ---
+
+  ## Strategia di Test
+
+  Piramide coerente col progetto: contratti e guardie a livello unit (db mockato), pre-popolamento verificato sul confine di persistenza con client iniettato (precedente US-041), esiti utente-visibili e persistenza reale in e2e Playwright deterministico (factory + fixtures del contratto US-023).
+
+  - Unit `tests/unit/abilitazioni-dal-actions.test.ts`: query abilitate (mappatura e ordinamento), query abilitabili (solo attive e non già abilitate), guardia admin su entrambe, action abilita multipla (createMany con coppie esatte e `skipDuplicates`, rifiuto selezione vuota e offerte non attive/inesistenti), action revoca (delete della sola coppia bersaglio), 403 per ruolo COLLABORATORE.
+  - Unit `tests/unit/backfill-abilitazioni-iniziali.test.ts`: coppie distinte su sole offerte attive, no-op su tabella non vuota, no-op senza righe attività.
+  - E2E `tests/e2e/abilitazioni-collaboratore.spec.ts`: browser e2e NECESSARIO — il percorso di accettazione attraversa confine rotta/server, persistenza, autorizzazione e un'interazione modale con stato client (ricerca + selezione multipla). Dati via factory e collaboratori creati ad hoc; nessuna mutazione di entità seed (la lettura del dettaglio di Giulia Conti per AC-4 è read-only, consentita dal contratto e2e).
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (già configurato; `fullyParallel: true` preservato)
+  **Demo video:** attesa — la Dimostrazione della spec è filmabile; registrazione a carico di `archetipo-review`
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Elenco abilitate, abilitazione via ricerca e revoca (AC-1/AC-2/AC-3) | L'admin apre il dettaglio del collaboratore factory: vede solo A fra le "Offerte abilitate" (codice e cliente), B e C assenti; apre "Abilita offerte", cerca B e C per codice, le seleziona entrambe e conferma; le vede comparire, ricarica e restano; revoca B, ricarica: B assente, A e C invariate |
+  | Pre-popolamento al primo rilascio (AC-4) | L'admin apre il dettaglio della collaboratrice seed Giulia Conti e trova TS-2025-01 già fra le offerte abilitate senza alcun intervento |
+  | Accesso negato al collaboratore (AC-5) | Un utente con ruolo collaboratore naviga al dettaglio di un collaboratore e viene reindirizzato a `/attivita` |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/collaboratori, domains/offerte, domains/identita-accesso]
+    update_after_acceptance: [domains/collaboratori, domains/offerte, engineering/code-map, operations/deploy-vercel-siteground]
+    create: [decisions/abilitazioni-offerte-esplicite]
+  ```
+
+  ---
+
+  > 🎨 I mockup di questa spec sono disponibili in `docs/mockups/US-042/`
+
+  _Piano generato via ARchetipo Planning — 2026-07-22_
+tasks:
+  - id: TASK-01
+    title: Modello dati AbilitazioneOfferta e migrazione
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Persistere l'abilitazione esplicita di un collaboratore su un'offerta con il nuovo modello Prisma `AbilitazioneOfferta` e la relativa migrazione.
+
+      ## Read
+      - prisma/schema.prisma — modelli `Collaboratore`, `Offerta`, `RigaAttivita`: convenzioni id uuid, `createdAt`, relazioni e `@@unique`
+
+      ## Change
+      - prisma/schema.prisma — aggiungi il solo modello `AbilitazioneOfferta` e le back-relation sui modelli esistenti; nessun'altra modifica ai modelli
+      - prisma/migrations/** — nuova migrazione generata `aggiungi_abilitazione_offerta`; non toccare le migrazioni esistenti
+
+      ## Steps
+      1. Aggiungi allo schema:
+      ```prisma
+      model AbilitazioneOfferta {
+        id              String   @id @default(uuid())
+        collaboratoreId String
+        offertaId       String
+        createdAt       DateTime @default(now())
+
+        collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
+        offerta       Offerta       @relation(fields: [offertaId], references: [id])
+
+        @@unique([collaboratoreId, offertaId])
+      }
+      ```
+      2. Aggiungi le back-relation: `abilitazioniOfferte AbilitazioneOfferta[]` su `Collaboratore` e `abilitazioniCollaboratori AbilitazioneOfferta[]` su `Offerta`.
+      3. Genera e applica la migrazione: `npx prisma migrate dev --name aggiungi_abilitazione_offerta`. Nessun backfill SQL nella migrazione: il pre-popolamento è responsabilità dello script di TASK-05.
+
+      ## Verify
+      - Run: `npx prisma validate`
+      - Expect: schema valido (baseline verde)
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessun nuovo errore rispetto alla baseline
+
+      ## Done
+      - [ ] Modello `AbilitazioneOfferta` con vincolo unico `(collaboratoreId, offertaId)` e migrazione applicata al database locale — fondazione dati per AC-1/AC-2/AC-3/AC-4
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Query offerte abilitate e abilitabili in src/lib/abilitazioni.ts
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Esporre all'amministratore le abilitazioni del collaboratore (per l'elenco) e le offerte attive non ancora abilitate (per il dialog di ricerca e selezione), con codice offerta e ragione sociale del cliente (dati per AC-1 e AC-2).
+
+      ## Read
+      - src/lib/collaboratori.ts — pattern del modulo query: `import "server-only"`, `db`, `richiediRuoloApi("AMMINISTRATORE")`, interfacce di ritorno dedicate
+      - src/lib/dal.ts — `richiediRuoloApi` ed `ErroreAutorizzazione`
+      - prisma/schema.prisma — modello `AbilitazioneOfferta` e back-relation `abilitazioniCollaboratori` su `Offerta` (da TASK-01)
+
+      ## Change
+      - src/lib/abilitazioni.ts — nuovo file; nessuna modifica ad altri moduli
+
+      ## Steps
+      1. Crea `src/lib/abilitazioni.ts` con `import "server-only"`.
+      2. Esporta l'interfaccia `OffertaAbilitata { offertaId: string; codice: string; descrizione: string; clienteRagioneSociale: string; offertaAttiva: boolean }` e l'interfaccia `OffertaAbilitabile { offertaId: string; codice: string; descrizione: string; clienteRagioneSociale: string }`.
+      3. Esporta `elencaOfferteAbilitate(collaboratoreId: string)`: guardia `await richiediRuoloApi("AMMINISTRATORE")`, poi `db.abilitazioneOfferta.findMany({ where: { collaboratoreId }, include: { offerta: { include: { cliente: { select: { ragioneSociale: true } } } } }, orderBy: [{ offerta: { cliente: { ragioneSociale: "asc" } } }, { offerta: { codice: "asc" } }] })` e mappa alle interfacce (con `offertaAttiva = offerta.attiva`). Documenta nel JSDoc che le offerte abilitate poi disattivate restano elencate (assunzione registrata nel piano).
+      4. Esporta `elencaOfferteAbilitabili(collaboratoreId: string)`: guardia amministratore, poi `db.offerta.findMany({ where: { attiva: true, abilitazioniCollaboratori: { none: { collaboratoreId } } }, include: { cliente: { select: { ragioneSociale: true } } }, orderBy: [{ cliente: { ragioneSociale: "asc" } }, { codice: "asc" }] })` mappata all'interfaccia.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0
+      - Run: `npm run lint`
+      - Expect: verde, nessun nuovo errore
+
+      ## Done
+      - [ ] AC-1 — `elencaOfferteAbilitate` restituisce le sole abilitazioni del collaboratore con codice, descrizione e ragione sociale del cliente
+      - [ ] AC-2 — `elencaOfferteAbilitabili` restituisce le sole offerte attive non ancora abilitate al collaboratore
+      - [ ] AC-5 — entrambe le query sono riservate all'amministratore (contratto)
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Server action di abilitazione multipla e revoca
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Permettere all'amministratore di abilitare una o più offerte in un'unica conferma e di revocare una singola abilitazione, in modo idempotente e persistito (AC-2, AC-3).
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/collaboratori/actions.ts — pattern `StatoAction`, guardia amministratore, gestione errori e `revalidatePath`
+      - src/lib/dal.ts — `richiediRuoloApi`
+      - prisma/schema.prisma — vincolo unico `(collaboratoreId, offertaId)` (da TASK-01)
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-actions.ts — nuovo file con le due action; nessuna modifica alle action esistenti
+
+      ## Steps
+      1. Crea il file con direttiva `"use server"`; riusa il tipo `StatoAction` importandolo da `../actions`.
+      2. `abilitaCollaboratoreSuOfferte(_prevState, formData)`: guardia `richiediRuoloApi("AMMINISTRATORE")`; leggi `collaboratoreId` (`formData.get`) e gli id offerta con `formData.getAll("offertaId")` filtrando le stringhe non vuote; se `collaboratoreId` manca → `errori._form`; se la selezione è vuota → `errori._form = "Seleziona almeno un'offerta da abilitare"`; carica le offerte con `db.offerta.findMany({ where: { id: { in: ids }, attiva: true }, select: { id: true } })` e se il conteggio non coincide con gli id richiesti → `errori._form = "Alcune offerte selezionate non sono disponibili"` senza scrivere nulla; altrimenti `db.abilitazioneOfferta.createMany({ data: ids.map((offertaId) => ({ collaboratoreId, offertaId })), skipDuplicates: true })` (idempotente sul vincolo unico); `revalidatePath(`/anagrafiche/collaboratori/${collaboratoreId}`)`; restituisci `{ errori: {}, successo: true }`.
+      3. `revocaAbilitazioneCollaboratore(_prevState, formData)`: guardia amministratore; valida `collaboratoreId` e `offertaId`; `db.abilitazioneOfferta.deleteMany({ where: { collaboratoreId, offertaId } })` (idempotente, tocca solo la coppia bersaglio); `revalidatePath` del dettaglio; `{ errori: {}, successo: true }`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0
+      - Run: `npm run lint`
+      - Expect: verde, nessun nuovo errore
+
+      ## Done
+      - [ ] AC-2 — l'abilitazione accetta selezioni multiple, scrive le coppie mancanti e sopravvive al ricaricamento (persistita a database)
+      - [ ] AC-3 — la revoca elimina la sola coppia bersaglio senza toccare le altre abilitazioni
+      - [ ] AC-5 — entrambe le action rifiutano un non amministratore con `ErroreAutorizzazione(403)` prima di ogni scrittura
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Test unit di query e action delle abilitazioni
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+      - TASK-03
+    body: |-
+      ## Objective
+      Provare a livello di contratto le due query, l'abilitazione multipla idempotente, la revoca mirata e le guardie di ruolo (AC-1, AC-2, AC-3, AC-5).
+
+      ## Read
+      - tests/unit/collaboratori-dal-actions.test.ts — pattern di mock con `vi.hoisted` per `@/lib/db`, `@/lib/dal`, `next/cache`, `next/navigation`
+      - src/lib/abilitazioni.ts e src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-actions.ts — moduli sotto test
+
+      ## Change
+      - tests/unit/abilitazioni-dal-actions.test.ts — nuovo file; nessuna modifica ai test esistenti
+
+      ## Steps
+      1. Mocka `@/lib/db` con `abilitazioneOfferta.findMany`/`createMany`/`deleteMany` e `offerta.findMany`; mocka `richiediRuoloApi`, `revalidatePath` e `redirect` come nel file di riferimento.
+      2. `elencaOfferteAbilitate`: con due abilitazioni incluse verifica il call shape (`where: { collaboratoreId }`, include offerta+cliente, orderBy per cliente e codice) e la mappatura con `codice`, `clienteRagioneSociale` e `offertaAttiva`.
+      3. `elencaOfferteAbilitabili`: verifica `where: { attiva: true, abilitazioniCollaboratori: { none: { collaboratoreId } } }` — solo offerte attive non già abilitate.
+      4. Entrambe le query con guardia che rigetta `ErroreAutorizzazione(403)`: la promise rigetta e il db non è interrogato (AC-5).
+      5. `abilitaCollaboratoreSuOfferte` con due `offertaId` nel FormData e offerte attive trovate: `createMany` invocata con esattamente le due coppie e `skipDuplicates: true`, poi `revalidatePath("/anagrafiche/collaboratori/<id>")` e `successo: true` (AC-2, selezione multipla).
+      6. `abilitaCollaboratoreSuOfferte` con selezione vuota: nessuna scrittura ed `errori._form` valorizzato.
+      7. `abilitaCollaboratoreSuOfferte` con un id inesistente o di offerta non attiva (findMany restituisce meno offerte delle richieste): nessuna `createMany` ed `errori._form` valorizzato.
+      8. `revocaAbilitazioneCollaboratore`: `deleteMany` chiamata con `{ where: { collaboratoreId, offertaId } }` esatti — la sola coppia bersaglio (AC-3) — poi `revalidatePath` e `successo: true`.
+      9. Entrambe le action con guardia che rigetta: nessuna chiamata a `createMany`/`deleteMany` (AC-5).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/abilitazioni-dal-actions.test.ts`
+      - Expect: tutti i test del file verdi
+      - Run: `npm run test`
+      - Expect: nessuna regressione (baseline: 519 test verdi)
+
+      ## Done
+      - [ ] AC-1/AC-2 — oracoli contrattuali delle due query (abilitate; attive non abilitate)
+      - [ ] AC-2 — oracolo contrattuale: createMany idempotente con le coppie esatte della selezione multipla
+      - [ ] AC-3 — oracolo contrattuale: delete della sola coppia bersaglio
+      - [ ] AC-5 — oracolo contrattuale: 403 propagato senza scritture; l'esito utente-visibile resta a TASK-09
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Script di pre-popolamento una tantum e aggancio al seed
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Garantire che al primo rilascio ogni collaboratore risulti abilitato sulle offerte attive su cui ha almeno una riga di attività (AC-4), senza ricreare abilitazioni revocate ai run successivi.
+
+      ## Read
+      - scripts/bootstrap-amministratore-iniziale.ts — struttura di riferimento: interfaccia client iniettabile a tipi strutturali minimi, funzione esportata testabile, entry point CLI con `loadEnvConfig` e controllo `DATABASE_URL`
+      - prisma/seed.ts — coda di `main()` dove agganciare il backfill
+      - package.json — convenzione degli script `db:*`
+
+      ## Change
+      - scripts/backfill-abilitazioni-iniziali.ts — nuovo file
+      - package.json — aggiungi lo script `"db:backfill-abilitazioni": "tsx scripts/backfill-abilitazioni-iniziali.ts"`
+      - prisma/seed.ts — invoca la funzione di backfill in coda a `main()`; nessun'altra modifica al seed
+
+      ## Steps
+      1. Esporta `interface ClientBackfillAbilitazioni` con i soli metodi usati: `abilitazioneOfferta.count()`, `abilitazioneOfferta.createMany({ data })`, `rigaAttivita.findMany({ where: { offerta: { attiva: true } }, select: { collaboratoreId: true, offertaId: true }, distinct: ["collaboratoreId", "offertaId"] })` (tipi strutturali minimi come `ClientBootstrap`).
+      2. Esporta `eseguiBackfillAbilitazioniIniziali(client)`: se `count() > 0` restituisci `{ esito: "gia-popolato", inserite: 0 }` senza altre chiamate; altrimenti leggi le coppie distinte su offerte attive; se l'elenco è vuoto restituisci `{ esito: "nessuna-attivita", inserite: 0 }` senza `createMany`; altrimenti `createMany` con le coppie e `{ esito: "popolato", inserite: n }`.
+      3. Entry point CLI come il bootstrap US-041: `loadEnvConfig`, errore ed exit 1 se `DATABASE_URL` manca, `PrismaClient` con `PrismaPg`, log dell'esito, `$disconnect` nel `finally`.
+      4. Aggiungi lo script npm `db:backfill-abilitazioni`.
+      5. In `prisma/seed.ts`, dopo la creazione delle attività, `await eseguiBackfillAbilitazioniIniziali(prisma)` con log del numero di abilitazioni inserite (il seed svuota le tabelle all'avvio, quindi il guard "tabella vuota" è sempre soddisfatto).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0
+      - Run: `npm run db:seed`
+      - Expect: il log del seed riporta il backfill eseguito con un numero di abilitazioni inserite > 0 (Giulia Conti e Marco Bianchi hanno righe su offerte attive)
+
+      ## Done
+      - [ ] AC-4 — meccanismo di pre-popolamento una tantum disponibile (`npm run db:backfill-abilitazioni`, da eseguire una volta al primo rilascio dopo `db:migrate:deploy`) e ambienti locali/CI rappresentativi dello stato post primo rilascio via seed
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Test unit dello script di pre-popolamento
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Objective
+      Provare sul confine di persistenza che il backfill inserisce le sole coppie distinte su offerte attive e non scrive nulla quando la tabella è già popolata (AC-4).
+
+      ## Read
+      - tests/unit/bootstrap-amministratore-iniziale.test.ts — pattern del client finto iniettato con `vi.fn()`
+      - scripts/backfill-abilitazioni-iniziali.ts — funzione e interfaccia sotto test
+
+      ## Change
+      - tests/unit/backfill-abilitazioni-iniziali.test.ts — nuovo file; nessuna modifica ai test esistenti
+
+      ## Steps
+      1. Costruisci un client finto `ClientBackfillAbilitazioni` con `vi.fn()` per `count`, `createMany` e `findMany`.
+      2. Caso "tabella vuota con attività": `count` → 0, `findMany` → coppie note; verifica che `findMany` sia invocata con `where: { offerta: { attiva: true } }` e `distinct: ["collaboratoreId", "offertaId"]` (il filtro sulle offerte attive e l'assenza di duplicati sono contratto di query), che `createMany` riceva esattamente le coppie restituite e che l'esito sia `{ esito: "popolato", inserite: n }`.
+      3. Caso "tabella già popolata": `count` → 3; verifica che `findMany` e `createMany` NON siano invocate e che l'esito sia `gia-popolato` — così le revoche non vengono ricreate ai run successivi.
+      4. Caso "nessuna attività": `count` → 0, `findMany` → []; `createMany` mai invocata, esito `nessuna-attivita`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/backfill-abilitazioni-iniziali.test.ts`
+      - Expect: tutti i test del file verdi
+      - Run: `npm run test`
+      - Expect: nessuna regressione (baseline: 519 test verdi)
+
+      ## Done
+      - [ ] AC-4 — oracolo sul confine di persistenza: sole coppie distinte su offerte attive, nessuna scrittura a tabella non vuota; l'evidenza utente-visibile resta a TASK-09
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Sezione Offerte abilitate con dialog di ricerca e selezione
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+      - TASK-03
+    body: |-
+      ## Objective
+      Mostrare nel dettaglio collaboratore le sole offerte abilitate con revoca per riga, e permettere nuove abilitazioni (anche multiple) tramite dialog con ricerca e selezione (AC-1, AC-2, AC-3 lato UI).
+
+      ## Read
+      - docs/mockups/US-042/ — riferimento visivo obbligatorio: sezione elenco abilitate, dialog con ricerca e selezione multipla, stati vuoti
+      - src/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx — struttura della pagina (intestazione profilo, storico mensile) e stile dei badge pill emerald/zinc
+      - src/app/(back-office)/offerte/offerte-tabella.tsx — pattern client component con `useActionState` e form per riga
+      - src/lib/abilitazioni.ts e [id]/abilitazioni-actions.ts — query e action da collegare
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx — carica le due query e rende la nuova sezione fra intestazione profilo e storico attività; non alterare lo storico esistente
+      - src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-offerte.tsx — nuovo client component (elenco + dialog)
+
+      ## Steps
+      1. In `page.tsx`: `const [abilitate, abilitabili] = await Promise.all([elencaOfferteAbilitate(id), elencaOfferteAbilitabili(id)]);` e rendi la sezione "Offerte abilitate" prima dello storico, passando i due elenchi e `collaboratoreId` al client component.
+      2. Elenco abilitate: tabella con `aria-label="Offerte abilitate"`; per riga: codice offerta (evidenza indigo come nello storico), descrizione, ragione sociale cliente e un form `useActionState` su `revocaAbilitazioneCollaboratore` con hidden `collaboratoreId`/`offertaId` e bottone "Revoca" (nome accessibile esatto). Stato vuoto: "Nessuna offerta abilitata."
+      3. Dialog: bottone primario "Abilita offerte" nell'intestazione della sezione apre un dialog modale accessibile (`role="dialog"`, `aria-modal`, chiusura con Annulla): campo di ricerca etichettato "Cerca offerta" che filtra client-side gli `abilitabili` per codice, descrizione o cliente (`useState`, confronto case-insensitive); un unico form con checkbox per offerta (`name="offertaId"`, `value` id, nome accessibile con codice offerta), hidden `collaboratoreId`, contatore delle selezionate e submit "Abilita selezionate" via `useActionState` su `abilitaCollaboratoreSuOfferte`; alla riuscita (`successo`) chiudi il dialog. Messaggio "Nessuna offerta trovata." quando il filtro non produce risultati; mostra l'eventuale `errori._form` nel dialog.
+      4. Segui il mockup per collocazione e gerarchia; mantieni palette zinc/indigo e dark mode.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0
+      - Run: `npm run lint`
+      - Expect: verde, nessun nuovo errore
+
+      ## Done
+      - [ ] AC-1 — la sezione elenca le sole offerte abilitate con codice e cliente; le altre offerte non compaiono nella pagina
+      - [ ] AC-2 — il dialog propone solo offerte attive non abilitate, con ricerca e selezione multipla in un'unica conferma
+      - [ ] AC-3 — la revoca per riga invoca l'action con gli id corretti e l'elenco riflette lo stato aggiornato dopo il revalidate
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Factory e2e per le abilitazioni
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Permettere ai test e2e di pre-creare un'abilitazione collaboratore–offerta isolata, senza passare dalla UI (fixture per AC-1/AC-3).
+
+      ## Read
+      - tests/e2e/support/factory.ts — pattern `insertReturning`, gestione namespace e tipi opzioni esistenti
+
+      ## Change
+      - tests/e2e/support/factory.ts — aggiungi il tipo opzioni e il metodo `createAbilitazioneOfferta`; nessun'altra modifica
+
+      ## Steps
+      1. Aggiungi `export type CreateAbilitazioneOffertaOptions = { collaboratore: Collaboratore | CollaboratoreTestData; offerta: Offerta }`.
+      2. Aggiungi il metodo `createAbilitazioneOfferta(options)`: `INSERT INTO "AbilitazioneOfferta" ("id", "collaboratoreId", "offertaId", "createdAt") VALUES ($1, $2, $3, $4) RETURNING *` con `randomUUID()`, `resolveCollaboratoreId(options.collaboratore)` e `options.offerta.id`.
+      3. Importa il tipo `AbilitazioneOfferta` dal client Prisma generato per il tipo di ritorno.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0
+      - Run: `npm run lint`
+      - Expect: verde (incluso guardrail e2e)
+
+      ## Done
+      - [ ] Il metodo factory crea la coppia persistita ed è riusabile dagli spec e2e di US-042 (e in futuro US-043/US-044)
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: Test e2e delle abilitazioni dal dettaglio collaboratore
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+      - TASK-07
+      - TASK-08
+    body: |-
+      ## Objective
+      Provare nel browser gli esiti utente-visibili di tutti i criteri: elenco delle sole abilitate, abilitazione multipla via ricerca e selezione, revoca, pre-popolamento e accesso negato (AC-1..AC-5).
+
+      ## Read
+      - tests/e2e/dettaglio-collaboratore.spec.ts — pattern di navigazione e assert sulla pagina di dettaglio
+      - tests/e2e/support/auth.ts — `accediComeAdmin` e `accediCome` (login seam con email arbitraria)
+      - tests/e2e/support/fixtures.ts e tests/e2e/support/prisma.ts — fixture `factory` e client `e2ePrisma` per letture read-only
+      - tests/e2e/autorizzazione-ruoli.spec.ts — pattern di assert sul redirect di accesso negato
+      - tests/e2e/README.md — contratto anti-flakiness (nessun hard wait, nomi esatti, niente selettori Tailwind, seed mai mutato)
+
+      ## Change
+      - tests/e2e/abilitazioni-collaboratore.spec.ts — nuovo file; nessuna modifica agli spec esistenti
+
+      ## Steps
+      1. Scenario AC-1/AC-2/AC-3: crea via factory un collaboratore e tre `createClienteConOfferta` (offerte A, B, C); `createAbilitazioneOfferta` su A (pre-popolamento simulato); `accediComeAdmin`; `page.goto("/anagrafiche/collaboratori/" + id)`; individua la tabella `getByRole("table", { name: "Offerte abilitate" })`; verifica che contenga la riga di A (per codice offerta factory) con la ragione sociale del cliente A e che NON contenga i codici di B e C (assert di assenza scopate alla tabella) (AC-1); click su "Abilita offerte" e attesa del dialog (`getByRole("dialog")`); riempi "Cerca offerta" con il codice di B e spunta la checkbox di B; ripeti la ricerca con il codice di C e spunta C; click su "Abilita selezionate"; attesa web-first che le righe di B e C compaiano nella tabella delle abilitate; `page.reload()` e riverifica (AC-2, selezione multipla persistita); click su "Revoca" nella riga di B, attesa della scomparsa di B; `page.reload()`: B assente, A e C presenti (AC-3).
+      2. Scenario AC-4 (read-only sul seed): con `e2ePrisma` leggi l'id del Collaboratore la cui email utente è `giulia.conti@agilereloaded.it` (SELECT con join su "Utente", nessuna scrittura); `accediComeAdmin`; apri il suo dettaglio e verifica che la tabella "Offerte abilitate" contenga la riga `TS-2025-01` senza alcuna azione (pre-popolamento del seed via backfill).
+      3. Scenario AC-5: crea via factory un collaboratore con utente; `accediCome(page, utente.email)`; `page.goto` sul dettaglio di un collaboratore; `await expect(page).toHaveURL(/\/attivita$/)` — medesimo esito di accesso negato del back office.
+      4. Rispetta il contratto: selezioni per ruolo/etichetta/nome esatto derivati dalla factory, nessun `waitForTimeout`, nessuna classe Tailwind, nessuna mutazione di entità seed; il filtro di ricerca rende irrilevanti le offerte factory di altri test presenti nel dialog.
+
+      ## Verify
+      - Prerequisito ambiente: `npm run db:seed` eseguito dopo TASK-05 (il seed include il backfill)
+      - Run: `npx playwright test tests/e2e/abilitazioni-collaboratore.spec.ts tests/e2e/dettaglio-collaboratore.spec.ts`
+      - Expect: tutti i test verdi (baseline: dettaglio-collaboratore 2 passed)
+      - Run: `npm run lint`
+      - Expect: verde incluso il guardrail anti-flakiness e2e
+
+      ## Done
+      - [ ] AC-1 — l'elenco mostra le sole offerte abilitate con codice e cliente; le non abilitate non compaiono
+      - [ ] AC-2 — abilitazione di due offerte via ricerca e selezione multipla, persistita dopo `page.reload()`
+      - [ ] AC-3 — revoca persistita; abilitazione pre-creata e terza offerta invariate
+      - [ ] AC-4 — dettaglio di Giulia Conti (seed) con TS-2025-01 già fra le abilitate, senza azioni
+      - [ ] AC-5 — redirect a `/attivita` per l'utente con ruolo collaboratore
+
+      ## Blockers
+      None.
+    ref: TASK-09
+  - id: TASK-10
+    title: Pagina ADR decisions/abilitazioni-offerte-esplicite nel Wiki
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-05
+      - TASK-09
+    body: |-
+      ## Objective
+      Registrare la decisione architetturale sulle abilitazioni esplicite persistite con pre-popolamento una tantum, con evidenze di repository e tutti i marker di sezione.
+
+      ## Read
+      - docs/wiki/decisions/tariffa-unica-collaboratore.md — struttura di riferimento: frontmatter `type: decision`, `decision_status`, `sources` con ruoli, marker `<!-- archetipo:wiki section=... -->` (context, decision, alternatives, consequences, verification)
+      - docs/wiki/index.md — sezione Decisions esistente
+
+      ## Change
+      - docs/wiki/decisions/abilitazioni-offerte-esplicite.md — nuova pagina; nessuna modifica alle decisioni esistenti
+
+      ## Steps
+      1. Crea la pagina con frontmatter: `type: decision`, `title: Abilitazioni esplicite collaboratore-offerta`, description sintetica, `status: generated`, `decision_status: accepted`, `sources`: `prisma/schema.prisma` (implementation, symbol `AbilitazioneOfferta`), `scripts/backfill-abilitazioni-iniziali.ts` (implementation), `src/lib/abilitazioni.ts` (implementation), `tests/unit/backfill-abilitazioni-iniziali.test.ts` (verification), `tests/e2e/abilitazioni-collaboratore.spec.ts` (verification).
+      2. Compila le sezioni con TUTTI i marker: **Contesto** (US-042/043/044 richiedono un ingaggio esplicito e revocabile che le sole righe attività non rappresentano), **Decisione** (tabella persistita `AbilitazioneOfferta` a coppia unica + pre-popolamento una tantum via script iniettabile con guard tabella-vuota, eseguito al primo rilascio e nel seed), **Alternative** (abilitazione derivata dalle righe attività — scartata perché rende la revoca impossibile e contraddice US-043; backfill nella migrazione SQL — scartato perché non testabile né osservabile negli ambienti che migrano un database vuoto), **Conseguenze** (le revoche sopravvivono ai run successivi; una tabella svuotata manualmente verrebbe ri-popolata da un run successivo — limite accettato; il primo rilascio richiede un run manuale documentato in operations), **Verifica** (test unit del backfill e e2e delle abilitazioni).
+      3. Da /Users/smarello/repo/coaching-planner esegui `archetipo wiki catalog` per aggiornare l'indice di navigazione.
+
+      ## Verify
+      - Run: `archetipo wiki search --type decision abilitazioni`
+      - Expect: il risultato include `decisions/abilitazioni-offerte-esplicite`
+
+      ## Done
+      - [ ] Pagina ADR presente con frontmatter conforme, tutte le sezioni marcate e sources verso schema, script, query e test (contratto `wiki_impact.create` del piano soddisfatto)
+
+      ## Blockers
+      Da completare dopo TASK-05 e TASK-09 così le `sources` riferiscono file esistenti.
+    ref: TASK-10
+  - id: TASK-11
+    title: Gate finale di verifica e chiusura spec
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+      - TASK-09
+      - TASK-10
+    body: |-
+      ## Objective
+      Provare che l'incremento completo è verde su tutte le verifiche del progetto e che la spec è pronta per la review, senza task residue.
+
+      ## Read
+      - Sezione Baseline del piano — esiti attesi registrati prima dell'implementazione
+      - AGENTS.md — regole e2e e guardrail
+
+      ## Change
+      - Nessuna modifica di codice prevista; se una verifica fallisce, correggi nella task pertinente e riesegui l'intera sequenza
+
+      ## Steps
+      1. Da /Users/smarello/repo/coaching-planner esegui nell'ordine i comandi elencati in Verify.
+      2. A comandi tutti verdi, segna questa task come DONE tramite il connettore ARchetipo.
+      3. Da /Users/smarello/repo/coaching-planner esegui `archetipo spec show US-042` e verifica che NESSUNA task del piano (TASK-01..TASK-11) risulti in stato TODO.
+      4. Solo dopo questa conferma richiedi la review con `archetipo spec review US-042`.
+
+      ## Verify
+      - Run: `npm run test`
+      - Expect: tutta la suite verde (baseline 519 test + i nuovi di TASK-04/TASK-06; nessun fallimento)
+      - Run: `npm run lint`
+      - Expect: verde incluso il guardrail anti-flakiness e2e
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0
+      - Run: `npm run build`
+      - Expect: build completata (baseline verde)
+      - Run: `npx playwright test tests/e2e/abilitazioni-collaboratore.spec.ts tests/e2e/dettaglio-collaboratore.spec.ts`
+      - Expect: tutti i test verdi (prerequisito: database migrato e `npm run db:seed` eseguito)
+
+      ## Done
+      - [ ] Tutti i comandi sopra verdi, nessun nuovo fallimento rispetto alla Baseline del piano
+      - [ ] Evidenze AC-1..AC-5 prodotte da TASK-04, TASK-06 e TASK-09 confermate
+      - [ ] `archetipo spec show US-042` eseguito dal project root conferma tutte le task DONE prima di `archetipo spec review US-042`
+
+      ## Blockers
+      None.
+    ref: TASK-11

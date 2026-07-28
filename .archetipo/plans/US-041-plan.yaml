@@ -1,0 +1,276 @@
+schema: archetipo/plan/v2
+spec_code: US-041
+body: |-
+  # US-041: Bootstrap idempotente dell'amministratore iniziale al deploy — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-07-22
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-000 — Fondazione del Progetto
+  **Priorità:** HIGH | **Punti:** 2
+
+  **Storia Utente**
+  Come operatore che porta Coaching Planner in staging e produzione, voglio che al deploy venga garantita — tramite la variabile d'ambiente `AMMINISTRATORE_INIZIALE_EMAIL` e uno script idempotente eseguito nella stessa fase delle migrazioni — l'esistenza di un utente con quell'email e ruolo `AMMINISTRATORE`, così che ogni nuovo ambiente sia accessibile da subito senza censire manualmente il primo amministratore nel database.
+
+  **Criteri di Accettazione**
+  - AC-1 — Con variabile valorizzata ed email non censita, lo script crea un `Utente` con quell'email, ruolo `AMMINISTRATORE`, stato attivo e nome predefinito non vuoto, terminando con successo e dandone evidenza in output
+  - AC-2 — Se l'email è già censita (qualunque ruolo o stato), lo script termina con successo senza creare, modificare o cancellare dati, segnalando che l'utente esiste già
+  - AC-3 — Se la variabile manca o è vuota, lo script termina con errore nominando `AMMINISTRATORE_INIZIALE_EMAIL`, senza alcuna scrittura sul database
+  - AC-4 — La sequenza di deploy documentata esegue il bootstrap nella stessa fase di `prisma migrate deploy`, prima che l'applicazione serva traffico
+  - AC-5 — La guida di deploy sostituisce il passo manuale con la nuova variabile e il nuovo comando, e la checklist riflette il processo automatico
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Nuovo script CLI idempotente `scripts/bootstrap-amministratore-iniziale.ts`, costruito sui pattern già presenti nel repository, agganciato al build command Vercel subito dopo `prisma migrate deploy`.
+
+  - **Struttura testabile** sul modello di `scripts/siteground-connectivity-check.ts`: funzioni esportate pure/iniettabili (`validaEmailAmministratoreIniziale`, `eseguiBootstrapAmministratoreIniziale`) più entry point CLI guardato da `process.argv[1]`, così i test unitari importano le funzioni senza eseguire il comando.
+  - **Accesso al database** sul modello di `prisma/seed.ts`: `PrismaClient` con adapter `PrismaPg` e import relativo `../src/generated/prisma/client` (i path alias `@/` non servono negli script). La funzione di bootstrap riceve però un client iniettato con interfaccia minima (`utente.findUnique` / `utente.create`) per la testabilità.
+  - **Ordine delle operazioni per AC-3**: l'entry point valida `AMMINISTRATORE_INIZIALE_EMAIL` (trim; errore se assente o vuota) PRIMA di istanziare qualunque client Prisma — così l'uscita in errore avviene senza aprire connessioni né scrivere. `DATABASE_URL` mancante produce un errore distinto e chiaro (stesso tono di `src/lib/db.ts`).
+  - **Normalizzazione email** coerente con `creaUtente` (`src/app/(back-office)/anagrafiche/utenti/actions.ts`): `trim()` + `toLowerCase()` sia per la ricerca sia per la creazione.
+  - **Dati creati**: `nome: "Amministratore Iniziale"` (costante esportata, non vuota → AC-1), `ruolo: AMMINISTRATORE`; `attivo = true` arriva dal default di schema. Nessun `Account`, `Collaboratore` o notifica (fuori perimetro).
+  - **Caricamento env locale** con `loadEnvConfig(process.cwd())` di `@next/env` (già devDependency, stesso approccio di `vitest.config.ts`): la demo locale funziona senza toccare `.env`; su Vercel le variabili sono già nell'ambiente.
+  - **Aggancio al deploy**: build command Vercel documentato aggiornato a `prisma generate && prisma migrate deploy && npx tsx scripts/bootstrap-amministratore-iniziale.ts && next build` — stessa fase delle migrazioni, prima che l'app serva traffico (AC-4). `tsx` è disponibile in build perché devDependency installata da Vercel. Aggiunto anche lo script npm `db:bootstrap-amministratore` per l'uso manuale/demo.
+
+  ### Decisioni Architetturali
+
+  Nessuna scelta supera la soglia ADR: lo script segue i pattern esistenti (script `tsx` testabile + adapter Prisma del seed) e l'aggancio al build command estende il meccanismo già deciso e documentato per `prisma migrate deploy`. Nessun nuovo ID decision.
+
+  **Assunzioni registrate**: nessuna validazione di formato dell'email (AC-3 richiede solo assente/vuota); il nome predefinito è la costante `"Amministratore Iniziale"`; `prisma/seed.ts` resta invariato come da fuori perimetro.
+
+  ---
+
+  ## Baseline
+
+  Eseguita il 2026-07-22 su `/Users/smarello/repo/coaching-planner` (nessun worktree).
+
+  | Verifica | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm run lint` | ✅ passa (incluso guardrail e2e anti-flakiness) | I task si aspettano lint verde senza nuove violazioni |
+  | `npx tsc --noEmit` | ✅ exit 0 | I file toccati non devono introdurre diagnostiche di tipo |
+  | `npx vitest run tests/unit/utenti-actions.test.ts tests/unit/siteground-connectivity-check.test.ts` | ✅ 42 test passano | I nuovi test si aggiungono a una suite focalizzata verde |
+
+  Prerequisiti d'ambiente (separati dai fallimenti di codice): Node 22, `npm ci` già eseguito, client Prisma generato (`npm run db:generate`, eseguito automaticamente dal `postinstall`). I test unitari non richiedono database. Il gate finale non esegue `npm run build`: la spec tocca solo script CLI, `package.json`, `.env.example` e documentazione, nessun modulo compilato da `next build`; la copertura tipi è garantita da `npx tsc --noEmit` (che include `scripts/` e `tests/`).
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task produttore |
+  |---|---|---|---|---|
+  | AC-1 | Client finto con `utente.findUnique` → `null`; email input `" Admin@Example.com "` | Unit | `utente.create` chiamata esattamente una volta con `{ email: "admin@example.com", ruolo: "AMMINISTRATORE", nome: "Amministratore Iniziale" }` (nome non vuoto); esito restituito `"creato"` con l'utente; output di evidenza della creazione | TASK-02 |
+  | AC-2 | Client finto con `utente.findUnique` → utente esistente (`ruolo: COLLABORATORE`, `attivo: false`, id noto) | Unit | `utente.create` MAI chiamata e nessun altro metodo di scrittura invocato; esito `"gia-esistente"` con lo stesso id/ruolo/stato dell'utente trovato; output che segnala l'esistenza | TASK-02 |
+  | AC-3 | `validaEmailAmministratoreIniziale` invocata con `undefined`, `""` e `"   "`; client finto mai passato al flusso | Unit | Risultato `valida: false` con messaggio contenente la stringa `AMMINISTRATORE_INIZIALE_EMAIL`; nessun metodo del client invocato nei percorsi d'errore; l'entry point CLI valida prima di istanziare il client (verificato per lettura in TASK-01, ordine imposto dagli step) | TASK-02 |
+  | AC-4 | Guida di deploy nello stato corrente (con modifiche locali) | Docs/manuale | La sezione build command di `docs/wiki/operations/deploy-vercel-siteground.md` mostra `prisma generate && prisma migrate deploy && npx tsx scripts/bootstrap-amministratore-iniziale.ts && next build` con nota "prima che l'app serva traffico" | TASK-03 |
+  | AC-5 | Guida di deploy: sezione 7 con passo manuale e checklist punto 8 | Docs/manuale | Il passo "censisci manualmente il primo Utente" è sostituito da variabile + comando `db:bootstrap-amministratore`; la voce di checklist descrive il processo automatico; `grep` non trova più il passo manuale | TASK-03 |
+
+  ---
+
+  ## Strategia di Test
+
+  Test unitari Vitest sul contratto reale dello script: le asserzioni osservano le chiamate al client iniettato (il confine di persistenza) e i valori restituiti, non mock ausiliari.
+
+  - `tests/unit/bootstrap-amministratore-iniziale.test.ts` copre AC-1/2/3 con client finto (`vi.fn()`), incluse normalizzazione email, idempotenza (seconda esecuzione senza scritture) e assenza totale di chiamate al client nei percorsi d'errore.
+  - Pattern ripresi da `tests/unit/siteground-connectivity-check.test.ts` (import da `scripts/` via alias, mock di `process.exit`) e `tests/unit/utenti-actions.test.ts`.
+  - Regressione: l'intera suite `npm test` più `npx tsc --noEmit` e `npm run lint` nel gate finale, coerenti con la baseline verde.
+  - AC-4/AC-5 sono criteri documentali: evidenza per lettura della guida aggiornata, verificabile con i comandi `grep` indicati in TASK-03; la conferma runtime completa avverrà al primo deploy reale (fuori dal perimetro CI).
+
+  ### Waiver Browser E2E
+
+  **Motivo:** la spec non ha alcuna superficie UI né attraversa rotte, autenticazione o navigazione: il percorso di accettazione è un comando CLI più documentazione. I test unitari sul confine di persistenza iniettato provano AC-1/2/3; AC-4/5 sono verificabili per lettura.
+  **Livello di evidenza usato in alternativa:** suite Vitest deterministica `tests/unit/bootstrap-amministratore-iniziale.test.ts` + verifica documentale.
+  **Demo:** la Dimostrazione della spec è un flusso da terminale, non filmabile via browser; la decisione finale su registrare/saltare il video spetta ad `archetipo-review`.
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/identita-accesso, operations/deploy-vercel-siteground, backlog/specs/US-041]
+    update_after_acceptance: [operations/deploy-vercel-siteground, domains/identita-accesso, operations/development]
+    create: []
+  ```
+
+  La guida di deploy viene modificata direttamente in implementazione (è il deliverable di AC-4/AC-5) e andrà ri-approvata; `domains/identita-accesso` e `operations/development` vanno aggiornate dopo l'accettazione per registrare il nuovo writer di `Utente` (lo script di bootstrap) e il nuovo comando operativo. Nessuna pagina decision: soglia ADR non superata.
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-07-22_
+tasks:
+  - id: TASK-01
+    title: Creare lo script idempotente scripts/bootstrap-amministratore-iniziale.ts con funzioni esportate testabili
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste uno script CLI idempotente che, data `AMMINISTRATORE_INIZIALE_EMAIL`, garantisce un `Utente` attivo con ruolo `AMMINISTRATORE` e nome predefinito non vuoto, senza mai scrivere sul database quando la variabile manca o l'utente esiste già.
+
+      ## Read
+      - scripts/siteground-connectivity-check.ts — pattern dello script testabile: funzioni esportate, `exitWithError`, entry point guardato da `process.argv[1]?.endsWith(...)`
+      - prisma/seed.ts (righe 1–6) — istanziazione `PrismaClient` con `PrismaPg` e import relativo `../src/generated/prisma/client`
+      - src/lib/db.ts — tono del messaggio d'errore per `DATABASE_URL` mancante
+      - prisma/schema.prisma — modello `Utente` (default `attivo = true`, `ruolo`, `email @unique`)
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts (righe 26–27) — normalizzazione email `trim().toLowerCase()`
+      - vitest.config.ts — uso di `loadEnvConfig` da `@next/env`
+
+      ## Change
+      - scripts/bootstrap-amministratore-iniziale.ts — nuovo file
+      - package.json — solo aggiunta dello script `"db:bootstrap-amministratore": "tsx scripts/bootstrap-amministratore-iniziale.ts"` nella sezione `scripts`
+      - .env.example — solo aggiunta della variabile `AMMINISTRATORE_INIZIALE_EMAIL` commentata con una riga di spiegazione
+      - Non-goal: NON modificare `prisma/seed.ts`, NON creare `Account`/`Collaboratore`, NON promuovere/riattivare utenti esistenti, NON leggere o modificare `.env`
+
+      ## Steps
+      1. Crea `scripts/bootstrap-amministratore-iniziale.ts` con intestazione di commento in italiano (uso, requisiti, garanzia di idempotenza), sul modello di `siteground-connectivity-check.ts`.
+      2. Esporta la costante `NOME_PREDEFINITO_AMMINISTRATORE = "Amministratore Iniziale"`.
+      3. Esporta `validaEmailAmministratoreIniziale(valore: string | undefined): { valida: true; email: string } | { valida: false; messaggio: string }` — applica `trim()` e `toLowerCase()`; se `valore` è `undefined` o vuoto dopo il trim, restituisce `valida: false` con un messaggio che contiene letteralmente `AMMINISTRATORE_INIZIALE_EMAIL` e spiega come valorizzarla.
+      4. Esporta l'interfaccia minima `ClientBootstrap` con `utente: { findUnique(args): Promise<...>; create(args): Promise<...> }` (tipi strutturali minimi, nessuna dipendenza dal client generato nella firma) e la funzione `eseguiBootstrapAmministratoreIniziale(client: ClientBootstrap, email: string)`: cerca con `findUnique({ where: { email } })`; se trova l'utente restituisce `{ esito: "gia-esistente", utente }` SENZA altre chiamate; altrimenti `create({ data: { nome: NOME_PREDEFINITO_AMMINISTRATORE, email, ruolo: "AMMINISTRATORE" } })` (lo stato attivo arriva dal default di schema) e restituisce `{ esito: "creato", utente }`.
+      5. Entry point CLI guardato da `process.argv[1]?.endsWith("bootstrap-amministratore-iniziale.ts") || ...endsWith(".js")`: (a) `loadEnvConfig(process.cwd())` da `@next/env`; (b) valida la variabile con `validaEmailAmministratoreIniziale` PRIMA di istanziare qualunque client — se non valida: `console.error` del messaggio e `process.exit(1)` (AC-3: nessuna connessione, nessuna scrittura); (c) se `DATABASE_URL` manca, errore chiaro dedicato e `process.exit(1)`; (d) istanzia `PrismaClient` con `new PrismaPg({ connectionString: process.env.DATABASE_URL })` e import relativo `../src/generated/prisma/client`; (e) invoca il bootstrap, stampa l'evidenza: per `"creato"` email e ruolo creati, per `"gia-esistente"` che l'utente esiste già e non c'è nulla da fare; (f) `process.exit(0)` implicito a successo, errori imprevisti → `console.error` + exit 1; (g) `$disconnect()` del client in `finally`.
+      6. Aggiungi in `package.json` lo script `db:bootstrap-amministratore` accanto agli altri script `db:*`.
+      7. Aggiungi in `.env.example` la variabile `AMMINISTRATORE_INIZIALE_EMAIL=` con commento (email dell'amministratore garantito al bootstrap/deploy).
+
+      ## Verify
+      - Run: `npx tsc --noEmit` (dalla radice del progetto)
+      - Expect: exit 0, come da baseline — nessuna nuova diagnostica
+      - Run: `npm run lint`
+      - Expect: passa, come da baseline
+
+      ## Done
+      - [ ] AC-1 — lo script crea l'utente con email normalizzata, ruolo `AMMINISTRATORE` e nome predefinito non vuoto, dando evidenza in output (prova osservabile automatizzata in TASK-02)
+      - [ ] AC-2 — con utente già censito lo script termina con successo senza alcuna scrittura, segnalandolo in output
+      - [ ] AC-3 — la validazione della variabile avviene prima dell'istanziazione del client: uscita in errore che nomina `AMMINISTRATORE_INIZIALE_EMAIL` senza connessioni né scritture
+      - [ ] `package.json` espone `db:bootstrap-amministratore` e `.env.example` documenta la variabile
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: 'Test unitari dello script di bootstrap: creazione, idempotenza e variabile mancante'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Una suite Vitest prova osservabilmente AC-1, AC-2 e AC-3 asserendo sulle chiamate al client iniettato (confine di persistenza) e sui valori restituiti dallo script.
+
+      ## Read
+      - scripts/bootstrap-amministratore-iniziale.ts — funzioni esportate da testare (TASK-01)
+      - tests/unit/siteground-connectivity-check.test.ts — pattern di import da `scripts/` (`@/../scripts/...`) e mock di `process.exit`
+      - tests/unit/utenti-actions.test.ts — convenzioni di naming e struttura dei test in italiano
+
+      ## Change
+      - tests/unit/bootstrap-amministratore-iniziale.test.ts — nuovo file
+      - Non-goal: nessun test contro un database reale; nessuna modifica allo script se non per bug reali trovati dai test
+
+      ## Steps
+      1. Costruisci un client finto tipato `ClientBootstrap` con `utente.findUnique = vi.fn()` e `utente.create = vi.fn()`.
+      2. AC-1 — `findUnique` risolve `null`, input `" Admin@Example.com "` già normalizzato a `"admin@example.com"` da `validaEmailAmministratoreIniziale`: asserisci che `create` sia chiamata esattamente una volta con `data` contenente `email: "admin@example.com"`, `ruolo: "AMMINISTRATORE"`, `nome: NOME_PREDEFINITO_AMMINISTRATORE`; che il nome NON sia stringa vuota; che l'esito sia `"creato"` con l'utente restituito dal client.
+      3. AC-2 — `findUnique` risolve un utente esistente con `id` noto, `ruolo: "COLLABORATORE"`, `attivo: false` (qualunque ruolo o stato): asserisci che `create` NON sia mai chiamata, che nessun altro metodo del client sia invocato e che l'esito sia `"gia-esistente"` con lo stesso utente (stesso id, ruolo e stato invariati).
+      4. AC-3 — `validaEmailAmministratoreIniziale` con `undefined`, `""` e `"   "`: asserisci `valida: false` e messaggio contenente la stringa letterale `AMMINISTRATORE_INIZIALE_EMAIL`; asserisci inoltre che nel percorso d'errore nessun metodo del client finto risulti invocato.
+      5. Normalizzazione — verifica che `validaEmailAmministratoreIniziale(" ADMIN@Example.COM ")` restituisca `valida: true` con `email: "admin@example.com"`.
+      6. Idempotenza esplicita — esegui due volte `eseguiBootstrapAmministratoreIniziale` sullo stesso client finto (prima `findUnique` → `null` con `create` che restituisce l'utente, poi `findUnique` → quell'utente): asserisci che alla seconda esecuzione `create` non venga richiamata (una sola chiamata totale).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/bootstrap-amministratore-iniziale.test.ts`
+      - Expect: tutti i test passano
+      - Run: `npm test`
+      - Expect: intera suite unit verde (baseline verde, nessuna regressione)
+
+      ## Done
+      - [ ] AC-1 — oracolo: chiamata `create` con email normalizzata, ruolo `AMMINISTRATORE`, nome predefinito non vuoto ed esito `"creato"`
+      - [ ] AC-2 — oracolo: zero chiamate di scrittura ed esito `"gia-esistente"` con dati utente invariati
+      - [ ] AC-3 — oracolo: `valida: false` con messaggio che nomina `AMMINISTRATORE_INIZIALE_EMAIL` e nessuna invocazione del client
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: 'Aggiornare la guida di deploy: build command con bootstrap, variabile d''ambiente e checklist'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      La guida di deploy documenta il bootstrap automatico nella stessa fase di `prisma migrate deploy` (prima che l'app serva traffico) e non contiene più il passo di censimento manuale del primo amministratore.
+
+      ## Read
+      - docs/wiki/operations/deploy-vercel-siteground.md — ATTENZIONE: il file ha modifiche locali non committate; leggere lo stato corrente su disco prima di modificare. Sezioni interessate: 4 (punto 5, Build Command), 5 (tabella variabili), 7 (Primo avvio in produzione), 8 (Checklist go-live)
+      - scripts/bootstrap-amministratore-iniziale.ts — nome esatto di script e comando npm (TASK-01)
+
+      ## Change
+      - docs/wiki/operations/deploy-vercel-siteground.md — solo le quattro sezioni indicate negli Steps
+      - Non-goal: NON toccare le sezioni TLS/rischio accettato (0), database (2), Google OAuth (3), dominio (6) né il follow-up (9); NON modificare `prisma/seed.ts` né la nota che lo riserva allo sviluppo
+
+      ## Steps
+      1. Sezione 4, punto 5 (Build Command): sostituisci il comando con `prisma generate && prisma migrate deploy && npx tsx scripts/bootstrap-amministratore-iniziale.ts && next build` e aggiorna la frase esplicativa: ogni deploy applica le migrazioni E garantisce l'amministratore iniziale nella stessa fase, prima che l'applicazione serva traffico (AC-4).
+      2. Sezione 5 (tabella variabili): aggiungi la riga `AMMINISTRATORE_INIZIALE_EMAIL` con valori d'esempio per Production e Preview (email dell'amministratore garantito al deploy), coerente con le altre righe della tabella.
+      3. Sezione 7 (Primo avvio): sostituisci il paragrafo "censisci manualmente il primo `Utente` ... (via Prisma Studio ... o una query diretta)" con la descrizione del bootstrap automatico eseguito dal build command, indicando anche l'esecuzione manuale equivalente per demo/ambienti locali: `AMMINISTRATORE_INIZIALE_EMAIL=<email> npm run db:bootstrap-amministratore` (AC-5). Mantieni l'avvertenza esistente sul seed demo.
+      4. Sezione 8 (Checklist): sostituisci la voce non spuntata "Primo `Utente` AMMINISTRATORE censito manualmente nel DB di produzione" con una voce che riflette il processo automatico, ad es. "`AMMINISTRATORE_INIZIALE_EMAIL` configurata su Vercel e bootstrap dell'amministratore incluso nel build command" (AC-5).
+
+      ## Verify
+      - Run: `grep -n "AMMINISTRATORE_INIZIALE_EMAIL" docs/wiki/operations/deploy-vercel-siteground.md`
+      - Expect: occorrenze nella sezione build command o variabili (5), nel primo avvio (7) e nella checklist (8)
+      - Run: `grep -n "censisci manualmente\|censito manualmente" docs/wiki/operations/deploy-vercel-siteground.md`
+      - Expect: nessuna occorrenza residua del passo manuale
+
+      ## Done
+      - [ ] AC-4 — la sequenza di deploy documentata esegue il bootstrap nella stessa fase di `prisma migrate deploy`, prima che l'app serva traffico
+      - [ ] AC-5 — passo manuale sostituito da variabile + comando e voce di checklist aggiornata al processo automatico
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: 'Gate finale: verifiche complete e controllo di chiusura della spec'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+    body: |-
+      ## Objective
+      Tutte le verifiche focalizzate e di regressione della spec sono verdi e ogni task risulta `DONE` prima di richiedere la review.
+
+      ## Read
+      - docs/wiki/backlog/plans/US-041.md — sezioni Baseline e Mappa delle Evidenze di Accettazione, per confrontare i risultati attesi
+
+      ## Change
+      - Nessuna modifica al codice prevista. Se una verifica fallisce, correggi nel task pertinente (o riaprilo) e riesegui questo gate da capo.
+
+      ## Steps
+      1. Dalla radice del progetto esegui in ordine i comandi della sezione Verify e confronta con le attese.
+      2. Se tutto è verde, marca questo task come `DONE` tramite il connettore.
+      3. Da `/Users/smarello/repo/coaching-planner` esegui `archetipo spec show US-041` e verifica nell'envelope che NESSUN task del piano sia ancora `TODO` (tutti `DONE`).
+      4. Solo dopo questa conferma è consentito richiedere la review con `archetipo spec review US-041`. Ordine vincolante: verifiche verdi → gate `DONE` → `spec show` senza task `TODO` → richiesta di review.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/bootstrap-amministratore-iniziale.test.ts`
+      - Expect: tutti i test passano (AC-1, AC-2, AC-3)
+      - Run: `npm test`
+      - Expect: intera suite unit verde — la baseline era verde, nessun nuovo fallimento ammesso
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0 — i file toccati (script, test, package.json) non introducono diagnostiche rispetto alla baseline
+      - Run: `npm run lint`
+      - Expect: passa, incluso il guardrail e2e anti-flakiness, come da baseline
+      - Run: `grep -n "AMMINISTRATORE_INIZIALE_EMAIL" docs/wiki/operations/deploy-vercel-siteground.md`
+      - Expect: occorrenze presenti nelle sezioni build command/variabili, primo avvio e checklist (AC-4, AC-5)
+      - Run: `archetipo spec show US-041` (da /Users/smarello/repo/coaching-planner, dopo aver marcato questo gate `DONE`)
+      - Expect: tutti i task del piano risultano `DONE`, nessun `TODO` residuo
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3 — evidenza dai test unitari focalizzati verdi
+      - [ ] AC-4, AC-5 — evidenza documentale confermata dai `grep` sulla guida di deploy
+      - [ ] Regressione: `npm test`, `npx tsc --noEmit` e `npm run lint` verdi come da baseline
+      - [ ] `archetipo spec show US-041` conferma zero task `TODO` prima della richiesta di review
+
+      ## Blockers
+      None.
+    ref: TASK-04

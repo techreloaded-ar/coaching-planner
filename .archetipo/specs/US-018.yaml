@@ -1,0 +1,31 @@
+schema: archetipo/spec/v2
+code: US-018
+title: Esportazione di report e riepiloghi
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: LOW
+points: 3
+status: TODO
+scope: Growth
+body: |-
+  #### US-018: Esportazione di report e riepiloghi
+
+  **Epic:** EP-005 | **Priorità:** LOW | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come Stefano, amministratore,
+  voglio esportare i report mensili e i riepiloghi in formato Excel o PDF,
+  così da condividerli con il commercialista e archiviarli fuori dal sistema.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, l'amministratore apre il report mensile per cliente, clicca su Esporta e scarica un file con gli stessi dati visualizzati a schermo.
+
+  **Criteri di Accettazione**
+  - [ ] Il report mensile per cliente è esportabile in almeno un formato tra Excel e PDF
+  - [ ] Il file esportato contiene gli stessi dati e totali mostrati a schermo per il mese selezionato
+  - [ ] L'esportazione rispetta le autorizzazioni: è disponibile solo all'amministratore
+history:
+  - status: TODO
+    at: "2026-06-11T10:35:05Z"

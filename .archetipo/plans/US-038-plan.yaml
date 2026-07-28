@@ -1,0 +1,365 @@
+schema: archetipo/plan/v2
+spec_code: US-038
+body: |-
+  ## Soluzione tecnica
+
+  La spec introduce una pagina di dettaglio del collaboratore nel back office, raggiungibile dalla riga dell'elenco Collaboratori, con lo storico delle attività raggruppato per mese solare in ordine decrescente.
+
+  **Approccio per layer:**
+
+  - **Dominio (calcolo puro, ADR calcoli-puri):** nuova funzione pura `raggruppaAttivitaPerMese` in `src/domain/consuntivi/index.ts` che riceve righe serializzabili (`data` YYYY-MM-DD, `clienteRagioneSociale`, `offertaCodice`, `offertaDescrizione`, `ore`, `fatturabile`, `nota`) e produce gruppi mese ordinati per token `YYYY-MM` decrescente, ognuno con righe ordinate per data crescente e totali `oreTotali` e `giornateTotali` calcolati con `ORE_PER_GIORNATA = 8` (ADR giornata-otto-ore).
+  - **Query applicativa:** nuova funzione `storicoAttivitaCollaboratore(collaboratoreId)` in `src/lib/collaboratori.ts`, riservata all'amministratore via `richiediRuoloApi("AMMINISTRATORE")` come le funzioni esistenti del file; legge tutte le `RigaAttivita` del collaboratore con `include` di cliente e offerta, ordinate per `data asc, createdAt asc` (stesso pattern di `src/lib/attivita.ts`).
+  - **Pagina:** nuova rotta server component `src/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx` — `richiediRuolo("AMMINISTRATORE")`, caricamento profilo via `collaboratorePerId` (esistente) con `notFound()` se assente, poi storico via nuova query e raggruppamento con la funzione pura. Intestazione con nome, email, tariffa giornaliera formattata in euro e stato; sezioni mese etichettate con `etichettaMese` di `src/domain/calendario`; stato vuoto con messaggio esplicito. Nessun componente client necessario: la pagina è di sola lettura.
+  - **Navigazione dalla lista:** in `collaboratori-tabella.tsx` il nome del collaboratore diventa un link a `/anagrafiche/collaboratori/{id}` e la riga intera diventa cliccabile (navigazione via `useRouter`), mantenendo intatti i pulsanti Modifica/Disattiva/Riattiva nella cella azioni (stop della propagazione del click) per non regredire AC-5.
+
+  **Assunzione dichiarata:** all'interno di un gruppo mese le righe sono in ordine di giorno crescente (coerente con calendario e riepilogo esistenti); i mesi sono in ordine decrescente come richiesto da AC-2.
+
+  **Soglia ADR:** nessuna nuova decisione architetturale. La soluzione applica decisioni già accettate (`decisions/calcoli-puri.md`, `decisions/giornata-otto-ore.md`) e pattern consolidati del repo; non tocca modello dati persistente, sicurezza, confini di integrazione o politiche trasversali. Nessun ID in creazione.
+
+  **Impatto Wiki (dopo accettazione):** aggiornare `domains/collaboratori.md` (nuova query `storicoAttivitaCollaboratore` e pagina di dettaglio come consumatore dello storico attività) ed eventualmente `domains/attivita.md` (nuovo lettore downstream amministrativo delle righe).
+
+  **Mockup:** generati in `docs/mockups/US-038/` come riferimento visivo per la pagina di dettaglio (variante con storico multi-mese e stato vuoto).
+
+  **Dimostrazione filmabile:** sì — flusso browser completo (elenco → dettaglio → stato vuoto). La registrazione video è di competenza di archetipo-review.
+
+  ## Baseline
+
+  Rilevata il 2026-07-21 su `main` (workdir = project root, nessun worktree):
+
+  - `npx vitest run tests/unit/collaboratori-dal-actions.test.ts tests/unit/attivita.test.ts tests/unit/riepilogo-mese.test.ts` → **verde** (3 file, 40 test passati).
+  - `npx tsc --noEmit` → **verde** (exit 0, nessun errore).
+  - `npm run lint` → **0 errori, 3 warning pre-esistenti** (`@typescript-eslint/no-unused-vars` in `src/app/(front-office)/attivita/[data]/page.tsx:8`, `src/lib/policy-rotte.ts:78`, `tests/unit/rimborso-trasferta.test.ts:10`) + guardrail e2e anti-flakiness superato. Nessun warning riguarda i file che il piano tocca (`collaboratori-tabella.tsx`, `src/lib/collaboratori.ts`, `src/domain/consuntivi/index.ts` sono puliti): i file modificati non devono introdurre nuovi warning né errori.
+
+  Prerequisiti ambiente: `npm install` esegue `prisma generate` in postinstall; gli e2e richiedono il database locale e usano `tests/e2e/global-setup.ts` (nessun setup manuale aggiuntivo osservato).
+
+  ## Mappa delle evidenze di accettazione
+
+  | AC | Layer | Oracolo osservabile | Fixture / stato di partenza | Task |
+  |---|---|---|---|---|
+  | AC-1 | e2e browser | Click sulla riga del collaboratore nell'elenco → URL `/anagrafiche/collaboratori/{id}` e pagina con nome completo, email e tariffa giornaliera formattata visibili | Collaboratore creato via factory e2e | TASK-07 |
+  | AC-2 | unit + e2e | Unit: `raggruppaAttivitaPerMese` produce gruppi con token mese decrescente e righe con giorno, cliente, offerta, ore, fatturabile, nota. E2e: due gruppi mese visibili nell'ordine atteso, righe con tutti i campi e badge fatturabile/non fatturabile, nota visibile quando presente | Righe attività in due mesi riservati distinti (`meseRiservato('US-038')` e mese precedente riservato), con variante non fatturabile e con nota | TASK-02, TASK-07 |
+  | AC-3 | unit + e2e | Unit: `oreTotali` somma le ore del mese e `giornateTotali = oreTotali / 8`. E2e: l'intestazione di ogni gruppo mese mostra il totale ore e le giornate equivalenti attese | Stesse righe di AC-2 con ore che producono giornate non intere (es. 12h → 1,5 giornate) | TASK-02, TASK-07 |
+  | AC-4 | e2e browser | Aprendo il dettaglio di un collaboratore senza righe la pagina mostra il messaggio esplicito 'Nessuna attività registrata per questo collaboratore.' | Secondo collaboratore factory senza alcuna riga attività | TASK-07 |
+  | AC-5 | e2e browser | Click sul link Modifica nella riga dell'elenco → heading 'Modifica collaboratore' (il click sul link NON deve aprire la pagina di dettaglio) | Collaboratore factory; regressione già coperta anche da `tests/e2e/anagrafica-collaboratori.spec.ts` (flusso Modifica esistente) | TASK-07 (+ regressione esistente in gate) |
+
+  ## Strategia di test
+
+  - **Unit (vitest):** la logica di raggruppamento e totali è interamente nella funzione pura → test unitari dedicati in `tests/unit/storico-attivita-mensile.test.ts` (ordinamento mesi, ordinamento righe, totali, giornate a 8 ore, passthrough di nota/fatturabile, input vuoto). La query `storicoAttivitaCollaboratore` è testata in `tests/unit/collaboratori-dal-actions.test.ts` col pattern di mock Prisma esistente (guardia di ruolo + argomenti della query).
+  - **E2e browser (Playwright) — richiesto:** il percorso di accettazione attraversa rotta/server boundary, autorizzazione amministratore e persistenza; i layer inferiori non possono provare la navigazione dalla riga né la resa della pagina. Nuovo `tests/e2e/dettaglio-collaboratore.spec.ts` conforme al contratto US-023: fixtures/factory (`tests/e2e/support/fixtures.ts`), mesi riservati (`tests/e2e/support/date.ts`), selezione per ruolo/etichetta, `fullyParallel` invariato, nessun hard wait. Nessun mock nasconde gli oracoli: gli e2e leggono la pagina reale su dati reali di factory; gli unit sulla query mockano solo Prisma e asseriscono gli argomenti reali della chiamata.
+  - **Gate finale:** riesegue i check focalizzati e i check di regressione della baseline (vitest completo, tsc, lint con guardrail, e2e nuovo + regressione anagrafica collaboratori) e verifica via `archetipo spec show US-038` che tutti i task siano DONE prima della richiesta di review.
+tasks:
+  - id: TASK-01
+    title: Funzione pura raggruppaAttivitaPerMese nel dominio consuntivi
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste una funzione pura `raggruppaAttivitaPerMese` in `src/domain/consuntivi/index.ts` che raggruppa righe attività serializzabili per mese solare decrescente con totali di ore e giornate equivalenti.
+
+      ## Read
+      - src/domain/consuntivi/index.ts — stile del modulo, `ORE_PER_GIORNATA`, `arrotonda2`/helper esistenti, pattern di `calcolaRiepilogoMese` e della matrice mensile (`RigaMatriceMensileAvanzamento`, righe ~651-860)
+      - src/domain/types.ts — costante `ORE_PER_GIORNATA`
+      - src/domain/calendario/index.ts — `formattaTokenMese` (formato token `YYYY-MM`)
+
+      ## Change
+      - src/domain/consuntivi/index.ts — aggiungere in fondo al file: interfaccia `RigaStoricoAttivita` (`data: string` in formato YYYY-MM-DD, `clienteRagioneSociale: string`, `offertaCodice: string`, `offertaDescrizione: string`, `ore: number`, `fatturabile: boolean`, `nota: string | null`), interfaccia `MeseStoricoAttivita` (`token: string`, `righe: RigaStoricoAttivita[]`, `oreTotali: number`, `giornateTotali: number`) e funzione `raggruppaAttivitaPerMese(righe: RigaStoricoAttivita[]): MeseStoricoAttivita[]`. Non modificare funzioni esistenti. Nessun accesso a database o I/O: funzione pura.
+
+      ## Steps
+      1. Derivare il token mese di ogni riga dai primi 7 caratteri di `data` (`YYYY-MM`).
+      2. Raggruppare le righe per token preservando l'ordine di input all'interno del gruppo (l'ordinamento per data crescente è garantito dal chiamante; non riordinare se non per stabilità).
+      3. Per ogni gruppo calcolare `oreTotali` (somma delle ore) e `giornateTotali = oreTotali / ORE_PER_GIORNATA`, arrotondati a 2 decimali col pattern di arrotondamento già usato nel file.
+      4. Restituire i gruppi ordinati per token decrescente (confronto lessicografico sul token è sufficiente per `YYYY-MM`).
+      5. Input vuoto → array vuoto.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessun nuovo errore (baseline verde).
+      - Run: `npx vitest run tests/unit`
+      - Expect: tutti i test esistenti restano verdi.
+
+      ## Done
+      - [ ] AC-2 — La funzione produce gruppi mese in ordine decrescente con le righe complete di giorno (data), cliente, offerta, ore, fatturabile e nota
+      - [ ] AC-3 — Ogni gruppo espone `oreTotali` e `giornateTotali` calcolate con la costante `ORE_PER_GIORNATA = 8`
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Test unitari della funzione di raggruppamento mensile
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      La funzione `raggruppaAttivitaPerMese` è coperta da test unitari che provano ordinamento, totali e passthrough dei campi.
+
+      ## Read
+      - tests/unit/riepilogo-mese.test.ts — stile dei test di dominio puri (describe/it, nessun mock)
+      - src/domain/consuntivi/index.ts — firma e tipi introdotti da TASK-01
+
+      ## Change
+      - tests/unit/storico-attivita-mensile.test.ts — nuovo file di test. Non modificare altri file.
+
+      ## Steps
+      1. Creare il file con `describe("raggruppaAttivitaPerMese")` e casi: (a) righe su due mesi diversi → due gruppi con token in ordine decrescente; (b) righe dello stesso mese restano in un solo gruppo nell'ordine di input; (c) `oreTotali` somma le ore del mese e `giornateTotali` è ore/8 (usare 12 ore → 1.5 giornate per provare i decimali); (d) arrotondamento a 2 decimali dei totali (es. ore che producono giornate periodiche); (e) `fatturabile`, `nota` (valorizzata e null), `clienteRagioneSociale`, `offertaCodice` e `offertaDescrizione` passano invariati nelle righe del gruppo; (f) input vuoto → array vuoto.
+      2. Costruire le righe di test come oggetti letterali `RigaStoricoAttivita` con date fisse (es. 2026-03-10, 2026-04-05): nessuna dipendenza dall'orologio.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/storico-attivita-mensile.test.ts`
+      - Expect: tutti i nuovi test passano.
+      - Run: `npx vitest run tests/unit`
+      - Expect: nessuna regressione (baseline verde).
+
+      ## Done
+      - [ ] AC-2 — Un test prova che i gruppi sono in ordine di mese decrescente e che ogni riga conserva giorno, cliente, offerta, ore, fatturabile e nota
+      - [ ] AC-3 — Un test prova che l'intestazione del gruppo espone oreTotali corrette e giornateTotali = ore/8 (12h → 1.5 giornate)
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Query storicoAttivitaCollaboratore riservata all'amministratore
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      `src/lib/collaboratori.ts` espone `storicoAttivitaCollaboratore(collaboratoreId)` che restituisce tutte le righe attività del collaboratore con cliente e offerta, riservata all'amministratore.
+
+      ## Read
+      - src/lib/collaboratori.ts — pattern delle funzioni esistenti (`richiediRuoloApi("AMMINISTRATORE")` come prima istruzione, JSDoc in italiano)
+      - src/lib/attivita.ts — pattern di lettura righe con `include: { offerta: true, cliente: true }` e `orderBy: [{ data: "asc" }, { createdAt: "asc" }]` (funzione `attivitaDelMese`)
+      - src/generated/prisma/client — tipi `RigaAttivita`, `Cliente`, `Offerta` (solo consultazione)
+
+      ## Change
+      - src/lib/collaboratori.ts — aggiungere l'interfaccia `RigaAttivitaConContestoStorico` (o riusare via import il tipo `RigaAttivitaConContesto` da `@/lib/attivita` se l'import non crea cicli — verificare: entrambi i moduli sono `server-only` senza dipendenze reciproche, quindi l'import è ammesso e preferito) e la funzione `storicoAttivitaCollaboratore(collaboratoreId: string)`. Nessuna modifica alle funzioni esistenti.
+
+      ## Steps
+      1. Prima istruzione: `await richiediRuoloApi("AMMINISTRATORE")` come nelle altre funzioni del file.
+      2. `db.rigaAttivita.findMany` con `where: { collaboratoreId }`, `include: { offerta: true, cliente: true }`, `orderBy: [{ data: "asc" }, { createdAt: "asc" }]` — nessun filtro temporale: lo storico è completo.
+      3. JSDoc in italiano che dichiara accesso riservato all'amministratore e ordinamento.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessun nuovo errore.
+      - Run: `npx vitest run tests/unit/collaboratori-dal-actions.test.ts`
+      - Expect: test esistenti verdi (la copertura della nuova funzione arriva con TASK-04).
+
+      ## Done
+      - [ ] AC-2 — La query restituisce tutte le righe del collaboratore con cliente e offerta inclusi, ordinate per data crescente, pronte per il raggruppamento mensile
+      - [ ] AC-1 — La funzione è protetta da `richiediRuoloApi("AMMINISTRATORE")` coerentemente con la pagina riservata all'amministratore
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Test unitari della query storicoAttivitaCollaboratore
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      La nuova query è coperta da test unitari che provano la guardia di ruolo e gli argomenti reali della chiamata Prisma.
+
+      ## Read
+      - tests/unit/collaboratori-dal-actions.test.ts — pattern di mock esistente: `mockDb` hoisted con `db.collaboratore`, mock di `richiediRuoloApi`, struttura dei describe
+      - src/lib/collaboratori.ts — firma di `storicoAttivitaCollaboratore` (TASK-03)
+
+      ## Change
+      - tests/unit/collaboratori-dal-actions.test.ts — aggiungere al `mockDb` la sezione `rigaAttivita: { findMany: vi.fn() }` e un nuovo `describe("storicoAttivitaCollaboratore")`. Non alterare i test esistenti.
+
+      ## Steps
+      1. Caso guardia: `mockRichiediRuoloApi` che rigetta → la funzione propaga l'errore e `rigaAttivita.findMany` non viene chiamato.
+      2. Caso query: mock di `findMany` che risolve righe fittizie → asserire che è chiamato con `where: { collaboratoreId }`, `include: { offerta: true, cliente: true }` e `orderBy: [{ data: "asc" }, { createdAt: "asc" }]`, e che il risultato è restituito invariato.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/collaboratori-dal-actions.test.ts`
+      - Expect: tutti i test del file (esistenti + nuovi) passano.
+
+      ## Done
+      - [ ] AC-1 — Un test prova che senza ruolo amministratore la query non tocca il database (oracolo: findMany mai invocato)
+      - [ ] AC-2 — Un test prova gli argomenti reali della query (where/include/orderBy) che alimentano il raggruppamento mensile
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Pagina di dettaglio /anagrafiche/collaboratori/[id]
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+    body: |-
+      ## Objective
+      La rotta `/anagrafiche/collaboratori/{id}` mostra profilo del collaboratore e storico attività raggruppato per mese decrescente, con stato vuoto esplicito.
+
+      ## Read
+      - docs/mockups/US-038/ — riferimento visivo (variante con storico e stato vuoto)
+      - src/app/(back-office)/anagrafiche/collaboratori/page.tsx — pattern di pagina back-office (richiediRuolo, intestazione view, classi Tailwind)
+      - src/app/(back-office)/anagrafiche/collaboratori/[id]/modifica/page.tsx — pattern di pagina con param [id] e caricamento per id
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratori-tabella.tsx — `formattaEuro` e stile badge stato attivo/disattivato da replicare
+      - src/domain/calendario/index.ts — `etichettaMese(token)` per l'etichetta del mese in italiano
+      - src/domain/consuntivi/index.ts — `raggruppaAttivitaPerMese` e tipi (TASK-01)
+      - src/lib/collaboratori.ts — `collaboratorePerId`, `storicoAttivitaCollaboratore` (TASK-03)
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx — nuovo file, server component async. Non creare componenti client; non modificare la pagina elenco (è TASK-06); non aggiungere filtri, export o azioni di modifica (fuori perimetro).
+
+      ## Steps
+      1. `await richiediRuolo("AMMINISTRATORE")`; leggere `params` (Promise, come in `[id]/modifica/page.tsx`); caricare `collaboratorePerId(id)` e chiamare `notFound()` di `next/navigation` se null.
+      2. Caricare `storicoAttivitaCollaboratore(id)` e mappare le righe nel tipo `RigaStoricoAttivita`: `data` formattata YYYY-MM-DD in ora locale (anno/mese/giorno da getFullYear/getMonth/getDate con padding, come `formattaDataISO` in `src/lib/attivita.ts`), `ore: Number(riga.ore)`, `clienteRagioneSociale: riga.cliente.ragioneSociale`, `offertaCodice`/`offertaDescrizione` da `riga.offerta`, `fatturabile`, `nota`.
+      3. Chiamare `raggruppaAttivitaPerMese` e renderizzare: breadcrumb/link 'Collaboratori' che torna a `/anagrafiche/collaboratori`; intestazione con nome completo (heading h1), email, tariffa giornaliera formattata in euro (`Intl.NumberFormat it-IT currency EUR`) e badge stato attivo/disattivato; per ogni mese una sezione con intestazione contenente `etichettaMese(token)` e i totali (ore e giornate equivalenti formattate it-IT, es. '42 ore · 5,25 giornate') e una tabella con colonne Giorno (giorno del mese dalla data), Cliente, Offerta (codice e descrizione), Ore, Fatturabilità (badge 'Fatturabile' / 'Non fatturabile'), Note (testo nota quando presente, altrimenti cella vuota).
+      4. Se lo storico è vuoto, al posto delle sezioni mese mostrare esattamente il messaggio 'Nessuna attività registrata per questo collaboratore.'
+      5. Stile coerente col back office esistente e col mockup: card `rounded-[11px] border-zinc-200 bg-white shadow-sm` con varianti `dark:`, intestazioni tabella uppercase come in `collaboratori-tabella.tsx`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessun nuovo errore.
+      - Run: `npm run lint`
+      - Expect: 0 errori e nessun warning nuovo oltre ai 3 pre-esistenti registrati in baseline.
+
+      ## Done
+      - [ ] AC-1 — La pagina mostra nome, email e tariffa giornaliera del profilo
+      - [ ] AC-2 — Le attività sono raggruppate per mese decrescente e ogni riga mostra giorno, cliente, offerta, ore, badge di fatturabilità e nota quando presente
+      - [ ] AC-3 — L'intestazione di ogni mese riporta totale ore e giornate equivalenti
+      - [ ] AC-4 — Con storico vuoto compare 'Nessuna attività registrata per questo collaboratore.'
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Navigazione dalla riga dell'elenco al dettaglio
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Objective
+      Dalla pagina Collaboratori il click sulla riga (o sul nome) porta a `/anagrafiche/collaboratori/{id}` senza alterare Modifica, Disattiva e Riattiva.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratori-tabella.tsx — struttura della riga, cella azioni (link Modifica riga ~170, bottone Disattiva, form Riattiva), gestione modale
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratori-tabella.tsx — sola modifica della navigazione di riga. Non toccare filtro, modale di disattivazione, azioni esistenti né la pagina elenco server.
+
+      ## Steps
+      1. Importare `useRouter` da `next/navigation`; nel componente ottenere `router`.
+      2. Sulla `<tr>` del collaboratore: `onClick` che esegue `router.push(`/anagrafiche/collaboratori/${collaboratore.id}`)`, classe `cursor-pointer` aggiunta alle classi esistenti.
+      3. Rendere il nome completo un vero link `<a href={`/anagrafiche/collaboratori/${collaboratore.id}`}>` (affordance accessibile primaria) mantenendo le classi tipografiche attuali del nome.
+      4. Nella cella azioni aggiungere `onClick={(e) => e.stopPropagation()}` sul `<td>` (copre link Modifica, bottone Disattiva e form Riattiva in un punto solo) così il click sulle azioni non naviga al dettaglio.
+      5. Verificare che il click sul link Modifica continui a portare a `/anagrafiche/collaboratori/{id}/modifica` (AC-5).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessun nuovo errore.
+      - Run: `npm run lint`
+      - Expect: 0 errori e nessun warning nuovo (il file è pulito in baseline e deve restare tale).
+
+      ## Done
+      - [ ] AC-1 — Il click sulla riga e sul nome porta alla pagina di dettaglio del collaboratore
+      - [ ] AC-5 — Il link Modifica della riga continua a portare al form di modifica del profilo (le azioni non attivano la navigazione di riga)
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Test e2e Playwright del dettaglio collaboratore
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+      - TASK-06
+    body: |-
+      ## Objective
+      Un nuovo spec e2e deterministico prova l'intero flusso di accettazione: navigazione dalla riga, dettaglio con gruppi mese e totali, stato vuoto e link Modifica intatto.
+
+      ## Read
+      - tests/e2e/README.md — contratto e2e completo (obbligatorio prima di scrivere)
+      - tests/e2e/support/fixtures.ts — fixture `test`/`expect` e factory per collaboratori, clienti, offerte e righe attività
+      - tests/e2e/support/factory.ts — opzioni `CreateCollaboratoreOptions`, `CreateRigaAttivitaOptions`
+      - tests/e2e/support/date.ts — `meseRiservato`, `mesePassatoRiservato`, `dataNelMeseRiservato`, `dataNelMesePassatoRiservato`
+      - tests/e2e/support/auth.ts — login amministratore nei test
+      - tests/e2e/anagrafica-collaboratori.spec.ts — pattern di individuazione della riga per nome e del link Modifica
+
+      ## Change
+      - tests/e2e/dettaglio-collaboratore.spec.ts — nuovo file. Nessuna modifica ai test esistenti né ai dati seed (vietato mutare Giulia Conti/TechSolutions/DataFlow).
+
+      ## Steps
+      1. Usare `test` da `tests/e2e/support/fixtures.ts`; creare via factory: un collaboratore A, un cliente con offerta, e righe attività per A in due mesi riservati distinti — `meseRiservato('US-038')` e `mesePassatoRiservato('US-038', 1)` — con almeno: una riga con nota e fatturabile, una riga non fatturabile, e ore che rendano verificabili i totali (es. 8h + 4h nello stesso mese → intestazione '12' ore e '1,5' giornate); creare un collaboratore B senza righe.
+      2. Login amministratore, navigare a `/anagrafiche/collaboratori`, individuare la riga di A per nome esatto (role/name, mai indici), cliccare sul nome/riga e attendere l'URL `/anagrafiche/collaboratori/{idA}` (web-first expect).
+      3. AC-1: asserire visibili nome completo (heading), email e tariffa giornaliera formattata di A.
+      4. AC-2/AC-3: asserire che le due sezioni mese compaiono con etichetta mese italiana derivata dai token riservati (usare le stesse utilità di data per costruire l'etichetta attesa, senza hardcodare il mese) e in ordine decrescente (il mese più recente prima — asserire l'ordine dei heading); nella sezione del mese riservato asserire la riga con cliente, codice offerta, ore, badge di fatturabilità e nota; asserire il badge 'Non fatturabile' sulla riga dedicata; asserire nell'intestazione del mese i totali di ore e giornate attesi.
+      5. AC-4: navigare al dettaglio di B (click sulla sua riga) e asserire il messaggio 'Nessuna attività registrata per questo collaboratore.'
+      6. AC-5: tornare all'elenco, cliccare il link 'Modifica' sulla riga di A e asserire il heading 'Modifica collaboratore' (il click non deve finire sul dettaglio).
+      7. Rispettare i vincoli: nessun hard wait, nessun selettore su classi Tailwind, `fullyParallel` invariato, selezioni per ruolo/etichetta/valore.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/dettaglio-collaboratore.spec.ts`
+      - Expect: tutti i test del nuovo spec passano.
+      - Run: `npm run lint`
+      - Expect: 0 errori; il guardrail e2e anti-flakiness passa sul nuovo file.
+
+      ## Done
+      - [ ] AC-1 — Oracolo: dopo il click sulla riga l'URL è il dettaglio e nome/email/tariffa sono visibili
+      - [ ] AC-2 — Oracolo: gruppi mese in ordine decrescente con righe complete (giorno, cliente, offerta, ore, badge, nota) visibili sulla pagina reale
+      - [ ] AC-3 — Oracolo: l'intestazione del mese mostra i totali di ore e giornate calcolati dai dati factory
+      - [ ] AC-4 — Oracolo: messaggio esplicito di assenza attività visibile per il collaboratore senza righe
+      - [ ] AC-5 — Oracolo: il link Modifica porta al form di modifica del profilo
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Gate finale di verifica della spec US-038
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+    body: |-
+      ## Objective
+      Tutti i check focalizzati e di regressione della spec sono verdi e ogni task risulta DONE prima della richiesta di review.
+
+      ## Read
+      - Sezione Baseline del piano — comandi e confini di fallimento registrati (lint: 0 errori, 3 warning pre-esistenti ammessi nei file non toccati)
+
+      ## Change
+      - Nessun file di prodotto: solo eventuali correzioni minime emerse dai check, nel perimetro dei task precedenti.
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire nell'ordine i comandi in Verify.
+      2. Se un check fallisce, correggere nel perimetro dei task della spec e rieseguire dall'inizio.
+      3. Marcare questo task come DONE.
+      4. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo spec show US-038` e verificare che nessun task sia rimasto TODO.
+      5. Solo dopo la conferma del punto 4 è consentito richiedere la review (`archetipo spec review`).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/storico-attivita-mensile.test.ts tests/unit/collaboratori-dal-actions.test.ts`
+      - Expect: tutti passano (check focalizzato).
+      - Run: `npm run test`
+      - Expect: intera suite unit verde (baseline: verde).
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0 (baseline: verde).
+      - Run: `npm run lint`
+      - Expect: 0 errori; nessun warning oltre ai 3 pre-esistenti registrati in baseline; guardrail e2e superato.
+      - Run: `npx playwright test tests/e2e/dettaglio-collaboratore.spec.ts tests/e2e/anagrafica-collaboratori.spec.ts`
+      - Expect: nuovo spec e regressione anagrafica collaboratori (copre il flusso Modifica di AC-5) verdi.
+      - Run: `archetipo spec show US-038` (da /Users/smarello/repo/coaching-planner)
+      - Expect: tutti i task della spec risultano DONE.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4, AC-5 — Tutte le evidenze della mappa di accettazione rieseguite e verdi
+      - [ ] Nessun nuovo errore o warning di compilatore/linter nei file toccati rispetto alla baseline
+      - [ ] `archetipo spec show US-038` conferma che nessun task è TODO prima della richiesta di review
+
+      ## Blockers
+      None.
+    ref: TASK-08

@@ -1,0 +1,46 @@
+schema: archetipo/spec/v2
+code: US-012
+title: Inserimento delle righe di attività giornaliere
+epic:
+  code: EP-003
+  title: Consuntivazione Attività
+priority: HIGH
+points: 5
+status: DONE
+blocked_by:
+  - US-011
+scope: MVP
+body: |-
+  #### US-012: Inserimento delle righe di attività giornaliere
+
+  **Epic:** EP-003 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
+  **Bloccata da:** US-011
+
+  **Storia Utente**
+  Come Giulia, collaboratrice,
+  voglio inserire per ogni giornata una o più righe di attività, ognuna con cliente, offerta, ore lavorate, nota e flag fatturabile,
+  così da registrare il lavoro in pochi secondi al giorno senza ricopiature a fine mese.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, una collaboratrice apre un giorno del calendario, aggiunge due righe su clienti e offerte diversi con le rispettive ore, ne modifica una e ne elimina un'altra, anche su un mese già concluso.
+
+  **Criteri di Accettazione**
+  - [ ] La collaboratrice inserisce più righe nella stessa giornata, ciascuna associata a un cliente e a una sua offerta, con ore lavorate
+  - [ ] Ogni riga può avere una nota descrittiva opzionale e un flag fatturabile, attivo per impostazione predefinita
+  - [ ] Le ore sono validate: valori non positivi o non numerici vengono rifiutati con messaggio chiaro
+  - [ ] La collaboratrice modifica ed elimina le proprie righe in qualsiasi momento, anche su mesi conclusi, senza alcun blocco
+  - [ ] Solo clienti e offerte attivi sono selezionabili per le nuove righe
+branch: archetipo/US-012
+worktree: .archetipo/worktrees/US-012
+fork_base: 51dcefdfa7c27f3762487a21fb322f62ec5726c0
+history:
+  - status: TODO
+    at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-06-29T19:11:29Z"
+  - status: IN PROGRESS
+    at: "2026-07-01T07:22:30Z"
+  - status: REVIEW
+    at: "2026-07-01T07:40:00Z"
+  - status: DONE
+    at: "2026-07-01T09:24:50Z"

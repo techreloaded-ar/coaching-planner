@@ -1,0 +1,47 @@
+schema: archetipo/spec/v2
+code: US-041
+title: Bootstrap idempotente dell'amministratore iniziale al deploy
+epic:
+  code: EP-000
+  title: Fondazione del Progetto
+priority: HIGH
+points: 2
+status: DONE
+body: |-
+  #### US-041: Bootstrap idempotente dell'amministratore iniziale al deploy
+
+  **Epic:** EP-000 | **Priorità:** HIGH | **Punti:** 2 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come operatore che porta Coaching Planner in staging e produzione,
+  voglio che al deploy venga garantita — tramite la variabile d'ambiente `AMMINISTRATORE_INIZIALE_EMAIL` e uno script idempotente eseguito nella stessa fase delle migrazioni — l'esistenza di un utente con quell'email e ruolo `AMMINISTRATORE`,
+  così che ogni nuovo ambiente sia accessibile da subito senza censire manualmente il primo amministratore nel database.
+
+  **Dimostrazione**
+  Partendo da un database locale in cui l'email configurata in `AMMINISTRATORE_INIZIALE_EMAIL` non è censita, il revisore esegue il comando di bootstrap e osserva in output la creazione dell'utente; interrogando il database vede un `Utente` con quell'email, ruolo `AMMINISTRATORE`, stato attivo e un nome predefinito non vuoto. Il revisore riesegue lo stesso comando e osserva che termina con successo segnalando che non c'è nulla da fare, con dati utente invariati (stesso id, stesso ruolo, stesso stato). Infine esegue il comando senza la variabile e osserva un'uscita con errore che nomina `AMMINISTRATORE_INIZIALE_EMAIL`, senza alcuna scrittura sul database.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Con `AMMINISTRATORE_INIZIALE_EMAIL` valorizzata e email non censita, lo script crea un `Utente` con quell'email, ruolo `AMMINISTRATORE`, stato attivo e nome predefinito non vuoto, terminando con successo e dandone evidenza in output
+  - [ ] AC-2 — Se l'email è già censita (con qualunque ruolo o stato), lo script termina con successo senza creare, modificare o cancellare alcun dato, segnalando in output che l'utente esiste già
+  - [ ] AC-3 — Se la variabile manca o è vuota, lo script termina con errore nominando `AMMINISTRATORE_INIZIALE_EMAIL` nel messaggio, senza alcuna scrittura sul database
+  - [ ] AC-4 — La sequenza di deploy documentata esegue il bootstrap nella stessa fase di `prisma migrate deploy`, prima che l'applicazione serva traffico
+  - [ ] AC-5 — La guida di deploy sostituisce il passo di censimento manuale del primo amministratore con la nuova variabile e il nuovo comando, e la voce di checklist corrispondente riflette il processo automatico
+
+  **Fuori Perimetro**
+  La promozione ad amministratore di un utente già censito con altro ruolo, la riattivazione di un utente invalidato, la creazione del profilo collaboratore collegato, la modifica del seed demo esistente (`prisma/seed.ts` resta invariato e riservato allo sviluppo) e qualunque notifica o invito via email al nuovo amministratore.
+
+  **Contesto Wiki**
+  - `domains/identita-accesso.md`
+  - `operations/deploy-vercel-siteground.md`
+history:
+  - status: TODO
+    at: '2026-07-22T08:34:32Z'
+  - status: PLANNED
+    at: '2026-07-22T08:41:01Z'
+  - status: IN PROGRESS
+    at: '2026-07-22T08:43:00Z'
+  - status: REVIEW
+    at: '2026-07-22T08:56:34Z'
+  - status: DONE
+    at: '2026-07-22T09:22:54Z'

@@ -1,0 +1,429 @@
+schema: archetipo/plan/v2
+spec_code: US-046
+body: |-
+  # US-046: Aggiunta e rimozione del ruolo Collaboratore su un utente esistente — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-07-27
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** HIGH | **Punti:** 3
+
+  **Storia Utente**
+  Come amministratore, voglio aggiungere o togliere il ruolo Collaboratore a un utente già censito, con creazione, riattivazione o disattivazione automatica del profilo collegato, così da governare l'intero ciclo di vita dei ruoli dalla sola schermata utenti senza perdere lo storico delle attività.
+
+  **Criteri di Accettazione**
+  - AC-1 — Aggiungendo il ruolo Collaboratore a un utente senza profilo, cognome, partita IVA e tariffa giornaliera diventano obbligatori e al salvataggio il profilo viene creato attivo e visibile nell'anagrafica collaboratori
+  - AC-2 — Aggiungendo il ruolo Collaboratore a un utente con profilo disattivato, il profilo viene riattivato conservando partita IVA e tariffa preesistenti, senza richiedere nuovamente i dati
+  - AC-3 — Togliendo il ruolo Collaboratore, il profilo viene disattivato e lo storico delle attività resta conservato e consultabile dal dettaglio collaboratore
+  - AC-4 — Dopo la rimozione del ruolo Collaboratore, l'utente al successivo accesso al front office vede il messaggio di profilo disattivato e non può registrare ore
+  - AC-5 — Per un utente già Collaboratore con profilo attivo, la modifica utente non mostra i campi del profilo: partita IVA e tariffa restano modificabili solo dall'anagrafica collaboratori
+  - AC-6 — La protezione dell'ultimo amministratore attivo resta invariata: togliere il ruolo Amministratore all'ultimo amministratore attivo è rifiutato con il messaggio già previsto
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Estendere alla modalità modifica di `utente-form.tsx` e ad `aggiornaUtente` i ruoli combinabili già introdotti in creazione da US-045, applicando la decisione esistente `decisions/ruoli-combinabili-profilo-derivato`: aggiungere il ruolo Collaboratore significa creare o riattivare il profilo `Collaboratore`, toglierlo significa disattivarlo (`attivo: false`), mai cancellare. Nessuna migrazione di schema, nessuna modifica a DAL, proxy o policy di rotta.
+
+  - **Form modifica** (`src/app/(back-office)/anagrafiche/utenti/utente-form.tsx`): il ramo radio della modalità modifica viene rimosso; entrambe le modalità usano lo stesso fieldset a checkbox (`ruoloAmministratore`, `ruoloCollaboratore`). Stati iniziali in modifica: Amministratore selezionato se `ruolo === "AMMINISTRATORE"`; Collaboratore selezionato se `collaboratore ? collaboratore.attivo : ruolo === "COLLABORATORE"`. La sezione profilo (cognome, partita IVA, tariffa giornaliera) compare solo con Collaboratore selezionato e profilo assente (AC-1); con profilo esistente — attivo o disattivato — non compare mai (AC-2, AC-5) e resta il box informativo che rimanda all'anagrafica collaboratori.
+  - **Validazione** (`src/domain/anagrafiche/valida-utente.ts`): nuova funzione pura `validaModificaUtente` con input `DatiModificaUtenteInput` che include `profiloPresente: boolean` — nome ed email come oggi, almeno un ruolo (messaggio "Seleziona almeno un ruolo"), campi profilo obbligatori solo se Collaboratore selezionato e profilo assente, riusando `validaCampoPartitaIva`/`validaCampoTariffaGiornaliera`. La vecchia `validaUtente` a ruolo singolo viene rimossa insieme al ramo radio.
+  - **Action** (`src/app/(back-office)/anagrafiche/utenti/actions.ts`): `aggiornaUtente` legge utente e profilo, valida, calcola `nuovoRuolo = ruoloAmministratore ? "AMMINISTRATORE" : "COLLABORATORE"`, mantiene la transazione Serializable con retry P2034 e la protezione dell'ultimo amministratore invariata (AC-6), aggiorna nome/email/ruolo e applica la transizione del profilo: creazione (`attivo: true`, componendo `Utente.nome = "{nome} {cognome}"` come in creazione), riattivazione (solo `attivo: true`, partita IVA e tariffa conservate), disattivazione (`attivo: false`), oppure nessuna scrittura. `revalidatePath` anche su `/anagrafiche/collaboratori` quando il profilo è toccato.
+  - **AC-4 senza nuovo codice**: `risolviProfiloCollaboratoreCorrente` in `src/lib/dal.ts` restituisce già `DISATTIVATO` e il front office rende `StatoProfiloCollaboratore` con il messaggio "Il tuo profilo Collaboratore è disattivato"; dopo la rimozione l'utente ha sempre ruolo `AMMINISTRATORE` (almeno un ruolo è obbligatorio), quindi mantiene la sessione e vede il messaggio. Evidenza prodotta via e2e.
+  - **Stato anomalo gestito**: un utente con enum `COLLABORATORE` e profilo disattivato (disattivazione operativa dall'anagrafica) parte con entrambi i checkbox deselezionati — nessun ruolo utilizzabile; il salvataggio richiede una scelta esplicita e selezionare Collaboratore riattiva il profilo (coerente con AC-2). Il salvataggio di un form non toccato non produce mai riattivazioni implicite.
+
+  ### Decisioni Architetturali
+
+  Nessun nuovo ADR: la spec applica la decisione esistente `decisions/ruoli-combinabili-profilo-derivato` (ruolo Collaboratore derivato dal profilo; disattivazione reversibile al posto della cancellazione, imposta da AC-2/AC-3 e già praticata da `cambiaStatoUtenteAction`). La pagina va aggiornata dopo l'accettazione per estendere la semantica al ciclo di vita dei ruoli su utenti esistenti.
+
+  ---
+
+  ## Baseline
+
+  Eseguita il 2026-07-27 su `main` (555419c), working tree pulito, `data.workdir = /Users/smarello/repo/coaching-planner`.
+
+  | Verifica | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npx vitest run tests/unit/utenti-actions.test.ts tests/unit/valida-utente.test.ts tests/unit/cambia-stato-utente.test.ts` | 3 file, 59 test, tutti verdi | I task di test devono restare verdi; TASK-03 dichiara esplicitamente il rosso transitorio su `utenti-actions.test.ts` sanato da TASK-04 |
+  | `npx tsc --noEmit` | Pulito (exit 0) | Ogni task che tocca `.ts/.tsx` verifica di non introdurre diagnostici |
+  | `npm run lint` | ESLint pulito + guardrail e2e anti-flakiness superato | I task e2e rieseguono lint per il guardrail |
+
+  **Prerequisiti ambiente (non errori di codice):** `prisma generate` è già agganciato agli script npm (`postinstall`, `build`, `dev`). Gli e2e Playwright richiedono il Postgres locale migrato e seedato: `npm run db:migrate && npm run db:seed`, come da `tests/e2e/README.md`; la baseline e2e non è stata eseguita in pianificazione per questo prerequisito, la suite `gestione-utenti.spec.ts` è verde in CI su `main`.
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task che la produce |
+  |---|---|---|---|---|
+  | AC-1 | Utente factory solo `AMMINISTRATORE` senza profilo | E2E + unit | Selezionando Collaboratore compaiono Cognome/Partita IVA/Tariffa; salvataggio vuoto mostra i messaggi di obbligatorietà; dopo il salvataggio la riga compare attiva in "Elenco collaboratori". Unit: payload esatto di `collaboratore.create` (`attivo: true`, tariffa normalizzata) e `Utente.nome` composto | TASK-07 / TASK-04 |
+  | AC-2 | Collaboratore factory con profilo disattivato (dalla rimozione di AC-3) | E2E + unit | Ri-selezionando Collaboratore il form non mostra i campi profilo; dopo il salvataggio l'anagrafica mostra il profilo attivo con la stessa partita IVA e tariffa. Unit: `collaboratore.update` con solo `{ attivo: true }` | TASK-07 / TASK-04 |
+  | AC-3 | Collaboratore factory con riga attività su mese riservato | E2E + unit | Dopo la rimozione l'anagrafica collaboratori mostra il profilo disattivato e il dettaglio collaboratore mostra ancora lo storico attività. Unit: `collaboratore.update` con `{ attivo: false }`, nessuna delete | TASK-07 / TASK-04 |
+  | AC-4 | Stesso utente dopo la rimozione di AC-3 | E2E | Login come quell'utente in un nuovo context: `/attivita` mostra "Il tuo profilo Collaboratore è disattivato" e nessuna interfaccia di registrazione ore | TASK-07 |
+  | AC-5 | Collaboratore factory con profilo attivo | E2E | Il form modifica non contiene i campi Cognome/Partita IVA/Tariffa e mostra il box che rimanda all'anagrafica collaboratori | TASK-07 |
+  | AC-6 | Ultimo amministratore attivo (test esistente adeguato) | E2E + unit | Deselezionando Amministratore compare "Operazione non consentita: è l'ultimo amministratore attivo del sistema" e il ruolo resta invariato | TASK-06 / TASK-04 |
+
+  ---
+
+  ## Strategia di Test
+
+  Tre livelli, interleaved con l'implementazione: validazione pura, action con payload Prisma esatti, e2e Playwright per i flussi completi.
+
+  - Unit su `validaModificaUtente`: obbligatorietà condizionale dei campi profilo (presente/assente) con gli identici messaggi dell'anagrafica collaboratori.
+  - Unit su `aggiornaUtente`: le quattro transizioni del profilo con i payload esatti (`create`/`update` e loro assenza), composizione di `Utente.nome`, protezione ultimo amministratore con i checkbox, revalidate condizionale — i mock del client Prisma non nascondono l'oracolo perché l'asserzione è sul contratto di scrittura.
+  - Browser e2e obbligatorio: i flussi attraversano route server, autorizzazione, persistenza e navigazione tra back office e front office. Regole US-023 rispettate: fixtures/factory, mesi riservati, nessuna mutazione di entità seed, selettori per ruolo/label, web-first expect.
+  - `Demonstrates` filmabile: sì — il test `demo__aggiunta-rimozione-ruolo-collaboratore` ripercorre l'intera Dimostrazione (registrazione video a carico di archetipo-review).
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (esistente, `tests/e2e/`)
+  **Demo video:** atteso (registrato in seguito da `archetipo-review`, non durante l'implementazione)
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Aggiunta ruolo a utente senza profilo | Admin apre modifica di un utente solo Amministratore, seleziona Collaboratore, vede i campi obbligatori, salva e ritrova il profilo attivo nell'anagrafica collaboratori |
+  | Rimozione, storico e ri-aggiunta | Admin toglie il ruolo Collaboratore a un collaboratore con attività: profilo disattivato in anagrafica, storico consultabile dal dettaglio; l'utente al login vede il messaggio di profilo disattivato; ri-aggiunta senza richiesta dati e profilo riattivato con IVA e tariffa conservate |
+  | Profilo attivo senza campi nel form | Admin apre la modifica di un collaboratore attivo e non trova i campi del profilo |
+  | Ultimo amministratore protetto | Admin deseleziona Amministratore sull'ultimo attivo e riceve il rifiuto con il messaggio previsto |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/identita-accesso, domains/collaboratori, decisions/ruoli-combinabili-profilo-derivato]
+    update_after_acceptance: [domains/identita-accesso, domains/collaboratori, decisions/ruoli-combinabili-profilo-derivato]
+    create: []
+  ```
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-07-27_
+tasks:
+  - id: TASK-01
+    title: Aggiungi la validazione pura validaModificaUtente
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste una funzione pura `validaModificaUtente` che valida la modifica utente con ruoli a checkbox e campi profilo obbligatori solo quando il profilo è assente.
+
+      ## Read
+      - src/domain/anagrafiche/valida-utente.ts — `validaCensimentoUtente` come modello, messaggi esistenti
+      - src/domain/anagrafiche/valida-collaboratore.ts — `validaCampoPartitaIva`, `validaCampoTariffaGiornaliera`
+
+      ## Change
+      - src/domain/anagrafiche/valida-utente.ts — aggiungere `DatiModificaUtenteInput` e `validaModificaUtente`. NON rimuovere ancora `validaUtente`/`DatiUtenteInput`: sono referenziate da actions.ts fino a TASK-03.
+
+      ## Steps
+      1. Definisci `DatiModificaUtenteInput`: `nome`, `email`, `ruoloAmministratore: boolean`, `ruoloCollaboratore: boolean`, `cognome`, `partitaIva`, `tariffaGiornaliera` (stringhe) e `profiloPresente: boolean`.
+      2. Implementa `validaModificaUtente`: nome obbligatorio ("Il nome è obbligatorio"); email obbligatoria e formato con `RE_EMAIL` (stessi messaggi di oggi); `errori.ruoli = "Seleziona almeno un ruolo"` se nessun checkbox selezionato; se `ruoloCollaboratore && !profiloPresente` valida cognome ("Il cognome è obbligatorio"), partita IVA e tariffa con gli helper condivisi; se `profiloPresente` ignora i campi profilo.
+      3. Documenta con JSDoc in italiano, come le funzioni adiacenti.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: pulito, come da baseline
+      - Run: `npx vitest run tests/unit/valida-utente.test.ts`
+      - Expect: i test esistenti restano verdi
+
+      ## Done
+      - [ ] AC-1 — l'obbligatorietà condizionale di cognome, partita IVA e tariffa è codificata in una funzione pura riusabile dall'action
+      - [ ] AC-2 / AC-5 — con `profiloPresente: true` i campi profilo non sono mai richiesti
+      - [ ] Nessun nuovo diagnostico compilatore/linter sul file toccato
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test di validaModificaUtente
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      `validaModificaUtente` è coperta da unit test che provano l'obbligatorietà condizionale dei campi profilo e il vincolo di almeno un ruolo.
+
+      ## Read
+      - tests/unit/valida-utente.test.ts — struttura e helper dei describe esistenti
+      - src/domain/anagrafiche/valida-utente.ts — la nuova funzione
+
+      ## Change
+      - tests/unit/valida-utente.test.ts — aggiungere il describe `validaModificaUtente`; non toccare i describe esistenti.
+
+      ## Steps
+      1. Caso valido: solo Amministratore, `profiloPresente: false`, campi profilo vuoti → `{}`.
+      2. Nessun ruolo selezionato → `errori.ruoli === "Seleziona almeno un ruolo"`.
+      3. Collaboratore selezionato e `profiloPresente: false` con campi vuoti → errori su cognome, partitaIva e tariffaGiornaliera con gli identici messaggi dei test di `validaCensimentoUtente`.
+      4. Collaboratore selezionato e `profiloPresente: true` con campi vuoti → nessun errore sui campi profilo (oracolo di AC-2/AC-5 a livello validazione).
+      5. Nome vuoto ed email invalida → messaggi esistenti.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/valida-utente.test.ts`
+      - Expect: tutti verdi, nuovi casi inclusi
+
+      ## Done
+      - [ ] AC-1 — obbligatorietà dei tre campi con profilo assente provata con i messaggi esatti
+      - [ ] AC-2 / AC-5 — assenza di errori sui campi profilo con profilo presente provata
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Estendi aggiornaUtente ai ruoli combinabili con transizioni del profilo
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      `aggiornaUtente` accetta i checkbox `ruoloAmministratore`/`ruoloCollaboratore` e crea, riattiva o disattiva il profilo `Collaboratore` nella stessa transazione dell'aggiornamento utente, con protezione ultimo amministratore invariata.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts — `aggiornaUtente` attuale, `creaUtente` (pattern transazione, `datiCensimentoDaForm`, gestione P2002/P2034)
+      - src/domain/anagrafiche/protezione-amministratore.ts — `violaProtezioneUltimoAmministratore`
+      - src/domain/anagrafiche/valida-collaboratore.ts — `normalizzaTariffaGiornaliera`
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts — riscrittura di `aggiornaUtente` e parser del form; rimozione dell'import di `validaUtente`
+      - src/domain/anagrafiche/valida-utente.ts — rimozione di `validaUtente` e `DatiUtenteInput` (ora senza referenti); `RUOLI_AMMESSI` resta (usata dal form)
+      - tests/unit/valida-utente.test.ts — rimozione del describe `validaUtente`
+      - Non-goal: non modificare `creaUtente`, `cambiaStatoUtenteAction` né alcun file dell'anagrafica collaboratori.
+
+      ## Steps
+      1. Aggiungi un parser `datiModificaDaForm` analogo a `datiCensimentoDaForm` (nome, email normalizzati, due checkbox `=== "on"`, cognome/partitaIva/tariffaGiornaliera trim).
+      2. In `aggiornaUtente`: guardia amministratore e controllo `id` invariati; leggi fuori transazione `db.utente.findUnique({ where: { id }, include: { collaboratore: { select: { attivo: true } } } })`; se assente restituisci `{ errori: { _form: "Utente non trovato" } }`.
+      3. Valida con `validaModificaUtente({ ...dati, profiloPresente: collaboratore !== null })` e restituisci gli errori se presenti.
+      4. Calcola `nuovoRuolo = dati.ruoloAmministratore ? "AMMINISTRATORE" : "COLLABORATORE"`; determina `creaProfilo = dati.ruoloCollaboratore && profilo assente` e normalizza la tariffa solo in quel caso (commento come in `creaUtente`: la validazione garantisce il non-null).
+      5. Nella transazione Serializable con `eseguiConRetrySerializzazione` (invariata): ri-leggi utente con profilo (`select` di `ruolo`, `attivo` e `collaboratore.attivo`); `NON_TROVATO` se assente; applica la protezione ultimo amministratore esistente con `nuovoRuolo` (AC-6); aggiorna `utente` con `email`, `ruolo: nuovoRuolo` e `nome: creaProfilo ? "{nome} {cognome}" : nome`; poi la transizione profilo: se `creaProfilo` → `tx.collaboratore.create({ userId, nome: dati.nome, cognome, partitaIva, tariffaGiornaliera: tariffa.valore, attivo: true })` (AC-1); se Collaboratore selezionato e profilo esistente disattivato → `tx.collaboratore.update` con solo `{ attivo: true }` (AC-2); se Collaboratore deselezionato e profilo esistente attivo → `{ attivo: false }` (AC-3); altrimenti nessuna scrittura sul profilo.
+      6. Traduci P2002 in errore email duplicata come oggi; `revalidatePath("/anagrafiche/utenti")` sempre e `revalidatePath("/anagrafiche/collaboratori")` solo se il profilo è stato creato/riattivato/disattivato; redirect a `?esito=salvato`.
+      7. Rimuovi `validaUtente`/`DatiUtenteInput` da valida-utente.ts e il describe `validaUtente` dal relativo test.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: pulito
+      - Run: `npx vitest run tests/unit/valida-utente.test.ts`
+      - Expect: verde (describe `validaUtente` rimosso)
+      - Run: `npx vitest run tests/unit/utenti-actions.test.ts`
+      - Expect: rossi SOLO i casi di `aggiornaUtente` legati al vecchio form a radio (contratto cambiato di proposito) — confine dichiarato, sanato da TASK-04; i casi `creaUtente` restano verdi
+
+      ## Done
+      - [ ] AC-1 — creazione profilo attivo con payload completo e `Utente.nome` composto
+      - [ ] AC-2 — riattivazione con solo `attivo: true`, partita IVA e tariffa intatte
+      - [ ] AC-3 — disattivazione senza alcuna delete
+      - [ ] AC-6 — protezione ultimo amministratore applicata al ruolo derivato dai checkbox
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Aggiorna gli unit test di aggiornaUtente alle transizioni di profilo
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      Gli unit test di `aggiornaUtente` provano con payload Prisma esatti le quattro transizioni del profilo, la protezione ultimo amministratore a checkbox e la revalidate condizionale; l'intera suite unit torna verde.
+
+      ## Read
+      - tests/unit/utenti-actions.test.ts — mock del client Prisma e di `$transaction`, helper form esistenti
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts — il nuovo contratto
+
+      ## Change
+      - tests/unit/utenti-actions.test.ts — aggiornare i casi `aggiornaUtente` esistenti al form a checkbox e aggiungere i nuovi casi.
+
+      ## Steps
+      1. Adatta i casi esistenti (promozione, retrocessione con altro admin, ultimo amministratore, email duplicata, retry P2034, utente inesistente) inviando `ruoloAmministratore`/`ruoloCollaboratore` al posto di `ruolo` e predisponendo il mock di `findUnique` con `collaboratore` incluso.
+      2. Nuovo caso AC-1: utente senza profilo + Collaboratore selezionato con campi validi → asserisci il payload esatto di `collaboratore.create` (userId, nome, cognome, partitaIva, tariffa normalizzata, `attivo: true`) e `utente.update` con `nome: "{nome} {cognome}"` e ruolo derivato.
+      3. Nuovo caso AC-1 (validazione): utente senza profilo + Collaboratore selezionato e campi vuoti → errori sui tre campi, nessuna scrittura.
+      4. Nuovo caso AC-2: profilo esistente `attivo: false` + Collaboratore selezionato → `collaboratore.update` chiamata con solo `{ attivo: true }`, nessuna `create`, campi profilo non richiesti.
+      5. Nuovo caso AC-3: profilo esistente attivo + Collaboratore deselezionato (Amministratore selezionato) → `collaboratore.update` con `{ attivo: false }`, nessuna delete.
+      6. Nuovo caso neutro: profilo attivo + Collaboratore ancora selezionato → nessuna scrittura su `collaboratore`.
+      7. Verifica `revalidatePath("/anagrafiche/collaboratori")` invocata solo nei casi 2/4/5 e mai nel caso 6.
+      8. Caso AC-6: ultimo amministratore attivo con Amministratore deselezionato e Collaboratore selezionato → `MESSAGGIO_ULTIMO_AMMINISTRATORE`, nessuna write.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/utenti-actions.test.ts tests/unit/valida-utente.test.ts tests/unit/cambia-stato-utente.test.ts`
+      - Expect: tutti verdi (il rosso transitorio dichiarato in TASK-03 è sanato)
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3 — payload di scrittura esatti asseriti (l'oracolo è il contratto verso Prisma, non un proxy)
+      - [ ] AC-6 — rifiuto provato con il messaggio esatto e assenza di scritture
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Unifica il form utente ai checkbox anche in modifica
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      La modalità modifica di `utente-form.tsx` usa lo stesso fieldset a checkbox della creazione, con stati iniziali derivati da ruolo e profilo e sezione profilo visibile solo quando serve.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/utenti/utente-form.tsx — ramo radio da rimuovere, fieldset checkbox esistente, stato `collaboratoreSelezionato`
+      - src/app/(back-office)/anagrafiche/utenti/[id]/modifica/page.tsx — dati già passati al form (`utentePerId` include `collaboratore.attivo`)
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/utenti/utente-form.tsx — solo questo file. Non-goal: nessuna modifica a page.tsx, utenti-tabella.tsx o alla modalità creazione (default attuali invariati: Amministratore deselezionato, Collaboratore selezionato).
+
+      ## Steps
+      1. Rimuovi il ramo radio `inModifica` e rendi il fieldset a checkbox unico per entrambe le modalità (name `ruoloAmministratore`/`ruoloCollaboratore`, errore su `stato.errori.ruoli`).
+      2. Calcola i `defaultChecked` in modifica: Amministratore = `utente.ruolo === "AMMINISTRATORE"`; Collaboratore = `utente.collaboratore ? utente.collaboratore.attivo : utente.ruolo === "COLLABORATORE"`. In creazione mantieni i default attuali.
+      3. Inizializza `collaboratoreSelezionato` con il default del checkbox Collaboratore della modalità corrente e collega l'`onChange` in entrambe le modalità.
+      4. Mostra la sezione "Profilo collaboratore" quando `collaboratoreSelezionato && (!inModifica || utente.collaboratore === null)` (AC-1); con profilo esistente non deve mai comparire (AC-2/AC-5). Il box ambra informativo esistente resta quando il profilo è presente.
+      5. Applica l'hint "Solo il nome: il cognome va nel campo dedicato del profilo collaboratore." al campo Nome ogni volta che la sezione profilo è visibile, anche in modifica; aggiorna il sottotitolo della modalità modifica per citare i ruoli combinabili.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: pulito
+      - Run: `npm run lint`
+      - Expect: pulito, guardrail incluso
+
+      ## Done
+      - [ ] AC-1 — selezionando Collaboratore su utente senza profilo compaiono i tre campi obbligatori
+      - [ ] AC-2 / AC-5 — con profilo esistente (attivo o disattivato) i campi profilo non compaiono mai e resta il rimando all'anagrafica collaboratori
+      - [ ] Stati iniziali dei checkbox conformi alla soluzione tecnica (incluso lo stato anomalo enum COLLABORATORE + profilo disattivato: entrambi deselezionati)
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Adegua gli e2e esistenti al form modifica a checkbox
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Objective
+      I test e2e esistenti che interagiscono con i radio della modalità modifica usano i checkbox e la suite `gestione-utenti.spec.ts` torna verde, inclusa la protezione dell'ultimo amministratore (AC-6).
+
+      ## Read
+      - tests/e2e/gestione-utenti.spec.ts — helper `impostaRuolo` (già compatibile con i checkbox) e i test che usano i radio in modifica: "salva nome ed email modificati" (~442), "promuove un collaboratore" (~603), "retrocede un amministratore" (~652), "demo__invalida-riattiva-e-promuove-un-collaboratore" (~693), "mostra l'errore di protezione dell'ultimo amministratore" (~899)
+      - tests/e2e/support/fixtures.ts — factory (`createUtente`, `createCollaboratore`)
+
+      ## Change
+      - tests/e2e/gestione-utenti.spec.ts — solo i test esistenti elencati; nessun nuovo scenario (arrivano con TASK-07).
+
+      ## Steps
+      1. Sostituisci asserzioni e interazioni sui radio con `impostaRuolo`/`getByRole("checkbox")` (es. `expect(...radio...).toBeChecked()` diventa un check sul checkbox Collaboratore).
+      2. Promozione: seleziona Amministratore lasciando Collaboratore com'è; retrocessione: deseleziona Amministratore e seleziona Collaboratore.
+      3. Attenzione alla retrocessione: se l'utente del test non ha profilo collaboratore, ora il form richiede i campi profilo — crea l'utente con `factory.createCollaboratore` (profilo attivo) oppure compila i campi richiesti; scegli la factory per mantenere il test focalizzato sul ruolo.
+      4. Ultimo amministratore: deseleziona Amministratore (con o senza Collaboratore selezionato, se senza profilo seleziona Collaboratore e compila i campi oppure usa un utente con profilo) e asserisci il messaggio esistente e il ruolo invariato in elenco.
+      5. Rispetta le regole US-023: nessun hard wait, selettori per ruolo/label, factory, nessuna entità seed.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/gestione-utenti.spec.ts` (prerequisito ambiente: `npm run db:migrate && npm run db:seed`)
+      - Expect: tutta la suite verde
+      - Run: `npm run lint`
+      - Expect: pulito, guardrail e2e incluso
+
+      ## Done
+      - [ ] AC-6 — il test dell'ultimo amministratore passa con l'interazione a checkbox e il messaggio esistente
+      - [ ] Nessun test esistente della suite resta legato ai radio della modalità modifica
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: 'Nuovi e2e: aggiunta, rimozione e ri-aggiunta del ruolo Collaboratore'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+      Flussi e2e completi provano AC-1..AC-5, incluso un test `demo__` filmabile che ripercorre la Dimostrazione della spec.
+
+      ## Read
+      - tests/e2e/gestione-utenti.spec.ts — helper `impostaRuolo`, `filtraUtenti`, `rigaCollaboratore`, pattern `demo__censimento-ruoli-combinati`
+      - tests/e2e/support/fixtures.ts — factory per utenti, collaboratori, clienti, offerte e righe attività
+      - tests/e2e/support/date.ts — helper dei mesi riservati per le righe attività
+      - tests/e2e/dettaglio-collaboratore.spec.ts — pattern di verifica dello storico attività
+      - tests/e2e/support/auth.ts — `accediCome` per il login del collaboratore coinvolto
+
+      ## Change
+      - tests/e2e/gestione-utenti.spec.ts — aggiungere i nuovi test; nessuna modifica ad altri spec.
+
+      ## Steps
+      1. Test AC-1: `factory.createUtente` solo `AMMINISTRATORE`; apri la modifica, seleziona Collaboratore e attendi la sezione profilo; salva vuoto → messaggi di obbligatorietà su cognome, partita IVA e tariffa; compila e salva; in `/anagrafiche/collaboratori` la riga (filtrata per email factory) risulta presente e attiva.
+      2. Test AC-3+AC-4+AC-2 in sequenza: `factory.createCollaboratore` con cliente/offerta factory e una riga attività su mese riservato; togli il ruolo Collaboratore (deseleziona Collaboratore, seleziona Amministratore) e salva; verifica profilo disattivato in anagrafica collaboratori e storico ancora visibile nel dettaglio collaboratore; in un nuovo browser context `accediCome(email)` → `/attivita` mostra "Il tuo profilo Collaboratore è disattivato" e nessuna interfaccia di registrazione ore; torna admin, ri-aggiungi il ruolo: la sezione profilo NON compare; salva e verifica in anagrafica il profilo attivo con la stessa partita IVA e tariffa di partenza.
+      3. Test AC-5: `factory.createCollaboratore` attivo; la modifica utente non mostra i campi Cognome/Partita IVA/Tariffa e mostra il box informativo verso l'anagrafica.
+      4. Test `demo__aggiunta-rimozione-ruolo-collaboratore`: ripercorri l'intera Dimostrazione della spec (aggiunta con dati richiesti → verifica anagrafica → rimozione con storico → messaggio front office → ri-aggiunta senza richiesta dati) in un unico flusso narrato, come gli altri `demo__`.
+      5. Rispetta le regole US-023: fixtures/factory, mesi riservati, selezioni per label/valore derivati dalla factory, web-first expect, niente hard wait né selettori Tailwind.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/gestione-utenti.spec.ts` (prerequisito ambiente: `npm run db:migrate && npm run db:seed`)
+      - Expect: tutta la suite verde, nuovi test inclusi
+      - Run: `npm run lint`
+      - Expect: pulito, guardrail e2e incluso
+
+      ## Done
+      - [ ] AC-1 — campi obbligatori osservati e profilo attivo visibile in anagrafica dopo il salvataggio
+      - [ ] AC-2 — ri-aggiunta senza richiesta dati, partita IVA e tariffa conservate e verificate a schermo
+      - [ ] AC-3 — profilo disattivato in anagrafica e storico attività ancora consultabile dal dettaglio
+      - [ ] AC-4 — messaggio di profilo disattivato al login del collaboratore e assenza dell'interfaccia di registrazione ore
+      - [ ] AC-5 — campi profilo assenti nella modifica di un collaboratore attivo
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: 'Gate finale: suite completa, build e verifica stato spec'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+    body: |-
+      ## Objective
+      Tutte le verifiche del repository passano sull'incremento completo e la spec risulta pronta per la review con ogni task DONE.
+
+      ## Read
+      - .github/workflows/ci.yml — conferma che i comandi del gate coprono gli step CI (lint, unit, build, e2e)
+
+      ## Change
+      - Nessun file: task di sola verifica. Eventuali fix emersi restano confinati ai file già toccati dai task precedenti.
+
+      ## Steps
+      1. Esegui nell'ordine i comandi in Verify dalla radice del progetto (`/Users/smarello/repo/coaching-planner`).
+      2. Se un comando fallisce, correggi nel perimetro dei task precedenti e ripeti l'intero gate dall'inizio.
+      3. Marca questo task DONE, poi esegui `archetipo spec show US-046` dalla radice del progetto e verifica che NESSUN task risulti ancora TODO.
+      4. Solo dopo questa conferma richiedi la review con `archetipo spec review US-046`.
+
+      ## Verify
+      - Run: `npx vitest run`
+      - Expect: tutta la suite unit verde
+      - Run: `npx tsc --noEmit`
+      - Expect: pulito, come da baseline
+      - Run: `npm run lint`
+      - Expect: ESLint e guardrail e2e puliti
+      - Run: `npm run build`
+      - Expect: build Next.js completata senza errori
+      - Run: `npx playwright test tests/e2e/gestione-utenti.spec.ts tests/e2e/anagrafica-collaboratori.spec.ts tests/e2e/dettaglio-collaboratore.spec.ts` (prerequisito: `npm run db:migrate && npm run db:seed`)
+      - Expect: suite interessate tutte verdi
+      - Run: `archetipo spec show US-046` (dalla radice del progetto, dopo aver marcato DONE questo task)
+      - Expect: nessun task in stato TODO
+
+      ## Done
+      - [ ] AC-1..AC-6 — evidenze dei task precedenti rieseguite e verdi nell'esecuzione finale
+      - [ ] Nessun nuovo diagnostico compilatore/linter sui file modificati rispetto alla baseline
+      - [ ] `archetipo spec show US-046` conferma ogni task DONE prima della richiesta di review
+
+      ## Blockers
+      None.
+    ref: TASK-08

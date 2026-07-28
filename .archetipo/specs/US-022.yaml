@@ -1,0 +1,31 @@
+schema: archetipo/spec/v2
+code: US-022
+title: Matrix di test end-to-end multi-browser
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: LOW
+points: 3
+status: TODO
+body: |-
+  #### US-022: Matrix di test end-to-end multi-browser
+
+  **Epic:** EP-005 | **Priorità:** LOW | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come sviluppatore del progetto Coaching Planner,
+  voglio che i test end-to-end siano eseguiti in parallelo su più browser tramite job matrix,
+  così da intercettare regressioni cross-browser senza allungare il tempo totale della pipeline.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, la CI esegue i test e2e su Chromium e Firefox in job matrix paralleli; la configurazione Playwright ha progetti distinti per browser, utilizzabili anche in locale con `npx playwright test --project=chromium`.
+
+  **Criteri di Accettazione**
+  - [ ] I test e2e sono eseguiti su almeno due browser (Chromium + Firefox) in job paralleli distinti tramite `strategy.matrix`
+  - [ ] La configurazione Playwright è organizzata in progetti separati per browser, eseguibili anche in locale singolarmente
+  - [ ] Aggiungere un terzo browser in futuro richiede solo l'aggiunta di una voce nella matrix CI e di un progetto Playwright
+  - [ ] Il tempo totale della pipeline non supera il tempo del browser più lento più il setup
+history:
+  - status: TODO
+    at: "2026-06-11T15:02:24Z"

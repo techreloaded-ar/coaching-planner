@@ -1,0 +1,227 @@
+schema: archetipo/plan/v2
+spec_code: US-027
+body: "# US-027: Accesso diretto dalla pagina radice con brand Agile Reloaded — Piano di Implementazione\n\n**Generato da:** ARchetipo Planning Team\n**Data:** 2026-07-15\n\n---\n\n## Spec\n\n**Epic:** EP-001 — Autenticazione e Ruoli\n**Priorità:** HIGH | **Punti:** 3\n\n**Storia Utente**\nCome utente di Coaching Planner (titolare o collaboratore), voglio autenticarmi con Google direttamente dalla pagina radice dell'applicazione, senza passare da una pagina di login separata, così da entrare nella mia area con un passaggio in meno.\n\n**Criteri di Accettazione**\n- Un utente non autenticato sulla pagina radice avvia l'accesso con Google direttamente da lì, senza pagine intermedie, e ad autenticazione completata raggiunge l'area del proprio ruolo\n- La pagina mostra il logo Agile Reloaded, il nome dell'applicazione e un breve payoff, con stile coerente con il resto del sito (palette, tipografia, tema scuro) e ben composta sia su desktop sia su schermi piccoli\n- Il logo è servito dall'applicazione stessa e non caricato a runtime dal sito esterno\n- La route `/login` non esiste più: aprirla restituisce una pagina non trovata e nessun flusso interno vi fa più riferimento — tutti puntano alla radice\n- Un utente la cui email Google non è censita vede sulla pagina radice il messaggio generico di accesso negato già previsto, senza creazione di nuovi utenti\n- Un utente già autenticato che apre la pagina radice viene ancora reindirizzato all'area del proprio ruolo\n\n---\n\n## Soluzione Tecnica\n\nLa pagina di login viene fusa nella pagina radice: `src/app/page.tsx` resta un Server Component che reindirizza gli utenti autenticati con `utenteCorrente()` + `homePerRuolo()` (comportamento già esistente e da preservare) e, per i non autenticati, rende direttamente la pagina di accesso con brand Agile Reloaded. La route `/login` viene eliminata e tutti i flussi interni che vi puntavano vengono rediretti alla radice.\n\n- **Pagina radice come pagina di accesso.** Il markup della card di login esistente (`src/app/login/page.tsx`) viene portato nella radice, sostituendo l'hero di US-024. I parametri `?logout=1` e `?error=1` vengono letti lato server dalla prop `searchParams` (che in Next 16 è una `Promise` da attendere), eliminando `useSearchParams` e il boundary `Suspense` della vecchia login. Solo il pulsante \"Accedi con Google\" (stato di loading + redirect a `/api/auth/google`) resta un piccolo componente client dedicato: `src/app/accesso-google.tsx`.\n- **Brand Agile Reloaded.** L'immagine di riferimento (https://agilereloaded.com/wp-content/uploads/2022/03/share-facebook.png) è un PNG 1200×630 pensato per la condivisione social: mascotte + wordmark \"AGILERELOADED\" su sfondo bianco con ampi margini. Va scaricata una tantum in fase di implementazione, ritagliata al contenuto (bounding box indicativa: da (x=100, y=175) a (x=1100, y=465), quindi ~1000×290 px) e salvata in `public/agile-reloaded-logo.png`. In pagina è servita dall'app stessa (nessun caricamento runtime dal sito esterno) e presentata su una superficie chiara arrotondata, così lo sfondo bianco del PNG risulta intenzionale anche in tema scuro. Il badge \"CP\" attuale viene sostituito dal logo; il nome \"Coaching Planner\" e il payoff restano come testo.\n- **Eliminazione di `/login`.** La directory `src/app/login/` viene rimossa. Viene aggiunto `src/app/not-found.tsx` con stile coerente (sfondo zinc, link di ritorno alla radice), perché la pagina non trovata su `/login` fa parte della dimostrazione filmata. Con `not-found.tsx` la risposta non-streamed ha status HTTP 404.\n- **Aggiornamento dei riferimenti interni a `/login`:** `src/lib/dal.ts` (`verificaSessione` → `redirect(\"/\")`, `disconnetti` → `redirect(\"/?logout=1\")`), `src/app/api/auth/google/route.ts` e `src/app/api/auth/google/callback/route.ts` (errori → `/?error=1`), `proxy.ts` (in `ROTTE_PUBBLICHE` sostituire `\"/login\"` con `\"/\"` a match esatto; il redirect delle rotte protette senza sessione punta a `/`; il blocco \"già autenticato su /login\" diventa \"già autenticato su /\").\n- **Nota su `proxy.ts`:** il file si trova alla radice del repository, ma in Next 16 con directory `src/` la convenzione lo vuole in `src/` allo stesso livello di `app`; di fatto risulta inattivo (la home non autenticata è visibile, e la protezione reale delle rotte avviene nei layout via `dal.ts`). L'aggiornamento dei suoi riferimenti è per coerenza del codice; spostarlo/attivarlo è fuori scope di questa spec.\n- **Decisione di prodotto:** il box informativo \"account demo\" della vecchia login non viene riproposto sulla radice — la spec descrive una pagina minimale (logo, nome, payoff, pulsante). Decisione segnalata al committente nel brief di planning; recuperabile in rework se richiesto.\n- La logica di autorizzazione, il flusso OAuth e la policy delle rotte (`src/lib/policy-rotte.ts`) non cambiano: `ruoloRichiestoPerRotta(\"/\")` restituisce già `null`.\n\n---\n\n## Strategia di Test\n\nNessuna nuova logica di dominio: non servono nuovi unit test Vitest (la suite `tests/unit/policy-rotte.test.ts` resta valida). Il peso della verifica è sugli e2e Playwright, in due direzioni: adeguare i flussi esistenti che navigano `/login` (15 file, incluso `tests/e2e/support/auth.ts`) e coprire i nuovi criteri con una suite dedicata.\n\n- Adeguamento della helper `accediCome` in `tests/e2e/support/auth.ts`: navigazione su `/` e attesa del pulsante \"Accedi con Google\" al posto dell'heading \"Accedi\" della vecchia login.\n- Riscrittura di `tests/e2e/home-page.spec.ts` (US-024) sul nuovo layout della radice e aggiornamento di `tests/e2e/auth-flows.spec.ts` (errore su `/?error=1`, redirect da rotte protette a `/`, logout su `/?logout=1`).\n- Nuova suite `tests/e2e/accesso-radice.spec.ts` per i criteri US-027, tutta read-only (nessuna mutazione di dati seed, compatibile con `fullyParallel: true`).\n- Rispetto del contratto anti-flakiness di `tests/e2e/README.md`: selettori per ruolo/label/alt, web-first `expect`, nessun hard wait; `npm run lint` a valle (include il guardrail e2e).\n\n### Test E2E — Simulazione Utente\n\n**Framework:** Playwright\n**Demo video:** atteso — l'incremento è filmabile (pagina di accesso brandizzata + login diretto + 404 su /login); la registrazione avviene in fase di review via `archetipo e2e demo`, non durante l'implementazione\n\n| Scenario | Flusso utente simulato |\n|---|---|\n| Accesso diretto dalla radice | Utente non autenticato apre `/`, vede logo Agile Reloaded (servito localmente), nome app, payoff e pulsante \"Accedi con Google\"; completa l'autenticazione (sessione simulata via `/api/e2e-test/sessione`) e atterra nell'area del proprio ruolo |\n| `/login` non esiste più | Navigazione a `/login` restituisce status 404 e la pagina non trovata; nessun elemento della vecchia login è presente |\n| Accesso negato | Navigazione a `/?error=1` mostra sulla radice il messaggio generico \"Questo account Google non è autorizzato ad accedere\" con il pulsante Google ancora disponibile |\n| Logout | Utente autenticato clicca \"Esci\" e atterra su `/?logout=1` con il messaggio di disconnessione |\n| Redirect autenticato | Utente già autenticato che apre `/` viene reindirizzato all'area del proprio ruolo |\n| Leggibilità mobile | Su viewport 375×667 logo, nome, payoff e pulsante sono visibili e ben composti |\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-027/`\n\n_Piano generato via ARchetipo Planning — 2026-07-15_\n"
+tasks:
+  - id: TASK-01
+    title: Asset logo Agile Reloaded servito da public/
+    type: Impl
+    status: DONE
+    body: |-
+      ## Descrizione
+      **Obiettivo:** rendere disponibile il logo Agile Reloaded come asset statico dell'applicazione, ritagliato al contenuto utile a partire dall'immagine social 1200×630.
+
+      **Da leggere:** nessun file di codice; l'immagine sorgente è https://agilereloaded.com/wp-content/uploads/2022/03/share-facebook.png (PNG 1200×630, mascotte + wordmark "AGILERELOADED" su sfondo bianco con ampi margini).
+
+      **Passi:**
+      1. Scarica l'immagine in un percorso temporaneo: `curl -sL -o /tmp/agile-logo-src.png "https://agilereloaded.com/wp-content/uploads/2022/03/share-facebook.png"`.
+      2. Ritaglia al contenuto con sips (macOS): `sips -c 290 1000 --cropOffset 175 100 /tmp/agile-logo-src.png --out public/agile-reloaded-logo.png`. La bounding box attesa del contenuto è circa da (x=100, y=175) a (x=1100, y=465).
+      3. Ispeziona visivamente il risultato (apri/leggi l'immagine): devono essere visibili per intero la mascotte e il wordmark "AGILERELOADED", senza tagli; se il ritaglio è impreciso, correggi gli offset e ripeti.
+      4. Rimuovi il file temporaneo.
+
+      **Verifica:** `file public/agile-reloaded-logo.png` riporta un PNG; le dimensioni (via `sips -g pixelWidth -g pixelHeight`) sono circa 1000×290; l'ispezione visiva conferma il contenuto.
+
+      **Bloccanti:** richiede accesso di rete per il download una tantum. Se la rete non è disponibile, fermarsi e segnalarlo.
+
+      ## File Coinvolti
+      - public/agile-reloaded-logo.png — nuovo asset statico (unico file versionato prodotto da questo task)
+
+      ## Criteri di Completamento
+      - [ ] `public/agile-reloaded-logo.png` esiste, è un PNG valido di circa 1000×290 px
+      - [ ] Il ritaglio contiene per intero mascotte e wordmark, senza bordi vuoti eccessivi
+      - [ ] Nessun file temporaneo residuo nel repository
+    ref: TASK-01
+  - id: TASK-02
+    title: Pagina radice come pagina di accesso con brand Agile Reloaded
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Descrizione
+      **Obiettivo:** trasformare la pagina radice nella pagina di accesso: logo Agile Reloaded, nome app, payoff, pulsante "Accedi con Google" e messaggi di logout/errore, preservando il redirect degli utenti autenticati.
+
+      **Da leggere:**
+      - docs/mockups/US-027/ — mockup di riferimento per composizione desktop/mobile e stati messaggio (se la cartella è assente o vuota, usa come riferimento visivo la vecchia login)
+      - src/app/page.tsx — pagina radice attuale (hero US-024): da qui si preservano redirect autenticato, blob decorativi e payoff
+      - src/app/login/page.tsx — vecchia login: da qui si riusano card, messaggi logout/errore e pulsante Google (NON eliminarla in questo task)
+      - src/app/layout.tsx — font e struttura generale
+
+      **Modifiche:**
+      - `src/app/page.tsx` (riscrittura): resta un Server Component; firma `async function Home({ searchParams }: { searchParams: Promise<{ logout?: string; error?: string }> })` — in Next 16 `searchParams` è una Promise da attendere. Se `utenteCorrente()` restituisce una sessione, `redirect(homePerRuolo(sessione.ruolo))` come oggi. Altrimenti rende: blob decorativi esistenti, logo Agile Reloaded via `<Image>` di `next/image` con `src="/agile-reloaded-logo.png"`, `alt="Agile Reloaded"`, `width`/`height` espliciti coerenti col file (~1000×290 ridotti in pagina), su superficie chiara arrotondata (es. contenitore bianco `rounded-*` con padding) perché lo sfondo bianco del PNG funzioni anche in dark mode; heading `Coaching Planner`; payoff "Consuntivi mensili di collaboratori, clienti e offerte."; messaggio post-logout se `logout === "1"` e alert errore (role="alert", testo "Questo account Google non è autorizzato ad accedere.") se `error === "1"`, riusando i markup della vecchia login; componente `<AccessoGoogle />`.
+      - `src/app/accesso-google.tsx` (nuovo, client component): estrae il pulsante "Accedi con Google" dalla vecchia login — `"use client"`, stato `loading`, `window.location.href = "/api/auth/google"`, SVG Google multicolore e spinner esistenti.
+      - Il box informativo "account demo" della vecchia login NON va riproposto (decisione di planning).
+
+      **Verifica:** `npm run lint` pulito; avvio dev e controllo manuale di `/`, `/?logout=1`, `/?error=1` in tema chiaro e scuro e su viewport stretto.
+
+      **Bloccanti:** dipende da TASK-01 (asset logo presente).
+
+      ## File Coinvolti
+      - src/app/page.tsx — riscrittura della pagina radice
+      - src/app/accesso-google.tsx — nuovo componente client per il pulsante Google
+
+      ## Criteri di Completamento
+      - [ ] Utente non autenticato su `/` vede logo Agile Reloaded (immagine locale), nome app, payoff e pulsante "Accedi con Google"
+      - [ ] `/?logout=1` mostra il messaggio di disconnessione, `/?error=1` mostra l'alert generico di accesso negato
+      - [ ] Utente autenticato su `/` viene reindirizzato a `homePerRuolo` (comportamento invariato)
+      - [ ] Nessun riferimento runtime a `agilereloaded.com` nella pagina
+      - [ ] Layout ben composto su desktop e su ~375px, coerente con palette zinc/emerald, tipografia e tema scuro
+      - [ ] `npm run lint` senza errori
+    ref: TASK-02
+  - id: TASK-03
+    title: Rimozione route /login e aggiornamento dei riferimenti interni
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Descrizione
+      **Obiettivo:** eliminare la route `/login` (che deve restituire 404) e far puntare alla radice tutti i flussi interni che vi facevano riferimento.
+
+      **Da leggere:**
+      - src/lib/dal.ts — redirect a /login in `verificaSessione` (riga ~73) e `disconnetti` (riga ~114)
+      - src/app/api/auth/google/route.ts — redirect di errore a /login?error=1 (riga ~37)
+      - src/app/api/auth/google/callback/route.ts — `redirectWithError()` verso /login?error=1 (riga ~150)
+      - proxy.ts — `ROTTE_PUBBLICHE` (riga 13), blocco "già autenticato su /login" (righe ~53-63), redirect a /login (righe ~72, ~79)
+      - src/app/not-found.tsx — non esiste ancora, va creato
+
+      **Modifiche:**
+      - Elimina l'intera directory `src/app/login/`.
+      - Crea `src/app/not-found.tsx`: pagina "Pagina non trovata" minimale e coerente con lo stile (sfondo zinc chiaro/scuro, heading, breve testo, `<Link href="/">` per tornare alla radice).
+      - `src/lib/dal.ts`: `verificaSessione` → `redirect("/")`; `disconnetti` → `redirect("/?logout=1")`; aggiorna i commenti JSDoc che citano /login.
+      - `src/app/api/auth/google/route.ts`: redirect di errore → `new URL("/?error=1", ...)`.
+      - `src/app/api/auth/google/callback/route.ts`: `redirectWithError()` → `new URL("/?error=1", baseUrl())`.
+      - `proxy.ts`: in `ROTTE_PUBBLICHE` sostituisci `"/login"` con `"/"` (il match esatto `pathname === "/"` è sicuro: `startsWith("//")` non intercetta altre rotte); il blocco di redirect dell'utente già autenticato scatta per `pathname === "/"` invece che per /login; i due redirect delle rotte protette senza sessione puntano a `new URL("/", request.url)`. Nota: il file risulta inattivo (posizione alla radice invece che in src/); l'aggiornamento è per coerenza, NON spostarlo né attivarlo.
+
+      **Verifica:** `grep -rn '"/login' src proxy.ts` non restituisce nulla; `npm run lint` e `npm test` puliti; in dev, `GET /login` risponde 404 e il logout atterra su `/?logout=1`.
+
+      **Bloccanti:** dipende da TASK-02 (la radice deve già essere la pagina di accesso, altrimenti i redirect puntano a una pagina senza login).
+
+      ## File Coinvolti
+      - src/app/login/page.tsx — eliminazione (intera directory src/app/login/)
+      - src/app/not-found.tsx — nuova pagina non trovata
+      - src/lib/dal.ts — redirect verso la radice
+      - src/app/api/auth/google/route.ts — redirect errore verso la radice
+      - src/app/api/auth/google/callback/route.ts — redirect errore verso la radice
+      - proxy.ts — rotte pubbliche e redirect verso la radice
+
+      ## Criteri di Completamento
+      - [ ] `src/app/login/` non esiste più e `GET /login` restituisce status 404 con pagina non trovata stilisticamente coerente
+      - [ ] Nessuna occorrenza residua della stringa `"/login` in src/ e proxy.ts
+      - [ ] Logout → `/?logout=1`; accesso negato OAuth → `/?error=1`; route protetta senza sessione → redirect a `/`
+      - [ ] `npm run lint` e `npm test` (Vitest) senza errori
+    ref: TASK-03
+  - id: TASK-04
+    title: Adeguamento dei test e2e esistenti alla radice come pagina di accesso
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Descrizione
+      **Obiettivo:** aggiornare tutti i test e2e esistenti che navigano o asseriscono `/login`, così che l'intera suite rifletta il nuovo flusso di accesso dalla radice.
+
+      **Da leggere:**
+      - tests/e2e/README.md — contratto anti-flakiness (vincolante)
+      - tests/e2e/support/auth.ts — helper `accediCome` (naviga /login e attende heading "Accedi")
+      - src/app/page.tsx — nuova radice, per conoscere i selettori reali (heading, alt del logo, nome del pulsante)
+
+      **Modifiche:**
+      - `tests/e2e/support/auth.ts`: `page.goto("/")` e attesa web-first del pulsante `getByRole("button", { name: "Accedi con Google" })` al posto dell'heading "Accedi"; resto invariato.
+      - `tests/e2e/auth-flows.spec.ts`: scenario errore → `page.goto("/?error=1")` con alert sulla radice; scenario route protette → atteso redirect alla radice (es. `waitForURL` su URL radice) con pulsante Google visibile; scenario logout → `waitForURL("**/?logout=1**")` e messaggio di disconnessione; aggiorna i commenti.
+      - `tests/e2e/home-page.spec.ts`: riscrittura sul nuovo layout — heading "Coaching Planner", payoff, logo `getByAltText("Agile Reloaded")`, pulsante "Accedi con Google" al posto della CTA link "Accedi" con href /login; mantieni lo scenario mobile 375×667.
+      - `tests/e2e/demo__homepage-funzionante.spec.ts`: sostituisci l'asserzione sul link "Accedi" (href /login) con pulsante "Accedi con Google" visibile.
+      - `tests/e2e/demo__accesso-con-google.spec.ts`: `page.goto("/")` e attesa del pulsante Google al posto dell'heading "Accedi"; il resto del flusso (sessione simulata, atterraggio in area) resta valido.
+      - Sostituisci `page.goto("/login")` con `page.goto("/")` (adeguando l'eventuale attesa successiva al pulsante Google) in: tests/e2e/demo__anagrafica-collaboratori.spec.ts (righe ~28, ~116), tests/e2e/calendario-segregazione.spec.ts (~16, ~107), tests/e2e/anagrafica-collaboratori.spec.ts (~16, ~221), tests/e2e/autorizzazione-ruoli.spec.ts (~19, ~52, ~87, ~115), tests/e2e/demo__autorizzazione-ruoli.spec.ts (~24, ~72), tests/e2e/avanzamento-offerte.spec.ts (~45, ~61), tests/e2e/demo__avanzamento-offerte.spec.ts (~65), tests/e2e/demo__calendario-mensile.spec.ts (~27).
+      - Non modificare fixture, factory o dati seed; nessun nuovo hard wait; selettori per ruolo/label/alt.
+
+      **Verifica:** `grep -rn '/login' tests/` non restituisce navigazioni o asserzioni residue verso la route (sono ammessi solo eventuali commenti storici, preferibilmente aggiornati); `npm run lint` pulito (include il guardrail e2e); esegui almeno `npx playwright test auth-flows home-page demo__accesso-con-google` e le suite toccate.
+
+      **Bloccanti:** dipende da TASK-03 (la route /login deve essere già rimossa e i redirect aggiornati).
+
+      ## File Coinvolti
+      - tests/e2e/support/auth.ts — helper di accesso
+      - tests/e2e/auth-flows.spec.ts — flussi di autenticazione
+      - tests/e2e/home-page.spec.ts — riscrittura sul nuovo layout
+      - tests/e2e/demo__homepage-funzionante.spec.ts — asserzione CTA
+      - tests/e2e/demo__accesso-con-google.spec.ts — partenza dalla radice
+      - tests/e2e/demo__anagrafica-collaboratori.spec.ts, tests/e2e/calendario-segregazione.spec.ts, tests/e2e/anagrafica-collaboratori.spec.ts, tests/e2e/autorizzazione-ruoli.spec.ts, tests/e2e/demo__autorizzazione-ruoli.spec.ts, tests/e2e/avanzamento-offerte.spec.ts, tests/e2e/demo__avanzamento-offerte.spec.ts, tests/e2e/demo__calendario-mensile.spec.ts — sostituzione navigazioni /login
+
+      ## Criteri di Completamento
+      - [ ] Nessun test naviga più `/login` né asserisce riferimenti alla vecchia route
+      - [ ] `accediCome` funziona dalla radice per admin e collaboratore
+      - [ ] `npm run lint` senza errori (guardrail e2e incluso)
+      - [ ] Le suite e2e aggiornate passano in locale con `fullyParallel: true`
+    ref: TASK-04
+  - id: TASK-05
+    title: Nuova suite e2e US-027 e scenario demo
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Descrizione
+      **Obiettivo:** coprire con test e2e dedicati i criteri di accettazione di US-027 e predisporre lo scenario demo filmabile per la review.
+
+      **Da leggere:**
+      - tests/e2e/README.md — contratto anti-flakiness
+      - tests/e2e/support/auth.ts — helper aggiornato in TASK-04
+      - tests/e2e/demo__accesso-con-google.spec.ts — stile degli spec demo (video on, slowMo, viewport 1280×720)
+      - src/app/page.tsx e src/app/not-found.tsx — selettori reali
+
+      **Modifiche:**
+      - Nuovo `tests/e2e/accesso-radice.spec.ts` (scenari read-only, nessuna mutazione di dati, compatibile con fullyParallel):
+        1. radice non autenticata: heading "Coaching Planner", payoff, logo `getByAltText("Agile Reloaded")` visibile, pulsante "Accedi con Google" presente e unico;
+        2. logo servito localmente: l'attributo `src` dell'immagine non contiene host esterni (in particolare non `agilereloaded.com`) e la risposta dell'asset è 200 (es. `page.request.get` sull'URL risolto);
+        3. `/login` non esiste: `const response = await page.goto("/login")` con `expect(response?.status()).toBe(404)` e contenuto "pagina non trovata" visibile;
+        4. accesso negato: `page.goto("/?error=1")` mostra l'alert generico con il pulsante Google ancora visibile;
+        5. redirect autenticato: `accediComeCollaboratore` poi `page.goto("/")` → atterraggio su `/attivita` (usa `waitForURL`);
+        6. mobile: `test.use({ viewport: { width: 375, height: 667 } })` con logo, heading e pulsante visibili.
+      - Nuovo `tests/e2e/demo__accesso-diretto-radice.spec.ts` (video on, slowMo ~300, viewport 1280×720), flusso filmabile: apri `/`, mostra logo/nome/payoff/pulsante; simula il completamento OAuth via `/api/e2e-test/sessione` (come demo__accesso-con-google) e atterra nell'area del ruolo; poi apri `/login` e mostra la pagina non trovata; chiudi con breve `waitForTimeout` finale solo per ritmo video (pattern già usato negli spec demo).
+
+      **Verifica:** `npm run lint` pulito; `npx playwright test accesso-radice demo__accesso-diretto-radice` verde.
+
+      **Bloccanti:** dipende da TASK-04 (helper e suite esistenti già adeguati, per evitare conflitti sugli stessi file).
+
+      ## File Coinvolti
+      - tests/e2e/accesso-radice.spec.ts — nuova suite criteri US-027
+      - tests/e2e/demo__accesso-diretto-radice.spec.ts — nuovo scenario demo filmabile
+
+      ## Criteri di Completamento
+      - [ ] Tutti i sei scenari della suite `accesso-radice` passano e sono read-only (nessuna mutazione di seed o dati condivisi)
+      - [ ] `/login` verificato con status HTTP 404
+      - [ ] Il logo è verificato come servito dall'applicazione (nessun host esterno)
+      - [ ] Lo spec demo registra un video del flusso completo e passa
+      - [ ] `npm run lint` senza errori
+    ref: TASK-05
+  - id: TASK-06
+    title: Regressione completa e verifica finale dei criteri
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+      - TASK-05
+    body: |-
+      ## Descrizione
+      **Obiettivo:** eseguire la regressione completa del progetto e verificare che tutti i criteri di accettazione di US-027 siano soddisfatti, senza residui della vecchia route.
+
+      **Da leggere:** output dei comandi di verifica; in caso di fallimenti, i file indicati dagli errori.
+
+      **Passi:**
+      1. `npm run lint` — lint completo con guardrail e2e.
+      2. `npm test` — suite unit Vitest completa.
+      3. `npx playwright test` — intera suite e2e con `fullyParallel: true`.
+      4. `grep -rn '"/login' src proxy.ts tests` — nessuna occorrenza residua (eventuali commenti storici vanno aggiornati o rimossi).
+      5. Ripassa i criteri di accettazione della spec uno per uno e verifica che ciascuno sia coperto da un test verde o da una verifica esplicita.
+
+      **Verifica:** tutti i comandi sopra escono con successo al primo colpo (senza retry); eventuali fallimenti vanno corretti nei file pertinenti prima di chiudere il task.
+
+      **Bloccanti:** dipende da TASK-04 e TASK-05.
+
+      ## File Coinvolti
+      - Nessun file nuovo previsto: correzioni puntuali solo se la regressione evidenzia problemi
+
+      ## Criteri di Completamento
+      - [ ] `npm run lint`, `npm test` e `npx playwright test` completano senza errori né flakiness
+      - [ ] Nessuna occorrenza residua di `"/login` in src/, proxy.ts e tests/
+      - [ ] Ogni criterio di accettazione di US-027 è riconducibile a un test o a una verifica esplicita superata
+    ref: TASK-06

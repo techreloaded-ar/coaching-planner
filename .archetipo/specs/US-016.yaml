@@ -1,0 +1,40 @@
+schema: archetipo/spec/v2
+code: US-016
+title: Vista avanzamento offerte con residuo giornate
+epic:
+  code: EP-004
+  title: Reportistica
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  #### US-016: Vista avanzamento offerte con residuo giornate
+
+  **Epic:** EP-004 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come Stefano, amministratore,
+  voglio una vista di avanzamento per offerta con le giornate erogate rispetto a quelle previste e il residuo,
+  così da accorgermi per tempo quando un'offerta si avvicina all'esaurimento dei giorni venduti.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, l'amministratore apre la vista avanzamento e per ogni offerta vede giornate previste, erogate e residue, con il dettaglio di chi ha erogato cosa; un'offerta oltre i giorni venduti è evidenziata.
+
+  **Criteri di Accettazione**
+  - [ ] Per ogni offerta sono mostrate giornate previste, giornate erogate (1 giornata = 8 ore) e residuo
+  - [ ] Le giornate erogate sono dettagliate per collaboratore
+  - [ ] Un residuo negativo o esaurito è evidenziato visivamente
+  - [ ] La vista riflette sempre i dati correnti delle attività registrate
+history:
+  - status: TODO
+    at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-07-03T20:06:47Z"
+  - status: IN PROGRESS
+    at: "2026-07-03T20:13:32Z"
+  - status: REVIEW
+    at: "2026-07-03T20:50:55Z"
+  - status: DONE
+    at: "2026-07-05T07:40:59Z"

@@ -1,0 +1,148 @@
+schema: archetipo/plan/v2
+spec_code: US-024
+body: |-
+  # US-024: Home page di accesso minimale e curata — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-07-12
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-001 — Autenticazione e Ruoli
+  **Priorità:** HIGH | **Punti:** 2
+
+  **Storia Utente**
+  Come utente di Coaching Planner (titolare o collaboratore), voglio che la pagina iniziale dell'applicazione sia una pagina di accesso minimale ma visivamente curata, coerente con lo stile del resto del sito, così da avere un ingresso all'applicazione gradevole e immediato, senza contenuti superflui.
+
+  **Criteri di Accettazione**
+  - Un utente non autenticato sulla pagina radice vede una hero con nome dell'applicazione, payoff sintetico e un'unica azione di accesso ben visibile che porta alla pagina di login
+  - La pagina non contiene sezioni di marketing, elenchi di funzionalità o descrizioni del prodotto: solo l'essenziale per accedere
+  - Lo stile (colori, tipografia, spaziature, supporto al tema scuro) è coerente con le pagine esistenti dell'applicazione
+  - Il comportamento esistente è preservato: un utente autenticato che apre la pagina radice viene reindirizzato alla home del proprio ruolo
+  - La pagina è leggibile e ben composta sia su desktop sia su schermi piccoli
+
+  ---
+
+  ## Soluzione Tecnica
+
+  La home page radice (`src/app/page.tsx`) viene ridisegnata riusando il linguaggio visivo già consolidato dalla pagina di login (`src/app/login/page.tsx`): blob decorativi sfumati sullo sfondo, badge brand "CP" con gradiente teal→emerald, palette zinc con varianti `dark:`, tipografia Geist già caricata dal root layout. Nessuna nuova dipendenza, nessun mockup dedicato: gli elementi informativi restano gli stessi (nome, payoff, unica CTA), cambia solo il trattamento grafico.
+
+  - La pagina resta un **server component**: la logica esistente `utenteCorrente()` → `redirect(homePerRuolo(ruolo))` in testa al componente non viene toccata; la hero è markup statico renderizzato solo per utenti non autenticati.
+  - La hero è composta da: badge brand "CP" (quadrato arrotondato con gradiente `from-teal-600 to-emerald-500`, come nel login), heading `h1` "Coaching Planner", payoff sintetico di una riga, e un'unica CTA — link `<a href="/login">` con nome accessibile "Accedi" — resa prominente (pulsante pieno, ben visibile sia in tema chiaro sia scuro).
+  - Sfondo con blob decorativi (`emerald`/`indigo`/`rose` con blur, `pointer-events-none`, opacità ridotta in dark mode) replicando il pattern della pagina di login, su base `bg-zinc-50 dark:bg-zinc-950`.
+  - Nessuna sezione aggiuntiva: niente elenco funzionalità, niente marketing. Layout centrato con `max-w` contenuto e padding orizzontale (`px-5` o simile) per garantire leggibilità su schermi piccoli senza media query dedicate.
+  - Il tema scuro è gestito con le utility `dark:` di Tailwind 4, coerentemente con il resto dell'app (il root layout e `globals.css` usano già `prefers-color-scheme`).
+  - Impatto sui test esistenti: `tests/e2e/demo__homepage-funzionante.spec.ts` (demo US-001) asserisce i testi attuali della home e va allineato ai nuovi contenuti; `tests/e2e/autorizzazione-ruoli.spec.ts` ("home / → reindirizza all'area del ruolo") deve restare verde senza modifiche, a garanzia del comportamento preservato.
+
+  ---
+
+  ## Strategia di Test
+
+  La spec è puramente presentazionale lato server, senza logica nuova da coprire con unit test: la verifica è interamente end-to-end, read-only e quindi naturalmente compatibile con `fullyParallel` (nessuna fixture, nessuna mutazione di dati, nessuna entità seed toccata).
+
+  - Nuovo spec e2e dedicato alla home non autenticata: hero visibile (heading esatto "Coaching Planner"), payoff presente, **una sola** azione "Accedi" che porta a `/login`.
+  - Verifica di leggibilità su schermi piccoli con un test a viewport mobile (es. 375×667) che controlla la visibilità di heading e CTA.
+  - Regressione sul redirect per ruolo: coperta dal test esistente in `autorizzazione-ruoli.spec.ts`, che non va modificato e deve restare verde.
+  - Aggiornamento del test demo esistente `demo__homepage-funzionante.spec.ts` ai nuovi testi/selettori, mantenendo selettori role-based ed exact name.
+  - `npm run lint` dopo le modifiche e2e (include il guardrail anti-flakiness).
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (`@playwright/test`, config esistente con `fullyParallel: true`)
+  **Video demo:** atteso — l'incremento è filmabile (utente non autenticato apre la radice, vede la hero curata, clicca "Accedi" e raggiunge il login). Il video è registrato in fase di review da `archetipo-review` (via `archetipo e2e demo`), non durante l'implementazione.
+
+  | Scenario | Descrizione del flusso utente |
+  |---|---|
+  | Home non autenticata | L'utente apre `/` senza sessione: vede la hero con nome, payoff e un'unica CTA "Accedi"; nessuna sezione marketing è presente |
+  | Navigazione verso il login | L'utente clicca "Accedi" dalla hero e atterra su `/login`, dove è visibile l'intestazione "Accedi" |
+  | Leggibilità mobile | Su viewport 375×667 l'utente vede heading e CTA senza sovrapposizioni o contenuti tagliati |
+  | Redirect autenticato (regressione) | Un utente con sessione attiva che apre `/` viene reindirizzato alla home del proprio ruolo (già coperto da `autorizzazione-ruoli.spec.ts`) |
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-07-12_
+tasks:
+  - id: TASK-01
+    title: Ridisegnare la hero della home page radice coerente con lo stile del login
+    type: Impl
+    status: DONE
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** trasformare la home page radice in una pagina di accesso minimale ma curata, riusando il linguaggio visivo della pagina di login, senza toccare la logica di redirect per utenti autenticati.
+
+      **Leggere prima:** `src/app/page.tsx` (stato attuale e logica di redirect), `src/app/login/page.tsx` (pattern visivi da riusare: blob decorativi, badge brand, palette), `src/app/layout.tsx` e `src/app/globals.css` (tipografia e temi).
+
+      **Modifica:** solo `src/app/page.tsx`. La pagina resta un server component `async`; le prime righe (`utenteCorrente()` → `redirect(homePerRuolo(sessione.ruolo))`) restano invariate.
+
+      **Passi:**
+      1. Mantenere invariata la logica di redirect in testa al componente.
+      2. Sostituire il markup di ritorno con una hero a schermo intero su base `bg-zinc-50 dark:bg-zinc-950`, con blob decorativi di sfondo replicati dal login (`pointer-events-none`, gradienti `emerald`/`indigo`/`rose` con blur, opacità ridotta in dark mode).
+      3. Comporre la hero centrata: badge brand "CP" (quadrato arrotondato, gradiente `from-teal-600 to-emerald-500`, testo bianco, come nel login), heading `h1` con testo esatto "Coaching Planner", payoff sintetico di una sola frase (es. "Consuntivi mensili di collaboratori, clienti e offerte."), e un'unica CTA.
+      4. La CTA è un link `<a href="/login">` con testo "Accedi", stilizzato come pulsante pieno prominente (es. `bg-zinc-900 text-white` con variante `dark:` invertita, oppure gradiente brand), con stati hover coerenti.
+      5. Non aggiungere altre sezioni: niente elenchi di funzionalità, niente descrizioni di prodotto, niente footer di marketing.
+      6. Garantire la resa su schermi piccoli: contenitore con `max-w` contenuto, padding orizzontale, testi che scalano senza overflow.
+
+      **Verifica:** `npm run lint` passa; avvio locale (`npm run dev`) mostra la nuova hero su `/` da non autenticati, in tema chiaro e scuro; da autenticati il redirect per ruolo funziona come prima.
+
+      **Blockers:** nessuno.
+
+      ## File Coinvolti
+
+      - `src/app/page.tsx` — sostituire il markup della hero mantenendo intatta la logica di redirect
+      - `src/app/login/page.tsx` — sola lettura, riferimento per i pattern visivi (blob, badge "CP", palette)
+
+      ## Criteri di Completamento
+
+      - [ ] `src/app/page.tsx` resta un server component e la logica `utenteCorrente()`/`homePerRuolo()` è invariata
+      - [ ] La hero mostra badge brand, heading `h1` "Coaching Planner", payoff di una frase e un'unica CTA "Accedi" che punta a `/login`
+      - [ ] Nessuna sezione di marketing, elenco funzionalità o descrizione di prodotto è presente in pagina
+      - [ ] Lo stile riusa palette zinc/emerald, blob decorativi e supporto `dark:` coerenti con la pagina di login
+      - [ ] La pagina è leggibile su viewport mobile (nessun overflow orizzontale, CTA visibile)
+      - [ ] `npm run lint` passa
+    ref: TASK-01
+  - id: TASK-02
+    title: Test e2e della nuova home e allineamento del test demo esistente
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Descrizione
+
+      **Obiettivo:** coprire con test e2e deterministici la nuova hero (contenuti, unicità della CTA, navigazione al login, leggibilità mobile) e allineare il test demo di US-001 ai nuovi contenuti della home.
+
+      **Leggere prima:** `src/app/page.tsx` (testi effettivi implementati in TASK-01), `tests/e2e/demo__homepage-funzionante.spec.ts` (asserzioni da aggiornare), `tests/e2e/autorizzazione-ruoli.spec.ts` (regressione da non toccare), `tests/e2e/README.md` (contratto e2e).
+
+      **Modifica:** creare `tests/e2e/home-page.spec.ts`; aggiornare `tests/e2e/demo__homepage-funzionante.spec.ts`.
+
+      **Passi:**
+      1. Creare `tests/e2e/home-page.spec.ts` con test read-only (nessuna fixture, nessuna mutazione di dati, nessuna entità seed): compatibile con `fullyParallel: true`.
+      2. Test "hero non autenticata": `page.goto("/")`, verificare visibili l'heading `getByRole("heading", { name: "Coaching Planner" })` e il payoff (testo esatto implementato in TASK-01); verificare che il link `getByRole("link", { name: "Accedi" })` sia visibile, abbia `href="/login"` e abbia count pari a 1 (unica azione di accesso).
+      3. Test "navigazione al login": dalla home cliccare la CTA "Accedi" e verificare con `expect` web-first l'arrivo su `/login` (heading "Accedi" visibile).
+      4. Test "leggibilità mobile": con `test.use({ viewport: { width: 375, height: 667 } })` (o viewport impostato nel singolo test), verificare che heading e CTA siano visibili su `/`.
+      5. Aggiornare `tests/e2e/demo__homepage-funzionante.spec.ts`: allineare le asserzioni sul payoff/sottotitolo ai nuovi testi, mantenendo selettori role-based con nome esatto; conservare la struttura demo esistente (video, viewport, pausa finale di ritmo già commentata).
+      6. Non modificare `tests/e2e/autorizzazione-ruoli.spec.ts`: il test "home / → reindirizza all'area del ruolo" deve restare verde così com'è.
+      7. Nessun hard wait nei nuovi test, nessun selettore su classi Tailwind, nessun match parziale ambiguo di navigazione.
+
+      **Verifica:** `npx playwright test tests/e2e/home-page.spec.ts tests/e2e/demo__homepage-funzionante.spec.ts tests/e2e/autorizzazione-ruoli.spec.ts` passa; `npm run lint` passa (include il guardrail anti-flakiness e2e).
+
+      **Blockers:** dipende da TASK-01 (i testi asseriti devono essere quelli implementati).
+
+      ## File Coinvolti
+
+      - `tests/e2e/home-page.spec.ts` — nuovo spec e2e read-only per la hero della home
+      - `tests/e2e/demo__homepage-funzionante.spec.ts` — aggiornare le asserzioni ai nuovi contenuti della home
+      - `tests/e2e/autorizzazione-ruoli.spec.ts` — sola lettura, regressione che deve restare verde senza modifiche
+
+      ## Criteri di Completamento
+
+      - [ ] `tests/e2e/home-page.spec.ts` copre: hero visibile con heading e payoff, CTA "Accedi" unica con `href="/login"`, navigazione al login, leggibilità su viewport 375×667
+      - [ ] I nuovi test sono read-only: nessuna fixture di mutazione, nessuna entità seed toccata, compatibili con `fullyParallel: true`
+      - [ ] Nessun hard wait, nessun selettore su classi Tailwind, selettori role-based con nome esatto
+      - [ ] `demo__homepage-funzionante.spec.ts` aggiornato e verde con i nuovi contenuti
+      - [ ] `autorizzazione-ruoli.spec.ts` verde senza modifiche
+      - [ ] `npm run lint` e i test Playwright coinvolti passano
+    ref: TASK-02

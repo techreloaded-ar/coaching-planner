@@ -1,0 +1,532 @@
+schema: archetipo/plan/v2
+spec_code: US-039
+body: |-
+  # US-039: Elenco e censimento degli utenti nella console di amministrazione — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-07-21
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-001 — Autenticazione e Ruoli
+  **Priorità:** HIGH | **Punti:** 3
+
+  **Storia Utente**
+  Come amministratore, voglio vedere gli utenti censiti nel sistema e poterli aggiungere o modificare da una pagina dedicata del back office, così da governare chi può accedere all'applicazione senza passare da interventi manuali sul database.
+
+  **Criteri di Accettazione**
+  - AC-1 — La pagina Utenti del back office elenca tutti gli utenti censiti mostrando nome, email, ruolo e stato di validità
+  - AC-2 — L'amministratore censisce un nuovo utente indicando nome, email e ruolo, e l'utente compare nell'elenco con stato attivo
+  - AC-3 — Un utente censito da questa pagina risulta riconosciuto dal flusso di accesso esistente: la sua email non viene più respinta come non censita
+  - AC-4 — Il censimento con un'email già presente viene rifiutato con un messaggio di errore visibile e nessun nuovo utente compare in elenco
+  - AC-5 — La modifica di nome ed email di un utente esistente viene salvata e i nuovi valori sono mostrati nell'elenco
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Nuova sezione «Utenti» del back office sotto `/anagrafiche/utenti`, costruita replicando il pattern consolidato dell'anagrafica collaboratori: pagina RSC protetta da `richiediRuolo("AMMINISTRATORE")`, tabella client con filtro, form con `useActionState`, Server Action con guardia `richiediRuoloApi`, validazione in modulo puro sotto `src/domain/anagrafiche/`, query in `src/lib/utenti.ts`.
+
+  - **Stato di validità persistito**: si aggiunge il campo `attivo Boolean @default(true)` al modello `Utente` (migrazione additiva). La colonna «Stato» dell'elenco deriva da questo campo (badge «Attivo» / «Invalidato»); US-040 introdurrà le mutazioni (invalidazione/riattivazione). Per gli utenti con profilo collaboratore disattivato la riga mostra un'annotazione secondaria attenuata «Profilo collaboratore disattivato», perché oggi quel profilo blocca di fatto l'accesso pur restando l'account censito.
+  - **Nessuna modifica al flusso di accesso né alle policy di rotta**: il callback Google riconosce l'utente per email (`db.utente.findUnique({ where: { email } })` in `src/app/api/auth/google/callback/route.ts:65`), quindi la sola creazione del record `Utente` soddisfa AC-3. Il prefisso `/anagrafiche` è già classificato `AMMINISTRATORE` in `src/lib/policy-rotte.ts` (`ROTTE_BACK_OFFICE`).
+  - **Censimento senza profilo operativo**: la pagina crea/modifica soltanto `Utente` (nome — campo unico, email, ruolo alla creazione). Il profilo `Collaboratore` (tariffa, attivazione) resta di competenza dell'anagrafica collaboratori, come da perimetro. Un utente censito qui con ruolo `COLLABORATORE` accede e il DAL risolve `ASSENTE` per il profilo: comportamento già gestito dal front office.
+  - **Modifica limitata a nome ed email**: nella pagina di modifica il ruolo è mostrato in sola lettura (il cambio ruolo è US-040). Per gli utenti con profilo collaboratore il form mostra un'avvertenza che il nome anagrafico del profilo operativo si gestisce dall'anagrafica collaboratori (un salvataggio da lì risincronizza `Utente.nome`).
+  - **Email duplicata**: controllo applicativo in transazione più cattura del vincolo unique `P2002` su `Utente.email`, con lo stesso messaggio già in uso: «Esiste già un utente con questa email».
+
+  ### Decisioni Architetturali
+
+  Scelta fra stato di validità **persistito** (`Utente.attivo`) e stato **derivato** (dedotto da `Collaboratore.attivo`). Si sceglie il campo persistito perché US-040 distingue esplicitamente la validità dell'account dal profilo operativo (la sua AC-4 fa cascare l'invalidazione sul profilo, quindi i due concetti non coincidono) e perché replica il pattern `attivo` già consolidato su `Collaboratore`, `Cliente` e `Offerta`. Nessun ADR: la scelta segue un pattern esistente e consolidato del progetto e resta una modifica additiva reversibile, sotto la soglia ADR.
+
+  ---
+
+  ## Baseline
+
+  Rilevata il 2026-07-21 su `main` (workdir = project root, nessun worktree).
+
+  | Verifica | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm run lint` | 0 errori, 3 warning pre-esistenti (`no-unused-vars` in `src/lib/report.ts:8`, `src/lib/policy-rotte.ts:78`, `tests/unit/rimborso-trasferta.test.ts:10`), guardrail e2e ✅ | I task non devono introdurre nuovi errori né nuovi warning; il gate confronta con questo confine |
+  | `npm run test` | 27 file, 455 test passati | Attesi tutti verdi più i nuovi test |
+  | `npx prisma validate` | Schema valido | Deve restare valido dopo la migrazione |
+  | `npx tsc --noEmit` | Nessun errore | Deve restare pulito |
+
+  Prerequisiti d'ambiente (non errori di codice): `DATABASE_URL` configurata per migrazioni, seed e suite e2e; `npx prisma generate` rigenera il client dopo la modifica dello schema (già incluso in `dev`/`build`/`postinstall`); la suite Playwright usa il seam `POST /api/e2e-test/sessione` attivo con `E2E_TEST_MODE=true` (già gestito dalla configurazione e2e del progetto).
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task produttore |
+  |---|---|---|---|---|
+  | AC-1 | Utente e collaboratore creati via `E2eDataFactory` (namespace di test) | e2e Playwright | La riga dell'utente in `/anagrafiche/utenti` mostra nome, email, etichetta ruolo e badge «Attivo» | TASK-10 |
+  | AC-2 | Back office aperto come admin; email univoca derivata dal namespace | e2e Playwright | Dopo il submit del form «Nuovo utente», la riga con la nuova email è visibile in elenco con badge «Attivo» | TASK-10 |
+  | AC-3 | Utente censito in AC-2 | e2e Playwright | `accediCome(nuovaEmail)` in un browser context separato completa l'accesso e approda su `/attivita` (email riconosciuta, non respinta) | TASK-10 |
+  | AC-4 | Utente esistente creato via factory con email nota | e2e Playwright | Il submit con email già presente mostra l'errore inline «Esiste già un utente con questa email»; filtrando l'elenco per quella email resta esattamente una riga | TASK-10 |
+  | AC-5 | Utente creato via factory | e2e Playwright | Dopo il salvataggio della modifica, banner di esito e riga aggiornata con nuovo nome e nuova email | TASK-10 |
+
+  Nota su AC-3: il flusso Google reale non è automatizzabile in e2e; il seam `POST /api/e2e-test/sessione` è l'oracolo canonico del repository per il flusso di accesso e replica lo stesso controllo di censimento del callback (`findUnique` per email, 404 se non censita, `createSession` altrimenti). L'approdo su `/attivita` attraversa inoltre le guardie reali del DAL. I rami di dettaglio del censimento (duplicato, validazione, ruolo assegnato) sono coperti anche a livello unit (TASK-06) sul codice reale delle action.
+
+  ---
+
+  ## Strategia di Test
+
+  Piramide coerente con il progetto: validazione pura testata unit, Server Action testate unit con Prisma mockato (pattern `collaboratori-dal-actions.test.ts`), percorso di accettazione completo coperto da browser e2e Playwright deterministico.
+
+  - Unit: `valida-utente` (campi obbligatori, formato email, ruolo ammesso); action `creaUtente`/`aggiornaUtente` (guardia amministratore, errori di validazione, ramo email duplicata senza scrittura, cattura `P2002`, la modifica non tocca `ruolo` né `attivo`).
+  - E2E: browser e2e **richiesto** — il percorso di accettazione attraversa confine server (Server Action, RSC), persistenza e autenticazione/autorizzazione. Nuova spec `tests/e2e/gestione-utenti.spec.ts` conforme al contratto anti-flakiness di US-023: fixtures `tests/e2e/support/fixtures.ts`, dati via factory con namespace, nessuna mutazione di entità seed, selettori per ruolo/etichetta, `expect` web-first, nessun hard wait.
+  - Regressione: suite unit completa, lint con guardrail e2e, typecheck e build nel gate finale.
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (già configurato, `fullyParallel: true`)
+  **Demo video:** atteso, spec filmabile (registrazione a carico di `archetipo-review`, non dell'implementazione)
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Elenco utenti censiti | Accesso admin → console → voce «Utenti» → tabella con nome, email, ruolo e stato dell'utente creato via factory |
+  | Censimento nuovo utente e riconoscimento accesso | «Nuovo utente» → nome, email univoca, ruolo → salva → riga visibile con stato «Attivo» → in un context separato l'accesso con quella email approda su `/attivita` |
+  | Email duplicata rifiutata | Censimento con email di un utente factory esistente → errore inline visibile → elenco invariato (una sola riga per quella email) |
+  | Modifica nome ed email | Apertura «Modifica» su utente factory → nuovi valori → salva → banner esito e riga aggiornata |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/identita-accesso, domains/collaboratori]
+    update_after_acceptance: [domains/identita-accesso, engineering/code-map]
+    create: []
+  ```
+
+  La capability di censimento utenti ricade nel dominio Identità e accesso (l'ownership oggi condivisa di `Utente` andrà riconciliata in revisione); nessuna nuova pagina di decisione (vedi soglia ADR sopra).
+
+  ---
+
+  > 🎨 I mockup di questa spec sono disponibili in `docs/mockups/US-039/`
+
+  _Piano generato via ARchetipo Planning — 2026-07-21_
+tasks:
+  - id: TASK-01
+    title: Aggiungi il campo attivo al modello Utente con migrazione Prisma
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Il modello `Utente` ha il campo persistito `attivo Boolean @default(true)` con migrazione applicata e client rigenerato.
+
+      ## Read
+      - prisma/schema.prisma — modello `Utente` e pattern del campo `attivo` su `Collaboratore`, `Cliente`, `Offerta`
+
+      ## Change
+      - prisma/schema.prisma — aggiungi `attivo Boolean @default(true)` al modello `Utente` (dopo `ruolo`); nessun'altra modifica allo schema
+      - prisma/migrations/** — nuova migrazione generata dal CLI; non modificare migrazioni esistenti
+
+      ## Steps
+      1. Aggiungi il campo `attivo Boolean @default(true)` al modello `Utente` in `prisma/schema.prisma`.
+      2. Esegui `npx prisma migrate dev --name aggiungi-stato-attivo-utente` (richiede `DATABASE_URL` configurata; la migrazione è additiva con default, non tocca le righe esistenti se non per valorizzare `attivo = true`).
+      3. Verifica che il client generato in `src/generated/prisma` esponga il nuovo campo (la migrate esegue già la generate).
+
+      ## Verify
+      - Run: `npx prisma validate`
+      - Expect: schema valido (come da baseline)
+      - Run: `npm run test`
+      - Expect: 27 file, 455 test passati (nessuna regressione; la baseline è tutta verde)
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore (come da baseline)
+
+      ## Done
+      - [ ] Campo `Utente.attivo` presente a schema con default `true` e migrazione versionata (prerequisito dello stato di validità di AC-1 e AC-2)
+      - [ ] Suite unit e typecheck invariati rispetto alla baseline
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Crea il modulo di validazione pura valida-utente
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste `src/domain/anagrafiche/valida-utente.ts`, modulo puro senza dipendenze da framework, che valida nome, email e ruolo di un utente.
+
+      ## Read
+      - src/domain/anagrafiche/valida-collaboratore.ts — struttura del modulo (input tipizzato, `ErroriValidazione`, regex `RE_EMAIL`, messaggi in italiano)
+
+      ## Change
+      - src/domain/anagrafiche/valida-utente.ts — nuovo file; non modificare `valida-collaboratore.ts`
+
+      ## Steps
+      1. Definisci `interface DatiUtenteInput { nome: string; email: string; ruolo: string }` e riusa il tipo `ErroriValidazione = Record<string, string>` (dichiarato localmente come nel modulo gemello).
+      2. Implementa `validaUtente(dati: DatiUtenteInput): ErroriValidazione` con queste regole: nome obbligatorio («Il nome è obbligatorio»); email obbligatoria («L'email di accesso è obbligatoria») e con formato valido secondo la stessa regex email di `valida-collaboratore.ts` («Inserisci un indirizzo email valido»); ruolo obbligatorio e limitato a `AMMINISTRATORE` | `COLLABORATORE` («Seleziona un ruolo valido»). Copia la regex nel nuovo modulo per mantenerlo autonomo.
+      3. Esporta una costante `RUOLI_AMMESSI = ["AMMINISTRATORE", "COLLABORATORE"] as const` usata dalla validazione e riusabile dal form.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore (come da baseline)
+      - Run: `npm run lint`
+      - Expect: nessun nuovo errore o warning oltre ai 3 warning pre-esistenti della baseline
+
+      ## Done
+      - [ ] `validaUtente` restituisce `{}` per dati validi e messaggi per campo per ogni regola violata (base di AC-2 e AC-4)
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Test unit del modulo valida-utente
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      `tests/unit/valida-utente.test.ts` prova tutte le regole di validazione del nuovo modulo puro.
+
+      ## Read
+      - tests/unit/valida-collaboratore.test.ts — stile dei test sui moduli di validazione puri
+      - src/domain/anagrafiche/valida-utente.ts — API da testare
+
+      ## Change
+      - tests/unit/valida-utente.test.ts — nuovo file; nessun altro file
+
+      ## Steps
+      1. Copri: dati validi → `{}`; nome mancante/vuoto; email mancante, email con formato non valido (almeno `senza-chiocciola`, `spazi @dominio`), email valida accettata; ruolo mancante, ruolo fuori enum (es. `SUPERVISORE`), entrambi i ruoli ammessi accettati.
+      2. Asserisci i messaggi esatti definiti nel modulo, non solo la presenza della chiave.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/valida-utente.test.ts`
+      - Expect: tutti i test del file passano
+      - Run: `npm run test`
+      - Expect: tutta la suite verde (455 test di baseline + i nuovi)
+
+      ## Done
+      - [ ] Ogni regola di `validaUtente` ha almeno un caso positivo e uno negativo con oracolo sul messaggio esatto (evidenza unit per AC-2/AC-4)
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Crea le query utenti in src/lib/utenti.ts
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      `src/lib/utenti.ts` espone le letture riservate all'amministratore usate dalla pagina Utenti: elenco completo e dettaglio per id, con lo stato del profilo collaboratore collegato.
+
+      ## Read
+      - src/lib/collaboratori.ts — pattern del modulo query (`server-only`, guardia `richiediRuoloApi("AMMINISTRATORE")`, tipi espliciti)
+      - prisma/schema.prisma — modello `Utente` aggiornato con `attivo` e relazione `collaboratore`
+
+      ## Change
+      - src/lib/utenti.ts — nuovo file; non modificare `collaboratori.ts` né `dal.ts`
+
+      ## Steps
+      1. Definisci il tipo `UtenteConProfiloCollaboratore` con `id`, `nome`, `email`, `ruolo`, `attivo` e `collaboratore: { attivo: boolean } | null`.
+      2. Implementa `elencaUtenti(): Promise<UtenteConProfiloCollaboratore[]>`: guardia `richiediRuoloApi("AMMINISTRATORE")`, `db.utente.findMany` con `orderBy: { nome: "asc" }` e `select` dei soli campi del tipo (incluso `collaboratore: { select: { attivo: true } }`).
+      3. Implementa `utentePerId(id: string): Promise<UtenteConProfiloCollaboratore | null>` con la stessa guardia e lo stesso `select`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore (come da baseline)
+      - Run: `npm run lint`
+      - Expect: nessun nuovo errore o warning oltre alla baseline
+
+      ## Done
+      - [ ] `elencaUtenti` restituisce tutti gli utenti (nessun filtro su ruolo o stato) con i campi richiesti da AC-1, protetto da guardia amministratore
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Implementa le Server Action creaUtente e aggiornaUtente
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+    body: |-
+      ## Objective
+      `src/app/(back-office)/anagrafiche/utenti/actions.ts` espone `creaUtente` e `aggiornaUtente` compatibili con `useActionState`, con guardia amministratore, validazione pura e rifiuto delle email duplicate.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/collaboratori/actions.ts — pattern completo: `StatoAction`, estrazione da FormData, `guardiaAmministratore`, `isPrismaUniqueConstraintError` (P2002), `erroreEmailDuplicata`, `revalidatePath` + `redirect` con `?esito=`
+      - src/domain/anagrafiche/valida-utente.ts — API di validazione e `RUOLI_AMMESSI`
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts — nuovo file (`"use server"`); non modificare le action dei collaboratori
+
+      ## Steps
+      1. Replica i tipi/helper del file gemello: `StatoAction { errori; successo? }`, estrazione `datiDaForm` (nome trim, email trim+lowercase, ruolo), guardia `richiediRuoloApi("AMMINISTRATORE")`, riconoscimento P2002 e messaggio «Esiste già un utente con questa email».
+      2. `creaUtente(_prevState, formData)`: guardia → `validaUtente` (errori → return) → verifica applicativa `db.utente.findUnique({ where: { email } })`: se esiste, return errore email duplicata senza scrivere → altrimenti `db.utente.create` con `nome`, `email`, `ruolo` dal form (già validato contro `RUOLI_AMMESSI`); `attivo` resta al default `true` del database → catch P2002 → `revalidatePath("/anagrafiche/utenti")` e `redirect("/anagrafiche/utenti?esito=creato")`.
+      3. `aggiornaUtente(_prevState, formData)`: guardia → `id` obbligatorio («ID utente mancante») → valida nome ed email con `validaUtente` passando il ruolo attuale letto a DB (oppure valida solo i due campi pertinenti, decisione locale: riusa `validaUtente` con il ruolo persistito così il contratto resta unico) → `db.utente.update({ where: { id }, data: { nome, email } })` — non toccare mai `ruolo` né `attivo` (cambio ruolo e invalidazione sono US-040) → catch P2002 → `revalidatePath` e `redirect("/anagrafiche/utenti?esito=salvato")`.
+      4. Se l'utente da aggiornare non esiste, return `{ errori: { _form: "Utente non trovato" } }`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore (come da baseline)
+      - Run: `npm run lint`
+      - Expect: nessun nuovo errore o warning oltre alla baseline
+
+      ## Done
+      - [ ] `creaUtente` crea l'utente con il ruolo indicato e stato attivo (AC-2) e rifiuta l'email duplicata senza creare nulla (AC-4)
+      - [ ] `aggiornaUtente` salva solo nome ed email, senza toccare ruolo e stato (AC-5)
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Test unit delle Server Action utenti
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Objective
+      `tests/unit/utenti-actions.test.ts` prova guardie, validazione, ramo email duplicata e contratto di scrittura delle action `creaUtente` e `aggiornaUtente` con Prisma mockato.
+
+      ## Read
+      - tests/unit/collaboratori-dal-actions.test.ts — pattern dei mock hoisted (`@/lib/db`, `@/lib/dal`, `next/cache`, `next/navigation`) e struttura dei casi
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts — comportamento da testare
+
+      ## Change
+      - tests/unit/utenti-actions.test.ts — nuovo file; nessun altro file
+
+      ## Steps
+      1. Mocka `@/lib/db` (utente.findUnique/create/update), `@/lib/dal` (`richiediRuoloApi`), `next/cache` (`revalidatePath`), `next/navigation` (`redirect`). Non mockare `valida-utente`: usa la validazione reale così l'oracolo resta il contratto vero.
+      2. Casi `creaUtente`: guardia invocata con `"AMMINISTRATORE"`; dati non validi → errori per campo e nessuna chiamata a `create`; email già presente (findUnique restituisce un utente) → errore «Esiste già un utente con questa email» e nessuna `create`; dati validi → `create` chiamata con `nome`, `email` normalizzata (lowercase) e `ruolo` scelto, poi `revalidatePath("/anagrafiche/utenti")` e `redirect` con `esito=creato`; `create` che lancia P2002 → errore email duplicata.
+      3. Casi `aggiornaUtente`: id mancante → errore `_form`; utente inesistente → «Utente non trovato»; aggiornamento valido → `update` chiamata con SOLO `{ nome, email }` nel `data` (asserisci l'oggetto esatto: né `ruolo` né `attivo`), poi redirect `esito=salvato`; P2002 su update → errore email duplicata.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/utenti-actions.test.ts`
+      - Expect: tutti i test del file passano
+      - Run: `npm run test`
+      - Expect: tutta la suite verde (baseline 455 + nuovi)
+
+      ## Done
+      - [ ] Ramo duplicato provato senza scritture (evidenza unit di AC-4)
+      - [ ] Contratto di scrittura di `aggiornaUtente` limitato a nome/email provato con asserzione sull'oggetto `data` esatto (evidenza unit di AC-5)
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Pagina elenco /anagrafiche/utenti con tabella client
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      La rotta `/anagrafiche/utenti` mostra l'elenco completo degli utenti censiti con nome, email, ruolo e stato di validità, con filtro di ricerca e azioni coerenti con i mockup.
+
+      ## Read
+      - docs/mockups/US-039/ — mockup di riferimento per layout, colonne, badge e toni
+      - src/app/(back-office)/anagrafiche/collaboratori/page.tsx — pattern pagina RSC (guardia, banner `?esito=`, intestazione, link «Nuovo…»)
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratori-tabella.tsx — pattern tabella client (filtro, contatori, badge stato, azioni)
+      - src/lib/utenti.ts — query `elencaUtenti`
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/utenti/page.tsx — nuovo file
+      - src/app/(back-office)/anagrafiche/utenti/utenti-tabella.tsx — nuovo file client
+
+      ## Steps
+      1. `page.tsx` (RSC): `await richiediRuolo("AMMINISTRATORE")`, `elencaUtenti()`, lettura `searchParams.esito` con messaggi «Utente censito: può accedere all'applicazione con il suo account Google» (`creato`) e «Modifiche all'utente salvate» (`salvato`); intestazione con kicker «Amministrazione», titolo «Utenti», sottotitolo sul governo degli accessi e pulsante «Nuovo utente» verso `/anagrafiche/utenti/nuovo`.
+      2. `utenti-tabella.tsx` (client): filtro per nome o email (`aria-label` «Cerca utente», placeholder coerente col mockup); contatori totale/attivi; colonne Nome, Email, Ruolo (etichetta «Amministratore»/«Collaboratore»), Stato, azioni.
+      3. Colonna Stato: badge «Attivo» (verde, da `utente.attivo === true`) o «Invalidato» (grigio); se `utente.collaboratore?.attivo === false` aggiungi l'annotazione secondaria attenuata «Profilo collaboratore disattivato» come nel mockup.
+      4. Azione per riga «Modifica» verso `/anagrafiche/utenti/{id}/modifica`. Nessuna azione di invalidazione/cambio ruolo (US-040): non aggiungere pulsanti disabilitati non previsti dal mockup.
+      5. Riga di stato vuoto quando il filtro non trova corrispondenze, come nel pattern collaboratori.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore (come da baseline)
+      - Run: `npm run lint`
+      - Expect: nessun nuovo errore o warning oltre alla baseline
+
+      ## Done
+      - [ ] AC-1 — La pagina elenca tutti gli utenti con nome, email, ruolo e stato di validità, fedele ai mockup di `docs/mockups/US-039/`
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Pagine nuovo utente e modifica utente con form condiviso
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-05
+      - TASK-07
+    body: |-
+      ## Objective
+      L'amministratore censisce un nuovo utente (nome, email, ruolo) e modifica nome ed email di un utente esistente tramite form con errori inline, coerenti con i mockup.
+
+      ## Read
+      - docs/mockups/US-039/ — mockup dei form nuovo/modifica
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratore-form.tsx — pattern form client con `useActionState`, errori per campo e `_form`
+      - src/app/(back-office)/anagrafiche/collaboratori/nuovo/page.tsx e src/app/(back-office)/anagrafiche/collaboratori/[id]/modifica/page.tsx — pattern pagine contenitore (guardia, caricamento entità, notFound)
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts — action da collegare
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/utenti/utente-form.tsx — nuovo file client
+      - src/app/(back-office)/anagrafiche/utenti/nuovo/page.tsx — nuovo file
+      - src/app/(back-office)/anagrafiche/utenti/[id]/modifica/page.tsx — nuovo file
+
+      ## Steps
+      1. `utente-form.tsx`: form client con `useActionState`; campi Nome (testo, etichetta «Nome»), Email («Email di accesso»), Ruolo (select con «Collaboratore» default e «Amministratore», da `RUOLI_AMMESSI`); errori inline per campo e messaggio `_form`; pulsanti «Salva»/«Annulla» come da mockup.
+      2. In modalità modifica il ruolo è mostrato in sola lettura (testo statico, nessun input `ruolo` nel submit) con nota che il cambio ruolo non è disponibile da qui; campo hidden `id`.
+      3. `nuovo/page.tsx`: guardia amministratore, intestazione «Nuovo utente», form collegato a `creaUtente`.
+      4. `[id]/modifica/page.tsx`: guardia amministratore, `utentePerId(id)` con `notFound()` se assente, form precompilato collegato a `aggiornaUtente`; se l'utente ha un profilo collaboratore, mostra l'avvertenza che il profilo operativo (nome anagrafico, tariffa, attivazione) si gestisce dall'anagrafica collaboratori.
+      5. L'errore «Esiste già un utente con questa email» deve comparire inline sul campo email, restando sulla pagina del form (nessun redirect in caso di errore).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore (come da baseline)
+      - Run: `npm run lint`
+      - Expect: nessun nuovo errore o warning oltre alla baseline
+
+      ## Done
+      - [ ] AC-2 — Il censimento da form crea l'utente e reindirizza all'elenco con banner di esito
+      - [ ] AC-4 — L'email duplicata mostra l'errore inline visibile senza creare l'utente
+      - [ ] AC-5 — La modifica di nome ed email salva e reindirizza all'elenco con banner di esito
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: Voce Utenti nella sidebar della console
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-07
+    body: |-
+      ## Objective
+      La sidebar della console amministrativa mostra la voce «Utenti» che porta a `/anagrafiche/utenti` con lo stato attivo evidenziato.
+
+      ## Read
+      - src/app/(back-office)/console-sidebar.tsx — array `NAV_ITEMS`, icone SVG inline e logica `aria-current`/prefisso
+      - docs/mockups/US-039/ — posizione della voce nel gruppo «Gestione»
+
+      ## Change
+      - src/app/(back-office)/console-sidebar.tsx — solo: nuova icona SVG inline e nuova entry in `NAV_ITEMS`; nessun'altra modifica al componente
+
+      ## Steps
+      1. Definisci `IconUtenti` (icona utenti/persone in stile outline coerente con le altre, `strokeWidth` 1.9, stessa classe dimensionale).
+      2. Aggiungi `{ href: "/anagrafiche/utenti", label: "Utenti", icon: IconUtenti }` a `NAV_ITEMS` subito dopo la voce «Collaboratori» (o nella posizione indicata dai mockup se diversa).
+      3. Verifica che il matching per prefisso esistente non collida con altre voci (nessun altro item usa il prefisso `/anagrafiche/utenti`).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore (come da baseline)
+      - Run: `npm run lint`
+      - Expect: nessun nuovo errore o warning oltre alla baseline
+
+      ## Done
+      - [ ] La voce «Utenti» è visibile nella sidebar, naviga alla pagina e risulta evidenziata quando la rotta è attiva (supporto alla dimostrazione di AC-1)
+
+      ## Blockers
+      None.
+    ref: TASK-09
+  - id: TASK-10
+    title: Suite e2e Playwright gestione-utenti
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-06
+      - TASK-08
+      - TASK-09
+    body: |-
+      ## Objective
+      `tests/e2e/gestione-utenti.spec.ts` prova end-to-end AC-1…AC-5 nel browser, in modo deterministico e conforme al contratto anti-flakiness del progetto.
+
+      ## Read
+      - tests/e2e/README.md — contratto e2e (fixtures, factory, divieti)
+      - tests/e2e/support/fixtures.ts e tests/e2e/support/factory.ts — `test`/`expect` estesi, `factory.createUtente`, `factory.createCollaboratore`, namespace
+      - tests/e2e/support/auth.ts — `accediAlBackOfficeComeAdmin`, `accediCome`
+      - tests/e2e/anagrafica-collaboratori.spec.ts — stile della spec gemella
+
+      ## Change
+      - tests/e2e/gestione-utenti.spec.ts — nuovo file; nessuna modifica a fixtures, factory o spec esistenti
+
+      ## Steps
+      1. Usa `test`/`expect` da `./support/fixtures` e la `factory` per ogni dato mutato; email sempre derivate dal namespace (es. `${factory.namespace}-censito@e2e.invalid`); mai toccare utenti seed (Giulia Conti, info@techreloaded.it).
+      2. AC-1: crea via factory un utente con ruolo `COLLABORATORE` e un collaboratore con profilo disattivato (`attivo: false`); accedi con `accediAlBackOfficeComeAdmin`, apri la voce di navigazione «Utenti» (`getByRole("link", { name: "Utenti", exact: true })`), filtra per il nome factory e asserisci riga con nome, email, etichetta ruolo e badge «Attivo»; per l'utente col profilo disattivato asserisci l'annotazione «Profilo collaboratore disattivato».
+      3. AC-2 + AC-3: da «Nuovo utente» compila nome, email univoca del namespace, ruolo «Collaboratore», salva; asserisci banner di esito e riga con badge «Attivo». Poi `browser.newContext()` → nuova pagina → `accediCome(pagina, emailCensita)` → `await expect(pagina).toHaveURL(/\/attivita/)` (l'email è riconosciuta dal flusso di accesso); chiudi il context.
+      4. AC-4: crea un utente via factory, apri «Nuovo utente», usa la stessa email → submit → asserisci l'errore inline «Esiste già un utente con questa email» visibile; torna all'elenco, filtra per quella email e asserisci esattamente una riga (`toHaveCount(1)` sulle righe filtrate).
+      5. AC-5: crea un utente via factory, apri «Modifica», imposta nuovo nome e nuova email derivati dal namespace, salva; asserisci banner «Modifiche all'utente salvate» e riga aggiornata con i nuovi valori.
+      6. Vincoli: nessun hard wait, nessun selettore di classi Tailwind, `expect` web-first, selettori per ruolo/etichetta/nome esatto, eventuale `data-testid` minimo solo se indispensabile.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/gestione-utenti.spec.ts`
+      - Expect: tutti gli scenari passano (prerequisiti d'ambiente: `DATABASE_URL` e modalità e2e del progetto attive come per le altre spec)
+      - Run: `npm run lint`
+      - Expect: guardrail anti-flakiness ✅ e nessun nuovo errore/warning oltre alla baseline
+
+      ## Done
+      - [ ] AC-1 — riga con nome, email, ruolo e stato osservata nel browser
+      - [ ] AC-2 — censimento da UI con riga «Attivo» osservata
+      - [ ] AC-3 — accesso con l'email censita approda su `/attivita` in un context separato
+      - [ ] AC-4 — errore inline visibile ed elenco invariato (una sola riga per l'email)
+      - [ ] AC-5 — nuovi nome ed email mostrati in elenco dopo il salvataggio
+
+      ## Blockers
+      None.
+    ref: TASK-10
+  - id: TASK-11
+    title: Gate finale di verifica della spec US-039
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+      - TASK-09
+      - TASK-10
+    body: |-
+      ## Objective
+      Tutte le verifiche focalizzate e di regressione della spec passano e ogni task risulta `DONE` prima della richiesta di review.
+
+      ## Read
+      - Questo piano — baseline registrata e comandi attesi
+
+      ## Change
+      - Nessun file: task di sola verifica. Eventuali correzioni emerse vanno fatte nei file dei task precedenti mantenendone il perimetro.
+
+      ## Steps
+      1. Esegui nell'ordine, dalla radice del progetto (`/Users/smarello/repo/coaching-planner`), i comandi della sezione Verify.
+      2. Confronta ogni esito con la baseline del piano: lint deve restare a 0 errori e 3 warning pre-esistenti (nessun nuovo warning nei file toccati), typecheck pulito, suite unit tutta verde, e2e focalizzata verde, build senza errori.
+      3. Marca questo task `DONE` con `archetipo task done US-039 TASK-11` (o il comando equivalente del connettore).
+      4. Ricarica la spec con `archetipo spec show US-039` da `/Users/smarello/repo/coaching-planner` e verifica nell'envelope che NESSUN task sia ancora `TODO`.
+      5. Solo dopo questa conferma richiedi la review con `archetipo spec review US-039`. Ordine obbligatorio: verifiche → gate `DONE` → ricarica spec → conferma tutti `DONE` → review.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/valida-utente.test.ts tests/unit/utenti-actions.test.ts`
+      - Expect: tutti passati
+      - Run: `npm run test`
+      - Expect: intera suite unit verde (baseline 455 + nuovi test)
+      - Run: `npx playwright test tests/e2e/gestione-utenti.spec.ts`
+      - Expect: tutti gli scenari passati
+      - Run: `npm run lint`
+      - Expect: 0 errori; nessun warning aggiuntivo rispetto ai 3 pre-esistenti della baseline; guardrail e2e ✅
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore
+      - Run: `npm run build`
+      - Expect: build completata senza errori
+
+      ## Done
+      - [ ] Tutti i comandi sopra eseguiti con gli esiti attesi rispetto alla baseline (chiusura di AC-1…AC-5)
+      - [ ] `archetipo spec show US-039` eseguito da `/Users/smarello/repo/coaching-planner` dopo il gate conferma zero task `TODO`
+      - [ ] Solo a quel punto è consentito `archetipo spec review US-039`
+
+      ## Blockers
+      None.
+    ref: TASK-11

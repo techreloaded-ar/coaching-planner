@@ -1,0 +1,210 @@
+schema: archetipo/plan/v2
+spec_code: US-016
+body: "# US-016: Vista avanzamento offerte con residuo giornate — Piano di Implementazione\n\n**Generato da:** Team di Pianificazione ARchetipo\n**Data:** 2026-07-03\n\n---\n\n## Spec\n\n**Epic:** EP-004 — Reportistica\n**Priorità:** HIGH | **Punti:** 3\n\n**Storia Utente**\nCome Stefano, amministratore, voglio una vista di avanzamento per offerta con le giornate erogate rispetto a quelle previste e il residuo, così da accorgermi per tempo quando un'offerta si avvicina all'esaurimento dei giorni venduti.\n\n**Criteri di Accettazione**\n- Per ogni offerta sono mostrate giornate previste, giornate erogate (1 giornata = 8 ore) e residuo\n- Le giornate erogate sono dettagliate per collaboratore\n- Un residuo negativo o esaurito è evidenziato visivamente\n- La vista riflette sempre i dati correnti delle attività registrate\n\n---\n\n## Soluzione Tecnica\n\nLa vista riusa lo stesso schema a tre livelli del report \"Importi da fatturare per cliente\" (US-015): funzione di dominio pura → livello dati serializzabile in `src/lib/report.ts` → pagina RSC + Client Component nell'area Back Office. La differenza sostanziale è che l'avanzamento è **cumulativo sull'intero ciclo di vita dell'offerta** (non mensile): aggrega tutte le righe attività di ogni offerta senza filtro sul mese, perché il residuo dei giorni venduti si consuma nel tempo. Nessuna navigazione mensile.\n\n- **Dominio (funzione pura):** nuova `calcolaAvanzamentoOfferte(offerte, righe)` in `src/domain/consuntivi/index.ts`, senza dipendenze da Prisma/framework. Per ogni offerta calcola giornate previste (`giorniPrevisti`), giornate erogate (`somma ore fatturabili / ORE_PER_GIORNATA`), residuo (`previste - erogate`), percentuale di utilizzo e stato, con il dettaglio delle giornate erogate per collaboratore.\n- **Ordinamento per criticità:** le offerte sono ordinate per percentuale di utilizzo decrescente, così quelle prossime all'esaurimento o oltre budget compaiono per prime (a parità, per codice offerta).\n- **Stato dell'offerta (evidenza visiva):** `OLTRE_BUDGET` se residuo < 0, `ESAURITA` se residuo = 0, `IN_ALLERTA` se utilizzo ≥ 85% con residuo ancora positivo, altrimenti `IN_CORSO`. Soglia di allerta centralizzata come costante `SOGLIA_ALLERTA_UTILIZZO = 0.85`.\n- **Giornate erogate = solo le ore fatturabili / 8** (decisione del committente): le righe con `fatturabile = false` NON concorrono al consumo dei giorni venduti dell'offerta. Conversione fissa 1 giornata = 8 ore tramite `ORE_PER_GIORNATA`.\n- **Livello dati:** nuova `reportAvanzamentoOfferte()` in `src/lib/report.ts` con `richiediRuoloApi(\"AMMINISTRATORE\")`. Legge tutte le offerte (con cliente) e tutte le righe attività di tutti i collaboratori (con collaboratore), senza filtro temporale, e restituisce un risultato interamente serializzabile (Decimal → string, nessun Date grezzo). Il flag `fatturabile` di ogni riga viene passato alla funzione di dominio, che applica il filtro.\n- **UI:** nuova rotta `src/app/(back-office)/report/avanzamento-offerte/` (pagina RSC con `richiediRuolo(\"AMMINISTRATORE\")` + Client Component) che replica lo stile del report esistente (schede `rounded-[11px]`, accenti indigo, dark mode) aggiungendo barra di avanzamento, badge di stato, numeri previste/erogate/residuo, tabella dettaglio per collaboratore e scheda totali di portafoglio. Mockup di riferimento in `docs/mockups/US-016/`.\n- **Navigazione:** aggiunta di una voce \"Avanzamento offerte\" nella sidebar del Back Office (`console-sidebar.tsx`), affiancata al report esistente (rinominato per chiarezza in \"Fatturazione clienti\").\n\n**Casi limite gestiti:** offerta con `giorniPrevisti = 0` (evita divisione per zero: utilizzo 0 se nessuna erogazione, altrimenti oltre budget); offerta senza attività fatturabile (residuo = previste, dettaglio collaboratori vuoto, stato IN_CORSO); nessuna offerta a sistema (stato vuoto coerente con il report fatturazione).\n\n### Decisioni confermate dal committente\n- **Giornate erogate = solo righe fatturabili.** Le righe non fatturabili non concorrono al residuo dei giorni venduti.\n- **Sono mostrate tutte le offerte** presenti a sistema (comprese quelle senza attività), per dare visione completa della capacità venduta.\n- **Soglia di allerta all'85%** dell'utilizzo prima dell'evidenza \"quasi esaurita\". Valore centralizzato come costante di dominio.\n\n---\n\n## Strategia di Test\n\nCopertura a due livelli coerente con la spec US-015: test unitari Vitest sulla funzione di dominio pura e test e2e Playwright sul flusso amministratore.\n\n- **Unit (Vitest)** su `calcolaAvanzamentoOfferte`: conversione 8h = 1 giornata; aggregazione di più collaboratori sulla stessa offerta con dettaglio per collaboratore; residuo positivo, nullo e negativo; classificazione degli stati (IN_CORSO / IN_ALLERTA / ESAURITA / OLTRE_BUDGET) sulle soglie; **esclusione delle righe non fatturabili dall'erogato**; ordinamento per criticità; guardia divisione per zero (`giorniPrevisti = 0`); offerta senza attività; totali di portafoglio.\n- **Autorizzazione:** un collaboratore che apre la rotta viene reindirizzato (nessun accesso ai dati aggregati di tutti).\n- **Serializzazione:** il risultato del livello dati non contiene Decimal/Date grezzi.\n\n### E2E Tests — User Simulation\n\n**Framework:** Playwright (già configurato, endpoint `/api/e2e-test/sessione`)\n**Demo video:** Atteso — la spec descrive un incremento visibile (l'amministratore apre la vista e vede previste/erogate/residuo con evidenza dell'offerta oltre budget). Registrazione a cura di `archetipo-review` al gate di accettazione, non durante l'implementazione.\n\n| Scenario | Descrizione del flusso utente |\n|---|---|\n| Vista avanzamento | L'amministratore accede, apre \"Avanzamento offerte\" e vede per ogni offerta previste, erogate, residuo e il dettaglio per collaboratore |\n| Evidenza esaurimento | Un'offerta con residuo negativo/esaurito è evidenziata visivamente (badge/stato di allerta) |\n| Segregazione ruoli | Un collaboratore che tenta di aprire la rotta viene reindirizzato alla propria area |\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-016/`\n\n_Piano generato tramite ARchetipo Planning — 2026-07-03_"
+tasks:
+  - id: TASK-01
+    title: Funzione di dominio calcolaAvanzamentoOfferte
+    type: Impl
+    status: DONE
+    body: |-
+      ## Descrizione
+
+      Aggiungere al modulo di dominio Consuntivi la funzione pura `calcolaAvanzamentoOfferte`, senza dipendenze da Prisma o dal framework, che calcola l'avanzamento cumulativo di ogni offerta. Seguire lo stile e le convenzioni di `calcolaReportFatturazioneClienti` già presente nel file (accumulatori con Map, importi come stringhe a 2 decimali, conversione ore→giornate con `ORE_PER_GIORNATA`).
+
+      Definire i tipi di input/output:
+      - `OffertaAvanzamento` (input metadati offerta): `offertaId`, `offertaCodice`, `offertaDescrizione`, `clienteId`, `clienteRagioneSociale`, `giorniPrevisti: number`.
+      - `RigaAvanzamento` (input attività): `offertaId`, `collaboratoreId`, `collaboratoreNome`, `ore: number`, `fatturabile: boolean`. Solo le righe con `fatturabile = true` concorrono all'erogato (decisione del committente).
+      - `VoceCollaboratoreAvanzamento` (output dettaglio): `collaboratoreId`, `collaboratoreNome`, `oreErogate: number`, `giornateErogate: number`.
+      - `VoceAvanzamentoOfferta` (output per offerta): `offertaId`, `offertaCodice`, `offertaDescrizione`, `clienteId`, `clienteRagioneSociale`, `giornatePreviste: number`, `giornateErogate: number`, `residuo: number`, `percentualeUtilizzo: number`, `stato: StatoAvanzamentoOfferta`, `perCollaboratore: VoceCollaboratoreAvanzamento[]`.
+      - `StatoAvanzamentoOfferta = "IN_CORSO" | "IN_ALLERTA" | "ESAURITA" | "OLTRE_BUDGET"`.
+      - `ReportAvanzamentoOfferte` (output complessivo): `perOfferta: VoceAvanzamentoOfferta[]`, `totali: { giornatePrevisteTotali, giornateErogateTotali, residuoTotale }`.
+
+      Regole di calcolo:
+      - Considerare ai fini dell'erogato SOLO le righe con `fatturabile = true`; le righe non fatturabili sono ignorate nel conteggio giornate.
+      - `giornateErogate = somma(ore fatturabili) / ORE_PER_GIORNATA` (aggregando tutte le righe fatturabili dell'offerta).
+      - `residuo = giornatePreviste - giornateErogate`.
+      - `percentualeUtilizzo = giornatePreviste > 0 ? (giornateErogate / giornatePreviste) : (giornateErogate > 0 ? 1.01 : 0)` (guardia divisione per zero; un'offerta con 0 giorni previsti ma erogato > 0 è oltre budget).
+      - Stato: `OLTRE_BUDGET` se `residuo < 0`; `ESAURITA` se `residuo === 0` (e giornatePreviste > 0); `IN_ALLERTA` se `percentualeUtilizzo >= SOGLIA_ALLERTA_UTILIZZO` con `residuo > 0`; altrimenti `IN_CORSO`.
+      - Costante esportata `SOGLIA_ALLERTA_UTILIZZO = 0.85`.
+      - Dettaglio `perCollaboratore` aggregato per `collaboratoreId` sulle sole righe fatturabili, ordinato per `giornateErogate` decrescente (a parità per nome); i collaboratori con solo righe non fatturabili non compaiono.
+      - `perOfferta` include TUTTE le offerte passate in input (anche senza attività fatturabile: erogato 0, residuo = previste). Ordinamento per `percentualeUtilizzo` decrescente, a parità per `offertaCodice`.
+      - Totali = somma di previste, erogate e residuo su tutte le offerte.
+
+      ## File Coinvolti
+      - `src/domain/consuntivi/index.ts` — aggiungere tipi, costante `SOGLIA_ALLERTA_UTILIZZO` e funzione `calcolaAvanzamentoOfferte`; riusare `ORE_PER_GIORNATA` già importato.
+
+      ## Criteri di Completamento
+      - [ ] Esportati i tipi `OffertaAvanzamento`, `RigaAvanzamento`, `VoceCollaboratoreAvanzamento`, `VoceAvanzamentoOfferta`, `StatoAvanzamentoOfferta`, `ReportAvanzamentoOfferte` e la costante `SOGLIA_ALLERTA_UTILIZZO`
+      - [ ] `calcolaAvanzamentoOfferte` è una funzione pura senza import da Prisma o Next
+      - [ ] Le giornate erogate usano `ORE_PER_GIORNATA` e considerano SOLO le righe fatturabili
+      - [ ] Gestita la divisione per zero con `giorniPrevisti = 0`
+      - [ ] Stato e ordinamento per criticità implementati come descritto
+      - [ ] `npx tsc --noEmit` non riporta errori sul file
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test calcolaAvanzamentoOfferte (Vitest)
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Descrizione
+
+      Scrivere i test unitari Vitest della funzione di dominio `calcolaAvanzamentoOfferte`, seguendo lo stile di `tests/unit/report-fatturazione-clienti.test.ts` (helper factory per offerte e righe con default sovrascrivibili, `describe`/`it`, asserzioni su numeri e stringhe formattate).
+
+      Casi da coprire:
+      - Report vuoto (nessuna offerta) → `perOfferta` vuoto e totali a zero.
+      - Conversione 8 ore fatturabili = 1 giornata erogata; 12 ore = 1,5 giornate.
+      - Aggregazione di più collaboratori sulla stessa offerta con dettaglio corretto in `perCollaboratore` (giornate per collaboratore + ordinamento).
+      - Residuo positivo (erogato < previsto), nullo (erogato = previsto → `ESAURITA`) e negativo (erogato > previsto → `OLTRE_BUDGET`).
+      - Classificazione stato sulle soglie: `IN_ALLERTA` esattamente a utilizzo ≥ 85% con residuo > 0; `IN_CORSO` sotto soglia.
+      - **Esclusione delle righe non fatturabili dall'erogato:** una riga `fatturabile:false` NON aumenta le giornate erogate né compare nel dettaglio per collaboratore; un'offerta con sole righe non fatturabili risulta con erogato 0 e `perCollaboratore` vuoto.
+      - Ordinamento di `perOfferta` per criticità (percentuale decrescente).
+      - Guardia divisione per zero: offerta con `giorniPrevisti = 0` non produce NaN/Infinity e risulta `OLTRE_BUDGET` se ha erogato.
+      - Offerta senza attività: erogato 0, residuo = previste, `perCollaboratore` vuoto, stato `IN_CORSO`.
+      - Totali di portafoglio come somma di previste/erogate/residuo.
+
+      ## File Coinvolti
+      - `tests/unit/avanzamento-offerte.test.ts` — nuovo file di test.
+
+      ## Criteri di Completamento
+      - [ ] Il file importa la funzione e i tipi da `@/domain/consuntivi`
+      - [ ] Tutti i casi elencati sono coperti con asserzioni esplicite, inclusa l'esclusione delle righe non fatturabili
+      - [ ] `npx vitest run tests/unit/avanzamento-offerte.test.ts` è verde
+    ref: TASK-02
+  - id: TASK-03
+    title: Livello dati reportAvanzamentoOfferte
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Descrizione
+
+      Aggiungere in `src/lib/report.ts` la funzione server-only `reportAvanzamentoOfferte()` che alimenta la funzione di dominio con i dati da DB, seguendo il pattern di `reportFatturazioneClientiMese` (guardia ruolo, mapping Prisma→tipi di dominio serializzabili, `Decimal.toString()`, `Number(ore)`).
+
+      Comportamento:
+      - `await richiediRuoloApi("AMMINISTRATORE")` in testa.
+      - Nessun filtro temporale: legge TUTTE le offerte con `include: { cliente: true }` e TUTTE le righe attività con `include: { collaboratore: true }` (di tutti i collaboratori).
+      - Mappa le offerte in `OffertaAvanzamento[]` (con `giorniPrevisti` e ragione sociale del cliente) e le righe in `RigaAvanzamento[]` (`collaboratoreNome` = `nome + cognome` del collaboratore, `ore` come number, `fatturabile` dal record). Il filtro sulle righe fatturabili è applicato dalla funzione di dominio, quindi passare tutte le righe con il flag.
+      - Restituisce un tipo `RisultatoReportAvanzamento` (che estende `ReportAvanzamentoOfferte`) interamente serializzabile — nessun `Decimal`/`Date` grezzo.
+      - Definire il tipo di ritorno esportato, analogo a `RisultatoReportFatturazione`.
+
+      ## File Coinvolti
+      - `src/lib/report.ts` — nuova funzione `reportAvanzamentoOfferte` e tipo `RisultatoReportAvanzamento`; importare i nuovi simboli da `@/domain/consuntivi` e i tipi Prisma necessari.
+
+      ## Criteri di Completamento
+      - [ ] La funzione applica `richiediRuoloApi("AMMINISTRATORE")`
+      - [ ] Legge tutte le offerte (con cliente) e tutte le righe attività (con collaboratore), senza filtro sul mese
+      - [ ] Ogni riga mappata include il flag `fatturabile`
+      - [ ] Il risultato è serializzabile (Decimal→string, ore→number, nessun Date grezzo)
+      - [ ] `npx tsc --noEmit` non riporta errori
+    ref: TASK-03
+  - id: TASK-04
+    title: Pagina e Client Component Avanzamento offerte
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Descrizione
+
+      Creare la nuova rotta Back Office `report/avanzamento-offerte` replicando la struttura di `report/fatturazione-clienti` (pagina RSC che fa la guardia ruolo, chiama il livello dati, serializza con `JSON.parse(JSON.stringify(...))` e passa i dati a un Client Component). NON prevedere navigazione mensile: la vista è cumulativa.
+
+      La pagina RSC:
+      - `await richiediRuolo("AMMINISTRATORE")`.
+      - Chiama `reportAvanzamentoOfferte()` e serializza il risultato.
+      - Intestazione coerente con il report esistente (occhiello "Reportistica", titolo "Avanzamento offerte", sottotitolo esplicativo).
+
+      Il Client Component (`"use client"`) implementa la UI seguendo i mockup in `docs/mockups/US-016/` e lo stile di `report-fatturazione-clienti.tsx`:
+      - Pill di riepilogo (numero offerte, quante critiche/oltre budget).
+      - Una scheda per offerta ordinata per criticità: badge codice + descrizione + cliente, badge di stato (In corso / In allerta / Esaurita / Oltre budget), numeri prominenti Previste / Erogate / Residuo, barra di avanzamento colorata secondo lo stato (indigo/ambra/rosso, con evidenza per residuo negativo o esaurito), tabella dettaglio per collaboratore (giornate erogate per collaboratore).
+      - Scheda totali di portafoglio in fondo (previste/erogate/residuo totali), stile coerente con la scheda "totale complessivo" del report fatturazione.
+      - Stato vuoto quando non ci sono offerte, coerente con lo stato vuoto del report fatturazione.
+      - Formattazione giornate con `Intl.NumberFormat("it-IT")` (max 1 decimale) come nel report esistente; dark mode con varianti `dark:`.
+
+      ## File Coinvolti
+      - `src/app/(back-office)/report/avanzamento-offerte/page.tsx` — pagina RSC.
+      - `src/app/(back-office)/report/avanzamento-offerte/report-avanzamento-offerte.tsx` — Client Component.
+      - Riferimento visivo: `docs/mockups/US-016/` (index.html, shared.css, app.js).
+
+      ## Criteri di Completamento
+      - [ ] La rotta `/report/avanzamento-offerte` rende la lista delle offerte con previste, erogate e residuo
+      - [ ] Il dettaglio per collaboratore è visibile per ogni offerta
+      - [ ] Le offerte con residuo negativo o esaurito sono evidenziate visivamente (stato/colore)
+      - [ ] Le offerte sono ordinate per criticità (più consumate per prime)
+      - [ ] Presente lo stato vuoto e la scheda totali di portafoglio
+      - [ ] La pagina applica `richiediRuolo("AMMINISTRATORE")` e serializza i dati per il Client Component
+      - [ ] Stile e dark mode coerenti con il report esistente e con i mockup US-016
+    ref: TASK-04
+  - id: TASK-05
+    title: Voce di navigazione Avanzamento offerte in sidebar
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Descrizione
+
+      Aggiungere la voce di navigazione verso la nuova rotta nella sidebar del Back Office. Attualmente `NAV_ITEMS` contiene una sola voce report ("Report" → `/report/fatturazione-clienti`). Aggiungere una seconda voce "Avanzamento offerte" → `/report/avanzamento-offerte` con un'icona coerente (es. barre/grafico o target), e rinominare la voce esistente in "Fatturazione clienti" per chiarezza. La logica di stato attivo esistente (`pathname.startsWith(item.href)`) funziona già con i due prefissi distinti.
+
+      ## File Coinvolti
+      - `src/app/(back-office)/console-sidebar.tsx` — aggiornare `NAV_ITEMS` e, se necessario, aggiungere una nuova icona SVG inline.
+
+      ## Criteri di Completamento
+      - [ ] La sidebar mostra due voci report distinte: "Fatturazione clienti" e "Avanzamento offerte"
+      - [ ] La voce "Avanzamento offerte" punta a `/report/avanzamento-offerte`
+      - [ ] Lo stato attivo si evidenzia correttamente sulla rotta corrispondente
+      - [ ] `npx tsc --noEmit` non riporta errori
+    ref: TASK-05
+  - id: TASK-06
+    title: 'E2E Playwright: vista, evidenza esaurimento e autorizzazione'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+      - TASK-05
+    body: |-
+      ## Descrizione
+
+      Scrivere i test e2e Playwright per la vista avanzamento offerte, seguendo il pattern di `tests/e2e/report-fatturazione-clienti.spec.ts` e `tests/e2e/autorizzazione-ruoli.spec.ts` (login via `POST /api/e2e-test/sessione`, attesa navigazione, asserzioni sui contenuti seed).
+
+      Scenari (senza video):
+      - **Vista avanzamento:** l'amministratore (`info@techreloaded.it`) apre `/report/avanzamento-offerte` e vede almeno una scheda offerta con le etichette/valori di giornate previste, erogate e residuo e il dettaglio per collaboratore.
+      - **Evidenza esaurimento:** verificare la presenza dell'evidenza visiva di stato (badge/etichetta di stato dell'offerta). Se i dati seed non producono un'offerta oltre budget, asserire almeno la presenza dei badge di stato e della barra di avanzamento; non forzare uno stato specifico se il seed non lo garantisce.
+      - **Segregazione ruoli:** un utente collaboratore che tenta di aprire `/report/avanzamento-offerte` viene reindirizzato fuori dall'area Back Office (coerente con `autorizzazione-ruoli.spec.ts`).
+
+      ## File Coinvolti
+      - `tests/e2e/avanzamento-offerte.spec.ts` — nuovo file.
+      - Riferimenti di pattern: `tests/e2e/report-fatturazione-clienti.spec.ts`, `tests/e2e/autorizzazione-ruoli.spec.ts`.
+
+      ## Criteri di Completamento
+      - [ ] Test della vista amministratore con previste/erogate/residuo e dettaglio collaboratore
+      - [ ] Test dell'evidenza visiva di stato dell'offerta
+      - [ ] Test di segregazione ruoli (collaboratore reindirizzato)
+      - [ ] `npx playwright test tests/e2e/avanzamento-offerte.spec.ts` è verde
+    ref: TASK-06
+  - id: TASK-07
+    title: 'E2E demo: flusso avanzamento offerte visibile'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+      - TASK-05
+    body: |-
+      ## Descrizione
+
+      Aggiungere lo spec demo del flusso filmabile, seguendo la convenzione dei file `tests/e2e/demo__*.spec.ts` esistenti (es. `demo__report-fatturazione-clienti.spec.ts`). Lo spec simula il flusso utente completo: l'amministratore accede, apre "Avanzamento offerte" dalla sidebar e visualizza per ogni offerta previste, erogate e residuo con il dettaglio per collaboratore e l'evidenza dell'offerta prossima all'esaurimento/oltre budget.
+
+      Nota: il video NON viene registrato in questa fase; la registrazione è a cura di `archetipo-review` al gate di accettazione. Questo spec descrive lo scenario dimostrativo in modo coerente con gli altri `demo__`.
+
+      ## File Coinvolti
+      - `tests/e2e/demo__avanzamento-offerte.spec.ts` — nuovo file.
+      - Riferimento di pattern: `tests/e2e/demo__report-fatturazione-clienti.spec.ts`.
+
+      ## Criteri di Completamento
+      - [ ] Lo spec naviga dalla sidebar alla vista avanzamento offerte come farebbe l'amministratore
+      - [ ] Verifica la presenza dei valori previste/erogate/residuo e del dettaglio per collaboratore
+      - [ ] Coerente con la convenzione dei file `demo__` esistenti
+      - [ ] `npx playwright test tests/e2e/demo__avanzamento-offerte.spec.ts` è verde
+    ref: TASK-07

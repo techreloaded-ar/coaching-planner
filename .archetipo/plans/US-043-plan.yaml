@@ -1,0 +1,428 @@
+schema: archetipo/plan/v2
+spec_code: US-043
+body: |-
+  # US-043: Inserimento ore consentito solo sulle offerte abilitate — Piano di Implementazione
+
+  **Generato da:** Team di Planning ARchetipo
+  **Data:** 2026-07-27
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** HIGH | **Punti:** 3
+  **Bloccata da:** US-042 (DONE — modello `AbilitazioneOfferta`, backfill nel seed e factory e2e già disponibili)
+
+  **Storia Utente**
+  Come collaboratore, voglio che nella registrazione delle attività siano proposte solo le offerte attive su cui sono abilitato, così da segnare ore esclusivamente sugli impegni per cui sono stato ingaggiato.
+
+  **Criteri di Accettazione**
+  - AC-1 — Nella creazione di una riga di attività la selezione dell'offerta propone soltanto le offerte attive del cliente scelto su cui il collaboratore è abilitato
+  - AC-2 — Un tentativo di salvataggio di una nuova riga su un'offerta non abilitata è rifiutato dal server con un messaggio di errore visibile, e nessuna riga viene creata
+  - AC-3 — Se il cliente selezionato non ha offerte attive su cui il collaboratore è abilitato, compare un messaggio che segnala l'assenza di offerte abilitate e il salvataggio non è consentito
+  - AC-4 — Una riga preesistente su un'offerta non abilitata resta modificabile ed eliminabile dal suo proprietario, purché la modifica non sposti la riga su un'offerta diversa non abilitata
+  - AC-5 — La modifica di una riga che sposta l'attività su un'altra offerta richiede che la nuova offerta sia abilitata; in caso contrario il salvataggio è rifiutato con un messaggio di errore visibile e la riga resta invariata
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Questa spec è il lato di *enforcement* della decisione già presa in US-042 ([Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md)): il vincolo si applica in tre punti, tutti nel perimetro della capability Attività.
+
+  - **Query di selezione (AC-1):** `offerteAttivePerCliente` in `src/lib/attivita.ts` viene rinominata in `offerteAbilitatePerCliente` (nome parlante) e filtra con `abilitazioniCollaboratori: { some: { collaboratoreId: collaboratore.id } }`, lo stesso pattern Prisma già usato da `elencaOfferteAbilitabili` in `src/lib/abilitazioni.ts`. La funzione risolve già il collaboratore corrente, quindi il filtro non richiede nuovi parametri. Unico consumatore: `fetchOffertePerCliente` in `src/lib/actions/righe-attivita.ts`.
+  - **Enforcement server (AC-2, AC-5):** nuovo helper `verificaAbilitazioneOfferta(collaboratoreId, offertaId)` in `src/lib/actions/righe-attivita.ts` (findUnique sulla chiave composta `collaboratoreId_offertaId` di `AbilitazioneOfferta`), nello stile degli helper esistenti che restituiscono `ActionResult | null`. `creaRiga` lo invoca dopo `verificaOffertaCliente`. `modificaRiga` carica prima la riga corrente (estendendo l'helper di proprietà perché restituisca anche `offertaId` e `clienteId`) e applica la verifica **solo quando l'offerta inviata è diversa da quella corrente**; in quel caso verifica anche la coerenza offerta-cliente usando il `clienteId` del form o, in assenza, quello della riga (chiude anche il buco noto della verifica parziale documentato nel Wiki). Se l'offerta non cambia, nessuna verifica di abilitazione: le righe storiche restano modificabili (AC-4). `eliminaRiga` e `rimuoviTrasferta` restano invariati.
+  - **UI (AC-3, AC-4):** in `dettaglio-giornata.tsx`, quando un cliente è selezionato, il caricamento è concluso, non si è in modifica e l'elenco offerte è vuoto, compare un messaggio ben visibile di assenza di offerte abilitate e il pulsante di salvataggio è disabilitato; il placeholder della select diventa "Nessuna offerta abilitata". In `handleModifica`, se l'offerta della riga non è tra quelle abilitate restituite dal server, viene aggiunta alle opzioni della select (con codice e descrizione già presenti in `RigaAttivitaClient`), così la riga preesistente resta modificabile senza spostarla.
+  - **Adeguamento suite e2e:** il filtro rende non selezionabili le offerte factory prive di abilitazione: le spec esistenti che inseriscono righe via form (incluse le demo) devono creare l'abilitazione in setup con `factory.createAbilitazioneOfferta` (già disponibile da US-042). I dati seed non sono impattati: il seed esegue il backfill che abilita i collaboratori sulle offerte con attività registrate.
+
+  Fuori perimetro (confermato dalla spec): gestione delle abilitazioni (US-042/US-044), vincoli retroattivi, report amministrativi e riepilogo mensile, che continuano a leggere tutte le righe.
+
+  ### Decisioni Architetturali
+
+  Nessun nuovo ADR: non c'è una scelta tra alternative — il piano attua la decisione esistente `decisions/abilitazioni-offerte-esplicite` (tabella dedicata revocabile con pre-popolamento), che già prevedeva questo vincolo come scopo dichiarato. Le decisioni locali (punto di filtro nella query esistente, verifica solo al cambio offerta) sono dettagli implementativi reversibili.
+
+  ---
+
+  ## Baseline
+
+  Rilevata il 2026-07-27 su `data.workdir = /Users/smarello/repo/coaching-planner` (branch `prod`, working tree pulito).
+
+  | Verifica | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npx vitest run tests/unit/righe-attivita-actions.test.ts tests/unit/attivita.test.ts tests/unit/abilitazioni-dal-actions.test.ts` | ✅ 3 file, 51 test passati | I task di test estendono queste suite; atteso sempre verde, nessun fallimento pre-esistente da scontare |
+  | `npx tsc --noEmit` | ✅ nessun errore | Ogni task che tocca file TS deve lasciare il type-check pulito |
+  | `npm run lint` | ✅ ESLint pulito + guardrail e2e anti-flakiness superato | Obbligatorio dopo ogni modifica ai test e2e (regola di progetto) |
+
+  Prerequisiti d'ambiente (separati dai fallimenti di codice): `npm install` (il postinstall esegue `prisma generate`); per gli e2e serve il database PostgreSQL locale migrato e seedato (`npm run db:migrate`, `npm run db:seed`) secondo il contratto di `tests/e2e/README.md`; la suite si lancia con `npm run test:e2e`.
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task che produce l'evidenza |
+  |---|---|---|---|---|
+  | AC-1 | Factory: collaboratore, cliente con due offerte attive, abilitazione su una sola | e2e Playwright | La select `#offerta` contiene l'opzione dell'offerta abilitata (per etichetta `codice — descrizione`) e NON contiene l'etichetta dell'offerta non abilitata | TASK-06 (contratto server anche in TASK-02) |
+  | AC-2 | Unit: mock `abilitazioneOfferta.findUnique → null` su offerta attiva del cliente | unit (server action) | `creaRiga` restituisce `{ success: false, error: "Non sei abilitato a registrare attività su questa offerta" }` e `db.rigaAttivita.create` NON viene invocato | TASK-04 |
+  | AC-3 | Factory: collaboratore, cliente con offerta attiva ma nessuna abilitazione | e2e Playwright | Dopo la selezione del cliente compare il messaggio "Nessuna offerta abilitata per questo cliente" (`data-testid="nessuna-offerta-abilitata"`) e il pulsante "Aggiungi riga" è disabilitato | TASK-06 |
+  | AC-4 | Factory: riga preesistente creata direttamente a DB su offerta senza abilitazione | e2e Playwright | La modifica delle ore della riga va a buon fine (nuovo valore ore visibile nella riga); l'eliminazione fa scomparire la riga dalla giornata. Al livello unit: `modificaRiga` con stessa `offertaId` non richiede abilitazione | TASK-06, TASK-04 |
+  | AC-5 | Unit: riga esistente su offerta A abilitata, form che invia offerta B non abilitata | unit (server action) | `modificaRiga` restituisce `{ success: false, error: ... }` e `db.rigaAttivita.update` NON viene invocato (riga invariata) | TASK-04 |
+
+  Nota sui livelli scelti per AC-2 e AC-5: la UI, una volta filtrata, non offre alcun percorso browser per selezionare un'offerta non abilitata, quindi il rifiuto server è provabile solo al livello del contratto delle action (unit con mock Prisma, oracolo su risultato e assenza di scritture). Il canale di visualizzazione dell'errore (`erroreSubmit` nel form) è il meccanismo esistente già esercitato dagli e2e per gli altri rifiuti server. I mock non nascondono l'oracolo: le asserzioni sono sull'esito del contratto `{ success, error }` e sull'assenza della chiamata di scrittura, che è esattamente il comportamento promesso dai criteri.
+
+  ---
+
+  ## Strategia di Test
+
+  Test interleaved con l'implementazione: ogni strato (query, action, UI) è seguito dal proprio task di test; chiusura con gate completo.
+
+  - **Unit query (TASK-02):** in `tests/unit/attivita.test.ts` (mock `@/lib/db`) si verifica che `offerteAbilitatePerCliente` interroghi Prisma con `attiva: true`, `clienteId` e il filtro `abilitazioniCollaboratori.some.collaboratoreId` del collaboratore corrente, e che propaghi i risultati.
+  - **Unit action (TASK-04):** estensione di `tests/unit/righe-attivita-actions.test.ts` con mock di `db.abilitazioneOfferta.findUnique`: creazione rifiutata/consentita, modifica a parità di offerta senza verifica, cambio offerta verso offerta abilitata/non abilitata, nessuna scrittura nei casi di rifiuto. I test esistenti (51) vengono adeguati aggiungendo il mock dell'abilitazione presente dove le action ora la richiedono.
+  - **E2E (TASK-06, TASK-07):** nuova spec dedicata più adeguamento delle spec esistenti che inseriscono righe via form. Regole di progetto rispettate: fixture e factory (`tests/e2e/support/fixtures.ts`), selezione offerte per etichetta/valore derivati dalla factory, helper di date riservate (`tests/e2e/support/date.ts`), nessun hard wait, `npm run lint` dopo ogni modifica e2e.
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (già configurato, `fullyParallel: true`)
+  **Demo video:** sì, la Dimostrazione è filmabile con dati factory (registrazione a carico di `archetipo-review`, non dell'implementazione)
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Select filtrata sulle abilitazioni (AC-1) | Collaboratore factory abilitato su una sola delle due offerte attive del cliente; apre un giorno del calendario, seleziona il cliente e osserva che la select offerte propone solo l'offerta abilitata |
+  | Cliente senza offerte abilitate (AC-3) | Collaboratore factory senza abilitazioni sul cliente; seleziona il cliente, osserva il messaggio di assenza di offerte abilitate e il pulsante di salvataggio disabilitato |
+  | Riga storica su offerta non abilitata (AC-4) | Riga preesistente creata dalla factory su offerta non abilitata; il collaboratore ne modifica le ore e salva con successo, poi la elimina e la riga scompare dalla giornata |
+
+  ---
+
+  ## Wiki Impact
+
+  ```yaml
+  wiki_impact:
+    read: [domains/attivita, domains/offerte, decisions/abilitazioni-offerte-esplicite]
+    update_after_acceptance: [domains/attivita, domains/offerte]
+    create: []
+  ```
+
+  Dopo l'accettazione: `domains/attivita` (contratti e flussi: le offerte selezionabili e la creazione richiedono l'abilitazione; la modifica la richiede solo al cambio offerta) e `domains/offerte` (contratto: le attività consumano solo offerte attive **e abilitate** per il collaboratore).
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-07-27_
+tasks:
+  - id: TASK-01
+    title: Filtro delle offerte selezionabili sulle abilitazioni del collaboratore
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      La query delle offerte proposte nel form attività restituisce solo le offerte attive del cliente su cui il collaboratore corrente è abilitato.
+
+      ## Read
+      - src/lib/attivita.ts — funzione `offerteAttivePerCliente` (righe ~254-277): risolve già il collaboratore corrente
+      - src/lib/abilitazioni.ts — `elencaOfferteAbilitabili`: pattern del filtro Prisma su `abilitazioniCollaboratori`
+      - prisma/schema.prisma — modelli `Offerta` (relazione `abilitazioniCollaboratori`) e `AbilitazioneOfferta` (unique `collaboratoreId, offertaId`)
+      - src/lib/actions/righe-attivita.ts — `fetchOffertePerCliente` (riga ~391), unico consumatore
+
+      ## Change
+      - src/lib/attivita.ts — rinomina `offerteAttivePerCliente` in `offerteAbilitatePerCliente`; aggiungi al `where` il filtro `abilitazioniCollaboratori: { some: { collaboratoreId: collaboratore.id } }`; aggiorna il commento JSDoc (offerte attive del cliente su cui il collaboratore corrente è abilitato)
+      - src/lib/actions/righe-attivita.ts — aggiorna import e chiamata in `fetchOffertePerCliente` e il relativo commento
+      - Non-goal: NON toccare le query admin di src/lib/abilitazioni.ts né le altre query di src/lib/attivita.ts (calendario, riepilogo, righe del giorno restano senza filtro abilitazioni)
+
+      ## Steps
+      1. In `src/lib/attivita.ts` rinomina la funzione e aggiungi il filtro `abilitazioniCollaboratori: { some: { collaboratoreId: collaboratore.id } }` al `where` esistente (`clienteId`, `attiva: true`), mantenendo select e ordinamento invariati.
+      2. Aggiorna la JSDoc della funzione.
+      3. In `src/lib/actions/righe-attivita.ts` aggiorna l'import da `@/lib/attivita` e la chiamata dentro `fetchOffertePerCliente`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore (baseline pulita)
+      - Run: `npx vitest run tests/unit/righe-attivita-actions.test.ts tests/unit/attivita.test.ts`
+      - Expect: tutti verdi come in baseline (nessun test esistente copre questa query)
+
+      ## Done
+      - [ ] AC-1 — La query server propone soltanto offerte attive del cliente con abilitazione del collaboratore corrente; nessun altro consumatore usa il vecchio nome
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Test unit della query offerteAbilitatePerCliente
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il contratto della query filtrata è provato a livello unit: interroga Prisma con il filtro sulle abilitazioni del collaboratore corrente e propaga i risultati.
+
+      ## Read
+      - tests/unit/attivita.test.ts — struttura dei mock esistenti di `@/lib/db` e `@/lib/dal` (`richiediCollaboratoreCorrente`)
+      - src/lib/attivita.ts — `offerteAbilitatePerCliente` dopo TASK-01
+
+      ## Change
+      - tests/unit/attivita.test.ts — aggiungi un `describe("offerteAbilitatePerCliente")` con i nuovi casi; se il file non mocka già `db.offerta.findMany`, estendi il mock del db seguendo lo stile esistente
+      - Non-goal: non modificare i test esistenti di `attivitaDelMese` e delle altre query
+
+      ## Steps
+      1. Mocka `richiediCollaboratoreCorrente` con un collaboratore attivo (id noto, es. `collab-giulia`).
+      2. Caso 1: la funzione chiama `db.offerta.findMany` con `where` contenente `clienteId`, `attiva: true` e `abilitazioniCollaboratori: { some: { collaboratoreId: "collab-giulia" } }`, e restituisce le offerte del mock.
+      3. Caso 2: senza collaboratore (`richiediCollaboratoreCorrente → null`) la funzione lancia `ErroreAutorizzazione` (comportamento invariato).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/attivita.test.ts`
+      - Expect: tutti i test verdi, inclusi i nuovi
+
+      ## Done
+      - [ ] AC-1 — Test verde che dimostra il filtro `abilitazioniCollaboratori.some.collaboratoreId` nel `where` della query e la propagazione dei risultati (l'evidenza visibile all'utente è completata dall'e2e di TASK-06)
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Verifica server dell'abilitazione in creaRiga e modificaRiga
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il server rifiuta la creazione di righe su offerte non abilitate e il cambio di offerta verso offerte non abilitate, lasciando libere modifica a parità di offerta ed eliminazione.
+
+      ## Read
+      - src/lib/actions/righe-attivita.ts — helper `verificaProprietario`, `verificaOffertaCliente`; flussi di `creaRiga` (righe ~142-208) e `modificaRiga` (righe ~216-301); call site di `verificaProprietario` anche in `eliminaRiga` e `rimuoviTrasferta`
+      - prisma/schema.prisma — `AbilitazioneOfferta` con `@@unique([collaboratoreId, offertaId])` (chiave composta Prisma `collaboratoreId_offertaId`)
+
+      ## Change
+      - src/lib/actions/righe-attivita.ts — nuovo helper `verificaAbilitazioneOfferta(collaboratoreId, offertaId): Promise<ActionResult | null>`; enforcement in `creaRiga` e `modificaRiga`; sostituzione di `verificaProprietario` con un helper che restituisce anche i dati della riga (es. `caricaRigaDelCollaboratore`) aggiornando i call site
+      - Non-goal: nessuna modifica al comportamento di `eliminaRiga` e `rimuoviTrasferta` (solo adeguamento al nuovo helper di proprietà); nessun vincolo retroattivo sulle righe esistenti
+
+      ## Steps
+      1. Aggiungi `verificaAbilitazioneOfferta`: `db.abilitazioneOfferta.findUnique({ where: { collaboratoreId_offertaId: { collaboratoreId, offertaId } } })`; se assente restituisce `{ success: false, error: "Non sei abilitato a registrare attività su questa offerta" }`, altrimenti `null`.
+      2. In `creaRiga`, dopo `verificaOffertaCliente`, invoca `verificaAbilitazioneOfferta(collaboratore.id, offertaId)` e in caso di errore restituiscilo senza creare la riga.
+      3. Trasforma `verificaProprietario` in `caricaRigaDelCollaboratore(rigaId, collaboratoreId)` che seleziona `collaboratoreId, offertaId, clienteId` e restituisce `{ errore: ActionResult | null, riga?: { offertaId: string; clienteId: string } }` mantenendo i messaggi attuali ("Riga non trovata", "Non puoi modificare le attività di un altro collaboratore"); adegua i call site in `modificaRiga`, `eliminaRiga`, `rimuoviTrasferta`.
+      4. In `modificaRiga`, quando il form contiene `offertaId`: se `offertaId === riga.offertaId` non applicare alcuna verifica di abilitazione (AC-4); se diversa, esegui `verificaOffertaCliente(offertaId, clienteId || riga.clienteId)` e poi `verificaAbilitazioneOfferta(collaboratore.id, offertaId)`, restituendo l'eventuale errore senza aggiornare la riga (AC-5).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore
+      - Run: `npx vitest run tests/unit/righe-attivita-actions.test.ts`
+      - Expect: i test esistenti possono fallire per il nuovo requisito di abilitazione — è atteso; la sistemazione dei mock è in TASK-04, da eseguire subito dopo. Annota i fallimenti e verifica che siano tutti riconducibili al mock mancante di `abilitazioneOfferta`
+
+      ## Done
+      - [ ] AC-2 — `creaRiga` su offerta senza abilitazione restituisce errore e non invoca `create`
+      - [ ] AC-4 — `modificaRiga` a parità di offerta non richiede abilitazione; `eliminaRiga` invariata
+      - [ ] AC-5 — `modificaRiga` con cambio offerta richiede abilitazione sulla nuova offerta e in caso contrario non invoca `update`
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Test unit dell'enforcement nelle action delle righe attività
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      Il contratto server delle action è provato: rifiuto con messaggio e assenza di scritture per offerte non abilitate, permessi invariati per righe storiche.
+
+      ## Read
+      - tests/unit/righe-attivita-actions.test.ts — mock hoisted di `@/lib/db` (aggiungi `abilitazioneOfferta`), helper `creaFormData`, `collaboratoreMock`
+      - src/lib/actions/righe-attivita.ts — comportamento dopo TASK-03
+
+      ## Change
+      - tests/unit/righe-attivita-actions.test.ts — aggiungi il mock `abilitazioneOfferta.findUnique`, imposta nei `beforeEach` un default "abilitazione presente" per mantenere verdi i test esistenti, aggiungi i nuovi casi; adegua i mock di `rigaAttivita.findUnique` dove `modificaRiga` ora legge anche `offertaId` e `clienteId`
+      - Non-goal: non riscrivere i test esistenti oltre l'adeguamento dei mock
+
+      ## Steps
+      1. Aggiungi `mockAbilitazioneOfferta = { findUnique: vi.fn() }` al mock del db; nei `beforeEach` dei describe esistenti risolvi con un oggetto (abilitazione presente).
+      2. `creaRiga`: con `findUnique → null` restituisce `{ success: false, error: "Non sei abilitato a registrare attività su questa offerta" }` e `mockRigaAttivita.create` non è chiamato (AC-2); con abilitazione presente crea la riga come da test esistenti.
+      3. `modificaRiga` a parità di offerta (form con stessa `offertaId` della riga mockata): aggiorna le ore senza consultare l'abilitazione, `update` invocato (AC-4).
+      4. `modificaRiga` con cambio offerta verso offerta abilitata del cliente: `update` invocato con la nuova `offertaId`.
+      5. `modificaRiga` con cambio offerta verso offerta non abilitata: errore restituito e `update` NON invocato (AC-5).
+      6. `eliminaRiga` su riga la cui offerta non è abilitata: eliminazione consentita, `delete` invocato (AC-4).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/righe-attivita-actions.test.ts`
+      - Expect: tutti verdi (inclusi i 51 di baseline adeguati)
+      - Run: `npx vitest run`
+      - Expect: intera suite unit verde, nessun nuovo fallimento rispetto alla baseline
+
+      ## Done
+      - [ ] AC-2 — Oracolo: risultato `{ success: false, error }` e assenza della chiamata `create`
+      - [ ] AC-4 — Oracolo: `update`/`delete` invocati senza consultazione dell'abilitazione a parità di offerta
+      - [ ] AC-5 — Oracolo: risultato `{ success: false, error }` e assenza della chiamata `update`
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Messaggio di assenza offerte abilitate e offerta corrente in modifica nella UI
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+    body: |-
+      ## Objective
+      Nel form della giornata il collaboratore vede un messaggio chiaro quando il cliente non ha offerte abilitate (con salvataggio non consentito) e può continuare a modificare una riga la cui offerta non è più tra quelle abilitate.
+
+      ## Read
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — stato `offerte`/`offerteLoading`/`modificaId`, select `#offerta` (righe ~591-621), `handleCambioCliente`, `handleModifica` (righe ~260-293), pulsante submit (righe ~761-781)
+      - src/app/(front-office)/attivita/[data]/page.tsx — tipo `RigaAttivitaClient` (deve esporre `offerta.codice` e `offerta.descrizione`, già usati nel render della lista)
+
+      ## Change
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — placeholder select, messaggio di assenza offerte, disabilitazione submit, arricchimento opzioni in modifica
+      - Non-goal: nessun cambiamento di layout della pagina; nessuna modifica alla lista righe né alle altre sezioni del form
+
+      ## Steps
+      1. Cambia il testo del placeholder della select offerte da "Nessuna offerta attiva" a "Nessuna offerta abilitata".
+      2. Deriva una condizione `nessunaOffertaAbilitata = clienteId !== "" && !offerteLoading && offerte.length === 0 && !modificaId` e, quando vera, mostra sotto la select un box di avviso con `data-testid="nessuna-offerta-abilitata"` e testo "Nessuna offerta abilitata per questo cliente. Chiedi a un amministratore di abilitarti." (stile coerente con il box `erroreSubmit`, tonalità amber).
+      3. Disabilita il pulsante submit quando `nessunaOffertaAbilitata` è vera (in aggiunta a `isPending`).
+      4. In `handleModifica`, dopo il fetch delle offerte: se `riga.offerta.id` non è presente nell'elenco restituito, aggiungi in coda `{ id: riga.offerta.id, codice: riga.offerta.codice, descrizione: riga.offerta.descrizione }` prima di `setOfferte`, poi `setOffertaId(riga.offerta.id)` (sposta la set fuori dal ramo `result.success` solo se necessario a garantire la preselezione).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore
+      - Run: `npm run lint`
+      - Expect: pulito come da baseline
+
+      ## Done
+      - [ ] AC-3 — Messaggio visibile e submit disabilitato quando il cliente selezionato non ha offerte abilitate
+      - [ ] AC-4 — In modifica la riga su offerta non abilitata mantiene la propria offerta selezionata e salvabile a parità di offerta
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Test e2e dei flussi di inserimento sulle offerte abilitate
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-05
+    body: |-
+      ## Objective
+      I comportamenti visibili di AC-1, AC-3 e AC-4 sono provati nel browser con dati factory isolati.
+
+      ## Read
+      - tests/e2e/support/fixtures.ts e tests/e2e/support/factory.ts — fixture `collaboratore`, `clienteConOfferta`, metodo `createAbilitazioneOfferta`; verifica se esistono metodi per creare una seconda offerta sullo stesso cliente e una riga attività a DB
+      - tests/e2e/apertura-giorno-calendario.spec.ts — pattern di login del collaboratore factory e apertura della pagina giornata
+      - tests/e2e/support/date.ts — helper dei mesi/giorni riservati
+      - tests/e2e/README.md — contratto anti-flakiness
+
+      ## Change
+      - tests/e2e/offerte-abilitate-inserimento.spec.ts — nuova spec con i tre scenari
+      - tests/e2e/support/factory.ts — solo se mancano: metodo per creare un'offerta aggiuntiva su un cliente esistente e/o una riga attività diretta a DB, seguendo lo stile dei metodi esistenti
+      - Non-goal: nessuna mutazione di entità seed (Giulia Conti, TechSolutions, DataFlow); nessun `selectOption({ index })`; nessun hard wait
+
+      ## Steps
+      1. Scenario AC-1: factory crea collaboratore, cliente con due offerte attive e abilitazione su una sola; login come collaboratore factory, apri un giorno riservato, seleziona il cliente per valore e verifica con `expect` web-first che la select `#offerta` contenga l'etichetta `codice — descrizione` dell'offerta abilitata e non contenga quella dell'offerta non abilitata.
+      2. Scenario AC-3: factory crea collaboratore e cliente con offerta attiva senza abilitazioni; dopo la selezione del cliente verifica la visibilità di `data-testid="nessuna-offerta-abilitata"` e che il pulsante "Aggiungi riga" sia disabilitato.
+      3. Scenario AC-4: factory crea collaboratore, cliente con offerta attiva SENZA abilitazione e una riga attività preesistente su quell'offerta in un giorno riservato; login, apri il giorno, premi "Modifica" sulla riga, cambia le ore, salva e verifica il nuovo valore ore visibile nella riga; poi "Elimina" (gestendo il `confirm` con `page.on('dialog')`) e verifica che la riga scompaia e compaia lo stato vuoto della giornata.
+      4. Mantieni ogni scenario autonomo (nessuno stato condiviso tra test) per `fullyParallel: true`.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/offerte-abilitate-inserimento.spec.ts`
+      - Expect: tutti gli scenari verdi (prerequisito: db locale migrato e seedato)
+      - Run: `npm run lint`
+      - Expect: guardrail e2e anti-flakiness superato
+
+      ## Done
+      - [ ] AC-1 — Oracolo: contenuto della select offerte (presenza abilitata, assenza non abilitata)
+      - [ ] AC-3 — Oracolo: messaggio `nessuna-offerta-abilitata` visibile e submit disabilitato
+      - [ ] AC-4 — Oracolo: ore aggiornate visibili dopo il salvataggio; riga assente dopo l'eliminazione
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Adeguamento delle spec e2e esistenti che inseriscono righe via form
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-05
+    body: |-
+      ## Objective
+      La suite e2e esistente resta verde: ogni spec che inserisce righe via form crea in setup l'abilitazione del collaboratore autenticato sull'offerta factory usata.
+
+      ## Read
+      - Spec candidate (grep "Aggiungi riga" e uso della select `#offerta`): tests/e2e/apertura-giorno-calendario.spec.ts, tests/e2e/trasferta-rimborso-validazione.spec.ts, tests/e2e/attivita-amministratore.spec.ts, tests/e2e/calendario-etichette-clienti.spec.ts, tests/e2e/demo__inserimento-righe-attivita.helpers.ts e le demo demo__inserimento-righe-attivita-{flusso,mese-concluso,validazione}.spec.ts, demo__apertura-giorno-calendario.spec.ts, demo__attivita-amministratore.spec.ts, demo__trasferta-rimborso-automatico.spec.ts, demo__riepilogo-mensile-fattura.spec.ts — verifica per ciascuna chi è l'utente autenticato (collaboratore factory oppure Giulia Conti seed) e quale offerta viene selezionata
+      - tests/e2e/support/factory.ts — `createAbilitazioneOfferta` (accetta collaboratore per id o oggetto)
+      - tests/e2e/support/prisma.ts — accesso Prisma di supporto per risolvere il collaboratore seed quando serve
+
+      ## Change
+      - Le spec/helper elencate sopra — aggiunta della creazione dell'abilitazione nella setup (fixture/beforeEach) per la coppia collaboratore-autenticato/offerta-factory
+      - Eventualmente tests/e2e/demo__inserimento-righe-attivita.helpers.ts — helper condiviso (es. `abilitaCollaboratoreSuOfferta`) per non duplicare la logica nelle demo che accedono come Giulia
+      - Non-goal: nessuna modifica alle asserzioni dei test; nessuna abilitazione automatica nascosta dentro `createClienteConOfferta` (l'assenza di abilitazione deve restare esprimibile per i test di US-043)
+
+      ## Steps
+      1. Per ogni spec candidata individua l'identità autenticata: se è il collaboratore factory, aggiungi `await factory.createAbilitazioneOfferta({ collaboratore, offerta: clienteConOfferta.offerta })` nella setup; se è Giulia Conti (demo), risolvi il suo `Collaboratore` via supporto Prisma (per nome/cognome seed, senza mutarla) e crea l'abilitazione sull'offerta factory della spec.
+      2. Verifica anche le spec che inseriscono righe direttamente a DB via factory: non richiedono abilitazione (nessun vincolo retroattivo) — non toccarle.
+      3. Esegui le spec adeguate e correggi eventuali dimenticanze.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/apertura-giorno-calendario.spec.ts tests/e2e/trasferta-rimborso-validazione.spec.ts tests/e2e/attivita-amministratore.spec.ts tests/e2e/calendario-etichette-clienti.spec.ts`
+      - Expect: verdi
+      - Run: `npx playwright test tests/e2e --grep "demo__"` (oppure le singole demo elencate)
+      - Expect: verdi
+      - Run: `npm run lint`
+      - Expect: guardrail e2e anti-flakiness superato
+
+      ## Done
+      - [ ] AC-1 — Le spec esistenti che usano il form restano verdi con il nuovo filtro (nessuna regressione introdotta dal vincolo)
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Gate finale di verifica e chiusura spec
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+    body: |-
+      ## Objective
+      Tutte le verifiche del repository sono verdi sull'incremento completo e la spec è pronta per la review con ogni task DONE.
+
+      ## Read
+      - Baseline nel piano — comandi e risultati attesi (tutti verdi prima dell'implementazione)
+      - .github/workflows/ci.yml — passi della pipeline che l'incremento deve superare
+
+      ## Change
+      - Nessuna modifica di codice prevista; solo correzioni puntuali se una verifica fallisce (nel perimetro dei task precedenti)
+
+      ## Steps
+      1. Esegui nell'ordine i comandi di verifica elencati sotto, dal workdir della spec.
+      2. Se un comando fallisce, riconduci il fallimento al task responsabile, correggi e riesegui dall'inizio.
+      3. Marca questo task come DONE.
+      4. Da `data.project_root` esegui `archetipo spec show US-043` e verifica che NESSUN task risulti ancora TODO (tutti DONE, incluso questo gate).
+      5. Solo dopo questa conferma è consentito richiedere la review con `archetipo spec review`.
+
+      ## Verify
+      - Run: `npx vitest run`
+      - Expect: intera suite unit verde (nessun nuovo fallimento rispetto alla baseline: 51 test già verdi nei file toccati)
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore
+      - Run: `npm run lint`
+      - Expect: ESLint pulito e guardrail e2e anti-flakiness superato
+      - Run: `npm run build`
+      - Expect: build Next.js completata senza errori
+      - Run: `npm run test:e2e`
+      - Expect: intera suite Playwright verde (prerequisito: db locale migrato e seedato come da tests/e2e/README.md)
+      - Run: `archetipo spec show US-043` (da data.project_root)
+      - Expect: tutti i task in stato DONE
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4, AC-5 — Evidenze prodotte dai task 02/04/06/07 tutte verdi nella stessa esecuzione finale
+      - [ ] Nessun nuovo errore di compilazione, lint o build sui file toccati
+      - [ ] `archetipo spec show US-043` conferma ogni task DONE prima della richiesta di review
+
+      ## Blockers
+      None.
+    ref: TASK-08

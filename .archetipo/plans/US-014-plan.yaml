@@ -1,0 +1,247 @@
+schema: archetipo/plan/v2
+spec_code: US-014
+body: "# US-014: Riepilogo mensile del collaboratore con importo fattura — Piano di Implementazione\n\n**Generato da:** ARchetipo Planning Team\n**Data:** 2026-07-01\n\n---\n\n## Spec\n\n**Epic:** EP-003 — Consuntivazione Attività\n**Priorità:** HIGH | **Punti:** 3\n\n**Storia Utente**\nCome Giulia, collaboratrice, voglio un riepilogo mensile aggiornato automaticamente con ore e giornate per offerta, rimborsi trasferta e importo totale della fattura da emettere, così da sapere in ogni momento quanto fatturare alla società, senza conti manuali.\n\n**Criteri di Accettazione**\n- Il riepilogo mostra per ogni offerta le ore e le giornate lavorate nel mese, applicando la conversione fissa 1 giornata = 8 ore\n- L'importo della fattura è calcolato come giornate fatturabili moltiplicate per la tariffa giornaliera della collaboratrice, più i rimborsi trasferta del mese\n- Le righe non fatturabili sono escluse dall'importo della fattura ma restano visibili nel conteggio delle ore\n- Il riepilogo riflette automaticamente ogni inserimento, modifica o cancellazione di righe e trasferte del mese\n\n---\n\n## Soluzione Tecnica\n\nIl riepilogo mensile è una nuova pagina del Front Office che aggrega i dati già registrati dalle spec US-012 (righe attività) e US-013 (trasferte con rimborso). La logica di calcolo viene isolata in una funzione pura del modulo dominio `consuntivi`, coerentemente ad ADR-006 (logica di calcolo in funzioni pure, testabile in isolamento), mentre l'accesso dati resta in `src/lib/attivita.ts` seguendo il pattern server-only già consolidato.\n\n### Componenti\n\n- **Funzione di dominio `calcolaRiepilogoMese`** (`src/domain/consuntivi/index.ts`): funzione pura che riceve le righe del mese (con `ore`, `fatturabile`, `trasfertaKm`, riferimenti offerta/cliente), la tariffa giornaliera del collaboratore e gli scaglioni km, e restituisce:\n  - aggregazione per offerta: `oreTotali`, `oreFatturabili`, `giornateTotali` (oreTotali / 8), `giornateFatturabili` (oreFatturabili / 8), `rimborsiTrasferta` (somma dei rimborsi delle trasferte sulle righe di quell'offerta con stato OK)\n  - totali di mese: `oreTotali`, `oreFatturabili`, `giornateTotali`, `giornateFatturabili`, `totaleRimborsi`\n  - `importoFattura` = `giornateFatturabili` (somma su tutte le offerte) × `tariffaGiornaliera` + `totaleRimborsi`\n  - Le righe non fatturabili concorrono a `oreTotali`/`giornateTotali` ma NON a `oreFatturabili`/`giornateFatturabili` né all'importo fattura.\n  - Usa `calcolaRimborsoTrasferta` (già esistente) per ogni riga con `trasfertaKm != null`, sommando solo i rimborsi con `stato === \"OK\"`.\n  - Importi restituiti come stringhe formattate con 2 decimali (coerente con `calcolaRimborsoTrasferta`); la conversione 1g = 8h usa la costante `ORE_PER_GIORNATA`.\n\n- **Accesso dati `riepilogoMese(token)`** (`src/lib/attivita.ts`): funzione server-only che risolve il collaboratore corrente via `richiediCollaboratoreCorrente()`, recupera le righe del mese (riusando la logica di intervallo mese già in `attivitaDelMese`), gli scaglioni (`scaglioniRimborsoTrasferta`) e la `tariffaGiornaliera` del collaboratore; costruisce le righe arricchite con il rimborso calcolato e invoca `calcolaRiepilogoMese`. Restituisce una struttura serializzabile (Date → string, Decimal → number/string) per il Client Component.\n\n- **Server Action revalidate** (`src/lib/actions/righe-attivita.ts`): aggiungere `revalidatePath(\"/attivita/riepilogo\")` alle azioni `creaRiga`, `modificaRiga`, `eliminaRiga`, `rimuoviTrasferta` (accanto ai `revalidatePath` esistenti sul percorso del giorno), così la pagina riepilogo resta coerente con ogni mutazione del mese.\n\n- **Pagina route** `src/app/(front-office)/attivita/riepilogo/page.tsx`: Server Component asincrono. Verifica il ruolo `COLLABORATORE` via `richiediRuolo()`, legge `searchParams.mese` (default mese corrente), valida il token mese, carica `riepilogoMese(token)`, serializza i dati e li passa al Client Component. Preserva il token mese per la navigazione e il link di ritorno al calendario. La route statica `riepilogo` coesiste con quella dinamica `/attivita/[data]` (Next.js dà precedenza al segmento statico).\n\n- **Client Component** `src/app/(front-office)/attivita/riepilogo/riepilogo-mese.tsx`: renderizza la vista seguendo i mockup in `docs/mockups/US-014/` — schede riepilogo (ore totali, giornate totali, ore fatturabili, giornate fatturabili, totale rimborsi), scheda evidenza \"Importo fattura\" con breakdown (giornate × tariffa + rimborsi), tabella per-offerta con cliente, offerta (codice + descrizione), ore totali, giornate totali, ore fatturabili, giornate fatturabili, rimborsi; navigazione mese precedente/successivo e link \"Mese corrente\" via `next/link`; link \"Torna al calendario\". Nessuna mutazione avviene qui: l'aggiornamento automatico è garantito dal rendering server-side a ogni navigazione + `revalidatePath` sulle azioni.\n\n- **Link dal calendario** (`src/app/(front-office)/attivita/calendario-mensile.tsx`): aggiungere un pulsante/link \"Riepilogo mese\" nella barra di navigazione del calendario che punta a `/attivita/riepilogo?mese={token}`, accanto al link \"Mese corrente\".\n\n### Decisioni chiave\n- **Conversione 1g = 8h**: usa `ORE_PER_GIORNATA` da `src/domain/types.ts`; le giornate sono frazionarie (es. 3,5h → 0,4375 giornate) e concorrono al calcolo importo senza arrotondamento intermedio; solo il dato esposto viene formattato a 2 decimali.\n- **Decimal e denaro (ADR-005)**: la tariffa e i rimborsi entrano nel calcolo come stringhe/numeri Decimal derivati da Prisma; il risultato è formattato con `toFixed(2)` per la visualizzazione. La funzione di dominio resta pura (nessuna dipendenza da Prisma) e riceve valori già serializzati.\n- **Esclusione non fatturabili**: l'aggregazione per offerta mostra sempre ore e giornate totali (tutte le righe), ma l'importo fattura e le giornate fatturabili considerano solo `fatturabile === true`.\n- **Aggiornamento automatico**: nessun blocco o chiusura del mese (RF-15); il riepilogo ricalcola sempre sui dati correnti. Le mutazioni delle righe (in `/attivita/[data]`) invalidano la cache del riepilogo.\n\n---\n\n## Strategia di Test\n\nLa logica critica (aggregazione, conversione, esclusione fatturabili, importo) è coperta da unit test sulla funzione pura di dominio, garantendo precisione contabile senza dipendenze dal database. L'accesso dati e il flusso utente sono coperti da test e2e.\n\n- **Unit test `calcolaRiepilogoMese`**: aggregazione per offerta con più righe, conversione ore→giornate, somma rimborsi con `calcolaRimborsoTrasferta`, esclusione righe non fatturabili dall'importo ma visibilità nelle ore totali, caso mese vuoto, offerta con solo righe non fatturabili, righe con trasferte oltre soglia (escluse dai rimborsi), arrotondamento importo.\n- **E2E (Playwright)**: flusso demo — autenticazione come Giulia, navigazione al riepilogo del mese corrente, verifica schede totali e righe per-offerta, verifica importo fattura; aggiunta di una nuova riga da una giornata, ritorno al riepilogo e verifica dell'aggiornamento; verifica che una riga non fatturabile non incida sull'importo ma sia conteggiata nelle ore totali.\n\n### E2E Tests — Simulazione Utente\n\n**Framework:** Playwright (già configurato nel progetto)\n**Video demo:** atteso — la spec ha un campo `Dimostrazione` filmabile (il video viene registrato in fase di review da `archetipo-review`, non durante l'implementazione)\n\n| Scenario | Flusso utente |\n|---|---|\n| Riepilogo visibile e corretto | Giulia accede, apre il riepilogo del mese corrente: visualizza ore/giornate per offerta, totale rimborsi e importo fattura coerenti con le attività registrate |\n| Aggiornamento dopo inserimento | Giulia aggiunge una riga fatturabile da una giornata del mese, torna al riepilogo: ore, giornate e importo sono aggiornati |\n| Esclusione non fatturabili | Giulia aggiunge una riga non fatturabile: le ore totali crescono ma l'importo fattura resta invariato |\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-014/`\n\n_Piano generato tramite ARchetipo Planning — 2026-07-01_"
+tasks:
+  - id: TASK-01
+    title: Funzione di dominio calcolaRiepilogoMese
+    type: Impl
+    status: DONE
+    body: |
+      ## Descrizione
+
+      Aggiungere la funzione pura `calcolaRiepilogoMese` a `src/domain/consuntivi/index.ts`. La funzione aggrega le righe attività del mese per offerta e calcola l'importo della fattura del collaboratore.
+
+      **Firma:** `calcolaRiepilogoMese(righe: RigaRiepilogo[], tariffaGiornaliera: string | number, scaglioni: ScaglioneRimborso[]): RiepilogoMese`
+
+      **Tipo input `RigaRiepilogo`** (da definire nello stesso file, dipendenza-zero): `{ offertaId, offertaCodice, offertaDescrizione, clienteRagioneSociale, ore: number, fatturabile: boolean, trasfertaKm: number | null }`
+
+      **Tipo output `RiepilogoMese`**: `{ perOfferta: VoceRiepilogoOfferta[], totali: { oreTotali, oreFatturabili, giornateTotali, giornateFatturabili, totaleRimborsi (string) }, importoFattura: string, breakdown: { giornateFatturabili: string, tariffaGiornaliera: string, imponibileManodopera: string, totaleRimborsi: string } }`
+
+      **Tipo `VoceRiepilogoOfferta`**: `{ offertaId, offertaCodice, offertaDescrizione, clienteRagioneSociale, oreTotali, oreFatturabili, giornateTotali, giornateFatturabili, rimborsiTrasferta (string) }`
+
+      **Logica:**
+      - Raggruppa le righe per `offertaId`. Per ogni gruppo calcola `oreTotali` = somma di tutte le ore, `oreFatturabili` = somma delle ore con `fatturabile === true`, `giornateTotali` = `oreTotali / ORE_PER_GIORNATA`, `giornateFatturabili` = `oreFatturabili / ORE_PER_GIORNATA`.
+      - Per ogni riga con `trasfertaKm != null` calcola il rimborso con `calcolaRimborsoTrasferta(trasfertaKm, scaglioni)`; somma `parseFloat(importo)` solo se `stato === "OK"`, ripartendo il rimborso sull'offerta della riga.
+      - `totali.oreTotali` = somma di tutte le righe; `totali.oreFatturabili` = somma delle sole fatturabili; `totali.giornateTotali` e `giornateFatturabili` derivati dalla divisione per `ORE_PER_GIORNATA`.
+      - `importoFattura` = `totali.giornateFatturabili × Number(tariffaGiornaliera) + totali.totaleRimborsiNumerico`, formattato a 2 decimali (`toFixed(2)`).
+      - `breakdown`: espone `giornateFatturabili` (formattato), `tariffaGiornaliera` (formattato), `imponibileManodopera` = giornateFatturabili × tariffa (formattato), `totaleRimborsi` (formattato), per la trasparenza del calcolo in UI.
+      - Tutti gli importi esposti come stringhe con 2 decimali; i valori numerici interni restano `number`.
+      - Le righe non fatturabili concorrono a `oreTotali`/`giornateTotali` (e alla voce per-offerta) ma NON a `oreFatturabili`/`giornateFatturabili`/`importoFattura`.
+      - Caso mese vuoto: restituisce liste vuote, totali a 0, `importoFattura` = `"0.00"`.
+
+      **Pattern:** funzione pura, nessuna dipendenza dal framework o Prisma; usa `ORE_PER_GIORNATA` e `calcolaRimborsoTrasferta` già esportati dal modulo. Esportare dal barrel.
+
+      ## File Coinvolti
+      - `src/domain/consuntivi/index.ts` — aggiungere `calcolaRiepilogoMese` + tipi `RigaRiepilogo`, `RiepilogoMese`, `VoceRiepilogoOfferta` ed esportarli
+
+      ## Criteri di Completamento
+      - [ ] `calcolaRiepilogoMese([], 450, scaglioni)` restituisce `perOfferta: []`, `importoFattura: "0.00"`, totali a 0
+      - [ ] Con due righe fatturabili di 8h e 4h su una stessa offerta, tariffa 450: `oreTotali = 12`, `giornateTotali = 1.5`, `giornateFatturabili = 1.5`, `importoFattura` = (1.5 × 450) + rimborsi = "675.00"
+      - [ ] Con una riga non fatturabile da 4h: `oreTotali = 4`, `oreFatturabili = 0`, `importoFattura = "0.00"`
+      - [ ] Con una riga fatturabile 8h + una non fatturabile 4h: `oreTotali = 12`, `oreFatturabili = 8`, `giornateFatturabili = 1`, `importoFattura` = 1 × tariffa
+      - [ ] Una riga con `trasfertaKm` coperto da scaglione aggiunge il rimborso a `rimborsiTrasferta` dell'offerta e al `totaleRimborsi` e all'`importoFattura`
+      - [ ] Una riga con `trasfertaKm` oltre soglia (`stato !== "OK"`) NON aggiunge alcun rimborso
+      - [ ] Tutti gli importi esposti sono stringhe con 2 decimali
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test calcolaRiepilogoMese
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |
+      ## Descrizione
+
+      Scrivere test Vitest per la funzione `calcolaRiepilogoMese` (TASK-01). Coprire tutti i casi di calcolo, conversione, esclusione fatturabili e rimborsi. Seguire le convenzioni di test esistenti in `tests/unit/` (vedi `tests/unit/rimborso-trasferta.test.ts` come riferimento per stile e assetti).
+
+      ## File Coinvolti
+      - `tests/unit/riepilogo-mese.test.ts` — nuovo file di test
+
+      ## Criteri di Completamento
+      - [ ] Test caso mese vuoto: `perOfferta` vuoto, `importoFattura` "0.00", totali a 0
+      - [ ] Test aggregazione per offerta con più righe (anche su clienti/offerte diversi)
+      - [ ] Test conversione ore→giornate (8h = 1g, 4h = 0.5g, 3.5h = 0.4375g)
+      - [ ] Test esclusione righe non fatturabili dall'importo ma presenza in `oreTotali`/`giornateTotali`
+      - [ ] Test somma rimborsi trasferta (con scaglione OK) e esclusione rimborsi oltre soglia
+      - [ ] Test composizione importo fattura = (giornateFatturabili × tariffa) + totaleRimborsi
+      - [ ] Test formattazione importi a 2 decimali come stringhe
+      - [ ] `npx vitest run tests/unit/riepilogo-mese.test.ts` passa con 0 failure
+    ref: TASK-02
+  - id: TASK-03
+    title: Accesso dati riepilogoMese in src/lib/attivita.ts
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |
+      ## Descrizione
+
+      Aggiungere la funzione server-only `riepilogoMese(token: string)` a `src/lib/attivita.ts`. Risolve il collaboratore corrente, recupera le righe del mese e la tariffa giornaliera, calcola i rimborsi per riga e invoca `calcolaRiepilogoMese`.
+
+      **Logica:**
+      - `richiediCollaboratoreCorrente()`: se null restituisce un risultato vuoto (coerente con `attivitaDelMese`).
+      - `parseTokenMese(token)`: se non valido restituisce risultato vuoto.
+      - Recupera le righe del mese con `db.rigaAttivita.findMany` (filtro `collaboratoreId` + intervallo mese, `include: { offerta: true, cliente: true }`, `orderBy: { data: "asc" }`) — riusa la logica di intervallo già presente in `attivitaDelMese`.
+      - Recupera gli scaglioni con `scaglioniRimborsoTrasferta()`.
+      - Per ogni riga mappa in `RigaRiepilogo` con `ore: Number(riga.ore)`, `fatturabile`, `trasfertaKm`, e i riferimenti offerta/cliente.
+      - Invoca `calcolaRiepilogoMese(righeMappate, collaboratore.tariffaGiornaliera.toString(), scaglioni)`.
+      - Restituisce un tipo `RisultatoRiepilogoMese` serializzabile: `{ token, perOfferta: VoceRiepilogoOfferta[], totali, importoFattura, breakdown, tariffaGiornaliera }` pronto per il Client Component.
+
+      **Tipo restituito:** esportare `RisultatoRiepilogoMese` da `src/lib/attivita.ts`.
+
+      ## File Coinvolti
+      - `src/lib/attivita.ts` — aggiungere `riepilogoMese` + tipo `RisultatoRiepilogoMese`
+
+      ## Criteri di Completamento
+      - [ ] `riepilogoMese(token)` richiede autenticazione come collaboratore (usa `richiediCollaboratoreCorrente`)
+      - [ ] Token mese non valido restituisce risultato vuoto senza errori
+      - [ ] La funzione recupera solo le righe del collaboratore corrente nel mese indicato
+      - [ ] La tariffa giornaliera del collaboratore viene passata a `calcolaRiepilogoMese`
+      - [ ] Il risultato è serializzabile (nessun Date o Decimal grezzo) e pronto per un Client Component
+    ref: TASK-03
+  - id: TASK-04
+    title: revalidatePath riepilogo nelle Server Actions righe-attivita
+    type: Impl
+    status: DONE
+    body: |
+      ## Descrizione
+
+      Modificare `src/lib/actions/righe-attivita.ts` per aggiungere `revalidatePath("/attivita/riepilogo")` accanto alle chiamate `revalidatePath` esistenti, in modo che ogni mutazione delle righe attività invalidi anche la cache della pagina di riepilogo mensile. Questo garantisce il requisito "il riepilogo riflette automaticamente ogni inserimento, modifica o cancellazione".
+
+      **Azioni da aggiornare:** `creaRiga`, `modificaRiga`, `eliminaRiga`, `rimuoviTrasferta`. In ciascuna, dopo il `revalidatePath` del giorno, aggiungere `revalidatePath("/attivita/riepilogo")`.
+
+      ## File Coinvolti
+      - `src/lib/actions/righe-attivita.ts` — aggiungere la chiamata `revalidatePath("/attivita/riepilogo")` nelle quattro azioni
+
+      ## Criteri di Completamento
+      - [ ] `creaRiga` chiama `revalidatePath("/attivita/riepilogo")` dopo la creazione
+      - [ ] `modificaRiga` chiama `revalidatePath("/attivita/riepilogo")` dopo l'aggiornamento
+      - [ ] `eliminaRiga` chiama `revalidatePath("/attivita/riepilogo")` dopo l'eliminazione
+      - [ ] `rimuoviTrasferta` chiama `revalidatePath("/attivita/riepilogo")` dopo la rimozione
+      - [ ] I `revalidatePath` esistenti sul percorso del giorno restano invariati
+      - [ ] `npm run build` o `npx tsc --noEmit` non riporta errori di tipo
+    ref: TASK-04
+  - id: TASK-05
+    title: Pagina route /attivita/riepilogo — Server Component
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |
+      ## Descrizione
+
+      Creare `src/app/(front-office)/attivita/riepilogo/page.tsx` come Server Component asincrono.
+
+      **Comportamento:**
+      - `await richiediRuolo("COLLABORATORE")` per il controllo accessi.
+      - Legge `searchParams.mese` (default `tokenMeseCorrente()`); valida con `parseTokenMese`; se non valido ricade sul mese corrente.
+      - Calcola `tokenPrecedente`, `tokenSuccessivo`, `etichettaMese` (da `src/domain/calendario`).
+      - Invoca `riepilogoMese(token)` e ottiene i dati serializzati.
+      - Passa al Client Component `RiepilogoMese` (TASK-06): `token`, `tokenPrecedente`, `tokenSuccessivo`, `etichetta`, `riepilogo` (dati).
+      - Renderizza un link "Torna al calendario" verso `/attivita?mese={token}`.
+
+      **Nota routing:** la route statica `riepilogo` coesiste con `/attivita/[data]` (segmento dinamico); Next.js App Router dà precedenza al segmento statico, quindi nessun conflitto.
+
+      ## File Coinvolti
+      - `src/app/(front-office)/attivita/riepilogo/page.tsx` — nuovo file
+
+      ## Criteri di Completamento
+      - [ ] La pagina richiede autenticazione come COLLABORATORE
+      - [ ] Un token mese non valido ricade sul mese corrente senza errori
+      - [ ] La pagina carica `riepilogoMese(token)` e passa dati serializzati al Client Component
+      - [ ] Sono presenti i link di navigazione mese (gestiti nel Client Component) e il link "Torna al calendario"
+      - [ ] La pagina usa il layout front-office esistente
+    ref: TASK-05
+  - id: TASK-06
+    title: Client Component RiepilogoMese — vista riepilogo
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |
+      ## Descrizione
+
+      Creare `src/app/(front-office)/attivita/riepilogo/riepilogo-mese.tsx` come Client Component che renderizza il riepilogo mensile seguendo i mockup in `docs/mockups/US-014/`.
+
+      **Struttura:**
+      1. **Barra navigazione mese**: pulsanti mese precedente/successivo (Link a `/attivita/riepilogo?mese={token}`), etichetta mese, link "Mese corrente" (Link a `/attivita/riepilogo`), link "Torna al calendario" (Link a `/attivita?mese={token}`). Coerente con `calendario-mensile.tsx`.
+      2. **Schede riepilogo**: ore totali, giornate totali (oreTotali / 8, 2 decimali), ore fatturabili, giornate fatturabili, totale rimborsi trasferta (€).
+      3. **Scheda evidenza "Importo fattura"**: importo totale in grande, con breakdown (giornate fatturabili × tariffa giornaliera = imponibile manodopera + totale rimborsi). Stile distintivo (gradiente/colore) come da mockup.
+      4. **Tabella per-offerta**: colonne cliente, offerta (codice + descrizione), ore totali, giornate totali, ore fatturabili, giornate fatturabili, rimborsi trasferta. Le righe con ore non fatturabili restano visibili (le ore totali le includono); evidenziare il non fatturabile con badge/colore attenuato come da mockup.
+      5. **Stato vuoto**: se nessuna riga nel mese, messaggio "Nessuna attività registrata per questo mese".
+
+      **Stile:** seguire `docs/mockups/US-014/index.html` e `shared.css` per layout, palette (rose/amber), dark mode, bordi arrotondati, ombre, tipografia. Coerenza visiva con il calendario (US-011) e il dettaglio giornata (US-012/US-013).
+
+      **Nessuna mutazione** avviene in questo componente: è read-only; l'aggiornamento automatico deriva dal rendering server-side a ogni navigazione + `revalidatePath` (TASK-04).
+
+      ## File Coinvolti
+      - `src/app/(front-office)/attivita/riepilogo/riepilogo-mese.tsx` — nuovo file
+
+      ## Criteri di Completamento
+      - [ ] Le schede riepilogo mostrano ore totali, giornate totali, ore fatturabili, giornate fatturabili, totale rimborsi
+      - [ ] La scheda "Importo fattura" mostra l'importo totale e il breakdown del calcolo
+      - [ ] La tabella per-offerta mostra cliente, offerta (codice+descrizione), ore/giornate totali, ore/giornate fatturabili, rimborsi
+      - [ ] Le righe non fatturabili restano visibili nel conteggio ore totali ma non nelle fatturabili
+      - [ ] Lo stato vuoto mostra il messaggio appropriato
+      - [ ] La navigazione mese e il link "Torna al calendario" funzionano
+      - [ ] Il componente è coerente con i mockup in `docs/mockups/US-014/` (riferimento esplicito)
+      - [ ] Il componente è responsive e supporta la dark mode
+    ref: TASK-06
+  - id: TASK-07
+    title: Link "Riepilogo mese" dal calendario mensile
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-06
+    body: |
+      ## Descrizione
+
+      Modificare `src/app/(front-office)/attivita/calendario-mensile.tsx` per aggiungere un pulsante/link "Riepilogo mese" nella barra di navigazione del calendario, accanto al link "Mese corrente". Il link punta a `/attivita/riepilogo?mese={token}`.
+
+      **Stile:** coerente con il link "Mese corrente" esistente (stessa classe/estetica), con un'icona appropriata (es. documento/ricevuta). Il link usa `next/link`.
+
+      ## File Coinvolti
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — aggiungere il link "Riepilogo mese"
+
+      ## Criteri di Completamento
+      - [ ] Il link "Riepilogo mese" è visibile nella barra di navigazione del calendario
+      - [ ] Il link punta a `/attivita/riepilogo?mese={token}` con il token del mese visualizzato
+      - [ ] Lo stile è coerente con il link "Mese corrente"
+      - [ ] La navigazione tra mesi del calendario continua a funzionare invariata
+    ref: TASK-07
+  - id: TASK-08
+    title: 'Test E2E: flusso riepilogo mensile con importo fattura'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-06
+      - TASK-07
+    body: |
+      ## Descrizione
+
+      Scrivere test Playwright per il flusso completo di US-014. Creare `tests/e2e/demo__riepilogo-mensile-fattura.spec.ts`.
+
+      **Scenario demo (con video):**
+      1. Autenticarsi come Giulia Conti (usare l'helper `loginComeGiulia` da `tests/e2e/demo__inserimento-righe-attivita.helpers.ts`)
+      2. Navigare al calendario (`/attivita`), cliccare il link "Riepilogo mese" (o navigare direttamente a `/attivita/riepilogo?mese={tokenMeseCorrente}`)
+      3. Verificare che la pagina di riepilogo mostri le schede (ore totali, giornate, rimborsi) e la tabella per-offerta con i dati delle attività registrate nel mese
+      4. Verificare che la scheda "Importo fattura" mostri un importo coerente con i dati (giornate fatturabili × tariffa + rimborsi)
+      5. Tornare al calendario, aprire una giornata del mese e aggiungere una nuova riga fatturabile (cliente, offerta, ore)
+      6. Tornare al riepilogo mese e verificare che ore, giornate e importo fattura siano aggiornati
+
+      **Scenario esclusione non fatturabili (senza video):**
+      - Aggiungere una riga non fatturabile da una giornata del mese, tornare al riepilogo: le ore totali crescono ma l'importo fattura resta invariato (la riga non fatturabile è conteggiata nelle ore totali ma non nelle fatturabili)
+
+      **Scenario mese vuoto (senza video):**
+      - Navigare a un mese senza attività: verificare il messaggio di stato vuoto e `importoFattura` a 0
+
+      ## File Coinvolti
+      - `tests/e2e/demo__riepilogo-mensile-fattura.spec.ts` — nuovo file
+
+      ## Criteri di Completamento
+      - [ ] Lo scenario demo passa (apertura riepilogo, verifica dati, inserimento riga, verifica aggiornamento)
+      - [ ] Lo scenario esclusione non fatturabili verifica che l'importo non cambi ma le ore totali crescano
+      - [ ] Lo scenario mese vuoto verifica lo stato vuoto e importo a 0
+      - [ ] `npx playwright test tests/e2e/demo__riepilogo-mensile-fattura.spec.ts` passa
+      - [ ] Il video del demo scenario viene generato in `docs/test-results/US-014/`
+    ref: TASK-08

@@ -1,0 +1,31 @@
+schema: archetipo/spec/v2
+code: US-021
+title: Ottimizzazione rapida della pipeline CI
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: MEDIUM
+points: 3
+status: TODO
+body: |-
+  #### US-021: Ottimizzazione rapida della pipeline CI
+
+  **Epic:** EP-005 | **Priorità:** MEDIUM | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come sviluppatore del progetto Coaching Planner,
+  voglio che la pipeline CI salti i commit di sola documentazione, esegua lint e test unitari in parallelo al build, e mantenga la cache dei browser Playwright,
+  così da dimezzare il tempo di feedback senza cambiare la struttura del job.
+
+  **Dimostrazione**
+  Dopo l'implementazione di questa spec, un push che modifica solo `README.md` o `.github/` non attiva la pipeline; un push su codice esegue lint+test unitari in un job parallelo al build+e2e, con Playwright cachato, e il tempo totale si riduce visibilmente.
+
+  **Criteri di Accettazione**
+  - [ ] La pipeline viene saltata quando il commit tocca solo file `.md` o `.github/` (`paths-ignore` su `push` e `pull_request`)
+  - [ ] Lint e test unitari (Vitest) girano in un job dedicato, in parallelo al job build + test e2e
+  - [ ] I browser Playwright sono cachati tra esecuzioni consecutive e non vengono reinstallati a ogni run
+  - [ ] Il timeout è rivisto per riflettere la nuova struttura parallela e non causa falsi fallimenti
+history:
+  - status: TODO
+    at: "2026-06-11T15:02:24Z"

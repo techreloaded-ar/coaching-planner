@@ -1,0 +1,242 @@
+schema: archetipo/plan/v2
+spec_code: US-026
+body: "# US-026: Gestione delle offerte dalla pagina offerte — Piano di Implementazione\n\n**Generato da:** ARchetipo Planning Team\n**Data:** 2026-07-12\n\n---\n\n## Spec\n\n**Epic:** EP-002 — Anagrafiche e Configurazione\n**Priorità:** HIGH | **Punti:** 3\n\n**Storia Utente**\nCome Stefano, amministratore, voglio creare, modificare, attivare o disattivare ed eliminare le offerte direttamente dalla pagina Offerte, così da gestire l'intero ciclo di vita delle offerte da un unico punto senza passare dall'anagrafica del singolo cliente.\n\n**Criteri di Accettazione**\n- Dalla pagina Offerte l'amministratore crea una nuova offerta scegliendo il cliente e indicando codice, descrizione, tariffa giornaliera e giorni previsti, con le stesse validazioni dell'anagrafica offerte esistente\n- L'amministratore modifica un'offerta esistente dalla pagina e le modifiche sono persistite e riflesse nell'elenco\n- L'amministratore attiva o disattiva un'offerta tramite il flag manuale di stato e il cambiamento è immediatamente visibile nell'elenco\n- L'amministratore elimina un'offerta priva di attività collegate; l'eliminazione è bloccata con un messaggio chiaro quando esistono righe di attività collegate, invitando a disattivare l'offerta invece di eliminarla\n\n---\n\n## Soluzione Tecnica\n\nEstendiamo la pagina trasversale `/offerte` (introdotta da US-025) con il ciclo di vita completo delle offerte riusando i pattern già collaudati del back office, senza duplicare validazioni né form.\n\n- **Riuso di validazioni e action esistenti:** le validazioni restano in `src/domain/anagrafiche/valida-offerta.ts`; le server action `creaOfferta`/`aggiornaOfferta` in `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts` vengono estese con un campo hidden opzionale `origine`: quando vale `\"offerte\"` la action esegue anche `revalidatePath(\"/offerte\")` e redirige a `/offerte?esito=...`; in sua assenza il comportamento attuale verso il dettaglio cliente resta invariato.\n- **Nuove server action** in `src/app/(back-office)/offerte/actions.ts`: `cambiaStatoOfferta` (pattern di `cambia-stato-action.ts` di clienti/collaboratori: form action diretta con hidden inputs) ed `eliminaOfferta` con `useActionState` per poter restituire l'errore di blocco: guardia amministratore, `db.rigaAttivita.count({ where: { offertaId } })` maggiore di zero → errore con invito a disattivare; altrimenti `db.offerta.delete` con intercettazione dell'errore FK Prisma P2003 come difesa in profondità (nello schema `RigaAttivita.offerta` non ha `onDelete`, quindi il default è Restrict).\n- **DAL:** il tipo `VoceElencoOfferta` guadagna `numeroRigheAttivita: number`, popolato in `elencaOfferteConAvanzamento` dalle righe attività già caricate (nessuna query aggiuntiva), così la tabella può mostrare proattivamente la variante \"eliminazione bloccata\" nel modale.\n- **Form crea/modifica su pagine dedicate** `/offerte/nuova` e `/offerte/[offertaId]` (pattern dominante del progetto, nessun form in modale): `OffertaForm` esistente esteso con prop opzionale `clienti` che rende una select del cliente (solo clienti attivi) al posto dell'hidden `clienteId`; in modifica il cliente resta fisso come nell'anagrafica esistente. L'errore di codice duplicato (vincolo unique `[codice, clienteId]`, P2002) è già tradotto sul campo codice dalle action esistenti.\n- **Azioni di riga** in `offerte-tabella.tsx`: link Modifica, toggle attiva/disattiva come form inline, bottone Elimina con modale di conferma (pattern di `scaglioni-tabella.tsx`) con variante bloccata quando `numeroRigheAttivita > 0`; banner `?esito=` sulla pagina e bottone \"Nuova offerta\" nell'intestazione.\n- **Vincolo di sequenza:** US-026 è bloccata da US-025 (attualmente IN PROGRESS): pagina `/offerte`, `offerte-tabella.tsx` e voce sidebar attiva devono esistere prima di iniziare l'implementazione. Consultare `node_modules/next/dist/docs/` prima di scrivere codice App Router: questa versione di Next.js ha breaking changes rispetto alle convenzioni note.\n\n---\n\n## Strategia di Test\n\nUnit test sulle nuove action e sulle estensioni, e2e Playwright secondo il contratto deterministico introdotto da US-023 (dati esclusivamente da factory, mai entità seed).\n\n- **Unit (vitest, mock con `vi.hoisted` come in `tests/unit/offerte-dal-actions.test.ts`):** `cambiaStatoOfferta` (persistenza toggle, guardia ruolo), `eliminaOfferta` (blocco con righe collegate, eliminazione riuscita con revalidate/redirect, intercettazione P2003, guardia ruolo), estensione `origine` di `creaOfferta`/`aggiornaOfferta` (redirect e revalidate verso `/offerte`, comportamento invariato senza `origine`), campo `numeroRigheAttivita` nella DAL.\n- **E2E:** dati creati con la factory (`createClienteConOfferta`, `createOfferta`, `createRigaAttivita`), select del cliente per label derivata dalla factory (mai `selectOption({ index })`), web-first `expect`, nessun hard wait né selettore su classi Tailwind, `fullyParallel: true` invariato, `npm run lint` come guardrail anti-flakiness.\n- **Demo:** demo spec dedicato con dati factory (gli scenari mutano dati, quindi i seed sono vietati); il video è registrato da `archetipo-review` al gate di accettazione, non durante l'implementazione.\n\n### Test E2E — Simulazione Utente\n\n**Framework:** Playwright\n**Demo video:** Sì — la Dimostrazione descrive un incremento filmabile (registrato da `archetipo-review`, non durante l'implementazione)\n\n| Scenario | Flusso utente |\n|---|---|\n| Creazione dalla pagina Offerte | L'amministratore accede, apre Offerte dalla sidebar, clicca \"Nuova offerta\", seleziona il cliente creato dalla factory, compila codice/descrizione/tariffa/giorni, salva e ritrova l'offerta nell'elenco con banner di esito |\n| Validazioni in creazione | Invio del form con campi mancanti o tariffa non valida → errori inline coerenti con l'anagrafica offerte esistente |\n| Modifica dall'elenco | L'amministratore apre \"Modifica\" su un'offerta factory, cambia descrizione e tariffa, salva e verifica i valori aggiornati nell'elenco |\n| Disattivazione e riattivazione | Toggle di stato su un'offerta factory → badge \"Non attiva\" e riga attenuata; nuovo toggle → di nuovo \"Attiva\" |\n| Eliminazione riuscita | Su un'offerta factory senza attività: Elimina → modale di conferma → conferma → l'offerta sparisce dall'elenco con banner di esito |\n| Eliminazione bloccata | Su un'offerta factory con una riga attività creata via `createRigaAttivita`: Elimina → messaggio chiaro che blocca e invita a disattivare; l'offerta resta nell'elenco |\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-026/`\n\n_Piano generato via ARchetipo Planning — 2026-07-12_"
+tasks:
+  - id: TASK-01
+    title: 'DAL e action esistenti: campo numeroRigheAttivita e parametro origine'
+    type: Impl
+    status: DONE
+    body: |-
+      ## Descrizione
+      **Obiettivo:** esporre alla pagina `/offerte` il conteggio delle righe attività per offerta e permettere alle action crea/aggiorna esistenti di servire anche la pagina trasversale.
+
+      **Leggere prima:** `src/lib/offerte.ts` (funzione `elencaOfferteConAvanzamento` e tipo `VoceElencoOfferta`, introdotti da US-025), `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts` (`creaOfferta`, `aggiornaOfferta`, helper `datiDaForm`), `node_modules/next/dist/docs/` per le convenzioni `revalidatePath`/`redirect` di questa versione di Next.js.
+
+      **Modificare:** solo i due file indicati.
+
+      **Passi:**
+      1. In `src/lib/offerte.ts` aggiungere `numeroRigheAttivita: number` a `VoceElencoOfferta` e popolarlo in `elencaOfferteConAvanzamento` contando TUTTE le righe attività per `offertaId` (fatturabili e non), a partire dalle righe già caricate dalla funzione — nessuna query aggiuntiva.
+      2. In `actions.ts` leggere il campo form opzionale `origine`: quando vale `"offerte"`, sia `creaOfferta` sia `aggiornaOfferta` eseguono anche `revalidatePath("/offerte")` e redirigono a `/offerte?esito=offerta-creata` / `/offerte?esito=offerta-salvata` invece che al dettaglio cliente; senza `origine` il comportamento resta identico a oggi.
+      3. Non modificare le validazioni né la traduzione dell'errore P2002 esistente.
+
+      **Verifica:** `npm run lint` e `npm run test` (le suite esistenti restano verdi).
+
+      **Blocchi:** richiede US-025 completata e integrata (`elencaOfferteConAvanzamento` esiste solo nel suo worktree).
+
+      ## File Coinvolti
+      - src/lib/offerte.ts — campo `numeroRigheAttivita` in `VoceElencoOfferta` e popolamento in `elencaOfferteConAvanzamento`
+      - src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts — parametro opzionale `origine` in `creaOfferta` e `aggiornaOfferta`
+
+      ## Criteri di Completamento
+      - [ ] Ogni voce di `elencaOfferteConAvanzamento` riporta il numero di righe attività collegate (0 se nessuna)
+      - [ ] Con `origine="offerte"` crea/aggiorna rivalidano `/offerte` e vi redirigono con `?esito=`
+      - [ ] Senza `origine` il flusso dall'anagrafica cliente è invariato
+      - [ ] `npm run lint` e `npm run test` passano
+    ref: TASK-01
+  - id: TASK-02
+    title: Nuove server action cambiaStatoOfferta ed eliminaOfferta con blocco attività collegate
+    type: Impl
+    status: DONE
+    body: |-
+      ## Descrizione
+      **Obiettivo:** introdurre le action mancanti per il ciclo di vita dell'offerta: toggle attiva/disattiva ed eliminazione con blocco applicativo quando esistono righe attività collegate.
+
+      **Leggere prima:** `src/app/(back-office)/anagrafiche/clienti/cambia-stato-action.ts` (pattern toggle con form action diretta), la action `eliminaScaglione` nel file actions degli scaglioni (`src/app/(back-office)/anagrafiche/scaglioni/actions.ts` o percorso equivalente — verificare), `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts` (guardia amministratore e pattern di gestione errori Prisma), `prisma/schema.prisma` (relazione `RigaAttivita.offerta` senza `onDelete` → Restrict → errore P2003).
+
+      **Modificare:** creare `src/app/(back-office)/offerte/actions.ts` (`"use server"`). Nessun altro file.
+
+      **Passi:**
+      1. `cambiaStatoOfferta(formData: FormData): Promise<void>`: guardia `richiediRuoloApi("AMMINISTRATORE")`; leggere hidden `id` e `attiva` ("true"/"false"); `db.offerta.update({ where: { id }, data: { attiva } })`; `revalidatePath("/offerte")` e redirect a `/offerte?esito=stato-offerta-aggiornato`.
+      2. Definire `interface StatoEliminazioneOfferta { errore?: string }` ed `eliminaOfferta(_prevState: StatoEliminazioneOfferta, formData: FormData): Promise<StatoEliminazioneOfferta>`: guardia amministratore; `db.rigaAttivita.count({ where: { offertaId } })` — se maggiore di zero restituire un errore con messaggio chiaro in italiano che spiega il blocco e invita a disattivare l'offerta invece di eliminarla; altrimenti `db.offerta.delete`.
+      3. Intercettare l'errore Prisma P2003 sul delete restituendo lo stesso messaggio di blocco (difesa in profondità contro race condition).
+      4. Su eliminazione riuscita: `revalidatePath("/offerte")`, `revalidatePath("/anagrafiche/clienti")` e redirect a `/offerte?esito=offerta-eliminata`.
+      5. Usare nomi parlanti e coerenti con le action esistenti.
+
+      **Verifica:** `npm run lint`.
+
+      **Blocchi:** nessuno (indipendente da TASK-01).
+
+      ## File Coinvolti
+      - src/app/(back-office)/offerte/actions.ts — nuovo file con `cambiaStatoOfferta`, `eliminaOfferta` e `StatoEliminazioneOfferta`
+
+      ## Criteri di Completamento
+      - [ ] Il toggle di stato persiste il cambiamento e rivalida `/offerte`
+      - [ ] L'eliminazione è bloccata con messaggio chiaro quando esistono righe attività (conteggio applicativo + catch P2003)
+      - [ ] Un'offerta senza attività viene eliminata con redirect ed esito
+      - [ ] Entrambe le action sono protette dalla guardia amministratore
+      - [ ] `npm run lint` passa
+    ref: TASK-02
+  - id: TASK-03
+    title: Test unit delle nuove action e delle estensioni DAL/origine
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+    body: |-
+      ## Descrizione
+      **Obiettivo:** coprire con test unitari le due nuove action, l'estensione `origine` e il campo `numeroRigheAttivita`.
+
+      **Leggere prima:** `tests/unit/offerte-dal-actions.test.ts` (pattern di mock con `vi.hoisted` per `@/lib/db`, `@/lib/dal`, `next/cache`, `next/navigation`), `tests/unit/elenca-offerte-con-avanzamento.test.ts` (suite introdotta da US-025), le action implementate in TASK-01 e TASK-02.
+
+      **Modificare:** creare un nuovo file di test ed estendere i due esistenti; nessuna modifica al codice di produzione.
+
+      **Passi:**
+      1. Creare `tests/unit/gestione-offerte-actions.test.ts` per `cambiaStatoOfferta` ed `eliminaOfferta`, mockando `db.offerta`, `db.rigaAttivita`, `richiediRuoloApi`, `revalidatePath`, `redirect`. Casi: (a) toggle aggiorna `attiva` e rivalida/redirige; (b) eliminazione bloccata quando `rigaAttivita.count` > 0, con messaggio che invita a disattivare e NESSUNA chiamata a `db.offerta.delete`; (c) eliminazione riuscita con revalidate e redirect; (d) errore P2003 dal delete tradotto nel messaggio di blocco; (e) guardia `richiediRuoloApi("AMMINISTRATORE")` invocata da entrambe le action.
+      2. Estendere `tests/unit/offerte-dal-actions.test.ts`: con `origine="offerte"` crea/aggiorna rivalidano `/offerte` e vi redirigono; senza `origine` il redirect resta verso il dettaglio cliente.
+      3. Estendere `tests/unit/elenca-offerte-con-avanzamento.test.ts`: `numeroRigheAttivita` conta tutte le righe dell'offerta (incluse le non fatturabili) ed è 0 per offerte senza attività.
+
+      **Verifica:** `npm run test`.
+
+      **Blocchi:** richiede TASK-01 e TASK-02 completati.
+
+      ## File Coinvolti
+      - tests/unit/gestione-offerte-actions.test.ts — nuova suite
+      - tests/unit/offerte-dal-actions.test.ts — casi `origine`
+      - tests/unit/elenca-offerte-con-avanzamento.test.ts — casi `numeroRigheAttivita`
+
+      ## Criteri di Completamento
+      - [ ] Tutti i casi (a)–(e) della nuova suite presenti e verdi
+      - [ ] Casi `origine` e `numeroRigheAttivita` aggiunti alle suite esistenti
+      - [ ] Nessun accesso a database reale: tutte le dipendenze mockate
+      - [ ] `npm run test` passa per l'intera suite
+    ref: TASK-03
+  - id: TASK-04
+    title: Pagine form /offerte/nuova e /offerte/[offertaId] con select del cliente
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Descrizione
+      **Obiettivo:** permettere creazione e modifica delle offerte dalla pagina trasversale, riusando `OffertaForm` con l'aggiunta della scelta del cliente in creazione.
+
+      **Leggere prima:** i mockup in `docs/mockups/US-026/` (form con select cliente e stile complessivo), `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/offerta-form.tsx` (form esistente con `useActionState`), le pagine `.../offerte/nuova/page.tsx` e `.../offerte/[offertaId]/page.tsx` dell'anagrafica cliente (pattern Server Component + form), `src/lib/clienti.ts` (funzione DAL per elencare i clienti — verificarne il nome esatto), `node_modules/next/dist/docs/` per le convenzioni App Router.
+
+      **Modificare:** `offerta-form.tsx` (estensione retrocompatibile) e creare le due nuove pagine.
+
+      **Passi:**
+      1. Estendere `OffertaForm` con prop opzionale `clienti` (elenco `{ id, ragioneSociale }` di clienti attivi): quando presente, rendere una `<select name="clienteId">` con label "Cliente" (opzioni ordinate per ragione sociale, placeholder "Seleziona un cliente") al posto dell'hidden `clienteId`; aggiungere inoltre prop opzionale `origine` resa come hidden input. Il comportamento senza le nuove prop resta identico (le pagine dell'anagrafica cliente non cambiano).
+      2. Creare `src/app/(back-office)/offerte/nuova/page.tsx` (Server Component): guardia amministratore come nelle pagine esistenti, caricare i clienti attivi dalla DAL clienti (riusare la funzione esistente filtrando `attivo`; se non esiste una funzione adatta, aggiungerne una con nome parlante, es. `elencaClientiAttivi`), rendere `OffertaForm` con `clienti` e `origine="offerte"`.
+      3. Creare `src/app/(back-office)/offerte/[offertaId]/page.tsx` (Server Component): caricare l'offerta con `offertaPerId`, `notFound()` se assente, rendere `OffertaForm` in modifica con cliente fisso (mostrato come testo, non modificabile) e `origine="offerte"`.
+      4. La validazione lato server del `clienteId` (cliente esistente e attivo) è già in `creaOfferta`: assicurarsi che l'errore sia mostrato nel banner del form.
+
+      **Verifica:** `npm run lint`; avvio locale e controllo visivo di `/offerte/nuova` e della modifica confrontando con i mockup.
+
+      **Blocchi:** richiede TASK-01 completato e US-025 integrata.
+
+      ## File Coinvolti
+      - src/app/(back-office)/anagrafiche/clienti/[id]/offerte/offerta-form.tsx — prop opzionali `clienti` e `origine`
+      - src/app/(back-office)/offerte/nuova/page.tsx — nuova pagina di creazione
+      - src/app/(back-office)/offerte/[offertaId]/page.tsx — nuova pagina di modifica
+      - src/lib/clienti.ts — solo se serve una funzione per elencare i clienti attivi
+
+      ## Criteri di Completamento
+      - [ ] Da `/offerte/nuova` si crea un'offerta scegliendo il cliente da una select (solo clienti attivi), con le stesse validazioni dell'anagrafica esistente
+      - [ ] Da `/offerte/[offertaId]` si modifica un'offerta con cliente fisso e si torna a `/offerte` con esito
+      - [ ] Il form dell'anagrafica cliente esistente continua a funzionare invariato
+      - [ ] `npm run lint` passa
+    ref: TASK-04
+  - id: TASK-05
+    title: 'Azioni di riga in offerte-tabella: Modifica, toggle stato, modale eliminazione, banner esito'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+      - TASK-04
+    body: |-
+      ## Descrizione
+      **Obiettivo:** completare la pagina `/offerte` con il bottone "Nuova offerta", le azioni di riga e i riscontri visivi, fedeli ai mockup.
+
+      **Leggere prima:** i mockup in `docs/mockups/US-026/` (azioni di riga, modale nelle due varianti, banner), `src/app/(back-office)/offerte/offerte-tabella.tsx` e `page.tsx` (creati da US-025), `src/app/(back-office)/anagrafiche/scaglioni/scaglioni-tabella.tsx` (pattern modale di conferma con `role="dialog"`), il pattern banner `?esito=` di `src/app/(back-office)/anagrafiche/clienti/[id]/page.tsx`.
+
+      **Modificare:** `offerte-tabella.tsx` e `page.tsx` della pagina offerte.
+
+      **Passi:**
+      1. In `page.tsx`: bottone/link "Nuova offerta" nell'intestazione verso `/offerte/nuova`; banner verde di esito leggendo `searchParams.esito` (offerta-creata, offerta-salvata, offerta-eliminata, stato-offerta-aggiornato) come nelle pagine anagrafiche.
+      2. In `offerte-tabella.tsx` aggiungere una colonna Azioni per riga: link "Modifica" verso `/offerte/[offertaId]`; toggle attiva/disattiva come `<form action={cambiaStatoOfferta}>` con hidden `id` e `attiva` (etichetta "Disattiva"/"Attiva" a seconda dello stato); bottone "Elimina" che apre il modale di conferma.
+      3. Modale (pattern scaglioni, `role="dialog" aria-modal="true"`): variante conferma quando `numeroRigheAttivita === 0` con `<form>` collegata a `eliminaOfferta` via `useActionState` (mostrare l'eventuale `errore` restituito); variante bloccata quando `numeroRigheAttivita > 0` con il messaggio che spiega il blocco e invita a disattivare, offrendo l'azione rapida "Disattiva" al posto di "Elimina".
+      4. Aggiungere solo i `data-testid` minimi necessari ai test e2e (es. su riga/modale), preferendo ruoli e nomi accessibili.
+
+      **Verifica:** `npm run lint`; avvio locale e verifica visiva di creazione, modifica, toggle, eliminazione ed eliminazione bloccata confrontando con i mockup.
+
+      **Blocchi:** richiede TASK-02 e TASK-04 completati.
+
+      ## File Coinvolti
+      - src/app/(back-office)/offerte/offerte-tabella.tsx — colonna Azioni, toggle, modale eliminazione nelle due varianti
+      - src/app/(back-office)/offerte/page.tsx — bottone "Nuova offerta" e banner esito
+
+      ## Criteri di Completamento
+      - [ ] Ogni riga espone Modifica, toggle stato ed Elimina; il toggle è immediatamente riflesso nell'elenco
+      - [ ] Il modale mostra la variante bloccata (con invito a disattivare) per offerte con attività collegate
+      - [ ] L'eliminazione riuscita rimuove la riga e mostra il banner di esito
+      - [ ] UI fedele ai mockup di `docs/mockups/US-026/`
+      - [ ] `npm run lint` passa
+    ref: TASK-05
+  - id: TASK-06
+    title: Test e2e Playwright del ciclo di vita offerte dalla pagina /offerte
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Descrizione
+      **Obiettivo:** verificare end-to-end creazione, modifica, toggle stato, eliminazione ed eliminazione bloccata usando esclusivamente dati factory.
+
+      **Leggere prima:** `tests/e2e/README.md` (contratto anti-flakiness), `tests/e2e/support/fixtures.ts` e `tests/e2e/support/factory.ts` (`createCliente`, `createClienteConOfferta`, `createOfferta`, `createRigaAttivita`), `tests/e2e/support/auth.ts` (`accediComeAdmin`), `tests/e2e/anagrafica-offerte.spec.ts` (pattern selettori e validazioni).
+
+      **Modificare:** creare un nuovo file di test; eventuali `data-testid` mancanti vanno aggiunti in TASK-05, non qui.
+
+      **Passi:**
+      1. Creare `tests/e2e/gestione-offerte.spec.ts` usando `test` da `support/fixtures.ts`; mai entità seed (niente Giulia Conti, TechSolutions, DataFlow).
+      2. Scenario creazione: factory crea un cliente attivo; login amministratore, navigazione a Offerte dalla sidebar (ruolo link, nome esatto), click "Nuova offerta", selezione del cliente per label derivata dalla factory (mai `selectOption({ index })`), compilazione campi, salvataggio; verifica riga in elenco e banner esito. Includere un caso di validazione (campo mancante → errore inline).
+      3. Scenario modifica: da un'offerta factory, click Modifica, cambio descrizione e tariffa, salvataggio, verifica valori aggiornati in elenco.
+      4. Scenario toggle: disattivazione → badge "Non attiva" visibile; riattivazione → badge "Attiva".
+      5. Scenario eliminazione riuscita: offerta factory senza attività → Elimina → conferma nel modale → riga assente e banner esito.
+      6. Scenario eliminazione bloccata: offerta factory con riga attività (`createRigaAttivita`) → Elimina → messaggio di blocco con invito a disattivare, offerta ancora presente.
+      7. Rispettare tutte le regole: web-first `expect`, nessun hard wait, nessun selettore Tailwind, `fullyParallel` invariato.
+
+      **Verifica:** `npx playwright test tests/e2e/gestione-offerte.spec.ts`, poi `npm run lint` (guardrail anti-flakiness) e l'intera suite e2e in parallelo.
+
+      **Blocchi:** richiede TASK-05 completato.
+
+      ## File Coinvolti
+      - tests/e2e/gestione-offerte.spec.ts — nuova suite e2e
+
+      ## Criteri di Completamento
+      - [ ] Tutti gli scenari (creazione con validazioni, modifica, toggle, eliminazione, eliminazione bloccata) verdi con soli dati factory
+      - [ ] Selezione cliente per label derivata dalla factory
+      - [ ] `npm run lint` passa e la suite e2e completa resta verde in parallelo
+    ref: TASK-06
+  - id: TASK-07
+    title: Demo spec e2e del flusso di gestione offerte per la review
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Descrizione
+      **Obiettivo:** fornire lo scenario dimostrativo filmabile che `archetipo-review` userà per registrare la demo al gate di accettazione, ripercorrendo la Dimostrazione della spec.
+
+      **Leggere prima:** i demo spec esistenti (`tests/e2e/demo__*.spec.ts`) per lo stile, `tests/e2e/support/fixtures.ts` e `factory.ts`. Nota: a differenza dei demo spec di sola lettura, questo flusso muta dati, quindi per il contratto e2e deve usare un cliente e offerte creati dalla factory, NON i seed.
+
+      **Modificare:** creare un nuovo file di test; nessuna modifica al codice di produzione.
+
+      **Passi:**
+      1. Creare `tests/e2e/demo__gestione-offerte.spec.ts`: login amministratore, apertura di Offerte dalla sidebar, poi in un unico flusso narrativo: creazione di una nuova offerta scegliendo il cliente factory; modifica della stessa offerta; disattivazione e riattivazione; eliminazione di una seconda offerta factory senza attività; tentativo di eliminazione di un'offerta factory con riga attività → messaggio di blocco con invito a disattivare.
+      2. Documentare nel commento di testa il flusso e i dati factory usati, seguendo lo stile dei demo spec esistenti.
+      3. Il video NON va registrato qui: la registrazione è a cura di `archetipo-review` via `archetipo e2e demo`.
+
+      **Verifica:** `npx playwright test tests/e2e/demo__gestione-offerte.spec.ts` e `npm run lint`.
+
+      **Blocchi:** richiede TASK-05 completato.
+
+      ## File Coinvolti
+      - tests/e2e/demo__gestione-offerte.spec.ts — nuovo demo spec
+
+      ## Criteri di Completamento
+      - [ ] Il demo spec attraversa l'intera Dimostrazione della spec in un flusso utente continuo
+      - [ ] Solo dati factory, nessuna entità seed mutata
+      - [ ] Spec verde anche nell'esecuzione parallela dell'intera suite
+      - [ ] `npm run lint` passa
+    ref: TASK-07

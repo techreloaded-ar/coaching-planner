@@ -1,0 +1,48 @@
+schema: archetipo/spec/v2
+code: US-037
+title: Dettaglio ore erogate per collaboratore nel report Fatturazione Clienti
+epic:
+  code: EP-004
+  title: Reportistica
+priority: MEDIUM
+points: 3
+status: DONE
+body: |-
+  #### US-037: Dettaglio ore erogate per collaboratore nel report Fatturazione Clienti
+
+  **Epic:** EP-004 | **Priorità:** MEDIUM | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come amministratore,
+  voglio espandere la riga di un cliente nel report Fatturazione Clienti e vedere le ore erogate dai singoli collaboratori suddivise per offerta,
+  così da verificare come si compone l'importo da fatturare prima di emettere la fattura.
+
+  **Dimostrazione**
+  Partendo dal report Fatturazione Clienti di un mese con un cliente che ha attività di due collaboratori su due offerte, il revisore seleziona la riga del cliente e osserva un dettaglio che, per ciascuna offerta, elenca i collaboratori con ore fatturabili, giornate equivalenti e imponibile; la somma degli imponibili del dettaglio coincide con l'imponibile manodopera del cliente nel report. Il revisore poi seleziona di nuovo la riga e osserva che il dettaglio si richiude riportando la riga alla vista compatta.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — La selezione della riga di un cliente espande un dettaglio che, per ciascuna offerta del cliente nel mese, elenca i collaboratori con ore fatturabili, giornate equivalenti e imponibile corrispondente
+  - [ ] AC-2 — La somma degli imponibili mostrati nel dettaglio coincide con l'imponibile manodopera del cliente nella riga del report, con formattazione a due decimali
+  - [ ] AC-3 — Una sola riga cliente è espansa alla volta: espandere un altro cliente richiude il precedente, e riselezionare la riga espansa la richiude
+  - [ ] AC-4 — Per un cliente presente nel report solo per rimborsi trasferta, il dettaglio mostra un messaggio esplicito di assenza di ore fatturabili nel mese
+
+  **Fuori Perimetro**
+  Il dettaglio dei rimborsi trasferta per collaboratore e le ore non fatturabili non fanno parte di questo dettaglio. Nessuna persistenza: il report resta una proiezione ricalcolata a ogni richiesta.
+
+  **Contesto Wiki**
+  `domains/fatturazione-clienti.md`, `decisions/giornata-otto-ore.md`, `decisions/importi-decimali.md`
+branch: archetipo/US-037
+worktree: .archetipo/worktrees/US-037
+fork_base: b7b906c0ed63fc0434f04e7deea5a18f4c4c48a0
+history:
+  - status: TODO
+    at: '2026-07-20T11:08:18Z'
+  - status: PLANNED
+    at: '2026-07-21T06:20:28Z'
+  - status: IN PROGRESS
+    at: '2026-07-21T06:23:15Z'
+  - status: REVIEW
+    at: '2026-07-21T07:06:25Z'
+  - status: DONE
+    at: '2026-07-21T11:03:58Z'

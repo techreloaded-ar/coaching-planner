@@ -1,0 +1,347 @@
+schema: archetipo/plan/v2
+spec_code: US-036
+body: |-
+  # US-036: Matrice mensile per collaboratore nel dettaglio avanzamento offerta — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-07-20
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-002 — Anagrafiche e Configurazione
+  **Priorità:** MEDIUM | **Punti:** 3
+
+  **Storia Utente**
+  Come amministratore, voglio vedere nel dettaglio espanso di un'offerta le giornate erogate da ciascun collaboratore mese per mese, così da capire come l'erogazione si è distribuita nel tempo oltre che tra le persone.
+
+  **Criteri di Accettazione**
+  - AC-1 — Matrice con una riga per collaboratore e una colonna per ogni mese solare con almeno una attività, in ordine cronologico; celle in formato it-IT (max un decimale) e "—" quando il collaboratore non ha attività nel mese
+  - AC-2 — Colonna "Totale" per collaboratore e riga "Totale mese"; il totale complessivo coincide con le giornate erogate della riga offerta
+  - AC-3 — Offerta senza attività: l'area della matrice mostra "Nessuna attività registrata"
+  - AC-4 — La matrice scorre orizzontalmente nel pannello senza allargare la pagina
+
+  ---
+
+  ## Soluzione Tecnica
+
+  La matrice è una estensione della proiezione di avanzamento esistente: il calcolo resta nella funzione pura `calcolaAvanzamentoOfferte` (decisione `decisions/calcoli-puri`), la query `src/lib/offerte.ts` continua a fare solo mapping e serializzazione, e la UI `dettaglio-avanzamento-offerta.tsx` — condivisa tra `/offerte` e l'elenco offerte del cliente — aggiunge una sezione tabellare coerente con la tabella per collaboratore già presente.
+
+  - **Dominio** (`src/domain/consuntivi/index.ts`): `RigaAvanzamento` acquisisce il campo obbligatorio `mese: string` (token `YYYY-MM`, già linguaggio del dominio Attività). Nuovi tipi: `RigaMatriceMensileAvanzamento { collaboratoreId, collaboratoreNome, giornatePerMese: Record<string, number>, totaleGiornate }` e `MatriceMensileAvanzamento { mesi: string[], righe: RigaMatriceMensileAvanzamento[], totaliPerMese: Record<string, number>, totaleGiornate }`. `VoceAvanzamentoOfferta` espone `matriceMensile`. Solo le righe fatturabili concorrono (coerente con l'erogato e con il fuori perimetro); `mesi` è l'insieme ordinato (ordinamento lessicografico = cronologico per `YYYY-MM`) dei mesi con almeno una riga fatturabile; le righe della matrice seguono lo stesso ordine di `perCollaboratore`; `giornatePerMese` ha chiave assente per i mesi senza attività del collaboratore; `matriceMensile.totaleGiornate` coincide per costruzione con `giornateErogate`.
+  - **Query** (`src/lib/offerte.ts`): il mapping deriva `mese` da `RigaAttivita.data` (`@db.Date`, mezzanotte UTC) con `riga.data.toISOString().slice(0, 7)` — derivazione UTC, immune dal fuso del server. `VoceElencoOfferta` espone `matriceMensile` (interamente serializzabile: array e record di numeri), con default vuoto `{ mesi: [], righe: [], totaliPerMese: {}, totaleGiornate: 0 }` per offerte senza avanzamento.
+  - **UI** (`src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx`): nuova sezione "Giornate erogate per mese" sotto la sezione per collaboratore, con tabella `aria-label="Giornate erogate per collaboratore e mese"` dentro un contenitore `overflow-x-auto` con `data-testid="matrice-mensile-offerta"` (AC-4, stesso pattern del contenitore esistente). Intestazioni mese con `Intl.DateTimeFormat("it-IT", { month: "short", year: "numeric", timeZone: "UTC" })` su `Date.UTC(anno, mese-1, 1)`; celle con il formattatore `formattaGiornate` esistente o "—" (em dash); colonna "Totale" e riga `tfoot` "Totale mese". Stato vuoto: paragrafo con testo esatto "Nessuna attività registrata" (AC-3; non collide con il messaggio esistente più lungo grazie ai match `exact`). Poiché il componente è condiviso, la matrice appare anche nell'elenco offerte del cliente senza lavoro aggiuntivo.
+
+  **Assunzione registrata:** "mese con almeno una attività" è interpretato come mese con almeno una riga *fatturabile*, coerentemente con il conteggio dell'erogato dichiarato nel fuori perimetro e con il comportamento esistente di `perCollaboratore` (una offerta con sole righe non fatturabili mostra il messaggio di vuoto).
+
+  ### Decisioni Architetturali
+
+  Nessun ADR: la soluzione segue il pattern già deciso (calcoli puri nel dominio, proiezione serializzabile, conversione fissa 8 ore/giornata da `decisions/giornata-otto-ore`) senza scelte con alternative concorrenti che tocchino modello dati persistente, sicurezza o confini di integrazione.
+
+  ---
+
+  ## Baseline
+
+  | Verifica | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npx vitest run tests/unit/avanzamento-offerte.test.ts tests/unit/elenca-offerte-con-avanzamento.test.ts` | 2 file, 33 test superati | Ogni task che tocca dominio/query rilancia questi file con attesa di verde pieno |
+  | `npx tsc --noEmit` | Superato, exit 0 | Nessun file modificato può introdurre diagnostici; atteso verde a ogni task |
+  | `npm run lint` | Superato (ESLint + guardrail e2e anti-flakiness) | Obbligatorio dopo le modifiche e2e; atteso verde |
+
+  Prerequisiti d'ambiente (separati dai fallimenti di codice): dipendenze installate con `npm install` (il `postinstall` genera il client Prisma); la suite Playwright usa il global-setup del repo con database locale e factory come da `tests/e2e/README.md` — nessun setup aggiuntivo da inventare.
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task che produce l'evidenza |
+  |---|---|---|---|---|
+  | AC-1 | Dominio: righe fatturabili su due mesi fuori ordine, un collaboratore assente in un mese. E2E: offerta factory con Ada (8h mese precedente riservato + 4h mese riservato) e Alan (16h solo mese riservato) | Unit + E2E | Unit: `mesi` in ordine cronologico, chiave assente in `giornatePerMese` per il mese scoperto. E2E: intestazioni colonna nei due mesi in ordine, celle "1", "0,5", "2" e cella "—" nella riga di Alan | TASK-02, TASK-05 |
+  | AC-2 | Stessa fixture e2e di AC-1 (totale 3,5 gg) | Unit + E2E | Unit: `totaleGiornate` di riga = somma celle e `matriceMensile.totaleGiornate` === `giornateErogate`. E2E: colonna "Totale" (1,5 e 2), riga "Totale mese" (1 / 2,5 / 3,5) e "3,5" coincidente con il KPI Erogate del pannello | TASK-02, TASK-05 |
+  | AC-3 | Offerta factory senza righe attività | E2E | Testo esatto "Nessuna attività registrata" visibile nell'area matrice del pannello espanso; nessuna tabella matrice presente | TASK-05 |
+  | AC-4 | Offerta factory con 18 righe da 8h in 18 mesi riservati distinti | E2E | `scrollWidth > clientWidth` sul contenitore `matrice-mensile-offerta` e `document.documentElement.scrollWidth <= clientWidth` (la pagina non si allarga) | TASK-05 |
+
+  ---
+
+  ## Strategia di Test
+
+  Tre livelli, senza doppioni: il dominio prova la forma e la quadratura della matrice, la query prova la derivazione UTC del mese e la serializzazione, Playwright prova i quattro criteri osservabili nel browser reale sulla rotta `/offerte` (il componente condiviso copre per costruzione anche l'elenco cliente, presidiato in regressione dal gate).
+
+  - Unit dominio (`tests/unit/avanzamento-offerte.test.ts`): ordine cronologico dei mesi con input fuori ordine, aggregazione di più righe stesso collaboratore/mese, chiavi assenti, totali per mese e complessivi, esclusione delle righe non fatturabili (un mese con sole righe non fatturabili non genera colonna), matrice vuota senza attività, allineamento dell'ordine righe a `perCollaboratore`.
+  - Unit query (`tests/unit/elenca-offerte-con-avanzamento.test.ts`): `mese` derivato in UTC da `data`, esposizione di `matriceMensile` sulla voce, default vuoto per offerta senza righe.
+  - E2E: nessun mock — dati creati via factory con mesi riservati `meseRiservato("US-036")`/`mesePassatoRiservato("US-036", n)`; l'oracolo è il testo visibile delle celle, non lo stato interno.
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (suite esistente, `fullyParallel`, factory e risorse riservate)
+  **Demo video:** attesa filmabile (registrazione a carico di `archetipo-review`, non dell'implementazione)
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Matrice due mesi, due collaboratori | L'admin apre `/offerte`, espande l'offerta factory e osserva la matrice: colonne dei due mesi in ordine cronologico, celle con giornate it-IT, "—" dove manca attività, colonna "Totale" e riga "Totale mese" coerenti con il KPI Erogate |
+  | Offerta senza attività | L'admin espande un'offerta factory senza righe e osserva "Nessuna attività registrata" al posto della matrice |
+  | Scroll orizzontale | L'admin espande un'offerta con attività su 18 mesi: la matrice scorre nel proprio contenitore e la pagina non si allarga |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [backlog/specs/US-036, domains/offerte, domains/attivita, decisions/giornata-otto-ore]
+    update_after_acceptance: [domains/offerte]
+    create: []
+  ```
+
+  ---
+
+  _Nessun mockup generato: la spec aggiunge una sezione tabellare al pannello di dettaglio esistente ricalcandone lo stile — chiamata registrata nel Team Brief e sovrascrivibile dall'utente._
+
+  _Piano generato via ARchetipo Planning — 2026-07-20_
+tasks:
+  - id: TASK-01
+    title: Estendi dominio e query con la matrice mensile per collaboratore
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      `calcolaAvanzamentoOfferte` produce per ogni offerta una `matriceMensile` serializzabile (mesi ordinati, righe per collaboratore, totali) e `src/lib/offerte.ts` la espone su `VoceElencoOfferta`, con l'intero progetto che compila e i test esistenti verdi.
+
+      ## Read
+      - src/domain/consuntivi/index.ts — sezione "Avanzamento offerte" (righe 500-699): `RigaAvanzamento`, `VoceCollaboratoreAvanzamento`, `VoceAvanzamentoOfferta`, corpo di `calcolaAvanzamentoOfferte`
+      - src/lib/offerte.ts — `RigaAttivitaConCollaboratore`, `VoceElencoOfferta`, `costruisciVociElencoOfferte` (mapping `righeMappate` e costruzione della voce)
+      - tests/unit/avanzamento-offerte.test.ts — helper `riga()` (righe 25-34)
+      - tests/unit/elenca-offerte-con-avanzamento.test.ts — builder `rigaConCollaboratore()` (righe 66-89)
+
+      ## Change
+      - src/domain/consuntivi/index.ts — aggiungi `mese: string` (obbligatorio, token `YYYY-MM`) a `RigaAvanzamento`; definisci ed esporta `RigaMatriceMensileAvanzamento` e `MatriceMensileAvanzamento`; aggiungi `matriceMensile: MatriceMensileAvanzamento` a `VoceAvanzamentoOfferta`; calcola la matrice dentro `calcolaAvanzamentoOfferte`
+      - src/lib/offerte.ts — mappa `mese` nel `righeMappate` e aggiungi `matriceMensile` a `VoceElencoOfferta` e alla voce costruita
+      - tests/unit/avanzamento-offerte.test.ts — SOLO adeguamento di compilazione: default `mese: "2026-01"` nell'helper `riga()`
+      - tests/unit/elenca-offerte-con-avanzamento.test.ts — SOLO adeguamento di compilazione: campo `data` nel builder `rigaConCollaboratore()` con default `new Date("2026-01-15T00:00:00.000Z")` e override opzionale `data?: Date`
+      - Non-goal: nessuna modifica UI, nessun nuovo caso di test (arrivano con TASK-02 e TASK-03), nessuna modifica allo schema Prisma
+
+      ## Steps
+      1. In `src/domain/consuntivi/index.ts` aggiungi `mese: string` a `RigaAvanzamento` con JSDoc "Token mese YYYY-MM della data della riga".
+      2. Definisci ed esporta: `RigaMatriceMensileAvanzamento { collaboratoreId: string; collaboratoreNome: string; giornatePerMese: Record<string, number>; totaleGiornate: number }` e `MatriceMensileAvanzamento { mesi: string[]; righe: RigaMatriceMensileAvanzamento[]; totaliPerMese: Record<string, number>; totaleGiornate: number }`; aggiungi `matriceMensile: MatriceMensileAvanzamento` a `VoceAvanzamentoOfferta`.
+      3. In `calcolaAvanzamentoOfferte`, nell'accumulo per riga fatturabile (dentro il ciclo esistente che già salta `!riga.fatturabile`), accumula anche le ore per coppia (collaboratoreId, mese) e l'insieme dei mesi dell'offerta.
+      4. In fase di costruzione della voce: `mesi` = mesi unici ordinati con sort lessicografico (equivale al cronologico per `YYYY-MM`); `righe` nello stesso ordine di `perCollaboratore`, ciascuna con `giornatePerMese` (ore accumulate / `ORE_PER_GIORNATA`, chiave presente solo per i mesi con attività del collaboratore) e `totaleGiornate` pari a `giornateErogate` del collaboratore; `totaliPerMese` con una chiave per ogni mese di `mesi` (somma delle celle); `totaleGiornate` complessivo pari alla somma (coincide con `giornateErogate` dell'offerta). Offerta senza righe fatturabili: `{ mesi: [], righe: [], totaliPerMese: {}, totaleGiornate: 0 }`.
+      5. In `src/lib/offerte.ts` aggiungi al mapping `righeMappate` il campo `mese: riga.data.toISOString().slice(0, 7)` (la colonna è `@db.Date` a mezzanotte UTC: la derivazione UTC è deterministica rispetto al fuso del server).
+      6. Aggiungi a `VoceElencoOfferta` il campo documentato `matriceMensile: MatriceMensileAvanzamento` (import dal dominio) e nella voce costruita `matriceMensile: avanzamento?.matriceMensile ?? { mesi: [], righe: [], totaliPerMese: {}, totaleGiornate: 0 }`.
+      7. Adegua i due helper di test come da sezione Change (solo default di compilazione, nessun nuovo `it`).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/avanzamento-offerte.test.ts tests/unit/elenca-offerte-con-avanzamento.test.ts` (da /Users/smarello/repo/coaching-planner)
+      - Expect: 33 test superati, nessun fallimento (baseline verde invariata)
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessun diagnostico (baseline verde invariata)
+
+      ## Done
+      - [ ] AC-1 — `matriceMensile` espone mesi ordinati cronologicamente e `giornatePerMese` con chiave assente per i mesi senza attività del collaboratore (contratto dati pronto per la UI)
+      - [ ] AC-2 — `totaleGiornate` di matrice e righe quadra per costruzione con `giornateErogate`
+      - [ ] `VoceElencoOfferta.matriceMensile` è interamente serializzabile (solo array, record e numeri)
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test di dominio sulla matrice mensile
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      La forma e la quadratura della `matriceMensile` prodotta da `calcolaAvanzamentoOfferte` sono provate da unit test che asseriscono i valori attesi, non la sola presenza dei campi.
+
+      ## Read
+      - tests/unit/avanzamento-offerte.test.ts — helper `offerta()` e `riga()`, stile dei describe/it esistenti
+      - src/domain/consuntivi/index.ts — tipi `MatriceMensileAvanzamento` e `RigaMatriceMensileAvanzamento` introdotti da TASK-01
+
+      ## Change
+      - tests/unit/avanzamento-offerte.test.ts — nuovo blocco `describe`-figlio (o sezione commentata coerente con lo stile del file) "Matrice mensile" con i casi elencati negli Steps; nessuna modifica ai test esistenti
+
+      ## Steps
+      1. Caso ordine cronologico: righe con mesi fuori ordine (es. "2026-03", "2025-11", "2026-01") → `matriceMensile.mesi` uguale a `["2025-11", "2026-01", "2026-03"]`.
+      2. Caso aggregazione cella: due righe dello stesso collaboratore nello stesso mese (8h + 4h) → `giornatePerMese[mese]` pari a 1.5.
+      3. Caso chiave assente (AC-1): collaboratore attivo solo in uno dei due mesi → nell'altro mese la chiave non esiste (`expect(...giornatePerMese).not.toHaveProperty(altroMese)`).
+      4. Caso totali (AC-2): fixture con due collaboratori su due mesi → `totaliPerMese` con i valori attesi per ciascun mese, `totaleGiornate` di ogni riga pari alla somma delle sue celle, `matriceMensile.totaleGiornate` strettamente uguale a `voce.giornateErogate`.
+      5. Caso non fatturabili: un mese con sole righe non fatturabili non compare in `mesi` e le ore non compaiono in alcuna cella.
+      6. Caso vuoto: offerta senza righe → `matriceMensile` uguale a `{ mesi: [], righe: [], totaliPerMese: {}, totaleGiornate: 0 }`.
+      7. Caso ordine righe: `matriceMensile.righe.map(r => r.collaboratoreId)` uguale a `voce.perCollaboratore.map(c => c.collaboratoreId)`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/avanzamento-offerte.test.ts` (da /Users/smarello/repo/coaching-planner)
+      - Expect: tutti i test superati, inclusi i nuovi casi
+
+      ## Done
+      - [ ] AC-1 — ordine cronologico dei mesi e assenza di chiave per mese scoperto asseriti su valori concreti
+      - [ ] AC-2 — quadratura totali per mese, per riga e complessivo === `giornateErogate` asserita su valori concreti
+      - [ ] Esclusione delle righe non fatturabili e caso vuoto coperti
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Unit test della query su derivazione mese e serializzazione matrice
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      La derivazione UTC del token mese da `RigaAttivita.data` e l'esposizione di `matriceMensile` su `VoceElencoOfferta` sono provate a livello query con i mock Prisma esistenti.
+
+      ## Read
+      - tests/unit/elenca-offerte-con-avanzamento.test.ts — builder `rigaConCollaboratore()` (con il campo `data` aggiunto da TASK-01), mock `db` e struttura dei test
+      - src/lib/offerte.ts — mapping `mese` e default `matriceMensile` introdotti da TASK-01
+
+      ## Change
+      - tests/unit/elenca-offerte-con-avanzamento.test.ts — nuovi `it` nel describe `elencaOfferteConAvanzamento`; nessuna modifica ai test esistenti
+
+      ## Steps
+      1. Test derivazione mese (AC-1): righe con `data: new Date("2026-03-05T00:00:00.000Z")` e `data: new Date("2025-12-20T00:00:00.000Z")` sulla stessa offerta → `voce.matriceMensile.mesi` uguale a `["2025-12", "2026-03"]`.
+      2. Test contenuto matrice (AC-2): con la fixture del punto 1 (es. 8h e 4h dello stesso collaboratore) asserisci `giornatePerMese` per mese, `totaliPerMese` e `matriceMensile.totaleGiornate === voce.giornateErogate`.
+      3. Test default vuoto: offerta senza righe attività → `voce.matriceMensile` uguale a `{ mesi: [], righe: [], totaliPerMese: {}, totaleGiornate: 0 }`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/elenca-offerte-con-avanzamento.test.ts` (da /Users/smarello/repo/coaching-planner)
+      - Expect: tutti i test superati, inclusi i nuovi casi
+
+      ## Done
+      - [ ] AC-1 — token mese derivato in UTC dalla `data` Prisma asserito su valori concreti
+      - [ ] AC-2 — matrice esposta sulla voce serializzabile con totali quadrati
+      - [ ] Default vuoto per offerta senza attività asserito
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Sezione UI matrice mensile nel pannello di dettaglio avanzamento
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il pannello di dettaglio espanso mostra la sezione "Giornate erogate per mese" con la matrice (o il messaggio di vuoto), scorrevole orizzontalmente senza allargare la pagina, in `/offerte` e — per condivisione del componente — nell'elenco offerte del cliente.
+
+      ## Read
+      - src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx — `formattaGiornate`, la sezione "Giornate erogate per collaboratore" (righe 193-250) di cui replicare struttura, classi e pattern `overflow-x-auto`
+      - src/lib/offerte.ts — campo `matriceMensile` su `VoceElencoOfferta`
+
+      ## Change
+      - src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx — aggiungi la nuova sezione DOPO la sezione per collaboratore, dentro lo stesso componente; nessuna modifica alle sezioni esistenti (KPI, barra, tabella per collaboratore) né ad altri file
+
+      ## Steps
+      1. Aggiungi un helper locale `etichettaMese(mese: string): string` che spezza il token `YYYY-MM` e formatta con `new Intl.DateTimeFormat("it-IT", { month: "short", year: "numeric", timeZone: "UTC" })` su `new Date(Date.UTC(anno, numeroMese - 1, 1))` (es. "gen 2026"); istanzia il formattatore a livello di modulo come gli altri.
+      2. Aggiungi la sezione con intestazione "Giornate erogate per mese" replicando lo stile dell'intestazione esistente (icona svg calendario, stesse classi tipografiche).
+      3. Se `offerta.matriceMensile.mesi.length === 0` renderizza un paragrafo con testo esatto "Nessuna attività registrata" e le stesse classi del messaggio di vuoto esistente; non renderizzare la tabella.
+      4. Altrimenti renderizza `<div className="overflow-x-auto" data-testid="matrice-mensile-offerta">` contenente `<table aria-label="Giornate erogate per collaboratore e mese">`: thead con "Collaboratore", una colonna per ogni mese (etichetta da `etichettaMese`, `whitespace-nowrap`, allineamento a destra) e "Totale"; tbody con una riga per ogni `matriceMensile.righe` — nome collaboratore a sinistra, per ogni mese `formattaGiornate(giornatePerMese[mese])` se la chiave esiste altrimenti "—" (em dash), poi `formattaGiornate(totaleGiornate)` in grassetto; tfoot con riga "Totale mese" che mostra `formattaGiornate(totaliPerMese[mese])` per ogni mese e `formattaGiornate(matriceMensile.totaleGiornate)` come totale complessivo.
+      5. Riusa le classi delle celle della tabella esistente (bordi `border-zinc-100`, `tabular-nums`, `whitespace-nowrap`, varianti dark) così le due tabelle risultano visivamente omogenee; la larghezza della tabella può eccedere il contenitore: è il contenitore a scorrere (AC-4), non la pagina.
+
+      ## Verify
+      - Run: `npx tsc --noEmit` (da /Users/smarello/repo/coaching-planner)
+      - Expect: exit 0, nessun diagnostico
+      - Run: `npm run lint`
+      - Expect: superato senza errori né warning nuovi (baseline verde)
+
+      ## Done
+      - [ ] AC-1 — matrice con riga per collaboratore, colonne mese cronologiche, celle it-IT max un decimale e "—" per i mesi scoperti
+      - [ ] AC-2 — colonna "Totale" e riga "Totale mese" con totale complessivo dalla struttura di dominio
+      - [ ] AC-3 — testo esatto "Nessuna attività registrata" al posto della tabella quando la matrice è vuota
+      - [ ] AC-4 — tabella dentro contenitore `overflow-x-auto` con `data-testid="matrice-mensile-offerta"`
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Test e2e Playwright della matrice mensile
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+      - TASK-03
+      - TASK-04
+    body: |-
+      ## Objective
+      I quattro criteri di accettazione sono provati nel browser reale sulla rotta `/offerte` con dati factory e mesi riservati, senza mock, rispettando il contratto anti-flakiness della suite.
+
+      ## Read
+      - tests/e2e/dettaglio-avanzamento-offerta.spec.ts — helper `rigaOfferta`, `pulsanteDettaglio`, `dettaglioOfferta`, `indicatore`, stile dei test esistenti
+      - tests/e2e/support/date.ts — `meseRiservato`, `mesePassatoRiservato`, `dataNelMese`
+      - tests/e2e/support/factory.ts — `createRigaAttivita` (opzione `data: Date`, `ore` come stringa "8.00")
+      - tests/e2e/README.md — contratto e2e (fixtures, risorse riservate, niente hard wait)
+
+      ## Change
+      - tests/e2e/dettaglio-avanzamento-offerta.spec.ts — tre nuovi test nel describe esistente; nessuna modifica ai test esistenti; nessuna modifica a playwright.config
+
+      ## Steps
+      1. Helper locali del file: `const mesePrecedente = mesePassatoRiservato("US-036")` e `const meseRiferimento = meseRiservato("US-036")` (cronologicamente `mesePrecedente < meseRiferimento`); funzione che converte un token mese + giorno in `Date` UTC: `new Date(`${dataNelMese(mese, giorno)}T00:00:00.000Z`)`; funzione etichetta attesa identica alla UI (`Intl.DateTimeFormat("it-IT", { month: "short", year: "numeric", timeZone: "UTC" })` su `Date.UTC`).
+      2. Test "mostra la matrice mensile per collaboratore con totali coerenti" (AC-1, AC-2): factory `createClienteConOfferta` (giorniPrevisti 10) + Ada Lovelace e Alan Turing via `createCollaboratore`; righe fatturabili: Ada 8h giorno 10 di `mesePrecedente` e 4h giorno 5 di `meseRiferimento`; Alan 16h giorno 12 di `meseRiferimento`. Espandi la riga; individua la tabella con `dettaglio.getByRole("table", { name: "Giornate erogate per collaboratore e mese" })`; asserisci: intestazioni colonna nell'ordine `["Collaboratore", etichetta(mesePrecedente), etichetta(meseRiferimento), "Totale"]` (via `getByRole("columnheader")`); riga di Ada con celle "1", "0,5", "1,5"; riga di Alan con "—", "2", "2"; riga "Totale mese" (getByRole row name) con "1", "2,5", "3,5"; `indicatore(dettaglio, "Erogate")` contiene `/3,5\s*gg/` (quadratura AC-2 con la riga offerta).
+      3. Test "mostra il messaggio di assenza attività nella matrice" (AC-3): offerta factory senza righe; espandi; asserisci visibile `dettaglio.getByText("Nessuna attività registrata", { exact: true })` (il match esatto non collide con il messaggio esistente più lungo) e `toHaveCount(0)` sulla tabella della matrice.
+      4. Test "la matrice scorre orizzontalmente senza allargare la pagina" (AC-4): un collaboratore, 18 righe da 8h nei mesi `mesePassatoRiservato("US-036", i)` per i da 1 a 18 (giorno 10); espandi; con `expect.poll`/`evaluate` sul locator `page.getByTestId("matrice-mensile-offerta")` asserisci `scrollWidth > clientWidth`; asserisci inoltre `page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)` vero (la pagina non si allarga).
+      5. Rispetta il contratto: niente `waitForTimeout`, niente selettori su classi Tailwind (il `data-testid` è ammesso), ruoli/etichette esatte, web-first expect, dati solo da factory con codici univoci.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/dettaglio-avanzamento-offerta.spec.ts` (da /Users/smarello/repo/coaching-planner; il global-setup della suite prepara database e app come per i test esistenti)
+      - Expect: tutti i test del file superati, inclusi i tre nuovi
+      - Run: `npm run lint`
+      - Expect: superato, incluso il guardrail e2e anti-flakiness
+
+      ## Done
+      - [ ] AC-1 — celle e ordine cronologico delle colonne asseriti su testi visibili ("1", "0,5", "—", etichette mese it-IT)
+      - [ ] AC-2 — colonna "Totale", riga "Totale mese" e quadratura "3,5" con il KPI Erogate asserite a video
+      - [ ] AC-3 — testo esatto "Nessuna attività registrata" visibile per l'offerta senza attività
+      - [ ] AC-4 — contenitore che scorre (`scrollWidth > clientWidth`) e pagina non allargata asseriti via evaluate
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Gate finale di verifica e chiusura spec
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+    body: |-
+      ## Objective
+      Tutte le verifiche focalizzate e di regressione passano sull'albero finale e la spec risulta pronta per la review con ogni task DONE.
+
+      ## Read
+      - docs/wiki/backlog/specs/US-036.md — criteri di accettazione da rileggere prima della chiusura
+
+      ## Change
+      - Nessuna modifica al codice prevista; solo esecuzione verifiche. Se una verifica fallisce, la correzione avviene nel task che possiede il file interessato prima di rieseguire il gate
+
+      ## Steps
+      1. Da /Users/smarello/repo/coaching-planner esegui in sequenza i comandi elencati in Verify: prima le suite focalizzate, poi le regressioni complete. Non dedurre la lista dalle convenzioni del progetto: è quella esatta di Verify.
+      2. Se tutto è verde, marca questo task come DONE tramite il flusso ARchetipo.
+      3. Da /Users/smarello/repo/coaching-planner esegui `archetipo spec show US-036` e verifica nell'envelope che NESSUN task del piano sia ancora TODO (tutti DONE, incluso questo gate).
+      4. Solo dopo questa conferma richiedi la review con `archetipo spec review US-036`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/avanzamento-offerte.test.ts tests/unit/elenca-offerte-con-avanzamento.test.ts`
+      - Expect: tutti superati (suite focalizzate del cambiamento)
+      - Run: `npm run test`
+      - Expect: intera suite unit superata, nessuna regressione
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0 — i file toccati (src/domain/consuntivi/index.ts, src/lib/offerte.ts, src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx, i due test unit, lo spec e2e) non introducono alcun diagnostico rispetto alla baseline verde
+      - Run: `npm run lint`
+      - Expect: superato, incluso il guardrail e2e anti-flakiness
+      - Run: `npx playwright test tests/e2e/dettaglio-avanzamento-offerta.spec.ts tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts`
+      - Expect: superati — copre i nuovi scenari e la regressione del pannello condiviso nell'elenco offerte del cliente
+      - Run: `archetipo spec show US-036` (dopo aver marcato DONE questo gate)
+      - Expect: envelope con tutti i task in stato DONE; solo allora è consentito `archetipo spec review US-036`
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4 — evidenze prodotte dai task TASK-02, TASK-03 e TASK-05 rieseguite con esito verde sull'albero finale
+      - [ ] Nessuna regressione su unit complete, typecheck, lint e sugli e2e del pannello condiviso (rotta trasversale e elenco cliente)
+      - [ ] `archetipo spec show US-036` conferma tutti i task DONE prima della richiesta di review
+
+      ## Blockers
+      None.
+    ref: TASK-06

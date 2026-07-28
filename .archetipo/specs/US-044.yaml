@@ -1,0 +1,45 @@
+schema: archetipo/spec/v2
+code: US-044
+title: Gestione dei collaboratori ingaggiati dalla pagina offerte
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: MEDIUM
+points: 2
+status: DONE
+body: |-
+  #### US-044: Gestione dei collaboratori ingaggiati dalla pagina offerte
+
+  **Epic:** EP-005 | **Priorità:** MEDIUM | **Punti:** 2 | **Stato:** TODO
+  **Bloccata da:** US-042
+
+  **Storia Utente**
+  Come amministratore,
+  voglio gestire dalla pagina di un'offerta l'elenco dei collaboratori ingaggiati su di essa,
+  così da comporre la squadra di un'offerta senza passare dal dettaglio di ogni singolo collaboratore.
+
+  **Dimostrazione**
+  Partendo da un'offerta attiva con un collaboratore già abilitato, il revisore apre la pagina Offerte del back office, raggiunge la gestione dei collaboratori ingaggiati di quell'offerta e osserva il collaboratore già presente nell'elenco. Il revisore ingaggia un secondo collaboratore attivo e osserva che compare nell'elenco; aprendo il dettaglio di quel collaboratore, l'offerta risulta abilitata anche lì. Infine il revisore revoca l'ingaggio del primo collaboratore e osserva che scompare dall'elenco dell'offerta, mentre il secondo resta ingaggiato.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Dalla pagina Offerte l'amministratore raggiunge, per ciascuna offerta, l'elenco dei collaboratori ingaggiati con nome e cognome
+  - [ ] AC-2 — L'amministratore ingaggia un collaboratore attivo sull'offerta e l'abilitazione risulta persistita: il collaboratore compare nell'elenco dopo il ricaricamento
+  - [ ] AC-3 — L'amministratore revoca un ingaggio e il collaboratore non compare più nell'elenco dopo il ricaricamento; gli altri ingaggi dell'offerta restano invariati
+  - [ ] AC-4 — Un'abilitazione creata o revocata dalla pagina offerta è la stessa mostrata nel dettaglio del collaboratore: dopo la modifica, il dettaglio del collaboratore riflette lo stato aggiornato
+
+  **Fuori Perimetro**
+  Il vincolo sull'inserimento delle ore (US-043). Nessuna gestione massiva multi-offerta e nessuna notifica ai collaboratori ingaggiati o revocati.
+
+  **Contesto Wiki**
+  `domains/offerte`, `domains/collaboratori`
+history:
+  - status: TODO
+    at: '2026-07-22T11:57:43Z'
+  - status: PLANNED
+    at: '2026-07-28T06:35:41Z'
+  - status: IN PROGRESS
+    at: '2026-07-28T06:46:07Z'
+  - status: REVIEW
+    at: '2026-07-28T07:12:15Z'
+  - status: DONE
+    at: '2026-07-28T08:36:27Z'
