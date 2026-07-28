@@ -19,6 +19,13 @@
   }
 }
 
+/* Comparsa ritardata dell'indicatore di caricamento: evita il flash sulle transizioni veloci. */
+@keyframes comparsa-caricamento {
+  to {
+    opacity: 1;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

@@ -7,8 +7,6 @@ import {
   tokenMeseCorrente,
   parseTokenMese,
   etichettaMese,
-  mesePrecedente,
-  meseSuccessivo,
   costruisciGrigliaMese,
 } from "@/domain/calendario";
 import CalendarioMensile from "./calendario-mensile";
@@ -45,9 +43,7 @@ export default async function AttivitaPage({
   const parsed = parseTokenMese(tokenRaw);
   const token = parsed ? tokenRaw : tokenMeseCorrente();
 
-  // Navigazione
-  const tokenPrev = mesePrecedente(token);
-  const tokenNext = meseSuccessivo(token);
+  // Navigazione: i token adiacenti sono calcolati lato client dal calendario
   const etichetta = etichettaMese(token);
 
   // Dati del mese
@@ -64,8 +60,6 @@ export default async function AttivitaPage({
   return (
     <CalendarioMensile
       token={token}
-      tokenPrecedente={tokenPrev}
-      tokenSuccessivo={tokenNext}
       etichetta={etichetta}
       griglia={grigliaPlain}
       sintesi={sintesiPlain}

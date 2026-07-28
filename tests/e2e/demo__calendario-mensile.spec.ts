@@ -66,7 +66,7 @@ test.describe("US-011 Demo", () => {
     await expect(btnNext).toBeVisible();
 
     // Pulsante "Mese corrente"
-    const btnOggi = page.getByRole("link", { name: "Mese corrente" });
+    const btnOggi = page.getByRole("button", { name: "Mese corrente" });
     await expect(btnOggi).toBeVisible();
 
     // ── 5. Verifica che la griglia del calendario sia visibile ─────

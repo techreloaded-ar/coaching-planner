@@ -2,7 +2,7 @@
 type: domain
 title: Attività e consuntivazione
 description: Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/lib/actions/righe-attivita.ts
@@ -27,10 +27,10 @@ sources:
       role: verification
     - path: tests/e2e/offerte-abilitate-inserimento.spec.ts
       role: verification
-review:
-    content_hash: sha256:9509bf3ef82ff40f62747fd8dc7d82b5080fe6ae751015f6f8ff9266c8ff86d5
-    evidence_revision: 5fc9a7123a36f4df4547156da614e3de5f037e58
-    reviewed_at: "2026-07-27T12:56:47Z"
+    - path: tests/e2e/calendario-navigazione-reattiva.spec.ts
+      role: verification
+    - path: tests/e2e/calendario-prefetch-mesi.spec.ts
+      role: verification
 ---
 # Attività e consuntivazione
 
@@ -61,7 +61,7 @@ Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni perso
 2. La creazione verifica campi, coerenza offerta-cliente, stato offerta, abilitazione del collaboratore sull'offerta, ore, km/scaglione e formato data, poi `src/lib/actions/righe-attivita.ts` (`creaRiga`) crea una `RigaAttivita` per il collaboratore corrente e assegna esattamente cliente, offerta, data, ore, nota, `fatturabile` e `trasfertaKm`.
 3. `modificaRiga`, `eliminaRiga` e `rimuoviTrasferta` caricano prima la riga corrente e verificano che `RigaAttivita.collaboratoreId` coincida con il collaboratore corrente (`caricaRigaDelCollaboratore`). `rimuoviTrasferta` assegna esattamente `trasfertaKm: null` nello stesso file; l'eliminazione cancella il record e non è una transizione di stato.
 4. `modificaRiga` costruisce un aggiornamento parziale. Assegna `fatturabile` soltanto se il `FormData` contiene il campo; non legge uno stato sorgente né modella transizioni nominate. Quando il form invia un'`offertaId` diversa da quella della riga, `modificaRiga` riverifica coerenza offerta-cliente (usando il cliente del form o, in assenza, quello della riga) e abilitazione sulla nuova offerta, rifiutando l'aggiornamento con errore visibile in caso contrario; a parità di offerta nessuna delle due verifiche viene ripetuta.
-5. La lettura mensile filtra sempre per `collaboratoreId` e intervallo del mese (`orderBy: data asc, createdAt asc`), poi aggrega per giorno: numero righe, ore totali e, per ciascun cliente con attività quel giorno, ragione sociale e ore cumulate su tutte le sue offerte, in ordine di prima apparizione. La cella del calendario mostra fino a due etichette cliente con le ore, oltre le quali compare un indicatore "+N" con i clienti rimanenti; il codice offerta non è più mostrato nella cella.
+5. La lettura mensile filtra sempre per `collaboratoreId` e intervallo del mese (`orderBy: data asc, createdAt asc`), poi aggrega per giorno: numero righe, ore totali e, per ciascun cliente con attività quel giorno, ragione sociale e ore cumulate su tutte le sue offerte, in ordine di prima apparizione. La cella del calendario mostra fino a due etichette cliente con le ore, oltre le quali compare un indicatore "+N" con i clienti rimanenti; il codice offerta non è più mostrato nella cella. I controlli di navigazione mese (precedente, successivo, mese corrente) non sono link ma bottoni che avviano una transizione client-side: la griglia del mese corrente resta visibile durante l'attesa e un indicatore di caricamento copre l'area del calendario finché le celle del nuovo mese non sono valorizzate, mentre il contratto URL `?mese=YYYY-MM` resta invariato e condivisibile. Il calendario prefetcha inoltre i mesi raggiungibili dai controlli, così che il cambio mese sia servito dalla cache client — finestra di circa cinque minuti, solo con il server di produzione, purgata a ogni `revalidatePath` delle server action: si veda la decisione [Prefetch dei mesi adiacenti](/decisions/prefetch-mesi-adiacenti.md).
 6. Il riepilogo somma ore, converte con 8 ore/giorno, include nell'imponibile solo ore fatturabili e aggiunge i rimborsi validi.
 7. Non esiste uno stato lifecycle persistito della riga. Gli esiti del calcolo rimborso non sono transizioni.
 8. Un lettore amministrativo downstream, `storicoAttivitaCollaboratore` in `src/lib/collaboratori.ts`, legge tutte le righe di un collaboratore con cliente e offerta (`orderBy: data asc, createdAt asc`) per la pagina di dettaglio del collaboratore, che le raggruppa per mese solare decrescente con la funzione pura `raggruppaAttivitaPerMese` di `src/domain/consuntivi/index.ts` (totali ore e giornate equivalenti a 8 ore/giornata).
@@ -77,7 +77,7 @@ Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni perso
 | Calendario | `src/domain/calendario/index.ts` |
 | Regole e riepilogo | `src/domain/consuntivi/index.ts` |
 | Dati | `prisma/schema.prisma` (`RigaAttivita`) |
-| Test | `tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/unit/calendario.test.ts`, `tests/unit/riepilogo-mese.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/e2e/calendario-segregazione.spec.ts`, `tests/e2e/offerte-abilitate-inserimento.spec.ts` e scenari attività dedicati |
+| Test | `tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/unit/calendario.test.ts`, `tests/unit/riepilogo-mese.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/e2e/calendario-segregazione.spec.ts`, `tests/e2e/offerte-abilitate-inserimento.spec.ts`, `tests/e2e/calendario-navigazione-reattiva.spec.ts`, `tests/e2e/calendario-prefetch-mesi.spec.ts` e scenari attività dedicati |
 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
@@ -87,7 +87,7 @@ Le ore devono essere maggiori di zero e non superiori a 24 per singola riga; non
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-La suite unit copre segregazione, CRUD, validazioni, calendario, rimborso, riepilogo e l'enforcement dell'abilitazione offerta in `creaRiga`/`modificaRiga` (`tests/unit/righe-attivita-actions.test.ts`) e il filtro della query `offerteAbilitatePerCliente` (`tests/unit/attivita.test.ts`). Gli E2E coprono flussi browser, ma alcuni scenari storici usano seed condivisi mentre i test mutanti recenti adottano factory e risorse riservate; `tests/e2e/offerte-abilitate-inserimento.spec.ts` copre la select filtrata, il messaggio di assenza offerte abilitate e la modifica/eliminazione di una riga storica su offerta non abilitata. Confidenza alta sul comportamento descritto; i limiti server-side sono osservazioni esplicite, non invarianti presunte.
+La suite unit copre segregazione, CRUD, validazioni, calendario, rimborso, riepilogo e l'enforcement dell'abilitazione offerta in `creaRiga`/`modificaRiga` (`tests/unit/righe-attivita-actions.test.ts`) e il filtro della query `offerteAbilitatePerCliente` (`tests/unit/attivita.test.ts`). Gli E2E coprono flussi browser, ma alcuni scenari storici usano seed condivisi mentre i test mutanti recenti adottano factory e risorse riservate; `tests/e2e/offerte-abilitate-inserimento.spec.ts` copre la select filtrata, il messaggio di assenza offerte abilitate e la modifica/eliminazione di una riga storica su offerta non abilitata. La reattività della navigazione mensile è coperta da `tests/e2e/calendario-navigazione-reattiva.spec.ts`, che trattiene la risposta del mese di destinazione per osservare l'indicatore di caricamento; il cache-hit del prefetch è coperto da `tests/e2e/calendario-prefetch-mesi.spec.ts`, che si auto-esclude quando il web server e2e non è di produzione perché in sviluppo il prefetch non è attivo. Confidenza alta sul comportamento descritto; i limiti server-side sono osservazioni esplicite, non invarianti presunte.
 
 ## Concetti correlati
 

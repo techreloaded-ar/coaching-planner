@@ -1,7 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  mesePrecedente,
+  meseSuccessivo,
+  tokenMeseCorrente,
+} from "@/domain/calendario";
 import type { SintesiGiorno } from "@/lib/attivita";
 
 // ── Tipi client (dopo serializzazione RSC → Client) ─────────────
@@ -14,6 +20,18 @@ interface CellaGiornoClient {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
+
+/**
+ * Payload di prefetch completo, equivalente a `<Link prefetch>`.
+ *
+ * Next 16.2.9 dichiara `kind` obbligatorio in `router.prefetch` senza esportare
+ * pubblicamente l'enum `PrefetchKind`, da cui il cast sul tipo del parametro.
+ * Il valore "auto" non basta: `/attivita` è una rotta dinamica, quindi
+ * scaricherebbe il solo guscio statico e non i dati del mese.
+ */
+const PREFETCH_PAYLOAD_COMPLETO = "full" as NonNullable<
+  Parameters<ReturnType<typeof useRouter>["prefetch"]>[1]
+>["kind"];
 
 /** Mantiene il giorno civile delle date del calendario tra server e browser. */
 function dataCalendario(data: Date | string): Date {
@@ -53,8 +71,6 @@ function stessoGiorno(a: Date | string, b: Date | string): boolean {
 
 interface CalendarioMensileProps {
   token: string;
-  tokenPrecedente: string;
-  tokenSuccessivo: string;
   etichetta: string;
   /** Griglia del mese (Date → string dopo serializzazione) */
   griglia: CellaGiornoClient[];
@@ -70,14 +86,73 @@ interface CalendarioMensileProps {
 
 export default function CalendarioMensile({
   token,
-  tokenPrecedente,
-  tokenSuccessivo,
   etichetta,
   griglia,
   sintesi,
   oggi,
 }: CalendarioMensileProps) {
   const oggiDate = new Date(oggi);
+
+  const router = useRouter();
+  const [inCaricamento, avviaTransizione] = useTransition();
+
+  /**
+   * Ultima destinazione richiesta dall'utente: incatena i click rapidi sui
+   * controlli mese, che altrimenti ripartirebbero sempre dal prop `token`
+   * (non ancora aggiornato mentre la transizione è pending).
+   */
+  const ultimaDestinazione = useRef<string | null>(null);
+
+  // Il nuovo mese è arrivato dal server: la catena dei click riparte da qui.
+  useEffect(() => {
+    ultimaDestinazione.current = null;
+  }, [token]);
+
+  /**
+   * Prefetch dei mesi raggiungibili dai controlli di navigazione: in produzione
+   * il cambio mese è servito dalla cache client senza round-trip verso il server.
+   * `onInvalidate` ri-prefetcha quando Next segnala il payload come stantio.
+   */
+  useEffect(() => {
+    const destinazioni = [
+      `/attivita?mese=${mesePrecedente(token)}`,
+      `/attivita?mese=${meseSuccessivo(token)}`,
+      "/attivita",
+    ];
+
+    let annullato = false;
+
+    for (const href of destinazioni) {
+      const prefetch = () => {
+        if (annullato) return;
+        router.prefetch(href, {
+          kind: PREFETCH_PAYLOAD_COMPLETO,
+          onInvalidate: prefetch,
+        });
+      };
+      prefetch();
+    }
+
+    return () => {
+      annullato = true;
+    };
+  }, [token, router]);
+
+  function navigaVersoMese(calcolaDestinazione: (base: string) => string) {
+    const base = ultimaDestinazione.current ?? token;
+    const destinazione = calcolaDestinazione(base);
+    ultimaDestinazione.current = destinazione;
+    avviaTransizione(() => {
+      router.push(`/attivita?mese=${destinazione}`);
+    });
+  }
+
+  function navigaVersoMeseCorrente() {
+    ultimaDestinazione.current = tokenMeseCorrente();
+    avviaTransizione(() => {
+      router.push("/attivita");
+    });
+  }
 
   // Totale mese
   const totaleRighe = useMemo(() => {
@@ -100,9 +175,10 @@ export default function CalendarioMensile({
       {/* ── Barra navigazione mese ── */}
       <div className="mb-[18px] flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2.5">
-          <Link
-            href={`/attivita?mese=${tokenPrecedente}`}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+          <button
+            type="button"
+            onClick={() => navigaVersoMese(mesePrecedente)}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese precedente"
             title="Mese precedente"
           >
@@ -115,7 +191,7 @@ export default function CalendarioMensile({
             >
               <path d="m15 6-6 6 6 6" />
             </svg>
-          </Link>
+          </button>
 
           <div
             data-testid="calendar-month-label"
@@ -124,9 +200,10 @@ export default function CalendarioMensile({
             {etichetta}
           </div>
 
-          <Link
-            href={`/attivita?mese=${tokenSuccessivo}`}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+          <button
+            type="button"
+            onClick={() => navigaVersoMese(meseSuccessivo)}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese successivo"
             title="Mese successivo"
           >
@@ -139,11 +216,12 @@ export default function CalendarioMensile({
             >
               <path d="m9 6 6 6-6 6" />
             </svg>
-          </Link>
+          </button>
 
-          <Link
-            href="/attivita"
-            className="ml-1 inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+          <button
+            type="button"
+            onClick={navigaVersoMeseCorrente}
+            className="ml-1 inline-flex cursor-pointer items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
               viewBox="0 0 24 24"
@@ -156,7 +234,7 @@ export default function CalendarioMensile({
               <path d="M12 8v4l2.5 1.5" />
             </svg>
             Mese corrente
-          </Link>
+          </button>
 
           <Link
             href={`/attivita/riepilogo?mese=${token}`}
@@ -200,9 +278,22 @@ export default function CalendarioMensile({
 
       {/* ── Griglia calendario ── */}
       <section
-        className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+        className="relative overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
         aria-label="Calendario mensile delle attività"
+        aria-busy={inCaricamento}
       >
+        {/* Indicatore di caricamento del nuovo mese (la griglia resta visibile sotto) */}
+        {inCaricamento && (
+          <div
+            data-testid="indicatore-caricamento-mese"
+            role="status"
+            className="absolute inset-0 z-10 flex animate-[comparsa-caricamento_200ms_ease-out_120ms_forwards] items-center justify-center bg-white/60 opacity-0 dark:bg-zinc-900/60"
+          >
+            <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-rose-200 border-t-rose-600 dark:border-rose-900 dark:border-t-rose-400" />
+            <span className="sr-only">Caricamento del mese in corso…</span>
+          </div>
+        )}
+
         {/* Intestazione giorni settimana */}
         <div className="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-700">
           {giorniSettimana.map((nome, i) => (
