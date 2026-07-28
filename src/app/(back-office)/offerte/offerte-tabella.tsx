@@ -4,6 +4,7 @@ import { Fragment, useState, useActionState } from "react";
 import Link from "next/link";
 import { useIdratata } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
+import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
 import DettaglioAvanzamentoOfferta from "./dettaglio-avanzamento-offerta";
 import {
   cambiaStatoOfferta,
@@ -20,26 +21,9 @@ const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
   maximumFractionDigits: 1,
 });
 
-const formattatoreEuro = new Intl.NumberFormat("it-IT", {
-  style: "currency",
-  currency: "EUR",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 /** Formatta un numero di giornate con al massimo un decimale, stile it-IT. */
 function formattaGiornate(valore: number): string {
   return formattatoreGiornate.format(valore);
-}
-
-/** Iniziali della ragione sociale del cliente per l'avatar quadrato. */
-function inizialiCliente(ragioneSociale: string): string {
-  return ragioneSociale
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parola) => parola[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 /** Un'offerta attiva è critica quando ha esaurito o superato il budget. */
@@ -125,7 +109,7 @@ export default function OfferteTabella({
       {/* Tabella trasversale */}
       <div className="overflow-x-auto" data-testid="contenitore-tabella-offerte">
         <table
-          className="w-full table-fixed border-collapse text-[13.5px]"
+          className="w-full min-w-[960px] table-fixed border-collapse text-[13.5px]"
           aria-label="Elenco offerte"
           data-idratata={idratata ? "true" : "false"}
         >
@@ -143,7 +127,7 @@ export default function OfferteTabella({
               <th className="w-[140px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Giorni erogati
               </th>
-              <th className="w-[220px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="w-[360px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Azioni
               </th>
             </tr>
@@ -291,7 +275,7 @@ function RigaOfferta({
 
       {/* Tariffa giornaliera */}
       <td className="px-4 py-[13px] text-right align-middle tabular-nums whitespace-nowrap font-semibold text-zinc-700 dark:text-zinc-200">
-        {formattatoreEuro.format(Number(offerta.tariffaGiornaliera))}
+        {formattaEuro(Number(offerta.tariffaGiornaliera))}
       </td>
 
       {/* Giorni erogati: erogate/previste + mini barra + flag critici */}
@@ -341,12 +325,22 @@ function RigaOfferta({
         </div>
       </td>
 
-      {/* Azioni: modifica, elimina */}
+      {/* Azioni: collaboratori, modifica, elimina */}
       <td
         className="px-4 py-[13px] text-right align-middle whitespace-nowrap"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="inline-flex items-center gap-[2px]">
+          <Link
+            href={`/offerte/${offerta.offertaId}/collaboratori`}
+            className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
+              <path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.4 4.3a3.5 3.5 0 0 1 0 6.8" />
+            </svg>
+            Collaboratori
+          </Link>
+
           <Link
             href={`/offerte/${offerta.offertaId}`}
             className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"

@@ -1,58 +1,66 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useActionState } from "react";
-import type { OffertaAbilitata, OffertaAbilitabile } from "@/lib/abilitazioni";
-import type { StatoAction } from "../actions";
-import { inizialiCliente } from "@/lib/formattazione";
+import type { CollaboratoreIngaggiato, CollaboratoreIngaggiabile } from "@/lib/abilitazioni";
+import type { StatoIngaggiAction } from "./ingaggi-actions";
 import {
-  abilitaCollaboratoreSuOfferte,
-  revocaAbilitazioneCollaboratore,
-} from "./abilitazioni-actions";
+  ingaggiaCollaboratoriSuOfferta,
+  revocaIngaggioCollaboratore,
+} from "./ingaggi-actions";
 
-const statoIniziale: StatoAction = { errori: {} };
+const statoIniziale: StatoIngaggiAction = { errori: {} };
+
+/** Iniziali di nome e cognome per l'avatar tondo del collaboratore. */
+function inizialiPersona(nome: string, cognome: string): string {
+  return `${nome[0] ?? ""}${cognome[0] ?? ""}`.toUpperCase();
+}
 
 // ── Props ───────────────────────────────────────────────────────
 
-interface AbilitazioniOfferteProps {
-  collaboratoreId: string;
-  abilitate: OffertaAbilitata[];
-  abilitabili: OffertaAbilitabile[];
+interface IngaggiCollaboratoriProps {
+  offertaId: string;
+  codiceOfferta: string;
+  ingaggiati: CollaboratoreIngaggiato[];
+  ingaggiabili: CollaboratoreIngaggiabile[];
 }
 
-// ── Sezione "Offerte abilitate" ─────────────────────────────────
+// ── Sezione "Collaboratori ingaggiati" ──────────────────────────
 
-export default function AbilitazioniOfferte({
-  collaboratoreId,
-  abilitate,
-  abilitabili,
-}: AbilitazioniOfferteProps) {
+export default function IngaggiCollaboratori({
+  offertaId,
+  codiceOfferta,
+  ingaggiati,
+  ingaggiabili,
+}: IngaggiCollaboratoriProps) {
   const [dialogAperto, setDialogAperto] = useState(false);
   const chiudiDialog = useCallback(() => setDialogAperto(false), []);
 
   return (
-    <section aria-labelledby="titolo-offerte-abilitate" className="mb-[22px]">
+    <section aria-labelledby="titolo-collaboratori-ingaggiati" className="mb-[22px]">
       <div className="mb-[14px] flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-[11px]">
           <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[18px] w-[18px]" strokeWidth={2}>
-              <path d="M9 12l2 2 4-4" />
-              <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" />
+              <circle cx="9" cy="8" r="3.4" />
+              <path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0" />
+              <circle cx="17.2" cy="9.4" r="2.6" />
+              <path d="M15.4 14.6a5 5 0 0 1 5.8 4.8" />
             </svg>
           </span>
           <div>
-            <h2 id="titolo-offerte-abilitate" className="text-[17px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
-              Offerte abilitate
+            <h2 id="titolo-collaboratori-ingaggiati" className="text-[17px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+              Collaboratori ingaggiati
             </h2>
             <p className="mt-[1px] text-[12.5px] text-zinc-400 dark:text-zinc-500">
-              Offerte su cui il collaboratore può inserire ore
+              Chi può inserire ore su questa offerta
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
-            <b className="tabular-nums text-zinc-600 dark:text-zinc-300">{abilitate.length}</b>{" "}
-            {abilitate.length === 1 ? "offerta abilitata" : "offerte abilitate"}
+            <b className="tabular-nums text-zinc-600 dark:text-zinc-300">{ingaggiati.length}</b>{" "}
+            {ingaggiati.length === 1 ? "collaboratore ingaggiato" : "collaboratori ingaggiati"}
           </span>
           <button
             type="button"
@@ -62,38 +70,36 @@ export default function AbilitazioniOfferte({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            Abilita offerte
+            Ingaggia collaboratori
           </button>
         </div>
       </div>
 
-      {abilitate.length === 0 ? (
+      {ingaggiati.length === 0 ? (
         <StatoVuoto />
       ) : (
         <section className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <table className="w-full border-collapse text-[13.5px]" aria-label="Offerte abilitate">
+          <table className="w-full border-collapse text-[13.5px]" aria-label="Collaboratori ingaggiati">
             <thead>
               <tr>
                 <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                  Offerta
+                  Collaboratore
                 </th>
-                <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                  Cliente
-                </th>
-                <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                <th className="w-[170px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                   Stato
                 </th>
-                <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                <th className="w-[140px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                   Azioni
                 </th>
               </tr>
             </thead>
             <tbody>
-              {abilitate.map((offerta) => (
-                <RigaOffertaAbilitata
-                  key={offerta.offertaId}
-                  offerta={offerta}
-                  collaboratoreId={collaboratoreId}
+              {ingaggiati.map((collaboratore) => (
+                <RigaCollaboratoreIngaggiato
+                  key={collaboratore.collaboratoreId}
+                  collaboratore={collaboratore}
+                  offertaId={offertaId}
+                  codiceOfferta={codiceOfferta}
                 />
               ))}
             </tbody>
@@ -101,9 +107,10 @@ export default function AbilitazioniOfferte({
         </section>
       )}
 
-      <DialogAbilita
-        collaboratoreId={collaboratoreId}
-        abilitabili={abilitabili}
+      <DialogIngaggia
+        offertaId={offertaId}
+        codiceOfferta={codiceOfferta}
+        ingaggiabili={ingaggiabili}
         aperto={dialogAperto}
         onChiudi={chiudiDialog}
       />
@@ -113,54 +120,61 @@ export default function AbilitazioniOfferte({
 
 // ── Riga con azione di revoca ───────────────────────────────────
 
-function RigaOffertaAbilitata({
-  offerta,
-  collaboratoreId,
+function RigaCollaboratoreIngaggiato({
+  collaboratore,
+  offertaId,
+  codiceOfferta,
 }: {
-  offerta: OffertaAbilitata;
-  collaboratoreId: string;
+  collaboratore: CollaboratoreIngaggiato;
+  offertaId: string;
+  codiceOfferta: string;
 }) {
-  const [, azione] = useActionState(revocaAbilitazioneCollaboratore, statoIniziale);
+  const [statoRevoca, azione] = useActionState(revocaIngaggioCollaboratore, statoIniziale);
+  const nomeCompleto = `${collaboratore.nome} ${collaboratore.cognome}`;
 
   return (
     <tr className="border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800/60 dark:hover:bg-zinc-800/50">
       <td className="px-4 py-[13px] align-middle">
-        <span className="block text-[12px] font-semibold text-indigo-600 dark:text-indigo-400">
-          {offerta.codice}
-        </span>
-        <span className="text-[12.5px] text-zinc-600 dark:text-zinc-300">
-          {offerta.descrizione}
-        </span>
-      </td>
-      <td className="px-4 py-[13px] align-middle">
         <div className="flex min-w-0 items-center gap-[10px]">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] border border-zinc-200 bg-zinc-50 text-[11px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
-            {inizialiCliente(offerta.clienteRagioneSociale)}
+          <span
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+              collaboratore.collaboratoreAttivo
+                ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
+                : "border border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+            }`}
+          >
+            {inizialiPersona(collaboratore.nome, collaboratore.cognome)}
           </span>
-          <span className="min-w-0 truncate text-[13.5px] text-zinc-700 dark:text-zinc-200" title={offerta.clienteRagioneSociale}>
-            {offerta.clienteRagioneSociale}
+          <span className="min-w-0">
+            <span className="block truncate text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100" title={nomeCompleto}>
+              {nomeCompleto}
+            </span>
+            <span className="block truncate text-[12px] text-zinc-400 dark:text-zinc-500">
+              {collaboratore.email}
+            </span>
           </span>
         </div>
       </td>
       <td className="px-4 py-[13px] align-middle">
-        {offerta.offertaAttiva ? (
+        {collaboratore.collaboratoreAttivo ? (
           <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
             <span className="h-[6px] w-[6px] rounded-full bg-current" />
-            Abilitata
+            Attivo
           </span>
         ) : (
           <span className="inline-flex items-center gap-[5px] rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
             <span className="h-[6px] w-[6px] rounded-full bg-current" />
-            Non attiva
+            Disattivato
           </span>
         )}
       </td>
       <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
         <form action={azione} className="inline">
-          <input type="hidden" name="collaboratoreId" value={collaboratoreId} />
-          <input type="hidden" name="offertaId" value={offerta.offertaId} />
+          <input type="hidden" name="offertaId" value={offertaId} />
+          <input type="hidden" name="collaboratoreId" value={collaboratore.collaboratoreId} />
           <button
             type="submit"
+            aria-label={`Revoca l'ingaggio di ${nomeCompleto} sull'offerta ${codiceOfferta}`}
             className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
@@ -169,6 +183,11 @@ function RigaOffertaAbilitata({
             Revoca
           </button>
         </form>
+        {statoRevoca.errori?._form && (
+          <p role="alert" className="mt-1 text-[11.5px] font-semibold whitespace-normal text-red-600 dark:text-red-400">
+            {statoRevoca.errori._form}
+          </p>
+        )}
       </td>
     </tr>
   );
@@ -181,16 +200,19 @@ function StatoVuoto() {
     <div className="rounded-[11px] border border-zinc-200 bg-white px-5 py-10 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="mx-auto mb-3 flex h-[42px] w-[42px] items-center justify-center rounded-[12px] bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5" strokeWidth={1.9}>
-          <path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
-          <path d="M14 3v6h6M8 13h8M8 17h5" />
+          <circle cx="9" cy="8" r="3.4" />
+          <path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0" />
+          <circle cx="17.2" cy="9.4" r="2.6" />
+          <path d="M15.4 14.6a5 5 0 0 1 5.8 4.8" />
         </svg>
       </div>
       <p className="m-0 text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
-        Nessuna offerta abilitata.
+        Nessun collaboratore ingaggiato
       </p>
       <p className="mx-auto mt-[6px] max-w-[440px] text-[13px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-        Usa &quot;Abilita offerte&quot; per selezionare le offerte attive su cui il
-        collaboratore potrà inserire ore.
+        Su questa offerta non è ancora ingaggiato nessuno. Usa &quot;Ingaggia
+        collaboratori&quot; per scegliere fra i collaboratori attivi chi comporrà la
+        squadra.
       </p>
     </div>
   );
@@ -198,20 +220,22 @@ function StatoVuoto() {
 
 // ── Dialog di ricerca e selezione multipla ──────────────────────
 
-function DialogAbilita({
-  collaboratoreId,
-  abilitabili,
+function DialogIngaggia({
+  offertaId,
+  codiceOfferta,
+  ingaggiabili,
   aperto,
   onChiudi,
 }: {
-  collaboratoreId: string;
-  abilitabili: OffertaAbilitabile[];
+  offertaId: string;
+  codiceOfferta: string;
+  ingaggiabili: CollaboratoreIngaggiabile[];
   aperto: boolean;
   onChiudi: () => void;
 }) {
   const [ricerca, setRicerca] = useState("");
-  const [selezionate, setSelezionate] = useState<Set<string>>(new Set());
-  const [stato, azione] = useActionState(abilitaCollaboratoreSuOfferte, statoIniziale);
+  const [selezionati, setSelezionati] = useState<Set<string>>(new Set());
+  const [stato, azione] = useActionState(ingaggiaCollaboratoriSuOfferta, statoIniziale);
   const campoRicercaRef = useRef<HTMLInputElement>(null);
 
   // Ripristina ricerca e selezione a ogni transizione di apertura/chiusura.
@@ -219,10 +243,10 @@ function DialogAbilita({
   if (aperto !== aperturaPrecedente) {
     setAperturaPrecedente(aperto);
     setRicerca("");
-    setSelezionate(new Set());
+    setSelezionati(new Set());
   }
 
-  // Chiude il dialog alla riuscita dell'abilitazione.
+  // Chiude il dialog alla riuscita dell'ingaggio.
   useEffect(() => {
     if (stato.successo) {
       onChiudi();
@@ -239,37 +263,39 @@ function DialogAbilita({
   const filtroLower = ricerca.trim().toLowerCase();
   const risultati = useMemo(
     () =>
-      abilitabili.filter(
-        (offerta) =>
+      ingaggiabili.filter(
+        (collaboratore) =>
           !filtroLower ||
-          offerta.codice.toLowerCase().includes(filtroLower) ||
-          offerta.descrizione.toLowerCase().includes(filtroLower) ||
-          offerta.clienteRagioneSociale.toLowerCase().includes(filtroLower),
+          collaboratore.nome.toLowerCase().includes(filtroLower) ||
+          collaboratore.cognome.toLowerCase().includes(filtroLower),
       ),
-    [abilitabili, filtroLower],
+    [ingaggiabili, filtroLower],
   );
 
-  function commuta(offertaId: string, scelta: boolean) {
-    setSelezionate((precedenti) => {
+  function commuta(collaboratoreId: string, scelta: boolean) {
+    setSelezionati((precedenti) => {
       const successivi = new Set(precedenti);
       if (scelta) {
-        successivi.add(offertaId);
+        successivi.add(collaboratoreId);
       } else {
-        successivi.delete(offertaId);
+        successivi.delete(collaboratoreId);
       }
       return successivi;
     });
   }
 
-  const numeroSelezionate = selezionate.size;
+  const numeroSelezionati = selezionati.size;
 
-  // Le offerte selezionate che il filtro di ricerca corrente nasconde non hanno
-  // un checkbox montato nel DOM: senza un input nascosto la submit nativa del
-  // form le perderebbe silenziosamente non appena l'utente cambia ricerca.
-  const idVisibili = useMemo(() => new Set(risultati.map((offerta) => offerta.offertaId)), [risultati]);
-  const selezionateNonVisibili = useMemo(
-    () => [...selezionate].filter((offertaId) => !idVisibili.has(offertaId)),
-    [selezionate, idVisibili],
+  // I collaboratori selezionati che il filtro di ricerca corrente nasconde non
+  // hanno un checkbox montato nel DOM: senza un input nascosto la submit nativa
+  // del form li perderebbe silenziosamente al cambio di ricerca.
+  const idVisibili = useMemo(
+    () => new Set(risultati.map((collaboratore) => collaboratore.collaboratoreId)),
+    [risultati],
+  );
+  const selezionatiNonVisibili = useMemo(
+    () => [...selezionati].filter((collaboratoreId) => !idVisibili.has(collaboratoreId)),
+    [selezionati, idVisibili],
   );
 
   return (
@@ -279,7 +305,7 @@ function DialogAbilita({
       }`}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="titolo-dialog-abilita"
+      aria-labelledby="titolo-dialog-ingaggia"
       aria-hidden={!aperto}
       onClick={(e) => {
         if (e.target === e.currentTarget) onChiudi();
@@ -297,16 +323,17 @@ function DialogAbilita({
         <div className="flex items-start gap-[11px] border-b border-zinc-200 px-[20px] py-[16px] dark:border-zinc-800">
           <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[18px] w-[18px]" strokeWidth={2}>
-              <path d="M9 12l2 2 4-4" />
-              <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" />
+              <circle cx="9" cy="8" r="3.4" />
+              <path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0" />
+              <path d="M18 8.4v5.2M15.4 11h5.2" />
             </svg>
           </span>
           <div className="min-w-0 flex-1">
-            <h3 id="titolo-dialog-abilita" className="text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
-              Abilita offerte
+            <h3 id="titolo-dialog-ingaggia" className="text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
+              Ingaggia collaboratori
             </h3>
             <p className="mt-[1px] text-[12.5px] text-zinc-500 dark:text-zinc-400">
-              Seleziona le offerte attive su cui abilitare il collaboratore.
+              Seleziona i collaboratori attivi da ingaggiare sull&apos;offerta {codiceOfferta}.
             </p>
           </div>
           <button
@@ -333,20 +360,20 @@ function DialogAbilita({
               type="search"
               value={ricerca}
               onChange={(e) => setRicerca(e.target.value)}
-              placeholder="Cerca per codice, descrizione o cliente…"
-              aria-label="Cerca offerta"
+              placeholder="Cerca per nome o cognome…"
+              aria-label="Cerca collaboratori"
               className="w-full border-0 bg-transparent font-[inherit] text-[13.5px] text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
             />
           </label>
         </div>
 
         <form action={azione} className="flex min-h-0 flex-1 flex-col">
-          <input type="hidden" name="collaboratoreId" value={collaboratoreId} />
-          {selezionateNonVisibili.map((offertaId) => (
-            <input key={offertaId} type="hidden" name="offertaId" value={offertaId} />
+          <input type="hidden" name="offertaId" value={offertaId} />
+          {selezionatiNonVisibili.map((collaboratoreId) => (
+            <input key={collaboratoreId} type="hidden" name="collaboratoreId" value={collaboratoreId} />
           ))}
 
-          {/* Elenco offerte selezionabili */}
+          {/* Elenco collaboratori selezionabili */}
           <div className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[14px]">
             {risultati.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-10 text-center text-zinc-400 dark:text-zinc-500">
@@ -354,16 +381,20 @@ function DialogAbilita({
                   <circle cx="11" cy="11" r="7" />
                   <path d="m21 21-4.3-4.3" />
                 </svg>
-                <p className="m-0 text-[13px] font-medium">Nessuna offerta trovata.</p>
+                <p className="m-0 text-[13px] font-medium">
+                  {ingaggiabili.length === 0
+                    ? "Tutti i collaboratori attivi sono già ingaggiati su questa offerta."
+                    : "Nessun collaboratore attivo corrisponde alla ricerca."}
+                </p>
               </div>
             ) : (
               <div className="flex flex-col gap-[8px]">
-                {risultati.map((offerta) => {
-                  const scelta = selezionate.has(offerta.offertaId);
+                {risultati.map((collaboratore) => {
+                  const scelta = selezionati.has(collaboratore.collaboratoreId);
                   return (
                     <label
-                      key={offerta.offertaId}
-                      className={`flex cursor-pointer items-start gap-[11px] rounded-[11px] border px-[13px] py-[11px] transition ${
+                      key={collaboratore.collaboratoreId}
+                      className={`flex cursor-pointer items-center gap-[11px] rounded-[11px] border px-[13px] py-[11px] transition ${
                         scelta
                           ? "border-indigo-300 bg-indigo-50 dark:border-indigo-500/40 dark:bg-indigo-500/10"
                           : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800/50"
@@ -371,23 +402,21 @@ function DialogAbilita({
                     >
                       <input
                         type="checkbox"
-                        name="offertaId"
-                        value={offerta.offertaId}
+                        name="collaboratoreId"
+                        value={collaboratore.collaboratoreId}
                         checked={scelta}
-                        onChange={(e) => commuta(offerta.offertaId, e.target.checked)}
-                        className="mt-[3px] h-[16px] w-[16px] shrink-0 accent-indigo-500"
+                        onChange={(e) => commuta(collaboratore.collaboratoreId, e.target.checked)}
+                        className="h-[16px] w-[16px] shrink-0 accent-indigo-500"
                       />
-                      <span className="min-w-0 flex-1 leading-[1.4]">
-                        <span className="flex flex-wrap items-center gap-x-[9px] gap-y-[2px]">
-                          <span className="text-[12px] font-semibold text-indigo-600 dark:text-indigo-400">
-                            {offerta.codice}
-                          </span>
-                          <span className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
-                            {offerta.descrizione}
-                          </span>
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        {inizialiPersona(collaboratore.nome, collaboratore.cognome)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
+                          {collaboratore.nome} {collaboratore.cognome}
                         </span>
-                        <span className="mt-[2px] block text-[12px] text-zinc-500 dark:text-zinc-400">
-                          {offerta.clienteRagioneSociale}
+                        <span className="block truncate text-[11.5px] text-zinc-400 dark:text-zinc-500">
+                          {collaboratore.email}
                         </span>
                       </span>
                     </label>
@@ -411,8 +440,8 @@ function DialogAbilita({
           {/* Piè di pagina */}
           <div className="flex flex-wrap items-center justify-end gap-[9px] border-t border-zinc-200 px-[20px] py-[14px] dark:border-zinc-800">
             <span className="mr-auto text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
-              <b className="tabular-nums text-zinc-600 dark:text-zinc-300">{numeroSelezionate}</b>{" "}
-              {numeroSelezionate === 1 ? "offerta selezionata" : "offerte selezionate"}
+              <b className="tabular-nums text-zinc-600 dark:text-zinc-300">{numeroSelezionati}</b>{" "}
+              {numeroSelezionati === 1 ? "collaboratore selezionato" : "collaboratori selezionati"}
             </span>
             <button
               type="button"
@@ -423,13 +452,13 @@ function DialogAbilita({
             </button>
             <button
               type="submit"
-              disabled={numeroSelezionate === 0}
+              disabled={numeroSelezionati === 0}
               className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>
-              Abilita selezionate
+              Ingaggia selezionati
             </button>
           </div>
         </form>

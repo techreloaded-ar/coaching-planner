@@ -5,6 +5,7 @@ import { collaboratorePerId, storicoAttivitaCollaboratore } from "@/lib/collabor
 import { elencaOfferteAbilitate, elencaOfferteAbilitabili } from "@/lib/abilitazioni";
 import { raggruppaAttivitaPerMese, type RigaStoricoAttivita } from "@/domain/consuntivi";
 import { etichettaMese } from "@/domain/calendario";
+import { formattaEuro } from "@/lib/formattazione";
 import AbilitazioniOfferte from "./abilitazioni-offerte";
 
 // ── Utilità ────────────────────────────────────────────────────
@@ -15,10 +16,6 @@ function formattaDataISO(data: Date): string {
   const m = String(data.getMonth() + 1).padStart(2, "0");
   const g = String(data.getDate()).padStart(2, "0");
   return `${a}-${m}-${g}`;
-}
-
-function formattaEuro(valore: number) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(valore);
 }
 
 const formattaNumero = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 });

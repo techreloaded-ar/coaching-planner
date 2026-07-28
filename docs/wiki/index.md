@@ -96,7 +96,7 @@
 
 ## Decisions
 
-* [Abilitazioni esplicite collaboratore-offerta](decisions/abilitazioni-offerte-esplicite.md) - Persistere l'ingaggio collaboratore-offerta in una tabella dedicata, revocabile, con pre-popolamento una tantum. _State: reviewed._
+* [Abilitazioni esplicite collaboratore-offerta](decisions/abilitazioni-offerte-esplicite.md) - Persistere l'ingaggio collaboratore-offerta in una tabella dedicata, revocabile, con pre-popolamento una tantum. _State: stale._
 * [Autorità sul ruolo nel DAL](decisions/autorita-ruolo-dal.md) - Il proxy garantisce la sola autenticazione; il ruolo autorevole è quello a database letto dal DAL a ogni accesso protetto. _State: reviewed._
 * [Calcoli di dominio in funzioni pure](decisions/calcoli-puri.md) - Isolare validazioni e calcoli di consuntivazione in funzioni pure testabili. _State: reviewed._
 * [Connessione al database senza TLS (rischio accettato)](decisions/connessione-db-senza-tls.md) - Accettazione consapevole del rischio di connessione in chiaro tra Vercel e il PostgreSQL SiteGround, in attesa del supporto TLS del provider. _State: generated._
@@ -119,7 +119,7 @@
 
 ## Engineering
 
-* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: reviewed._
+* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: stale._
 
 ## Operations
 
