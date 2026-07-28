@@ -98,7 +98,7 @@ export async function aggiornaCollaboratore(
 
     await tx.utente.update({
       where: { id: collaboratoreEsistente.userId },
-      data: { nome: `${dati.nome} ${dati.cognome}` },
+      data: { nome: dati.nome, cognome: dati.cognome },
     });
   });
 

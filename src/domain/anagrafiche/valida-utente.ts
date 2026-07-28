@@ -41,10 +41,11 @@ const RE_EMAIL =
  * Valida i dati di censimento di un utente con ruoli combinabili
  * (Amministratore e/o Collaboratore).
  *
- * Quando il ruolo Collaboratore è selezionato, i campi profilo (cognome,
- * partita IVA, tariffa giornaliera) sono validati con gli identici controlli
- * e messaggi dell'anagrafica collaboratori. Se il ruolo Collaboratore non è
- * selezionato, i campi profilo vengono ignorati.
+ * Il cognome è un campo anagrafico ed è sempre obbligatorio, a prescindere
+ * dai ruoli selezionati. Quando il ruolo Collaboratore è selezionato, i campi
+ * profilo (partita IVA, tariffa giornaliera) sono validati con gli identici
+ * controlli e messaggi dell'anagrafica collaboratori. Se il ruolo
+ * Collaboratore non è selezionato, i campi profilo vengono ignorati.
  *
  * Restituisce `{}` se tutti i controlli passano.
  */
@@ -55,6 +56,10 @@ export function validaCensimentoUtente(
 
   if (!dati.nome || dati.nome.trim() === "") {
     errori.nome = "Il nome è obbligatorio";
+  }
+
+  if (!dati.cognome || dati.cognome.trim() === "") {
+    errori.cognome = "Il cognome è obbligatorio";
   }
 
   if (!dati.email || dati.email.trim() === "") {
@@ -68,10 +73,6 @@ export function validaCensimentoUtente(
   }
 
   if (dati.ruoloCollaboratore) {
-    if (!dati.cognome || dati.cognome.trim() === "") {
-      errori.cognome = "Il cognome è obbligatorio";
-    }
-
     const errorePartitaIva = validaCampoPartitaIva(dati.partitaIva);
     if (errorePartitaIva) {
       errori.partitaIva = errorePartitaIva;
@@ -92,12 +93,14 @@ export function validaCensimentoUtente(
  * Valida i dati di modifica di un utente con ruoli a checkbox
  * (Amministratore e/o Collaboratore).
  *
- * I campi profilo (cognome, partita IVA, tariffa giornaliera) sono obbligatori
- * e validati con gli identici controlli e messaggi dell'anagrafica
- * collaboratori solo quando il ruolo Collaboratore è selezionato E il profilo
- * collaboratore non è ancora presente (`profiloPresente: false`). Se il profilo
- * esiste già (`profiloPresente: true`) i campi profilo vengono sempre ignorati,
- * così come quando il ruolo Collaboratore non è selezionato.
+ * Il cognome è un campo anagrafico ed è sempre obbligatorio, a prescindere
+ * dai ruoli selezionati e dallo stato del profilo collaboratore. I campi
+ * profilo (partita IVA, tariffa giornaliera) sono obbligatori e validati con
+ * gli identici controlli e messaggi dell'anagrafica collaboratori solo
+ * quando il ruolo Collaboratore è selezionato E il profilo collaboratore non
+ * è ancora presente (`profiloPresente: false`). Se il profilo esiste già
+ * (`profiloPresente: true`) i campi profilo vengono sempre ignorati, così
+ * come quando il ruolo Collaboratore non è selezionato.
  *
  * Restituisce `{}` se tutti i controlli passano.
  */
@@ -108,6 +111,10 @@ export function validaModificaUtente(
 
   if (!dati.nome || dati.nome.trim() === "") {
     errori.nome = "Il nome è obbligatorio";
+  }
+
+  if (!dati.cognome || dati.cognome.trim() === "") {
+    errori.cognome = "Il cognome è obbligatorio";
   }
 
   if (!dati.email || dati.email.trim() === "") {
@@ -121,10 +128,6 @@ export function validaModificaUtente(
   }
 
   if (dati.ruoloCollaboratore && !dati.profiloPresente) {
-    if (!dati.cognome || dati.cognome.trim() === "") {
-      errori.cognome = "Il cognome è obbligatorio";
-    }
-
     const errorePartitaIva = validaCampoPartitaIva(dati.partitaIva);
     if (errorePartitaIva) {
       errori.partitaIva = errorePartitaIva;

@@ -17,7 +17,7 @@
  *   - Se esiste già un Utente con l'email indicata, lo script non esegue
  *     alcuna scrittura: si limita a segnalarlo in output e termina con successo.
  *   - Se l'utente non esiste, viene creato con ruolo AMMINISTRATORE, nome
- *     predefinito non vuoto e stato attivo (default di schema).
+ *     e cognome predefiniti non vuoti e stato attivo (default di schema).
  *   - Lo script non promuove né riattiva utenti già censiti: agisce solo in
  *     assenza di un Utente con quella email.
  */
@@ -28,7 +28,8 @@ import { PrismaClient } from "../src/generated/prisma/client";
 
 // ── Costanti ──────────────────────────────────────────────────────
 
-export const NOME_PREDEFINITO_AMMINISTRATORE = "Amministratore Iniziale";
+export const NOME_PREDEFINITO_AMMINISTRATORE = "Amministratore";
+export const COGNOME_PREDEFINITO_AMMINISTRATORE = "Iniziale";
 
 // ── Validazione input (esportata per testabilità) ────────────────
 
@@ -56,6 +57,7 @@ export function validaEmailAmministratoreIniziale(
 interface UtenteBootstrap {
 	id: string;
 	nome: string;
+	cognome: string;
 	email: string;
 	ruolo: string;
 }
@@ -71,7 +73,12 @@ export interface ClientBootstrap {
 			where: { email: string };
 		}): Promise<UtenteBootstrap | null>;
 		create(args: {
-			data: { nome: string; email: string; ruolo: "AMMINISTRATORE" };
+			data: {
+				nome: string;
+				cognome: string;
+				email: string;
+				ruolo: "AMMINISTRATORE";
+			};
 		}): Promise<UtenteBootstrap>;
 	};
 }
@@ -95,6 +102,7 @@ export async function eseguiBootstrapAmministratoreIniziale(
 	const utenteCreato = await client.utente.create({
 		data: {
 			nome: NOME_PREDEFINITO_AMMINISTRATORE,
+			cognome: COGNOME_PREDEFINITO_AMMINISTRATORE,
 			email,
 			ruolo: "AMMINISTRATORE",
 		},

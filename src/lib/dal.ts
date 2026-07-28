@@ -34,6 +34,7 @@ async function _risolviSessione(): Promise<SessioneUtente | null> {
       id: true,
       ruolo: true,
       nome: true,
+      cognome: true,
       email: true,
       attivo: true,
       collaboratore: { select: { attivo: true } },
@@ -59,7 +60,7 @@ async function _risolviSessione(): Promise<SessioneUtente | null> {
   return {
     utenteId: utente.id,
     ruolo: utente.ruolo as Ruolo,
-    nome: utente.nome,
+    nome: `${utente.nome} ${utente.cognome}`,
     email: utente.email,
   };
 }

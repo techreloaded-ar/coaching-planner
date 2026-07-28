@@ -68,6 +68,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         id: true,
         ruolo: true,
         nome: true,
+        cognome: true,
         email: true,
         attivo: true,
         collaboratore: { select: { attivo: true } },
@@ -117,7 +118,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     await createSession(
       utente.id,
       utente.ruolo as Ruolo,
-      utente.nome,
+      `${utente.nome} ${utente.cognome}`,
       utente.email
     );
 

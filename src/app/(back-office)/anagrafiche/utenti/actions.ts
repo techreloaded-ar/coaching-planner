@@ -156,9 +156,8 @@ export async function creaUtente(
 
       const utente = await tx.utente.create({
         data: {
-          nome: dati.ruoloCollaboratore
-            ? `${dati.nome} ${dati.cognome}`
-            : dati.nome,
+          nome: dati.nome,
+          cognome: dati.cognome,
           email: dati.email,
           ruolo: dati.ruoloAmministratore ? "AMMINISTRATORE" : "COLLABORATORE",
         },
@@ -300,7 +299,8 @@ export async function aggiornaUtente(
             data: {
               email: dati.email,
               ruolo: nuovoRuolo,
-              nome: creaProfilo ? `${dati.nome} ${dati.cognome}` : dati.nome,
+              nome: dati.nome,
+              cognome: dati.cognome,
             },
           });
 
@@ -325,7 +325,7 @@ export async function aggiornaUtente(
           ) {
             await tx.collaboratore.update({
               where: { userId: id },
-              data: { attivo: true },
+              data: { attivo: true, nome: dati.nome, cognome: dati.cognome },
             });
             profiloModificato = true;
           } else if (
@@ -335,7 +335,17 @@ export async function aggiornaUtente(
           ) {
             await tx.collaboratore.update({
               where: { userId: id },
-              data: { attivo: false },
+              data: { attivo: false, nome: dati.nome, cognome: dati.cognome },
+            });
+            profiloModificato = true;
+          } else if (profiloAttuale !== null) {
+            // Nessuna transizione di stato del profilo: manteniamo comunque
+            // Collaboratore.nome/cognome allineati all'anagrafica utente
+            // aggiornata nella stessa transazione, per evitare divergenze
+            // tra le due schede senza toccare il flag `attivo`.
+            await tx.collaboratore.update({
+              where: { userId: id },
+              data: { nome: dati.nome, cognome: dati.cognome },
             });
             profiloModificato = true;
           }

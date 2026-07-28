@@ -44,6 +44,10 @@ async function apriElencoUtenti(page: Page): Promise<void> {
  * l'altra continuiamo a cliccare, con `expect.poll` (nessun hard wait), invece
  * di ispezionare un dettaglio interno di React come `__reactFiber$`. Una volta
  * idratato, ogni click sincronizza subito i due, quindi il ciclo converge.
+ *
+ * L'indicatore di comparsa/scomparsa della sezione "Profilo collaboratore" è
+ * il campo Partita IVA (non più Cognome dopo US-048: il cognome è nella
+ * sezione Anagrafica, sempre presente indipendentemente dal ruolo).
  */
 async function impostaRuolo(
 	page: Page,
@@ -55,7 +59,7 @@ async function impostaRuolo(
 	const checkbox = gruppoRuolo.getByRole("checkbox", {
 		name: new RegExp(`^${etichetta}\\b`),
 	});
-	const sezioneProfilo = page.getByLabel(/^Cognome\b/);
+	const sezioneProfilo = page.getByLabel(/^Partita IVA\b/);
 
 	async function ruoloImpostatoCorrettamente(): Promise<boolean> {
 		const checkboxOk = (await checkbox.isChecked()) === selezionato;
@@ -142,14 +146,16 @@ test.describe("Gestione utenti", () => {
 		factory,
 	}) => {
 		const utente = await factory.createUtente({
-			nome: `${factory.namespace} Utente elenco`,
+			nome: `${factory.namespace} Utente`,
+			cognome: "Elenco",
 			email: `${factory.namespace}-elenco@e2e.invalid`,
 			ruolo: "COLLABORATORE",
 		});
 		const collaboratoreDisattivato = await factory.createCollaboratore({
 			attivo: false,
 			utenteOptions: {
-				nome: `${factory.namespace} Profilo disattivato`,
+				nome: `${factory.namespace} Profilo`,
+				cognome: "Disattivato",
 				email: `${factory.namespace}-profilo-disattivato@e2e.invalid`,
 				ruolo: "COLLABORATORE",
 			},
@@ -160,7 +166,9 @@ test.describe("Gestione utenti", () => {
 		await filtraUtenti(page, utente.nome);
 		const riga = rigaUtente(page, utente.email);
 		await expect(riga).toHaveCount(1);
-		await expect(riga.getByText(utente.nome, { exact: true })).toBeVisible();
+		await expect(
+			riga.getByText(`${utente.nome} ${utente.cognome}`, { exact: true }),
+		).toBeVisible();
 		await expect(riga.getByText(utente.email, { exact: true })).toBeVisible();
 		await expect(
 			riga.getByText("Collaboratore", { exact: true }),
@@ -187,6 +195,7 @@ test.describe("Gestione utenti", () => {
 		factory,
 	}) => {
 		const nome = `${factory.namespace} Nuovo utente`;
+		const cognome = "Rossi";
 		const email = `${factory.namespace}-censito@e2e.invalid`;
 
 		await apriElencoUtenti(page);
@@ -198,9 +207,13 @@ test.describe("Gestione utenti", () => {
 		).toBeVisible();
 
 		await page.getByLabel(/^Nome\b/).fill(nome);
+		await page.getByLabel(/^Cognome\b/).fill(cognome);
 		await page.getByLabel(/^Email di accesso\b/).fill(email);
-		await impostaRuolo(page, "Amministratore", true);
+		// Si toglie prima Collaboratore (selezionato di default) e solo dopo si
+		// aggiunge Amministratore: stesso ordine usato nel resto della suite,
+		// che converge in modo deterministico con l'idratazione del form.
 		await impostaRuolo(page, "Collaboratore", false);
+		await impostaRuolo(page, "Amministratore", true);
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
@@ -212,7 +225,9 @@ test.describe("Gestione utenti", () => {
 		await filtraUtenti(page, email);
 		const riga = rigaUtente(page, email);
 		await expect(riga).toHaveCount(1);
-		await expect(riga.getByText(nome, { exact: true })).toBeVisible();
+		await expect(
+			riga.getByText(`${nome} ${cognome}`, { exact: true }),
+		).toBeVisible();
 		await expect(riga.getByText(email, { exact: true })).toBeVisible();
 		await expect(
 			riga.getByText("Amministratore", { exact: true }),
@@ -234,7 +249,8 @@ test.describe("Gestione utenti", () => {
 		factory,
 	}) => {
 		const utenteEsistente = await factory.createUtente({
-			nome: `${factory.namespace} Utente esistente`,
+			nome: `${factory.namespace} Utente`,
+			cognome: "Esistente",
 			email: `${factory.namespace}-duplicato@e2e.invalid`,
 			ruolo: "COLLABORATORE",
 		});
@@ -291,9 +307,10 @@ test.describe("Gestione utenti", () => {
 			page.getByRole("heading", { name: "Nuovo utente" }),
 		).toBeVisible();
 
-		// AC-3: i campi del profilo compaiono e scompaiono col checkbox Collaboratore.
+		// AC-3: i campi del profilo compaiono e scompaiono col checkbox Collaboratore
+		// (il Cognome resta invece sempre visibile: è nella sezione Anagrafica).
 		await impostaRuolo(page, "Collaboratore", false);
-		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
 		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
 		await impostaRuolo(page, "Collaboratore", true);
@@ -363,6 +380,7 @@ test.describe("Gestione utenti", () => {
 		factory,
 	}) => {
 		const nome = `${factory.namespace} Solo admin`;
+		const cognome = "Verdi";
 		const email = `${factory.namespace}-solo-admin@e2e.invalid`;
 
 		await apriElencoUtenti(page);
@@ -375,11 +393,14 @@ test.describe("Gestione utenti", () => {
 
 		await impostaRuolo(page, "Collaboratore", false);
 		await impostaRuolo(page, "Amministratore", true);
-		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		// AC-1: il Cognome resta in Anagrafica, sempre visibile, anche senza il
+		// ruolo Collaboratore; solo i campi di profilo restano assenti.
+		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
 		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
 
 		await page.getByLabel(/^Nome\b/).fill(nome);
+		await page.getByLabel(/^Cognome\b/).fill(cognome);
 		await page.getByLabel(/^Email di accesso\b/).fill(email);
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
@@ -484,6 +505,180 @@ test.describe("Gestione utenti", () => {
 		await expect(rigaUtente(page, email)).toHaveCount(0);
 	});
 
+	test("impone il cognome obbligatorio anche per il censimento di un solo amministratore (AC-1)", async ({
+		page,
+		factory,
+	}) => {
+		const nome = `${factory.namespace} Solo admin cognome`;
+		const cognome = "Esposito";
+		const email = `${factory.namespace}-ac1-cognome-obbligatorio@e2e.invalid`;
+
+		// Fase 1: tentativo di censimento senza cognome, solo ruolo Amministratore.
+		await apriElencoUtenti(page);
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Nuovo utente" }),
+		).toBeVisible();
+
+		await impostaRuolo(page, "Collaboratore", false);
+		await impostaRuolo(page, "Amministratore", true);
+
+		// AC-1: Nome e Cognome sono campi distinti in Anagrafica anche per il
+		// solo-amministratore, senza alcun campo di profilo collaboratore.
+		await expect(page.getByLabel(/^Nome\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
+
+		await page.getByLabel(/^Nome\b/).fill(nome);
+		await page.getByLabel(/^Email di accesso\b/).fill(email);
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+
+		// AC-1: senza cognome il salvataggio è rifiutato e nessuna riga è creata.
+		await expect(
+			page.getByText("Il cognome è obbligatorio", { exact: true }),
+		).toBeVisible();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\/nuovo$/);
+		await page
+			.getByRole("link", { name: "Torna all'elenco utenti", exact: true })
+			.click();
+		await page.getByRole("searchbox", { name: "Cerca utente" }).fill(email);
+		await expect(rigaUtente(page, email)).toHaveCount(0);
+
+		// Fase 2: ripetuto con il cognome compilato, il censimento riesce e
+		// l'utente compare in elenco con il nominativo completo.
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await impostaRuolo(page, "Collaboratore", false);
+		await impostaRuolo(page, "Amministratore", true);
+		await page.getByLabel(/^Nome\b/).fill(nome);
+		await page.getByLabel(/^Cognome\b/).fill(cognome);
+		await page.getByLabel(/^Email di accesso\b/).fill(email);
+		await page
+			.getByRole("button", { name: "Censisci utente", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
+
+		await filtraUtenti(page, email);
+		const riga = rigaUtente(page, email);
+		await expect(riga).toHaveCount(1);
+		await expect(
+			riga.getByText(`${nome} ${cognome}`, { exact: true }),
+		).toBeVisible();
+	});
+
+	test("espone nel profilo collaboratore solo Partita IVA e Tariffa giornaliera, con un solo campo Cognome in pagina (AC-2)", async ({
+		page,
+	}) => {
+		await apriElencoUtenti(page);
+		await page
+			.getByRole("link", { name: "Nuovo utente", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Nuovo utente" }),
+		).toBeVisible();
+
+		// Il ruolo Collaboratore è selezionato di default nel censimento.
+		await expect(
+			page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
+		).toBeChecked();
+
+		// AC-2: la sezione profilo collaboratore chiede solo Partita IVA e
+		// Tariffa giornaliera; il Cognome resta unico nella pagina (in Anagrafica).
+		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(1);
+	});
+
+	test("conserva Nome e Cognome distinti aprendo la modifica di un utente esistente (AC-3)", async ({
+		page,
+		factory,
+	}) => {
+		const nome = `${factory.namespace} Round trip`;
+		const cognome = "Serra";
+		const nuovoCognome = "Serra Aggiornato";
+		const utente = await factory.createUtente({
+			nome,
+			cognome,
+			email: `${factory.namespace}-ac3-round-trip@e2e.invalid`,
+			ruolo: "AMMINISTRATORE",
+		});
+
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, utente.email);
+		await rigaUtente(page, utente.email)
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Modifica utente" }),
+		).toBeVisible();
+
+		// AC-3: Nome e Cognome compaiono separati e già popolati.
+		await expect(page.getByLabel(/^Nome\b/)).toHaveValue(nome);
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveValue(cognome);
+
+		await page.getByLabel(/^Cognome\b/).fill(nuovoCognome);
+		await page
+			.getByRole("button", { name: "Salva modifiche", exact: true })
+			.click();
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
+
+		// AC-3: il nominativo aggiornato compare in elenco.
+		await filtraUtenti(page, utente.email);
+		await expect(
+			rigaUtente(page, utente.email).getByText(`${nome} ${nuovoCognome}`, {
+				exact: true,
+			}),
+		).toBeVisible();
+
+		// AC-3: riaprendo il form, i due campi restano distinti e aggiornati.
+		await rigaUtente(page, utente.email)
+			.getByRole("link", { name: "Modifica", exact: true })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Modifica utente" }),
+		).toBeVisible();
+		await expect(page.getByLabel(/^Nome\b/)).toHaveValue(nome);
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveValue(nuovoCognome);
+	});
+
+	test("mostra il nominativo completo in elenco per l'utente seed e per un utente factory, senza duplicazioni (AC-4)", async ({
+		page,
+		factory,
+	}) => {
+		const nome = `${factory.namespace} Nominativo`;
+		const cognome = "Fattore";
+		const utente = await factory.createUtente({
+			nome,
+			cognome,
+			email: `${factory.namespace}-ac4-nominativo@e2e.invalid`,
+			ruolo: "AMMINISTRATORE",
+		});
+
+		await apriElencoUtenti(page);
+
+		// Utente seed, in sola lettura: nominativo completo senza duplicazioni
+		// (mai "Conti Conti") né troncamenti.
+		await filtraUtenti(page, "giulia.conti@agilereloaded.it");
+		const rigaSeed = rigaUtente(page, "giulia.conti@agilereloaded.it");
+		await expect(rigaSeed).toHaveCount(1);
+		await expect(
+			rigaSeed.getByText("Giulia Conti", { exact: true }),
+		).toBeVisible();
+
+		// Utente factory: stesso oracolo, nominativo composto a schermo.
+		await filtraUtenti(page, utente.email);
+		const rigaFactory = rigaUtente(page, utente.email);
+		await expect(rigaFactory).toHaveCount(1);
+		await expect(
+			rigaFactory.getByText(`${nome} ${cognome}`, { exact: true }),
+		).toBeVisible();
+	});
+
 	test("salva nome ed email modificati e li mostra nell'elenco", async ({
 		page,
 		factory,
@@ -524,7 +719,9 @@ test.describe("Gestione utenti", () => {
 		const rigaModificata = rigaUtente(page, nuovaEmail);
 		await expect(rigaModificata).toHaveCount(1);
 		await expect(
-			rigaModificata.getByText(nuovoNome, { exact: true }),
+			rigaModificata.getByText(`${nuovoNome} ${utente.cognome}`, {
+				exact: true,
+			}),
 		).toBeVisible();
 		await expect(
 			rigaModificata.getByText(nuovaEmail, { exact: true }),
@@ -556,7 +753,7 @@ test.describe("Gestione utenti", () => {
 			await riga.getByRole("button", { name: "Invalida", exact: true }).click();
 
 			const modale = page.getByRole("dialog", {
-				name: `Invalidare «${collaboratore.utente.nome}»?`,
+				name: `Invalidare «${collaboratore.utente.nome} ${collaboratore.utente.cognome}»?`,
 			});
 			await expect(modale).toBeVisible();
 			await modale
@@ -611,7 +808,7 @@ test.describe("Gestione utenti", () => {
 		const riga = rigaUtente(page, collaboratore.utente.email);
 		await riga.getByRole("button", { name: "Invalida", exact: true }).click();
 		const modale = page.getByRole("dialog", {
-			name: `Invalidare «${collaboratore.utente.nome}»?`,
+			name: `Invalidare «${collaboratore.utente.nome} ${collaboratore.utente.cognome}»?`,
 		});
 		await expect(modale).toBeVisible();
 		await modale
@@ -768,7 +965,7 @@ test.describe("Gestione utenti", () => {
 			await expect(riga).toBeVisible();
 			await riga.getByRole("button", { name: "Invalida", exact: true }).click();
 			const modale = page.getByRole("dialog", {
-				name: `Invalidare «${collaboratore.utente.nome}»?`,
+				name: `Invalidare «${collaboratore.utente.nome} ${collaboratore.utente.cognome}»?`,
 			});
 			await expect(modale).toBeVisible();
 			await modale
@@ -856,9 +1053,9 @@ test.describe("Gestione utenti", () => {
 		).toBeVisible();
 
 		await impostaRuolo(page, "Collaboratore", false);
-		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
 		await impostaRuolo(page, "Collaboratore", true);
-		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
 
 		await impostaRuolo(page, "Amministratore", true);
 		await page.getByLabel(/^Nome\b/).fill(nome);
@@ -913,10 +1110,11 @@ test.describe("Gestione utenti", () => {
 			.click();
 		await impostaRuolo(page, "Collaboratore", false);
 		await impostaRuolo(page, "Amministratore", true);
-		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
 		await page
 			.getByLabel(/^Nome\b/)
 			.fill(`${factory.namespace} Demo solo admin`);
+		await page.getByLabel(/^Cognome\b/).fill("Solo Admin");
 		await page.getByLabel(/^Email di accesso\b/).fill(emailSoloAdmin);
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
@@ -956,6 +1154,7 @@ test.describe("Gestione utenti", () => {
 		const partitaIva = "02233445566";
 		const utente = await factory.createUtente({
 			nome,
+			cognome,
 			email: `${factory.namespace}-aggiunge-collaboratore@e2e.invalid`,
 			ruolo: "AMMINISTRATORE",
 		});
@@ -969,17 +1168,17 @@ test.describe("Gestione utenti", () => {
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
 
-		// AC-1: l'aggiunta del ruolo Collaboratore fa comparire la sezione profilo.
+		// L'aggiunta del ruolo Collaboratore fa comparire la sola sezione profilo
+		// (Partita IVA e Tariffa giornaliera): il Cognome resta in Anagrafica,
+		// sempre presente e già valorizzato dall'utente esistente.
 		await impostaRuolo(page, "Collaboratore", true);
-		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Cognome\b/)).toHaveValue(cognome);
 
-		// AC-1: senza dati profilo il salvataggio è rifiutato con i tre obblighi.
+		// Senza dati profilo il salvataggio è rifiutato con i due obblighi.
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
-		await expect(
-			page.getByText("Il cognome è obbligatorio", { exact: true }),
-		).toBeVisible();
 		await expect(
 			page.getByText("La partita IVA è obbligatoria", { exact: true }),
 		).toBeVisible();
@@ -989,11 +1188,10 @@ test.describe("Gestione utenti", () => {
 			}),
 		).toBeVisible();
 
-		// AC-1: compilati i campi, il salvataggio crea il profilo collaboratore.
+		// Compilati i campi, il salvataggio crea il profilo collaboratore.
 		// Il submit fallito resetta i campi non controllati del form (React 19),
 		// deselezionando il checkbox Collaboratore: va riportato a selezionato.
 		await impostaRuolo(page, "Collaboratore", true);
-		await page.getByLabel(/^Cognome\b/).fill(cognome);
 		await page.getByLabel(/^Partita IVA\b/).fill(partitaIva);
 		await page.getByLabel(/^Tariffa giornaliera\b/).fill("420");
 		await page
@@ -1001,7 +1199,7 @@ test.describe("Gestione utenti", () => {
 			.click();
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 
-		// AC-1: il nuovo profilo è presente e attivo in anagrafica collaboratori.
+		// Il nuovo profilo è presente e attivo in anagrafica collaboratori.
 		await apriElencoCollaboratori(page, utente.email);
 		const rigaProfilo = rigaCollaboratore(page, utente.email);
 		await expect(
@@ -1029,7 +1227,12 @@ test.describe("Gestione utenti", () => {
 			},
 		});
 		const email = collaboratore.utente.email;
-		const nomeCompleto = `${collaboratore.collaboratore.nome} ${collaboratore.collaboratore.cognome}`;
+		// AC-4/TASK-04: la rimozione del ruolo Collaboratore sincronizza
+		// Collaboratore.nome/cognome con l'Anagrafica dell'Utente nella stessa
+		// transazione, quindi il nominativo atteso dopo il salvataggio è quello
+		// dell'Utente, non più il nominativo (diverso) generato dalla factory
+		// per il solo profilo Collaboratore.
+		const nomeCompleto = `${collaboratore.utente.nome} ${collaboratore.utente.cognome}`;
 		const nota = `Attività storica ${factory.namespace}`;
 		await factory.createRigaAttivita({
 			collaboratore,
@@ -1120,7 +1323,6 @@ test.describe("Gestione utenti", () => {
 		).not.toBeChecked();
 		await commutaRuolo(page, "Collaboratore", true);
 		// La sezione profilo NON deve comparire: il profilo esiste già.
-		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
 		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
 		await page
@@ -1165,15 +1367,15 @@ test.describe("Gestione utenti", () => {
 			page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
 		).toBeChecked();
 
-		// AC-5: nessun campo profilo nel form di modifica.
-		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
+		// AC-5: nessun campo profilo nel form di modifica (il Cognome resta in
+		// Anagrafica, sempre presente, e non è un campo di profilo).
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
 		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
 
 		// AC-5: box informativo che rimanda all'anagrafica collaboratori.
 		await expect(
 			page.getByText(
-				"Questo utente ha un profilo collaboratore. Il profilo operativo (nome anagrafico, tariffa e attivazione) si gestisce dall'anagrafica collaboratori.",
+				"Questo utente ha un profilo collaboratore. Il profilo operativo (partita IVA, tariffa e attivazione) si gestisce dall'anagrafica collaboratori.",
 				{ exact: true },
 			),
 		).toBeVisible();
@@ -1190,6 +1392,7 @@ test.describe("Gestione utenti", () => {
 		const partitaIvaNuova = "04455667788";
 		const utenteDaPromuovere = await factory.createUtente({
 			nome: nomeDaPromuovere,
+			cognome: cognomeDaPromuovere,
 			email: `${factory.namespace}-demo-da-promuovere@e2e.invalid`,
 			ruolo: "AMMINISTRATORE",
 		});
@@ -1207,7 +1410,10 @@ test.describe("Gestione utenti", () => {
 			},
 		});
 		const emailCollaboratore = collaboratore.utente.email;
-		const nomeCompletoCollaboratore = `${collaboratore.collaboratore.nome} ${collaboratore.collaboratore.cognome}`;
+		// AC-4/TASK-04: dopo la rimozione del ruolo Collaboratore (più avanti nel
+		// test) il salvataggio sincronizza Collaboratore.nome/cognome con
+		// l'Anagrafica dell'Utente: il nominativo atteso è quello dell'Utente.
+		const nomeCompletoCollaboratore = `${collaboratore.utente.nome} ${collaboratore.utente.cognome}`;
 		const notaStorica = `Attività demo ${factory.namespace}`;
 		await factory.createRigaAttivita({
 			collaboratore,
@@ -1230,9 +1436,6 @@ test.describe("Gestione utenti", () => {
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
 		await expect(
-			page.getByText("Il cognome è obbligatorio", { exact: true }),
-		).toBeVisible();
-		await expect(
 			page.getByText("La partita IVA è obbligatoria", { exact: true }),
 		).toBeVisible();
 		await expect(
@@ -1242,8 +1445,8 @@ test.describe("Gestione utenti", () => {
 		).toBeVisible();
 		// Il submit fallito resetta i campi non controllati del form (React 19),
 		// deselezionando il checkbox Collaboratore: va riportato a selezionato.
+		// Il Cognome resta invece in Anagrafica, già valorizzato dalla creazione.
 		await impostaRuolo(page, "Collaboratore", true);
-		await page.getByLabel(/^Cognome\b/).fill(cognomeDaPromuovere);
 		await page.getByLabel(/^Partita IVA\b/).fill(partitaIvaNuova);
 		await page.getByLabel(/^Tariffa giornaliera\b/).fill("470");
 		await page
@@ -1313,7 +1516,6 @@ test.describe("Gestione utenti", () => {
 			.getByRole("link", { name: "Modifica", exact: true })
 			.click();
 		await commutaRuolo(page, "Collaboratore", true);
-		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(0);
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })

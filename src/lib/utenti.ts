@@ -7,6 +7,7 @@ import { richiediRuoloApi } from "@/lib/dal";
 export interface UtenteConProfiloCollaboratore {
   id: string;
   nome: string;
+  cognome: string;
   email: string;
   ruolo: Ruolo;
   attivo: boolean;
@@ -16,6 +17,7 @@ export interface UtenteConProfiloCollaboratore {
 const selezioneUtenteConProfiloCollaboratore = {
   id: true,
   nome: true,
+  cognome: true,
   email: true,
   ruolo: true,
   attivo: true,

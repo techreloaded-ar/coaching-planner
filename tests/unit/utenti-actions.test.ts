@@ -57,7 +57,8 @@ function statoIniziale(): StatoAction {
 
 function formNuovoUtente(): FormData {
   const formData = new FormData();
-  formData.set("nome", "  Laura Bianchi  ");
+  formData.set("nome", "  Laura  ");
+  formData.set("cognome", "  Bianchi  ");
   formData.set("email", "  LAURA.BIANCHI@EXAMPLE.COM  ");
   formData.set("ruoloAmministratore", "on");
   return formData;
@@ -78,7 +79,8 @@ function formNuovoUtenteConProfilo(): FormData {
 function formModificaUtente(): FormData {
   const formData = new FormData();
   formData.set("id", "utente-1");
-  formData.set("nome", "  Laura Verdi  ");
+  formData.set("nome", "  Laura  ");
+  formData.set("cognome", "  Verdi  ");
   formData.set("email", "  LAURA.VERDI@EXAMPLE.COM  ");
   formData.set("ruoloAmministratore", "on");
   return formData;
@@ -116,6 +118,7 @@ describe("Server Actions utenti", () => {
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
       expect(result.errori).toEqual({
         nome: "Il nome è obbligatorio",
+        cognome: "Il cognome è obbligatorio",
         email: "Inserisci un indirizzo email valido",
         ruoli: "Seleziona almeno un ruolo",
       });
@@ -128,7 +131,8 @@ describe("Server Actions utenti", () => {
 
     it("senza alcun ruolo selezionato restituisce errore ruoli e non tocca il database", async () => {
       const formData = new FormData();
-      formData.set("nome", "  Laura Bianchi  ");
+      formData.set("nome", "  Laura  ");
+      formData.set("cognome", "  Bianchi  ");
       formData.set("email", "  LAURA.BIANCHI@EXAMPLE.COM  ");
 
       const result = await creaUtente(statoIniziale(), formData);
@@ -184,7 +188,8 @@ describe("Server Actions utenti", () => {
 
       expect(mockUtente.create).toHaveBeenCalledWith({
         data: {
-          nome: "Laura Bianchi",
+          nome: "Laura",
+          cognome: "Bianchi",
           email: "laura.bianchi@example.com",
           ruolo: "AMMINISTRATORE",
         },
@@ -197,6 +202,22 @@ describe("Server Actions utenti", () => {
       );
     });
 
+    it("rifiuta la creazione con solo il ruolo amministratore se il cognome è mancante", async () => {
+      const formData = formNuovoUtente();
+      formData.delete("cognome");
+
+      const result = await creaUtente(statoIniziale(), formData);
+
+      expect(result.errori).toEqual({
+        cognome: "Il cognome è obbligatorio",
+      });
+      expect(mockUtente.findUnique).not.toHaveBeenCalled();
+      expect(mockUtente.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
     it("con entrambi i ruoli crea utente amministratore e profilo collaboratore nella stessa transazione", async () => {
       mockUtente.findUnique.mockResolvedValue(null);
       mockUtente.create.mockResolvedValue({ id: "utente-1" });
@@ -206,7 +227,8 @@ describe("Server Actions utenti", () => {
       expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
       expect(mockUtente.create).toHaveBeenCalledWith({
         data: {
-          nome: "Mario Rossi",
+          nome: "Mario",
+          cognome: "Rossi",
           email: "mario.rossi@example.com",
           ruolo: "AMMINISTRATORE",
         },
@@ -242,7 +264,8 @@ describe("Server Actions utenti", () => {
       expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
       expect(mockUtente.create).toHaveBeenCalledWith({
         data: {
-          nome: "Mario Rossi",
+          nome: "Mario",
+          cognome: "Rossi",
           email: "mario.rossi@example.com",
           ruolo: "COLLABORATORE",
         },
@@ -338,7 +361,8 @@ describe("Server Actions utenti", () => {
       expect(mockUtente.update).toHaveBeenCalledWith({
         where: { id: "utente-1" },
         data: {
-          nome: "Laura Verdi",
+          nome: "Laura",
+          cognome: "Verdi",
           email: "laura.verdi@example.com",
           ruolo: "AMMINISTRATORE",
         },
@@ -353,6 +377,28 @@ describe("Server Actions utenti", () => {
       expect(mockRedirect).toHaveBeenCalledWith(
         "/anagrafiche/utenti?esito=salvato",
       );
+    });
+
+    it("rifiuta la modifica con solo il ruolo amministratore se il cognome è mancante", async () => {
+      mockUtente.findUnique.mockResolvedValue({
+        ruolo: "AMMINISTRATORE",
+        attivo: true,
+        collaboratore: null,
+      });
+      const formData = formModificaUtente();
+      formData.delete("cognome");
+
+      const result = await aggiornaUtente(statoIniziale(), formData);
+
+      expect(result.errori).toEqual({
+        cognome: "Il cognome è obbligatorio",
+      });
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
+      expect(mockUtente.update).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
+      expect(mockCollaboratore.update).not.toHaveBeenCalled();
+      expect(mockRevalidatePath).not.toHaveBeenCalled();
+      expect(mockRedirect).not.toHaveBeenCalled();
     });
 
     it("AC-6: blocca la retrocessione dell'ultimo amministratore attivo senza scritture", async () => {
@@ -403,14 +449,21 @@ describe("Server Actions utenti", () => {
       expect(mockUtente.update).toHaveBeenCalledWith({
         where: { id: "utente-1" },
         data: {
-          nome: "Laura Verdi",
+          nome: "Laura",
+          cognome: "Verdi",
           email: "laura.verdi@example.com",
           ruolo: "COLLABORATORE",
         },
       });
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
-      expect(mockCollaboratore.update).not.toHaveBeenCalled();
+      expect(mockCollaboratore.update).toHaveBeenCalledWith({
+        where: { userId: "utente-1" },
+        data: { nome: "Laura", cognome: "Verdi" },
+      });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
+      expect(mockRevalidatePath).toHaveBeenCalledWith(
+        "/anagrafiche/collaboratori",
+      );
       expect(mockRedirect).toHaveBeenCalledWith(
         "/anagrafiche/utenti?esito=salvato",
       );
@@ -439,7 +492,8 @@ describe("Server Actions utenti", () => {
       expect(mockUtente.update).toHaveBeenCalledWith({
         where: { id: "utente-1" },
         data: {
-          nome: "Mario Rossi",
+          nome: "Mario",
+          cognome: "Rossi",
           email: "mario.rossi@example.com",
           ruolo: "AMMINISTRATORE",
         },
@@ -501,7 +555,8 @@ describe("Server Actions utenti", () => {
       mockUtente.update.mockResolvedValue({ id: "utente-1" });
       const formData = new FormData();
       formData.set("id", "utente-1");
-      formData.set("nome", "  Laura Verdi  ");
+      formData.set("nome", "  Laura  ");
+      formData.set("cognome", "  Verdi  ");
       formData.set("email", "  LAURA.VERDI@EXAMPLE.COM  ");
       formData.set("ruoloCollaboratore", "on");
 
@@ -510,7 +565,7 @@ describe("Server Actions utenti", () => {
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
       expect(mockCollaboratore.update).toHaveBeenCalledWith({
         where: { userId: "utente-1" },
-        data: { attivo: true },
+        data: { attivo: true, nome: "Laura", cognome: "Verdi" },
       });
       expect(mockCollaboratore.update).toHaveBeenCalledTimes(1);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
@@ -534,7 +589,7 @@ describe("Server Actions utenti", () => {
 
       expect(mockCollaboratore.update).toHaveBeenCalledWith({
         where: { userId: "utente-1" },
-        data: { attivo: false },
+        data: { attivo: false, nome: "Laura", cognome: "Verdi" },
       });
       expect(mockCollaboratore.update).toHaveBeenCalledTimes(1);
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
@@ -548,7 +603,7 @@ describe("Server Actions utenti", () => {
       );
     });
 
-    it("con profilo attivo e Collaboratore ancora selezionato non scrive sul collaboratore né rivalida i collaboratori", async () => {
+    it("con profilo presente senza transizione di stato sincronizza nome/cognome sul collaboratore", async () => {
       mockUtente.findUnique.mockResolvedValue({
         ruolo: "COLLABORATORE",
         attivo: true,
@@ -557,7 +612,8 @@ describe("Server Actions utenti", () => {
       mockUtente.update.mockResolvedValue({ id: "utente-1" });
       const formData = new FormData();
       formData.set("id", "utente-1");
-      formData.set("nome", "  Laura Verdi  ");
+      formData.set("nome", "  Laura  ");
+      formData.set("cognome", "  Verdi  ");
       formData.set("email", "  LAURA.VERDI@EXAMPLE.COM  ");
       formData.set("ruoloCollaboratore", "on");
 
@@ -566,16 +622,21 @@ describe("Server Actions utenti", () => {
       expect(mockUtente.update).toHaveBeenCalledWith({
         where: { id: "utente-1" },
         data: {
-          nome: "Laura Verdi",
+          nome: "Laura",
+          cognome: "Verdi",
           email: "laura.verdi@example.com",
           ruolo: "COLLABORATORE",
         },
       });
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
-      expect(mockCollaboratore.update).not.toHaveBeenCalled();
-      expect(mockRevalidatePath).toHaveBeenCalledTimes(1);
+      expect(mockCollaboratore.update).toHaveBeenCalledWith({
+        where: { userId: "utente-1" },
+        data: { nome: "Laura", cognome: "Verdi" },
+      });
+      expect(mockCollaboratore.update).toHaveBeenCalledTimes(1);
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(2);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
-      expect(mockRevalidatePath).not.toHaveBeenCalledWith(
+      expect(mockRevalidatePath).toHaveBeenCalledWith(
         "/anagrafiche/collaboratori",
       );
       expect(mockRedirect).toHaveBeenCalledWith(
@@ -611,7 +672,8 @@ describe("Server Actions utenti", () => {
       expect(mockUtente.update).toHaveBeenCalledWith({
         where: { id: "utente-1" },
         data: {
-          nome: "Laura Verdi",
+          nome: "Laura",
+          cognome: "Verdi",
           email: "laura.verdi@example.com",
           ruolo: "AMMINISTRATORE",
         },

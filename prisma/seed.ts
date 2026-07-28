@@ -39,33 +39,42 @@ async function main() {
   // Account Google reale per la demo.
   const admin = await prisma.utente.create({
     data: {
-      nome: "Tech Reloaded",
+      nome: "Tech",
+      cognome: "Reloaded",
       email: "info@techreloaded.it",
       ruolo: "AMMINISTRATORE",
     },
   });
-  console.log(`✓ Creato amministratore: ${admin.nome} (${admin.email})`);
+  console.log(
+    `✓ Creato amministratore: ${admin.nome} ${admin.cognome} (${admin.email})`,
+  );
 
   // ── Utente Amministratore (Stefano Marello) ──────────────────
   const admin2 = await prisma.utente.create({
     data: {
-      nome: "Stefano Marello",
+      nome: "Stefano",
+      cognome: "Marello",
       email: "stefano.marello@agilereloaded.it",
       ruolo: "AMMINISTRATORE",
     },
   });
-  console.log(`✓ Creato amministratore: ${admin2.nome} (${admin2.email})`);
+  console.log(
+    `✓ Creato amministratore: ${admin2.nome} ${admin2.cognome} (${admin2.email})`,
+  );
 
   // ── Utente Collaboratore ─────────────────────────────────────
   // Utente distinto dall'amministratore, senza password.
   const collabUser = await prisma.utente.create({
     data: {
-      nome: "Giulia Conti",
+      nome: "Giulia",
+      cognome: "Conti",
       email: "giulia.conti@agilereloaded.it",
       ruolo: "COLLABORATORE",
     },
   });
-  console.log(`✓ Creato collaboratore: ${collabUser.nome} (${collabUser.email})`);
+  console.log(
+    `✓ Creato collaboratore: ${collabUser.nome} ${collabUser.cognome} (${collabUser.email})`,
+  );
 
   // ── Profilo Collaboratore ────────────────────────────────────
   const collaboratore = await prisma.collaboratore.create({
@@ -86,13 +95,14 @@ async function main() {
   // collaboratori che lavorano sulla stessa offerta di un cliente.
   const secondoCollabUser = await prisma.utente.create({
     data: {
-      nome: "Marco Bianchi",
+      nome: "Marco",
+      cognome: "Bianchi",
       email: "marco.bianchi@agilereloaded.it",
       ruolo: "COLLABORATORE",
     },
   });
   console.log(
-    `✓ Creato collaboratore: ${secondoCollabUser.nome} (${secondoCollabUser.email})`
+    `✓ Creato collaboratore: ${secondoCollabUser.nome} ${secondoCollabUser.cognome} (${secondoCollabUser.email})`
   );
 
   // ── Profilo Secondo Collaboratore ───────────────────────────

@@ -25,6 +25,7 @@ export type ClienteConOffertaTestData = {
 
 export type CreateUtenteOptions = {
 	nome?: string;
+	cognome?: string;
 	email?: string;
 	ruolo?: Ruolo;
 };
@@ -148,12 +149,13 @@ export class E2eDataFactory {
 
 		return insertReturning<Utente>(
 			this.prisma,
-			`INSERT INTO "Utente" ("id", "nome", "email", "ruolo", "createdAt", "updatedAt")
-			 VALUES ($1, $2, $3, $4::"Ruolo", $5, $5)
+			`INSERT INTO "Utente" ("id", "nome", "cognome", "email", "ruolo", "createdAt", "updatedAt")
+			 VALUES ($1, $2, $3, $4, $5::"Ruolo", $6, $6)
 			 RETURNING *`,
 			[
 				randomUUID(),
-				options.nome ?? `E2E ${readableName}`,
+				options.nome ?? "E2E",
+				options.cognome ?? readableName,
 				options.email ?? `${token}@e2e.invalid`,
 				options.ruolo ?? "COLLABORATORE",
 				now,
@@ -169,7 +171,8 @@ export class E2eDataFactory {
 			options.utente ??
 			(await this.createUtente({
 				...options.utenteOptions,
-				nome: options.utenteOptions?.nome ?? `E2E ${this.readableName(token)}`,
+				nome: options.utenteOptions?.nome ?? "E2E",
+				cognome: options.utenteOptions?.cognome ?? this.readableName(token),
 				ruolo: options.utenteOptions?.ruolo ?? "COLLABORATORE",
 			}));
 		const now = new Date();

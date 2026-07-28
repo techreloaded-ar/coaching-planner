@@ -112,6 +112,7 @@ describe("richiediSessioneApi", () => {
       id: "admin-1",
       ruolo: "AMMINISTRATORE",
       nome: "Admin",
+      cognome: "Test",
       email: "admin@test.local",
     });
 
@@ -119,6 +120,7 @@ describe("richiediSessioneApi", () => {
     expect(sessione).toBeDefined();
     expect(sessione.utenteId).toBe("admin-1");
     expect(sessione.ruolo).toBe("AMMINISTRATORE");
+    expect(sessione.nome).toBe("Admin Test");
   });
 
   it("lancia 401 se il collaboratore è inattivo", async () => {

@@ -83,7 +83,8 @@ describe("GET /api/auth/google/callback", () => {
     mockUtente.findUnique.mockResolvedValue({
       id: "utente-inattivo",
       ruolo: "COLLABORATORE",
-      nome: "Utente Inattivo",
+      nome: "Utente",
+      cognome: "Inattivo",
       email: "utente@test.local",
       attivo: false,
       collaboratore: { attivo: true },
@@ -110,7 +111,8 @@ describe("GET /api/auth/google/callback", () => {
     mockUtente.findUnique.mockResolvedValue({
       id: "utente-attivo",
       ruolo: "AMMINISTRATORE",
-      nome: "Utente Attivo",
+      nome: "Utente",
+      cognome: "Attivo",
       email: "utente@test.local",
       attivo: true,
       collaboratore: null,

@@ -39,7 +39,7 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
   const [modaleAperta, setModaleAperta] = useState(false);
   const filtroNormalizzato = filtro.trim().toLocaleLowerCase("it");
   const utentiFiltrati = utenti.filter((utente) =>
-    `${utente.nome} ${utente.email}`
+    `${utente.nome} ${utente.cognome} ${utente.email}`
       .toLocaleLowerCase("it")
       .includes(filtroNormalizzato)
   );
@@ -116,6 +116,7 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
                   utente.collaboratore !== null;
                 const profiloCollaboratoreDisattivato =
                   utente.collaboratore?.attivo === false;
+                const nominativo = `${utente.nome} ${utente.cognome}`;
 
                 return (
                   <tr
@@ -136,14 +137,14 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
                           }`}
                           aria-hidden="true"
                         >
-                          {iniziali(utente.nome)}
+                          {iniziali(nominativo)}
                           <span className="absolute -right-[3px] -bottom-[3px] grid h-[17px] w-[17px] place-items-center rounded-full border-2 border-white bg-white text-zinc-500 shadow-sm dark:border-zinc-900 dark:bg-zinc-900 dark:text-zinc-400">
                             <IconaRuolo amministratore={haRuoloAmministratore} />
                           </span>
                         </span>
                         <span className="min-w-0 leading-[1.3]">
                           <b className={`block overflow-hidden text-ellipsis whitespace-nowrap font-semibold ${utente.attivo ? "text-zinc-800 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-500"}`}>
-                            {utente.nome}
+                            {nominativo}
                           </b>
                           {profiloCollaboratoreDisattivato && (
                             <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
@@ -266,7 +267,7 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
           </div>
           <h3 id="modale-titolo" className="mb-[7px] text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
             {utenteDaInvalidare
-              ? `Invalidare «${utenteDaInvalidare.nome}»?`
+              ? `Invalidare «${utenteDaInvalidare.nome} ${utenteDaInvalidare.cognome}»?`
               : "Invalidare l'utente?"}
           </h3>
           <p className="mb-[18px] text-[13px] leading-[1.55] text-zinc-600 dark:text-zinc-400">

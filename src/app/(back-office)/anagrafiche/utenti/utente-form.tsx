@@ -31,6 +31,7 @@ interface UtenteFormProps {
   utente?: {
     id: string;
     nome: string;
+    cognome: string;
     email: string;
     ruolo: RuoloAmmesso;
     attivo: boolean;
@@ -151,7 +152,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
               </svg>
               <span>
                 Questo utente ha un profilo collaboratore. Il profilo operativo
-                (nome anagrafico, tariffa e attivazione) si gestisce
+                (partita IVA, tariffa e attivazione) si gestisce
                 dall&apos;anagrafica collaboratori.
               </span>
             </div>
@@ -162,15 +163,19 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
             <Campo
               label="Nome"
               name="nome"
-              placeholder="Es. Laura Bianchi"
+              placeholder="Es. Laura"
               autoComplete="name"
               defaultValue={utente?.nome ?? ""}
               errore={stato.errori.nome}
-              hint={
-                mostraProfiloCollaboratore
-                  ? "Solo il nome: il cognome va nel campo dedicato del profilo collaboratore."
-                  : "Nome e cognome in un unico campo, come mostrato in elenco."
-              }
+              hint="Solo il nome di battesimo: il cognome ha il suo campo dedicato."
+            />
+            <Campo
+              label="Cognome"
+              name="cognome"
+              placeholder="Es. Bianchi"
+              autoComplete="family-name"
+              defaultValue={utente?.cognome ?? ""}
+              errore={stato.errori.cognome}
             />
 
             <SezioneForm icona="accesso">Accesso</SezioneForm>
@@ -277,15 +282,6 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                 <SezioneForm icona="anagrafica">
                   Profilo collaboratore
                 </SezioneForm>
-                <Campo
-                  label="Cognome"
-                  name="cognome"
-                  placeholder="Es. Mantovani"
-                  autoComplete="family-name"
-                  defaultValue=""
-                  errore={stato.errori.cognome}
-                  hint="Cognome anagrafico del collaboratore, distinto dal campo Nome."
-                />
                 <Campo
                   label="Partita IVA"
                   name="partitaIva"

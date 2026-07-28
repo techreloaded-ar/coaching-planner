@@ -20,6 +20,7 @@ enum Ruolo {
 model Utente {
   id            String   @id @default(uuid())
   nome          String
+  cognome       String
   email         String   @unique
   emailVerified DateTime?
   image         String?

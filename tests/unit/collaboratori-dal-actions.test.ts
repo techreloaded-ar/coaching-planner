@@ -369,13 +369,13 @@ describe("Server Actions collaboratori", () => {
       });
       expect(mockUtente.update).toHaveBeenCalledWith({
         where: { id: "utente-1" },
-        data: { nome: "Mario Bianchi" },
+        data: { nome: "Mario", cognome: "Bianchi" },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/collaboratori");
       expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/collaboratori?esito=salvato");
     });
 
-    it("ignora un'email eventualmente presente nel FormData: utente.update riceve solo il nome", async () => {
+    it("ignora un'email eventualmente presente nel FormData: utente.update riceve solo nome e cognome", async () => {
       mockValidaCollaboratore.mockReturnValue({});
       mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
       mockCollaboratore.findUnique.mockResolvedValue({ userId: "utente-1" });
@@ -392,7 +392,7 @@ describe("Server Actions collaboratori", () => {
 
       expect(mockUtente.update).toHaveBeenCalledWith({
         where: { id: "utente-1" },
-        data: { nome: "Mario Bianchi" },
+        data: { nome: "Mario", cognome: "Bianchi" },
       });
       const datiUtenteAggiornati = mockUtente.update.mock.calls[0][0].data;
       expect(datiUtenteAggiornati).not.toHaveProperty("email");

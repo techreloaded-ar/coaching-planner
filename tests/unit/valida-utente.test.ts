@@ -40,13 +40,26 @@ function baseModificaInput(
 describe("validaCensimentoUtente", () => {
   // ── (a) Le tre combinazioni valide di ruoli ─────────────────────
 
-  it("accetta solo amministratore senza campi profilo valorizzati", () => {
+  it("rifiuta il cognome mancante anche con solo l'amministratore selezionato", () => {
+    const errori = validaCensimentoUtente(
+      baseCensimentoInput({
+        ruoloAmministratore: true,
+        ruoloCollaboratore: false,
+        cognome: "",
+        partitaIva: "",
+        tariffaGiornaliera: "",
+      })
+    );
+    expect(errori.cognome).toBe("Il cognome è obbligatorio");
+  });
+
+  it("accetta solo amministratore con cognome valorizzato e senza campi profilo", () => {
     expect(
       validaCensimentoUtente(
         baseCensimentoInput({
           ruoloAmministratore: true,
           ruoloCollaboratore: false,
-          cognome: "",
+          cognome: "Bianchi",
           partitaIva: "",
           tariffaGiornaliera: "",
         })
@@ -152,7 +165,7 @@ describe("validaCensimentoUtente", () => {
 
   // ── (f) Solo amministratore ignora i campi profilo ──────────────
 
-  it("non segnala errori sui campi profilo quando è selezionato solo l'amministratore", () => {
+  it("non segnala errori sui campi profilo (ma segnala il cognome mancante) quando è selezionato solo l'amministratore", () => {
     const errori = validaCensimentoUtente(
       baseCensimentoInput({
         ruoloAmministratore: true,
@@ -162,7 +175,7 @@ describe("validaCensimentoUtente", () => {
         tariffaGiornaliera: "",
       })
     );
-    expect(errori.cognome).toBeUndefined();
+    expect(errori.cognome).toBe("Il cognome è obbligatorio");
     expect(errori.partitaIva).toBeUndefined();
     expect(errori.tariffaGiornaliera).toBeUndefined();
   });
@@ -202,14 +215,28 @@ describe("validaCensimentoUtente", () => {
 describe("validaModificaUtente", () => {
   // ── (a) Caso valido: solo amministratore, profilo assente ───────
 
-  it("accetta solo amministratore con profilo assente e campi profilo vuoti", () => {
+  it("rifiuta il cognome mancante anche con solo l'amministratore selezionato e profilo assente", () => {
+    const errori = validaModificaUtente(
+      baseModificaInput({
+        ruoloAmministratore: true,
+        ruoloCollaboratore: false,
+        profiloPresente: false,
+        cognome: "",
+        partitaIva: "",
+        tariffaGiornaliera: "",
+      })
+    );
+    expect(errori.cognome).toBe("Il cognome è obbligatorio");
+  });
+
+  it("accetta solo amministratore con cognome valorizzato, profilo assente e campi profilo vuoti", () => {
     expect(
       validaModificaUtente(
         baseModificaInput({
           ruoloAmministratore: true,
           ruoloCollaboratore: false,
           profiloPresente: false,
-          cognome: "",
+          cognome: "Bianchi",
           partitaIva: "",
           tariffaGiornaliera: "",
         })
@@ -250,12 +277,27 @@ describe("validaModificaUtente", () => {
 
   // ── (d) Collaboratore con profilo presente: campi ignorati ──────
 
-  it("non segnala errori sui campi profilo quando il Collaboratore è selezionato e il profilo è già presente", () => {
+  it("segnala il cognome mancante ma non i campi profilo quando il Collaboratore è selezionato e il profilo è già presente", () => {
     const errori = validaModificaUtente(
       baseModificaInput({
         ruoloCollaboratore: true,
         profiloPresente: true,
         cognome: "",
+        partitaIva: "",
+        tariffaGiornaliera: "",
+      })
+    );
+    expect(errori.cognome).toBe("Il cognome è obbligatorio");
+    expect(errori.partitaIva).toBeUndefined();
+    expect(errori.tariffaGiornaliera).toBeUndefined();
+  });
+
+  it("non segnala errori quando il Collaboratore è selezionato, il profilo è già presente e il cognome è valorizzato", () => {
+    const errori = validaModificaUtente(
+      baseModificaInput({
+        ruoloCollaboratore: true,
+        profiloPresente: true,
+        cognome: "Bianchi",
         partitaIva: "",
         tariffaGiornaliera: "",
       })

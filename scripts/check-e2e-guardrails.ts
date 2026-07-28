@@ -18,6 +18,10 @@ const SEED_EMAIL_ALLOWLIST = new Set([
 	"tests/e2e/demo__avanzamento-offerte.spec.ts",
 	"tests/e2e/accesso-radice.spec.ts",
 	"tests/e2e/demo__accesso-diretto-radice.spec.ts",
+	// US-048 (AC-4): asserzione di sola lettura sul nominativo completo
+	// dell'utente seed Giulia Conti, per verificare che il backfill del
+	// cognome non produca duplicazioni o troncamenti in elenco.
+	"tests/e2e/gestione-utenti.spec.ts",
 ]);
 
 const XPATH_ALLOWLIST = new Set([

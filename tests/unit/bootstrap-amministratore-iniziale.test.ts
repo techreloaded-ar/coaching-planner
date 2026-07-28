@@ -13,6 +13,7 @@
 import { describe, it, expect, vi } from "vitest";
 import {
 	NOME_PREDEFINITO_AMMINISTRATORE,
+	COGNOME_PREDEFINITO_AMMINISTRATORE,
 	validaEmailAmministratoreIniziale,
 	eseguiBootstrapAmministratoreIniziale,
 	type ClientBootstrap,
@@ -37,6 +38,7 @@ describe("eseguiBootstrapAmministratoreIniziale — AC-1 (utente assente)", () =
 		const utenteCreato = {
 			id: "utente-nuovo",
 			nome: NOME_PREDEFINITO_AMMINISTRATORE,
+			cognome: COGNOME_PREDEFINITO_AMMINISTRATORE,
 			email: "admin@example.com",
 			ruolo: "AMMINISTRATORE",
 		};
@@ -61,9 +63,11 @@ describe("eseguiBootstrapAmministratoreIniziale — AC-1 (utente assente)", () =
 				email: "admin@example.com",
 				ruolo: "AMMINISTRATORE",
 				nome: NOME_PREDEFINITO_AMMINISTRATORE,
+				cognome: COGNOME_PREDEFINITO_AMMINISTRATORE,
 			},
 		});
 		expect(NOME_PREDEFINITO_AMMINISTRATORE.trim()).not.toBe("");
+		expect(COGNOME_PREDEFINITO_AMMINISTRATORE.trim()).not.toBe("");
 
 		expect(risultato).toEqual({ esito: "creato", utente: utenteCreato });
 	});
@@ -76,7 +80,8 @@ describe("eseguiBootstrapAmministratoreIniziale — AC-2 (utente già esistente)
 		const client = creaClientFinto();
 		const utenteEsistente = {
 			id: "utente-esistente-id",
-			nome: "Mario Rossi",
+			nome: "Mario",
+			cognome: "Rossi",
 			email: "admin@example.com",
 			ruolo: "COLLABORATORE",
 			attivo: false,
@@ -149,6 +154,7 @@ describe("eseguiBootstrapAmministratoreIniziale — idempotenza su esecuzioni ri
 		const utenteCreato = {
 			id: "utente-idempotente",
 			nome: NOME_PREDEFINITO_AMMINISTRATORE,
+			cognome: COGNOME_PREDEFINITO_AMMINISTRATORE,
 			email: "admin@example.com",
 			ruolo: "AMMINISTRATORE",
 		};
