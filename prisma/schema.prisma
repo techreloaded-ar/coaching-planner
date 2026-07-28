@@ -159,6 +159,10 @@ model RigaAttivita {
   collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
   cliente       Cliente       @relation(fields: [clienteId], references: [id])
   offerta       Offerta       @relation(fields: [offertaId], references: [id])
+
+  // Sostiene la lettura del calendario mensile: filtro per collaboratore +
+  // intervallo di date, con ordinamento stabile per data e creazione.
+  @@index([collaboratoreId, data, createdAt], map: "RigaAttivita_collaboratore_data_createdAt_idx")
 }
 
 // ── Abilitazioni Collaboratore su Offerta ────────────────────────

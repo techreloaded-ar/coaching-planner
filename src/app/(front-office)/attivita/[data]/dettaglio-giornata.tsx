@@ -10,6 +10,7 @@ import {
   fetchOffertePerCliente,
 } from "@/lib/actions/righe-attivita";
 import { calcolaRimborsoTrasferta, validaKmTrasferta } from "@/domain/consuntivi";
+import { useCacheCalendario } from "../calendario-cache-provider";
 import type { RigaAttivitaClient, ClienteSelect, ScaglioneRimborsoSerializzato } from "./page";
 
 // ── Tipi ────────────────────────────────────────────────────────
@@ -70,7 +71,23 @@ export default function DettaglioGiornata({
   scaglioni,
 }: DettaglioGiornataProps) {
   const router = useRouter();
+  const cacheCalendario = useCacheCalendario();
   const [isPending, startTransition] = useTransition();
+
+  /**
+   * Applica entrambe le invalidazioni dopo una mutazione riuscita.
+   *
+   * `revalidatePath` nelle server action protegge il rendering SSR/RSC;
+   * l'invalidazione del mese nella cache client protegge l'isola del
+   * calendario, che altrimenti riuserebbe una sintesi antecedente alla
+   * modifica. Centralizzata qui perché ogni handler deve farle entrambe.
+   */
+  const invalidaMeseERicarica = useCallback(() => {
+    cacheCalendario?.invalidate(data.slice(0, 7));
+    startTransition(() => {
+      router.refresh();
+    });
+  }, [cacheCalendario, data, router]);
 
   // ── Dati righe refreshed dal server ───────────────────────
   const righe = righeIniziali;
@@ -257,10 +274,8 @@ export default function DettaglioGiornata({
         }
       }
 
-      // Refresh della pagina per aggiornare dati server
-      startTransition(() => {
-        router.refresh();
-      });
+      // Aggiorna i dati server e invalida il mese nella cache del calendario
+      invalidaMeseERicarica();
 
       // Reset form
       setClienteId("");
@@ -276,7 +291,7 @@ export default function DettaglioGiornata({
       setErroreSubmit(null);
       setClienteCambiatoDuranteModifica(false);
     },
-    [clienteId, offertaId, ore, nota, fatturabile, trasfertaKmRaw, erroreKm, data, modificaId, router]
+    [clienteId, offertaId, ore, nota, fatturabile, trasfertaKmRaw, erroreKm, data, modificaId, invalidaMeseERicarica]
   );
 
   // ── Modifica riga ──────────────────────────────────────────
@@ -358,12 +373,10 @@ export default function DettaglioGiornata({
 
       const result = await eliminaRiga(rigaId);
       if (result.success) {
-        startTransition(() => {
-          router.refresh();
-        });
+        invalidaMeseERicarica();
       }
     },
-    [router]
+    [invalidaMeseERicarica]
   );
 
   // ── Rimuovi trasferta ──────────────────────────────────────
@@ -374,12 +387,10 @@ export default function DettaglioGiornata({
 
       const result = await rimuoviTrasferta(rigaId);
       if (result.success) {
-        startTransition(() => {
-          router.refresh();
-        });
+        invalidaMeseERicarica();
       }
     },
-    [router]
+    [invalidaMeseERicarica]
   );
 
   // ═════════════════════════════════════════════════════════════

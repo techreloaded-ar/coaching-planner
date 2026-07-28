@@ -15,6 +15,12 @@ import { test, expect } from "./support/fixtures";
  * La "rete lenta" non è un hard wait: la risposta del mese di destinazione è
  * trattenuta da una route registrata prima del `goto` e sbloccata da una
  * promessa dopo che le asserzioni sull'indicatore sono passate.
+ *
+ * Da US-052 il mese di destinazione non arriva più da una navigazione RSC verso
+ * `/attivita`, ma dalla GET `/api/attivita/calendario` letta dalla cache client:
+ * il gate trattiene quella richiesta. Il prefetch del mese adiacente parte al
+ * mount, quindi al click la lettura è già in volo e viene deduplicata: in
+ * entrambi i casi il click trova un caricamento pendente.
  */
 
 function dataDb(dataIso: string): Date {
@@ -42,17 +48,18 @@ test.describe("US-050 Navigazione mese reattiva", () => {
 
     await accediComeCollaboratore(page, collaboratore.utente.email);
 
-    // Gate deterministico: trattiene ogni richiesta verso il mese di arrivo.
-    // Va registrato PRIMA del goto perché con il server di produzione la
-    // richiesta parte già al mount come prefetch; in dev il prefetch non esiste
-    // e la richiesta parte al click. In entrambi i casi il click trova la
-    // transizione pending. Il caricamento di `mesePartenza` non è toccato.
+    // Gate deterministico: trattiene ogni lettura dati del mese di arrivo.
+    // Va registrato PRIMA del goto perché la richiesta parte già al mount come
+    // prefetch del mese adiacente; il click sul controllo mese riusa la stessa
+    // lettura in volo. Il caricamento di `mesePartenza` non è toccato.
     let sblocca: (() => void) | undefined;
     const attesa = new Promise<void>((resolve) => {
       sblocca = resolve;
     });
     const richiestaMeseArrivo = (url: URL) =>
-      url.pathname === "/attivita" && url.searchParams.get("mese") === meseArrivo;
+      (url.pathname === "/attivita" ||
+        url.pathname === "/api/attivita/calendario") &&
+      url.searchParams.get("mese") === meseArrivo;
 
     await page.route(richiestaMeseArrivo, async (route) => {
       await attesa;
@@ -62,6 +69,8 @@ test.describe("US-050 Navigazione mese reattiva", () => {
     await page.goto(`/attivita?mese=${mesePartenza}`);
     const calendario = page.getByLabel("Calendario mensile delle attività");
     await expect(calendario).toBeVisible();
+    // Prima dell'idratazione il click sui controlli mese sarebbe un no-op.
+    await expect(calendario).toHaveAttribute("data-idratata", "true");
 
     await page.getByLabel("Mese precedente").click();
 

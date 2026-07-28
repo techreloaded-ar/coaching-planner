@@ -4,6 +4,11 @@ import { db } from "@/lib/db";
 import { richiediCollaboratoreCorrente, ErroreAutorizzazione } from "@/lib/dal";
 import { parseTokenMese } from "@/domain/calendario";
 import type { RigaAttivita, Offerta, Cliente, ScaglioneKm } from "@/generated/prisma/client";
+import type {
+  DatiCalendarioMese,
+  SintesiClienteGiorno,
+  SintesiGiorno,
+} from "@/lib/attivita-contract";
 import {
   calcolaRiepilogoMese,
   type ScaglioneRimborso,
@@ -21,27 +26,10 @@ export interface RigaAttivitaConContesto extends RigaAttivita {
   cliente: Cliente;
 }
 
-/** Sintesi delle ore di un cliente in un giorno */
-export interface SintesiClienteGiorno {
-  /** Id del cliente */
-  clienteId: string;
-  /** Ragione sociale del cliente */
-  ragioneSociale: string;
-  /** Ore sommate per il cliente nel giorno, su tutte le offerte */
-  ore: number;
-}
-
-/** Sintesi aggregata di un giorno */
-export interface SintesiGiorno {
-  /** Data in formato YYYY-MM-DD */
-  data: string;
-  /** Numero di righe registrate */
-  righe: number;
-  /** Ore totali */
-  oreTotali: number;
-  /** Sintesi per cliente, in ordine di prima apparizione nel giorno */
-  clienti: SintesiClienteGiorno[];
-}
+// Le sintesi del calendario vivono in `@/lib/attivita-contract`, perché sono
+// condivise con il client e con il route handler. Qui restano ri-esportate per
+// non spezzare gli import esistenti dei consumatori server.
+export type { SintesiClienteGiorno, SintesiGiorno };
 
 /** Risultato completo del mese */
 export interface AttivitaMese {
@@ -71,6 +59,74 @@ function formattaDataISO(data: Date): string {
   const m = String(data.getMonth() + 1).padStart(2, "0");
   const g = String(data.getDate()).padStart(2, "0");
   return `${a}-${m}-${g}`;
+}
+
+/** Riga minima necessaria all'aggregazione giornaliera del calendario. */
+interface RigaPerSintesiGiornaliera {
+  data: Date;
+  ore: unknown;
+  cliente: { id: string; ragioneSociale: string };
+}
+
+/**
+ * Aggrega per giorno le righe di un mese già ordinate per data e creazione.
+ *
+ * Somma le ore per cliente su più offerte e preserva l'ordine di prima
+ * apparizione del cliente nel giorno. Condivisa da `attivitaDelMese` e dalla
+ * lettura specializzata del calendario, così le due non possono divergere.
+ */
+function aggregaSintesiPerGiorno(
+  righe: readonly RigaPerSintesiGiornaliera[]
+): Map<string, SintesiGiorno> {
+  const perGiorno = new Map<string, SintesiGiorno>();
+
+  for (const riga of righe) {
+    const chiave = formattaDataISO(riga.data);
+    const ore = Number(riga.ore);
+    const esistente = perGiorno.get(chiave);
+
+    if (!esistente) {
+      perGiorno.set(chiave, {
+        data: chiave,
+        righe: 1,
+        oreTotali: ore,
+        clienti: [
+          {
+            clienteId: riga.cliente.id,
+            ragioneSociale: riga.cliente.ragioneSociale,
+            ore,
+          },
+        ],
+      });
+      continue;
+    }
+
+    esistente.righe += 1;
+    esistente.oreTotali += ore;
+
+    const sintesiCliente = esistente.clienti.find(
+      (c) => c.clienteId === riga.cliente.id
+    );
+    if (sintesiCliente) {
+      sintesiCliente.ore += ore;
+    } else {
+      esistente.clienti.push({
+        clienteId: riga.cliente.id,
+        ragioneSociale: riga.cliente.ragioneSociale,
+        ore,
+      });
+    }
+  }
+
+  return perGiorno;
+}
+
+/** Estremi half-open del mese: `[primo del mese, primo del mese successivo)`. */
+function intervalloMese(anno: number, mese: number): { inizio: Date; fine: Date } {
+  return {
+    inizio: new Date(anno, mese - 1, 1),
+    fine: new Date(anno, mese, 1),
+  };
 }
 
 // ── API pubblica ────────────────────────────────────────────────
@@ -122,47 +178,69 @@ export async function attivitaDelMese(token: string): Promise<AttivitaMese> {
     orderBy: [{ data: "asc" }, { createdAt: "asc" }],
   });
 
-  // Aggregazione per giorno
-  const perGiorno = new Map<string, SintesiGiorno>();
+  return { perGiorno: aggregaSintesiPerGiorno(righe), righe };
+}
 
-  for (const riga of righe) {
-    const chiave = formattaDataISO(riga.data);
-    const esistente = perGiorno.get(chiave);
-    const ore = Number(riga.ore);
-
-    if (esistente) {
-      esistente.righe += 1;
-      esistente.oreTotali += ore;
-
-      const sintesiCliente = esistente.clienti.find(
-        (c) => c.clienteId === riga.cliente.id
-      );
-      if (sintesiCliente) {
-        sintesiCliente.ore += ore;
-      } else {
-        esistente.clienti.push({
-          clienteId: riga.cliente.id,
-          ragioneSociale: riga.cliente.ragioneSociale,
-          ore,
-        });
-      }
-    } else {
-      perGiorno.set(chiave, {
-        data: chiave,
-        righe: 1,
-        oreTotali: ore,
-        clienti: [
-          {
-            clienteId: riga.cliente.id,
-            ragioneSociale: riga.cliente.ragioneSociale,
-            ore,
-          },
-        ],
-      });
-    }
+/**
+ * Lettura specializzata del calendario mensile per un collaboratore **già
+ * autorizzato**.
+ *
+ * A differenza di `attivitaDelMese`, questa funzione non risolve sessione né
+ * profilo: riceve l'id del collaboratore da chi ha già effettuato il controllo
+ * (pagina RSC o route handler), evitando di ripetere la catena
+ * sessione → profilo dentro la query.
+ *
+ * **Contratto di sicurezza:** l'id deve provenire esclusivamente dal DAL, mai
+ * da search params, body o header. Il chiamante è responsabile
+ * dell'autorizzazione; questa funzione è una lettura, non una guardia.
+ *
+ * Seleziona il minimo necessario alla griglia (`data`, `ore`, `createdAt` e
+ * `cliente { id, ragioneSociale }`), usa un intervallo half-open sul mese e
+ * ordina per data e creazione, così l'ordine di prima apparizione dei clienti
+ * nel giorno è deterministico.
+ *
+ * @param token - Token YYYY-MM del mese
+ * @param collaboratoreId - Id del collaboratore già autorizzato dal chiamante
+ * @returns DTO serializzabile del mese; token non valido ⇒ mese vuoto
+ */
+export async function datiCalendarioMesePerCollaboratoreAutorizzato(
+  token: string,
+  collaboratoreId: string
+): Promise<DatiCalendarioMese> {
+  const parsed = parseTokenMese(token);
+  if (!parsed) {
+    return { token, collaboratoreId, sintesiPerGiorno: {} };
   }
 
-  return { perGiorno, righe };
+  const { inizio, fine } = intervalloMese(parsed.anno, parsed.mese);
+
+  const righe = await db.rigaAttivita.findMany({
+    where: {
+      collaboratoreId,
+      data: {
+        gte: inizio,
+        lt: fine,
+      },
+    },
+    select: {
+      data: true,
+      ore: true,
+      createdAt: true,
+      cliente: {
+        select: {
+          id: true,
+          ragioneSociale: true,
+        },
+      },
+    },
+    orderBy: [{ data: "asc" }, { createdAt: "asc" }],
+  });
+
+  return {
+    token,
+    collaboratoreId,
+    sintesiPerGiorno: Object.fromEntries(aggregaSintesiPerGiorno(righe)),
+  };
 }
 
 /**

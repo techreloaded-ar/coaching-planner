@@ -2,7 +2,7 @@
 type: code-map
 title: Mappa del codice
 description: Matrice fisica fra capability candidate, codice, dati e test
-status: reviewed
+status: generated
 sources:
     - path: package.json
       role: manifest
@@ -62,6 +62,11 @@ coverage:
       pages:
         - domains/identita-accesso
     - kind: capability
+      path: calendario
+      status: mapped
+      pages:
+        - domains/attivita
+    - kind: capability
       path: clienti
       status: mapped
       pages:
@@ -91,11 +96,6 @@ coverage:
       status: mapped
       pages:
         - domains/identita-accesso
-review:
-    content_hash: sha256:79d71e20ddf1e249f0f414328503f52324ca950f0f13ba65dc7e169728121786
-    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
-    evidence_hash: sha256:f2612e1f9c9f2836c5443530c4f72f09326eff1fd52639d7781ee0f0ae6acc3c
-    reviewed_at: "2026-07-28T10:51:15Z"
 ---
 # Mappa del codice
 
@@ -135,7 +135,7 @@ review:
 <!-- archetipo:wiki section=coverage -->
 ## Copertura dell'ispezione
 
-Tutti i sei boundary e i nove candidati restituiti da `archetipo wiki inspect` sono rappresentati nel frontmatter `coverage`. Root, Prisma e script sono mappati. `docs`, `src` e `tests` restano `partial` perché l'inspector li dichiara campionati; per i candidati sono stati comunque letti tutti i file riportati e le dipendenze/test pertinenti. `anagrafiche` è distribuito sulle pagine di Clienti, Collaboratori, Offerte, Politiche rimborso e Identità/accesso; il candidato `utenti`, introdotto dalla UI `/anagrafiche/utenti`, è assegnato a Identità/accesso. Il dettaglio di avanzamento appartiene a Offerte, mentre `report` mappa solo Fatturazione clienti.
+Tutti i sei boundary e i dieci candidati restituiti da `archetipo wiki inspect` sono rappresentati nel frontmatter `coverage`. Root, Prisma e script sono mappati. `docs`, `src` e `tests` restano `partial` perché l'inspector li dichiara campionati; per i candidati sono stati comunque letti tutti i file riportati e le dipendenze/test pertinenti. `anagrafiche` è distribuito sulle pagine di Clienti, Collaboratori, Offerte, Politiche rimborso e Identità/accesso; il candidato `utenti`, introdotto dalla UI `/anagrafiche/utenti`, è assegnato a Identità/accesso. Il dettaglio di avanzamento appartiene a Offerte, mentre `report` mappa solo Fatturazione clienti. Il candidato `calendario`, comparso con la route dati `src/app/api/attivita/calendario/route.ts` introdotta dalla cache client dei mesi, è assegnato ad Attività: non è una capability autonoma, è il confine dati del calendario di quella capability.
 
 ## Concetti correlati
 

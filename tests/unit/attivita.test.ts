@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { attivitaDelMese, offerteAbilitatePerCliente } from "@/lib/attivita";
+import {
+  attivitaDelMese,
+  datiCalendarioMesePerCollaboratoreAutorizzato,
+  offerteAbilitatePerCliente,
+} from "@/lib/attivita";
 import { ErroreAutorizzazione } from "@/lib/dal";
 
 // ── Mock di Prisma ──────────────────────────────────────────────
@@ -532,6 +536,232 @@ describe("attivitaDelMese", () => {
     const result = await attivitaDelMese("2026-06");
     const sintesi = result.perGiorno.get("2026-06-10");
     expect(sintesi!.oreTotali).toBe(11.0); // 7.25 + 3.75 = 11.0
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// US-052 — Lettura specializzata del calendario mensile
+// ═══════════════════════════════════════════════════════════════
+
+/** Riga come la restituisce il `select` minimo della lettura calendario. */
+function rigaCalendario(
+  data: Date,
+  ore: number,
+  clienteId: string,
+  ragioneSociale: string,
+  createdAt = data,
+) {
+  return {
+    data,
+    ore,
+    createdAt,
+    cliente: { id: clienteId, ragioneSociale },
+  };
+}
+
+describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // ── Filtri, proiezione e ordinamento ────────────────────────
+
+  it("filtra per collaboratore autorizzato con intervallo half-open e proiezione minima", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([]);
+
+    await datiCalendarioMesePerCollaboratoreAutorizzato("2026-06", "collab-autorizzato");
+
+    expect(mockRigaAttivita.findMany).toHaveBeenCalledTimes(1);
+    const chiamata = mockRigaAttivita.findMany.mock.calls[0][0];
+
+    expect(chiamata.where.collaboratoreId).toBe("collab-autorizzato");
+
+    // Intervallo half-open: [1 giugno 2026, 1 luglio 2026)
+    const inizio = chiamata.where.data.gte;
+    const fine = chiamata.where.data.lt;
+    expect(inizio).toBeInstanceOf(Date);
+    expect(fine).toBeInstanceOf(Date);
+    expect([inizio.getFullYear(), inizio.getMonth(), inizio.getDate()]).toEqual([
+      2026, 5, 1,
+    ]);
+    expect([fine.getFullYear(), fine.getMonth(), fine.getDate()]).toEqual([
+      2026, 6, 1,
+    ]);
+    // L'estremo superiore è esclusivo: nessun `lte` residuo.
+    expect(chiamata.where.data.lte).toBeUndefined();
+
+    // Proiezione minima: nessuna entità Offerta/Cliente caricata per intero.
+    expect(chiamata.select).toEqual({
+      data: true,
+      ore: true,
+      createdAt: true,
+      cliente: { select: { id: true, ragioneSociale: true } },
+    });
+    expect(chiamata.include).toBeUndefined();
+
+    // Ordine stabile: data, poi creazione.
+    expect(chiamata.orderBy).toEqual([{ data: "asc" }, { createdAt: "asc" }]);
+  });
+
+  it("usa il primo giorno del mese successivo come estremo escluso anche a dicembre", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([]);
+
+    await datiCalendarioMesePerCollaboratoreAutorizzato("2026-12", "collab-1");
+
+    const fine = mockRigaAttivita.findMany.mock.calls[0][0].where.data.lt;
+    expect([fine.getFullYear(), fine.getMonth(), fine.getDate()]).toEqual([
+      2027, 0, 1,
+    ]);
+  });
+
+  it("non accetta l'id dal chiamante per aggirare il filtro: l'id ricevuto è l'unico usato", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([]);
+
+    await datiCalendarioMesePerCollaboratoreAutorizzato("2026-06", "collab-solo-questo");
+
+    const chiamata = mockRigaAttivita.findMany.mock.calls[0][0];
+    expect(chiamata.where.collaboratoreId).toBe("collab-solo-questo");
+    expect(Object.keys(chiamata.where)).toEqual(["collaboratoreId", "data"]);
+  });
+
+  // ── Token non valido ─────────────────────────────────────────
+
+  it("restituisce un mese vuoto senza interrogare il DB se il token non è valido", async () => {
+    const risultato = await datiCalendarioMesePerCollaboratoreAutorizzato(
+      "non-valido",
+      "collab-1",
+    );
+
+    expect(risultato).toEqual({
+      token: "non-valido",
+      collaboratoreId: "collab-1",
+      sintesiPerGiorno: {},
+    });
+    expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
+  });
+
+  it("restituisce un mese vuoto quando il collaboratore non ha righe", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([]);
+
+    const risultato = await datiCalendarioMesePerCollaboratoreAutorizzato(
+      "2026-06",
+      "collab-1",
+    );
+
+    expect(risultato).toEqual({
+      token: "2026-06",
+      collaboratoreId: "collab-1",
+      sintesiPerGiorno: {},
+    });
+  });
+
+  // ── Aggregazione osservabile sul DTO ────────────────────────
+
+  it("somma le ore dello stesso cliente su più offerte e conta le righe del giorno", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([
+      rigaCalendario(new Date(2026, 5, 2), 8, "cliente-ts", "TechSolutions Srl"),
+      rigaCalendario(new Date(2026, 5, 2), 4, "cliente-ts", "TechSolutions Srl"),
+    ]);
+
+    const { sintesiPerGiorno } = await datiCalendarioMesePerCollaboratoreAutorizzato(
+      "2026-06",
+      "collab-1",
+    );
+
+    expect(sintesiPerGiorno["2026-06-02"]).toEqual({
+      data: "2026-06-02",
+      righe: 2,
+      oreTotali: 12,
+      clienti: [
+        { clienteId: "cliente-ts", ragioneSociale: "TechSolutions Srl", ore: 12 },
+      ],
+    });
+  });
+
+  it("mantiene i clienti in ordine di prima apparizione nel giorno", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([
+      rigaCalendario(new Date(2026, 5, 3), 2, "cliente-df", "DataFlow SpA"),
+      rigaCalendario(new Date(2026, 5, 3), 5, "cliente-ts", "TechSolutions Srl"),
+      rigaCalendario(new Date(2026, 5, 3), 1, "cliente-df", "DataFlow SpA"),
+    ]);
+
+    const { sintesiPerGiorno } = await datiCalendarioMesePerCollaboratoreAutorizzato(
+      "2026-06",
+      "collab-1",
+    );
+
+    const giorno = sintesiPerGiorno["2026-06-03"];
+    expect(giorno.righe).toBe(3);
+    expect(giorno.oreTotali).toBe(8);
+    expect(giorno.clienti).toEqual([
+      { clienteId: "cliente-df", ragioneSociale: "DataFlow SpA", ore: 3 },
+      { clienteId: "cliente-ts", ragioneSociale: "TechSolutions Srl", ore: 5 },
+    ]);
+  });
+
+  it("indicizza più giorni distinti per data YYYY-MM-DD", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([
+      rigaCalendario(new Date(2026, 5, 1), 6, "cliente-ts", "TechSolutions Srl"),
+      rigaCalendario(new Date(2026, 5, 15), 3.5, "cliente-df", "DataFlow SpA"),
+      rigaCalendario(new Date(2026, 5, 30), 8, "cliente-ts", "TechSolutions Srl"),
+    ]);
+
+    const { token, sintesiPerGiorno } =
+      await datiCalendarioMesePerCollaboratoreAutorizzato("2026-06", "collab-1");
+
+    expect(token).toBe("2026-06");
+    expect(Object.keys(sintesiPerGiorno)).toEqual([
+      "2026-06-01",
+      "2026-06-15",
+      "2026-06-30",
+    ]);
+    expect(sintesiPerGiorno["2026-06-15"].oreTotali).toBe(3.5);
+  });
+
+  it("produce per il calendario la stessa sintesi di attivitaDelMese sugli stessi dati", async () => {
+    const righeComplete = [
+      rigaFittizia(new Date(2026, 5, 4), 7.25, "TS-001", "TechSolutions Srl", "cliente-ts", "offerta-a"),
+      rigaFittizia(new Date(2026, 5, 4), 3.75, "TS-002", "TechSolutions Srl", "cliente-ts", "offerta-b"),
+      rigaFittizia(new Date(2026, 5, 4), 2, "DF-001", "DataFlow SpA", "cliente-df", "offerta-c"),
+    ];
+
+    mockRichiediCollaboratoreCorrente.mockResolvedValue({
+      id: "collab-1",
+      userId: "user-1",
+      nome: "Giulia",
+      cognome: "Conti",
+      partitaIva: "IT12345678901",
+      tariffaGiornaliera: "350.00",
+      attivo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockRigaAttivita.findMany.mockResolvedValue(righeComplete);
+    const riferimento = await attivitaDelMese("2026-06");
+
+    mockRigaAttivita.findMany.mockResolvedValue(
+      righeComplete.map((riga) => {
+        const completa = riga as {
+          data: Date;
+          ore: number;
+          createdAt: Date;
+          cliente: { id: string; ragioneSociale: string };
+        };
+        return rigaCalendario(
+          completa.data,
+          completa.ore,
+          completa.cliente.id,
+          completa.cliente.ragioneSociale,
+          completa.createdAt,
+        );
+      }),
+    );
+    const { sintesiPerGiorno } = await datiCalendarioMesePerCollaboratoreAutorizzato(
+      "2026-06",
+      "collab-1",
+    );
+
+    expect(sintesiPerGiorno).toEqual(Object.fromEntries(riferimento.perGiorno));
   });
 });
 

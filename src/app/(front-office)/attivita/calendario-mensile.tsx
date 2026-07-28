@@ -1,23 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  costruisciGrigliaMese,
+  etichettaMese,
   mesePrecedente,
   meseSuccessivo,
+  parseTokenMese,
   tokenMeseCorrente,
+  type CellaGiorno,
 } from "@/domain/calendario";
-import type { SintesiGiorno } from "@/lib/attivita";
-
-// ── Tipi client (dopo serializzazione RSC → Client) ─────────────
-
-/** Cella giorno dopo serializzazione (Date → string) */
-interface CellaGiornoClient {
-  data: string;
-  fuoriMese: boolean;
-  isWeekend: boolean;
-}
+import type { DatiCalendarioMese } from "@/lib/attivita-contract";
+import { useIdratata } from "@/components";
+import {
+  ErroreSessioneCalendario,
+  useCacheCalendario,
+} from "./calendario-cache-provider";
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -53,17 +53,37 @@ function stessoGiorno(a: Date | string, b: Date | string): boolean {
   );
 }
 
+/** URL condivisibile del mese: il contratto `?mese=YYYY-MM` non cambia. */
+function urlDelMese(token: string): string {
+  return `/attivita?mese=${token}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Intento di navigazione
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Destinazione richiesta dall'utente.
+ *
+ * Serve a distinguere l'ultima intenzione dalle risposte tardive: una lettura
+ * lenta di un mese abbandonato non deve sovrascrivere il mese che l'utente sta
+ * guardando adesso.
+ */
+interface IntentoNavigazione {
+  token: string;
+  /** Se registrare una nuova entry nella history (falso per Back/Forward). */
+  registraHistory: boolean;
+  /** URL da scrivere: il pulsante «Mese corrente» resta su `/attivita`. */
+  url?: string;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Props
 // ═══════════════════════════════════════════════════════════════
 
 interface CalendarioMensileProps {
-  token: string;
-  etichetta: string;
-  /** Griglia del mese (Date → string dopo serializzazione) */
-  griglia: CellaGiornoClient[];
-  /** Sintesi per giorno indicizzata per data YYYY-MM-DD */
-  sintesi: Record<string, SintesiGiorno>;
+  /** DTO del mese prodotto dal rendering server: semina la cache client. */
+  datiMeseIniziale: DatiCalendarioMese;
   /** Data corrente in formato ISO string */
   oggi: string;
 }
@@ -73,43 +93,219 @@ interface CalendarioMensileProps {
 // ═══════════════════════════════════════════════════════════════
 
 export default function CalendarioMensile({
-  token,
-  etichetta,
-  griglia,
-  sintesi,
+  datiMeseIniziale,
   oggi,
 }: CalendarioMensileProps) {
   const oggiDate = new Date(oggi);
 
   const router = useRouter();
-  const [inCaricamento, avviaTransizione] = useTransition();
+  const cache = useCacheCalendario();
+  const idratata = useIdratata();
 
-  /**
-   * Ultima destinazione richiesta dall'utente: incatena i click rapidi sui
-   * controlli mese, che altrimenti ripartirebbero sempre dal prop `token`
-   * (non ancora aggiornato mentre la transizione è pending).
-   */
-  const ultimaDestinazione = useRef<string | null>(null);
+  // Il mese mostrato è deciso dal client: SSR fornisce il primo valore, poi la
+  // navigazione avviene sulla cache dei mesi senza navigazioni RSC.
+  const [meseVisualizzato, setMeseVisualizzato] = useState(datiMeseIniziale);
+  const [inCaricamento, setInCaricamento] = useState(false);
+  const [errore, setErrore] = useState<string | null>(null);
+  /** Ultimo payload ricevuto dal server, per riconoscerne uno nuovo. */
+  const [payloadServer, setPayloadServer] = useState(datiMeseIniziale);
 
-  // Il nuovo mese è arrivato dal server: la catena dei click riparte da qui.
+  const intentoCorrente = useRef<IntentoNavigazione>({
+    token: datiMeseIniziale.token,
+    registraHistory: false,
+  });
+
+  const tokenVisualizzato = meseVisualizzato.token;
+  const sintesi = meseVisualizzato.sintesiPerGiorno;
+
+  // Etichetta e griglia sono derivate localmente dalle funzioni pure del
+  // dominio: non viaggiano nel payload né RSC né JSON.
+  const etichetta = useMemo(
+    () => etichettaMese(tokenVisualizzato),
+    [tokenVisualizzato]
+  );
+  const griglia = useMemo<CellaGiorno[]>(
+    () => costruisciGrigliaMese(tokenVisualizzato),
+    [tokenVisualizzato]
+  );
+
+  const commit = useCallback(
+    (intento: IntentoNavigazione, dati: DatiCalendarioMese) => {
+      setMeseVisualizzato(dati);
+      setInCaricamento(false);
+      setErrore(null);
+
+      // L'URL viene registrato solo ora, quando il mese è davvero pronto.
+      if (intento.registraHistory) {
+        window.history.pushState(null, "", intento.url ?? urlDelMese(intento.token));
+      }
+    },
+    []
+  );
+
+  const vaiA = useCallback(
+    (intento: IntentoNavigazione) => {
+      intentoCorrente.current = intento;
+      const destinazione = intento.token;
+
+      // Senza isola client (provider assente) resta la navigazione RSC.
+      if (!cache) {
+        router.push(intento.url ?? urlDelMese(destinazione));
+        return;
+      }
+
+      const lettura = cache.read(destinazione);
+
+      if (lettura) {
+        // Hit: commit sincrono, nessuna richiesta e nessun indicatore.
+        commit(intento, lettura.dati);
+
+        if (lettura.stato === "scaduto") {
+          // Una sola rivalidazione in background: la griglia resta quella.
+          void cache.load(destinazione).catch(() => undefined);
+        }
+        return;
+      }
+
+      // Miss: la griglia precedente resta visibile sotto l'indicatore.
+      setErrore(null);
+      setInCaricamento(true);
+
+      cache
+        .load(destinazione)
+        .then((dati) => {
+          // Risposta tardiva per un mese abbandonato: non tocca la vista.
+          if (intentoCorrente.current.token !== destinazione) return;
+          commit(intento, dati);
+        })
+        .catch((causa: unknown) => {
+          // La sessione decaduta è gestita dal provider con una navigazione
+          // completa: qui non si mostra un errore recuperabile.
+          if (causa instanceof ErroreSessioneCalendario) return;
+          if (intentoCorrente.current.token !== destinazione) return;
+
+          setInCaricamento(false);
+          setErrore(
+            `Non è stato possibile caricare ${etichettaMese(destinazione)}.`
+          );
+        });
+    },
+    [cache, commit, router]
+  );
+
+  // ── Sincronizzazione con il rendering server ─────────────────
+  // Il payload del server è autorevole: vale al mount e ogni volta che il
+  // server ne produce uno nuovo (URL diretto, reload, ritorno dal dettaglio
+  // giornata, `router.refresh()` dopo una mutazione). L'allineamento avviene
+  // durante il render — il pattern React per adeguare lo stato a una prop
+  // cambiata — e non in un effetto, che provocherebbe un render a cascata.
+  if (payloadServer !== datiMeseIniziale) {
+    setPayloadServer(datiMeseIniziale);
+    setMeseVisualizzato(datiMeseIniziale);
+    setInCaricamento(false);
+    setErrore(null);
+  }
+
+  // La cache va seminata come effetto: è un sistema esterno a React.
   useEffect(() => {
-    ultimaDestinazione.current = null;
-  }, [token]);
+    cache?.seed(datiMeseIniziale);
+    intentoCorrente.current = {
+      token: datiMeseIniziale.token,
+      registraHistory: false,
+    };
+  }, [cache, datiMeseIniziale]);
+
+  // ── Prefetch dei mesi adiacenti dopo il commit ───────────────
+  useEffect(() => {
+    if (!cache) return;
+    cache.prefetch(mesePrecedente(tokenVisualizzato));
+    cache.prefetch(meseSuccessivo(tokenVisualizzato));
+  }, [cache, tokenVisualizzato]);
+
+  // ── Aggiornamenti in background del mese mostrato ────────────
+  useEffect(() => {
+    if (!cache) return;
+    return cache.subscribe((tokenAggiornato) => {
+      if (tokenAggiornato !== intentoCorrente.current.token) return;
+      const lettura = cache.read(tokenAggiornato);
+      if (lettura) setMeseVisualizzato(lettura.dati);
+    });
+  }, [cache]);
+
+  // ── Sessione decaduta: navigazione completa ──────────────────
+  useEffect(() => {
+    if (!cache) return;
+    return cache.subscribeSessioneScaduta(() => {
+      // Il server decide dove mandare l'utente: la cache è già svuotata.
+      window.location.reload();
+    });
+  }, [cache]);
+
+  // ── Limite reale della staleness: scadenza, focus e visibilità ─
+  useEffect(() => {
+    if (!cache) return;
+
+    const lettura = cache.read(tokenVisualizzato);
+    const ritardo = lettura ? Math.max(0, lettura.expiresAt - Date.now()) : 0;
+
+    const timer = window.setTimeout(() => {
+      cache.prefetch(tokenVisualizzato);
+    }, ritardo);
+
+    // Al ritorno sulla scheda si forza la rivalidazione, anche se la entry è
+    // ancora fresca: `prefetch` uscirebbe subito e il ritorno sulla scheda non
+    // delimiterebbe alcuna staleness. È anche il momento in cui la risposta
+    // rivela un eventuale cambio di sessione avvenuto in un'altra scheda.
+    function rivalidaAlRitorno() {
+      if (document.visibilityState !== "visible") return;
+      void cache!.revalida(tokenVisualizzato).catch(() => undefined);
+    }
+
+    window.addEventListener("focus", rivalidaAlRitorno);
+    document.addEventListener("visibilitychange", rivalidaAlRitorno);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", rivalidaAlRitorno);
+      document.removeEventListener("visibilitychange", rivalidaAlRitorno);
+    };
+    // `meseVisualizzato` riarma il timer dopo ogni aggiornamento del mese.
+  }, [cache, tokenVisualizzato, meseVisualizzato]);
+
+  // ── Back / Forward ───────────────────────────────────────────
+  useEffect(() => {
+    function gestisciPopstate() {
+      const richiesto = new URLSearchParams(window.location.search).get("mese");
+      const token =
+        richiesto && parseTokenMese(richiesto) ? richiesto : tokenMeseCorrente();
+
+      // Back/Forward ripercorre la history: non crea una nuova entry.
+      vaiA({ token, registraHistory: false });
+    }
+
+    window.addEventListener("popstate", gestisciPopstate);
+    return () => window.removeEventListener("popstate", gestisciPopstate);
+  }, [vaiA]);
+
+  // ── Gestori dei controlli mese ───────────────────────────────
 
   function navigaVersoMese(calcolaDestinazione: (base: string) => string) {
-    const base = ultimaDestinazione.current ?? token;
-    const destinazione = calcolaDestinazione(base);
-    ultimaDestinazione.current = destinazione;
-    avviaTransizione(() => {
-      router.push(`/attivita?mese=${destinazione}`);
-    });
+    // La catena dei click rapidi riparte dall'ultima intenzione, non dal mese
+    // ancora mostrato.
+    const base = intentoCorrente.current.token;
+    vaiA({ token: calcolaDestinazione(base), registraHistory: true });
   }
 
   function navigaVersoMeseCorrente() {
-    ultimaDestinazione.current = tokenMeseCorrente();
-    avviaTransizione(() => {
-      router.push("/attivita");
+    vaiA({
+      token: tokenMeseCorrente(),
+      registraHistory: true,
+      url: "/attivita",
     });
+  }
+
+  function ritentaMese() {
+    vaiA(intentoCorrente.current);
   }
 
   // Totale mese
@@ -195,7 +391,7 @@ export default function CalendarioMensile({
           </button>
 
           <Link
-            href={`/attivita/riepilogo?mese=${token}`}
+            href={`/attivita/riepilogo?mese=${tokenVisualizzato}`}
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
@@ -234,11 +430,30 @@ export default function CalendarioMensile({
         )}
       </div>
 
+      {/* ── Errore di caricamento del mese ── */}
+      {errore && (
+        <div
+          role="alert"
+          data-testid="errore-caricamento-mese"
+          className="mb-[14px] flex flex-wrap items-center gap-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-[13px] font-semibold text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
+        >
+          <span>{errore}</span>
+          <button
+            type="button"
+            onClick={ritentaMese}
+            className="inline-flex cursor-pointer items-center rounded-[9px] border border-amber-400 bg-white px-2.5 py-1 text-[12.5px] font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
+          >
+            Riprova
+          </button>
+        </div>
+      )}
+
       {/* ── Griglia calendario ── */}
       <section
         className="relative overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
         aria-label="Calendario mensile delle attività"
         aria-busy={inCaricamento}
+        data-idratata={idratata ? "true" : "false"}
       >
         {/* Indicatore di caricamento del nuovo mese (la griglia resta visibile sotto) */}
         {inCaricamento && (
@@ -365,6 +580,9 @@ export default function CalendarioMensile({
               <Link
                 key={key}
                 href={`/attivita/${key}?mese=${tokenCella}`}
+                // Su rotta dinamica il prefetch del giorno non trasporta i dati
+                // della giornata e competerebbe con il prefetch dei mesi.
+                prefetch={false}
                 className={classiGiorno}
                 style={{ textDecoration: "none" }}
                 data-testid="cella-giorno"

@@ -163,6 +163,13 @@ async function validaTrasfertaKmServer(
 }
 
 // ── Server Actions ──────────────────────────────────────────────
+//
+// Invalidazione dopo una scrittura riuscita: oltre al giorno e al riepilogo,
+// ogni action invalida `/attivita`, il percorso server del calendario mensile.
+// Questa è la protezione del rendering SSR/RSC. La cache client dei mesi ha una
+// propria invalidazione esplicita, applicata dal dettaglio giornata: le due
+// mitigazioni sono complementari e nessuna delle due sostituisce l'altra.
+// Un esito `{ success: false }` o un'eccezione non invalida nulla.
 
 /**
  * Crea una nuova riga attività per il collaboratore corrente.
@@ -238,6 +245,7 @@ export async function creaRiga(
 
   revalidatePath(`/attivita/${dataStr}`);
   revalidatePath("/attivita/riepilogo");
+  revalidatePath("/attivita");
 
   return { success: true };
 }
@@ -356,6 +364,7 @@ export async function modificaRiga(
 
   revalidatePath(`/attivita/${dataStr}`);
   revalidatePath("/attivita/riepilogo");
+  revalidatePath("/attivita");
 
   return { success: true };
 }
@@ -400,6 +409,7 @@ export async function eliminaRiga(
     revalidatePath(`/attivita/${dataStr}`);
   }
   revalidatePath("/attivita/riepilogo");
+  revalidatePath("/attivita");
 
   return { success: true };
 }
@@ -446,6 +456,7 @@ export async function rimuoviTrasferta(
     revalidatePath(`/attivita/${dataStr}`);
   }
   revalidatePath("/attivita/riepilogo");
+  revalidatePath("/attivita");
 
   return { success: true };
 }

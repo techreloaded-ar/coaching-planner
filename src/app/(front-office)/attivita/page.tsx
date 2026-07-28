@@ -2,22 +2,10 @@ import {
   risolviProfiloCollaboratoreCorrente,
   verificaSessione,
 } from "@/lib/dal";
-import { attivitaDelMese } from "@/lib/attivita";
-import {
-  tokenMeseCorrente,
-  parseTokenMese,
-  etichettaMese,
-  costruisciGrigliaMese,
-} from "@/domain/calendario";
+import { datiCalendarioMesePerCollaboratoreAutorizzato } from "@/lib/attivita";
+import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
 import CalendarioMensile from "./calendario-mensile";
 import StatoProfiloCollaboratore from "./stato-profilo-collaboratore";
-
-function formattaDataISO(data: Date): string {
-  const anno = data.getFullYear();
-  const mese = String(data.getMonth() + 1).padStart(2, "0");
-  const giorno = String(data.getDate()).padStart(2, "0");
-  return `${anno}-${mese}-${giorno}`;
-}
 
 export default async function AttivitaPage({
   searchParams,
@@ -25,7 +13,9 @@ export default async function AttivitaPage({
   searchParams: Promise<{ mese?: string }>;
 }) {
   const sessione = await verificaSessione();
-  const profilo = await risolviProfiloCollaboratoreCorrente();
+  // La sessione è già verificata: il resolver del profilo la riusa invece di
+  // risolverla una seconda volta.
+  const profilo = await risolviProfiloCollaboratoreCorrente(sessione);
 
   if (profilo.stato !== "ATTIVO") {
     return (
@@ -43,26 +33,18 @@ export default async function AttivitaPage({
   const parsed = parseTokenMese(tokenRaw);
   const token = parsed ? tokenRaw : tokenMeseCorrente();
 
-  // Navigazione: i token adiacenti sono calcolati lato client dal calendario
-  const etichetta = etichettaMese(token);
-
-  // Dati del mese
-  const { perGiorno } = await attivitaDelMese(token);
-  const griglia = costruisciGrigliaMese(token);
-
-  // Conversione Map → plain object e Date → string per il passaggio al client component
-  const sintesiPlain = Object.fromEntries(perGiorno);
-  const grigliaPlain = griglia.map((cella) => ({
-    ...cella,
-    data: formattaDataISO(cella.data),
-  }));
+  // Dati del mese letti con il collaboratore già autorizzato: la query non
+  // ripete la catena sessione → profilo. Etichetta del mese e griglia delle 42
+  // celle sono derivate nel client dalle funzioni pure del dominio, quindi non
+  // vengono serializzate nel payload.
+  const datiMese = await datiCalendarioMesePerCollaboratoreAutorizzato(
+    token,
+    profilo.collaboratore.id
+  );
 
   return (
     <CalendarioMensile
-      token={token}
-      etichetta={etichetta}
-      griglia={grigliaPlain}
-      sintesi={sintesiPlain}
+      datiMeseIniziale={datiMese}
       oggi={new Date().toISOString()}
     />
   );

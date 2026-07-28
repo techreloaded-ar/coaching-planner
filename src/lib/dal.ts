@@ -198,9 +198,17 @@ export type StatoProfiloCollaboratore =
  * mantenere la sessione anche se il suo profilo è disattivato: in quel caso
  * il risultato consente al front office di mostrare uno stato esplicativo,
  * senza rendere il profilo utilizzabile per attività.
+ *
+ * @param sessioneGiaVerificata - Sessione già risolta e verificata dal
+ *   chiamante (per esempio da `verificaSessione` in una pagina RSC). Quando è
+ *   fornita, il profilo viene letto senza ripetere la risoluzione della
+ *   sessione: un round-trip in meno sul percorso caldo. Senza argomento il
+ *   comportamento è invariato, sessione inclusa.
  */
-export async function risolviProfiloCollaboratoreCorrente(): Promise<StatoProfiloCollaboratore> {
-  const sessione = await richiediSessioneApi();
+export async function risolviProfiloCollaboratoreCorrente(
+  sessioneGiaVerificata?: SessioneUtente
+): Promise<StatoProfiloCollaboratore> {
+  const sessione = sessioneGiaVerificata ?? (await richiediSessioneApi());
   const collaboratore = await db.collaboratore.findUnique({
     where: { userId: sessione.utenteId },
   });

@@ -54,6 +54,27 @@ vi.mock("next/cache", () => ({
 }));
 
 // ═══════════════════════════════════════════════════════════════
+// Helper: contratto di invalidazione dopo una scrittura riuscita
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * US-052 — ogni mutazione riuscita invalida il giorno, il riepilogo e il
+ * percorso server del calendario mensile. `/attivita` protegge il rendering
+ * SSR/RSC; la cache client del calendario ha un'invalidazione propria,
+ * applicata dal dettaglio giornata, e le due non si sostituiscono.
+ */
+function aspettatiPercorsiInvalidati(dataStr: string): void {
+  expect(mockRevalidatePath).toHaveBeenCalledWith(`/attivita/${dataStr}`);
+  expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita/riepilogo");
+  expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita");
+}
+
+/** Nessuna invalidazione: l'esito non ha modificato il database. */
+function aspettataNessunaInvalidazione(): void {
+  expect(mockRevalidatePath).not.toHaveBeenCalled();
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Helper: FormData builder
 // ═══════════════════════════════════════════════════════════════
 
@@ -143,8 +164,7 @@ describe("creaRiga", () => {
     expect(chiamata.data.fatturabile).toBe(true);
     expect(chiamata.data.trasfertaKm).toBeNull();
 
-    // Verifica revalidate
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita/2026-07-01");
+    aspettatiPercorsiInvalidati("2026-07-01");
   });
 
   it("crea una riga con trasfertaKm valido", async () => {
@@ -192,6 +212,7 @@ describe("creaRiga", () => {
     expect(result.error).toBeDefined();
     expect(result.error).toContain("250");
     expect(mockRigaAttivita.create).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
   });
 
   it("crea una riga con fatturabile disattivato", async () => {
@@ -432,7 +453,7 @@ describe("modificaRiga", () => {
     expect(chiamata.data.nota).toBe("Nota aggiornata");
     expect(chiamata.data.fatturabile).toBe(true);
 
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita/2026-07-01");
+    aspettatiPercorsiInvalidati("2026-07-01");
   });
 
   it("aggiorna trasfertaKm a un nuovo valore valido", async () => {
@@ -533,6 +554,7 @@ describe("modificaRiga", () => {
       error: "L'offerta non appartiene al cliente selezionato",
     });
     expect(mockRigaAttivita.update).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
   });
 
   it("aggiorna il clienteId quando corrisponde al reale proprietario dell'offerta invariata", async () => {
@@ -612,6 +634,7 @@ describe("modificaRiga", () => {
       error: "Non sei abilitato a registrare attività su questa offerta",
     });
     expect(mockRigaAttivita.update).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
   });
 
   it("rifiuta riga di altro collaboratore", async () => {
@@ -696,7 +719,7 @@ describe("eliminaRiga", () => {
     expect(mockRigaAttivita.delete).toHaveBeenCalledWith({
       where: { id: "riga-1" },
     });
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita/2026-07-01");
+    aspettatiPercorsiInvalidati("2026-07-01");
   });
 
   it("elimina la riga anche se l'offerta non è più abilitata, senza consultare l'abilitazione (AC-4)", async () => {
@@ -739,6 +762,7 @@ describe("eliminaRiga", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("altro collaboratore");
     expect(mockRigaAttivita.delete).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
   });
 
   it("rifiuta riga inesistente", async () => {
@@ -788,7 +812,7 @@ describe("rimuoviTrasferta", () => {
       where: { id: "riga-1" },
       data: { trasfertaKm: null },
     });
-    expect(mockRevalidatePath).toHaveBeenCalledWith("/attivita/2026-07-01");
+    aspettatiPercorsiInvalidati("2026-07-01");
   });
 
   it("rifiuta riga di altro collaboratore", async () => {
@@ -805,6 +829,7 @@ describe("rimuoviTrasferta", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("altro collaboratore");
     expect(mockRigaAttivita.update).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
   });
 
   it("rifiuta riga inesistente", async () => {

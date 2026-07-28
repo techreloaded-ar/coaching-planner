@@ -389,6 +389,91 @@ describe("risolviProfiloCollaboratoreCorrente e richiediCollaboratoreCorrente", 
       statusCode: 401,
     });
   });
+
+  // ── US-052: riuso di una sessione già verificata ─────────────
+
+  it("con una sessione già verificata non rilegge la sessione ma verifica comunque il profilo", async () => {
+    mockCollaboratore.findUnique.mockResolvedValue({
+      id: "collab-abc",
+      userId: "col-1",
+      nome: "Giulia",
+      cognome: "Conti",
+      partitaIva: "IT12345678901",
+      tariffaGiornaliera: "250.00",
+      attivo: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const profilo = await risolviProfiloCollaboratoreCorrente({
+      utenteId: "col-1",
+      ruolo: "COLLABORATORE",
+      nome: "Giulia Conti",
+      email: "giulia@test.local",
+    });
+
+    expect(profilo).toMatchObject({
+      stato: "ATTIVO",
+      collaboratore: { id: "collab-abc" },
+    });
+
+    // Nessuna seconda risoluzione della sessione: né cookie né tabella Utente.
+    expect(mockGetSessionCookie).not.toHaveBeenCalled();
+    expect(mockUtente.findUnique).not.toHaveBeenCalled();
+
+    // Il profilo resta letto e verificato, con l'utente della sessione fornita.
+    expect(mockCollaboratore.findUnique).toHaveBeenCalledTimes(1);
+    expect(mockCollaboratore.findUnique).toHaveBeenCalledWith({
+      where: { userId: "col-1" },
+    });
+  });
+
+  it("con una sessione già verificata continua a distinguere profilo assente e disattivato", async () => {
+    const sessione = {
+      utenteId: "col-2",
+      ruolo: "COLLABORATORE" as const,
+      nome: "Marco Bianchi",
+      email: "marco@test.local",
+    };
+
+    mockCollaboratore.findUnique.mockResolvedValue(null);
+    await expect(risolviProfiloCollaboratoreCorrente(sessione)).resolves.toEqual({
+      stato: "ASSENTE",
+    });
+
+    mockCollaboratore.findUnique.mockResolvedValue({
+      id: "collab-spento",
+      attivo: false,
+    });
+    await expect(risolviProfiloCollaboratoreCorrente(sessione)).resolves.toEqual({
+      stato: "DISATTIVATO",
+    });
+
+    expect(mockGetSessionCookie).not.toHaveBeenCalled();
+  });
+
+  it("senza argomento risolve ancora la sessione da sé", async () => {
+    mockGetSessionCookie.mockResolvedValue(
+      sessioneCookie("col-1", "COLLABORATORE")
+    );
+    mockUtente.findUnique.mockResolvedValue({
+      id: "col-1",
+      ruolo: "COLLABORATORE",
+      nome: "Giulia",
+      cognome: "Conti",
+      email: "giulia@test.local",
+    });
+    mockCollaboratore.findUnique.mockResolvedValue({
+      id: "collab-abc",
+      attivo: true,
+    });
+
+    await expect(risolviProfiloCollaboratoreCorrente()).resolves.toMatchObject({
+      stato: "ATTIVO",
+    });
+    expect(mockGetSessionCookie).toHaveBeenCalledTimes(1);
+    expect(mockUtente.findUnique).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════
