@@ -30,6 +30,13 @@ export default async function CollaboratoriOffertaPage({
     elencaCollaboratoriIngaggiabili(offertaId),
   ]);
 
+  // La tabella sotto elenca anche gli ingaggi storici verso profili nel
+  // frattempo disattivati (AC-1); questo conteggio riflette invece solo chi
+  // può attualmente inserire ore sull'offerta.
+  const collaboratoriAttivi = ingaggiati.filter(
+    (collaboratore) => collaboratore.collaboratoreAttivo,
+  ).length;
+
   return (
     <div>
       <Link
@@ -90,15 +97,15 @@ export default async function CollaboratoriOffertaPage({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col justify-center border-l border-zinc-200 py-1 pl-5 text-right dark:border-zinc-800">
+        <div className="flex shrink-0 flex-col justify-center border-l border-zinc-200 py-1 pl-5 text-right max-[720px]:mt-1 max-[720px]:w-full max-[720px]:border-t max-[720px]:border-l-0 max-[720px]:pt-3 max-[720px]:pl-0 max-[720px]:text-left dark:border-zinc-800">
           <span className="mb-1 text-[10px] font-bold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-            Squadra
+            Squadra attiva
           </span>
           <span className="text-[22px] font-extrabold tracking-tight text-zinc-800 tabular-nums dark:text-zinc-100">
-            {ingaggiati.length}
+            {collaboratoriAttivi}
           </span>
           <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
-            {ingaggiati.length === 1 ? "collaboratore" : "collaboratori"}
+            {collaboratoriAttivi === 1 ? "collaboratore" : "collaboratori"}
           </span>
         </div>
       </div>

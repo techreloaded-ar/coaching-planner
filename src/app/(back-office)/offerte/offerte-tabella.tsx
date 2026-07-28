@@ -4,7 +4,7 @@ import { Fragment, useState, useActionState } from "react";
 import Link from "next/link";
 import { useIdratata } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
-import { inizialiCliente } from "@/lib/formattazione";
+import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
 import DettaglioAvanzamentoOfferta from "./dettaglio-avanzamento-offerta";
 import {
   cambiaStatoOfferta,
@@ -19,13 +19,6 @@ const statoEliminazioneIniziale: StatoEliminazioneOfferta = {};
 const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 1,
-});
-
-const formattatoreEuro = new Intl.NumberFormat("it-IT", {
-  style: "currency",
-  currency: "EUR",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
 });
 
 /** Formatta un numero di giornate con al massimo un decimale, stile it-IT. */
@@ -282,7 +275,7 @@ function RigaOfferta({
 
       {/* Tariffa giornaliera */}
       <td className="px-4 py-[13px] text-right align-middle tabular-nums whitespace-nowrap font-semibold text-zinc-700 dark:text-zinc-200">
-        {formattatoreEuro.format(Number(offerta.tariffaGiornaliera))}
+        {formattaEuro(Number(offerta.tariffaGiornaliera))}
       </td>
 
       {/* Giorni erogati: erogate/previste + mini barra + flag critici */}
