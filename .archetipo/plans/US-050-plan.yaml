@@ -1,0 +1,465 @@
+schema: archetipo/plan/v2
+spec_code: US-050
+body: |-
+  # US-050: Cambio mese reattivo nel calendario con indicatore di caricamento — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-07-28 (rev. 3: contratto Wiki allineato alle nuove direttive — chiave `update` e task dedicati per ogni pagina; rev. 2: aggiunto prefetch dei mesi adiacenti su richiesta del product owner)
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** HIGH | **Punti:** 3
+
+  **Storia Utente**
+  Come collaboratore, voglio che il passaggio da un mese all'altro del mio calendario attività risponda in modo quasi istantaneo e mostri un indicatore quando i dati stanno caricando, così da navigare lo storico senza attese cieche in cui l'applicazione sembra bloccata.
+
+  **Criteri di Accettazione**
+  - AC-1 — Al click sui controlli di navigazione mese (precedente, successivo, mese corrente) l'interfaccia dà riscontro visivo immediato, senza intervallo percepibile in cui il click sembra ignorato.
+  - AC-2 — Quando i dati del mese non sono ancora disponibili, un indicatore di caricamento è visibile sulla zona del calendario e scompare quando le celle del nuovo mese sono valorizzate.
+  - AC-3 — La navigazione conserva il contratto attuale dell'URL: il mese visualizzato resta raggiungibile e condivisibile tramite l'indirizzo con il token `YYYY-MM`, e l'apertura diretta di quell'indirizzo mostra il mese richiesto.
+  - AC-4 — Il contenuto delle celle (clienti, ore cumulate, indicatore "+N") e l'apertura del giorno restano invariati rispetto al comportamento attuale.
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Oggi la navigazione mese usa tre `<Link>` verso `/attivita?mese=…` in `src/app/(front-office)/attivita/calendario-mensile.tsx`: la pagina server (`page.tsx`) ricalcola i dati e, durante l'attesa, il client non mostra alcun feedback (la rotta è dinamica e senza `loading.tsx`, quindi il click sembra ignorato su rete lenta). La soluzione combina due leve, entrambe allineate alle guide locali di Next 16.2.9 (`04-linking-and-navigating.md`, `prefetching.md`, `staleTimes.md`):
+
+  **Leva 1 — Reattività percepita (transizione client-side):**
+  - I tre controlli di navigazione (precedente, successivo, mese corrente) diventano `<button type="button">` con identiche classi, icone e `aria-label`; il click chiama `router.push('/attivita?mese=…')` (per "Mese corrente": `router.push('/attivita')`) dentro `startTransition` di `useTransition`. La griglia del mese corrente resta visibile durante la transizione e `isPending` pilota l'indicatore: riscontro immediato (AC-1) senza svuotare la pagina.
+  - Il token di destinazione è calcolato lato client riusando le funzioni pure già esistenti `mesePrecedente`, `meseSuccessivo`, `tokenMeseCorrente` di `src/domain/calendario` (prive di dipendenze dal framework). Un ref `ultimaDestinazione` incatena i click rapidi: la base del calcolo è l'ultima destinazione richiesta, non il prop `token` non ancora aggiornato, così tre click su "successivo" avanzano di tre mesi. Il ref si azzera quando il prop `token` cambia (effetto). I prop `tokenPrecedente`/`tokenSuccessivo` e il loro calcolo in `page.tsx` vengono rimossi perché non più usati.
+  - L'indicatore di caricamento è un overlay assoluto sulla `<section>` del calendario (che diventa `relative` e riceve `aria-busy={isPending}`): sfondo semi-trasparente, spinner `animate-spin`, `role="status"` con testo `sr-only`, `data-testid="indicatore-caricamento-mese"`. Parte con `opacity: 0` e compare via animazione CSS con ritardo di ~120ms (keyframes in `src/app/globals.css`), come raccomandato dalla guida per evitare il flash sulle transizioni veloci.
+
+  **Leva 2 — Velocità reale (prefetch dei mesi adiacenti):**
+  - Un `useEffect` con dipendenza sul `token` chiama `router.prefetch()` per `/attivita?mese={mesePrecedente}`, `/attivita?mese={meseSuccessivo}` e `/attivita` (destinazione di "Mese corrente"), con il callback `onInvalidate` che ri-prefetcha lo stesso URL quando Next segnala che il payload è diventato stantio (pattern documentato in `prefetching.md`, righe 140-166; firma `router.prefetch(href, { onInvalidate })` da `use-router.md`, disponibile da v15.4).
+  - Per la guida locale `staleTimes.md`, i payload ottenuti via `router.prefetch` ricadono nella finestra `static` della cache client (default 5 minuti): al click su precedente/successivo il mese si renderizza dalla cache senza round-trip server — questo rende il cambio mese effettivamente istantaneo anche su rete lenta, ed è il motivo per cui NON serve abilitare la config sperimentale `experimental.staleTimes` in `next.config.ts` (nessuna modifica di configurazione globale).
+  - Conseguenza accettata (decisione di prodotto esplicita del PO): navigando tra mesi già prefetchati si possono vedere dati vecchi fino a 5 minuti. Mitigazioni già presenti nel codebase: le server action di `src/lib/actions/righe-attivita.ts` chiamano `revalidatePath`, che per la guida locale `revalidatePath.md` "purga la Client Cache" — quindi le modifiche fatte dall'utente stesso invalidano subito la cache; `dettaglio-giornata.tsx` chiama inoltre `router.refresh()`. Il refresh del browser (F5) bypassa sempre la cache client (in-memory, per scheda) e ricarica dati freschi.
+  - Vincolo operativo: il prefetching è attivo **solo in produzione** (`next start`); in `next dev` è disabilitato. I test e2e che provano il cache-hit devono girare contro il server di produzione (come fa la CI, che usa `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start"`).
+  - Il contratto URL (AC-3) è intatto: `router.push` aggiorna l'indirizzo con `?mese=YYYY-MM` e `page.tsx` continua a leggere `searchParams.mese` invariato. Celle, link giorno e link "Riepilogo mese" non vengono toccati (AC-4).
+  - Alternativa scartata `loading.tsx`: sostituirebbe l'intera pagina con uno skeleton a ogni navigazione, perdendo la griglia visibile. Alternativa scartata `useLinkStatus`: pending confinato dentro il singolo `<Link>`. Alternativa scartata `experimental.staleTimes` globale: avrebbe esteso la finestra di staleness a tutte le navigazioni dell'applicazione per ottenere lo stesso effetto che `router.prefetch` dà già localmente.
+
+  ### Decisioni Architetturali
+
+  **ADR nuovo — `decisions/prefetch-mesi-adiacenti` (da creare con il task dedicato TASK-06; nessuna decisione esistente in materia: verificato con `archetipo wiki search --type decision`).** La scelta supera la soglia ADR perché cambia la semantica di consistenza osservabile del calendario attività: letture potenzialmente stantie fino a 5 minuti durante la navigazione client-side, in cambio di cambio mese istantaneo. Contesto: navigazione mese percepita come bloccata su rete lenta; il PO privilegia la velocità e accetta esplicitamente la staleness. Opzione scelta: `router.prefetch` dei mesi adiacenti con `onInvalidate`, senza config globale. Alternative valutate: (a) nessun prefetch — solo indicatore, nessun rischio staleness ma nessun guadagno reale di velocità; (b) `experimental.staleTimes` in `next.config.ts` — stessa velocità ma estende la staleness a tutta l'app ed è una config sperimentale; (c) `loading.tsx` — prefetch parziale ma skeleton a pagina intera. Trade-off: finestra di staleness ≤5 min limitata alla scheda corrente, mitigata da `revalidatePath` nelle action (le modifiche proprie invalidano la cache) e dal refresh browser. Intento di verifica: e2e che prova il cache-hit (nessuna richiesta di rete al click su mese prefetchato) e regressione sull'aggiornamento dopo inserimento riga. La transizione client-side (Leva 1) resta invece sotto soglia ADR: pattern locale raccomandato dal framework, reversibile, senza impatti trasversali.
+
+  ---
+
+  ## Baseline
+
+  Eseguita il 2026-07-28 su `/Users/smarello/repo/coaching-planner` (nessun worktree per US-050).
+
+  | Verifica | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npx vitest run tests/unit/calendario.test.ts tests/unit/attivita.test.ts` | Verde: 2 file, 46 test passati | Le verifiche dei task possono attendersi `passa`; il dominio calendario non cambia. |
+  | `npx tsc --noEmit` | Verde: exit 0, nessun errore | I file toccati non devono introdurre nuovi errori di tipo. |
+  | `npm run lint` | Verde: eslint + guardrail anti-flakiness e2e passati | Il nuovo spec e2e deve superare il guardrail (niente hard wait, niente selettori Tailwind). |
+
+  Prerequisiti d'ambiente (non errori di codice): i test e2e richiedono `E2E_DATABASE_URL` valorizzata (già presente in locale; `playwright.config.ts` fallisce esplicitamente se assente), web server avviato da Playwright (`npm run dev` default locale, `npm run start` in CI) e Chromium installato (`npx playwright install chromium` se mancante). Prisma client generato via `npm run db:generate` se necessario. Il prefetch è attivo solo con server di produzione: per esercitarlo in locale servono `npm run build` seguito da `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start" npx playwright test …`.
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task produttore |
+  |---|---|---|---|---|
+  | AC-1 (riscontro immediato) | Collaboratore factory con riga attività nel mese riservato US-050 arretrato di 1 (`mesePassatoRiservato("US-050", 1)`); risposta di rete del mese di destinazione trattenuta via `page.route` registrata prima del `goto` | E2E Playwright | Dopo il click su "Mese precedente" e con la risposta ancora trattenuta, `getByTestId("indicatore-caricamento-mese")` è visibile e la `<section>` del calendario ha `aria-busy="true"` — il click ha prodotto riscontro immediato senza attendere il server | TASK-03 |
+  | AC-1 (tempo percepito istantaneo con prefetch) | Stessa struttura dati; server di produzione (`npm run start`); risposta di prefetch del mese adiacente attesa con `waitForResponse` prima del click | E2E Playwright (solo produzione, skip condizionale in dev) | Al click su "Mese precedente" le celle del mese si valorizzano SENZA che venga emessa alcuna nuova richiesta di rete per quel mese (contatore richieste invariato): il mese è servito dalla cache client prefetchata | TASK-05 |
+  | AC-2 | Fixture AC-1 con risposta trattenuta | E2E Playwright | Indicatore visibile mentre la risposta è trattenuta; dopo il rilascio della route l'indicatore scompare (`toBeHidden`) e la cella `a[href="/attivita/{data}?mese={meseArrivo}"]` è visibile con l'etichetta cliente valorizzata | TASK-03 |
+  | AC-3 | Stessa fixture; nessuna interception | E2E Playwright | Dopo la navigazione l'URL soddisfa `toHaveURL(/mese={meseArrivo}/)`; in un test separato `page.goto("/attivita?mese={meseArrivo}")` diretto mostra la cella del giorno con l'attività | TASK-03 |
+  | AC-4 | Stessa fixture | E2E Playwright + regressione suite esistente | La cella mostra badge righe, ore `3.0 h` ed etichetta cliente come oggi; il click sulla cella apre `/attivita/{data}?mese={meseArrivo}`; gli spec esistenti `calendario-etichette-clienti`, `apertura-giorno-calendario`, `calendario-segregazione`, `demo__calendario-mensile` restano verdi | TASK-03, TASK-08 |
+
+  Gli oracoli restano osservabili: gli unici doppi di test sono il trattenimento della route di rete (`page.route` con promessa di sblocco) e il conteggio delle richieste, che non nascondono né il componente calendario né il contratto URL — la pagina reale, il server component e il database e2e restano nel percorso.
+
+  ---
+
+  ## Strategia di Test
+
+  Il comportamento cambia solo nel client component di navigazione: le funzioni di dominio (`mesePrecedente`, `meseSuccessivo`, griglia) sono già coperte da `tests/unit/calendario.test.ts` e non vengono modificate. L'evidenza di accettazione vive quindi a livello browser e2e, dove il percorso attraversa route, sessione e persistenza — il repository non ha testing-library per component test React e non va introdotta per questa spec.
+
+  - E2E deterministico secondo il contratto di `tests/e2e/README.md`: collaboratore/cliente/offerta/righe creati dalla factory (`tests/e2e/support/fixtures.ts`), mesi riservati `meseRiservato("US-050")` e `mesePassatoRiservato("US-050", 1)` da `tests/e2e/support/date.ts`, nessun hard wait: la "rete lenta" è simulata trattenendo la risposta con `page.route` sbloccata da una promessa dopo che l'asserzione sull'indicatore è passata. L'interception va registrata PRIMA del `goto` iniziale: in produzione la richiesta del mese adiacente parte al mount come prefetch e va trattenuta anch'essa, così il click trova la transizione ancora pending in entrambe le modalità (dev: nessun prefetch, la richiesta parte al click; prod: il click riusa il prefetch in volo).
+  - Il cache-hit del prefetch si prova con un oracolo di rete, non di tempo: si attende la risposta del prefetch (`waitForResponse`, event-driven), si clicca, si verifica che le celle siano valorizzate e che il contatore delle richieste per quel mese non sia aumentato. Nessuna asserzione sui millisecondi (sarebbe flaky). Il test si auto-esclude con `test.skip` motivato quando il web server e2e non è di produzione, perché il prefetching di Next è attivo solo in produzione; in CI gira sempre (`PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start"`).
+  - Il selettore dell'indicatore è `data-testid="indicatore-caricamento-mese"`; Playwright considera visibile un elemento con `opacity: 0` (l'animazione ritarda solo l'opacità), quindi l'asserzione non dipende dai tempi dell'animazione.
+  - Regressione staleness: gli e2e esistenti che inseriscono righe via UI restano validi perché le server action chiamano `revalidatePath` (purga della cache client) e i dati factory sono creati prima del `goto` (il prefetch successivo li include già).
+  - Regressione: `demo__calendario-mensile.spec.ts` va aggiornato nel solo selettore "Mese corrente" (da `link` a `button`); i `getByLabel` esistenti restano validi.
+  - `npm run lint` va rieseguito dopo ogni modifica e2e: include il guardrail anti-flakiness.
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (`@playwright/test` 1.60, config `playwright.config.ts`, `fullyParallel: true` da preservare)
+  **Demo video:** attesa — la Dimostrazione è filmabile (navigazione tra mesi + indicatore su rete rallentata); la registrazione e la decisione finale spettano ad `archetipo-review`
+
+  | Scenario | Descrizione del flusso utente |
+  |---|---|
+  | Cambio mese con rete lenta | Il collaboratore apre il calendario sul mese riservato, preme "Mese precedente" mentre la risposta del server è trattenuta: l'indicatore di caricamento compare subito sull'area calendario (AC-1, AC-2), al rilascio le celle del nuovo mese si valorizzano, l'indicatore scompare e l'URL contiene il token del mese (AC-3); la cella mostra etichette e ore invariate e il click apre il giorno (AC-4) |
+  | Cambio mese istantaneo da cache prefetchata (solo produzione) | Il collaboratore apre il calendario, il browser prefetcha i mesi adiacenti in background; al click su "Mese precedente" il mese compare valorizzato senza alcuna nuova richiesta di rete (AC-1, tempo percepito istantaneo) |
+  | Apertura diretta dell'URL con token mese | Il collaboratore apre direttamente `/attivita?mese=YYYY-MM` di un mese con attività e vede il calendario di quel mese con le celle valorizzate (AC-3) |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/attivita]
+    update: [domains/attivita]
+    create: [decisions/prefetch-mesi-adiacenti]
+  ```
+
+  Ogni ID in `update` e `create` ha il proprio task Impl dedicato, come richiesto dal contratto: `decisions/prefetch-mesi-adiacenti` è creato da TASK-06 (nuovo ADR sulla semantica di consistenza: staleness ≤5 min accettata in cambio di navigazione istantanea, contratto `type: decision` completo di marker); `domains/attivita` è aggiornato da TASK-07 (il flusso osservato 5 cambia: navigazione mese come transizione client-side con griglia visibile, indicatore di caricamento e prefetch dei mesi adiacenti con cache client; la pagina torna in stato `generated` e l'approvazione resta alla review). `engineering/code-map` è emerso dalla discovery `wiki affected` come sola co-citazione a livello di boundary: le sue affermazioni restano accurate, quindi resta fuori dal contratto richiesto.
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-07-28 (rev. 3)_
+tasks:
+  - id: TASK-01
+    title: Transizione client-side e indicatore di caricamento nel calendario mensile
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      La navigazione mese del calendario reagisce immediatamente al click mantenendo visibile la griglia corrente e mostra un overlay di caricamento sull'area calendario finché il nuovo mese non è renderizzato, senza cambiare il contratto URL `?mese=YYYY-MM`.
+
+      ## Read
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — i tre `<Link>` di navigazione (aria-label "Mese precedente", "Mese successivo", testo "Mese corrente"), la `<section>` con `aria-label="Calendario mensile delle attività"`, le classi Tailwind dei controlli da preservare identiche.
+      - `src/app/(front-office)/attivita/page.tsx` — calcolo di `tokenPrev`/`tokenNext` e props passate a `CalendarioMensile`.
+      - `src/domain/calendario/index.ts` — firme di `mesePrecedente`, `meseSuccessivo`, `tokenMeseCorrente` (funzioni pure, importabili nel client component).
+      - `src/app/globals.css` — struttura Tailwind v4 (`@import "tailwindcss"`, blocchi `@theme`) dove aggiungere i keyframes.
+      - `node_modules/next/dist/docs/01-app/01-getting-started/04-linking-and-navigating.md` — sezione "Client-side transitions" e "Slow networks" (riferimento del pattern, Next 16.2.9).
+
+      ## Change
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — sostituire i tre `<Link>` di navigazione con `<button type="button">`; aggiungere `useTransition`/`useRouter`, il ref `ultimaDestinazione`, l'overlay indicatore; `relative` e `aria-busy` sulla `<section>`; rimuovere le props `tokenPrecedente`/`tokenSuccessivo`.
+      - `src/app/(front-office)/attivita/page.tsx` — rimuovere il calcolo e il passaggio di `tokenPrev`/`tokenNext` (e gli import `mesePrecedente`/`meseSuccessivo` se non più usati).
+      - `src/app/globals.css` — aggiungere i keyframes `comparsa-caricamento`.
+      - Non-goal: NON toccare il link "Riepilogo mese", i `<Link>` delle celle giorno, `src/domain/calendario/index.ts`, `src/lib/attivita.ts` né il contenuto delle celle (AC-4). Nessun `loading.tsx`. Il prefetch dei mesi adiacenti è di TASK-04, non di questo task.
+
+      ## Steps
+      1. In `calendario-mensile.tsx` (`"use client"` già presente) importare `useRouter` da `next/navigation`, `useTransition`, `useRef`, `useEffect` da `react` e `mesePrecedente`, `meseSuccessivo`, `tokenMeseCorrente` da `@/domain/calendario`.
+      2. Nel componente: `const router = useRouter();` e `const [inCaricamento, avviaTransizione] = useTransition();` più `const ultimaDestinazione = useRef<string | null>(null);`.
+      3. Definire `function navigaVersoMese(calcola: (base: string) => string) { const base = ultimaDestinazione.current ?? token; const destinazione = calcola(base); ultimaDestinazione.current = destinazione; avviaTransizione(() => { router.push(`/attivita?mese=${destinazione}`); }); }` e per "Mese corrente" una variante che imposta `ultimaDestinazione.current = tokenMeseCorrente()` e fa `router.push("/attivita")` nella transizione.
+      4. Aggiungere `useEffect(() => { ultimaDestinazione.current = null; }, [token]);` così i click rapidi si incatenano ma lo stato si riallinea quando arriva il nuovo mese.
+      5. Sostituire i tre `<Link>` di navigazione con `<button type="button" onClick={...}>` mantenendo INVARIATI classi Tailwind, SVG, `aria-label="Mese precedente"`, `aria-label="Mese successivo"` e il testo visibile "Mese corrente" (aggiungere `cursor-pointer` alle classi dei bottoni se il reset del browser lo richiede). Rimuovere `tokenPrecedente`/`tokenSuccessivo` da `CalendarioMensileProps`.
+      6. Sulla `<section aria-label="Calendario mensile delle attività">` aggiungere la classe `relative` e `aria-busy={inCaricamento}`. Dentro la section, renderizzare `{inCaricamento && (<div data-testid="indicatore-caricamento-mese" role="status" className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 opacity-0 animate-[comparsa-caricamento_200ms_ease-out_120ms_forwards] dark:bg-zinc-900/60"><span className="h-8 w-8 animate-spin rounded-full border-[3px] border-rose-200 border-t-rose-600 dark:border-rose-900 dark:border-t-rose-400" /><span className="sr-only">Caricamento del mese in corso…</span></div>)}`.
+      7. In `src/app/globals.css` aggiungere: `@keyframes comparsa-caricamento { to { opacity: 1; } }`.
+      8. In `page.tsx` eliminare `tokenPrev`/`tokenNext`, gli import ora inutilizzati e le due props dal JSX di `<CalendarioMensile>`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit` (da `/Users/smarello/repo/coaching-planner`)
+      - Expect: exit 0, nessun errore (baseline verde).
+      - Run: `npx vitest run tests/unit/calendario.test.ts tests/unit/attivita.test.ts`
+      - Expect: 46 test passati come da baseline (nessuna regressione di dominio).
+      - Run: `npx eslint "src/app/(front-office)/attivita/calendario-mensile.tsx" "src/app/(front-office)/attivita/page.tsx"`
+      - Expect: nessun errore né warning nuovi sui file toccati.
+
+      ## Done
+      - [ ] AC-1 — I controlli mese sono bottoni che avviano la transizione client-side: al click lo stato `inCaricamento` diventa immediatamente vero e la griglia corrente resta visibile (evidenza browser prodotta da TASK-03).
+      - [ ] AC-2 — L'overlay `indicatore-caricamento-mese` è renderizzato sull'area calendario mentre la transizione è pending e scompare al termine.
+      - [ ] AC-3 — La navigazione aggiorna l'URL con `?mese=YYYY-MM` via `router.push` e `page.tsx` continua a leggere `searchParams.mese` invariato.
+      - [ ] AC-4 — Celle giorno, loro `<Link>` e link "Riepilogo mese" non modificati (diff limitato ai punti elencati in Change).
+      - [ ] Click ripetuti su "Mese successivo"/"Mese precedente" incatenano le destinazioni tramite `ultimaDestinazione` (tre click = tre mesi).
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Aggiorna i selettori e2e esistenti al nuovo ruolo button dei controlli mese
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Gli spec e2e esistenti che selezionano i controlli di navigazione mese del calendario attività restano compilabili e coerenti con i nuovi `<button>` (stesse etichette accessibili, ruolo diverso).
+
+      ## Read
+      - `tests/e2e/demo__calendario-mensile.spec.ts` — riga ~69: `page.getByRole("link", { name: "Mese corrente" })`; righe ~63-64: `getByLabel("Mese precedente")`/`getByLabel("Mese successivo")` (questi restano validi: `getByLabel` non dipende dal ruolo).
+      - `tests/e2e/calendario-segregazione.spec.ts` righe ~85-86 e `tests/e2e/apertura-giorno-calendario.spec.ts` riga ~99 — usano `getByLabel`, verificare che non ci siano altri `getByRole("link")` sui controlli mese di `/attivita`.
+      - Non toccare `tests/e2e/report-fatturazione-clienti.spec.ts`: riguarda la pagina report back-office, fuori perimetro.
+
+      ## Change
+      - `tests/e2e/demo__calendario-mensile.spec.ts` — sostituire `getByRole("link", { name: "Mese corrente" })` con `getByRole("button", { name: "Mese corrente" })`; adeguare eventuali altri selettori basati sul ruolo `link` per i soli controlli precedente/successivo/corrente del calendario attività.
+      - Non-goal: nessun cambiamento a flussi, asserzioni sui contenuti o altri spec.
+
+      ## Steps
+      1. Cercare in `tests/e2e/` tutte le occorrenze di `getByRole("link"` con nomi "Mese precedente", "Mese successivo", "Mese corrente" e classificarle per pagina: aggiornare al ruolo `button` solo quelle che operano su `/attivita` (calendario collaboratore).
+      2. Applicare la sostituzione in `demo__calendario-mensile.spec.ts`.
+      3. Rieseguire la ricerca per confermare che non restino selettori `link` sui controlli mese del calendario attività.
+
+      ## Verify
+      - Run: `npx playwright test --list tests/e2e/demo__calendario-mensile.spec.ts tests/e2e/calendario-segregazione.spec.ts tests/e2e/apertura-giorno-calendario.spec.ts`
+      - Expect: gli spec compilano e vengono elencati senza errori.
+      - Run: `npm run lint`
+      - Expect: eslint + guardrail anti-flakiness verdi come da baseline.
+
+      ## Done
+      - [ ] AC-4 — Gli spec di regressione del calendario selezionano i controlli con il ruolo corretto e continuano a provare che contenuto celle e apertura giorno sono invariati.
+      - [ ] Nessun selettore `getByRole("link")` residuo sui controlli mese di `/attivita`.
+
+      ## Blockers
+      Dipende da TASK-01 (i controlli devono già essere bottoni, altrimenti la modifica dei selettori romperebbe gli spec contro il codice attuale).
+    ref: TASK-02
+  - id: TASK-03
+    title: 'Nuovo e2e: navigazione mese reattiva con indicatore e contratto URL'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Uno spec Playwright deterministico prova AC-1, AC-2, AC-3 e AC-4: indicatore visibile al click con risposta trattenuta, scomparsa a celle valorizzate, URL con token `YYYY-MM`, apertura diretta dell'URL e contenuto celle/apertura giorno invariati.
+
+      ## Read
+      - `tests/e2e/calendario-etichette-clienti.spec.ts` — pattern completo di riferimento: fixtures `{ page, collaboratore, factory }`, `meseRiservato`, `dataNelMese`, helper `dataDb`, `accediComeCollaboratore`, selettore cella `a[href="/attivita/{data}?mese={mese}"]`.
+      - `tests/e2e/support/date.ts` — `meseRiservato("US-050")` e `mesePassatoRiservato("US-050", 1)` (mese riservato arretrato di 1, destinazione del click su "Mese precedente").
+      - `tests/e2e/support/fixtures.ts` e `tests/e2e/support/auth.ts` — factory e login.
+      - `tests/e2e/README.md` — contratto anti-flakiness (niente hard wait, niente selettori Tailwind, web-first expect).
+
+      ## Change
+      - Creare `tests/e2e/calendario-navigazione-reattiva.spec.ts` (nuovo file, `test.describe("US-050 Navigazione mese reattiva")`).
+      - Non-goal: nessuna modifica a spec esistenti, fixtures o config Playwright (preservare `fullyParallel: true`, `retries` invariati). Il test del cache-hit prefetch è di TASK-05, non di questo task.
+
+      ## Steps
+      1. Setup dati: `const mesePartenza = meseRiservato("US-050"); const meseArrivo = mesePassatoRiservato("US-050", 1); const data = dataNelMese(meseArrivo, 12);` poi `factory.createClienteConOfferta()` e `factory.createRigaAttivita({ collaboratore, cliente, offerta, data: dataDb(data), ore: "3.00" })`.
+      2. Test 1 "indicatore visibile durante il caricamento e celle valorizzate al termine": login con `accediComeCollaboratore`. PRIMA del `goto`, creare il gate deterministico e registrare l'interception: `let sblocca: (() => void) | undefined; const attesa = new Promise<void>((resolve) => { sblocca = resolve; });` e `await page.route(`**/attivita?*mese=${meseArrivo}*`, async (route) => { await attesa; await route.continue(); });`. L'ordine è essenziale: con il server di produzione la richiesta di `meseArrivo` parte al mount come PREFETCH e va trattenuta anch'essa, così il click trova sempre la transizione pending (in dev il prefetch non esiste e la richiesta parte al click: entrambe le modalità restano deterministiche). Il pattern matcha solo `mese={meseArrivo}`, quindi il caricamento iniziale su `mesePartenza` non è bloccato.
+      3. `await page.goto(`/attivita?mese=${mesePartenza}`);` e attendere `expect(page.getByLabel("Calendario mensile delle attività")).toBeVisible()`.
+      4. Click su `page.getByLabel("Mese precedente")`; con la risposta trattenuta asserire: `await expect(page.getByTestId("indicatore-caricamento-mese")).toBeVisible();` (AC-1: riscontro immediato; AC-2: indicatore sull'area calendario — l'opacità animata non conta per la visibilità Playwright) e `await expect(page.getByLabel("Calendario mensile delle attività")).toHaveAttribute("aria-busy", "true");`.
+      5. Rilasciare con `sblocca!();` poi asserire: cella `page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`)` visibile con `data-con-attivita="true"` e testo `3.0 h` (celle valorizzate, AC-2/AC-4), `await expect(page.getByTestId("indicatore-caricamento-mese")).toBeHidden();` (AC-2), `await expect(page).toHaveURL(new RegExp(`mese=${meseArrivo}`));` (AC-3), `aria-busy` tornato `"false"`. Chiudere con `await page.unroute(`**/attivita?*mese=${meseArrivo}*`);`.
+      6. Sempre nel Test 1 (AC-4): click sulla cella e `await expect(page).toHaveURL(new RegExp(`/attivita/${data}`));` (apertura giorno invariata).
+      7. Test 2 "apertura diretta dell'URL con token mese" (AC-3): nuovo login/goto diretto `page.goto(`/attivita?mese=${meseArrivo}`)` senza interception e asserzione che la cella del giorno con `3.0 h` sia visibile.
+      8. Nessun `waitForTimeout`, nessun selettore su classi Tailwind: solo ruoli, label, testid e href esatti.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/calendario-navigazione-reattiva.spec.ts` (da `/Users/smarello/repo/coaching-planner`; richiede `E2E_DATABASE_URL` nell'ambiente, web server avviato automaticamente dalla config)
+      - Expect: 2 test passati, 0 flaky (nessun retry consumato).
+      - Run: `npm run lint`
+      - Expect: eslint + guardrail anti-flakiness verdi (il guardrail copre il nuovo file).
+
+      ## Done
+      - [ ] AC-1 — Oracolo: indicatore visibile subito dopo il click mentre la risposta è trattenuta dal gate `page.route` (il click non sembra mai ignorato).
+      - [ ] AC-2 — Oracolo: `indicatore-caricamento-mese` visibile durante l'attesa e `toBeHidden` dopo che la cella del nuovo mese è visibile e valorizzata.
+      - [ ] AC-3 — Oracolo: `toHaveURL` con `mese={meseArrivo}` dopo la navigazione e apertura diretta dell'URL che mostra il mese richiesto.
+      - [ ] AC-4 — Oracolo: cella con `data-con-attivita="true"`, ore `3.0 h` e apertura giorno su `/attivita/{data}` invariate.
+      - [ ] Il test usa esclusivamente entità factory e mesi riservati US-050; nessuna mutazione di entità seed.
+
+      ## Blockers
+      Dipende da TASK-01 (indicatore e bottoni devono esistere). Prerequisito d'ambiente: `E2E_DATABASE_URL` configurata e Chromium Playwright installato (`npx playwright install chromium` se assente).
+    ref: TASK-03
+  - id: TASK-04
+    title: '[FUORI PERIMETRO — vedi US-052] Prefetch dei mesi adiacenti con cache client'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Al mount e a ogni cambio mese il calendario prefetcha i payload dei mesi adiacenti (`precedente`, `successivo`, `/attivita`), rendendo il cambio mese servibile dalla cache client senza round-trip server in produzione.
+
+      ## Read
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — dopo TASK-01: hook `useRouter`, effetto esistente su `token`, funzioni `mesePrecedente`/`meseSuccessivo` già importate.
+      - `node_modules/next/dist/docs/01-app/02-guides/prefetching.md` — sezione "Manual prefetch" e l'esempio con `onInvalidate` (righe ~140-166); nota: il prefetching è attivo solo in produzione.
+      - `node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-router.md` — firma `router.prefetch(href, { onInvalidate })`.
+      - `node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/staleTimes.md` — conferma che i payload da `router.prefetch` usano la finestra `static` (default 5 minuti): nessuna modifica a `next.config.ts` necessaria.
+
+      ## Change
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — aggiungere un solo `useEffect` di prefetch; nessun'altra modifica.
+      - Non-goal: NON toccare `next.config.ts` (niente `experimental.staleTimes`), NON aggiungere prefetch ai `<Link>` delle celle giorno o al link "Riepilogo mese". La pagina ADR è di TASK-06, non di questo task.
+
+      ## Steps
+      1. In `calendario-mensile.tsx` aggiungere: `useEffect(() => { const destinazioni = [`/attivita?mese=${mesePrecedente(token)}`, `/attivita?mese=${meseSuccessivo(token)}`, "/attivita"]; let annullato = false; for (const href of destinazioni) { const prefetch = () => { if (!annullato) router.prefetch(href, { onInvalidate: prefetch }); }; prefetch(); } return () => { annullato = true; }; }, [token, router]);` (il flag `annullato` replica il pattern della guida: nessun ri-prefetch dopo lo smontaggio o il cambio mese).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0 (nessun nuovo errore di tipo).
+      - Run: `npx eslint "src/app/(front-office)/attivita/calendario-mensile.tsx"`
+      - Expect: nessun errore né warning (attenzione alle dipendenze dell'effetto: `token` e `router`).
+
+      ## Done
+      - [ ] AC-1 — In produzione i payload dei mesi adiacenti sono prefetchati e il cambio mese è servito dalla cache client (evidenza browser prodotta da TASK-05); il tempo percepito resta istantaneo anche su rete lenta.
+      - [ ] `next.config.ts` non è stato modificato.
+
+      ## Blockers
+      Dipende da TASK-01 (l'effetto usa hook e import introdotti lì).
+    ref: TASK-04
+  - id: TASK-05
+    title: '[FUORI PERIMETRO — vedi US-052] Nuovo e2e: cambio mese servito dalla cache prefetchata senza richieste di rete'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-04
+    body: |-
+      ## Objective
+      Uno spec Playwright prova con un oracolo di rete che, con server di produzione, il click su "Mese precedente" mostra le celle del mese adiacente senza emettere alcuna nuova richiesta per quel mese: il payload proviene dalla cache client prefetchata.
+
+      ## Read
+      - `tests/e2e/calendario-navigazione-reattiva.spec.ts` (da TASK-03) — setup dati e selettori da riusare.
+      - `tests/e2e/support/date.ts`, `tests/e2e/support/fixtures.ts`, `tests/e2e/support/auth.ts` — mesi riservati, factory, login.
+      - `playwright.config.ts` — `PLAYWRIGHT_WEB_SERVER_COMMAND` determina il server e2e (default `npm run dev`; produzione con `npm run start`): è la condizione dello skip.
+
+      ## Change
+      - Creare `tests/e2e/calendario-prefetch-mesi.spec.ts` (nuovo file, `test.describe("US-050 Prefetch mesi adiacenti")`).
+      - Non-goal: nessuna modifica a config Playwright o spec esistenti; nessuna asserzione temporale in millisecondi (flaky per costruzione).
+
+      ## Steps
+      1. In testa al test: `test.skip(!(process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ?? "").includes("start"), "Il prefetching di Next è attivo solo con il server di produzione");` — in CI (`npm run start`) il test gira sempre, in locale con `npm run dev` si auto-esclude in modo esplicito e motivato.
+      2. Setup dati identico a TASK-03 ma con giorno diverso per chiarezza: `const mesePartenza = meseRiservato("US-050"); const meseArrivo = mesePassatoRiservato("US-050", 1); const data = dataNelMese(meseArrivo, 15);` più factory cliente/offerta e `createRigaAttivita` con ore `"2.00"` (la segregazione per collaboratore factory evita ogni interferenza con TASK-03 in `fullyParallel`).
+      3. Registrare il contatore di rete PRIMA del `goto`: `const richiesteMeseArrivo: string[] = []; page.on("request", (richiesta) => { if (richiesta.url().includes(`mese=${meseArrivo}`)) richiesteMeseArrivo.push(richiesta.url()); });`.
+      4. Login con `accediComeCollaboratore`, `await page.goto(`/attivita?mese=${mesePartenza}`);` e attesa event-driven del completamento del prefetch: `await page.waitForResponse((risposta) => risposta.url().includes(`mese=${meseArrivo}`) && risposta.ok());` (nessun hard wait: si attende l'evento di rete reale del prefetch).
+      5. Registrare il conteggio: `const richiesteDopoPrefetch = richiesteMeseArrivo.length;` (atteso ≥1: il prefetch è partito).
+      6. Click su `page.getByLabel("Mese precedente")` e asserzioni: cella `a[href="/attivita/${data}?mese=${meseArrivo}"]` visibile con testo `2.0 h` (mese renderizzato e valorizzato), `await expect(page).toHaveURL(new RegExp(`mese=${meseArrivo}`));`.
+      7. Oracolo cache-hit: `expect(richiesteMeseArrivo.length).toBe(richiesteDopoPrefetch);` — nessuna nuova richiesta per `meseArrivo` dopo il click: il payload è arrivato dalla cache client (AC-1, tempo percepito istantaneo).
+
+      ## Verify
+      - Run: `npm run build && PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start" npx playwright test tests/e2e/calendario-prefetch-mesi.spec.ts` (da `/Users/smarello/repo/coaching-planner`)
+      - Expect: 1 test passato (non skippato) senza retry consumati.
+      - Run: `npx playwright test tests/e2e/calendario-prefetch-mesi.spec.ts`
+      - Expect: 1 test skippato con la motivazione esplicita (comportamento atteso con server dev).
+      - Run: `npm run lint`
+      - Expect: eslint + guardrail anti-flakiness verdi.
+
+      ## Done
+      - [ ] AC-1 — Oracolo: dopo il prefetch atteso via `waitForResponse`, il click mostra le celle del mese adiacente valorizzate senza alcuna nuova richiesta di rete per quel mese (contatore invariato) e l'URL contiene il token.
+      - [ ] Il test si auto-esclude con motivazione quando il server e2e non è di produzione e gira sempre in CI.
+      - [ ] Solo entità factory e mesi riservati US-050; nessuna mutazione di entità seed; nessun `waitForTimeout`.
+
+      ## Blockers
+      Dipende da TASK-04 (il prefetch deve esistere) e da TASK-01. Prerequisito d'ambiente: build di produzione disponibile per l'esecuzione non-skippata (`npm run build`).
+    ref: TASK-05
+  - id: TASK-06
+    title: '[FUORI PERIMETRO — vedi US-052] Crea la pagina Wiki decisions/prefetch-mesi-adiacenti (ADR)'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      La pagina Wiki `decisions/prefetch-mesi-adiacenti` esiste, rispetta il contratto `type: decision` (frontmatter, marker di sezione, evidenza dal repository) e registra la scelta del prefetch dei mesi adiacenti con la staleness accettata, in stato `generated` in attesa di review.
+
+      ## Read
+      - `docs/wiki/decisions/calcoli-puri.md` e `docs/wiki/decisions/giornata-otto-ore.md` — struttura di riferimento delle pagine decisione esistenti: frontmatter (`type: decision`, `title`, `description`, `status`, `sources`), marker `<!-- archetipo:wiki section=... -->` e sezioni attese.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — dopo TASK-04: l'`useEffect` di prefetch è l'evidenza di codice della decisione.
+      - Sezione "Decisioni Architetturali" di questo piano — contesto, opzione scelta, alternative, trade-off e intento di verifica da riportare nella pagina.
+
+      ## Change
+      - Creare `docs/wiki/decisions/prefetch-mesi-adiacenti.md` (nuova pagina, ID canonico `decisions/prefetch-mesi-adiacenti`).
+      - Non-goal: nessuna modifica ad altre pagine Wiki (l'aggiornamento di `domains/attivita` è di TASK-07); nessuna modifica manuale a `docs/wiki/index.md` (si usa `archetipo wiki catalog`).
+
+      ## Steps
+      1. Scrivere la pagina replicando la struttura delle decisioni esistenti: frontmatter con `type: decision`, `title: Prefetch dei mesi adiacenti nel calendario`, `description` a una riga, `status: generated`, `decision_status: accepted`, `sources` con `path: src/app/(front-office)/attivita/calendario-mensile.tsx` (l'effetto di prefetch come evidenza) e tutti i marker di sezione presenti nelle pagine decisione esistenti.
+      2. Contenuto delle sezioni: contesto (navigazione mese percepita bloccata su rete lenta; il PO accetta esplicitamente dati non aggiornati), opzione scelta (`router.prefetch` di precedente/successivo/`/attivita` con `onInvalidate`; payload nella finestra `static` della cache client, ~5 minuti di default), alternative valutate (nessun prefetch; `experimental.staleTimes` globale in `next.config.ts`; `loading.tsx`), trade-off (staleness ≤5 min limitata alla scheda, mitigata da `revalidatePath` nelle server action e dal refresh browser che bypassa la cache in-memory), intento di verifica (e2e `tests/e2e/calendario-prefetch-mesi.spec.ts`: cache-hit senza nuova richiesta di rete).
+      3. Collegare la pagina a `domains/attivita` con un link Markdown standard, coerente con lo stile delle decisioni esistenti.
+      4. Eseguire `archetipo wiki catalog` da `/Users/smarello/repo/coaching-planner` per aggiornare l'indice di navigazione.
+
+      ## Verify
+      - Run: `archetipo wiki validate --profile bootstrap` (da `/Users/smarello/repo/coaching-planner`)
+      - Expect: envelope `validation_result` con `data.ok: true` e nessun finding `severity: error` sulla nuova pagina.
+      - Run: `rg -n "prefetch-mesi-adiacenti" docs/wiki/index.md`
+      - Expect: la pagina compare nell'indice dopo `wiki catalog`.
+
+      ## Done
+      - [ ] La pagina `docs/wiki/decisions/prefetch-mesi-adiacenti.md` esiste con `type: decision`, `decision_status: accepted`, `status: generated`, tutti i marker di sezione applicabili e la fonte di codice citata (evidenza repository: l'`useEffect` di prefetch di TASK-04).
+      - [ ] Contesto, scelta, alternative, trade-off e intento di verifica sono documentati come da piano; l'approvazione resta alla review di accettazione.
+      - [ ] `archetipo wiki validate --profile bootstrap` passa e l'indice è aggiornato.
+
+      ## Blockers
+      Dipende da TASK-04 (la pagina cita come evidenza il codice di prefetch, che deve esistere).
+    ref: TASK-06
+  - id: TASK-07
+    title: Aggiorna la pagina Wiki domains/attivita con la navigazione reattiva del calendario
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+    body: |-
+      ## Objective
+      La pagina Wiki `domains/attivita` riflette il nuovo comportamento osservabile del calendario mensile (transizione client-side, indicatore di caricamento, prefetch dei mesi adiacenti con cache client) con le evidenze di codice e test aggiornate, e torna in stato `generated` in attesa di review.
+
+      ## Read
+      - `docs/wiki/domains/attivita.md` — sezioni da aggiornare: `Flussi osservati` (punto 5: lettura mensile e cella calendario), `Codice` (riga Test), `Verifica`, frontmatter `sources` e `status`.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — dopo TASK-01 e TASK-04: comportamento reale da descrivere (bottoni con transizione, overlay, effetto prefetch).
+      - `docs/wiki/decisions/prefetch-mesi-adiacenti.md` — dopo TASK-06: pagina decisione da collegare.
+
+      ## Change
+      - `docs/wiki/domains/attivita.md` — solo questa pagina: contenuto delle sezioni citate, `sources` e `status` nel frontmatter.
+      - Non-goal: non modificare altre pagine Wiki (in particolare `engineering/code-map`, co-citazione le cui affermazioni restano accurate); non alterare le sezioni su comandi, contratti CRUD e invarianti (il comportamento di righe e riepilogo non cambia).
+
+      ## Steps
+      1. Nel flusso osservato 5 (lettura mensile e cella calendario), aggiungere il nuovo comportamento di navigazione: i controlli mese avviano una transizione client-side che mantiene visibile la griglia corrente, un indicatore di caricamento copre l'area calendario finché le celle del nuovo mese non sono valorizzate, e i mesi adiacenti sono prefetchati nella cache client (finestra ~5 minuti in produzione, con purga a ogni `revalidatePath` delle server action), con link Markdown alla decisione [Prefetch dei mesi adiacenti](/decisions/prefetch-mesi-adiacenti.md).
+      2. Nella tabella `Codice`, riga Test, aggiungere `tests/e2e/calendario-navigazione-reattiva.spec.ts` e `tests/e2e/calendario-prefetch-mesi.spec.ts`; nella sezione `Verifica`, citare i nuovi e2e e il vincolo che il test di prefetch gira solo con server di produzione.
+      3. Nel frontmatter: aggiungere ai `sources` i due nuovi spec e2e con `role: verification`; riportare `status` a `generated` (la pagina era `reviewed`: il contenuto cambia e l'approvazione spetta alla review di accettazione, come da contratto Living Wiki).
+      4. Eseguire `archetipo wiki catalog` da `/Users/smarello/repo/coaching-planner` per riallineare l'indice (la descrizione della pagina non cambia, ma il catalogo riflette lo stato).
+
+      ## Verify
+      - Run: `archetipo wiki validate --profile bootstrap` (da `/Users/smarello/repo/coaching-planner`)
+      - Expect: envelope `validation_result` con `data.ok: true` e nessun finding `severity: error` su `domains/attivita`.
+      - Run: `rg -n "prefetch-mesi-adiacenti|calendario-navigazione-reattiva" docs/wiki/domains/attivita.md`
+      - Expect: il link alla decisione e i nuovi spec e2e compaiono nella pagina.
+
+      ## Done
+      - [ ] Il cambiamento di conoscenza è documentato: flusso 5 descrive transizione client-side, indicatore e prefetch con cache client, con link alla decisione (evidenza repository: `calendario-mensile.tsx` e i due nuovi spec e2e nei `sources`).
+      - [ ] Le sezioni non pertinenti (comandi, contratti, invarianti) sono invariate.
+      - [ ] Il frontmatter riporta `status: generated` e `archetipo wiki validate --profile bootstrap` passa; l'approvazione resta alla review di accettazione.
+
+      ## Blockers
+      Dipende da TASK-01 e TASK-04 (comportamento da descrivere), TASK-03 e TASK-05 (spec e2e da citare come verifica) e TASK-06 (pagina decisione da collegare).
+    ref: TASK-07
+  - id: TASK-08
+    title: 'Gate finale: suite completa, regressione calendario in produzione e chiusura spec'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+    body: |-
+      ## Objective
+      Tutte le verifiche del repository sono verdi sul lavoro di US-050 (unit, tipi, lint, build, e2e nuovi + regressione calendario eseguiti contro il server di produzione come in CI, validazione Wiki) e la spec risulta pronta per la review con ogni task DONE.
+
+      ## Read
+      - Questo piano: sezione Baseline (tutti i comandi erano verdi prima dell'implementazione; nessuna eccezione ammessa).
+      - `.github/workflows/ci.yml` — la CI esegue lint, vitest, build e l'intera suite Playwright con `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start"`: il gate replica in locale i passi a rischio nella stessa modalità.
+
+      ## Change
+      - Nessun file di produzione: solo correzioni minime se una verifica fallisce (nel perimetro dei file toccati da TASK-01…TASK-07).
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire in ordine i comandi della sezione Verify.
+      2. Se un comando fallisce: correggere nel perimetro dei task precedenti e rieseguire dall'inizio della lista (nessun fallimento pre-esistente da tollerare: baseline interamente verde).
+      3. Marcare questo task DONE solo con tutti i comandi verdi.
+      4. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo spec show US-050` e verificare nell'envelope che OGNI task (TASK-01…TASK-08) sia in stato DONE.
+      5. Solo dopo questa conferma è consentito richiedere la review con `archetipo spec review US-050`.
+
+      ## Verify
+      - Run: `npm test`
+      - Expect: tutta la suite Vitest passa (baseline: verde).
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessun errore di tipo.
+      - Run: `npm run lint`
+      - Expect: eslint + guardrail anti-flakiness verdi.
+      - Run: `npm run build`
+      - Expect: build Next.js completata senza errori.
+      - Run: `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start" npx playwright test tests/e2e/calendario-navigazione-reattiva.spec.ts tests/e2e/calendario-prefetch-mesi.spec.ts tests/e2e/calendario-segregazione.spec.ts tests/e2e/apertura-giorno-calendario.spec.ts tests/e2e/calendario-etichette-clienti.spec.ts tests/e2e/demo__calendario-mensile.spec.ts`
+      - Expect: tutti gli spec passano senza retry consumati; lo spec prefetch NON risulta skippato (server di produzione attivo, prefetch esercitato come in CI).
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: `data.ok: true` (le pagine Wiki di TASK-06 e TASK-07 restano strutturalmente valide).
+      - Run: `archetipo spec show US-050` (da `/Users/smarello/repo/coaching-planner`, dopo aver marcato DONE questo task)
+      - Expect: nessun task in stato TODO nell'envelope.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4 — L'evidenza e2e di TASK-03 e TASK-05 e la regressione calendario passano nella stessa esecuzione del gate contro il server di produzione.
+      - [ ] Nessuna nuova diagnostica di compilatore o linter sui file modificati rispetto alla baseline.
+      - [ ] `archetipo spec show US-050` conferma tutti i task DONE; solo allora si procede con `archetipo spec review US-050`.
+
+      ## Blockers
+      Dipende da TASK-01, TASK-02, TASK-03, TASK-04, TASK-05, TASK-06 e TASK-07 completati.
+    ref: TASK-08

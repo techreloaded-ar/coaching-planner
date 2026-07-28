@@ -1,0 +1,35 @@
+schema: archetipo/spec/v2
+code: US-049
+title: Selezione cliente limitata alle offerte abilitate
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: HIGH
+points: 2
+status: TODO
+body: |-
+  #### US-049: Selezione cliente limitata alle offerte abilitate
+
+  **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 2 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio scegliere il cliente di una riga attività solo tra i clienti per cui ho offerte abilitate,
+  così da non imboccare vicoli ciechi selezionando clienti su cui non posso registrare nulla.
+
+  **Dimostrazione**
+  Partendo da un collaboratore creato da factory con offerte abilitate su un solo cliente (tra più clienti attivi a sistema), il revisore apre il form di inserimento attività e osserva che la select cliente elenca soltanto quel cliente. Il revisore revoca poi tutte le abilitazioni del collaboratore, riapre il form e osserva un messaggio esplicito di assenza di offerte abilitate al posto della selezione, con il salvataggio non disponibile.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — La select cliente del form attività elenca soltanto i clienti attivi per i quali il collaboratore corrente ha almeno un'offerta attiva abilitata, nell'ordinamento già in uso.
+  - [ ] AC-2 — Un collaboratore senza alcuna offerta abilitata vede, al posto della selezione, un messaggio esplicito che lo invita a contattare un amministratore, e non può salvare alcuna riga.
+  - [ ] AC-3 — Aprendo in modifica una riga storica registrata su un cliente per cui il collaboratore non è più abilitato, il cliente della riga resta visibile e selezionato, e il salvataggio a parità di offerta resta consentito come stabilito da US-043.
+
+  **Fuori Perimetro**
+  Le regole server di ammissibilità su creazione e modifica riga (già coperte da US-043) e il filtro della select offerte, già attivo. Nessun cambiamento alle abilitazioni stesse o alla loro amministrazione.
+
+  **Contesto Wiki:** domains/attivita, domains/collaboratori, decisions/abilitazioni-offerte-esplicite
+history:
+  - status: TODO
+    at: "2026-07-28T13:26:27Z"

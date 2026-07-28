@@ -1,0 +1,36 @@
+schema: archetipo/spec/v2
+code: US-051
+title: Cursore e feedback di attesa uniformi su pulsanti e azioni
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: MEDIUM
+points: 5
+status: TODO
+body: |-
+  #### US-051: Cursore e feedback di attesa uniformi su pulsanti e azioni
+
+  **Epic:** EP-005 | **Priorità:** MEDIUM | **Punti:** 5 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come utente dell'applicazione (collaboratore o amministratore),
+  voglio che ogni elemento cliccabile mostri il cursore a manina e che ogni azione verso il server dia un riscontro visibile finché non si conclude,
+  così da capire sempre cosa è cliccabile e se l'applicazione sta lavorando.
+
+  **Dimostrazione**
+  Il revisore percorre front office e back office (form attività, anagrafiche, offerte, utenti, report) passando il mouse su pulsanti, righe cliccabili e link d'azione e osserva ovunque il cursore a manina sugli elementi abilitati e il cursore normale su quelli disabilitati. Poi rallenta artificialmente la rete, invia un form di salvataggio e osserva il pulsante disabilitato con un'indicazione di attesa visibile fino all'esito; ripete su un'azione distruttiva (eliminazione di una riga attività o revoca di un'abilitazione) osservando lo stesso comportamento. Infine provoca un errore di validazione e osserva che lo stato di attesa termina, il pulsante torna abilitato e il messaggio d'errore è visibile.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Tutti i pulsanti, le righe cliccabili e i controlli d'azione abilitati mostrano il cursore a manina al passaggio del mouse, in front office e back office; i controlli disabilitati mantengono il cursore standard.
+  - [ ] AC-2 — Ogni invio di form mostra uno stato di attesa visibile con pulsante di submit disabilitato finché l'esito (successo o errore) non arriva, rendendo impossibile il doppio invio.
+  - [ ] AC-3 — Le azioni fuori dai form (eliminazioni, revoche, conferme nei dialog) mostrano lo stesso stato di attesa durante la chiamata al server.
+  - [ ] AC-4 — Ricevuto un esito di errore, lo stato di attesa termina: il pulsante torna abilitato, i valori inseriti sono conservati e il messaggio d'errore è visibile.
+
+  **Fuori Perimetro**
+  La navigazione del calendario mensile (coperta da US-050), qualsiasi redesign grafico (colori, tipografia, layout) e l'introduzione di nuove funzionalità. Il perimetro è l'uniformità di cursore e feedback sull'esistente.
+
+  **Contesto Wiki:** domains/attivita, domains/identita-accesso, domains/collaboratori
+history:
+  - status: TODO
+    at: "2026-07-28T13:26:27Z"

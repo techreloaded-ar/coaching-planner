@@ -1,0 +1,568 @@
+schema: archetipo/plan/v2
+spec_code: US-048
+body: |-
+  # US-048: Cognome nella sezione anagrafica dell'utente — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-07-28
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** HIGH | **Punti:** 3
+
+  **Storia Utente**
+  Come amministratore, voglio censire nome e cognome nella sezione anagrafica dell'utente, lasciando al profilo collaboratore solo partita IVA e tariffa giornaliera, così da compilare i dati anagrafici in un unico punto coerente senza cercare il cognome in una sezione che non gli appartiene.
+
+  **Criteri di Accettazione**
+  - AC-1 — Nel form di censimento la sezione anagrafica chiede Nome e Cognome come campi distinti, entrambi obbligatori per qualunque combinazione di ruoli, anche per un utente solo-amministratore.
+  - AC-2 — Con il ruolo Collaboratore selezionato, la sezione profilo collaboratore chiede soltanto Partita IVA e Tariffa giornaliera, senza campo Cognome né hint che vi rimandi.
+  - AC-3 — Aprendo in modifica un utente esistente, Nome e Cognome compaiono nei rispettivi campi separati e il salvataggio conserva la distinzione, verificabile riaprendo il form.
+  - AC-4 — I dati esistenti (seed e utenti già censiti in ambiente) risultano sistemati: ogni utente ha il cognome come dato distinto e l'elenco utenti mostra il nominativo completo senza duplicazioni o troncamenti.
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Si aggiunge la colonna obbligatoria `Utente.cognome` allo schema Prisma e si smette di comporre `Utente.nome` come stringa `"{nome} {cognome}"`: da US-048 `Utente.nome` contiene solo il nome di battesimo e `Utente.cognome` il cognome, per ogni utente e per ogni combinazione di ruoli. Il form utenti sposta il campo Cognome nella sezione Anagrafica (sempre visibile e obbligatorio) e la sezione Profilo collaboratore resta con i soli campi Partita IVA e Tariffa giornaliera.
+
+  - **Migrazione dati**: la migrazione SQL (scritta a mano con `--create-only`) aggiunge la colonna nullable, backfilla dal profilo `Collaboratore` quando presente (`nome`/`cognome` già distinti), altrimenti splitta `Utente.nome` sul primo spazio (nome = primo token, cognome = resto; token unico → cognome = nome), poi impone `NOT NULL`. Copre AC-4 per i dati già censiti in ambiente; il seed viene aggiornato con nome e cognome distinti.
+  - **Validazione**: in `valida-utente.ts` l'obbligo del cognome esce dal blocco condizionale del ruolo Collaboratore e diventa incondizionato sia in censimento sia in modifica; Partita IVA e tariffa restano condizionali (ruolo Collaboratore selezionato e profilo assente).
+  - **Writer coordinati**: `creaUtente`/`aggiornaUtente` persistono `nome` e `cognome` distinti su `Utente` e, quando il profilo collaboratore esiste o viene creato, sincronizzano nella stessa transazione `Collaboratore.nome`/`Collaboratore.cognome` con i valori dell'anagrafica. `aggiornaCollaboratore` (pagina US-047, invariata nella UX) sincronizza in senso opposto scrivendo `{ nome, cognome }` su `Utente` invece della stringa composta. I due writer mantengono così le coppie allineate qualunque sia la pagina usata.
+  - **Nominativo completo**: l'elenco utenti compone `nome + cognome` a presentazione (nessuna stringa composta persistita); il claim `nome` del JWT resta il nominativo completo, composto alla creazione della sessione nel callback Google e nel seam e2e — la firma di `createSession` e il contratto del token non cambiano.
+  - **Fuori perimetro rispettato**: nessun drop di `Collaboratore.nome`/`cognome`, nessuna modifica alla pagina di modifica del profilo collaboratore (US-047), a ruoli, transizioni di profilo o protezione dell'ultimo amministratore.
+
+  ### Decisioni Architetturali
+
+  La scelta tocca il modello dati persistente con più alternative percorribili e supera la soglia ADR: viene creata la pagina `decisions/cognome-anagrafica-utente`.
+
+  - **Scelta**: `Utente` è la fonte autorevole dell'anagrafica (nome e cognome come colonne distinte); `Collaboratore.nome`/`cognome` restano copie coordinate, mantenute allineate dai writer transazionali esistenti (`creaUtente`, `aggiornaUtente`, `aggiornaCollaboratore`).
+  - **Alternativa scartata 1 — campo unico composto (status quo)**: ricavare il cognome dal parsing di `Utente.nome` è fragile (cognomi e nomi composti) e non soddisfa AC-1/AC-3.
+  - **Alternativa scartata 2 — spostare l'ownership e cancellare `Collaboratore.nome`/`cognome`**: architetturalmente più pulita ma con raggio d'impatto sproporzionato (query e viste di report, offerte, abilitazioni, ingaggi, factory e decine di test) e in tensione con il fuori perimetro di US-048, che congela l'anagrafica collaboratori su US-047. Il consolidamento resta come possibile evoluzione futura, annotato nelle conseguenze dell'ADR.
+  - La decisione `decisions/ruoli-combinabili-profilo-derivato` non viene toccata: la derivazione del ruolo dal profilo resta invariata (la colonna aggiunta non riguarda i ruoli).
+
+  ---
+
+  ## Baseline
+
+  Eseguita su `main` (workdir = project root, nessun worktree per la spec).
+
+  | Verifica | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm run lint` | Verde (ESLint + guardrail anti-flakiness e2e) | I task che toccano e2e devono rieseguirlo; atteso verde |
+  | `npx tsc --noEmit` | Verde (exit 0) | Dopo TASK-01 falliranno temporaneamente SOLO i file che creano `Utente` senza cognome (seed, bootstrap, actions utenti): boundary chiuso da TASK-04 e TASK-09; il gate finale richiede exit 0 |
+  | `npx vitest run tests/unit/valida-utente.test.ts tests/unit/utenti-actions.test.ts tests/unit/collaboratori-dal-actions.test.ts tests/unit/google-callback.test.ts tests/unit/bootstrap-amministratore-iniziale.test.ts tests/unit/valida-collaboratore.test.ts` | 104 test verdi | I task di test aggiornano queste suite; attese verdi dopo ogni task |
+  | `archetipo wiki validate --profile bootstrap` | ok, 23 pagine, nessun finding | Il task ADR non deve introdurre finding |
+  | E2E Playwright | Non eseguiti in baseline (prerequisiti d'ambiente, vedi sotto) | Il gate finale esegue l'intera suite `npm run test:e2e` |
+
+  **Prerequisiti d'ambiente (non errori di codice)**: PostgreSQL locale attivo (`docker compose up -d`), schema e dati (`npm run db:migrate` poi `npm run db:seed`), browser Playwright installati (`npx playwright install`). Il contratto completo e2e è in `tests/e2e/README.md`.
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task |
+  |---|---|---|---|---|
+  | AC-1 | Pagina `/anagrafiche/utenti/nuovo`, solo ruolo Amministratore selezionato | E2E browser + unit | Campi con label Nome e Cognome distinti nella sezione Anagrafica; submit senza cognome mostra l'errore «Il cognome è obbligatorio» e nessun utente viene creato; con cognome l'utente compare in elenco. Unit: `validaCensimentoUtente`/`validaModificaUtente` restituiscono `errori.cognome` anche con solo `ruoloAmministratore` | TASK-10 (e2e), TASK-03 (unit) |
+  | AC-2 | Stesso form con checkbox Collaboratore selezionato e profilo assente | E2E browser | La sezione Profilo collaboratore contiene esattamente i campi Partita IVA e Tariffa giornaliera; nella pagina esiste un solo campo con label Cognome (in Anagrafica) e l'hint del campo Nome non rimanda più al profilo | TASK-10 |
+  | AC-3 | Utente creato da factory, aperto in `/anagrafiche/utenti/[id]/modifica` | E2E browser + unit | I campi Nome e Cognome mostrano i due valori separati già popolati; modificando il cognome e salvando, la riapertura del form mostra i valori aggiornati nei campi distinti. Unit: payload esatto di `utente.update` con `nome` e `cognome` distinti | TASK-10 (e2e), TASK-05 (unit) |
+  | AC-4 | Database migrato con dati preesistenti (seed) | Migrazione SQL + E2E browser | La migrazione backfilla `cognome` per ogni riga `Utente` e impone NOT NULL; l'elenco utenti mostra il nominativo completo (es. utente seed «Giulia Conti», in sola lettura, e utente factory) senza duplicazioni tipo «Giulia Conti Conti» né troncamenti | TASK-01 (migrazione), TASK-09 (seed), TASK-10 (e2e) |
+
+  ---
+
+  ## Strategia di Test
+
+  La piramide esistente viene estesa senza nuove infrastrutture: validazione pura a livello unit, contratti transazionali delle action con i mock Prisma già in uso (payload esatti, non proxy), percorso di accettazione completo con Playwright.
+
+  - Unit (`valida-utente.test.ts`): cognome obbligatorio incondizionato in censimento e modifica, anche per solo-amministratore e con profilo presente; Partita IVA/tariffa restano condizionali.
+  - Unit (`utenti-actions.test.ts`): payload esatti di `utente.create`/`utente.update` con `nome` e `cognome` distinti (nessuna stringa composta), sync di `collaboratore.update { nome, cognome }` quando il profilo esiste, nelle quattro transizioni e nel caso senza transizione; revalidate condizionale invariata.
+  - Unit (`collaboratori-dal-actions.test.ts`): `aggiornaCollaboratore` scrive `utente.update { nome, cognome }` distinti; `google-callback.test.ts`: `createSession` riceve il nominativo composto; `bootstrap-amministratore-iniziale.test.ts`: payload di creazione con cognome predefinito.
+  - E2E: scenari sotto, con factory e utenti dedicati (mai mutazioni sui dati seed; l'asserzione sull'utente seed è di sola lettura), selettori per ruolo/label, expect web-first, `fullyParallel` invariato.
+  - Il claim `nome` del JWT resta coperto dai test sessione esistenti (contratto invariato).
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright (già configurato; nessun setup aggiuntivo)
+  **Demo video:** atteso, la dimostrazione è filmabile (registrata da `archetipo-review`, non in implementazione)
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Censimento solo-amministratore con cognome | L'amministratore apre Nuovo utente, vede Nome e Cognome distinti in Anagrafica, tenta il salvataggio senza cognome e legge l'errore; compila il cognome e ritrova l'utente in elenco con nominativo completo |
+  | Sezione profilo senza cognome | Nello stesso form seleziona il ruolo Collaboratore e osserva che la sezione profilo chiede solo Partita IVA e Tariffa giornaliera (un solo campo Cognome nella pagina) |
+  | Modifica con campi separati e round-trip | Apre in modifica un utente factory, vede Nome e Cognome separati e popolati, cambia il cognome, salva e riapre verificando la persistenza distinta |
+  | Nominativo completo in elenco | Verifica in elenco il nominativo completo dell'utente seed Giulia Conti (sola lettura) e dell'utente factory, senza duplicazioni né troncamenti |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/identita-accesso, domains/collaboratori, decisions/ruoli-combinabili-profilo-derivato]
+    update_after_acceptance: [domains/identita-accesso, domains/collaboratori]
+    create: [decisions/cognome-anagrafica-utente]
+  ```
+
+  La discovery `wiki affected` sui path previsti ha restituito 16 candidati: sono inclusi solo quelli la cui conoscenza cambia davvero. `domains/identita-accesso` e `domains/collaboratori` descrivono la composizione `"{nome} {cognome}"` di `Utente.nome`, l'obbligo condizionale del cognome e i contratti dei writer coordinati: tutte affermazioni che questo piano modifica. `decisions/ruoli-combinabili-profilo-derivato` resta accurata (la derivazione del ruolo non cambia; la colonna aggiunta non riguarda i ruoli) e resta fuori dal contratto, come le co-citazioni via `prisma/schema.prisma` (attività, clienti, offerte, rimborsi, code-map, development, overview, context-map e le altre decisioni).
+
+  ---
+
+  ## Assunzioni registrate
+
+  - `Collaboratore.nome`/`cognome` restano copie coordinate: il consolidamento su `Utente` è rimandato (fuori perimetro US-048, annotato nell'ADR).
+  - L'ordinamento dell'elenco utenti resta `orderBy: { nome: "asc" }`: la spec non richiede un cambio di ordinamento.
+  - Regola di split nella migrazione per utenti senza profilo: primo token = nome, resto = cognome; token unico → cognome uguale al nome (correggibile a mano dal form).
+  - Nessun mockup: la modifica aggiunge/sposta campi in un form esistente senza ristrutturarne il layout (chiamata segnalata nel Team Brief, l'utente può richiederlo).
+
+  _Piano generato via ARchetipo Planning — 2026-07-28_
+tasks:
+  - id: TASK-01
+    title: 'Schema Prisma e migrazione dati: colonna cognome su Utente con backfill'
+    type: Impl
+    status: DONE
+    body: |
+      ## Objective
+      La tabella `Utente` ha la colonna obbligatoria `cognome`, backfillata per tutte le righe esistenti (AC-4 lato dati).
+
+      ## Read
+      - prisma/schema.prisma — modelli `Utente` e `Collaboratore`
+      - prisma/migrations/ — convenzione di naming delle migrazioni esistenti
+
+      ## Change
+      - prisma/schema.prisma — nel solo modello `Utente`, aggiungi `cognome String` subito dopo `nome`. Nessun'altra modifica allo schema (in particolare `Collaboratore` resta invariato).
+      - Nuova cartella di migrazione `aggiungi_cognome_utente` con SQL scritto a mano (vedi Steps).
+
+      ## Steps
+      1. Aggiungi il campo `cognome String` al modello `Utente` in prisma/schema.prisma.
+      2. Genera la migrazione vuota: `npx prisma migrate dev --create-only --name aggiungi_cognome_utente` (Prisma proporrebbe una colonna NOT NULL senza default su tabella popolata: per questo si edita a mano).
+      3. Sostituisci il contenuto del file migration.sql generato con, nell'ordine: (a) `ALTER TABLE "Utente" ADD COLUMN "cognome" TEXT;` (b) backfill dal profilo: `UPDATE "Utente" u SET "nome" = c."nome", "cognome" = c."cognome" FROM "Collaboratore" c WHERE c."userId" = u."id";` (c) split per gli utenti rimasti senza cognome: `UPDATE "Utente" SET "cognome" = CASE WHEN position(' ' IN btrim("nome")) > 0 THEN btrim(substr(btrim("nome"), position(' ' IN btrim("nome")) + 1)) ELSE btrim("nome") END, "nome" = split_part(btrim("nome"), ' ', 1) WHERE "cognome" IS NULL;` (d) `ALTER TABLE "Utente" ALTER COLUMN "cognome" SET NOT NULL;`
+      4. Applica e rigenera il client: `npx prisma migrate dev`.
+
+      ## Verify
+      - Run: `npx prisma validate`
+      - Expect: schema valido.
+      - Run: `npx prisma migrate status`
+      - Expect: nessuna migrazione pendente.
+      - Run: `npx tsc --noEmit`
+      - Expect: errori TEMPORANEI limitati ai file che creano `Utente` senza `cognome` — prisma/seed.ts, scripts/bootstrap-amministratore-iniziale.ts, src/app/(back-office)/anagrafiche/utenti/actions.ts (boundary chiuso da TASK-04 e TASK-09). Nessun altro file deve comparire tra gli errori.
+
+      ## Done
+      - [ ] AC-4 — Ogni riga `Utente` esistente ha `cognome` valorizzato (dal profilo collaboratore quando presente, altrimenti dallo split) e la colonna è NOT NULL.
+
+      ## Blockers
+      PostgreSQL locale attivo (`docker compose up -d`) e `DATABASE_URL` configurata.
+    ref: TASK-01
+  - id: TASK-02
+    title: 'Validazione: cognome obbligatorio per ogni combinazione di ruoli'
+    type: Impl
+    status: DONE
+    body: |
+      ## Objective
+      `validaCensimentoUtente` e `validaModificaUtente` richiedono il cognome incondizionatamente; Partita IVA e tariffa restano condizionali.
+
+      ## Read
+      - src/domain/anagrafiche/valida-utente.ts — le due funzioni e i blocchi condizionali sui campi profilo
+
+      ## Change
+      - src/domain/anagrafiche/valida-utente.ts — sposta il controllo del cognome fuori dai blocchi condizionali; aggiorna i commenti JSDoc che descrivono il cognome come campo profilo. Non toccare `DatiCensimentoUtenteInput`/`DatiModificaUtenteInput` (hanno già `cognome`).
+
+      ## Steps
+      1. In `validaCensimentoUtente`: sposta il controllo «Il cognome è obbligatorio» fuori da `if (dati.ruoloCollaboratore)`, accanto al controllo del nome. Nel blocco condizionale restano solo Partita IVA e tariffa.
+      2. In `validaModificaUtente`: stesso spostamento fuori da `if (dati.ruoloCollaboratore && !dati.profiloPresente)`; nel blocco restano solo Partita IVA e tariffa (semantica di `profiloPresente` invariata per quei campi).
+      3. Allinea i commenti JSDoc delle due funzioni (il cognome è anagrafica, non profilo).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/valida-utente.test.ts`
+      - Expect: falliscono SOLO i test esistenti che assumono il cognome facoltativo senza ruolo Collaboratore (aggiornati in TASK-03); nessun altro fallimento.
+
+      ## Done
+      - [ ] AC-1 — Le due funzioni restituiscono `errori.cognome` quando il cognome manca, anche con solo `ruoloAmministratore` e anche con `profiloPresente: true`.
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Test unitari della validazione con cognome incondizionato
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |
+      ## Objective
+      `tests/unit/valida-utente.test.ts` prova che il cognome è obbligatorio per ogni combinazione di ruoli e che i campi profilo restano condizionali.
+
+      ## Read
+      - tests/unit/valida-utente.test.ts — struttura describe/fixture esistente
+      - src/domain/anagrafiche/valida-utente.ts — comportamento atteso dopo TASK-02
+
+      ## Change
+      - tests/unit/valida-utente.test.ts — aggiorna i casi esistenti e aggiungi i nuovi; nessun altro file.
+
+      ## Steps
+      1. Aggiorna i casi che oggi passano cognome vuoto con solo `ruoloAmministratore` aspettandosi successo: ora devono aspettarsi `errori.cognome === 'Il cognome è obbligatorio'`.
+      2. Aggiungi per `validaCensimentoUtente`: cognome mancante con solo ruolo Amministratore → errore; cognome presente e solo Amministratore senza campi profilo → nessun errore.
+      3. Aggiungi per `validaModificaUtente`: cognome mancante con `profiloPresente: true` → errore (prima veniva ignorato); cognome presente e `profiloPresente: true` senza Partita IVA/tariffa → nessun errore (i campi profilo restano ignorati).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/valida-utente.test.ts`
+      - Expect: tutti verdi.
+
+      ## Done
+      - [ ] AC-1 — Un test verde dimostra `errori.cognome` per l'utente solo-amministratore senza cognome, in censimento e in modifica.
+      - [ ] AC-2 — Un test verde dimostra che con profilo presente/gestito i soli campi ancora condizionali sono Partita IVA e tariffa.
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: 'Action utenti: nome e cognome distinti su Utente e sync del profilo'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+    body: |
+      ## Objective
+      `creaUtente` e `aggiornaUtente` persistono `nome` e `cognome` distinti su `Utente` (nessuna stringa composta) e mantengono allineati `Collaboratore.nome`/`cognome` quando il profilo esiste o viene creato.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts — `creaUtente`, `aggiornaUtente`, le quattro transizioni di profilo e `profiloModificato`
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts — soli punti indicati negli Steps. Non toccare protezione ultimo amministratore, retry di serializzazione, gestione P2002.
+
+      ## Steps
+      1. `creaUtente`: in `tx.utente.create` scrivi `nome: dati.nome, cognome: dati.cognome` per ogni combinazione di ruoli (elimina la composizione condizionale `"{nome} {cognome}"`). Il ramo `collaboratore.create` resta con gli stessi `nome`/`cognome` dell'anagrafica.
+      2. `aggiornaUtente`: in `tx.utente.update` scrivi sempre `nome: dati.nome, cognome: dati.cognome` (elimina il ramo condizionale su `creaProfilo`).
+      3. `aggiornaUtente`, sync del profilo nella stessa transazione: (a) ramo `creaProfilo` invariato salvo che usa `dati.nome`/`dati.cognome`; (b) ramo riattivazione: `collaboratore.update` con `{ attivo: true, nome: dati.nome, cognome: dati.cognome }`; (c) ramo disattivazione: `{ attivo: false, nome: dati.nome, cognome: dati.cognome }`; (d) nuovo ramo finale: se `profiloAttuale !== null` e nessuna transizione di stato è avvenuta, esegui comunque `collaboratore.update` con `{ nome: dati.nome, cognome: dati.cognome }` e marca `profiloModificato = true` (tiene la copia allineata e rivalida l'anagrafica collaboratori).
+      4. Verifica che `datiCensimentoDaForm`/`datiModificaDaForm` leggano già `cognome` (nessuna modifica attesa).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore in src/app/(back-office)/anagrafiche/utenti/actions.ts (restano SOLO i temporanei di seed/bootstrap fino a TASK-09).
+      - Run: `npx vitest run tests/unit/utenti-actions.test.ts`
+      - Expect: falliscono SOLO i test che assumono i payload composti/vecchi (aggiornati in TASK-05); nessun errore inatteso.
+
+      ## Done
+      - [ ] AC-3 — `utente.update` riceve `nome` e `cognome` distinti; nessuna composizione `"{nome} {cognome}"` residua nel file.
+      - [ ] AC-4 — Con profilo presente, il salvataggio dal form utenti riallinea `Collaboratore.nome`/`cognome` nella stessa transazione (nessuna divergenza tra le due anagrafiche).
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Test unitari delle action utenti con payload distinti e sync profilo
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |
+      ## Objective
+      `tests/unit/utenti-actions.test.ts` prova i payload Prisma esatti con `nome`/`cognome` distinti e il sync del profilo in tutte le transizioni.
+
+      ## Read
+      - tests/unit/utenti-actions.test.ts — mock Prisma, fixture FormData e asserzioni sui payload esatti
+      - src/app/(back-office)/anagrafiche/utenti/actions.ts — comportamento dopo TASK-04
+
+      ## Change
+      - tests/unit/utenti-actions.test.ts — aggiorna fixture (aggiungi `cognome` al FormData di tutti i flussi, incluso il solo-amministratore) e asserzioni; nessun altro file.
+
+      ## Steps
+      1. Creazione, tre combinazioni di ruoli: `utente.create` riceve `nome` e `cognome` distinti (mai la stringa composta); per il solo-amministratore il cognome è nel payload di `Utente` e `collaboratore.create` non viene chiamato.
+      2. Modifica, quattro transizioni: `utente.update` riceve sempre `{ email, ruolo, nome, cognome }`; riattivazione e disattivazione includono `nome`/`cognome` nel payload di `collaboratore.update`.
+      3. Nuovo caso: profilo presente senza transizione di stato (checkbox invariati) → `collaboratore.update` chiamato con `{ nome, cognome }` e revalidate di `/anagrafiche/collaboratori`.
+      4. Conferma l'assenza di scritture sugli esiti di rifiuto (incluso cognome mancante, che ora rifiuta anche il solo-amministratore).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/utenti-actions.test.ts`
+      - Expect: tutti verdi.
+
+      ## Done
+      - [ ] AC-3 — Test verdi sui payload esatti di `utente.create`/`utente.update` con campi distinti.
+      - [ ] AC-4 — Test verde sul sync `collaboratore.update { nome, cognome }` quando il profilo esiste.
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: 'Query e UI utenti: campo Cognome in Anagrafica e nominativo completo in elenco'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-04
+    body: |
+      ## Objective
+      Il form utenti chiede Nome e Cognome distinti nella sezione Anagrafica (profilo ridotto a Partita IVA e tariffa) e l'elenco utenti mostra il nominativo completo.
+
+      ## Read
+      - src/lib/utenti.ts — `UtenteConProfiloCollaboratore` e select condivisa
+      - src/app/(back-office)/anagrafiche/utenti/utente-form.tsx — sezioni Anagrafica e Profilo collaboratore, hint del campo Nome, avviso ambra
+      - src/app/(back-office)/anagrafiche/utenti/utenti-tabella.tsx — display nominativo, filtro, `iniziali`, modale di invalidazione
+
+      ## Change
+      - src/lib/utenti.ts — aggiungi `cognome: string` all'interfaccia e `cognome: true` alla select. Lascia `orderBy: { nome: "asc" }` invariato.
+      - src/app/(back-office)/anagrafiche/utenti/utente-form.tsx — campi e testi come da Steps.
+      - src/app/(back-office)/anagrafiche/utenti/utenti-tabella.tsx — composizione nominativo come da Steps.
+
+      ## Steps
+      1. Form, sezione Anagrafica: dopo il campo Nome aggiungi il campo `Campo` label «Cognome», `name="cognome"`, `autoComplete="family-name"`, placeholder coerente (es. «Es. Bianchi»), `defaultValue={utente?.cognome ?? ""}`, `errore={stato.errori.cognome}`. Sempre visibile e obbligatorio (asterisco già reso da `Campo`).
+      2. Form: rimuovi il campo Cognome dalla sezione Profilo collaboratore (restano Partita IVA e Tariffa giornaliera) e l'hint condizionale del campo Nome che rimanda al profilo: usa un hint fisso neutro (es. «Solo il nome di battesimo: il cognome ha il suo campo dedicato.») e placeholder «Es. Laura». Nell'avviso ambra sostituisci «(nome anagrafico, tariffa e attivazione)» con «(partita IVA, tariffa e attivazione)».
+      3. Form: estendi `UtenteFormProps.utente` con `cognome: string` (la pagina di modifica passa già l'oggetto di `utentePerId`).
+      4. Tabella: componi il nominativo `` `${utente.nome} ${utente.cognome}` `` per la cella Nome, per `iniziali(...)`, per il filtro di ricerca e per il titolo della modale di invalidazione.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore nei tre file modificati (restano SOLO i temporanei di seed/bootstrap fino a TASK-09).
+      - Run: `npm run lint`
+      - Expect: verde.
+
+      ## Done
+      - [ ] AC-1 — Il form rende Nome e Cognome come campi distinti nella sezione Anagrafica per qualunque combinazione di checkbox.
+      - [ ] AC-2 — La sezione Profilo collaboratore contiene solo Partita IVA e Tariffa giornaliera e nessun hint rimanda il cognome al profilo.
+      - [ ] AC-3 — In modifica i campi sono popolati da `utente.nome` e `utente.cognome` distinti.
+      - [ ] AC-4 — L'elenco mostra il nominativo completo composto a presentazione.
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Sync da anagrafica collaboratori e nominativo completo in sessione
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |
+      ## Objective
+      `aggiornaCollaboratore` sincronizza `Utente.nome`/`Utente.cognome` distinti e il claim `nome` del JWT resta il nominativo completo.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/collaboratori/actions.ts — transazione di `aggiornaCollaboratore`
+      - src/app/api/auth/google/callback/route.ts — chiamata a `createSession`
+      - src/app/api/e2e-test/sessione/route.ts — chiamata a `createSession`
+      - src/lib/session.ts — firma di `createSession` (da NON modificare)
+
+      ## Change
+      - src/app/(back-office)/anagrafiche/collaboratori/actions.ts — solo il payload di `tx.utente.update`.
+      - src/app/api/auth/google/callback/route.ts e src/app/api/e2e-test/sessione/route.ts — solo l'argomento nome di `createSession`.
+
+      ## Steps
+      1. In `aggiornaCollaboratore` sostituisci `data: { nome: `${dati.nome} ${dati.cognome}` }` con `data: { nome: dati.nome, cognome: dati.cognome }`. La UX della pagina resta quella di US-047: nessuna modifica a form, validazione o altri campi.
+      2. Nel callback Google e nel seam e2e passa a `createSession` il nominativo composto `` `${utente.nome} ${utente.cognome}` `` al posto di `utente.nome`. Firma di `createSession` e contratto del token invariati.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore nei tre file modificati (restano SOLO i temporanei di seed/bootstrap fino a TASK-09).
+      - Run: `npx vitest run tests/unit/collaboratori-dal-actions.test.ts tests/unit/google-callback.test.ts`
+      - Expect: falliscono SOLO le asserzioni sul vecchio payload composto e sull'argomento di `createSession` (aggiornate in TASK-08).
+
+      ## Done
+      - [ ] AC-4 — Salvare dall'anagrafica collaboratori non ricompone mai una stringa `"{nome} {cognome}"` su `Utente.nome`: le due anagrafiche restano allineate campo per campo.
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Test unitari di sync collaboratori e callback sessione
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-07
+    body: |
+      ## Objective
+      I test provano il payload distinto di `aggiornaCollaboratore` su `Utente` e il nominativo composto passato a `createSession`.
+
+      ## Read
+      - tests/unit/collaboratori-dal-actions.test.ts — asserzioni sul payload di `utente.update`
+      - tests/unit/google-callback.test.ts — fixture utente e asserzioni su `createSession`
+
+      ## Change
+      - Solo i due file di test.
+
+      ## Steps
+      1. `collaboratori-dal-actions.test.ts`: le asserzioni su `utente.update` attendono `{ nome: dati.nome, cognome: dati.cognome }` (nessuna chiave email, come oggi; nessuna stringa composta). Conserva il caso «email nel FormData viene ignorata».
+      2. `google-callback.test.ts`: aggiungi `cognome` alla fixture `Utente` e attendi che `createSession` riceva il nominativo composto `nome + ' ' + cognome`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/collaboratori-dal-actions.test.ts tests/unit/google-callback.test.ts`
+      - Expect: tutti verdi.
+
+      ## Done
+      - [ ] AC-4 — Test verdi sul payload `{ nome, cognome }` e sull'oracolo del nominativo completo in sessione.
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: Seed, bootstrap amministratore e factory e2e con cognome distinto
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |
+      ## Objective
+      Seed, bootstrap di deploy e factory e2e creano `Utente` con `cognome` valorizzato; il type-check torna pulito su tutto il progetto.
+
+      ## Read
+      - prisma/seed.ts — creazione dei quattro utenti
+      - scripts/bootstrap-amministratore-iniziale.ts — `NOME_PREDEFINITO_AMMINISTRATORE` e payload di creazione
+      - tests/unit/bootstrap-amministratore-iniziale.test.ts — asserzioni sul payload
+      - tests/e2e/support/factory.ts — `createUtente` (INSERT SQL) e `createCollaboratore` (default `utenteOptions`)
+      - Chiamanti di `createUtente`/`createCollaboratore` negli spec e2e che passano `nome` esplicito — verifica che il nominativo composto a display resti quello atteso
+
+      ## Change
+      - prisma/seed.ts, scripts/bootstrap-amministratore-iniziale.ts, tests/unit/bootstrap-amministratore-iniziale.test.ts, tests/e2e/support/factory.ts.
+
+      ## Steps
+      1. Seed: crea gli utenti con nome/cognome distinti — Tech/Reloaded, Stefano/Marello, Giulia/Conti, Marco/Bianchi (i profili `Collaboratore` restano invariati e già allineati).
+      2. Bootstrap: sostituisci `NOME_PREDEFINITO_AMMINISTRATORE = "Amministratore Iniziale"` con `NOME_PREDEFINITO_AMMINISTRATORE = "Amministratore"` e nuova costante esportata `COGNOME_PREDEFINITO_AMMINISTRATORE = "Iniziale"`; il payload di `utente.create` include entrambe. Aggiorna il commento di testata. Aggiorna il test unitario sul payload esatto (creazione, idempotenza invariata).
+      3. Factory: aggiungi `cognome?: string` a `CreateUtenteOptions`; l'INSERT su `Utente` include la colonna `cognome`. Default coerenti col display attuale: `nome = options.nome ?? "E2E"`, `cognome = options.cognome ?? readableName(token)` così il nominativo composto resta `E2E <token>`. In `createCollaboratore` allinea i default di `utenteOptions` a `nome`/`cognome` del profilo (stessi valori passati all'INSERT di `Collaboratore`).
+      4. Controlla i chiamanti negli spec che passano `utenteOptions.nome` con stringa piena e adeguali a nome+cognome, mantenendo invariato il nominativo composto che gli spec cercano a schermo.
+      5. Riesegui il seed per lasciare l'ambiente coerente: `npm run db:seed`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0 su tutto il progetto (boundary temporaneo di TASK-01 chiuso).
+      - Run: `npx vitest run tests/unit/bootstrap-amministratore-iniziale.test.ts`
+      - Expect: verde.
+      - Run: `npm run db:seed`
+      - Expect: seed completato; log dei collaboratori invariati.
+
+      ## Done
+      - [ ] AC-4 — Seed e bootstrap producono utenti con cognome distinto; la factory e2e inserisce `cognome` e i nominativi composti restano stabili per gli spec.
+
+      ## Blockers
+      PostgreSQL locale attivo per il passo di seed.
+    ref: TASK-09
+  - id: TASK-10
+    title: 'E2E gestione utenti: scenari US-048 e allineamento flussi esistenti'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+      - TASK-06
+      - TASK-07
+      - TASK-09
+    body: |
+      ## Objective
+      `tests/e2e/gestione-utenti.spec.ts` prova a browser i quattro criteri di accettazione e i flussi esistenti restano verdi con il nuovo form.
+
+      ## Read
+      - tests/e2e/gestione-utenti.spec.ts — flussi esistenti che compilano il form utenti
+      - tests/e2e/support/fixtures.ts e tests/e2e/support/factory.ts — contratto factory dopo TASK-09
+      - tests/e2e/README.md — contratto anti-flakiness (ruoli/label, expect web-first, niente hard wait)
+
+      ## Change
+      - tests/e2e/gestione-utenti.spec.ts — aggiorna i flussi esistenti (il cognome si compila nella sezione Anagrafica per ogni ruolo; la sezione profilo non ha più il campo Cognome) e aggiungi gli scenari US-048. Nessuna mutazione di entità seed: utenti dedicati da factory; sull'utente seed Giulia Conti solo asserzioni di lettura.
+
+      ## Steps
+      1. Allinea i flussi esistenti di censimento/modifica al nuovo form (campo `Cognome` sempre presente in Anagrafica; profilo con soli Partita IVA e tariffa).
+      2. Scenario AC-1: da `/anagrafiche/utenti/nuovo`, con solo Amministratore selezionato, i campi con label esatta «Nome» e «Cognome» sono visibili; submit senza cognome → errore «Il cognome è obbligatorio» e nessuna riga creata; compilato il cognome → l'utente compare in elenco con nominativo completo.
+      3. Scenario AC-2: selezionando anche Collaboratore, la sezione profilo espone solo «Partita IVA» e «Tariffa giornaliera»; `getByLabel('Cognome', { exact: true })` conta 1 nella pagina.
+      4. Scenario AC-3: crea un utente via factory, apri la modifica, verifica Nome e Cognome separati e popolati, cambia il cognome, salva, riapri e verifica la persistenza distinta e il nominativo aggiornato in elenco.
+      5. Scenario AC-4: in elenco, la riga dell'utente seed «Giulia Conti» (sola lettura) e quella dell'utente factory mostrano il nominativo completo, senza duplicazioni (es. mai «Conti Conti») né troncamenti.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/gestione-utenti.spec.ts`
+      - Expect: verde (prerequisiti: DB attivo, `npm run db:migrate`, `npm run db:seed`, browser installati).
+      - Run: `npm run lint`
+      - Expect: verde, incluso il guardrail anti-flakiness e2e.
+
+      ## Done
+      - [ ] AC-1 — Oracolo: errore visibile «Il cognome è obbligatorio» sul solo-amministratore e censimento riuscito col cognome.
+      - [ ] AC-2 — Oracolo: sezione profilo con soli Partita IVA e tariffa; un solo campo Cognome nella pagina.
+      - [ ] AC-3 — Oracolo: round-trip dei campi separati riaprendo il form.
+      - [ ] AC-4 — Oracolo: nominativo completo in elenco per utente seed (lettura) e factory.
+
+      ## Blockers
+      Ambiente e2e attivo (PostgreSQL, migrazioni, seed, browser Playwright).
+    ref: TASK-10
+  - id: TASK-11
+    title: 'ADR: cognome come anagrafica autorevole su Utente'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-04
+      - TASK-07
+    body: |
+      ## Objective
+      Esiste la pagina Wiki `decisions/cognome-anagrafica-utente` (stato `generated`) che documenta la decisione, le alternative e la verifica.
+
+      ## Read
+      - docs/wiki/decisions/ruoli-combinabili-profilo-derivato.md — struttura, frontmatter e marker di sezione di un ADR esistente
+      - docs/wiki/index.md — navigazione
+
+      ## Change
+      - Nuovo file docs/wiki/decisions/cognome-anagrafica-utente.md; aggiornamento navigazione via CLI (vedi Steps). Nessuna modifica alle pagine `reviewed` esistenti (il loro aggiornamento avviene dopo l'accettazione, come da contratto Wiki Impact del piano).
+
+      ## Steps
+      1. Crea la pagina con frontmatter `type: decision`, `title`, `description`, `status: generated`, `decision_status: accepted` e `sources` (implementation: prisma/schema.prisma [Utente, Collaboratore], la migrazione aggiungi_cognome_utente, src/app/(back-office)/anagrafiche/utenti/actions.ts [creaUtente, aggiornaUtente], src/app/(back-office)/anagrafiche/collaboratori/actions.ts [aggiornaCollaboratore], src/domain/anagrafiche/valida-utente.ts; verification: tests/unit/utenti-actions.test.ts, tests/unit/collaboratori-dal-actions.test.ts, tests/e2e/gestione-utenti.spec.ts).
+      2. Scrivi le sezioni con i marker `<!-- archetipo:wiki section=... -->` nell'ordine: context (US-048, campo unico composto insufficiente), decision (Utente autorevole per nome+cognome; Collaboratore.nome/cognome copie coordinate mantenute allineate dai writer transazionali; migrazione con backfill), alternatives (campo unico composto con parsing; drop delle colonne di Collaboratore con motivo dello scarto e rinvio), consequences (duplicazione controllata, consolidamento futuro possibile), verification (suite citate in sources).
+      3. Collega la pagina a `domains/identita-accesso`, `domains/collaboratori` e `decisions/ruoli-combinabili-profilo-derivato` nei concetti correlati.
+      4. Aggiorna la navigazione: `archetipo wiki catalog` da /Users/smarello/repo/coaching-planner.
+
+      ## Verify
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: `data.ok: true` con 24 pagine e nessun finding nuovo (baseline: 23 pagine, ok).
+
+      ## Done
+      - [ ] La pagina esiste con tutti i marker di sezione richiesti, sources verificabili e stato `generated` in attesa di review.
+
+      ## Blockers
+      None.
+    ref: TASK-11
+  - id: TASK-12
+    title: 'Gate finale: regressione completa e chiusura spec'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+      - TASK-09
+      - TASK-10
+      - TASK-11
+    body: |
+      ## Objective
+      Tutte le verifiche del repository sono verdi sull'increment completo e la spec è pronta per la review.
+
+      ## Read
+      - .github/workflows/ci.yml — sequenza di riferimento dei check CI
+
+      ## Change
+      Nessuna modifica prevista; solo correzioni puntuali se un check fallisce (nel perimetro dei file già toccati dal piano).
+
+      ## Steps
+      1. Esegui in ordine i comandi di Verify; a ogni fallimento correggi e riparti dal comando fallito.
+      2. Marca questo task `DONE` solo a check tutti verdi.
+      3. Da /Users/smarello/repo/coaching-planner esegui `archetipo spec show US-048` e verifica che NESSUN task risulti `TODO`.
+      4. Solo dopo quella conferma è consentito richiedere la review con `archetipo spec review`.
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: verde (baseline verde).
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessun nuovo diagnostico nei file toccati (baseline exit 0).
+      - Run: `npm test`
+      - Expect: intera suite unitaria verde (baseline: focalizzati 104 verdi; nessun fallimento nuovo altrove).
+      - Run: `npm run build`
+      - Expect: build Next.js completata senza errori.
+      - Run: `npm run test:e2e`
+      - Expect: intera suite Playwright verde (la factory è cambiata per tutti gli spec; prerequisiti d'ambiente come da baseline).
+      - Run: `archetipo spec show US-048` (da /Users/smarello/repo/coaching-planner)
+      - Expect: tutti i task `DONE`; solo allora richiedere la review.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4 — Le evidenze della mappa di accettazione sono tutte verdi nell'esecuzione finale.
+      - [ ] Ordine di chiusura rispettato: check verdi → gate `DONE` → `archetipo spec show US-048` senza `TODO` → richiesta di review.
+
+      ## Blockers
+      Ambiente e2e attivo (PostgreSQL, migrazioni, seed, browser Playwright).
+    ref: TASK-12

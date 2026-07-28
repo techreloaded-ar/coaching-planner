@@ -1,0 +1,44 @@
+schema: archetipo/spec/v2
+code: US-048
+title: Cognome nella sezione anagrafica dell'utente
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: HIGH
+points: 3
+status: DONE
+body: |-
+  #### US-048: Cognome nella sezione anagrafica dell'utente
+
+  **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come amministratore,
+  voglio censire nome e cognome nella sezione anagrafica dell'utente, lasciando al profilo collaboratore solo partita IVA e tariffa giornaliera,
+  così da compilare i dati anagrafici in un unico punto coerente senza cercare il cognome in una sezione che non gli appartiene.
+
+  **Dimostrazione**
+  Partendo dalla pagina di censimento nuovo utente, il revisore osserva che la sezione anagrafica chiede Nome e Cognome in due campi distinti e che, selezionando il ruolo Collaboratore, la sezione profilo chiede soltanto Partita IVA e Tariffa giornaliera. Il revisore censisce un utente solo-amministratore con nome e cognome, lo ritrova nell'elenco utenti con il nominativo completo, poi apre in modifica un utente preesistente (di seed) e osserva i campi Nome e Cognome separati e già popolati correttamente.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Nel form di censimento la sezione anagrafica chiede Nome e Cognome come campi distinti, entrambi obbligatori per qualunque combinazione di ruoli, anche per un utente solo-amministratore.
+  - [ ] AC-2 — Con il ruolo Collaboratore selezionato, la sezione profilo collaboratore chiede soltanto Partita IVA e Tariffa giornaliera, senza campo Cognome né hint che vi rimandi.
+  - [ ] AC-3 — Aprendo in modifica un utente esistente, Nome e Cognome compaiono nei rispettivi campi separati e il salvataggio conserva la distinzione, verificabile riaprendo il form.
+  - [ ] AC-4 — I dati esistenti (seed e utenti già censiti in ambiente) risultano sistemati: ogni utente ha il cognome come dato distinto e l'elenco utenti mostra il nominativo completo senza duplicazioni o troncamenti.
+
+  **Fuori Perimetro**
+  La ristrutturazione dell'anagrafica collaboratori: la pagina di modifica del profilo collaboratore resta quella definita da US-047. Nessun cambiamento a ruoli, transizioni di profilo o protezione dell'ultimo amministratore.
+
+  **Contesto Wiki:** domains/identita-accesso, domains/collaboratori, decisions/ruoli-combinabili-profilo-derivato
+history:
+  - status: TODO
+    at: "2026-07-28T13:26:27Z"
+  - status: PLANNED
+    at: "2026-07-28T13:45:22Z"
+  - status: IN PROGRESS
+    at: "2026-07-28T13:53:20Z"
+  - status: REVIEW
+    at: "2026-07-28T14:54:44Z"
+  - status: DONE
+    at: "2026-07-28T16:04:05Z"

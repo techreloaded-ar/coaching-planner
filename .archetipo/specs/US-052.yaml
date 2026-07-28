@@ -1,0 +1,44 @@
+schema: archetipo/spec/v2
+code: US-052
+title: Rivaluta il cambio mese senza round-trip quando il runtime prefetching sarà stabile
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: LOW
+points: 5
+status: TODO
+body: |-
+  #### US-052: Rivaluta il cambio mese senza round-trip quando il runtime prefetching sarà stabile
+
+  **Epic:** EP-005 | **Priorità:** LOW | **Punti:** 5 | **Stato:** TODO
+  **Bloccata da:** disponibilità di una versione di Next.js in cui il runtime prefetching non sia più dichiarato instabile
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio che il passaggio da un mese all'altro del calendario mostri i dati senza attendere il server,
+  così da consultare lo storico con la stessa immediatezza di un'applicazione locale.
+
+  **Contesto**
+  US-050 ha consegnato la reattività percepita (transizione client-side, griglia precedente mantenuta visibile, indicatore di caricamento). La velocità reale — mese servito senza round-trip — è invece rimasta fuori portata ed è stata rimossa dal perimetro dopo verifica sul campo. Questa spec la riapre quando il framework la renderà praticabile.
+
+  **Misure raccolte durante US-050 (2026-07-28, Next 16.2.9)**
+  Non ripetere l'indagine: questi sono dati osservati, non ipotesi.
+
+  1. `router.prefetch` su `/attivita` (rotta dinamica, dipende dai cookie di sessione) scarica **solo l'albero di instradamento**. Richiesta osservata con header `next-router-segment-prefetch: /_tree`, corpo di 232 byte contenente unicamente la struttura dei segmenti: nessuna ragione sociale cliente, nessun href di cella giorno, nessun valore di ore.
+  2. Oracolo a rete tagliata (route abortita verso la pagina del mese dopo il prefetch): 5 esecuzioni su 5 fallite — il mese non si renderizza. Conferma che la navigazione richiede sempre il server.
+  3. Le due guide della stessa versione si contraddicono in apparenza: `staleTimes.md` afferma che la finestra `static` di 5 minuti vale «when calling `router.prefetch`», ma la tabella di `prefetching.md` è la regola prevalente e per una pagina dinamica dichiara *Prefetched: No, unless `loading.js`* e *Client Cache TTL: Off*. La prima frase riguarda la durata di ciò che viene prefetchato, non cosa viene prefetchato.
+  4. Tentativo con Cache Components (`cacheComponents: true`, boundary `<Suspense>`, `use cache: private` con `cacheLife({ stale: 60 })` sul rendering del mese): **adottabile ma insufficiente**. Il build passa su tutte le rotte aggiungendo un solo `<Suspense>` nel layout di root, tutte passano a Partial Prerender, e la regressione calendario resta verde (8/8). PPR risulta attivo dagli header (`x-nextjs-prerender: 1`, `x-nextjs-postponed: 1`, `x-nextjs-stale-time: 300`, guscio statico con `x-nextjs-cache: HIT`). Ma il dato mensile resta un buco dinamico: sia la prima apertura sia il ritorno su un mese già visitato emettono una richiesta dati reale (`segment=- prefetch=- rsc=1`).
+  5. Causa documentata: `use cache: private` «executes on every server render and is excluded from running during static shell generation», ed è marcato sperimentale proprio perché dipende dal *runtime prefetching*, che la documentazione della 16.2.9 dichiara «not yet stable / upcoming feature» — la capacità che permetterebbe al router di prefetchare oltre il guscio statico dentro uno scope cachato.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Verificato sulla versione di Next.js in uso al momento della ripresa che il runtime prefetching non sia più dichiarato instabile; in caso contrario la spec resta bloccata e la verifica viene registrata con la versione controllata.
+  - [ ] AC-2 — Il ritorno su un mese già visitato nella stessa scheda non produce alcuna richiesta dati verso la pagina del mese, provato con oracolo di rete (route abortita o contatore ristretto alla sola pagina `/attivita`).
+  - [ ] AC-3 — La finestra di staleness accettata è documentata in una decisione architetturale, con le mitigazioni effettive (`revalidatePath` nelle server action, ricaricamento del browser) e la sua estensione reale misurata, non dedotta.
+  - [ ] AC-4 — La reattività percepita consegnata da US-050 resta invariata: griglia precedente visibile durante la transizione, indicatore di caricamento, contratto URL `?mese=YYYY-MM`.
+  - [ ] AC-5 — Se l'adozione richiede Cache Components, la regressione copre l'intera suite e2e e non solo il calendario, perché il flag cambia la modalità di rendering di tutte le rotte.
+
+  **Fuori Perimetro**
+  La reattività percepita, già consegnata da US-050. L'adozione di Cache Components come modernizzazione a sé, che se desiderata va valutata come spec propria e non come effetto collaterale di questa.
+history:
+  - status: TODO
+    at: "2026-07-28T16:42:57Z"

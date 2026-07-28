@@ -1,0 +1,44 @@
+schema: archetipo/spec/v2
+code: US-050
+title: Cambio mese reattivo nel calendario con indicatore di caricamento
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: HIGH
+points: 3
+status: DONE
+body: |-
+  #### US-050: Cambio mese reattivo nel calendario con indicatore di caricamento
+
+  **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio che il passaggio da un mese all'altro del mio calendario attività risponda in modo quasi istantaneo e mostri un indicatore quando i dati stanno caricando,
+  così da navigare lo storico senza attese cieche in cui l'applicazione sembra bloccata.
+
+  **Dimostrazione**
+  Partendo dal calendario mensile di un collaboratore con attività su più mesi, il revisore preme più volte "mese successivo" e "mese precedente" e osserva che l'interfaccia reagisce immediatamente a ogni click, con i dati del mese visibili in tempo percepito come istantaneo (target indicativo: sotto i 200ms in condizioni locali). Il revisore poi rallenta artificialmente la rete dagli strumenti del browser, cambia mese e osserva un indicatore di caricamento visibile finché le celle del nuovo mese non compaiono valorizzate.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Al click sui controlli di navigazione mese (precedente, successivo, mese corrente) l'interfaccia dà riscontro visivo immediato, senza intervallo percepibile in cui il click sembra ignorato.
+  - [ ] AC-2 — Quando i dati del mese non sono ancora disponibili, un indicatore di caricamento è visibile sulla zona del calendario e scompare quando le celle del nuovo mese sono valorizzate.
+  - [ ] AC-3 — La navigazione conserva il contratto attuale dell'URL: il mese visualizzato resta raggiungibile e condivisibile tramite l'indirizzo con il token `YYYY-MM`, e l'apertura diretta di quell'indirizzo mostra il mese richiesto.
+  - [ ] AC-4 — Il contenuto delle celle (clienti, ore cumulate, indicatore "+N") e l'apertura del giorno restano invariati rispetto al comportamento attuale.
+
+  **Fuori Perimetro**
+  Il feedback di attesa su pulsanti e form del resto dell'applicazione (coperto da US-051). Nessun cambiamento al contenuto informativo delle celle né al riepilogo mese.
+
+  **Contesto Wiki:** domains/attivita
+history:
+  - status: TODO
+    at: "2026-07-28T13:26:27Z"
+  - status: PLANNED
+    at: "2026-07-28T15:06:13Z"
+  - status: IN PROGRESS
+    at: "2026-07-28T16:02:19Z"
+  - status: REVIEW
+    at: "2026-07-28T16:45:35Z"
+  - status: DONE
+    at: "2026-07-28T18:10:24Z"
