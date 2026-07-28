@@ -2,7 +2,7 @@
 type: decision
 title: Cognome nella sezione anagrafica dell'utente
 description: Rendere Utente autorevole per nome e cognome, mantenendo Collaboratore.nome/cognome come copie coordinate scritte dai writer transazionali
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: prisma/schema.prisma
@@ -25,6 +25,11 @@ sources:
       role: verification
     - path: tests/e2e/gestione-utenti.spec.ts
       role: verification
+review:
+    content_hash: sha256:c0bfdf78062e1e7a9b1ccef4d460e3488b2d376f7a96a132f7729f17fae8107c
+    evidence_revision: c90d43cc399b27fbe101a733acfe098501f18bb6
+    evidence_hash: sha256:ee268ce3249afc0019c757ec7e8ce3c25d772ee35c8a7c04d1b737845db2a042
+    reviewed_at: "2026-07-28T16:03:32Z"
 ---
 # Cognome nella sezione anagrafica dell'utente
 

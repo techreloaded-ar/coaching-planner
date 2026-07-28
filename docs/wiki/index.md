@@ -9,7 +9,7 @@
 * [Abilitazioni esplicite collaboratore-offerta](decisions/abilitazioni-offerte-esplicite.md) - Persistere l'ingaggio collaboratore-offerta in una tabella dedicata, revocabile, con pre-popolamento una tantum. _State: stale._
 * [Autorità sul ruolo nel DAL](decisions/autorita-ruolo-dal.md) - Il proxy garantisce la sola autenticazione; il ruolo autorevole è quello a database letto dal DAL a ogni accesso protetto. _State: stale._
 * [Calcoli di dominio in funzioni pure](decisions/calcoli-puri.md) - Isolare validazioni e calcoli di consuntivazione in funzioni pure testabili. _State: reviewed._
-* [Cognome nella sezione anagrafica dell'utente](decisions/cognome-anagrafica-utente.md) - Rendere Utente autorevole per nome e cognome, mantenendo Collaboratore.nome/cognome come copie coordinate scritte dai writer transazionali. _State: generated._
+* [Cognome nella sezione anagrafica dell'utente](decisions/cognome-anagrafica-utente.md) - Rendere Utente autorevole per nome e cognome, mantenendo Collaboratore.nome/cognome come copie coordinate scritte dai writer transazionali. _State: reviewed._
 * [Connessione al database senza TLS (rischio accettato)](decisions/connessione-db-senza-tls.md) - Accettazione consapevole del rischio di connessione in chiaro tra Vercel e il PostgreSQL SiteGround, in attesa del supporto TLS del provider. _State: reviewed._
 * [Giornata equivalente a otto ore](decisions/giornata-otto-ore.md) - Convertire ore e giornate con la costante fissa di otto ore per giornata. _State: reviewed._
 * [Importi monetari decimali](decisions/importi-decimali.md) - Persistire gli importi monetari come Decimal per evitare errori contabili. _State: stale._
@@ -22,9 +22,9 @@
 
 * [Attività e consuntivazione](domains/attivita.md) - Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore. _State: stale._
 * [Clienti](domains/clienti.md) - Anagrafica fiscale dei clienti e loro abilitazione operativa. _State: stale._
-* [Collaboratori](domains/collaboratori.md) - Profili professionali dei collaboratori, tariffa e abilitazione operativa. _State: generated._
+* [Collaboratori](domains/collaboratori.md) - Profili professionali dei collaboratori, tariffa e abilitazione operativa. _State: reviewed._
 * [Fatturazione clienti](domains/fatturazione-clienti.md) - Proiezione amministrativa mensile degli importi da fatturare ai clienti. _State: reviewed._
-* [Identità, sessioni e accesso](domains/identita-accesso.md) - Censimento utenti, accesso Google, sessione JWT, ruoli, policy di rotta e segregazione dei dati. _State: generated._
+* [Identità, sessioni e accesso](domains/identita-accesso.md) - Censimento utenti, accesso Google, sessione JWT, ruoli, policy di rotta e segregazione dei dati. _State: reviewed._
 * [Offerte](domains/offerte.md) - Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento. _State: stale._
 * [Politiche di rimborso trasferta](domains/politiche-rimborso.md) - Configurazione globale delle fasce chilometriche e calcolo del rimborso trasferta. _State: stale._
 

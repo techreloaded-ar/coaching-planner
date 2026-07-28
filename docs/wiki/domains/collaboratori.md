@@ -2,7 +2,7 @@
 type: domain
 title: Collaboratori
 description: Profili professionali dei collaboratori, tariffa e abilitazione operativa
-status: generated
+status: reviewed
 classification: candidate
 sources:
     - path: src/app/(back-office)/anagrafiche/collaboratori/actions.ts
@@ -73,6 +73,11 @@ sources:
       role: verification
     - path: tests/e2e/ingaggi-offerta.spec.ts
       role: verification
+review:
+    content_hash: sha256:0ceb2d1400f712e38d9d6ed8f879a8a9b4049fd5a0c0b8ba3a969b8495ecf1e3
+    evidence_revision: c90d43cc399b27fbe101a733acfe098501f18bb6
+    evidence_hash: sha256:4d907032bf743325a70cdee7b7b219967d1dac572fbd00eae4d305bf90cd7eff
+    reviewed_at: "2026-07-28T16:03:32Z"
 ---
 # Collaboratori
 
