@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import { PulsanteAttesa } from "@/components";
 import {
   creaScaglione,
   aggiornaScaglione,
@@ -23,6 +24,15 @@ interface ScaglioneFormProps {
 }
 
 const statoIniziale: StatoActionScaglione = { errori: {} };
+
+/** Estrae dal FormData i soli campi testuali, per ripopolare i defaultValue. */
+function memorizzaValoriTestuali(datiForm: FormData): Record<string, string> {
+  const valoriTestuali: Record<string, string> = {};
+  for (const [nomeCampo, valore] of datiForm.entries()) {
+    if (typeof valore === "string") valoriTestuali[nomeCampo] = valore;
+  }
+  return valoriTestuali;
+}
 
 /**
  * Soglia minima della fascia coperta: la soglia dell'ultimo scaglione
@@ -46,6 +56,26 @@ export default function ScaglioneForm({ scaglioniEsistenti, scaglione }: Scaglio
     statoIniziale
   );
   const [finoAKm, setFinoAKm] = useState(scaglione ? String(scaglione.finoAKm) : "");
+
+  // I campi restano non controllati: solo così quanto digitato prima
+  // dell'idratazione sopravvive. Per non perdere i dati quando la validazione
+  // fallisce memorizziamo i valori dell'ultimo invio e li rimettiamo come
+  // defaultValue, che React 19 riapplica quando ripristina il form.
+  const [valoriInviati, setValoriInviati] = useState<Record<string, string> | null>(
+    null
+  );
+
+  function azioneConMemoria(datiForm: FormData) {
+    const valoriTestuali = memorizzaValoriTestuali(datiForm);
+    setValoriInviati(valoriTestuali);
+    // Tiene l'anteprima della fascia allineata a ciò che resta a schermo.
+    setFinoAKm(valoriTestuali.finoAKm ?? "");
+    return azione(datiForm);
+  }
+
+  function valoreIniziale(nomeCampo: string, valoreOriginale: string) {
+    return valoriInviati?.[nomeCampo] ?? valoreOriginale;
+  }
 
   const haErrori = Object.keys(stato.errori).length > 0;
 
@@ -88,7 +118,7 @@ export default function ScaglioneForm({ scaglioniEsistenti, scaglione }: Scaglio
 
       <form
         noValidate
-        action={azione}
+        action={azioneConMemoria}
         className="max-w-[680px] rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
         {inModifica && <input type="hidden" name="id" value={scaglione.id} />}
@@ -119,7 +149,10 @@ export default function ScaglioneForm({ scaglioniEsistenti, scaglione }: Scaglio
               label="Soglia massima"
               name="finoAKm"
               placeholder="Es. 100"
-              defaultValue={scaglione ? String(scaglione.finoAKm) : ""}
+              defaultValue={valoreIniziale(
+                "finoAKm",
+                scaglione ? String(scaglione.finoAKm) : ""
+              )}
               errore={stato.errori.finoAKm}
               obbligatorio
               suffisso="km"
@@ -131,7 +164,7 @@ export default function ScaglioneForm({ scaglioniEsistenti, scaglione }: Scaglio
               label="Importo forfettario"
               name="importo"
               placeholder="Es. 28,00"
-              defaultValue={scaglione?.importo ?? ""}
+              defaultValue={valoreIniziale("importo", scaglione?.importo ?? "")}
               errore={stato.errori.importo}
               obbligatorio
               suffisso="€"
@@ -154,15 +187,15 @@ export default function ScaglioneForm({ scaglioniEsistenti, scaglione }: Scaglio
           >
             Annulla
           </Link>
-          <button
-            type="submit"
+          <PulsanteAttesa
+            etichettaAttesa={inModifica ? "Salvataggio…" : "Creazione…"}
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
               <path d="M20 6 9 17l-5-5" />
             </svg>
             {inModifica ? "Salva modifiche" : "Crea scaglione"}
-          </button>
+          </PulsanteAttesa>
         </div>
       </form>
     </div>

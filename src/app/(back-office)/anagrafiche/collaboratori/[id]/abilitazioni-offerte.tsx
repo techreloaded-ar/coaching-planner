@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useActionState } from "react";
 import type { OffertaAbilitata, OffertaAbilitabile } from "@/lib/abilitazioni";
 import type { StatoAction } from "../actions";
+import { PulsanteAttesa } from "@/components";
 import { inizialiCliente } from "@/lib/formattazione";
 import {
   abilitaCollaboratoreSuOfferte,
@@ -159,15 +160,12 @@ function RigaOffertaAbilitata({
         <form action={azione} className="inline">
           <input type="hidden" name="collaboratoreId" value={collaboratoreId} />
           <input type="hidden" name="offertaId" value={offerta.offertaId} />
-          <button
-            type="submit"
-            className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-          >
+          <PulsanteAttesa className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
               <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
             </svg>
             Revoca
-          </button>
+          </PulsanteAttesa>
         </form>
       </td>
     </tr>
@@ -421,16 +419,16 @@ function DialogAbilita({
             >
               Annulla
             </button>
-            <button
-              type="submit"
+            <PulsanteAttesa
               disabled={numeroSelezionate === 0}
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+              etichettaAttesa="Abilitazione…"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>
               Abilita selezionate
-            </button>
+            </PulsanteAttesa>
           </div>
         </form>
       </div>

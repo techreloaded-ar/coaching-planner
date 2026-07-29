@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { disconnetti, verificaSessione } from "@/lib/dal";
+import { PulsanteAttesa } from "@/components";
 
 export default async function FrontOfficeLayout({
   children,
@@ -55,9 +56,9 @@ export default async function FrontOfficeLayout({
             <div className="h-[26px] w-px bg-zinc-200 dark:bg-zinc-700" />
 
             <form action={disconnetti}>
-              <button
-                type="submit"
+              <PulsanteAttesa
                 data-esci
+                etichettaAttesa="Uscita…"
                 className="inline-flex items-center gap-1.5 rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750"
               >
                 <svg
@@ -71,7 +72,7 @@ export default async function FrontOfficeLayout({
                   <path d="m16 17 5-5-5-5M21 12H9" />
                 </svg>
                 Esci
-              </button>
+              </PulsanteAttesa>
             </form>
           </div>
         </div>

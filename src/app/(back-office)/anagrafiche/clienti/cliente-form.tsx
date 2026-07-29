@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { PulsanteAttesa } from "@/components";
 import {
   creaCliente,
   aggiornaCliente,
@@ -31,6 +32,17 @@ interface ClienteFormProps {
 
 const statoIniziale: StatoAction = { errori: {} };
 
+// ── Memoria dei valori inviati ─────────────────────────────────
+
+/** Estrae dal FormData i soli campi testuali, per ripopolare i defaultValue. */
+function memorizzaValoriTestuali(datiForm: FormData): Record<string, string> {
+  const valoriTestuali: Record<string, string> = {};
+  for (const [nomeCampo, valore] of datiForm.entries()) {
+    if (typeof valore === "string") valoriTestuali[nomeCampo] = valore;
+  }
+  return valoriTestuali;
+}
+
 // ── Componente ─────────────────────────────────────────────────
 
 export default function ClienteForm({ cliente }: ClienteFormProps) {
@@ -40,6 +52,23 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
     inModifica ? aggiornaCliente : creaCliente,
     statoIniziale
   );
+
+  // I campi restano non controllati: solo così quanto digitato prima
+  // dell'idratazione sopravvive. Per non perdere i dati quando la validazione
+  // fallisce memorizziamo i valori dell'ultimo invio e li rimettiamo come
+  // defaultValue, che React 19 riapplica quando ripristina il form.
+  const [valoriInviati, setValoriInviati] = useState<Record<string, string> | null>(
+    null
+  );
+
+  function azioneConMemoria(datiForm: FormData) {
+    setValoriInviati(memorizzaValoriTestuali(datiForm));
+    return azione(datiForm);
+  }
+
+  function valoreIniziale(nomeCampo: string, valoreOriginale: string) {
+    return valoriInviati?.[nomeCampo] ?? valoreOriginale;
+  }
 
   // Se il form è inviato con successo, il redirect verrà gestito
   // dalla server action (che chiama redirect()). Qui gestiamo solo
@@ -74,7 +103,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
       {/* Form */}
       <form
         noValidate
-        action={azione}
+        action={azioneConMemoria}
         className="max-w-[760px] rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
         {inModifica && <input type="hidden" name="id" value={cliente!.id} />}
@@ -105,7 +134,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               name="ragioneSociale"
               placeholder="Es. Banca Sintesi S.p.A."
               autoComplete="organization"
-              defaultValue={cliente?.ragioneSociale ?? ""}
+              defaultValue={valoreIniziale("ragioneSociale", cliente?.ragioneSociale ?? "")}
               errore={stato.errori.ragioneSociale}
               obbligatorio
               fullWidth
@@ -117,7 +146,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               placeholder="11 cifre, es. 04127730961"
               inputMode="numeric"
               maxLength={11}
-              defaultValue={cliente?.partitaIva ?? ""}
+              defaultValue={valoreIniziale("partitaIva", cliente?.partitaIva ?? "")}
               errore={stato.errori.partitaIva}
               obbligatorio
             />
@@ -127,7 +156,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               name="codiceFiscale"
               placeholder="Se diverso dalla P.IVA"
               maxLength={16}
-              defaultValue={cliente?.codiceFiscale ?? ""}
+              defaultValue={valoreIniziale("codiceFiscale", cliente?.codiceFiscale ?? "")}
               errore={stato.errori.codiceFiscale}
               facoltativo
             />
@@ -145,7 +174,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               name="indirizzo"
               placeholder="Via e numero civico"
               autoComplete="street-address"
-              defaultValue={cliente?.indirizzo ?? ""}
+              defaultValue={valoreIniziale("indirizzo", cliente?.indirizzo ?? "")}
               errore={stato.errori.indirizzo}
               facoltativo
               fullWidth
@@ -157,7 +186,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
                 name="citta"
                 placeholder="Es. Milano"
                 autoComplete="address-level2"
-                defaultValue={cliente?.citta ?? ""}
+                defaultValue={valoreIniziale("citta", cliente?.citta ?? "")}
                 errore={stato.errori.citta}
                 facoltativo
               />
@@ -168,7 +197,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
                 inputMode="numeric"
                 maxLength={5}
                 autoComplete="postal-code"
-                defaultValue={cliente?.cap ?? ""}
+                defaultValue={valoreIniziale("cap", cliente?.cap ?? "")}
                 errore={stato.errori.cap}
                 facoltativo
               />
@@ -177,7 +206,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
                 name="provincia"
                 placeholder="MI"
                 maxLength={2}
-                defaultValue={cliente?.provincia ?? ""}
+                defaultValue={valoreIniziale("provincia", cliente?.provincia ?? "")}
                 errore={stato.errori.provincia}
                 facoltativo
                 uppercase
@@ -197,7 +226,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               name="pec"
               type="email"
               placeholder="fatture@pec.azienda.it"
-              defaultValue={cliente?.pec ?? ""}
+              defaultValue={valoreIniziale("pec", cliente?.pec ?? "")}
               errore={stato.errori.pec}
               facoltativo
             />
@@ -207,7 +236,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               name="codiceDestinatario"
               placeholder="7 caratteri, es. M5UXCR1"
               maxLength={7}
-              defaultValue={cliente?.codiceDestinatario ?? ""}
+              defaultValue={valoreIniziale("codiceDestinatario", cliente?.codiceDestinatario ?? "")}
               errore={stato.errori.codiceDestinatario}
               facoltativo
               uppercase
@@ -239,15 +268,15 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
           >
             Annulla
           </Link>
-          <button
-            type="submit"
+          <PulsanteAttesa
+            etichettaAttesa={inModifica ? "Salvataggio…" : "Creazione…"}
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
               <path d="M20 6 9 17l-5-5" />
             </svg>
             {inModifica ? "Salva modifiche" : "Crea cliente"}
-          </button>
+          </PulsanteAttesa>
         </div>
       </form>
 

@@ -10,6 +10,7 @@ import {
   fetchOffertePerCliente,
 } from "@/lib/actions/righe-attivita";
 import { calcolaRimborsoTrasferta, validaKmTrasferta } from "@/domain/consuntivi";
+import { PulsanteAttesa } from "@/components";
 import { useCacheCalendario } from "../calendario-cache-provider";
 import type { RigaAttivitaClient, ClienteSelect, ScaglioneRimborsoSerializzato } from "./page";
 
@@ -137,6 +138,15 @@ export default function DettaglioGiornata({
   const [fatturabile, setFatturabile] = useState(true);
   const [nota, setNota] = useState("");
   const [erroreSubmit, setErroreSubmit] = useState<string | null>(null);
+
+  // Attesa del salvataggio: copre l'intera chiamata alla server action, mentre
+  // `isPending` copre il successivo `router.refresh()`. Insieme rendono l'attesa
+  // continua dal click fino ai dati aggiornati a schermo.
+  const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
+
+  // Riga su cui è in corso un'azione (modifica, eliminazione, rimozione
+  // trasferta): ne disabilita i pulsanti così da escludere i doppi click.
+  const [rigaInAttesaId, setRigaInAttesaId] = useState<string | null>(null);
 
   // Stato trasferta
   const [trasfertaKmRaw, setTrasfertaKmRaw] = useState("");
@@ -320,19 +330,27 @@ export default function DettaglioGiornata({
       // Trasferta: invia sempre il valore (anche vuoto per rimuovere)
       fd.append("trasfertaKm", trasfertaKmRaw);
 
-      if (modificaId) {
-        fd.append("rigaId", modificaId);
-        const result = await modificaRiga(fd);
-        if (!result.success) {
-          setErroreSubmit(result.error ?? "Errore nella modifica");
-          return;
+      // Il `finally` chiude l'attesa anche quando l'action rifiuta la riga: il
+      // messaggio di errore compare con i campi ancora compilati e il pulsante
+      // di nuovo abilitato per un secondo tentativo.
+      setSalvataggioInCorso(true);
+      try {
+        if (modificaId) {
+          fd.append("rigaId", modificaId);
+          const result = await modificaRiga(fd);
+          if (!result.success) {
+            setErroreSubmit(result.error ?? "Errore nella modifica");
+            return;
+          }
+        } else {
+          const result = await creaRiga(fd);
+          if (!result.success) {
+            setErroreSubmit(result.error ?? "Errore nella creazione");
+            return;
+          }
         }
-      } else {
-        const result = await creaRiga(fd);
-        if (!result.success) {
-          setErroreSubmit(result.error ?? "Errore nella creazione");
-          return;
-        }
+      } finally {
+        setSalvataggioInCorso(false);
       }
 
       // Aggiorna i dati server e invalida il mese nella cache del calendario
@@ -379,6 +397,7 @@ export default function DettaglioGiornata({
       setClienteCambiatoDuranteModifica(false);
 
       // Carica le offerte di quel cliente
+      setRigaInAttesaId(riga.id);
       setOfferteLoading(true);
       try {
         const result = await fetchOffertePerCliente(riga.cliente.id);
@@ -403,6 +422,7 @@ export default function DettaglioGiornata({
         // ignora
       } finally {
         setOfferteLoading(false);
+        setRigaInAttesaId(null);
       }
 
       // Scroll al form
@@ -438,9 +458,14 @@ export default function DettaglioGiornata({
     async (rigaId: string) => {
       if (!confirm("Eliminare questa riga attività?")) return;
 
-      const result = await eliminaRiga(rigaId);
-      if (result.success) {
-        invalidaMeseERicarica();
+      setRigaInAttesaId(rigaId);
+      try {
+        const result = await eliminaRiga(rigaId);
+        if (result.success) {
+          invalidaMeseERicarica();
+        }
+      } finally {
+        setRigaInAttesaId(null);
       }
     },
     [invalidaMeseERicarica]
@@ -452,9 +477,14 @@ export default function DettaglioGiornata({
     async (rigaId: string) => {
       if (!confirm("Rimuovere la trasferta da questa riga?")) return;
 
-      const result = await rimuoviTrasferta(rigaId);
-      if (result.success) {
-        invalidaMeseERicarica();
+      setRigaInAttesaId(rigaId);
+      try {
+        const result = await rimuoviTrasferta(rigaId);
+        if (result.success) {
+          invalidaMeseERicarica();
+        }
+      } finally {
+        setRigaInAttesaId(null);
       }
     },
     [invalidaMeseERicarica]
@@ -617,8 +647,9 @@ export default function DettaglioGiornata({
 
                 {/* Pulsanti azione */}
                 <div className="mt-[10px] flex items-center gap-2 border-t border-zinc-100 pt-[10px] dark:border-zinc-700">
-                  <button
+                  <PulsanteAttesa
                     type="button"
+                    attesaEsterna={rigaInAttesaId === riga.id}
                     onClick={() => handleModifica(riga)}
                     className="inline-flex items-center gap-[5px] rounded-[8px] border border-zinc-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
                   >
@@ -632,10 +663,11 @@ export default function DettaglioGiornata({
                       <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                     </svg>
                     Modifica
-                  </button>
+                  </PulsanteAttesa>
                   {riga.trasfertaKm != null && (
-                    <button
+                    <PulsanteAttesa
                       type="button"
+                      attesaEsterna={rigaInAttesaId === riga.id}
                       onClick={() => handleRimuoviTrasferta(riga.id)}
                       className="inline-flex items-center gap-[5px] rounded-[8px] border border-amber-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-amber-700 transition hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300"
                     >
@@ -650,10 +682,11 @@ export default function DettaglioGiornata({
                         <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
                       </svg>
                       Rimuovi trasferta
-                    </button>
+                    </PulsanteAttesa>
                   )}
-                  <button
+                  <PulsanteAttesa
                     type="button"
+                    attesaEsterna={rigaInAttesaId === riga.id}
                     onClick={() => handleElimina(riga.id)}
                     className="inline-flex items-center gap-[5px] rounded-[8px] border border-red-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
                   >
@@ -667,7 +700,7 @@ export default function DettaglioGiornata({
                       <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
                     </svg>
                     Elimina
-                  </button>
+                  </PulsanteAttesa>
                 </div>
               </div>
             ))}
@@ -902,12 +935,12 @@ export default function DettaglioGiornata({
 
           {/* Pulsanti */}
           <div className="flex items-center gap-3 pt-0.5">
-            <button
+            <PulsanteAttesa
               type="submit"
-              disabled={
-                isPending || nessunaOffertaAbilitata || nessunClienteAbilitato
-              }
-              className="inline-flex items-center gap-[7px] rounded-[10px] bg-rose-600 px-[18px] py-[9px] text-[13.5px] font-bold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-rose-500 dark:hover:bg-rose-600"
+              attesaEsterna={salvataggioInCorso || isPending}
+              etichettaAttesa="Salvataggio…"
+              disabled={nessunaOffertaAbilitata || nessunClienteAbilitato}
+              className="inline-flex items-center gap-[7px] rounded-[10px] bg-rose-600 px-[18px] py-[9px] text-[13.5px] font-bold text-white shadow-sm transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -923,7 +956,7 @@ export default function DettaglioGiornata({
                 )}
               </svg>
               {modificaId ? "Salva modifiche" : "Aggiungi riga"}
-            </button>
+            </PulsanteAttesa>
 
             {modificaId && (
               <button

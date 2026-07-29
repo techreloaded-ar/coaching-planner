@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { ScaglioneKm } from "@/generated/prisma/client";
+import { PulsanteAttesa } from "@/components";
 import { formattaEuro } from "@/lib/formattazione";
 import { eliminaScaglione } from "./actions";
 
@@ -190,16 +191,18 @@ export default function ScaglioniTabella({ scaglioni }: ScaglioniTabellaProps) {
             >
               Annulla
             </button>
+            {/* L'action comunica l'esito con `redirect`: il modale resta con il
+                pulsante in attesa fino alla navigazione, che lo smonta. Nessuna
+                chiusura ottimistica al click. */}
             {scaglioneDaEliminare && (
               <form action={eliminaScaglione}>
                 <input type="hidden" name="id" value={scaglioneDaEliminare.id} />
-                <button
-                  type="submit"
+                <PulsanteAttesa
+                  etichettaAttesa="Eliminazione…"
                   className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:brightness-[.92]"
-                  onClick={chiudiModale}
                 >
                   Elimina scaglione
-                </button>
+                </PulsanteAttesa>
               </form>
             )}
           </div>

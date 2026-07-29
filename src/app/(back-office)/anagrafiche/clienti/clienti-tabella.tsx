@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Cliente } from "@/generated/prisma/client";
+import { PulsanteAttesa } from "@/components";
 import { cambiaStatoAction } from "./cambia-stato-action";
 
 // ── Props ──────────────────────────────────────────────────────
@@ -158,29 +159,27 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
                         <form action={cambiaStatoAction} className="inline">
                           <input type="hidden" name="id" value={cliente.id} />
                           <input type="hidden" name="attivo" value="false" />
-                          <button
-                            type="submit"
+                          <PulsanteAttesa
                             className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
                               <circle cx="12" cy="12" r="8.6" /><path d="M6 6l12 12" />
                             </svg>
                             Disattiva
-                          </button>
+                          </PulsanteAttesa>
                         </form>
                       ) : (
                         <form action={cambiaStatoAction} className="inline">
                           <input type="hidden" name="id" value={cliente.id} />
                           <input type="hidden" name="attivo" value="true" />
-                          <button
-                            type="submit"
+                          <PulsanteAttesa
                             className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-zinc-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
                               <path d="M4.5 12a7.5 7.5 0 1 1 2.2 5.3" /><path d="M4.5 17.5V12H10" />
                             </svg>
                             Riattiva
-                          </button>
+                          </PulsanteAttesa>
                         </form>
                       )}
                     </td>

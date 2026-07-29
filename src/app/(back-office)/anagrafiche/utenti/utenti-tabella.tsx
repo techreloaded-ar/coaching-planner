@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { PulsanteAttesa } from "@/components";
 import type { UtenteConProfiloCollaboratore } from "@/lib/utenti";
 import { cambiaStatoUtenteAction } from "./cambia-stato-utente-action";
 
@@ -220,15 +221,14 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
                         <form action={cambiaStatoUtenteAction} className="inline">
                           <input type="hidden" name="id" value={utente.id} />
                           <input type="hidden" name="attivo" value="true" />
-                          <button
-                            type="submit"
+                          <PulsanteAttesa
                             className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-zinc-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
                               <path d="M4.5 12a7.5 7.5 0 1 1 2.2 5.3" /><path d="M4.5 17.5V12H10" />
                             </svg>
                             Riattiva
-                          </button>
+                          </PulsanteAttesa>
                         </form>
                       )}
                     </td>
@@ -284,17 +284,19 @@ export default function UtentiTabella({ utenti }: UtentiTabellaProps) {
             >
               Annulla
             </button>
+            {/* L'action comunica l'esito con `redirect`: il modale resta con il
+                pulsante in attesa fino alla navigazione, che lo smonta. Nessuna
+                chiusura ottimistica al click. */}
             {utenteDaInvalidare && (
               <form action={cambiaStatoUtenteAction}>
                 <input type="hidden" name="id" value={utenteDaInvalidare.id} />
                 <input type="hidden" name="attivo" value="false" />
-                <button
-                  type="submit"
+                <PulsanteAttesa
+                  etichettaAttesa="Invalidazione…"
                   className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:brightness-[.92]"
-                  onClick={chiudiModale}
                 >
                   Invalida utente
-                </button>
+                </PulsanteAttesa>
               </form>
             )}
           </div>

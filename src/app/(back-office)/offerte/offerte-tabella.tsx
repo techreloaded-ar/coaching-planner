@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useState, useActionState } from "react";
+import { Fragment, useEffect, useRef, useState, useActionState } from "react";
 import Link from "next/link";
-import { useIdratata } from "@/components";
+import { PulsanteAttesa, useIdratata } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
 import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
 import DettaglioAvanzamentoOfferta from "./dettaglio-avanzamento-offerta";
@@ -231,13 +231,15 @@ function RigaOfferta({
                 name="offertaEspansaId"
                 value={offertaEspansaId ?? ""}
               />
-              <button
-                type="submit"
+              {/* Il pallino di stato è troppo piccolo per una rotellina: l'attesa
+                  si legge dalla pulsazione comandata da aria-busy. */}
+              <PulsanteAttesa
+                mostraRotellina={false}
                 aria-label={offerta.attiva ? "Disattiva" : "Attiva"}
                 aria-pressed={offerta.attiva}
                 title={offerta.attiva ? "Offerta attiva" : "Offerta non attiva"}
                 onClick={(e) => e.stopPropagation()}
-                className={`mt-[4px] h-4 w-4 shrink-0 rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                className={`mt-[4px] h-4 w-4 shrink-0 rounded-full transition aria-busy:animate-pulse focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
                   offerta.attiva
                     ? "bg-emerald-500 hover:bg-emerald-600"
                     : "bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-500"
@@ -389,10 +391,23 @@ function ModaleElimina({
   offertaEspansaId: string | null;
   onChiudi: () => void;
 }) {
-  const [stato, azione] = useActionState(
+  const [stato, azione, eliminazioneInCorso] = useActionState(
     eliminaOfferta,
     statoEliminazioneIniziale,
   );
+  const eliminazioneInCorsoPrecedente = useRef(false);
+
+  // L'eliminazione riuscita reindirizza senza toccare lo stato dell'action: il
+  // modale vive su stato locale del padre, quindi va chiuso qui al termine di un
+  // invio senza errore. Con `{ errore }` resta aperto e il pulsante si riabilita.
+  useEffect(() => {
+    const eliminazioneAppenaConclusa =
+      eliminazioneInCorsoPrecedente.current && !eliminazioneInCorso;
+    eliminazioneInCorsoPrecedente.current = eliminazioneInCorso;
+    if (eliminazioneAppenaConclusa && !stato.errore) {
+      onChiudi();
+    }
+  }, [eliminazioneInCorso, stato, onChiudi]);
 
   const aperta = offerta !== null;
   const bloccata = offerta ? offerta.numeroRigheAttivita > 0 : false;
@@ -488,7 +503,17 @@ function ModaleElimina({
                     Chiudi
                   </button>
                   {offerta.attiva && (
-                    <form action={cambiaStatoOfferta} onSubmit={onChiudi}>
+                    <form
+                      action={async (datiModulo: FormData) => {
+                        // Il modale resta aperto finché la disattivazione non è
+                        // conclusa: la chiusura non è più ottimistica.
+                        try {
+                          await cambiaStatoOfferta(datiModulo);
+                        } finally {
+                          onChiudi();
+                        }
+                      }}
+                    >
                       <input type="hidden" name="id" value={offerta.offertaId} />
                       <input type="hidden" name="attiva" value="false" />
                       <input
@@ -496,15 +521,15 @@ function ModaleElimina({
                         name="offertaEspansaId"
                         value={offertaEspansaId ?? ""}
                       />
-                      <button
-                        type="submit"
+                      <PulsanteAttesa
+                        etichettaAttesa="Disattivazione…"
                         className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
                           <path d="M18.4 12A6.4 6.4 0 1 1 12 5.6M12 3v5l3.5-1" />
                         </svg>
                         Disattiva offerta
-                      </button>
+                      </PulsanteAttesa>
                     </form>
                   )}
                 </div>
@@ -543,15 +568,15 @@ function ModaleElimina({
                   </button>
                   <form action={azione}>
                     <input type="hidden" name="id" value={offerta.offertaId} />
-                    <button
-                      type="submit"
+                    <PulsanteAttesa
+                      etichettaAttesa="Eliminazione…"
                       className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:brightness-[.92]"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
                         <path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
                       </svg>
                       Elimina offerta
-                    </button>
+                    </PulsanteAttesa>
                   </form>
                 </div>
               </>

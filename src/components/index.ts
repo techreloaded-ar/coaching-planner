@@ -1,2 +1,3 @@
-// Componenti UI condivisi — saranno popolati nelle spec successive.
+// Componenti UI condivisi riutilizzabili da back-office e front-office.
+export { PulsanteAttesa } from "./pulsante-attesa";
 export { useIdratata } from "./use-idratata";

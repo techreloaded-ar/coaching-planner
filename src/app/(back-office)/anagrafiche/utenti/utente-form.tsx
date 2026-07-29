@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import { PulsanteAttesa } from "@/components";
 import {
   RUOLI_AMMESSI,
 } from "@/domain/anagrafiche/valida-utente";
@@ -27,6 +28,15 @@ const DESCRIZIONI_RUOLO: Record<RuoloAmmesso, string> = {
     "Accede al front office per registrare le proprie attività.",
 };
 
+/** Estrae dal FormData i soli campi testuali, per ripopolare i defaultValue. */
+function memorizzaValoriTestuali(datiForm: FormData): Record<string, string> {
+  const valoriTestuali: Record<string, string> = {};
+  for (const [nomeCampo, valore] of datiForm.entries()) {
+    if (typeof valore === "string") valoriTestuali[nomeCampo] = valore;
+  }
+  return valoriTestuali;
+}
+
 interface UtenteFormProps {
   utente?: {
     id: string;
@@ -41,7 +51,7 @@ interface UtenteFormProps {
 
 export default function UtenteForm({ utente }: UtenteFormProps) {
   const inModifica = !!utente;
-  const [stato, azione, inAttesa] = useActionState<StatoAction, FormData>(
+  const [stato, azione] = useActionState<StatoAction, FormData>(
     inModifica ? aggiornaUtente : creaUtente,
     statoIniziale
   );
@@ -67,6 +77,22 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
     useState(amministratoreDefault);
   const [collaboratoreSelezionato, setCollaboratoreSelezionato] =
     useState(collaboratoreDefault);
+  // I campi di testo restano non controllati: solo così quanto digitato prima
+  // dell'idratazione sopravvive. Per non perdere i dati quando la validazione
+  // fallisce memorizziamo i valori dell'ultimo invio e li rimettiamo come
+  // defaultValue, che React 19 riapplica quando ripristina il form.
+  const [valoriInviati, setValoriInviati] = useState<Record<string, string> | null>(
+    null
+  );
+
+  function azioneConMemoria(datiForm: FormData) {
+    setValoriInviati(memorizzaValoriTestuali(datiForm));
+    return azione(datiForm);
+  }
+
+  function valoreIniziale(nomeCampo: string, valoreOriginale: string) {
+    return valoriInviati?.[nomeCampo] ?? valoreOriginale;
+  }
   // La sezione "Profilo collaboratore" serve solo quando il collaboratore è
   // selezionato e non esiste ancora un profilo: in modifica con profilo (attivo
   // o disattivato) non deve mai comparire.
@@ -108,7 +134,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
 
       <form
         noValidate
-        action={azione}
+        action={azioneConMemoria}
         className="max-w-[720px] overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
         {inModifica && <input type="hidden" name="id" value={utente.id} />}
@@ -165,7 +191,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
               name="nome"
               placeholder="Es. Laura"
               autoComplete="name"
-              defaultValue={utente?.nome ?? ""}
+              defaultValue={valoreIniziale("nome", utente?.nome ?? "")}
               errore={stato.errori.nome}
               hint="Solo il nome di battesimo: il cognome ha il suo campo dedicato."
             />
@@ -174,7 +200,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
               name="cognome"
               placeholder="Es. Bianchi"
               autoComplete="family-name"
-              defaultValue={utente?.cognome ?? ""}
+              defaultValue={valoreIniziale("cognome", utente?.cognome ?? "")}
               errore={stato.errori.cognome}
             />
 
@@ -185,7 +211,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
               type="email"
               placeholder="nome.cognome@coachingpartners.it"
               autoComplete="email"
-              defaultValue={utente?.email ?? ""}
+              defaultValue={valoreIniziale("email", utente?.email ?? "")}
               errore={stato.errori.email}
               hint="È la credenziale con cui l'utente viene riconosciuto dal flusso di accesso."
             />
@@ -286,7 +312,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                   label="Partita IVA"
                   name="partitaIva"
                   placeholder="11 cifre, es. 03481920457"
-                  defaultValue=""
+                  defaultValue={valoreIniziale("partitaIva", "")}
                   errore={stato.errori.partitaIva}
                   hint="Undici cifre numeriche, senza spazi né prefissi."
                 />
@@ -294,7 +320,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                   label="Tariffa giornaliera"
                   name="tariffaGiornaliera"
                   placeholder="Es. 520,00"
-                  defaultValue=""
+                  defaultValue={valoreIniziale("tariffaGiornaliera", "")}
                   errore={stato.errori.tariffaGiornaliera}
                   hint="Importo in euro, virgola per i decimali (massimo 2)."
                 />
@@ -325,10 +351,9 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
           >
             Annulla
           </Link>
-          <button
-            type="submit"
-            disabled={inAttesa}
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
+          <PulsanteAttesa
+            etichettaAttesa={inModifica ? "Salvataggio…" : "Censimento…"}
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
           >
             <svg
               viewBox="0 0 24 24"
@@ -344,14 +369,8 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                 <path d="M12 5v14M5 12h14" />
               )}
             </svg>
-            {inAttesa
-              ? inModifica
-                ? "Salvataggio…"
-                : "Censimento…"
-              : inModifica
-                ? "Salva modifiche"
-                : "Censisci utente"}
-          </button>
+            {inModifica ? "Salva modifiche" : "Censisci utente"}
+          </PulsanteAttesa>
         </div>
       </form>
     </div>

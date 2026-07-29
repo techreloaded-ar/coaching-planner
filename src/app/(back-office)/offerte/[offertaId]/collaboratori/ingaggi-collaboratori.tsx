@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useActionState } from "react";
 import type { CollaboratoreIngaggiato, CollaboratoreIngaggiabile } from "@/lib/abilitazioni";
 import type { StatoIngaggiAction } from "./ingaggi-actions";
+import { PulsanteAttesa } from "@/components";
 import {
   ingaggiaCollaboratoriSuOfferta,
   revocaIngaggioCollaboratore,
@@ -172,8 +173,7 @@ function RigaCollaboratoreIngaggiato({
         <form action={azione} className="inline">
           <input type="hidden" name="offertaId" value={offertaId} />
           <input type="hidden" name="collaboratoreId" value={collaboratore.collaboratoreId} />
-          <button
-            type="submit"
+          <PulsanteAttesa
             aria-label={`Revoca l'ingaggio di ${nomeCompleto} sull'offerta ${codiceOfferta}`}
             className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
           >
@@ -181,7 +181,7 @@ function RigaCollaboratoreIngaggiato({
               <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
             </svg>
             Revoca
-          </button>
+          </PulsanteAttesa>
         </form>
         {statoRevoca.errori?._form && (
           <p role="alert" className="mt-1 text-[11.5px] font-semibold whitespace-normal text-red-600 dark:text-red-400">
@@ -450,16 +450,16 @@ function DialogIngaggia({
             >
               Annulla
             </button>
-            <button
-              type="submit"
+            <PulsanteAttesa
               disabled={numeroSelezionati === 0}
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+              etichettaAttesa="Ingaggio…"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>
               Ingaggia selezionati
-            </button>
+            </PulsanteAttesa>
           </div>
         </form>
       </div>

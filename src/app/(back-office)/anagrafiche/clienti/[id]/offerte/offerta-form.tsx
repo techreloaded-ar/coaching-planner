@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { PulsanteAttesa } from "@/components";
 import {
   creaOfferta,
   aggiornaOfferta,
@@ -45,6 +46,15 @@ interface OffertaFormProps {
 
 const statoIniziale: StatoActionOfferta = { errori: {} };
 
+/** Estrae dal FormData i soli campi testuali, per ripopolare i defaultValue. */
+function memorizzaValoriTestuali(datiForm: FormData): Record<string, string> {
+  const valoriTestuali: Record<string, string> = {};
+  for (const [nomeCampo, valore] of datiForm.entries()) {
+    if (typeof valore === "string") valoriTestuali[nomeCampo] = valore;
+  }
+  return valoriTestuali;
+}
+
 export default function OffertaForm({
   cliente,
   clienti,
@@ -56,6 +66,23 @@ export default function OffertaForm({
     inModifica ? aggiornaOfferta : creaOfferta,
     statoIniziale
   );
+
+  // I campi restano non controllati: solo così quanto digitato prima
+  // dell'idratazione sopravvive. Per non perdere i dati quando la validazione
+  // fallisce memorizziamo i valori dell'ultimo invio e li rimettiamo come
+  // defaultValue, che React 19 riapplica quando ripristina il form.
+  const [valoriInviati, setValoriInviati] = useState<Record<string, string> | null>(
+    null
+  );
+
+  function azioneConMemoria(datiForm: FormData) {
+    setValoriInviati(memorizzaValoriTestuali(datiForm));
+    return azione(datiForm);
+  }
+
+  function valoreIniziale(nomeCampo: string, valoreOriginale: string) {
+    return valoriInviati?.[nomeCampo] ?? valoreOriginale;
+  }
 
   const provieneDaOfferte = origine === "offerte";
   const mostraSelectCliente = !!clienti;
@@ -122,7 +149,7 @@ export default function OffertaForm({
 
       <form
         noValidate
-        action={azione}
+        action={azioneConMemoria}
         className="max-w-[760px] rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
         {!mostraSelectCliente && cliente && (
@@ -159,6 +186,7 @@ export default function OffertaForm({
                 </div>
                 <SelectCliente
                   clienti={clienti!}
+                  defaultValue={valoreIniziale("clienteId", "")}
                   errore={stato.errori.clienteId}
                 />
               </>
@@ -176,7 +204,7 @@ export default function OffertaForm({
               label="Codice"
               name="codice"
               placeholder="Es. OFF-2026-001"
-              defaultValue={offerta?.codice ?? ""}
+              defaultValue={valoreIniziale("codice", offerta?.codice ?? "")}
               errore={stato.errori.codice}
               obbligatorio
               uppercase
@@ -187,7 +215,7 @@ export default function OffertaForm({
               label="Descrizione"
               name="descrizione"
               placeholder="Es. Percorso di coaching executive"
-              defaultValue={offerta?.descrizione ?? ""}
+              defaultValue={valoreIniziale("descrizione", offerta?.descrizione ?? "")}
               errore={stato.errori.descrizione}
               obbligatorio
             />
@@ -204,7 +232,7 @@ export default function OffertaForm({
               label="Tariffa giornaliera"
               name="tariffaGiornaliera"
               placeholder="Es. 650,00"
-              defaultValue={offerta?.tariffaGiornaliera ?? ""}
+              defaultValue={valoreIniziale("tariffaGiornaliera", offerta?.tariffaGiornaliera ?? "")}
               errore={stato.errori.tariffaGiornaliera}
               obbligatorio
               suffisso="€"
@@ -215,7 +243,7 @@ export default function OffertaForm({
               label="Giorni previsti"
               name="giorniPrevisti"
               placeholder="Es. 10"
-              defaultValue={offerta ? String(offerta.giorniPrevisti) : ""}
+              defaultValue={valoreIniziale("giorniPrevisti", offerta ? String(offerta.giorniPrevisti) : "")}
               errore={stato.errori.giorniPrevisti}
               obbligatorio
               suffisso="gg"
@@ -236,15 +264,15 @@ export default function OffertaForm({
           >
             Annulla
           </Link>
-          <button
-            type="submit"
+          <PulsanteAttesa
+            etichettaAttesa={inModifica ? "Salvataggio…" : "Creazione…"}
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
               <path d="M20 6 9 17l-5-5" />
             </svg>
             {inModifica ? "Salva offerta" : "Crea offerta"}
-          </button>
+          </PulsanteAttesa>
         </div>
       </form>
 
@@ -255,10 +283,11 @@ export default function OffertaForm({
 
 interface SelectClienteProps {
   clienti: { id: string; ragioneSociale: string }[];
+  defaultValue: string;
   errore?: string;
 }
 
-function SelectCliente({ clienti, errore }: SelectClienteProps) {
+function SelectCliente({ clienti, defaultValue, errore }: SelectClienteProps) {
   return (
     <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-[6px] text-left max-[920px]:col-span-1">
       <label
@@ -270,7 +299,7 @@ function SelectCliente({ clienti, errore }: SelectClienteProps) {
       <select
         id="clienteId"
         name="clienteId"
-        defaultValue=""
+        defaultValue={defaultValue}
         className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition dark:bg-zinc-900 dark:text-zinc-100 ${
           errore
             ? "border-red-600 shadow-[0_0_0_3px_rgb(239_68_68_/_0.08)] dark:shadow-[0_0_0_3px_rgb(239_68_68_/_0.1)]"

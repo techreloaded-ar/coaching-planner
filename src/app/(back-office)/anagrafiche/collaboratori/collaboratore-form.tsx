@@ -1,12 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { PulsanteAttesa } from "@/components";
 import { aggiornaCollaboratore, type StatoAction } from "./actions";
 
 // ── Stato iniziale per useActionState ──────────────────────────
 
 const statoIniziale: StatoAction = { errori: {} };
+
+// ── Memoria dei valori inviati ─────────────────────────────────
+
+/** Estrae dal FormData i soli campi testuali, per ripopolare i defaultValue. */
+function memorizzaValoriTestuali(datiForm: FormData): Record<string, string> {
+  const valoriTestuali: Record<string, string> = {};
+  for (const [nomeCampo, valore] of datiForm.entries()) {
+    if (typeof valore === "string") valoriTestuali[nomeCampo] = valore;
+  }
+  return valoriTestuali;
+}
 
 // ── Props ──────────────────────────────────────────────────────
 
@@ -34,6 +46,23 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Number(collaboratore.tariffaGiornaliera));
+
+  // I campi restano non controllati: solo così quanto digitato prima
+  // dell'idratazione sopravvive. Per non perdere i dati quando la validazione
+  // fallisce memorizziamo i valori dell'ultimo invio e li rimettiamo come
+  // defaultValue, che React 19 riapplica quando ripristina il form.
+  const [valoriInviati, setValoriInviati] = useState<Record<string, string> | null>(
+    null
+  );
+
+  function azioneConMemoria(datiForm: FormData) {
+    setValoriInviati(memorizzaValoriTestuali(datiForm));
+    return azione(datiForm);
+  }
+
+  function valoreIniziale(nomeCampo: string, valoreOriginale: string) {
+    return valoriInviati?.[nomeCampo] ?? valoreOriginale;
+  }
 
   return (
     <div>
@@ -65,7 +94,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
       {/* Form */}
       <form
         noValidate
-        action={azione}
+        action={azioneConMemoria}
         className="max-w-[760px] rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
         <input type="hidden" name="id" value={collaboratore.id} />
@@ -96,7 +125,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               name="nome"
               placeholder="Es. Giulia"
               autoComplete="given-name"
-              defaultValue={collaboratore.nome}
+              defaultValue={valoreIniziale("nome", collaboratore.nome)}
               errore={stato.errori.nome}
               obbligatorio
             />
@@ -106,7 +135,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               name="cognome"
               placeholder="Es. Mantovani"
               autoComplete="family-name"
-              defaultValue={collaboratore.cognome}
+              defaultValue={valoreIniziale("cognome", collaboratore.cognome)}
               errore={stato.errori.cognome}
               obbligatorio
             />
@@ -123,7 +152,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               label="Email di accesso"
               name="email"
               type="email"
-              defaultValue={collaboratore.utente.email}
+              defaultValue={valoreIniziale("email", collaboratore.utente.email)}
               errore={stato.errori.email}
               fullWidth
               soloLettura
@@ -155,7 +184,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               placeholder="11 cifre, es. 03481920457"
               inputMode="numeric"
               maxLength={11}
-              defaultValue={collaboratore.partitaIva}
+              defaultValue={valoreIniziale("partitaIva", collaboratore.partitaIva)}
               errore={stato.errori.partitaIva}
               obbligatorio
             />
@@ -166,7 +195,7 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               placeholder="Es. 520,00"
               inputMode="decimal"
               autoComplete="off"
-              defaultValue={tariffaIniziale}
+              defaultValue={valoreIniziale("tariffaGiornaliera", tariffaIniziale)}
               errore={stato.errori.tariffaGiornaliera}
               hint="Importo in euro, virgola per i decimali: valorizza i consuntivi del collaboratore"
               obbligatorio
@@ -196,15 +225,15 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
           >
             Annulla
           </Link>
-          <button
-            type="submit"
+          <PulsanteAttesa
+            etichettaAttesa="Salvataggio…"
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
               <path d="M20 6 9 17l-5-5" />
             </svg>
             Salva modifiche
-          </button>
+          </PulsanteAttesa>
         </div>
       </form>
     </div>

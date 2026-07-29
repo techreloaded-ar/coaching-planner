@@ -1,5 +1,6 @@
 import { disconnetti, richiediRuolo } from "@/lib/dal";
 import ConsoleSidebar from "@/app/(back-office)/console-sidebar";
+import { PulsanteAttesa } from "@/components";
 
 export default async function BackOfficeLayout({
   children,
@@ -41,16 +42,16 @@ export default async function BackOfficeLayout({
             </div>
             <div className="mx-1 h-[26px] w-px bg-zinc-200 dark:bg-zinc-700" />
             <form action={disconnetti}>
-              <button
-                type="submit"
+              <PulsanteAttesa
                 data-esci
+                etichettaAttesa="Uscita…"
                 className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px]" strokeWidth={2}>
                   <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" /><path d="m16 17 5-5-5-5M21 12H9" />
                 </svg>
                 Esci
-              </button>
+              </PulsanteAttesa>
             </form>
           </div>
         </header>

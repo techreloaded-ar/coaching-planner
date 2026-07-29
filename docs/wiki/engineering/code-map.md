@@ -2,7 +2,7 @@
 type: code-map
 title: Mappa del codice
 description: Matrice fisica fra capability candidate, codice, dati e test
-status: reviewed
+status: generated
 sources:
     - path: package.json
       role: manifest
@@ -96,11 +96,6 @@ coverage:
       status: mapped
       pages:
         - domains/identita-accesso
-review:
-    content_hash: sha256:54741e097143fa7ddcef8b4297eaec4117cfa585b226a985d7c6c76a5f2d2526
-    evidence_revision: eca4d7ed552fd4a5b6a34ba292014b0e0e4d37f0
-    evidence_hash: sha256:c6da68601c1af4072b27886192ce962a112fe970d799169f91a0d940e286e385
-    reviewed_at: "2026-07-29T11:44:38Z"
 ---
 # Mappa del codice
 
@@ -125,7 +120,8 @@ review:
 - `src/lib/formattazione.ts`: formattatore euro e iniziali cliente condivisi, usati dalle viste di Clienti, Collaboratori, Offerte, Politiche rimborso e Fatturazione clienti.
 - `src/domain/consuntivi/index.ts`: validazioni e calcoli usati da più capability.
 - `src/domain/calendario/index.ts`: value object e griglia mensile per Attività.
-- `src/app/layout.tsx`, layout front/back office, `globals.css`, sidebar e `src/components/index.ts`: shell UI condivisa; il barrel componenti è vuoto.
+- `src/app/layout.tsx`, layout front/back office, `globals.css` e sidebar: shell UI condivisa. `globals.css` ospita anche la regola `@layer base` che dà il cursore a manina a tutti i pulsanti abilitati e il keyframe `comparsa-caricamento` riusato da overlay e rotelline.
+- `src/components/**`: componenti UI condivisi, esposti dal barrel `src/components/index.ts` e riusati sia dal front office sia dal back office. `PulsanteAttesa` (`pulsante-attesa.tsx`) è il pulsante con feedback di attesa uniforme basato su `useFormStatus`, adottato dai form e dai modali di entrambe le aree; `useIdratata` (`use-idratata.ts`) segnala al client l'avvenuta idratazione. Si veda [Feedback di attesa e cursore uniformi](/decisions/feedback-attesa-uniforme.md).
 - `prisma/schema.prisma`: storage condiviso per tutte le capability.
 
 <!-- archetipo:wiki section=unmapped -->

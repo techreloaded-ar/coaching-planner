@@ -15,6 +15,7 @@ export default function AccessoGoogle() {
       type="button"
       onClick={handleGoogleLogin}
       disabled={loading}
+      aria-busy={loading}
       className="flex w-full max-w-[340px] items-center justify-center gap-2.5 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-[14.5px] font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50 active:translate-y-px disabled:opacity-70 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-750"
     >
       {loading ? (
