@@ -2,7 +2,7 @@
 type: decision
 title: Feedback di attesa e cursore uniformi
 description: Cursore dal base layer e un unico PulsanteAttesa basato su useFormStatus, invece di classi e wiring pending ad hoc su ogni pulsante
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: src/app/globals.css
@@ -17,6 +17,11 @@ sources:
       role: implementation
     - path: tests/e2e/feedback-attesa-azioni.spec.ts
       role: verification
+review:
+    content_hash: sha256:70ba242380b58658167d47acbf2ab6a41abb196fd3d9c06e2bc8b4dd2d6261f3
+    evidence_revision: 471a818f5645f5e5829c2c8e5fbe0f71f48597ae
+    evidence_hash: sha256:972e2243ff31303a94a3dd6f2bd18697d7c537b6be342ecbaf597fbe7cb82e9e
+    reviewed_at: "2026-07-29T14:55:34Z"
 ---
 # Feedback di attesa e cursore uniformi
 

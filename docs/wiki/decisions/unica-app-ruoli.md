@@ -17,9 +17,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:9047dcf13653556982dd0e9e75f4806ceb235cf5fd60f185184d907bb0f268a1
-    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
-    evidence_hash: sha256:8e6a5409a9b28f500e36fe42729b898e1cbcf4c5e50eeb7aadb5e91811b5704c
-    reviewed_at: "2026-07-28T10:51:15Z"
+    evidence_revision: 471a818f5645f5e5829c2c8e5fbe0f71f48597ae
+    evidence_hash: sha256:fdc43f0b59d8f2f114e4ff627b204a726f92a2e6509dc027c40d838530852e95
+    reviewed_at: "2026-07-29T14:55:44Z"
 ---
 # Unica applicazione con aree a ruolo
 
