@@ -12,6 +12,10 @@ import { test, expect } from "./support/fixtures";
  * osserva il messaggio di assenza con salvataggio bloccato; una riga
  * preesistente su un'offerta non abilitata resta modificabile ed
  * eliminabile dal proprietario.
+ *
+ * Dopo US-049 la select clienti elenca solo i clienti abilitati, quindi il
+ * cliente privo di offerte abilitate si raggiunge tramite il cambio cliente
+ * esplicito durante la modifica di una riga storica.
  */
 test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", async ({
 	page,
@@ -34,11 +38,6 @@ test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", as
 		collaboratore,
 		offerta: offertaAbilitata,
 	});
-
-	const clienteSenzaAbilitazioni = await factory.createClienteConOfferta(
-		{},
-		{ attiva: true },
-	);
 
 	const clienteConRigaStorica = await factory.createClienteConOfferta(
 		{},
@@ -77,16 +76,8 @@ test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", as
 	);
 
 	// 2) Un cliente senza offerte abilitate mostra l'avviso e blocca il salvataggio.
-	const dataClienteSenza = dataNelMese(mese, 21);
-	await page.goto(`/attivita/${dataClienteSenza}?mese=${mese}`);
-
-	await selectCliente.selectOption(clienteSenzaAbilitazioni.cliente.id);
-	await expect(page.getByTestId("nessuna-offerta-abilitata")).toBeVisible();
-	await expect(
-		page.getByRole("button", { name: "Aggiungi riga" }),
-	).toBeDisabled();
-
-	// 3) Una riga storica su un'offerta non abilitata resta modificabile ed eliminabile.
+	// Vi si arriva dalla riga storica: il suo cliente resta selezionabile in
+	// modifica anche se non più abilitato (US-049).
 	await page.goto(`/attivita/${dataRigaStorica}?mese=${mese}`);
 
 	const rigaCard = page
@@ -95,6 +86,20 @@ test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", as
 	await expect(rigaCard).toBeVisible();
 	await expect(rigaCard).toContainText("3.0 h");
 
+	await rigaCard.getByRole("button", { name: "Modifica" }).click();
+	await expect(selectOfferta).toHaveValue(clienteConRigaStorica.offerta.id);
+
+	await selectCliente.selectOption(clienteDueOfferte.id);
+	await attendiOfferteCaricate(selectOfferta);
+	await selectCliente.selectOption(clienteConRigaStorica.cliente.id);
+
+	await expect(page.getByTestId("nessuna-offerta-abilitata")).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: "Salva modifiche" }),
+	).toBeDisabled();
+
+	// 3) Una riga storica su un'offerta non abilitata resta modificabile ed eliminabile.
+	await page.getByRole("button", { name: "Annulla" }).click();
 	await rigaCard.getByRole("button", { name: "Modifica" }).click();
 
 	const inputOre = page.locator("#ore");

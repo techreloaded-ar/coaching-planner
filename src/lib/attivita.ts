@@ -291,13 +291,14 @@ export async function righeDelGiorno(
 }
 
 /**
- * Restituisce i clienti attivi per la select del form attività.
+ * Restituisce i clienti attivi su cui il collaboratore corrente ha almeno
+ * un'offerta attiva abilitata, per la select del form attività (US-049).
  *
  * Accessibile al collaboratore autenticato (a differenza di src/lib/clienti.ts
  * che è admin-only). Lancia ErroreAutorizzazione se non autenticato o se non
  * è un collaboratore.
  *
- * @returns Lista clienti attivi con id e ragione sociale, ordinati per ragione sociale
+ * @returns Lista clienti attivi e abilitati con id e ragione sociale, ordinati per ragione sociale
  */
 export async function clientiAttiviPerSelezione(): Promise<
   { id: string; ragioneSociale: string }[]
@@ -311,7 +312,17 @@ export async function clientiAttiviPerSelezione(): Promise<
   }
 
   return db.cliente.findMany({
-    where: { attivo: true },
+    where: {
+      attivo: true,
+      offerte: {
+        some: {
+          attiva: true,
+          abilitazioniCollaboratori: {
+            some: { collaboratoreId: collaboratore.id },
+          },
+        },
+      },
+    },
     select: {
       id: true,
       ragioneSociale: true,

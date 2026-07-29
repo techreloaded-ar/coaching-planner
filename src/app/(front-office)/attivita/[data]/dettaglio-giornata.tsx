@@ -118,6 +118,11 @@ export default function DettaglioGiornata({
   const [clienteCambiatoDuranteModifica, setClienteCambiatoDuranteModifica] =
     useState(false);
 
+  // Cliente della riga storica aperta in modifica: resta selezionabile anche
+  // se il collaboratore non è più abilitato su alcuna sua offerta (US-049 AC-3)
+  const [clienteRigaInModifica, setClienteRigaInModifica] =
+    useState<ClienteSelect | null>(null);
+
   // ── Riepilogo ──────────────────────────────────────────────
 
   const riepilogo = useMemo(() => {
@@ -148,6 +153,25 @@ export default function DettaglioGiornata({
     !offerteLoading &&
     offerte.length === 0 &&
     (!modificaId || clienteCambiatoDuranteModifica);
+
+  // ── Clienti selezionabili e assenza di clienti abilitati ────
+
+  // La select elenca i clienti su cui il collaboratore ha offerte abilitate
+  // (US-049 AC-1). In modifica, il cliente della riga storica viene aggiunto
+  // in coda se non più abilitato, così da restare visibile e selezionato (AC-3).
+  const clientiSelezionabili = useMemo(() => {
+    if (
+      !clienteRigaInModifica ||
+      clienti.some((c) => c.id === clienteRigaInModifica.id)
+    ) {
+      return clienti;
+    }
+    return [...clienti, clienteRigaInModifica];
+  }, [clienti, clienteRigaInModifica]);
+
+  // Nessun cliente abilitato in modalità "Nuova riga": al posto della select
+  // compare un messaggio esplicito e il salvataggio non è disponibile (AC-2)
+  const nessunClienteAbilitato = clienti.length === 0 && modificaId === null;
 
   // ── Preview rimborso dalla distanza inserita ───────────────
 
@@ -290,6 +314,7 @@ export default function DettaglioGiornata({
       setOfferte([]);
       setErroreSubmit(null);
       setClienteCambiatoDuranteModifica(false);
+      setClienteRigaInModifica(null);
     },
     [clienteId, offertaId, ore, nota, fatturabile, trasfertaKmRaw, erroreKm, data, modificaId, invalidaMeseERicarica]
   );
@@ -300,6 +325,10 @@ export default function DettaglioGiornata({
     async (riga: RigaAttivitaClient) => {
       setModificaId(riga.id);
       setClienteId(riga.cliente.id);
+      setClienteRigaInModifica({
+        id: riga.cliente.id,
+        ragioneSociale: riga.cliente.ragioneSociale,
+      });
       setFatturabile(riga.fatturabile);
       setOre(riga.ore.toString().replace(".", ","));
       setNota(riga.nota ?? "");
@@ -363,6 +392,7 @@ export default function DettaglioGiornata({
     setOfferte([]);
     setErroreSubmit(null);
     setClienteCambiatoDuranteModifica(false);
+    setClienteRigaInModifica(null);
   }, []);
 
   // ── Elimina riga ───────────────────────────────────────────
@@ -626,19 +656,39 @@ export default function DettaglioGiornata({
             >
               Cliente <span className="text-rose-600">*</span>
             </label>
-            <select
-              id="cliente"
-              value={clienteId}
-              onChange={(e) => handleCambioCliente(e.target.value)}
-              className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
-            >
-              <option value="">Seleziona un cliente</option>
-              {clienti.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.ragioneSociale}
-                </option>
-              ))}
-            </select>
+            {nessunClienteAbilitato ? (
+              <div
+                data-testid="nessun-cliente-abilitato"
+                className="flex items-start gap-2 rounded-[9px] border border-amber-200 bg-amber-50 p-[10px_13px] text-[12.5px] font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  className="mt-px h-[14px] w-[14px] flex-none"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 11v5M12 7.6h.01" />
+                </svg>
+                Non hai offerte abilitate su alcun cliente. Contatta un
+                amministratore per essere abilitato a registrare attività.
+              </div>
+            ) : (
+              <select
+                id="cliente"
+                value={clienteId}
+                onChange={(e) => handleCambioCliente(e.target.value)}
+                className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+              >
+                <option value="">Seleziona un cliente</option>
+                {clientiSelezionabili.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.ragioneSociale}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Offerta */}
@@ -832,7 +882,9 @@ export default function DettaglioGiornata({
           <div className="flex items-center gap-3 pt-0.5">
             <button
               type="submit"
-              disabled={isPending || nessunaOffertaAbilitata}
+              disabled={
+                isPending || nessunaOffertaAbilitata || nessunClienteAbilitato
+              }
               className="inline-flex items-center gap-[7px] rounded-[10px] bg-rose-600 px-[18px] py-[9px] text-[13.5px] font-bold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-rose-500 dark:hover:bg-rose-600"
             >
               <svg
