@@ -157,6 +157,7 @@ export default function ScaglioniTabella({ scaglioni }: ScaglioniTabellaProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="modale-titolo"
+        aria-hidden={!modaleAperta}
         onClick={(e) => {
           if (e.target === e.currentTarget) chiudiModale();
         }}

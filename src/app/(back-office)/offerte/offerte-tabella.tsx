@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState, useActionState } from "react";
+import { Fragment, useState, useActionState } from "react";
 import Link from "next/link";
 import { PulsanteAttesa, useIdratata } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
@@ -391,23 +391,14 @@ function ModaleElimina({
   offertaEspansaId: string | null;
   onChiudi: () => void;
 }) {
-  const [stato, azione, eliminazioneInCorso] = useActionState(
+  // Nessuna chiusura comandata dal client: `eliminaOfferta` torna `{ errore }`
+  // solo quando fallisce — e allora il modale deve restare aperto per mostrarlo
+  // — mentre l'esito positivo è un `redirect`, che smonta il sottoalbero e con
+  // esso il modale. Lo stesso vale per la disattivazione qui sotto.
+  const [stato, azione] = useActionState(
     eliminaOfferta,
     statoEliminazioneIniziale,
   );
-  const eliminazioneInCorsoPrecedente = useRef(false);
-
-  // L'eliminazione riuscita reindirizza senza toccare lo stato dell'action: il
-  // modale vive su stato locale del padre, quindi va chiuso qui al termine di un
-  // invio senza errore. Con `{ errore }` resta aperto e il pulsante si riabilita.
-  useEffect(() => {
-    const eliminazioneAppenaConclusa =
-      eliminazioneInCorsoPrecedente.current && !eliminazioneInCorso;
-    eliminazioneInCorsoPrecedente.current = eliminazioneInCorso;
-    if (eliminazioneAppenaConclusa && !stato.errore) {
-      onChiudi();
-    }
-  }, [eliminazioneInCorso, stato, onChiudi]);
 
   const aperta = offerta !== null;
   const bloccata = offerta ? offerta.numeroRigheAttivita > 0 : false;
@@ -503,17 +494,7 @@ function ModaleElimina({
                     Chiudi
                   </button>
                   {offerta.attiva && (
-                    <form
-                      action={async (datiModulo: FormData) => {
-                        // Il modale resta aperto finché la disattivazione non è
-                        // conclusa: la chiusura non è più ottimistica.
-                        try {
-                          await cambiaStatoOfferta(datiModulo);
-                        } finally {
-                          onChiudi();
-                        }
-                      }}
-                    >
+                    <form action={cambiaStatoOfferta}>
                       <input type="hidden" name="id" value={offerta.offertaId} />
                       <input type="hidden" name="attiva" value="false" />
                       <input

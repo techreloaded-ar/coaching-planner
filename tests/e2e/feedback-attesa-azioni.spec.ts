@@ -105,14 +105,6 @@ function cursoreCalcolato(locator: Locator): Promise<string> {
 }
 
 /**
- * Il modale di conferma resta nel DOM anche da chiuso, con `pointer-events`
- * disattivati: è quello, non la presenza del nodo, a dire se è davvero aperto.
- */
-function interattivitaDialog(locator: Locator): Promise<string> {
-  return locator.evaluate((elemento) => getComputedStyle(elemento).pointerEvents);
-}
-
-/**
  * Submit del form cliente: l'etichetta cambia durante l'attesa, quindi il
  * locator copre entrambi gli stati per restare valido attraverso la POST.
  */
@@ -217,12 +209,12 @@ test.describe("US-051 Feedback di attesa sulle azioni", () => {
       name: new RegExp(`Eliminare lo scaglione «fino a ${km} km»\\?`),
     });
 
-    // Da chiuso il modale è già nel DOM ma non è interattivo.
-    await expect.poll(() => interattivitaDialog(dialogConferma)).toBe("none");
+    // Da chiuso il modale è `aria-hidden`: fuori dall'albero di accessibilità,
+    // quindi il ruolo dialog non risolve nessun nodo.
+    await expect(dialogConferma).toHaveCount(0);
 
     await pulsanteEliminaRiga.click();
     await expect(dialogDelloScaglione).toBeVisible();
-    await expect.poll(() => interattivitaDialog(dialogConferma)).toBe("auto");
 
     const gate = await trattieniPostDellaPagina(page, "/anagrafiche/scaglioni");
 
@@ -232,19 +224,18 @@ test.describe("US-051 Feedback di attesa sulle azioni", () => {
     await confermaEliminazione.click();
 
     // AC-3: con la POST trattenuta la conferma è in attesa e il dialog non si
-    // è chiuso in modo ottimistico: resta visibile e interattivo.
+    // è chiuso in modo ottimistico: resta esposto e visibile.
     await expect(confermaEliminazione).toBeDisabled();
     await expect(confermaEliminazione).toHaveAttribute("aria-busy", "true");
     await expect(dialogConferma.getByText("Eliminazione…")).toBeVisible();
     await expect(dialogDelloScaglione).toBeVisible();
-    await expect.poll(() => interattivitaDialog(dialogConferma)).toBe("auto");
 
     gate.rilascia();
 
     // AC-3: solo dopo l'esito il dialog si chiude e la riga sparisce.
     await page.waitForURL("**/anagrafiche/scaglioni?esito=eliminato");
     await expect(page.getByText("Scaglione eliminato")).toBeVisible();
-    await expect.poll(() => interattivitaDialog(dialogConferma)).toBe("none");
+    await expect(dialogConferma).toHaveCount(0);
     await expect(
       tabella.locator("tbody tr").filter({ hasText: `fino a ${km} km` }),
     ).toHaveCount(0);

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { PulsanteAttesa } from "@/components";
+import { PulsanteAttesa, useValoriInviati } from "@/components";
 import {
   creaScaglione,
   aggiornaScaglione,
@@ -24,15 +24,6 @@ interface ScaglioneFormProps {
 }
 
 const statoIniziale: StatoActionScaglione = { errori: {} };
-
-/** Estrae dal FormData i soli campi testuali, per ripopolare i defaultValue. */
-function memorizzaValoriTestuali(datiForm: FormData): Record<string, string> {
-  const valoriTestuali: Record<string, string> = {};
-  for (const [nomeCampo, valore] of datiForm.entries()) {
-    if (typeof valore === "string") valoriTestuali[nomeCampo] = valore;
-  }
-  return valoriTestuali;
-}
 
 /**
  * Soglia minima della fascia coperta: la soglia dell'ultimo scaglione
@@ -58,24 +49,13 @@ export default function ScaglioneForm({ scaglioniEsistenti, scaglione }: Scaglio
   const [finoAKm, setFinoAKm] = useState(scaglione ? String(scaglione.finoAKm) : "");
 
   // I campi restano non controllati: solo così quanto digitato prima
-  // dell'idratazione sopravvive. Per non perdere i dati quando la validazione
-  // fallisce memorizziamo i valori dell'ultimo invio e li rimettiamo come
-  // defaultValue, che React 19 riapplica quando ripristina il form.
-  const [valoriInviati, setValoriInviati] = useState<Record<string, string> | null>(
-    null
+  // dell'idratazione sopravvive. I defaultValue sono ripopolati con i valori
+  // dell'ultimo invio, che React 19 riapplica quando ripristina il form; il
+  // callback tiene l'anteprima della fascia allineata a ciò che resta a schermo.
+  const { azioneConMemoria, valoreIniziale } = useValoriInviati(
+    azione,
+    (valoriTestuali) => setFinoAKm(valoriTestuali.finoAKm ?? ""),
   );
-
-  function azioneConMemoria(datiForm: FormData) {
-    const valoriTestuali = memorizzaValoriTestuali(datiForm);
-    setValoriInviati(valoriTestuali);
-    // Tiene l'anteprima della fascia allineata a ciò che resta a schermo.
-    setFinoAKm(valoriTestuali.finoAKm ?? "");
-    return azione(datiForm);
-  }
-
-  function valoreIniziale(nomeCampo: string, valoreOriginale: string) {
-    return valoriInviati?.[nomeCampo] ?? valoreOriginale;
-  }
 
   const haErrori = Object.keys(stato.errori).length > 0;
 

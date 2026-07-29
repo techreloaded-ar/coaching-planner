@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { PulsanteAttesa } from "@/components";
+import { PulsanteAttesa, useValoriInviati } from "@/components";
 import {
   RUOLI_AMMESSI,
 } from "@/domain/anagrafiche/valida-utente";
@@ -27,15 +27,6 @@ const DESCRIZIONI_RUOLO: Record<RuoloAmmesso, string> = {
   COLLABORATORE:
     "Accede al front office per registrare le proprie attività.",
 };
-
-/** Estrae dal FormData i soli campi testuali, per ripopolare i defaultValue. */
-function memorizzaValoriTestuali(datiForm: FormData): Record<string, string> {
-  const valoriTestuali: Record<string, string> = {};
-  for (const [nomeCampo, valore] of datiForm.entries()) {
-    if (typeof valore === "string") valoriTestuali[nomeCampo] = valore;
-  }
-  return valoriTestuali;
-}
 
 interface UtenteFormProps {
   utente?: {
@@ -78,21 +69,9 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
   const [collaboratoreSelezionato, setCollaboratoreSelezionato] =
     useState(collaboratoreDefault);
   // I campi di testo restano non controllati: solo così quanto digitato prima
-  // dell'idratazione sopravvive. Per non perdere i dati quando la validazione
-  // fallisce memorizziamo i valori dell'ultimo invio e li rimettiamo come
-  // defaultValue, che React 19 riapplica quando ripristina il form.
-  const [valoriInviati, setValoriInviati] = useState<Record<string, string> | null>(
-    null
-  );
-
-  function azioneConMemoria(datiForm: FormData) {
-    setValoriInviati(memorizzaValoriTestuali(datiForm));
-    return azione(datiForm);
-  }
-
-  function valoreIniziale(nomeCampo: string, valoreOriginale: string) {
-    return valoriInviati?.[nomeCampo] ?? valoreOriginale;
-  }
+  // dell'idratazione sopravvive. I defaultValue sono ripopolati con i valori
+  // dell'ultimo invio, che React 19 riapplica quando ripristina il form.
+  const { azioneConMemoria, valoreIniziale } = useValoriInviati(azione);
   // La sezione "Profilo collaboratore" serve solo quando il collaboratore è
   // selezionato e non esiste ancora un profilo: in modifica con profilo (attivo
   // o disattivato) non deve mai comparire.

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
-import { PulsanteAttesa } from "@/components";
+import { useActionState } from "react";
+import { PulsanteAttesa, useValoriInviati } from "@/components";
 import {
   creaOfferta,
   aggiornaOfferta,
@@ -46,15 +46,6 @@ interface OffertaFormProps {
 
 const statoIniziale: StatoActionOfferta = { errori: {} };
 
-/** Estrae dal FormData i soli campi testuali, per ripopolare i defaultValue. */
-function memorizzaValoriTestuali(datiForm: FormData): Record<string, string> {
-  const valoriTestuali: Record<string, string> = {};
-  for (const [nomeCampo, valore] of datiForm.entries()) {
-    if (typeof valore === "string") valoriTestuali[nomeCampo] = valore;
-  }
-  return valoriTestuali;
-}
-
 export default function OffertaForm({
   cliente,
   clienti,
@@ -68,21 +59,9 @@ export default function OffertaForm({
   );
 
   // I campi restano non controllati: solo così quanto digitato prima
-  // dell'idratazione sopravvive. Per non perdere i dati quando la validazione
-  // fallisce memorizziamo i valori dell'ultimo invio e li rimettiamo come
-  // defaultValue, che React 19 riapplica quando ripristina il form.
-  const [valoriInviati, setValoriInviati] = useState<Record<string, string> | null>(
-    null
-  );
-
-  function azioneConMemoria(datiForm: FormData) {
-    setValoriInviati(memorizzaValoriTestuali(datiForm));
-    return azione(datiForm);
-  }
-
-  function valoreIniziale(nomeCampo: string, valoreOriginale: string) {
-    return valoriInviati?.[nomeCampo] ?? valoreOriginale;
-  }
+  // dell'idratazione sopravvive. I defaultValue sono ripopolati con i valori
+  // dell'ultimo invio, che React 19 riapplica quando ripristina il form.
+  const { azioneConMemoria, valoreIniziale } = useValoriInviati(azione);
 
   const provieneDaOfferte = origine === "offerte";
   const mostraSelectCliente = !!clienti;

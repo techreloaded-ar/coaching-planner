@@ -10,7 +10,7 @@ type ProprietaPulsanteAttesa = ComponentPropsWithoutRef<"button"> & {
   mostraRotellina?: boolean;
   /**
    * Attesa comandata dal chiamante, per i flussi imperativi fuori da un `<form action=...>`.
-   * Se valorizzata si somma allo stato del form, altrimenti comanda il solo `useFormStatus`.
+   * Si somma allo stato del form: basta una delle due a mettere il pulsante in attesa.
    */
   attesaEsterna?: boolean;
 };
@@ -33,7 +33,7 @@ export function PulsanteAttesa({
   ...proprietaNative
 }: ProprietaPulsanteAttesa) {
   const { pending } = useFormStatus();
-  const inAttesa = attesaEsterna === undefined ? pending : attesaEsterna || pending;
+  const inAttesa = attesaEsterna || pending;
 
   return (
     <button
