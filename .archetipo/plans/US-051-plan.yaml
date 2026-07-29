@@ -1,0 +1,502 @@
+schema: archetipo/plan/v2
+spec_code: US-051
+body: |-
+  ## Soluzione tecnica
+
+  **Contesto.** Tailwind v4 (in uso via `@import "tailwindcss"`) non applica più `cursor: pointer` ai `button`: oggi solo 8 elementi in tutta l'app hanno `cursor-pointer` esplicito, gli altri ~60 pulsanti mostrano la freccia. Sul fronte attesa esistono tre pattern divergenti: l'overlay del calendario con `aria-busy` + keyframe `comparsa-caricamento` (contratto già asserito dagli e2e), lo spinner locale di `src/app/accesso-google.tsx` e lo scambio di etichetta con il terzo elemento di `useActionState` in `utente-form.tsx` — l'unico form con feedback reale su 21 punti di submit censiti. In `dettaglio-giornata.tsx` la `useTransition` copre solo `router.refresh()`, non l'`await` della mutazione.
+
+  **Decisione (ADR `decisions/feedback-attesa-uniforme`, da creare).**
+  1. *Cursore dal base layer*: una regola `@layer base` in `globals.css` (`button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer }`) copre tutti i pulsanti in un solo punto; `<tr onClick>`, label delle checkbox e `Link` del calendario mantengono le classi esplicite esistenti perché non sono `button`.
+  2. *Pulsante condiviso `PulsanteAttesa`* (`src/components/pulsante-attesa.tsx`): client component basato su `useFormStatus()` (React 19) che dentro un `<form action=...>` si disabilita da solo durante l'invio, espone `aria-busy`, mostra la rotellina con comparsa ritardata (riuso del keyframe `comparsa-caricamento`, struttura a due span come l'overlay del calendario) e opzionalmente scambia l'etichetta (ellissi `…` U+2026 come nei pattern esistenti). La prop `attesaEsterna` serve ai flussi imperativi fuori da form action. Aggiunge sempre `disabled:cursor-not-allowed disabled:opacity-60`.
+  3. *Modali senza chiusura ottimistica*: i modali di conferma restano aperti fino all'esito; chiusura al successo, errore mostrato nel modale dove l'action restituisce un esito, pending sul pulsante di conferma.
+  4. *Contratto osservabile*: `aria-busy` sul pulsante durante l'attesa, coerente con il contratto già testato del calendario (`calendario-navigazione-reattiva.spec.ts`, `calendario-cache-mesi.spec.ts`).
+
+  **Alternative valutate.** (a) Classi e wiring pending ad hoc su ogni pulsante/form (status quo esteso): ~20 file con logica duplicata e deriva garantita nelle spec future. (b) Migrazione integrale di tutti i form a `useActionState` con terzo elemento: invasiva sui form ad action semplice `(formData) => void` e non copre i flussi imperativi. Scelta: base layer + componente condiviso `useFormStatus`, la superficie di cambiamento più piccola che rende il comportamento uniforme. È una policy trasversale della UI usata da tutte le capability → supera la soglia ADR.
+
+  **Punti di adozione censiti.** 21 punti di submit (5 form anagrafiche, 2 dialog multi-selezione, 4 revoche/azioni di riga con form inline, 5 modali di conferma, toggle di stato offerta, 2 logout, accesso Google) + 3 chiamate dirette in `dettaglio-giornata.tsx` (salvataggio con `await` fuori transition, eliminazione riga, rimozione trasferta). Contratti action rilevanti, verificati a codice: `StatoAction { successo?, errori }` (anagrafiche), `cambiaStatoUtenteAction → "RIATTIVATO" | "INVALIDATO" | "NON_TROVATO" | "ULTIMO_AMMINISTRATORE"`, `eliminaScaglione → void`, `cambiaStatoOfferta → void`, `eliminaOfferta → { errore? }`, azioni righe attività `{ success, error? }`.
+
+  ## Baseline (2026-07-29, workdir = project root)
+
+  - `npm run lint` → ✅ (incluso il guardrail e2e anti-flakiness)
+  - `npx tsc --noEmit` → ✅ nessuna diagnostica
+  - `npm run test` (vitest) → ✅ 624 test verdi in 39 file
+  - `npm run build` → ✅
+  - `npx playwright test tests/e2e/anagrafica-clienti.spec.ts` → ✅ 5/5: l'ambiente e2e è configurato e funzionante (`E2E_DATABASE_URL` presente, seed e teardown ok, webServer gestito da Playwright)
+  - `archetipo wiki validate --profile bootstrap` → ✅ `ok:true` con 2 warning pre-esistenti `WIKI_EVIDENCE_CHANGED` su `engineering/code-map` e `operations/development`; la validazione post-modifica non deve introdurre finding di severità error, i warning evidence-changed sono attesi
+
+  Nessun prerequisito di setup aggiuntivo: tutti i comandi girano dalla radice del progetto.
+
+  ## Mappa delle evidenze di accettazione
+
+  - **AC-1 (cursore)** — livello: e2e browser (il cursore è osservabile solo come computed style). Oracolo: `getComputedStyle(el).cursor === "pointer"` su pulsanti abilitati campione (submit del form cliente in back office, pulsante ghost di riga, «Aggiungi riga» nel dettaglio giornata front office) e `!== "pointer"` su un pulsante disabilitato. Fixture: cliente e collaboratore creati dalla factory. Evidenza prodotta da TASK-10.
+  - **AC-2 (attesa su submit form)** — livello: e2e browser. Oracolo: con il POST della server action trattenuto via `page.route`, il submit è `disabled` con `aria-busy="true"` ed etichetta di attesa visibile (doppio invio impossibile perché il pulsante è disabilitato); al rilascio arriva l'esito e `aria-busy` torna `"false"`. Fixture: cliente di factory in modifica. Evidenza: TASK-10.
+  - **AC-3 (attesa su azioni distruttive)** — livello: e2e browser. Oracolo: nel modale di eliminazione di uno scaglione creato dalla factory con km riservati, con POST trattenuto il pulsante «Elimina scaglione» è `disabled`+`aria-busy` e il dialog resta visibile; al rilascio il dialog si chiude e la riga scompare. Evidenza: TASK-10.
+  - **AC-4 (fine attesa su errore)** — livello: e2e browser. Oracolo: submit del form cliente con partita IVA non valida → messaggio d'errore visibile, pulsante di nuovo abilitato (`toBeEnabled`, `aria-busy="false"`), valori inseriti conservati (`toHaveValue`). Evidenza: TASK-10.
+
+  Gli e2e esistenti su tutti i flussi toccati (anagrafiche, gestione utenti e offerte, abilitazioni, ingaggi, inserimento attività, auth) fanno da regressione: i nomi accessibili a riposo non cambiano, lo scambio di etichetta avviene solo durante l'attesa.
+
+  ## Strategia di test
+
+  - Il **browser e2e è richiesto**: gli esiti attraversano il confine route/server action con persistenza. Playwright è già presente e funzionante, niente `archetipo e2e ensure`.
+  - **Livello componente**: non esiste un harness DOM (vitest è `environment: node` e include solo `tests/unit/**/*.test.ts`; niente jsdom né testing-library). Non lo introduciamo: il comportamento di `PulsanteAttesa` è provato dagli e2e sui form reali e aggiungere un harness per un componente presentazionale è fuori perimetro. Non è un waiver del browser e2e, che c'è ed è il livello primario.
+  - **Tecnica anti-flakiness** per osservare l'attesa: trattenere il POST della server action con `page.route` e una promessa risolta dal test (deterministico, nessuna attesa fissa), poi rilasciare con `route.continue()`. Conformità verificata dal guardrail in `npm run lint`.
+  - La sezione `Dimostrazione` della spec è filmabile (rete rallentata + osservazione dei pulsanti); la decisione di registrare il video spetta ad `archetipo-review`.
+
+  ## Impatto Wiki
+
+  `wiki affected` sui path del piano restituisce 7 candidati. Decisione ragionata: in `update` va solo `engineering/code-map`, perché la matrice fisica cambia davvero (`src/components/` passa da segnaposto vuoto a componente condiviso reale). `domains/collaboratori`, `domains/identita-accesso`, `domains/offerte` e le decision `autorita-ruolo-dal`, `ruoli-combinabili-profilo-derivato`, `unica-app-ruoli` sono co-citazioni: il feedback di attesa è presentazione, le loro affermazioni restano accurate; diventeranno `evidence-changed` e si riconfermano esplicitamente in review, senza task dedicato. In `create` va `decisions/feedback-attesa-uniforme` (soglia ADR superata). Pagine lette per il planning: `domains/attivita`, `domains/identita-accesso`, `domains/collaboratori`.
+
+  ## Assunzioni e note
+
+  - I nomi accessibili dei pulsanti a riposo non cambiano: nessun locator e2e esistente si rompe; i modali che ora restano aperti fino all'esito si chiudono comunque subito dopo, e le attese web-first esistenti coprono il ritardo.
+  - `eliminaScaglione` e `cambiaStatoOfferta` restituiscono `void`: la chiusura del modale avviene dopo l'`await` dell'action in un wrapper client; non c'è esito d'errore da mostrare (eventuali eccezioni restano all'error boundary di Next, comportamento invariato).
+  - React 19 azzera i campi non controllati dopo una form action: i form esistenti ripopolano da `stato`; TASK-10 dimostra la conservazione dei valori per il form cliente (AC-4).
+  - Nessun mockup: la spec non introduce pagine, componenti con layout proprio o ristrutturazioni; il perimetro è feedback e cursore sull'esistente.
+tasks:
+  - id: TASK-01
+    title: Cursore pointer uniforme dal base layer di globals.css
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Tutti i pulsanti e i controlli con `role="button"` abilitati mostrano il cursore a manina senza toccare i singoli componenti; i controlli disabilitati mantengono il cursore standard.
+
+      ## Read
+      - src/app/globals.css — struttura attuale: `@import "tailwindcss"` (Tailwind v4), keyframe `comparsa-caricamento`, regole su `:root` e `body`
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratori-tabella.tsx — esempio di `<tr onClick>` con `cursor-pointer` esplicito da NON rimuovere
+
+      ## Change
+      - src/app/globals.css — aggiungere un blocco `@layer base` con la regola del cursore. Nessun altro file.
+      - Non-goal: non rimuovere le classi `cursor-pointer` esplicite esistenti (righe `<tr>`, label delle checkbox nei dialog, `Link` del giorno nel calendario: non sono `button` e restano necessarie).
+
+      ## Steps
+      1. In coda a globals.css aggiungere, con un commento in italiano che spiega la compensazione di Tailwind v4 (che non applica più `cursor: pointer` ai button):
+      ```css
+      @layer base {
+        button:not(:disabled),
+        [role="button"]:not([aria-disabled="true"]) {
+          cursor: pointer;
+        }
+      }
+      ```
+      2. Non aggiungere regole su `:disabled`: i pulsanti disabilitati restano al cursore standard e le utility `disabled:cursor-not-allowed` esistenti continuano a vincere sul base layer.
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: ✅ (baseline verde)
+      - Run: `npm run build`
+      - Expect: ✅ build completata senza errori (baseline verde)
+
+      ## Done
+      - [ ] AC-1 — ogni `<button>` abilitato dell'app eredita `cursor: pointer` dal base layer; i disabilitati mantengono il cursore standard
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Componente condiviso PulsanteAttesa con useFormStatus, aria-busy e rotellina anti-flash
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste un unico pulsante condiviso che durante l'invio si disabilita, espone `aria-busy="true"`, mostra una rotellina con comparsa ritardata e può scambiare l'etichetta; riutilizzabile sia nei `<form action=...>` sia nei flussi imperativi.
+
+      ## Read
+      - src/components/index.ts — commento segnaposto e re-export di `useIdratata`
+      - src/app/(front-office)/attivita/calendario-mensile.tsx — struttura dell'indicatore di caricamento (circa r.459-468): contenitore con `animate-[comparsa-caricamento_200ms_ease-out_120ms_forwards] opacity-0` + anello interno `animate-spin`
+      - src/app/(back-office)/anagrafiche/utenti/utente-form.tsx — pattern etichetta di attesa con ellissi `…` e classi `disabled:cursor-not-allowed disabled:opacity-60` (circa r.328-350)
+
+      ## Change
+      - src/components/pulsante-attesa.tsx — nuovo file, client component
+      - src/components/index.ts — aggiungere l'export di `PulsanteAttesa` e aggiornare il commento segnaposto
+      - Non-goal: nessuna adozione nei form in questo task; nessun altro componente condiviso (Dialog ecc.).
+
+      ## Steps
+      1. Creare `PulsanteAttesa` con `"use client"` e `useFormStatus` da `react-dom`. Props: `etichettaAttesa?: string`, `mostraRotellina?: boolean` (default `true`), `attesaEsterna?: boolean`, più tutte le prop native del button (`ComponentPropsWithoutRef<"button">`); `type` di default `"submit"`.
+      2. Stato di attesa: `const { pending } = useFormStatus();` poi `const inAttesa = attesaEsterna === undefined ? pending : attesaEsterna || pending;` — fuori da un form `pending` è sempre `false` e comanda `attesaEsterna`.
+      3. Render: `<button type={type} disabled={disabled || inAttesa} aria-busy={inAttesa} className={...}>` dove className = classi passate dal chiamante + `disabled:cursor-not-allowed disabled:opacity-60` sempre appese in coda.
+      4. Rotellina (renderizzata solo se `mostraRotellina && inAttesa`): span esterno `inline-flex opacity-0 animate-[comparsa-caricamento_200ms_ease-out_120ms_forwards]` con `aria-hidden="true"`; span interno `h-[13px] w-[13px] animate-spin rounded-full border-2 border-current/30 border-t-current` così l'anello eredita il colore del testo del pulsante.
+      5. Etichetta: `{inAttesa && etichettaAttesa ? etichettaAttesa : children}`; l'ellissi `…` (U+2026) è a carico del chiamante nelle etichette di attesa.
+      6. Esportare il componente da src/components/index.ts.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica (baseline pulita)
+      - Run: `npm run lint`
+      - Expect: ✅
+
+      ## Done
+      - [ ] Il componente espone il contratto uniforme: `disabled`+`aria-busy` durante l'attesa, rotellina anti-flash, scambio etichetta opzionale, prop `attesaEsterna` (fondamento di AC-2 e AC-3)
+      - [ ] Esportato da src/components/index.ts; tsc e lint puliti
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: I form di anagrafica adottano PulsanteAttesa (clienti, collaboratori, scaglioni, offerte, utenti)
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Ogni submit dei cinque form di anagrafica del back office mostra attesa visibile fino all'esito e, al ritorno di un errore, il pulsante torna abilitato con errori visibili e valori conservati.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/clienti/cliente-form.tsx — hook `useActionState` (~r.39), submit inline (~r.242)
+      - src/app/(back-office)/anagrafiche/collaboratori/collaboratore-form.tsx — (~r.28, ~r.199)
+      - src/app/(back-office)/anagrafiche/scaglioni/scaglione-form.tsx — (~r.44, ~r.157)
+      - src/app/(back-office)/anagrafiche/clienti/[id]/offerte/offerta-form.tsx — (~r.55, ~r.239)
+      - src/app/(back-office)/anagrafiche/utenti/utente-form.tsx — implementazione manuale di riferimento (~r.44 terzo elemento `inAttesa`, ~r.328-350 bottone) da sostituire col componente condiviso
+      - src/app/(back-office)/anagrafiche/clienti/actions.ts — contratto `StatoAction { successo?, errori }`
+
+      ## Change
+      - Solo i 5 file form elencati: sostituire il `<button type="submit">` inline con `PulsanteAttesa`, mantenendo le classi visuali attuali via className e le etichette a riposo attuali.
+      - Non-goal: nessuna modifica ad action, validazioni o layout dei form.
+
+      ## Steps
+      1. In ogni form importare `PulsanteAttesa` da `@/components` (confermare l'alias `@/` già usato nel file).
+      2. Sostituire il bottone submit: children = etichetta attuale a riposo; `etichettaAttesa` = «Salvataggio…» in modifica e «Creazione…» in creazione; nel form utente mantenere le etichette esistenti «Salvataggio…»/«Censimento…».
+      3. utente-form: eliminare la gestione manuale del pending sul bottone (il terzo elemento di `useActionState` può restare se usato altrove); il comportamento visibile resta identico.
+      4. Verificare la conservazione dei valori dopo un errore: i form ripopolano da `stato`; se un campo si azzera dopo la submit fallita, ripopolarlo con `defaultValue` dal valore restituito in `stato`, replicando il pattern già presente nel form utente.
+
+      ## Verify
+      - Run: `npx tsc --noEmit` e `npm run lint`
+      - Expect: puliti
+      - Run: `npx playwright test tests/e2e/anagrafica-clienti.spec.ts tests/e2e/anagrafica-collaboratori.spec.ts tests/e2e/anagrafica-scaglioni.spec.ts tests/e2e/anagrafica-offerte.spec.ts tests/e2e/gestione-utenti.spec.ts`
+      - Expect: tutti verdi (regressione; baseline: anagrafica-clienti 5/5)
+
+      ## Done
+      - [ ] AC-2 — i 5 form mostrano attesa con submit disabilitato fino all'esito
+      - [ ] AC-4 — dopo un errore di validazione il pulsante torna abilitato, gli errori sono visibili e i valori restano
+      - [ ] Nessun nome accessibile a riposo cambiato (locator e2e invariati)
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Attesa sui dialog di abilitazione/ingaggio e sulle revoche
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      «Abilita selezionate», «Ingaggia selezionati» e i pulsanti «Revoca» mostrano attesa visibile durante la chiamata al server; i dialog continuano a chiudersi solo all'esito positivo.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-offerte.tsx — `DialogAbilita` (hook ~r.214, submit ~r.424, chiusura su successo via useEffect ~r.227) e `RigaOffertaAbilitata` (hook ~r.123, bottone Revoca ~r.159)
+      - src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-collaboratori.tsx — `DialogIngaggia` (~r.238, ~r.453) e `RigaCollaboratoreIngaggiato` (~r.132, ~r.172, errore `_form` ~r.189)
+
+      ## Change
+      - Solo i 2 file: sostituire i pulsanti di submit e revoca con `PulsanteAttesa`.
+      - Non-goal: non cambiare la logica di chiusura su successo né le condizioni `numeroSelezionate/numeroSelezionati === 0`; non toccare gli `aria-label` delle revoche (contratto dei locator e2e).
+
+      ## Steps
+      1. `DialogAbilita`/`DialogIngaggia`: `PulsanteAttesa` con children attuali, `etichettaAttesa` «Abilitazione…» / «Ingaggio…», mantenendo `disabled={numeroSelezionate === 0}` (resp. selezionati): il componente lo unisce in OR col pending.
+      2. Revoche: `PulsanteAttesa` con la className ghost attuale, rotellina attiva, senza `etichettaAttesa` (il nome accessibile via `aria-label` resta invariato anche durante l'attesa).
+      3. Mantenere la visualizzazione errori esistente (`stato.errori._form`).
+
+      ## Verify
+      - Run: `npx tsc --noEmit` e `npm run lint`
+      - Expect: puliti
+      - Run: `npx playwright test tests/e2e/abilitazioni-collaboratore.spec.ts tests/e2e/ingaggi-offerta.spec.ts`
+      - Expect: verdi
+
+      ## Done
+      - [ ] AC-2 — i submit dei dialog mostrano attesa e rendono impossibile il doppio invio
+      - [ ] AC-3 — le revoche mostrano attesa durante la chiamata al server
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Attesa e chiusura non ottimistica nei modali e nelle azioni di riga (clienti, utenti, scaglioni)
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Disattiva/Riattiva cliente, Riattiva/Invalida utente ed Elimina scaglione mostrano attesa sul pulsante; i modali di conferma restano aperti fino all'esito e mostrano l'eventuale errore.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/clienti/clienti-tabella.tsx — form di riga con `action={cambiaStatoAction}` (~r.158 e ~r.172)
+      - src/app/(back-office)/anagrafiche/clienti/cambia-stato-action.ts — firma e contratto dell'action
+      - src/app/(back-office)/anagrafiche/utenti/utenti-tabella.tsx — Riattiva (~r.220) e modale di invalidazione con `onClick={chiudiModale}` ottimistico sul pulsante di conferma (~r.288)
+      - src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts — ritorna `"RIATTIVATO" | "INVALIDATO" | "NON_TROVATO" | "ULTIMO_AMMINISTRATORE"`
+      - src/app/(back-office)/anagrafiche/scaglioni/scaglioni-tabella.tsx — modale di eliminazione con `onClick={chiudiModale}` (~r.194)
+      - src/app/(back-office)/anagrafiche/scaglioni/actions.ts — `eliminaScaglione(formData): Promise<void>`
+
+      ## Change
+      - Le 3 tabelle elencate.
+      - Non-goal: nessuna modifica alle server action; nessun cambiamento a testi e heading dei modali («Invalida utente», «Elimina scaglione», heading dei dialog), che sono contratti dei locator e2e.
+
+      ## Steps
+      1. Pulsanti di riga (Disattiva/Riattiva cliente, Riattiva utente): sostituire con `PulsanteAttesa` mantenendo classi ghost e testo; il pending arriva da `useFormStatus`.
+      2. Modale di invalidazione utente: rimuovere `onClick={chiudiModale}` dal pulsante di conferma; sostituire l'action del form con un wrapper client `async (formData) => { const esito = await cambiaStatoUtenteAction(formData); if (esito === "INVALIDATO" || esito === "RIATTIVATO") { chiudiModale(); } else { setErroreModale(messaggioPerEsito(esito)); } }`, con nuovo stato locale `erroreModale` mostrato nel modale con `role="alert"` (messaggi parlanti per `NON_TROVATO` e `ULTIMO_AMMINISTRATORE`); pulsante di conferma = `PulsanteAttesa` con `etichettaAttesa` «Invalidazione…».
+      3. Modale di eliminazione scaglione: rimuovere `onClick={chiudiModale}`; wrapper client `async (formData) => { await eliminaScaglione(formData); chiudiModale(); }` (l'action è `void`: nessun errore da mostrare); `PulsanteAttesa` con `etichettaAttesa` «Eliminazione…».
+      4. Azzerare `erroreModale` all'apertura e alla chiusura del modale.
+
+      ## Verify
+      - Run: `npx tsc --noEmit` e `npm run lint`
+      - Expect: puliti
+      - Run: `npx playwright test tests/e2e/anagrafica-clienti.spec.ts tests/e2e/gestione-utenti.spec.ts tests/e2e/anagrafica-scaglioni.spec.ts`
+      - Expect: verdi (i test attendono la scomparsa del dialog: ora avviene dopo l'esito e le attese web-first coprono il ritardo)
+
+      ## Done
+      - [ ] AC-3 — azioni di riga e conferme nei modali con attesa visibile e doppio invio impossibile
+      - [ ] AC-4 — un esito di errore (es. `ULTIMO_AMMINISTRATORE`) è mostrato nel modale col pulsante di nuovo abilitato
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: 'Attesa su offerte-tabella: toggle di stato, disattivazione ed eliminazione offerta'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Il toggle tondo di stato offerta e i modali di disattivazione/eliminazione mostrano attesa durante la chiamata; i modali restano aperti fino all'esito.
+
+      ## Read
+      - src/app/(back-office)/offerte/offerte-tabella.tsx — toggle tondo (~r.226-247: `aria-pressed`, `aria-label`, `onClick` con `stopPropagation`), variante bloccata con `onSubmit={onChiudi}` ottimistico (~r.491), `ModaleElimina` con `useActionState(eliminaOfferta, ...)` (~r.392) ed errore renderizzato (~r.527-536)
+      - src/app/(back-office)/offerte/actions.ts — `cambiaStatoOfferta(formData): Promise<void>`; `eliminaOfferta → { errore? }`
+
+      ## Change
+      - Solo src/app/(back-office)/offerte/offerte-tabella.tsx.
+      - Non-goal: testi e heading invariati («Elimina questa offerta?», «Disattiva offerta», «Elimina offerta»); `aria-label` e `aria-pressed` del toggle invariati (contratti dei locator e2e).
+
+      ## Steps
+      1. Toggle tondo: `PulsanteAttesa` con `mostraRotellina={false}` (nessuno spazio per la rotellina in 16px), className attuale + `aria-busy:animate-pulse` come feedback di attesa; mantenere `onClick` con `stopPropagation` e gli attributi aria.
+      2. Variante bloccata (Disattiva offerta): rimuovere `onSubmit={onChiudi}`; wrapper client `async (formData) => { await cambiaStatoOfferta(formData); onChiudi(); }`; pulsante = `PulsanteAttesa` con `etichettaAttesa` «Disattivazione…».
+      3. `ModaleElimina`: pulsante = `PulsanteAttesa` con `etichettaAttesa` «Eliminazione…» (il pending arriva da `useFormStatus` sul `<form action={azione}>`). Leggere il comportamento attuale di chiusura: se al successo il modale resta aperto su stato locale del padre, aggiungere la chiusura al successo con `useEffect` sullo stato dell'action (nessun `errore` dopo un submit), replicando il pattern di `DialogAbilita`; in caso di `{ errore }` il modale resta aperto con l'errore già visualizzato e il pulsante torna abilitato.
+
+      ## Verify
+      - Run: `npx tsc --noEmit` e `npm run lint`
+      - Expect: puliti
+      - Run: `npx playwright test tests/e2e/gestione-offerte.spec.ts tests/e2e/offerte-trasversali.spec.ts tests/e2e/dettaglio-avanzamento-offerta.spec.ts`
+      - Expect: verdi
+
+      ## Done
+      - [ ] AC-3 — toggle e conferme dei modali offerte con attesa visibile
+      - [ ] AC-4 — errore di eliminazione visibile nel modale aperto, pulsante di nuovo abilitato
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: 'Attesa nel dettaglio giornata: salvataggio riga, eliminazione e rimozione trasferta'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Nel form giornata del front office il salvataggio mostra attesa per l'intera chiamata al server (non solo il refresh) e le azioni di riga (eliminazione, rimozione trasferta, apertura in modifica) mostrano attesa e impediscono i doppi click.
+
+      ## Read
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — `handleSubmit` (~r.290-355: `await creaRiga/modificaRiga` fuori dalla transition), `useTransition` (~r.112: copre solo `router.refresh()` in `invalidaMeseERicarica` ~r.122), `handleElimina` (~r.429, con `window.confirm`), `handleRimuoviTrasferta` (~r.442), `handleModifica` (~r.359, carica le offerte del cliente), submit (~r.905 con `disabled` composto)
+      - src/lib/actions/righe-attivita.ts — contratti `{ success, error? }`
+
+      ## Change
+      - Solo src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx.
+      - Non-goal: nessuna modifica alle action né alla logica di validazione; `window.confirm` resta (sostituirlo con modali è fuori perimetro spec).
+
+      ## Steps
+      1. Aggiungere `const [salvataggioInCorso, setSalvataggioInCorso] = useState(false)`; in `handleSubmit` avvolgere il corpo asincrono in try/finally: `setSalvataggioInCorso(true)` prima dell'`await` di `creaRiga`/`modificaRiga`, `false` nel `finally` (così l'attesa termina anche sugli errori mostrati).
+      2. Submit: `PulsanteAttesa` con `attesaEsterna={salvataggioInCorso || isPending}`, `etichettaAttesa` «Salvataggio…», mantenendo le condizioni `disabled` esistenti (`nessunaOffertaAbilitata`, `nessunClienteAbilitato`).
+      3. Aggiungere `const [rigaInAttesaId, setRigaInAttesaId] = useState<tipo-id | null>(null)` (leggere il tipo dell'id dal modello riga). In `handleElimina` e `handleRimuoviTrasferta`, dopo il `confirm`, impostare l'id in try/finally; i pulsanti «Elimina» e «Rimuovi trasferta» della riga diventano `PulsanteAttesa` con `type="button"` e `attesaEsterna={rigaInAttesaId === riga.id}`, mantenendo classi e testi.
+      4. `handleModifica`: riutilizzare `rigaInAttesaId` attorno alla chiamata che carica le offerte del cliente, così anche «Modifica» mostra attesa durante la chiamata.
+      5. Errori delle action (`success: false`): visualizzazione invariata; garantire solo che l'attesa termini nel `finally` e i pulsanti tornino abilitati.
+
+      ## Verify
+      - Run: `npx tsc --noEmit` e `npm run lint`
+      - Expect: puliti
+      - Run: `npx playwright test tests/e2e/clienti-abilitati-inserimento.spec.ts tests/e2e/offerte-abilitate-inserimento.spec.ts tests/e2e/attivita-amministratore.spec.ts tests/e2e/apertura-giorno-calendario.spec.ts`
+      - Expect: verdi
+
+      ## Done
+      - [ ] AC-2 — il salvataggio riga mostra attesa per l'intera chiamata e rende impossibile il doppio invio
+      - [ ] AC-3 — eliminazione riga e rimozione trasferta con attesa visibile e pulsante disabilitato (niente doppie eliminazioni)
+      - [ ] AC-4 — dopo un errore di validazione l'attesa termina, i valori restano e il messaggio è visibile
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Attesa sui pulsanti Esci e allineamento del pulsante di accesso Google
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Il logout mostra attesa durante l'azione verso il server e il pulsante di accesso Google espone `aria-busy` durante il redirect, allineandosi al contratto uniforme.
+
+      ## Read
+      - src/app/(front-office)/layout.tsx — form `disconnetti` con button `data-esci` (~r.57-75)
+      - src/app/(back-office)/layout.tsx — idem (~r.43-54)
+      - src/app/(back-office)/console-sidebar.tsx — «Esci» che fa da proxy con `document.querySelector('[data-esci]')?.click()` (~r.158)
+      - src/app/accesso-google.tsx — stato `loading`, spinner inline e label swap esistenti
+
+      ## Change
+      - I 4 file elencati.
+      - Non-goal: flusso di logout e navigazione invariati; l'attributo `data-esci` resta sul pulsante (lo usa il proxy della sidebar).
+
+      ## Steps
+      1. Nei due layout (server component): sostituire il button Esci con `PulsanteAttesa` (client component importabile da un server component) mantenendo `data-esci`, classi e testo; `etichettaAttesa` «Uscita…».
+      2. accesso-google.tsx: aggiungere `aria-busy={loading}` al pulsante; mantenere lo spinner inline esistente (minimo cambiamento: `aria-busy` è l'unico obbligo di contratto).
+      3. console-sidebar: nessuna logica nuova; verificare che il click proxy continui a funzionare (il pulsante resta un submit del form del layout).
+
+      ## Verify
+      - Run: `npx tsc --noEmit` e `npm run lint`
+      - Expect: puliti
+      - Run: `npx playwright test tests/e2e/auth-flows.spec.ts tests/e2e/accesso-radice.spec.ts`
+      - Expect: verdi
+
+      ## Done
+      - [ ] AC-3 — il logout (azione verso il server) mostra attesa visibile sul pulsante
+      - [ ] AC-1 — Esci e accesso Google mostrano il cursore a manina da base layer (nessuna classe ad hoc rimasta necessaria)
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: ADR decisions/feedback-attesa-uniforme e aggiornamento della mappa del codice
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      La decisione trasversale su cursore e feedback di attesa è documentata come pagina `type: decision` del Wiki e la mappa del codice riflette il nuovo componente condiviso in src/components.
+
+      ## Read
+      - docs/wiki/decisions/cache-client-calendario-collaboratore.md — struttura, frontmatter e marker di sezione di una decision esistente da replicare
+      - docs/wiki/engineering/code-map.md — conoscenza attuale su src/components (oggi segnaposto vuoto)
+      - docs/wiki/index.md — indice di navigazione
+
+      ## Change
+      - docs/wiki/decisions/feedback-attesa-uniforme.md — nuova pagina
+      - docs/wiki/engineering/code-map.md — aggiornare la conoscenza su src/components e impostare `status: generated`
+      - docs/wiki/index.md — solo tramite `archetipo wiki catalog`, non a mano
+      - Non-goal: nessuna modifica alle altre pagine candidate emerse da `wiki affected` (co-citazioni da riconciliare in review).
+
+      ## Steps
+      1. Creare la pagina con frontmatter `type: decision`, `decision_status: accepted`, `status: generated`, titolo «Feedback di attesa e cursore uniformi», description breve; sources: src/app/globals.css e src/components/pulsante-attesa.tsx (role implementation), src/app/(back-office)/anagrafiche/utenti/utente-form.tsx e src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx (adopter rappresentativi), tests/e2e/feedback-attesa-azioni.spec.ts (role verification). Replicare tutti i marker di sezione presenti nelle decision esistenti.
+      2. Contenuto: contesto (Tailwind v4 senza cursor pointer di default, tre pattern di attesa divergenti), decisione (base layer CSS + PulsanteAttesa con useFormStatus + contratto `aria-busy` + modali senza chiusura ottimistica), alternative valutate e scartate (wiring ad hoc per pulsante; migrazione integrale a useActionState), tradeoff e intento di verifica (spec e2e feedback-attesa-azioni).
+      3. Aggiornare engineering/code-map.md: src/components ora contiene il componente condiviso PulsanteAttesa riusato da front office e back office.
+      4. Rigenerare la navigazione con `archetipo wiki catalog` dalla radice del progetto.
+
+      ## Verify
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: `data.ok: true`, nessun finding di severità error; i warning `WIKI_EVIDENCE_CHANGED` pre-esistenti (engineering/code-map, operations/development) sono tollerati
+
+      ## Done
+      - [ ] Pagina decision creata con marker completi, alternative e sorgenti verificabili; code-map aggiornata con `status: generated`; indice rigenerato
+
+      ## Blockers
+      None.
+    ref: TASK-09
+  - id: TASK-10
+    title: 'E2E feedback-attesa-azioni: cursore, attesa su submit, attesa su eliminazione, fine attesa su errore'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+      - TASK-05
+      - TASK-07
+    body: |-
+      ## Objective
+      Le quattro AC hanno evidenza browser deterministica in un nuovo spec Playwright conforme al contratto anti-flakiness del repository.
+
+      ## Read
+      - tests/e2e/support/fixtures.ts, tests/e2e/support/factory.ts, tests/e2e/support/auth.ts, tests/e2e/support/reserved-resources.ts — fixture, factory e helper (isolamento per namespace, `createScaglioneKm`, `accediAlBackOfficeComeAdmin`, `accediComeCollaboratore`)
+      - tests/e2e/anagrafica-scaglioni.spec.ts — locator del modale di eliminazione (dialog «Eliminare lo scaglione …?», pulsante «Elimina scaglione»)
+      - tests/e2e/calendario-navigazione-reattiva.spec.ts — stile degli assert su `aria-busy`
+      - tests/e2e/README.md e scripts/check-e2e-guardrails.ts — vincoli anti-flakiness
+
+      ## Change
+      - tests/e2e/feedback-attesa-azioni.spec.ts — nuovo file.
+      - Non-goal: nessuna modifica agli spec esistenti né alle fixture condivise; nessuna mutazione di entità seed (usare solo entità di factory e km riservati).
+
+      ## Steps
+      1. Helper di trattenimento del POST della server action nella pagina target: `let rilascia: () => void; const trattenuta = new Promise<void>((r) => { rilascia = r; });` e `await page.route(patternPagina, async (route) => { if (route.request().method() === "POST") { await trattenuta; } await route.continue(); });` — nessun timeout fisso, rilascio esplicito dal test.
+      2. Scenario AC-2: `accediAlBackOfficeComeAdmin`; cliente creato dalla factory; aprire la pagina di modifica; trattenere il POST; modificare un campo e inviare; assert web-first: submit `toBeDisabled()`, `toHaveAttribute("aria-busy", "true")`, etichetta «Salvataggio…» visibile; poi `rilascia()`; assert dell'esito e del ritorno del pulsante allo stato normale.
+      3. Scenario AC-3: scaglione creato con `createScaglioneKm` usando gli helper dei km riservati; aprire la pagina scaglioni; click su «Elimina» di riga; trattenere il POST; click su «Elimina scaglione» nel dialog; assert: pulsante `toBeDisabled()` + `aria-busy="true"` e dialog ancora visibile; `rilascia()`; il dialog scompare e la riga dello scaglione non è più presente.
+      4. Scenario AC-4: form cliente con partita IVA non valida lato server, senza trattenimento; submit; assert: messaggio d'errore visibile, submit `toBeEnabled()` con `aria-busy="false"`, `toHaveValue` sui campi compilati (valori conservati).
+      5. Scenario AC-1: negli stessi schermi, assert sul computed style con `expect.poll(() => locator.evaluate((el) => getComputedStyle(el).cursor))`: `"pointer"` per il submit abilitato e per un pulsante ghost di riga (back office) e per «Aggiungi riga» nel dettaglio giornata (front office, fixture collaboratore con cliente/offerta abilitata); diverso da `"pointer"` per un pulsante disabilitato (es. il submit durante il trattenimento del POST).
+      6. Selettori per ruolo e nome esatto; niente `selectOption` per indice, niente attese fisse, niente classi Tailwind come selettori.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/feedback-attesa-azioni.spec.ts`
+      - Expect: verde
+      - Run: `npm run lint`
+      - Expect: ✅ guardrail e2e anti-flakiness superato
+
+      ## Done
+      - [ ] AC-1 — evidenza del cursore pointer/standard su campioni di front office e back office
+      - [ ] AC-2 — evidenza di attesa e blocco del doppio invio sul submit di un form
+      - [ ] AC-3 — evidenza di attesa su un'eliminazione con dialog aperto fino all'esito
+      - [ ] AC-4 — evidenza della fine attesa su errore con valori conservati e messaggio visibile
+
+      ## Blockers
+      None.
+    ref: TASK-10
+  - id: TASK-11
+    title: 'Gate finale: verifiche complete e controllo del backlog prima della review'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+      - TASK-09
+      - TASK-10
+    body: |-
+      ## Objective
+      Tutte le verifiche del repository sono verdi sull'insieme delle modifiche e ogni task della spec risulta DONE prima della richiesta di review.
+
+      ## Read
+      - .github/workflows/ci.yml — passi CI di riferimento (install, prisma, lint, unit, build, e2e)
+
+      ## Change
+      - Nessuna modifica di codice prevista; solo correzioni residue nel perimetro dei file già toccati dalla spec, se una verifica fallisce.
+
+      ## Steps
+      1. Dalla radice del progetto eseguire nell'ordine i comandi elencati in Verify.
+      2. Se un comando fallisce: correggere nel perimetro della spec e ripartire dal punto 1 (esecuzione finale unica tutta verde).
+      3. Marcare questo task DONE; poi eseguire `archetipo spec show US-051` dalla radice del progetto e verificare che nessun task sia ancora TODO.
+      4. Solo dopo la conferma del punto 3 richiedere la review con `archetipo spec review`; mai prima.
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: ✅ incluso il guardrail e2e (baseline verde)
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica; i file toccati non aggiungono alcuna diagnostica rispetto alla baseline pulita
+      - Run: `npm run test`
+      - Expect: ✅ nessun fallimento (baseline: 624 test verdi in 39 file)
+      - Run: `npm run build`
+      - Expect: ✅ (baseline verde)
+      - Run: `npx playwright test`
+      - Expect: ✅ suite completa verde, incluso il nuovo tests/e2e/feedback-attesa-azioni.spec.ts
+      - Run: `archetipo spec show US-051` (dalla radice del progetto)
+      - Expect: tutti i task in stato DONE
+
+      ## Done
+      - [ ] Tutti i comandi di Verify verdi in un'unica esecuzione finale
+      - [ ] AC-1, AC-2, AC-3, AC-4 confermate dalla suite completa (evidenze prodotte da TASK-10 e regressioni verdi)
+      - [ ] `archetipo spec show US-051` mostra ogni task DONE; solo allora viene richiesta la review
+
+      ## Blockers
+      None.
+    ref: TASK-11

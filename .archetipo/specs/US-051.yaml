@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: MEDIUM
 points: 5
-status: TODO
+status: DONE
 body: |-
   #### US-051: Cursore e feedback di attesa uniformi su pulsanti e azioni
 
@@ -34,3 +34,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-07-28T13:26:27Z"
+  - status: PLANNED
+    at: "2026-07-29T12:02:25Z"
+  - status: IN PROGRESS
+    at: "2026-07-29T12:29:49Z"
+  - status: REVIEW
+    at: "2026-07-29T14:18:51Z"
+  - status: DONE
+    at: "2026-07-29T14:56:19Z"

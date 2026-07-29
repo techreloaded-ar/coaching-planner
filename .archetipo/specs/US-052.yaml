@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: LOW
 points: 5
-status: TODO
+status: DONE
 body: |-
   #### US-052: Rivaluta il cambio mese senza round-trip quando il runtime prefetching sarà stabile
 
@@ -42,3 +42,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-07-28T16:42:57Z"
+  - status: PLANNED
+    at: "2026-07-28T18:52:50Z"
+  - status: IN PROGRESS
+    at: "2026-07-28T19:59:05Z"
+  - status: REVIEW
+    at: "2026-07-28T21:07:55Z"
+  - status: DONE
+    at: "2026-07-29T06:10:52Z"

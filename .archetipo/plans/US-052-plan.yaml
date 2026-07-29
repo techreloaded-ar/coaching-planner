@@ -1,0 +1,788 @@
+schema: archetipo/plan/v2
+spec_code: US-052
+body: |-
+  # US-052: Rivaluta il cambio mese senza round-trip quando il runtime prefetching sarà stabile — Piano di Implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-07-28
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** LOW | **Punti:** 5
+
+  **Storia Utente**
+  Come collaboratore, voglio che il passaggio da un mese all'altro del calendario mostri i dati senza attendere il server, così da consultare lo storico con la stessa immediatezza di un'applicazione locale.
+
+  **Criteri di Accettazione**
+  - AC-1 — Verificare sulla versione Next.js in uso che il runtime prefetching non sia più instabile; altrimenti registrare versione ed esito.
+  - AC-2 — Il ritorno a un mese già visitato nella stessa scheda non produce richieste dati per quel mese.
+  - AC-3 — La finestra di staleness è documentata e misurata con mitigazioni effettive.
+  - AC-4 — Restano invariati griglia precedente durante il miss, indicatore di caricamento e URL `?mese=YYYY-MM`.
+  - AC-5 — Se si adotta Cache Components, la regressione copre l'intera suite e2e.
+
+  ### Nota di coerenza sul gate AC-1
+
+  La verifica è già negativa sulla checkout corrente: `package.json` e il package installato riportano Next.js 16.2.9; `use-cache-private.md` è ancora `experimental` e dichiara il runtime prefetching non stabile, mentre `instant.md` è `draft` e usa `unstable_instant`. La via Cache Components/runtime prefetching resta quindi bloccata e non viene proposta.
+
+  La richiesta corrente autorizza esplicitamente la valutazione di una via diversa con obiettivo prestazionale più ampio. Il piano tratta perciò AC-1 come gate a due rami: registra l'esito negativo, esclude ogni API instabile e procede con una soluzione indipendente dal runtime prefetching. Prima dell'implementazione o, al più tardi, prima dell'accettazione, il testo persistito della spec va riallineato sostituendo la frase «la spec resta bloccata» con «resta bloccata la via runtime prefetching; è ammessa l'alternativa framework-independent approvata dall'ADR». Il piano non dichiara stabilizzata una funzionalità che non lo è.
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Vale la pena cambiare approccio. Il risultato richiesto si ottiene con un'isola SPA limitata al calendario: SSR/RSC resta autorevole per primo ingresso, reload e URL diretto; dopo l'idratazione, i dati dei mesi vengono letti da un endpoint JSON autenticato e conservati in una cache esplicita in memoria della sola area attività. Il cambio URL usa la Native History API, supportata e integrata dal router nella documentazione locale di Next 16.2.9, quindi non avvia una navigazione RSC.
+
+  ### Percorso caldo: zero round-trip sul mese già disponibile
+
+  - Un provider client sotto un nuovo layout annidato `/attivita` conserva DTO mensili per l'utente autenticato. La cache non usa `localStorage`, `sessionStorage`, IndexedDB o service worker: vive solo nella memoria della scheda, sopravvive alle route figlie dell'area attività e viene distrutta da reload, logout o uscita dal layout.
+  - Chiave effettiva: sessione del provider + token `YYYY-MM`; limite LRU di 12 mesi. Finestra fresh: 300 secondi. Entro la finestra, un ritorno A→B→A legge A sincronicamente e produce zero richieste sia a `/attivita` sia all'endpoint dati.
+  - Dopo ogni commit di un mese, il provider prefetcha in background precedente e successivo tramite il vero endpoint dati. Richieste concorrenti per lo stesso token condividono una sola Promise; errori di prefetch sono silenziosi. Sul miss esplicito la griglia precedente e l'indicatore US-050 restano visibili.
+  - Alla scadenza, la entry può essere mostrata immediatamente ma parte una sola revalidation in background; un timer sul mese attivo e la revalidation su focus/visibility delimitano davvero la staleness invece di controllarla soltanto alla navigazione successiva. Una risposta tardiva può popolare la propria entry, ma non può sovrascrivere l'ultima destinazione richiesta.
+  - `window.history.pushState` registra il token soltanto quando il mese è pronto; `popstate` gestisce Back/Forward usando la stessa cache. Un URL diretto o un reload continua a passare da `page.tsx` e dal server.
+
+  ### Contratto dati e sicurezza
+
+  - Nuovo `GET /api/attivita/calendario?mese=YYYY-MM`: valida il token, deriva sempre il collaboratore dalla sessione server, non accetta alcun `collaboratoreId` dal browser e risponde con il solo DTO necessario al calendario. Risposte sensibili: `Cache-Control: private, no-store`; la staleness è governata esclusivamente dal provider client.
+  - Il DTO condiviso contiene token e sintesi per giorno. Etichetta e griglia di 42 celle sono derivate nel client dalle funzioni pure già esistenti, riducendo il payload RSC iniziale e quello JSON.
+  - 401/403 svuotano il provider e forzano un nuovo ingresso autenticato. Un miss fallito mantiene la griglia precedente, termina `aria-busy` e mostra un errore accessibile con retry.
+  - Il percorso server iniziale riusa sessione e profilo già autorizzati invece di risolverli nuovamente dentro la query mensile. La lettura specializzata seleziona soltanto `data`, `ore`, `createdAt` e `cliente { id, ragioneSociale }`, usa un intervallo half-open e non carica intere entità Offerta/Cliente non usate dalla griglia.
+
+  ### Percorso freddo e database
+
+  `AttivitaPage` oggi esegue `verificaSessione`, `risolviProfiloCollaboratoreCorrente` e poi `attivitaDelMese`, che risolve nuovamente il profilo. Con la latenza SiteGround misurata di 51,4 ms per round-trip, letture logiche duplicate si sommano prima del rendering. Il piano passa la sessione già verificata al resolver profilo e l'ID collaboratore autorizzato alla read query specializzata. Inoltre aggiunge `@@index([collaboratoreId, data, createdAt])` a `RigaAttivita`, con migrazione Prisma, per sostenere filtro mensile e ordinamento.
+
+  Le 42 celle restano link accessibili, ma ricevono `prefetch={false}`: sulla versione corrente il loro prefetch dinamico non trasporta i dati del giorno e compete inutilmente con il prefetch mensile esplicito.
+
+  ### Invalidazione e consistenza
+
+  - Le quattro server action (`creaRiga`, `modificaRiga`, `eliminaRiga`, `rimuoviTrasferta`) aggiungono `revalidatePath('/attivita')` alle invalidazioni esistenti di giorno e riepilogo.
+  - Dopo ogni mutazione riuscita, `DettaglioGiornata` invalida nel provider il token `data.slice(0, 7)` prima di `router.refresh()`. `revalidatePath` protegge SSR/RSC; l'invalidazione esplicita protegge la cache custom. Nessuna delle due viene presentata come sostituto dell'altra.
+  - Una modifica da altra scheda/dispositivo può restare invisibile per massimo 300 secondi; timer/focus provocano revalidation. Reload distrugge la cache e rilegge dal server. La durata effettiva e il bordo di scadenza vengono provati con clock controllato e registrati insieme alle misure browser.
+
+  ### Alternative valutate
+
+  - **Cache Components + `use cache: private`/runtime prefetch:** scartata perché ancora sperimentale/draft su Next 16.2.9 e perché il flag altera il rendering di tutte le route.
+  - **`experimental.staleTimes.dynamic`:** scartata perché globale, sperimentale, non garantisce il payload dati sul mese freddo e non offre controllo locale affidabile della consistenza.
+  - **Caricare precedente+corrente+successivo nel payload iniziale:** scartata come default perché aumenta TTFB, query e payload della prima pagina con dati forse inutilizzati; resta fallback solo se la misura dimostra che il prefetch post-idratazione arriva sistematicamente tardi.
+  - **SWR/React Query:** scartati per questa singola read query: non sono installati e introdurrebbero dipendenza, bundle e semantica ulteriore senza un secondo consumatore.
+  - **Cache persistente browser/service worker:** scartata per privacy, segregazione al cambio account e perché sopravviverebbe al reload, eliminando una mitigazione esplicita di AC-3.
+  - **Solo indice/query DB:** utile per primo ingresso e miss, ma incapace di soddisfare AC-2 perché lascerebbe un round-trip a ogni ritorno.
+
+  ### Decisioni Architetturali
+
+  La scelta supera la soglia ADR: introduce un nuovo confine GET autenticato e una semantica di consistenza client con TTL, invalidazione ed error handling. Va creato `decisions/cache-client-calendario-collaboratore`, con contesto, opzione scelta, alternative, trade-off, finestra fresh di 300 secondi, LRU 12, assenza di storage persistente, invalidazioni, comportamento cross-tab e intenti di verifica. Nessuna decisione esistente copre questa scelta; `decisions/autorita-ruolo-dal` resta valida e viene soltanto riusata.
+
+  ### Budget e misura
+
+  Le soglie funzionali sono deterministiche e bloccanti; i tempi sono misure diagnostiche, non asserzioni CI fragili:
+
+  - warm hit entro TTL: zero richieste dati a pagina/API e commit di etichetta+celle nello stesso giro evento; obiettivo diagnostico p95 < 50 ms;
+  - cold miss client: una sola GET deduplicata all'endpoint e zero navigazioni RSC `/attivita`;
+  - primo ingresso: nessuna duplicazione di sessione/profilo nel percorso pagina, payload senza griglia serializzata e TTFB p95 non peggiore di oltre il 10% rispetto alla baseline raccolta prima delle modifiche;
+  - registrare su build production 20 campioni cold/warm, p50/p95, conteggio richieste e byte RSC/JSON in `docs/test-results/US-052-calendario-performance.md`; non trasformare la latenza host locale in un gate flaky.
+
+  ---
+
+  ## Baseline
+
+  Eseguita il 2026-07-28 in `/Users/smarello/repo/coaching-planner`; `data.workdir` coincide con il project root.
+
+  | Verifica | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npx vitest run tests/unit/attivita.test.ts tests/unit/righe-attivita-actions.test.ts tests/unit/calendario.test.ts` | Verde: 3 file, 79 test | I test focalizzati devono restare verdi. |
+  | `npm test` | Verde: 37 file, 576 test | Il gate finale richiede l'intera suite verde. |
+  | `npx tsc --noEmit` | Verde, exit 0 | Nessuna nuova diagnostica nei file modificati. |
+  | `npm run lint` | Verde: ESLint e guardrail e2e anti-flakiness | Ogni nuovo/aggiornato e2e deve rispettare il contratto US-023. |
+  | `npm run db:validate` | Verde: schema Prisma valido | Schema e migrazione devono restare validi. |
+  | `npm run build` | Verde; Next 16.2.9; `/attivita` dinamica | Il piano non abilita Cache Components e il build deve restare verde. |
+  | `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start" npx playwright test tests/e2e/calendario-navigazione-reattiva.spec.ts tests/e2e/calendario-segregazione.spec.ts tests/e2e/calendario-etichette-clienti.spec.ts tests/e2e/apertura-giorno-calendario.spec.ts --retries=0` | Verde: 7 test su build production | Questi flussi sono la regressione minima del calendario. |
+
+  Baseline strutturale: Next 16.2.9 dichiara ancora runtime prefetching non stabile; il ritorno a un mese emette oggi una nuova richiesta RSC. `RigaAttivita` non ha un indice su collaboratore/data. La latenza SiteGround già registrata è 51,4 ms per round-trip. Non vengono ripetuti gli esperimenti US-050 su `router.prefetch` o PPR.
+
+  Prerequisiti: Node 22, dipendenze installate, Prisma Client generato, PostgreSQL locale; Playwright richiede `E2E_DATABASE_URL` dedicato e vuoto, Chromium installato e usa il proprio global setup. La CI esegue migrazioni/seed, lint, unit, build e intera suite e2e con `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start"`.
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato iniziale / fixture | Livello | Oracolo osservabile | Task produttore |
+  |---|---|---|---|---|
+  | AC-1 | `next@16.2.9`, guide bundled della stessa versione | Verifica documentale riproducibile | Versione e righe `experimental`/`not yet stable` registrate; `next.config.ts` resta senza Cache Components e la soluzione non importa API runtime-prefetch | TASK-01 |
+  | AC-2 | Collaboratore factory; A=`meseRiservato("US-052")`, B=`mesePassatoRiservato("US-052", 1)` con righe univoche | E2E Playwright production | Dopo A→B e l'attivazione del gate di rete, B→A mostra URL, etichetta e cella factory di A mentre ogni richiesta RSC `/attivita?mese=A` e GET endpoint per A viene abortita/contata: contatore zero | TASK-11 |
+  | AC-3 | Cache con clock iniettato; mutazione factory; build production | Unit + E2E + ADR | A `TTL-1` il loader non parte; al bordo TTL parte una sola revalidation; mutazione propria invalida e forza una nuova lettura; reload rilegge dal server; il record prestazionale riporta durata e misure effettive | TASK-08, TASK-10, TASK-11, TASK-12 |
+  | AC-4 | Test US-050 con mese freddo trattenuto; scenari Back/Forward e click rapidi | E2E Playwright | Durante il miss griglia precedente visibile, overlay e `aria-busy=true`; dopo risposta URL/celle corretti e indicatore nascosto; risposta tardiva non sovrascrive l'ultima destinazione; URL diretto e apertura giorno restano corretti | TASK-09, TASK-11 |
+  | AC-5 | `next.config.ts` invariato, nessun Cache Components | Build + regressione | La condizione Cache Components è N/A motivata; build e suite completa e2e restano verdi, con tre esecuzioni consecutive come da contratto del repository | TASK-01, TASK-14 |
+
+  Gli oracoli di rete contano sia il pathname pagina con header RSC sia `/api/attivita/calendario`; spostare i dati su un nuovo endpoint non può creare un falso positivo. I doppi trattengono o abortiscono la rete ma non sostituiscono pagina, provider, auth o database reali.
+
+  ---
+
+  ## Strategia di Test
+
+  - Unit su read model e DAL: proiezione minima, intervallo half-open, ordine, aggregazione e assenza della risoluzione duplicata quando sessione/profilo sono già autorizzati.
+  - Unit route handler: token invalido 400, sessione assente 401, profilo non operativo 403, DTO del solo collaboratore corrente, header `private, no-store`; nessun input di identità accettato.
+  - Unit provider con clock e loader iniettati: seed, hit fresh senza loader, bordo TTL, single-flight, LRU 12, invalidazione, errori prefetch, clear su 401, risposte fuori ordine.
+  - Browser e2e obbligatorio perché il percorso attraversa route, autenticazione, database, History API e Back/Forward. Factory e mesi riservati; `fullyParallel: true`; nessun seed mutato, hard wait, `networkidle`, retry aggiuntivo o selettore Tailwind.
+  - Il miss usa Promise trattenute e rilasciate in `finally`; la race B/C rilascia C prima di B e asserisce l'ultima intenzione. Gli oracoli prestazionali bloccanti sono request count e contenuto, non millisecondi.
+  - Dopo modifiche e2e: `npm run lint`. Il gate locale finale esegue la suite completa tre volte con `--retries=0`, senza serializzarla.
+
+  ### Test E2E — Simulazione Utente
+
+  **Framework:** Playwright 1.60, Chromium, `fullyParallel: true`
+  **Demo video:** attesa — cache hit, miss con indicatore, Back/Forward e refresh dopo modifica sono filmabili; l'assenza di round-trip richiede comunque il log/oracolo di rete allegato da `archetipo-review`.
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Warm A→B→A | Il collaboratore apre A, attende in modo event-driven il prefetch dati B, apre B e ritorna ad A con pagina/API interdette: A compare completa senza richieste. |
+  | Cold miss e race | Naviga a un mese non prefetcheato: la griglia precedente resta visibile con indicatore; due click rapidi ricevono risposte invertite ma resta mostrata l'ultima destinazione. |
+  | Back/Forward e URL diretto | I token visitati sono ripercorsi dalla history senza RSC quando fresh; un `goto` diretto e un reload continuano a mostrare il mese richiesto dal server. |
+  | Invalidazione dopo mutazione | Crea/modifica/elimina nel dettaglio giorno, torna al calendario e vede il dato aggiornato; la vecchia entry non viene riusata. |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/attivita, decisions/autorita-ruolo-dal, decisions/postgres-siteground]
+    update: [domains/attivita]
+    create: [decisions/cache-client-calendario-collaboratore]
+  ```
+
+  `wiki affected` ha restituito anche pagine che co-citano DAL o schema. Le loro affermazioni restano corrette: l'autorità sul ruolo non cambia, il provider PostgreSQL non cambia e l'indice non altera la decisione di hosting. Solo `domains/attivita` cambia semanticamente. La nuova ADR e l'aggiornamento dominio hanno task dedicati.
+
+  Nessun mockup: non nasce una nuova pagina, non cambia il layout e l'unica aggiunta visiva è un errore inline nel componente esistente.
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-07-28_
+tasks:
+  - id: TASK-01
+    title: Registra il gate framework e la baseline prestazionale di US-052
+    type: Test
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste un record riproducibile che prova lo stato ancora instabile del runtime prefetching su Next 16.2.9, blocca la sola via Cache Components e fissa la baseline prima di implementare l'alternativa indipendente.
+
+      ## Read
+      - `package.json` — versione Next fissata.
+      - `node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-cache-private.md` — stato experimental e dipendenza da runtime prefetching.
+      - `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/02-route-segment-config/instant.md` — stato draft/unstable.
+      - `src/app/(front-office)/attivita/page.tsx`, `src/lib/dal.ts`, `src/lib/attivita.ts` — percorso query attuale.
+      - `docs/siteground-postgres-connectivity-spike.md` — latenza DB già misurata.
+
+      ## Change
+      - Creare `docs/test-results/US-052-calendario-performance.md` con sezione `Prima`: versione, fonti locali, esito gate, conteggio strutturale delle letture duplicate, assenza indice, richiesta RSC sul ritorno e campioni production pre-modifica.
+      - Non modificare `package.json`, `next.config.ts` o le guide bundled; non ripetere gli esperimenti `router.prefetch`/PPR di US-050.
+
+      ## Steps
+      1. Registrare `next@16.2.9` dal manifest e dal package installato.
+      2. Citare nel record le righe locali che marcano `use cache: private` experimental/runtime non stabile e `unstable_instant` draft.
+      3. Dichiarare bloccata la via framework e selezionata l'alternativa del piano, con la nota di riallineamento testuale di AC-1.
+      4. Contare le chiamate logiche sessione/profilo/query nel cold path e riportare la latenza SiteGround già misurata, senza contattare il database remoto.
+      5. Su build production raccogliere 20 campioni iniziali/cambio mese, request count, p50/p95 e byte RSC; i tempi sono diagnostici, l'oracolo bloccante è la presenza della richiesta.
+
+      ## Verify
+      - Run: `node -p "require('./node_modules/next/package.json').version"`
+      - Expect: `16.2.9`.
+      - Run: `rg -n "version: experimental|not yet stable|version: draft|unstable_instant" node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-cache-private.md node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/02-route-segment-config/instant.md docs/test-results/US-052-calendario-performance.md`
+      - Expect: il record contiene fonti ed esito senza dichiarare stabile il runtime.
+
+      ## Done
+      - [ ] AC-1 — Versione ed esito negativo sono registrati; Cache Components/runtime prefetching sono esclusi dall'implementazione.
+      - [ ] AC-5 — `next.config.ts` resta invariato e la condizione Cache Components è documentata come non applicabile all'alternativa.
+      - [ ] La sezione `Prima` contiene request count e campioni confrontabili con il dopo.
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Introduci il DTO calendario e la lettura mensile autorizzata senza risoluzioni duplicate
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il primo rendering e l'endpoint futuro ottengono una sintesi mensile minima usando sessione e collaboratore già autorizzati, senza rieseguire la catena sessione/profilo dentro la query.
+
+      ## Read
+      - `src/lib/dal.ts` — `verificaSessione`, `richiediSessioneApi`, `risolviProfiloCollaboratoreCorrente`.
+      - `src/lib/attivita.ts` — tipi sintesi, `attivitaDelMese` e aggregazione corrente.
+      - `src/app/(front-office)/attivita/page.tsx` — ordine sessione/profilo/query e serializzazione.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — tipo `SintesiGiorno` consumato dal client.
+
+      ## Change
+      - Creare `src/lib/attivita-contract.ts` come contratto client-safe per `SintesiClienteGiorno`, `SintesiGiorno` e `DatiCalendarioMese`.
+      - `src/lib/dal.ts` — consentire a `risolviProfiloCollaboratoreCorrente` di riusare una `SessioneUtente` già verificata, mantenendo invariato il comportamento senza argomento.
+      - `src/lib/attivita.ts` — aggiungere `datiCalendarioMesePerCollaboratoreAutorizzato(token, collaboratoreId)` con select minimo, range `gte`/`lt`, ordine data/createdAt e aggregazione condivisa; non accettare l'ID dal browser.
+      - `src/app/(front-office)/attivita/page.tsx` — passare la sessione già verificata al resolver e l'ID del profilo alla nuova query.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — aggiornare il solo import type al contratto condiviso.
+      - Non cambiare i contratti di `attivitaDelMese`, `righeDelGiorno` o riepilogo usati altrove.
+
+      ## Steps
+      1. Estrarre i tipi serializzabili senza import server-only e mantenere re-export compatibili se necessari.
+      2. Estrarre l'aggregatore giornaliero in helper riusabile che preserva ordine cliente, somma ore e numero righe.
+      3. Implementare la query specializzata selezionando solo `data`, `ore`, `createdAt` e `cliente.id/ragioneSociale`; usare fine esclusiva al primo giorno del mese successivo.
+      4. Far riusare a `AttivitaPage` la sessione e il profilo già risolti; nessun wrapper può fidarsi di un collaboratore proveniente da search params/body.
+      5. Conservare token invalido e profilo non operativo con gli stessi esiti UI attuali.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0 e nessuna diagnostica nei file modificati.
+      - Run: `npx vitest run tests/unit/attivita.test.ts tests/unit/dal-guards.test.ts`
+      - Expect: baseline esistente verde in attesa dei test specifici di TASK-03.
+
+      ## Done
+      - [ ] AC-2 — Esiste il DTO serializzabile e autorizzato che alimenterà cache/API senza payload RSC completo.
+      - [ ] AC-4 — Sintesi, ordine clienti, ore e comportamento profilo restano invariati.
+      - [ ] Il percorso pagina non risolve una seconda volta sessione/profilo dentro la query mensile.
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Copri read model e riuso del contesto autorizzato
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Test unitari provano proiezione minima, aggregazione e assenza delle risoluzioni duplicate senza nascondere i filtri per collaboratore e mese.
+
+      ## Read
+      - `tests/unit/attivita.test.ts` — mock Prisma e casi `attivitaDelMese`.
+      - `tests/unit/dal-guards.test.ts` — contratti delle guardie e del profilo.
+      - `src/lib/attivita-contract.ts`, `src/lib/attivita.ts`, `src/lib/dal.ts` — implementazione TASK-02.
+
+      ## Change
+      - `tests/unit/attivita.test.ts` — nuovi casi per `datiCalendarioMesePerCollaboratoreAutorizzato`.
+      - `tests/unit/dal-guards.test.ts` — caso con sessione prevalidata che non richiama nuovamente il resolver sessione.
+      - Non indebolire né rimuovere i test esistenti.
+
+      ## Steps
+      1. Asserire il `where` con `collaboratoreId`, `gte` e `lt`, il select minimo e l'ordine `data, createdAt`.
+      2. Provare aggregazione di più offerte dello stesso cliente, più clienti e ordine di prima apparizione.
+      3. Provare token invalido senza query e risultato vuoto.
+      4. Provare che una sessione fornita al resolver profilo evita la seconda lettura sessione ma continua a leggere e verificare il profilo.
+      5. Mantenere osservabile il DTO restituito, non soltanto le chiamate ai mock.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/attivita.test.ts tests/unit/dal-guards.test.ts`
+      - Expect: tutti i test passano e i nuovi casi asseriscono contenuto e filtri.
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-2 — Il contratto dati destinato alla cache è provato con contenuto reale osservabile.
+      - [ ] AC-4 — Aggregazione e segregazione restano identiche al calendario esistente.
+
+      ## Blockers
+      Dipende da TASK-02.
+    ref: TASK-03
+  - id: TASK-04
+    title: Indicizza il percorso mensile di RigaAttivita
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      La query calendario dispone di un indice composto coerente con filtro per collaboratore, intervallo data e ordinamento stabile.
+
+      ## Read
+      - `prisma/schema.prisma` — modello `RigaAttivita` privo di indici.
+      - `prisma/migrations/` — convenzioni delle migrazioni esistenti.
+      - `src/lib/attivita.ts` — query specializzata di TASK-02.
+
+      ## Change
+      - `prisma/schema.prisma` — aggiungere `@@index([collaboratoreId, data, createdAt], map: "RigaAttivita_collaboratore_data_createdAt_idx")`.
+      - `prisma/migrations/<timestamp>_indice_calendario_collaboratore/migration.sql` — migrazione generata da Prisma per il solo indice.
+      - Non cambiare colonne, FK, vincoli unici o dati seed.
+
+      ## Steps
+      1. Aggiungere l'indice al modello con nome esplicito e stabile.
+      2. Generare la migrazione con `npx prisma migrate dev --name indice_calendario_collaboratore` sul database locale di sviluppo configurato.
+      3. Ispezionare il SQL: deve contenere soltanto `CREATE INDEX` per le tre colonne nell'ordine dichiarato.
+      4. Aggiornare la sezione DB del record performance con piano/tempo su cardinalità rappresentativa; non imporre un `Index Scan` su una tabella CI minuscola se PostgreSQL sceglie legittimamente un seq scan.
+
+      ## Verify
+      - Run: `npm run db:validate`
+      - Expect: schema Prisma valido.
+      - Run: `rg -n "RigaAttivita_collaboratore_data_createdAt_idx|CREATE INDEX" prisma/schema.prisma prisma/migrations`
+      - Expect: schema e una sola nuova migrazione contengono l'indice atteso.
+      - Run: `npm run build`
+      - Expect: Prisma Client e build Next completano senza errori.
+
+      ## Done
+      - [ ] AC-4 — Il contenuto del calendario non cambia; filtro e ordine sono sostenuti dall'indice.
+      - [ ] Il record prestazionale distingue il beneficio DB dalle garanzie zero-request di AC-2.
+
+      ## Blockers
+      Dipende da TASK-02 per allineare l'indice alla query definitiva.
+    ref: TASK-04
+  - id: TASK-05
+    title: Espone il GET autenticato del calendario mensile
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Un endpoint GET restituisce il DTO del mese per il solo collaboratore autenticato, con validazione ed errori HTTP espliciti e senza cache HTTP condivisa.
+
+      ## Read
+      - `src/app/api/auth/google/callback/route.ts` — pattern Route Handler/NextResponse.
+      - `src/lib/dal.ts` — `ErroreAutorizzazione` e risoluzione profilo.
+      - `src/lib/attivita.ts`, `src/lib/attivita-contract.ts` — read model autorizzato e DTO.
+      - `src/domain/calendario/index.ts` — validazione token.
+
+      ## Change
+      - Creare `src/app/api/attivita/calendario/route.ts` con `GET`.
+      - Non modificare proxy/policy globali; non introdurre parametri `collaboratoreId`, POST o dipendenze esterne.
+
+      ## Steps
+      1. Leggere `mese` da `request.nextUrl.searchParams` e restituire 400 per assenza/formato invalido.
+      2. Risolvere il profilo dalla sessione server; 401 per sessione assente e 403 per profilo assente/disattivato.
+      3. Chiamare la query specializzata soltanto con `profilo.collaboratore.id` derivato dal DAL.
+      4. Restituire il DTO JSON con header `Cache-Control: private, no-store` e `Vary: Cookie`.
+      5. Mappare solo `ErroreAutorizzazione`; errori inattesi restano 500 senza dettagli sensibili.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: route e contratto tipizzano senza errori.
+      - Run: `npm run build`
+      - Expect: compare la route dinamica `/api/attivita/calendario` e il build passa.
+
+      ## Done
+      - [ ] AC-2 — Esiste un confine dati più piccolo della pagina RSC e conteggiabile dall'oracolo di rete.
+      - [ ] AC-3 — La risposta non introduce una seconda cache HTTP con staleness implicita.
+      - [ ] AC-4 — Il DTO contiene tutti e soli i dati necessari a ricostruire le celle esistenti.
+
+      ## Blockers
+      Dipende da TASK-02.
+    ref: TASK-05
+  - id: TASK-06
+    title: Verifica validazione, sicurezza e contratto del GET calendario
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Objective
+      I test della route provano errori, segregazione e DTO senza sostituire il confine responsabile dell'autorizzazione.
+
+      ## Read
+      - `src/app/api/attivita/calendario/route.ts` — route TASK-05.
+      - `tests/unit/dal-guards.test.ts`, `tests/unit/attivita.test.ts` — pattern mock e asserzioni.
+      - `tests/e2e/calendario-segregazione.spec.ts` — oracolo browser di proprietà dati.
+
+      ## Change
+      - Creare `tests/unit/attivita-calendario-route.test.ts`.
+      - Estendere `tests/e2e/calendario-segregazione.spec.ts` solo se serve un'asserzione diretta sull'endpoint con due collaboratori; usare dati factory per ogni mutazione.
+      - Non testare la sicurezza passando un ID che la route non accetta.
+
+      ## Steps
+      1. Coprire `mese` mancante/malformato con 400 e nessuna query.
+      2. Coprire `ErroreAutorizzazione(401)` e profilo non operativo 403.
+      3. Coprire successo con DTO esatto e header `private, no-store`/`Vary: Cookie`.
+      4. Provare che l'ID passato alla read query coincide esclusivamente con quello del profilo risolto.
+      5. Conservare una prova browser/database della segregazione se i mock unit non lasciano osservabile l'assenza dei dati altrui.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/attivita-calendario-route.test.ts tests/unit/attivita.test.ts tests/unit/dal-guards.test.ts`
+      - Expect: tutti i casi passano con status/body/header osservabili.
+      - Run: `npm run lint`
+      - Expect: ESLint e guardrail e2e verdi.
+
+      ## Done
+      - [ ] AC-2 — Il nuovo endpoint è incluso nel contratto di rete e restituisce il mese richiesto.
+      - [ ] AC-4 — Un collaboratore non può vedere dati mensili altrui e il contenuto legittimo resta invariato.
+
+      ## Blockers
+      Dipende da TASK-05.
+    ref: TASK-06
+  - id: TASK-07
+    title: Crea il provider di cache mensile in memoria
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      L'area attività dispone di una cache per-sessione in memoria con seed, TTL 300 secondi, LRU 12, single-flight, prefetch, invalidazione e gestione sicura degli errori.
+
+      ## Read
+      - `src/app/(front-office)/layout.tsx` — confine layout esistente.
+      - `src/app/(front-office)/attivita/page.tsx` e route figlie — punti che devono condividere la cache.
+      - `src/lib/attivita-contract.ts` — DTO.
+      - `node_modules/next/dist/docs/01-app/01-getting-started/04-linking-and-navigating.md` — Native History API; la cache non deve dipendere da API instabili.
+
+      ## Change
+      - Creare `src/app/(front-office)/attivita/calendario-cache-provider.tsx`.
+      - Creare `src/app/(front-office)/attivita/layout.tsx` che risolve la sessione e monta il provider attorno alle route attività.
+      - Non usare storage persistente, service worker, librerie cache, `experimental.staleTimes` o Cache Components.
+
+      ## Steps
+      1. Implementare un context con API stabili `seed`, `read`, `load`, `prefetch`, `invalidate`, `clear`; provider scoped alla sessione ricevuta dal layout.
+      2. Mantenere Map dati e Map Promise in-flight in ref, non in stato globale di modulo; massimo 12 entry con LRU deterministico.
+      3. Definire fresh TTL 300000 ms e clock iniettabile per i test; a fresh hit non chiamare loader.
+      4. A entry stale restituire il dato immediatamente e avviare una sola revalidation; errore di prefetch non elimina un dato valido.
+      5. Su 401/403 fare `clear` e segnalare al consumer la necessità di hard navigation; nessun dato di una sessione precedente sopravvive al provider.
+      6. Rendere stabili i metodi context per non ridisegnare inutilmente le route figlie.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: provider e layout compilano senza trasformare il layout in un Client Component.
+      - Run: `npm run build`
+      - Expect: tutte le route attività restano compilabili; Cache Components resta disabilitato.
+
+      ## Done
+      - [ ] AC-2 — Una entry fresh è leggibile senza loader o rete.
+      - [ ] AC-3 — TTL, LRU, scope memoria, single-flight, clear e invalidazione sono espliciti e non delegati al router Next.
+      - [ ] AC-5 — Nessun flag globale di rendering viene abilitato.
+
+      ## Blockers
+      Dipende da TASK-02 per il DTO.
+    ref: TASK-07
+  - id: TASK-08
+    title: Prova TTL, LRU, deduplica e invalidazione del provider
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-07
+    body: |-
+      ## Objective
+      Test deterministici con clock controllato dimostrano il confine reale della finestra fresh e tutte le semantiche della cache senza hard wait.
+
+      ## Read
+      - `src/app/(front-office)/attivita/calendario-cache-provider.tsx` — provider TASK-07.
+      - `tests/unit/calendario.test.ts` — stile test del dominio calendario.
+
+      ## Change
+      - Creare `tests/unit/calendario-cache-provider.test.ts`.
+      - Se necessario, estrarre la macchina cache pura nello stesso file provider o in `src/app/(front-office)/attivita/calendario-cache.ts`; non creare uno store globale.
+
+      ## Steps
+      1. Iniettare clock e loader controllabili; seed e lettura a `TTL-1` devono fare zero load.
+      2. Portare il clock esattamente a TTL e provare una sola revalidation, registrando `cachedAt`, `expiresAt` ed età effettiva.
+      3. Lanciare due load concorrenti dello stesso token e risolvere una sola Promise loader.
+      4. Superare 12 mesi e provare l'espulsione LRU senza toccare la entry più recente.
+      5. Invalidare uno o più token e provare che il load successivo va a rete.
+      6. Simulare risposta vecchia/nuova fuori ordine: entrambe possono essere cachate per la propria chiave, ma l'API non decide quale mese è attivo.
+      7. Coprire errore prefetch, retry esplicito e clear su cambio sessione/401.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/calendario-cache-provider.test.ts`
+      - Expect: tutti i casi passano senza timer reali o hard wait.
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-2 — Fresh hit provato con loader invocato zero volte.
+      - [ ] AC-3 — Il bordo 300000 ms, l'età osservata, single-flight, LRU e invalidazione sono provati con oracoli sul dato restituito.
+
+      ## Blockers
+      Dipende da TASK-07.
+    ref: TASK-08
+  - id: TASK-09
+    title: Porta la navigazione mese su cache dati e History API
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-05
+      - TASK-07
+      - TASK-08
+    body: |-
+      ## Objective
+      Il calendario usa il DTO SSR come seed, prefetcha mesi adiacenti e naviga tra entry fresh senza RSC, preservando UI US-050, URL, Back/Forward e gestione dei click rapidi.
+
+      ## Read
+      - `src/app/(front-office)/attivita/page.tsx` — dati iniziali e stato profilo.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — `ultimaDestinazione`, `useTransition`, overlay, celle e link riepilogo.
+      - `src/app/(front-office)/attivita/calendario-cache-provider.tsx` — API TASK-07.
+      - `src/domain/calendario/index.ts` — token, etichetta e griglia pure.
+      - Guide locali `04-linking-and-navigating.md` e `single-page-applications.md` — `pushState`/`replaceState` integrate nel router.
+
+      ## Change
+      - `src/app/(front-office)/attivita/page.tsx` — passare il DTO iniziale, non la griglia serializzata.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — source of truth client, cache load/prefetch, History API, popstate, timer/focus revalidation, errore accessibile e retry.
+      - Impostare `prefetch={false}` sui 42 link giorno; non cambiare href, contenuto, classi o link riepilogo.
+      - Non aggiungere `loading.tsx`, non chiamare `router.prefetch` e non abilitare config sperimentale.
+
+      ## Steps
+      1. Seminare/aggiornare il provider con il DTO SSR e derivare `etichetta`/`griglia` localmente con `useMemo`.
+      2. Dopo il commit di un token, prefetcharne precedente e successivo; il click riusa la Promise in-flight se presente.
+      3. Fresh hit: aggiornare token/sintesi e `pushState` nello stesso handler senza `router.push`, fetch o indicatore.
+      4. Cold miss: mantenere griglia precedente, impostare `aria-busy`/overlay, caricare una sola GET, committare dato+URL solo se la destinazione è ancora l'ultima intenzione.
+      5. Gestire Back/Forward con `popstate`; per entry evicted/stale usare lo stesso load senza creare una nuova history entry.
+      6. Programmare revalidation del mese attivo alla scadenza e su focus/visibility; aggiornamento background senza cancellare la griglia.
+      7. Su errore miss mostrare `role=alert` con retry, terminare busy e non lasciare URL/dato incoerenti; su 401/403 pulire e fare hard navigation.
+      8. Conservare il comportamento del pulsante mese corrente e il token condivisibile; rimuovere commenti US-050 sul prefetch RSC ormai stantii.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npm run lint`
+      - Expect: ESLint e guardrail e2e verdi.
+      - Run: `npm run build`
+      - Expect: build verde e nessun Cache Components.
+
+      ## Done
+      - [ ] AC-2 — Il codice del fresh hit non invoca pagina, endpoint o router RSC.
+      - [ ] AC-3 — Scadenza/focus provocano revalidation bounded e reload resta una lettura SSR fresca.
+      - [ ] AC-4 — Griglia precedente, overlay, `aria-busy`, URL, celle, click rapidi e Back/Forward hanno contratti espliciti.
+
+      ## Blockers
+      Dipende da TASK-05, TASK-07 e TASK-08.
+    ref: TASK-09
+  - id: TASK-10
+    title: Collega le mutazioni all'invalidazione server e client del mese
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-07
+      - TASK-09
+    body: |-
+      ## Objective
+      Ogni mutazione attività riuscita invalida sia il percorso server del calendario sia la entry mensile del provider prima del refresh del dettaglio.
+
+      ## Read
+      - `src/lib/actions/righe-attivita.ts` — invalidazioni attuali delle quattro action.
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx` — success handler e `router.refresh()`.
+      - `src/app/(front-office)/attivita/calendario-cache-provider.tsx` — `invalidate`.
+      - `tests/unit/righe-attivita-actions.test.ts` — asserzioni `revalidatePath`.
+
+      ## Change
+      - `src/lib/actions/righe-attivita.ts` — aggiungere `revalidatePath('/attivita')` dopo scritture riuscite, senza rimuovere giorno/riepilogo.
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx` — invalidare `data.slice(0, 7)` dopo crea/modifica/elimina/rimozione trasferta e prima di `router.refresh()`.
+      - `tests/unit/righe-attivita-actions.test.ts` — aggiornare tutte le aspettative d'invalidazione.
+      - Non cambiare validazioni, autorizzazioni o messaggi delle action.
+
+      ## Steps
+      1. Aggiungere l'invalidazione pagina soltanto dopo il commit DB riuscito in ogni action.
+      2. Consumare il context nel dettaglio e centralizzare un helper client `invalidaMeseERicarica` per evitare omissioni tra handler.
+      3. Non invalidare su esiti `{success:false}` o eccezioni.
+      4. Conservare l'invalidazione specifica del giorno e del riepilogo.
+      5. Provare tutte le action, inclusa elimina/rimuovi che ricavano la data dal DB.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/righe-attivita-actions.test.ts`
+      - Expect: tutti i test passano e ogni successo osserva anche `revalidatePath('/attivita')`; i fallimenti non invalidano.
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-3 — Mitigazioni effettive: revalidation server e invalidazione provider sono entrambe provate e non confuse.
+      - [ ] AC-4 — Il dettaglio continua a refreshare e il ritorno mostra la sintesi aggiornata.
+
+      ## Blockers
+      Dipende da TASK-07 e TASK-09.
+    ref: TASK-10
+  - id: TASK-11
+    title: Prova zero-request, miss, race, history e misura il miglioramento
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+      - TASK-06
+      - TASK-09
+      - TASK-10
+    body: |-
+      ## Objective
+      E2E production dimostrano l'esito utente e l'oracolo di rete completo; il record prestazionale confronta prima/dopo senza introdurre timing flaky nel gate.
+
+      ## Read
+      - `tests/e2e/calendario-navigazione-reattiva.spec.ts` — gate Promise e contratti US-050.
+      - `tests/e2e/calendario-segregazione.spec.ts`, `tests/e2e/apertura-giorno-calendario.spec.ts`, `tests/e2e/calendario-etichette-clienti.spec.ts` — regressioni.
+      - `tests/e2e/support/fixtures.ts`, `tests/e2e/support/date.ts`, `tests/e2e/README.md` — factory, mesi riservati e anti-flakiness.
+      - `docs/test-results/US-052-calendario-performance.md` — baseline TASK-01.
+
+      ## Change
+      - Creare `tests/e2e/calendario-cache-mesi.spec.ts`.
+      - Aggiornare `tests/e2e/calendario-navigazione-reattiva.spec.ts` per trattenere il GET dati invece della pagina RSC e rimuovere commenti stantii.
+      - Aggiornare `docs/test-results/US-052-calendario-performance.md` con sezione `Dopo`, misure, versione, esito TTL e confronto.
+      - Non mutare seed, non serializzare la suite, non aumentare retry e non usare `waitForTimeout`/`networkidle`.
+
+      ## Steps
+      1. Creare A/B/C con `meseRiservato("US-052")` e offset, collaboratore/cliente/offerta/righe factory univoche.
+      2. Warm: attendere event-driven il prefetch B; dopo il gate contare/abortire sia GET endpoint sia RSC pagina per la destinazione e provare B→A con zero richieste, celle e URL corretti.
+      3. Cold: usare un mese fuori dai due adiacenti, trattenere la GET con Promise; asserire vecchia griglia, overlay e busy prima del rilascio, poi nuovo dato/URL.
+      4. Race: trattenere B/C, rilasciare C prima di B e provare che B tardiva non cambia etichetta, URL o celle C.
+      5. Back/Forward: ripercorrere entry fresh con gli stessi abort di pagina/API e contenuto corretto.
+      6. Mutazione: dal giorno factory crea o modifica una riga, torna al calendario e osserva la sintesi nuova; una entry invalidata non può mascherarla.
+      7. Ripetere 20 alternanze warm e campioni cold su build production; registrare request count, p50/p95 e byte senza asserire una soglia temporale host-dependent. L'oracolo zero-request resta bloccante.
+      8. Eseguire lint subito dopo gli e2e.
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: ESLint e guardrail anti-flakiness verdi.
+      - Run: `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start" npx playwright test tests/e2e/calendario-cache-mesi.spec.ts tests/e2e/calendario-navigazione-reattiva.spec.ts tests/e2e/apertura-giorno-calendario.spec.ts tests/e2e/calendario-segregazione.spec.ts tests/e2e/calendario-etichette-clienti.spec.ts --retries=0`
+      - Expect: tutti gli scenari passano senza retry; warm/history hanno zero richieste pagina/API dopo il gate.
+      - Run: `rg -n "Prima|Dopo|p50|p95|richieste|300" docs/test-results/US-052-calendario-performance.md`
+      - Expect: record completo e confrontabile.
+
+      ## Done
+      - [ ] AC-2 — Oracolo: mese già visitato completo con RSC e GET abortiti/contati a zero.
+      - [ ] AC-3 — Record con TTL effettivo, invalidazione, reload e misure prima/dopo.
+      - [ ] AC-4 — Miss, indicatore, URL diretto, Back/Forward, race, celle e apertura giorno provati sul browser reale.
+      - [ ] Solo factory/mesi riservati, `fullyParallel: true`, nessun hard wait o seed mutato.
+
+      ## Blockers
+      Dipende da TASK-04, TASK-06, TASK-09 e TASK-10.
+    ref: TASK-11
+  - id: TASK-12
+    title: Crea l'ADR decisions/cache-client-calendario-collaboratore
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-11
+    body: |-
+      ## Objective
+      La decisione Wiki registra confine dati, consistenza, alternative e verifica della cache client calendario con evidenza dal repository.
+
+      ## Read
+      - `docs/wiki/decisions/autorita-ruolo-dal.md` e `docs/wiki/decisions/calcoli-puri.md` — struttura decision page e marker.
+      - `src/app/(front-office)/attivita/calendario-cache-provider.tsx`, `src/app/api/attivita/calendario/route.ts`, `src/app/(front-office)/attivita/calendario-mensile.tsx` — evidenze implementate.
+      - `docs/test-results/US-052-calendario-performance.md`, `tests/e2e/calendario-cache-mesi.spec.ts` — verifica e misura.
+
+      ## Change
+      - Creare `docs/wiki/decisions/cache-client-calendario-collaboratore.md` con ID canonico `decisions/cache-client-calendario-collaboratore`.
+      - Non modificare decisioni esistenti; nessuna di esse viene superseded.
+
+      ## Steps
+      1. Usare frontmatter `type: decision`, `status: generated`, `decision_status: accepted`, descrizione e sources di implementazione/verifica.
+      2. Inserire tutti i marker di sezione decisione applicabili.
+      3. Contesto: runtime prefetching instabile e necessità di zero round-trip locale.
+      4. Decisione: SSR iniziale + GET autenticato + provider memory-only, TTL 300 s, LRU 12, prefetch adiacente, single-flight, History API, invalidazioni server/client, reload e cross-tab.
+      5. Alternative/trade-off: Cache Components, staleTimes, payload tre mesi, libreria cache, storage persistente, solo DB.
+      6. Verifica: zero-request pagina/API, bordo TTL, invalidazione e record p50/p95/byte.
+      7. Eseguire catalog e validazione.
+
+      ## Verify
+      - Run: `archetipo wiki catalog`
+      - Expect: la nuova pagina compare in `docs/wiki/index.md`.
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: `data.ok: true` e nessun errore sulla decisione.
+
+      ## Done
+      - [ ] AC-1 — L'ADR registra che la via runtime resta bloccata e l'alternativa non dipende da API instabili.
+      - [ ] AC-3 — Finestra, misura, mitigazioni effettive e conseguenze cross-tab sono documentate con evidenze repository.
+      - [ ] Pagina generated completa; approvazione finale lasciata ad archetipo-review.
+
+      ## Blockers
+      Dipende da TASK-11 perché le misure finali sono evidenza della decisione.
+    ref: TASK-12
+  - id: TASK-13
+    title: Aggiorna domains/attivita con il nuovo flusso calendario
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-12
+    body: |-
+      ## Objective
+      La pagina dominio descrive fedelmente query, endpoint, cache, History API, invalidazione e verifiche senza alterare conoscenza non coinvolta.
+
+      ## Read
+      - `docs/wiki/domains/attivita.md` — flusso 5, contratti, codice, invarianti e verifica.
+      - `docs/wiki/decisions/cache-client-calendario-collaboratore.md` — ADR TASK-12.
+      - File e test implementati da TASK-02…TASK-11.
+
+      ## Change
+      - `docs/wiki/domains/attivita.md` — aggiornare soltanto sezioni semanticamente cambiate, sources e `status: generated`.
+      - Non modificare `engineering/code-map`, `domains/identita-accesso`, `domains/collaboratori` o decisioni DB: le loro affermazioni restano accurate.
+
+      ## Steps
+      1. Aggiornare contratto/flow mensile: SSR iniziale, GET autenticato, DTO, cache memory-only, prefetch adiacente e History API.
+      2. Documentare fresh hit zero-request, miss con UI US-050, TTL/revalidation, invalidazione action+provider e reload.
+      3. Citare indice composto e select minimo come ottimizzazione del cold path, senza presentarla come prova AC-2.
+      4. Aggiornare tabella codice e sources con API, provider, migration, unit/e2e; collegare l'ADR.
+      5. Riportare status a generated e aggiornare catalog.
+
+      ## Verify
+      - Run: `archetipo wiki catalog`
+      - Expect: indice riallineato.
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: `data.ok: true`.
+      - Run: `rg -n "cache-client-calendario-collaboratore|api/attivita/calendario|300|History" docs/wiki/domains/attivita.md`
+      - Expect: contratto e decisione sono citati.
+
+      ## Done
+      - [ ] AC-2, AC-3, AC-4 — Il flusso osservato documenta zero-request fresh, staleness/invalidation e comportamento UI/URL con evidenze di codice e test.
+      - [ ] Solo `domains/attivita` cambia semanticamente e resta generated in attesa di review.
+
+      ## Blockers
+      Dipende da TASK-12.
+    ref: TASK-13
+  - id: TASK-14
+    title: 'Gate finale: CI, stabilità e chiusura di US-052'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+      - TASK-04
+      - TASK-06
+      - TASK-08
+      - TASK-10
+      - TASK-11
+      - TASK-12
+      - TASK-13
+    body: |-
+      ## Objective
+      Schema, codice, Wiki e suite complete sono verdi; ogni task US-052 è DONE prima di consentire la review.
+
+      ## Read
+      - `.github/workflows/ci.yml` — migrazioni, lint, unit, build ed e2e production.
+      - `tests/e2e/README.md` — tre esecuzioni consecutive con `--retries=0` e `fullyParallel: true`.
+      - `docs/test-results/US-052-calendario-performance.md` — evidenza finale.
+      - Questo piano e `archetipo spec show US-052` — stato task.
+
+      ## Change
+      - Nessun nuovo scope funzionale; solo correzioni minime nei file dei task precedenti se un gate fallisce.
+      - Non abilitare Cache Components per far passare un test e non ridurre worker/retry.
+
+      ## Steps
+      1. Eseguire i check Verify nell'ordine indicato; su fallimento correggere nel perimetro e ricominciare dal check coinvolto.
+      2. Confermare che la migrazione sia applicabile dal global setup Playwright e che la CI non manchi file generati/dipendenze.
+      3. Eseguire focused e2e production, poi tre suite complete consecutive con `--retries=0`.
+      4. Validare Wiki e record prestazionale.
+      5. Marcare TASK-14 DONE soltanto dopo tutti i check verdi.
+      6. Da project root eseguire `archetipo spec show US-052`, verificare nessun TODO; solo allora è consentito `archetipo spec review US-052`.
+
+      ## Verify
+      - Run: `npm run db:validate`
+      - Expect: schema valido.
+      - Run: `npm test`
+      - Expect: intera suite Vitest verde (baseline 37 file/576 test).
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npm run lint`
+      - Expect: ESLint e guardrail e2e verdi.
+      - Run: `npm run build`
+      - Expect: build Next verde, route pagina/API dinamiche e Cache Components disabilitato.
+      - Run: `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start" npx playwright test tests/e2e/calendario-cache-mesi.spec.ts tests/e2e/calendario-navigazione-reattiva.spec.ts tests/e2e/apertura-giorno-calendario.spec.ts tests/e2e/calendario-segregazione.spec.ts tests/e2e/calendario-etichette-clienti.spec.ts --retries=0`
+      - Expect: focused suite verde senza retry.
+      - Run: `for run in 1 2 3; do PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start" npx playwright test --retries=0 || exit 1; done`
+      - Expect: tre suite complete consecutive verdi, `fullyParallel: true` invariato.
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: `data.ok: true`.
+      - Run: `archetipo spec show US-052` (da `/Users/smarello/repo/coaching-planner`, dopo aver marcato DONE TASK-14)
+      - Expect: nessun task TODO.
+
+      ## Done
+      - [ ] AC-1 — Gate framework registrato correttamente senza uso di API instabili.
+      - [ ] AC-2 — Zero-request fresh verificato nella focused e nella full suite.
+      - [ ] AC-3 — ADR, TTL/invalidation e misure finali presenti e verdi.
+      - [ ] AC-4 — Regressioni calendario/UI/URL complete verdi.
+      - [ ] AC-5 — Cache Components non adottato; build e tre full e2e verdi comunque.
+      - [ ] `archetipo spec show US-052` conferma tutti i task DONE; solo allora si richiede review.
+
+      ## Blockers
+      Dipende da TASK-01, TASK-03, TASK-04, TASK-06, TASK-08, TASK-10, TASK-11, TASK-12 e TASK-13.
+    ref: TASK-14

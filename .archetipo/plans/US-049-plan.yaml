@@ -1,0 +1,325 @@
+schema: archetipo/plan/v2
+spec_code: US-049
+body: |-
+  ## Soluzione tecnica
+
+  Oggi il form della giornata (`src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx`) riceve i clienti da `clientiAttiviPerSelezione()` in `src/lib/attivita.ts`, che elenca tutti i clienti attivi. La select offerte è già filtrata per abilitazione (`offerteAbilitatePerCliente`, US-043) e le regole server su creazione/modifica restano fuori perimetro.
+
+  Modifiche previste:
+
+  1. **Query (AC-1)** — `clientiAttiviPerSelezione()` estende il `where` con `offerte: { some: { attiva: true, abilitazioniCollaboratori: { some: { collaboratoreId } } } }`, mantenendo invariati `select { id, ragioneSociale }` e `orderBy { ragioneSociale: "asc" }` (l'ordinamento già in uso). Nessuna nuova query né cambio di firma: il consumatore `[data]/page.tsx` resta invariato. Stesso pattern di filtro già usato da `offerteAbilitatePerCliente` sulla tabella `AbilitazioneOfferta` (relazioni `Cliente.offerte` e `Offerta.abilitazioniCollaboratori` in `prisma/schema.prisma`).
+  2. **UI stato vuoto (AC-2)** — quando l'elenco clienti è vuoto e il form è in modalità "Nuova riga", al posto della `<select id="cliente">` compare un box messaggio con `data-testid="nessun-cliente-abilitato"` (stesso pattern visivo del banner `nessuna-offerta-abilitata` esistente) che invita a contattare un amministratore; il submit "Aggiungi riga" è disabilitato.
+  3. **UI riga storica (AC-3)** — nuovo stato `clienteRigaInModifica`, valorizzato in `handleModifica` con il cliente della riga e azzerato su annulla/salvataggio riuscito; le option della select sono i clienti abilitati più, se mancante, quel cliente in coda (stesso pattern dell'iniezione dell'offerta storica). Il salvataggio a parità di offerta resta quello garantito da US-043: nessun cambiamento alle action server.
+  4. Il banner per-cliente `nessuna-offerta-abilitata` resta invariato: dopo il filtro è raggiungibile solo per revoca concorrente o cambiando esplicitamente cliente durante la modifica.
+
+  **Effetto collaterale governato:** il test e2e AC-3 di `tests/e2e/offerte-abilitate-inserimento.spec.ts` (US-043) oggi seleziona dalla select un cliente senza abilitazioni; dopo il filtro quel cliente non è più elencato e il test viene riscritto sul percorso ancora raggiungibile (cambio cliente esplicito in modifica). Tutti gli altri spec e2e che usano `#cliente` creano abilitazioni via factory e restano validi.
+
+  ## Decisioni architetturali
+
+  Nessun ADR: la soluzione applica la decisione esistente `decisions/abilitazioni-offerte-esplicite` (la tabella `AbilitazioneOfferta` come fonte del filtro) senza alternative architetturali materiali; il filtro in query è l'unico approccio coerente col pattern già in uso.
+
+  ## Baseline (29/07/2026, workdir = project root)
+
+  - `npx vitest run tests/unit/attivita.test.ts tests/unit/righe-attivita-actions.test.ts` → 59 passed.
+  - `npx vitest run` → 39 file, 622 test passed.
+  - `npx tsc --noEmit` → nessun errore.
+  - `npm run lint` → verde, incluso il guardrail e2e anti-flakiness.
+  - `archetipo wiki validate --profile bootstrap` → `ok: true` con un solo warning preesistente `WIKI_EVIDENCE_CHANGED` su `operations/development` (confine noto: non introdurre nuovi finding bloccanti).
+  - Suite e2e completa non eseguita in baseline (richiede Postgres locale migrato e seedato; Playwright avvia da solo il web server `npm run dev`). CI verde su main al commit `d878333`.
+  - Prerequisiti ambiente per gli e2e: Postgres in esecuzione, `npm run db:migrate` e `npm run db:seed` già eseguiti, browser Playwright installati.
+
+  ## Mappa delle evidenze di accettazione
+
+  - **AC-1** — livello: e2e browser + unit sul contratto query. Oracolo e2e: nella pagina giornata la select `#cliente` contiene la ragione sociale del cliente abilitato e non contiene quella del cliente attivo non abilitato. Fixture: collaboratore factory, due clienti factory ciascuno con offerta attiva, abilitazione su uno solo. Evidenza prodotta da TASK-04 (e TASK-02 per il payload esatto del `where`).
+  - **AC-2** — livello: e2e browser. Oracolo: `data-testid="nessun-cliente-abilitato"` visibile, `#cliente` assente dal DOM, bottone "Aggiungi riga" disabilitato. Fixture: collaboratore factory senza alcuna abilitazione, con almeno un cliente attivo con offerta attiva presente a sistema. Evidenza prodotta da TASK-04.
+  - **AC-3** — livello: e2e browser. Oracolo: dopo "Modifica" su una riga storica di un cliente non abilitato, `#cliente` ha `value` pari all'id del cliente della riga e ne mostra la ragione sociale; il salvataggio a parità di offerta (ore 4→6) produce la card aggiornata con "6.0 h". Fixture: riga factory su coppia cliente/offerta senza abilitazione. Evidenza prodotta da TASK-04.
+
+  ## Strategia di test
+
+  - **Unit (vitest, mock Prisma):** payload esatto del nuovo `where` di `clientiAttiviPerSelezione` e guardia `ErroreAutorizzazione`, nello stile del describe esistente `offerteAbilitatePerCliente` (TASK-02). L'oracolo è il contratto della query, visibile attraverso il mock del solo confine db.
+  - **E2E browser richiesti:** il percorso di accettazione attraversa rotta server, autenticazione e persistenza (abilitazioni): nessun livello inferiore prova l'esito osservabile della select. Il framework Playwright è già presente, nessun setup necessario. Nuovo spec `tests/e2e/clienti-abilitati-inserimento.spec.ts` con factory e mese riservato US-049 (TASK-04); adeguamento dell'e2e US-043 al nuovo filtro (TASK-05). Contratto anti-flakiness rispettato: factory, selezione per label/value, niente index né hard wait.
+  - Nessun test double nasconde gli oracoli: gli e2e attraversano lo stack reale.
+  - `Demonstrates` filmabile: sì (interazioni form nel browser); registrazione e decisione finale a carico di archetipo-review.
+
+  ## Impatto Wiki
+
+  `archetipo wiki affected` sui path attesi restituisce 4 candidati. Decisione reason-aware:
+
+  - **update:** `domains/attivita` — il contratto di `clientiAttiviPerSelezione` e il comportamento del form cambiano semanticamente (TASK-06).
+  - **fuori contratto:** `decisions/cache-client-calendario-collaboratore`, `decisions/tariffa-unica-collaboratore`, `engineering/code-map` — co-citazioni su `src/lib/attivita.ts`/test le cui conoscenze restano accurate; l'eventuale `evidence-changed` viene riconciliato in accettazione.
+  - **create:** nessuna. **read:** `domains/attivita`, `domains/collaboratori`, `decisions/abilitazioni-offerte-esplicite`.
+
+  ## Assunzioni
+
+  - «Ordinamento già in uso» = `ragioneSociale` ascendente, già applicato dalla query.
+  - Il messaggio AC-2 sostituisce la sola select cliente (lettura letterale della spec), lasciando visibile il resto del form ma con salvataggio disabilitato; il testo invita a contattare un amministratore.
+  - Nessun mockup: la modifica sostituisce una select con un messaggio nel form esistente, riusando il pattern visivo del banner già presente (nessuna nuova pagina, componente o ristrutturazione di layout).
+tasks:
+  - id: TASK-01
+    title: Filtra clientiAttiviPerSelezione sulle offerte abilitate del collaboratore
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      `clientiAttiviPerSelezione()` restituisce soltanto i clienti attivi per cui il collaboratore corrente ha almeno un'offerta attiva abilitata, nell'ordinamento esistente (AC-1).
+
+      ## Read
+      - src/lib/attivita.ts — funzione `clientiAttiviPerSelezione` (righe ~302-321, oggi `where: { attivo: true }`) e, come pattern di riferimento, `offerteAbilitatePerCliente` (righe ~333-357).
+      - prisma/schema.prisma — relazioni `Cliente.offerte`, `Offerta.abilitazioniCollaboratori`, modello `AbilitazioneOfferta` (coppia unica collaboratoreId/offertaId).
+
+      ## Change
+      - src/lib/attivita.ts — solo il corpo e il JSDoc di `clientiAttiviPerSelezione`. Non cambiare firma, `select`, `orderBy`, né altre funzioni del file; non toccare le server action né `offerteAbilitatePerCliente`.
+
+      ## Steps
+      1. Nel `db.cliente.findMany` estendi il `where` esistente aggiungendo a `attivo: true` la condizione `offerte: { some: { attiva: true, abilitazioniCollaboratori: { some: { collaboratoreId: collaboratore.id } } } }`.
+      2. Aggiorna il JSDoc: la funzione restituisce i soli clienti attivi su cui il collaboratore corrente ha almeno un'offerta attiva abilitata (US-049); ordinamento per ragione sociale invariato.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/attivita.test.ts` (workdir: root del progetto)
+      - Expect: tutti i test passed, nessun nuovo fallimento rispetto alla baseline (il file non copre ancora questa funzione).
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore (baseline pulita).
+
+      ## Done
+      - [ ] AC-1 — Il `where` contiene `attivo: true` più il filtro `offerte.some` su `attiva: true` e `abilitazioniCollaboratori.some.collaboratoreId`; `select { id, ragioneSociale }` e `orderBy { ragioneSociale: "asc" }` invariati.
+      - [ ] La guardia `ErroreAutorizzazione` per collaboratore assente resta invariata.
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test del contratto query dei clienti abilitati
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il contratto della query filtrata di `clientiAttiviPerSelezione` è provato da unit test con il payload Prisma esatto.
+
+      ## Read
+      - tests/unit/attivita.test.ts — mock hoisted di `@/lib/db` (righe 11-24, oggi espone solo `rigaAttivita` e `offerta`) e stile del describe `offerteAbilitatePerCliente` (righe 768-820).
+      - src/lib/attivita.ts — implementazione risultante da TASK-01.
+
+      ## Change
+      - tests/unit/attivita.test.ts — aggiungi `mockCliente` al mock db e un nuovo describe `clientiAttiviPerSelezione`. Nessuna modifica ai test esistenti.
+
+      ## Steps
+      1. Aggiungi `const mockCliente = vi.hoisted(() => ({ findMany: vi.fn() }))` e registralo nel `vi.mock("@/lib/db")` come `cliente: mockCliente`.
+      2. Importa `clientiAttiviPerSelezione` e crea un describe con due test, sul modello di quello di `offerteAbilitatePerCliente`:
+         - con collaboratore mockato (`id: "collab-giulia"`), asserisci che `mockCliente.findMany` sia chiamata una volta con esattamente `{ where: { attivo: true, offerte: { some: { attiva: true, abilitazioniCollaboratori: { some: { collaboratoreId: "collab-giulia" } } } } }, select: { id: true, ragioneSociale: true }, orderBy: { ragioneSociale: "asc" } }` e che il risultato sia il passthrough del valore mockato;
+         - con `richiediCollaboratoreCorrente` che risolve `null`, asserisci il reject con `ErroreAutorizzazione` e che `findMany` non sia mai chiamata.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/attivita.test.ts`
+      - Expect: tutti passed, inclusi i 2 nuovi test; nessun fallimento.
+
+      ## Done
+      - [ ] AC-1 — Il payload esatto del filtro clienti abilitati è asserito da un test verde (oracolo: argomenti di `db.cliente.findMany`).
+      - [ ] Il caso non autorizzato è coperto: reject `ErroreAutorizzazione` e nessuna query eseguita.
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Stato vuoto e cliente storico nella select del form attività
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il form giornata mostra un messaggio esplicito al posto della select cliente quando non esistono clienti abilitati (AC-2) e, in modifica, mantiene visibile e selezionato il cliente della riga storica anche se non più abilitato (AC-3).
+
+      ## Read
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — stato del form (`clienteId`, `modificaId`, `offerte`), `handleModifica` (righe ~299-349, pattern di iniezione dell'offerta storica), banner `nessuna-offerta-abilitata` (righe ~674-691, pattern visivo del box messaggio), condizione `disabled` del submit (~riga 835), reset in `handleSubmit` e `handleAnnulla`.
+      - src/app/(front-office)/attivita/[data]/page.tsx — tipo `ClienteSelect` e passaggio della prop `clienti`.
+
+      ## Change
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — solo: nuovo stato `clienteRigaInModifica`, calcolo delle option della select cliente, box messaggio AC-2, condizione disabled del submit, reset dello stato. Non toccare `handleCambioCliente`, la logica `clienteCambiatoDuranteModifica`/`nessunaOffertaAbilitata`, né le server action.
+
+      ## Steps
+      1. Aggiungi lo stato `const [clienteRigaInModifica, setClienteRigaInModifica] = useState<ClienteSelect | null>(null)`.
+      2. In `handleModifica`, prima del fetch offerte, `setClienteRigaInModifica({ id: riga.cliente.id, ragioneSociale: riga.cliente.ragioneSociale })`.
+      3. Azzera lo stato a `null` nel reset post-submit riuscito e in `handleAnnulla`.
+      4. Calcola con `useMemo` le option: `clientiSelezionabili` = `clienti` più `clienteRigaInModifica` in coda se il suo id non è già presente; usa questo array nel render delle `<option>` (AC-3: l'option esistente rende selezionato il cliente storico via `value={clienteId}`).
+      5. Deriva `const nessunClienteAbilitato = clienti.length === 0 && modificaId === null`.
+      6. Quando `nessunClienteAbilitato` è vero, al posto dell'elemento `<select id="cliente">` renderizza un box messaggio con `data-testid="nessun-cliente-abilitato"` (stesso pattern visivo del banner `nessuna-offerta-abilitata`) con testo: «Non hai offerte abilitate su alcun cliente. Contatta un amministratore per essere abilitato a registrare attività.». La label "Cliente" resta visibile.
+      7. Estendi il disabled del submit a `isPending || nessunaOffertaAbilitata || nessunClienteAbilitato`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore.
+      - Run: `npm run lint`
+      - Expect: verde come in baseline, nessun nuovo diagnostic sul file modificato.
+
+      ## Done
+      - [ ] AC-2 — Con elenco clienti vuoto in modalità "Nuova riga": messaggio con testid `nessun-cliente-abilitato` renderizzato, select cliente assente, "Aggiungi riga" disabilitato.
+      - [ ] AC-3 — In modifica di una riga il cui cliente non è nell'elenco, la select contiene e seleziona quel cliente; annulla e salvataggio riportano il form allo stato coerente (messaggio di nuovo visibile se l'elenco è vuoto).
+      - [ ] Il banner per-cliente `nessuna-offerta-abilitata` e la sua logica restano invariati.
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: 'E2E US-049: select clienti filtrata, stato vuoto e riga storica'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      Le tre AC di US-049 sono provate end-to-end nel browser con dati factory isolati, in un nuovo spec dedicato.
+
+      ## Read
+      - tests/e2e/offerte-abilitate-inserimento.spec.ts — pattern completo di riferimento (factory, `accediComeCollaboratore`, `meseRiservato`/`dataNelMese`, attesa offerte, gestione dialog).
+      - tests/e2e/support/fixtures.ts e tests/e2e/support/factory.ts — factory disponibili (`createCollaboratore`, `createCliente`, `createOfferta`, `createClienteConOfferta`, `createAbilitazioneOfferta`, `createRigaAttivita`).
+      - tests/e2e/support/date.ts — `meseRiservato` e `dataNelMese`; verifica se il codice US-049 va registrato nell'elenco dei mesi riservati.
+      - tests/e2e/demo__inserimento-righe-attivita.helpers.ts — `attendiOfferteCaricate`, `labelOffertaTest`.
+      - tests/e2e/README.md — contratto anti-flakiness del progetto.
+
+      ## Change
+      - tests/e2e/clienti-abilitati-inserimento.spec.ts — nuovo file: describe "US-049 Selezione cliente limitata alle offerte abilitate" con tre test, uno per AC. Se `meseRiservato` richiede la registrazione del codice, aggiungi la voce US-049 in tests/e2e/support/date.ts. Nessun'altra modifica.
+
+      ## Steps
+      1. Test AC-1: factory → collaboratore; `clienteAbilitato` con offerta attiva e `createAbilitazioneOfferta`; secondo cliente attivo con propria offerta attiva senza abilitazione. Login collaboratore, goto `/attivita/{dataNelMese(mese, 12)}?mese={mese}` con `mese = meseRiservato("US-049")`. Oracolo: `#cliente` `toContainText(clienteAbilitato.ragioneSociale)` e `not.toContainText` della ragione sociale del cliente non abilitato.
+      2. Test AC-2: factory → collaboratore senza alcuna abilitazione; un `createClienteConOfferta` attivo presente a sistema. Login, goto giorno 13 dello stesso mese riservato. Oracolo: `getByTestId("nessun-cliente-abilitato")` visibile; `page.locator("#cliente")` con count 0; bottone "Aggiungi riga" disabilitato.
+      3. Test AC-3: factory → collaboratore; `createClienteConOfferta` senza abilitazione; `createRigaAttivita` del collaboratore su quella coppia (giorno 14, ore "4.00", nota univoca con l'id del collaboratore). Login, goto giorno. Click "Modifica" sulla card individuata per nota. Oracoli: `#cliente` `toHaveValue(cliente.id)` e `toContainText(ragioneSociale)`; attendi `#offerta` `toHaveValue(offerta.id)`; cambia le ore in "6" e clicca "Salva modifiche"; la card aggiornata `toContainText("6.0 h")`.
+      4. Rispetta il contratto e2e: nessun `selectOption` per index, nessun hard wait, selettori per ruolo/label/testid, dati esclusivamente da factory, nessuna mutazione dei seed.
+
+      ## Verify
+      - Run: `npm run test:e2e -- tests/e2e/clienti-abilitati-inserimento.spec.ts` (prerequisiti: Postgres attivo, `npm run db:migrate` e `npm run db:seed` già eseguiti; Playwright avvia da solo il web server)
+      - Expect: 3 passed.
+      - Run: `npm run lint`
+      - Expect: verde, incluso il guardrail anti-flakiness.
+
+      ## Done
+      - [ ] AC-1 — provata dall'oracolo sulle option della select cliente (presenza abilitato, assenza non abilitato).
+      - [ ] AC-2 — provata da messaggio visibile, select assente e submit disabilitato.
+      - [ ] AC-3 — provata dal cliente storico visibile e selezionato e dal salvataggio a parità di offerta riuscito (card "6.0 h").
+
+      ## Blockers
+      Ambiente e2e: Postgres locale migrato e seedato, browser Playwright installati.
+    ref: TASK-04
+  - id: TASK-05
+    title: Adegua l'e2e US-043 alla select clienti filtrata
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      L'e2e di US-043 resta verde e significativo dopo il filtro della select clienti: lo scenario "nessuna offerta abilitata" è riscritto sul percorso ancora raggiungibile, il cambio cliente esplicito durante la modifica.
+
+      ## Read
+      - tests/e2e/offerte-abilitate-inserimento.spec.ts — test "AC-3: senza offerte abilitate compare l'avviso e il salvataggio è bloccato" (righe 67-103): oggi seleziona dalla select un cliente senza abilitazioni, che dopo US-049 non è più elencato in modalità nuova riga.
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — logica `clienteCambiatoDuranteModifica`/`nessunaOffertaAbilitata` e persistenza dell'option del cliente storico introdotta da TASK-03.
+      - tests/e2e/demo__inserimento-righe-attivita.helpers.ts — `attendiOfferteCaricate`.
+
+      ## Change
+      - tests/e2e/offerte-abilitate-inserimento.spec.ts — solo il test AC-3 (scenario e titolo) e il commento di testa del file. I test AC-1 e AC-4 restano invariati.
+
+      ## Steps
+      1. Nuovo scenario AC-3: factory → collaboratore; cliente A con offerta attiva SENZA abilitazione e `createRigaAttivita` del collaboratore su quella coppia (nota univoca); cliente B con offerta attiva CON `createAbilitazioneOfferta`.
+      2. Login, apri il giorno della riga (giorno 13 del mese riservato US-043), click "Modifica" sulla card; attendi `#offerta` `toHaveValue(offertaA.id)`.
+      3. Seleziona il cliente B (`selectOption(clienteB.id)`) e attendi il caricamento delle sue offerte; poi ri-seleziona il cliente A, ancora presente tra le option come cliente della riga in modifica.
+      4. Oracoli: `getByTestId("nessuna-offerta-abilitata")` visibile e bottone "Salva modifiche" disabilitato.
+      5. Aggiorna titolo del test e commento di testa del file: il percorso "nuova riga su cliente non abilitato" è precluso a monte da US-049; il banner protegge il cambio cliente esplicito in modifica.
+
+      ## Verify
+      - Run: `npm run test:e2e -- tests/e2e/offerte-abilitate-inserimento.spec.ts`
+      - Expect: 3 passed (AC-1 invariato, AC-3 riscritto, AC-4 invariato).
+      - Run: `npm run lint`
+      - Expect: verde, incluso il guardrail anti-flakiness.
+
+      ## Done
+      - [ ] Regressione US-043 — il banner "nessuna offerta abilitata" e il blocco del salvataggio restano provati sul percorso raggiungibile dopo il filtro.
+      - [ ] AC-3 (US-049) — la persistenza dell'option del cliente storico dopo un cambio cliente esplicito è confermata dal ritorno al cliente A.
+      - [ ] Nessun altro test del file modificato.
+
+      ## Blockers
+      Ambiente e2e: Postgres locale migrato e seedato, browser Playwright installati.
+    ref: TASK-05
+  - id: TASK-06
+    title: Aggiorna la pagina Wiki domains/attivita al nuovo contratto della select clienti
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+    body: |-
+      ## Objective
+      La pagina Wiki `domains/attivita` riflette il nuovo contratto di `clientiAttiviPerSelezione`, il comportamento del form e la relativa verifica.
+
+      ## Read
+      - docs/wiki/domains/attivita.md — sezioni Contratti, Flussi osservati, Codice, Verifica e frontmatter `sources`.
+      - src/lib/attivita.ts e src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — comportamento implementato (TASK-01 e TASK-03).
+
+      ## Change
+      - docs/wiki/domains/attivita.md — solo il contenuto delle sezioni citate, il frontmatter `sources` e `status`. Non toccare il blocco `review` né altre pagine Wiki.
+
+      ## Steps
+      1. Contratti: documenta che `clientiAttiviPerSelezione` restituisce i soli clienti attivi con almeno un'offerta attiva abilitata per il collaboratore corrente (ordinamento per ragione sociale invariato); che senza clienti abilitati il form mostra un messaggio esplicito al posto della select e il salvataggio di nuove righe non è disponibile; che in modifica il cliente della riga storica resta visibile e selezionato anche se non più abilitato, coerentemente con US-043.
+      2. Flussi osservati: aggiorna il flusso del form giornata di conseguenza (clienti filtrati, stato vuoto, cliente storico iniettato in modifica).
+      3. Frontmatter: aggiungi `clientiAttiviPerSelezione` ai symbol della source `src/lib/attivita.ts`; aggiungi `tests/e2e/clienti-abilitati-inserimento.spec.ts` con role `verification`.
+      4. Verifica: cita il nuovo describe unit di `tests/unit/attivita.test.ts` e il nuovo spec e2e, più l'adeguamento dello scenario US-043.
+      5. Imposta `status: generated` nel frontmatter: la riconferma spetta alla review di accettazione.
+
+      ## Verify
+      - Run: `archetipo wiki validate --profile bootstrap` (workdir: root del progetto)
+      - Expect: `data.ok: true`. Confine noto: warning `WIKI_EVIDENCE_CHANGED` preesistente su `operations/development`; ulteriori warning `evidence-changed` su pagine co-citate (`decisions/cache-client-calendario-collaboratore`, `decisions/tariffa-unica-collaboratore`, `engineering/code-map`, `domains/collaboratori`) sono attesi dopo il diff e vengono riconciliati in accettazione. Nessun finding `severity: error`.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3 — la conoscenza della pagina descrive il comportamento implementato, con fonti e sezione Verifica aggiornate e `status: generated`.
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Gate finale di verifica e pre-review
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+      - TASK-04
+      - TASK-05
+      - TASK-06
+    body: |-
+      ## Objective
+      Tutte le verifiche fidate dal repository sono verdi sul diff completo di US-049 e la spec è pronta per la richiesta di review.
+
+      ## Read
+      - Nessun file da leggere: questo task esegue esclusivamente i comandi di verifica elencati.
+
+      ## Change
+      - Nessuna modifica pianificata. Sono ammesse solo correzioni puntuali dei fallimenti causati dal diff di US-049 emersi dai comandi sotto, senza estendere il perimetro.
+
+      ## Steps
+      1. Da root del progetto esegui, nell'ordine, i comandi della sezione Verify.
+      2. Se un comando fallisce per causa riconducibile al diff di US-049, correggi e riesegui dall'inizio; se il fallimento è preesistente e non correlato, documentalo senza mascherarlo.
+      3. Marca questo task come DONE.
+      4. Da `data.project_root` esegui `archetipo spec show US-049` e conferma che nessun task del piano risulti `TODO`.
+      5. Solo dopo questa conferma richiedi la review con `archetipo spec review US-049`.
+
+      ## Verify
+      - Run: `npx vitest run`
+      - Expect: tutti i file passed; baseline 622 test, il conteggio cresce con i nuovi test e nessun fallimento.
+      - Run: `npx tsc --noEmit`
+      - Expect: nessun errore.
+      - Run: `npm run lint`
+      - Expect: verde, incluso il guardrail e2e anti-flakiness.
+      - Run: `npm run test:e2e -- tests/e2e/clienti-abilitati-inserimento.spec.ts tests/e2e/offerte-abilitate-inserimento.spec.ts`
+      - Expect: 6 passed.
+      - Run: `npm run test:e2e`
+      - Expect: nessun nuovo fallimento; la suite completa non è stata eseguita in baseline locale (CI verde su main a `d878333`): ogni fallimento va investigato e, se correlato al diff, risolto prima di procedere.
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: `data.ok: true`, nessun finding `severity: error` (warning evidence-changed attesi come da TASK-06).
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3 — tutte le evidenze unit ed e2e sono verdi con i comandi esatti sopra.
+      - [ ] Nessun nuovo diagnostic tsc/eslint sui file modificati rispetto alla baseline registrata nel piano.
+      - [ ] `archetipo spec show US-049` conferma tutti i task DONE prima della richiesta di review.
+
+      ## Blockers
+      Ambiente e2e: Postgres locale migrato e seedato, browser Playwright installati.
+    ref: TASK-07
