@@ -75,9 +75,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:0ceb2d1400f712e38d9d6ed8f879a8a9b4049fd5a0c0b8ba3a969b8495ecf1e3
-    evidence_revision: c90d43cc399b27fbe101a733acfe098501f18bb6
-    evidence_hash: sha256:4d907032bf743325a70cdee7b7b219967d1dac572fbd00eae4d305bf90cd7eff
-    reviewed_at: "2026-07-28T16:03:32Z"
+    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
+    evidence_hash: sha256:f6cac7081a9f51f7529cd946709d0ef8791b9544994f4784f9a4274c825b2e20
+    reviewed_at: "2026-07-29T06:10:15Z"
 ---
 # Collaboratori
 

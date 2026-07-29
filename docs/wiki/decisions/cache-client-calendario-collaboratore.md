@@ -2,7 +2,7 @@
 type: decision
 title: Cache client dei mesi del calendario collaboratore
 description: Isola SPA sul calendario con GET autenticato e cache in memoria della scheda, TTL 300 s e LRU 12, invece del runtime prefetching non stabile
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: src/app/(front-office)/attivita/calendario-cache.ts
@@ -35,6 +35,11 @@ sources:
       role: verification
     - path: tests/e2e/calendario-segregazione.spec.ts
       role: verification
+review:
+    content_hash: sha256:411a8c8741bb4d7eac4282a439bc05fd9c82594ae8147aa9f4516abceb6503f0
+    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
+    evidence_hash: sha256:b4828598e111d15604440b94a007813f5cfd97a1d3b850c186108ce56825e1f7
+    reviewed_at: "2026-07-29T06:10:05Z"
 ---
 # Cache client dei mesi del calendario collaboratore
 

@@ -27,9 +27,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:c0bfdf78062e1e7a9b1ccef4d460e3488b2d376f7a96a132f7729f17fae8107c
-    evidence_revision: c90d43cc399b27fbe101a733acfe098501f18bb6
-    evidence_hash: sha256:ee268ce3249afc0019c757ec7e8ce3c25d772ee35c8a7c04d1b737845db2a042
-    reviewed_at: "2026-07-28T16:03:32Z"
+    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
+    evidence_hash: sha256:907d149f4aa499380044fb30f2e0d07a6efce14506554ea89e56abfdf9b9427d
+    reviewed_at: "2026-07-29T06:10:15Z"
 ---
 # Cognome nella sezione anagrafica dell'utente
 

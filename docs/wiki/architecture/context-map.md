@@ -14,8 +14,9 @@ sources:
       role: shared-storage
 review:
     content_hash: sha256:21973190a8bd4b42e6a2409f325fc1957a60617750b5ab6eddd9f02e69967afe
-    evidence_revision: 5fc9a7123a36f4df4547156da614e3de5f037e58
-    reviewed_at: "2026-07-27T12:56:47Z"
+    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
+    evidence_hash: sha256:2788f1a5f75ed4f4dc65128abdd35392119d6df9ca979c9151b100e081d674eb
+    reviewed_at: "2026-07-29T06:10:15Z"
 ---
 # Mappa dei contesti candidati
 

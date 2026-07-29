@@ -22,8 +22,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:4eadb5883e3d5115caa791f620cd36debb13011f704c965bb22d1d4210436f92
-    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
-    reviewed_at: "2026-07-27T09:44:49Z"
+    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
+    evidence_hash: sha256:c3027e396230a8520370aa00f9a6604c0f383f326951e440a2c10df26bc3349e
+    reviewed_at: "2026-07-29T06:10:15Z"
 ---
 # Politiche di rimborso trasferta
 

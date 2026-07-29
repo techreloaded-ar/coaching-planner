@@ -41,9 +41,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:d004f3a752e82a16c5ee4cbd4a4b0654621a7ed9aa8ba5272e738bce16f15d44
-    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
-    evidence_hash: sha256:7a49623ce8bab3adaa2899e494359531cbdcf06ab77cd4d765608a537a0b41f4
-    reviewed_at: "2026-07-28T10:51:15Z"
+    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
+    evidence_hash: sha256:76b737a5b4dcd5d9e535f492f4a225a4246c975fd3922dbed531af969a44f092
+    reviewed_at: "2026-07-29T06:10:15Z"
 ---
 # Offerte
 
