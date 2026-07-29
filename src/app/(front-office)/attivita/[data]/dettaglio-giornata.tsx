@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useTransition } from "react";
+import { useState, useCallback, useMemo, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   creaRiga,
@@ -58,6 +58,43 @@ function validaOreLocale(input: string): string | null {
   if (Number(normalizzato) <= 0) return "Inserisci un numero maggiore di zero";
   if (Number(normalizzato) > 24) return "Non può superare 24 ore";
   return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Avviso di abilitazione mancante
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Box di avviso mostrato quando il collaboratore non ha offerte abilitate:
+ * sull'intera selezione clienti (US-049) o sul cliente selezionato (US-043).
+ */
+function AvvisoAbilitazioneMancante({
+  testId,
+  className = "",
+  children,
+}: {
+  testId: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      data-testid={testId}
+      className={`flex items-start gap-2 rounded-[9px] border border-amber-200 bg-amber-50 p-[10px_13px] text-[12.5px] font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400 ${className}`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        className="mt-px h-[14px] w-[14px] flex-none"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 11v5M12 7.6h.01" />
+      </svg>
+      {children}
+    </div>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -650,30 +687,25 @@ export default function DettaglioGiornata({
         <form onSubmit={handleSubmit} className="space-y-[15px]">
           {/* Cliente */}
           <div>
-            <label
-              htmlFor="cliente"
-              className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
-            >
-              Cliente <span className="text-rose-600">*</span>
-            </label>
+            {/* Senza select non c'è alcun controllo da etichettare: la voce
+                "Cliente" resta visibile come intestazione, non come label */}
             {nessunClienteAbilitato ? (
-              <div
-                data-testid="nessun-cliente-abilitato"
-                className="flex items-start gap-2 rounded-[9px] border border-amber-200 bg-amber-50 p-[10px_13px] text-[12.5px] font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
+              <p className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400">
+                Cliente <span className="text-rose-600">*</span>
+              </p>
+            ) : (
+              <label
+                htmlFor="cliente"
+                className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  className="mt-px h-[14px] w-[14px] flex-none"
-                >
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 11v5M12 7.6h.01" />
-                </svg>
+                Cliente <span className="text-rose-600">*</span>
+              </label>
+            )}
+            {nessunClienteAbilitato ? (
+              <AvvisoAbilitazioneMancante testId="nessun-cliente-abilitato">
                 Non hai offerte abilitate su alcun cliente. Contatta un
                 amministratore per essere abilitato a registrare attività.
-              </div>
+              </AvvisoAbilitazioneMancante>
             ) : (
               <select
                 id="cliente"
@@ -722,22 +754,12 @@ export default function DettaglioGiornata({
               ))}
             </select>
             {nessunaOffertaAbilitata && (
-              <div
-                data-testid="nessuna-offerta-abilitata"
-                className="mt-2 flex items-start gap-2 rounded-[9px] border border-amber-200 bg-amber-50 p-[10px_13px] text-[12.5px] font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
+              <AvvisoAbilitazioneMancante
+                testId="nessuna-offerta-abilitata"
+                className="mt-2"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  className="mt-px h-[14px] w-[14px] flex-none"
-                >
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 11v5M12 7.6h.01" />
-                </svg>
                 Nessuna offerta abilitata per questo cliente. Chiedi a un amministratore di abilitarti.
-              </div>
+              </AvvisoAbilitazioneMancante>
             )}
           </div>
 
