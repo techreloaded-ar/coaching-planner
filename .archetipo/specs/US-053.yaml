@@ -1,0 +1,36 @@
+schema: archetipo/spec/v2
+code: US-053
+title: Cambio rapido del giorno dal dettaglio attività
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: HIGH
+points: 2
+status: TODO
+body: |-
+  #### US-053: Cambio rapido del giorno dal dettaglio attività
+
+  **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 2 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio cambiare la data del giorno che sto visualizzando direttamente dalla pagina di dettaglio attività,
+  così da registrare e consultare attività su più giorni senza dover tornare ogni volta al calendario.
+
+  **Dimostrazione**
+  Partendo dalla pagina di dettaglio di un giorno con almeno una riga attività, il revisore usa il controllo di cambio data per selezionare un giorno diverso (anche di un altro mese) e osserva che la pagina mostra le righe del giorno scelto e l'URL riflette la nuova data. Il revisore poi preme "giorno precedente" e "giorno successivo" e osserva lo spostamento di un giorno alla volta. Infine aggiunge una riga attività dopo un cambio di data e osserva che la riga viene registrata sul giorno attualmente visualizzato, verificandolo nel calendario.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Dalla pagina di dettaglio giornata un controllo di selezione data permette di scegliere una data arbitraria, anche di un mese diverso; alla selezione la pagina mostra intestazione e righe del giorno scelto.
+  - [ ] AC-2 — Due controlli "giorno precedente" e "giorno successivo" spostano la vista di un giorno alla volta, attraversando correttamente i confini di mese.
+  - [ ] AC-3 — Dopo un cambio di data, l'aggiunta di una nuova riga la registra sul giorno attualmente visualizzato, non su quello di partenza.
+  - [ ] AC-4 — L'URL riflette sempre il giorno visualizzato: ricaricando la pagina o condividendo l'indirizzo si riapre lo stesso giorno.
+
+  **Fuori Perimetro**
+  Il ritorno al calendario e il mese su cui esso si apre restano al comportamento attuale. Nessuna modifica al form riga, alle validazioni o al riepilogo mensile.
+
+  **Contesto Wiki:** domains/attivita
+history:
+  - status: TODO
+    at: "2026-07-29T15:44:15Z"

@@ -1,0 +1,39 @@
+schema: archetipo/spec/v2
+code: US-054
+title: Scaglioni di rimborso a voci libere con selezione a tendina
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: HIGH
+points: 5
+status: TODO
+body: |-
+  #### US-054: Scaglioni di rimborso a voci libere con selezione a tendina
+
+  **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come amministratore,
+  voglio definire le voci di rimborso trasferta come etichette libere con un importo configurato, che il collaboratore seleziona da una tendina al posto dei chilometri percorsi,
+  così da semplificare la gestione dei rimborsi e coprire anche casi non legati alla distanza (es. "rimborso speciale per eventi").
+
+  **Dimostrazione**
+  Partendo dall'anagrafica scaglioni, il revisore crea una voce con etichetta libera (es. "Rimborso speciale per eventi") e un importo, e osserva che l'elenco la mostra con etichetta e importo, senza alcun campo di limite chilometrico. Il revisore poi accede come collaboratore, apre il dettaglio di un giorno e osserva che al posto del campo chilometri c'è una tendina con le voci configurate; seleziona una voce, salva la riga e osserva il rimborso nel riepilogo mensile. Infine, come amministratore, modifica l'importo della voce usata e osserva che la riga già salvata e il riepilogo mensile mantengono l'importo originale fotografato al salvataggio.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — L'amministratore crea, modifica ed elimina voci di rimborso composte da etichetta libera obbligatoria e importo; il limite chilometrico non esiste più né nel form né nell'elenco.
+  - [ ] AC-2 — Un importo assente, non positivo o con più di due decimali viene rifiutato con un messaggio di errore visibile e la voce non viene salvata.
+  - [ ] AC-3 — Nel form della riga attività il campo chilometri è sostituito da una tendina opzionale con le voci configurate, mostrate per etichetta; senza selezione la riga non ha rimborso trasferta.
+  - [ ] AC-4 — Al salvataggio la riga fotografa etichetta e importo correnti della voce selezionata; una successiva modifica della voce da parte dell'amministratore non cambia etichetta e importo mostrati sulla riga già salvata.
+  - [ ] AC-5 — L'eliminazione di una voce è sempre consentita: la voce sparisce dalla tendina per le nuove righe, mentre le righe già salvate continuano a mostrare etichetta e importo fotografati.
+  - [ ] AC-6 — Il riepilogo mensile del collaboratore e i report amministrativi sommano i rimborsi usando gli importi fotografati sulle righe.
+  - [ ] AC-7 — I dati chilometrici delle righe esistenti vengono rimossi in modo definitivo: nessuna riga preesistente mostra chilometri o rimborso trasferta dopo la migrazione.
+
+  **Fuori Perimetro**
+  Ordinamento manuale delle voci nella tendina (si assume l'ordine di creazione). Storicizzazione o versioning delle voci di rimborso. Retrocompatibilità con l'inserimento dei chilometri percorsi: il dato km scompare dall'applicazione. Report aggregati per voce di rimborso.
+
+  **Contesto Wiki:** domains/politiche-rimborso, domains/attivita, decisions/importi-decimali, decisions/calcoli-puri
+history:
+  - status: TODO
+    at: "2026-07-29T15:44:15Z"

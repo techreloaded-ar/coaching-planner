@@ -1,0 +1,36 @@
+schema: archetipo/spec/v2
+code: US-055
+title: Selezione diretta di un mese lontano nel calendario
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: HIGH
+points: 2
+status: TODO
+body: |-
+  #### US-055: Selezione diretta di un mese lontano nel calendario
+
+  **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 2 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio selezionare direttamente un mese e un anno nel calendario delle mie attività,
+  così da raggiungere un mese lontano da quello corrente senza scorrere tutti i mesi intermedi uno per uno.
+
+  **Dimostrazione**
+  Partendo dal calendario mensile sul mese corrente, il revisore usa il controllo di selezione diretta per scegliere un mese di un anno diverso e osserva che la griglia mostra il mese scelto e l'URL contiene il token `YYYY-MM` corrispondente. Il revisore poi preme "Mese corrente" e osserva il ritorno al mese odierno; infine, con la rete rallentata dagli strumenti del browser, salta a un altro mese lontano e osserva l'indicatore di caricamento esistente finché le celle non sono valorizzate.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Dal calendario un controllo permette di scegliere direttamente mese e anno; alla conferma la griglia mostra il mese scelto.
+  - [ ] AC-2 — Il salto diretto conserva il contratto dell'URL: il mese raggiunto è rappresentato dal token `YYYY-MM` nell'indirizzo, condivisibile e riapribile direttamente.
+  - [ ] AC-3 — Dopo un salto diretto, i controlli esistenti (mese precedente, successivo, "Mese corrente") continuano a funzionare in modo coerente dal mese raggiunto.
+  - [ ] AC-4 — Il salto verso un mese non ancora caricato mostra il medesimo feedback di attesa già presente per la navigazione mensile, che scompare quando le celle sono valorizzate.
+
+  **Fuori Perimetro**
+  Nessuna modifica alla cache client dei mesi, al prefetch dei mesi adiacenti o al contenuto delle celle. La stessa selezione rapida su altre pagine (es. report amministrativi).
+
+  **Contesto Wiki:** domains/attivita, decisions/cache-client-calendario-collaboratore
+history:
+  - status: TODO
+    at: "2026-07-29T15:44:15Z"
