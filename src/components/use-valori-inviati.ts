@@ -29,7 +29,7 @@ export interface MemoriaValoriInviati {
  * dell'idratazione verrebbe cancellato al primo render client.
  *
  * `alMemorizzare` serve ai form che devono risincronizzare uno stato derivato
- * dai valori inviati, come l'anteprima della fascia in `scaglione-form`.
+ * dai valori inviati, come farebbe `voce-rimborso-form`.
  */
 export function useValoriInviati(
   azione: (datiForm: FormData) => void,

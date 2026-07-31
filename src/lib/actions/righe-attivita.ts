@@ -7,8 +7,8 @@ import {
   type StatoProfiloCollaboratore,
 } from "@/lib/dal";
 import type { Collaboratore } from "@/generated/prisma/client";
-import { validaOre, validaKmTrasferta, calcolaRimborsoTrasferta } from "@/domain/consuntivi";
-import { offerteAbilitatePerCliente, scaglioniRimborsoTrasferta } from "@/lib/attivita";
+import { validaOre } from "@/domain/consuntivi";
+import { offerteAbilitatePerCliente } from "@/lib/attivita";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -126,40 +126,36 @@ async function verificaAbilitazioneOfferta(
 }
 
 /**
- * Valida il campo trasfertaKm lato server.
- * - vuoto => km null (nessuna trasferta)
- * - valore valido e coperto da scaglione => km intero
- * - oltre soglia massima => errore
+ * Fotografa etichetta e importo correnti della voce di rimborso selezionata.
+ *
+ * La riga conserva una copia dei valori al momento del salvataggio: modifiche
+ * successive al catalogo delle voci non devono alterare le righe già salvate.
+ * - selezione assente/vuota => nessun rimborso sulla riga
+ * - voce inesistente => errore
  */
-async function validaTrasfertaKmServer(
-  trasfertaKmRaw: string | null
-): Promise<ActionResult & { km?: number | null }> {
-  // Campo non presente o vuoto: nessuna trasferta
-  if (!trasfertaKmRaw || trasfertaKmRaw.trim() === "") {
-    return { success: true, km: null };
+async function fotografaVoceRimborsoTrasferta(
+  voceIdRaw: string | null
+): Promise<ActionResult & { etichetta?: string | null; importo?: string | null }> {
+  if (!voceIdRaw || voceIdRaw.trim() === "") {
+    return { success: true, etichetta: null, importo: null };
   }
 
-  // Validazione dominio: solo interi positivi
-  const validazione = validaKmTrasferta(trasfertaKmRaw);
-  if (!validazione.valido) {
-    return { success: false, error: validazione.errore };
+  const voce = await db.voceRimborsoTrasferta.findUnique({
+    where: { id: voceIdRaw },
+  });
+
+  if (!voce) {
+    return {
+      success: false,
+      error: "La voce di rimborso selezionata non è più disponibile",
+    };
   }
 
-  const km = validazione.valore!;
-
-  // Verifica che i km rientrino in uno scaglione
-  const scaglioni = await scaglioniRimborsoTrasferta();
-  const risultato = calcolaRimborsoTrasferta(km, scaglioni);
-
-  if (risultato.stato === "OLTRE_SOGLIA") {
-    return { success: false, error: risultato.messaggio };
-  }
-
-  if (risultato.stato === "NESSUNO_SCAGLIONE") {
-    return { success: false, error: risultato.messaggio };
-  }
-
-  return { success: true, km };
+  return {
+    success: true,
+    etichetta: voce.etichetta,
+    importo: voce.importo.toString(),
+  };
 }
 
 // ── Server Actions ──────────────────────────────────────────────
@@ -191,7 +187,9 @@ export async function creaRiga(
   const nota = (formData.get("nota") as string) || null;
   const fatturabileRaw = formData.get("fatturabile");
   const dataStr = formData.get("data") as string;
-  const trasfertaKmRaw = formData.get("trasfertaKm") as string | null;
+  const voceRimborsoTrasfertaIdRaw = formData.get("voceRimborsoTrasfertaId") as
+    | string
+    | null;
 
   // Validazione campi obbligatori
   if (!clienteId || !offertaId || !oreRaw || !dataStr) {
@@ -212,10 +210,12 @@ export async function creaRiga(
     return { success: false, error: risultatoOre.errore };
   }
 
-  // Validazione trasferta km
-  const validazioneKm = await validaTrasfertaKmServer(trasfertaKmRaw);
-  if (!validazioneKm.success) {
-    return { success: false, error: validazioneKm.error };
+  // Fotografia della voce di rimborso trasferta selezionata
+  const fotografiaRimborso = await fotografaVoceRimborsoTrasferta(
+    voceRimborsoTrasfertaIdRaw
+  );
+  if (!fotografiaRimborso.success) {
+    return { success: false, error: fotografiaRimborso.error };
   }
 
   // Validazione data
@@ -239,7 +239,8 @@ export async function creaRiga(
       ore: risultatoOre.valore!,
       nota,
       fatturabile,
-      trasfertaKm: validazioneKm.km ?? null,
+      rimborsoTrasfertaEtichetta: fotografiaRimborso.etichetta ?? null,
+      rimborsoTrasfertaImporto: fotografiaRimborso.importo ?? null,
     },
   });
 
@@ -325,14 +326,20 @@ export async function modificaRiga(
     updateData.ore = risultatoOre.valore!;
   }
 
-  // trasfertaKm: se il form contiene il campo
-  if (formData.has("trasfertaKm")) {
-    const trasfertaKmRaw = formData.get("trasfertaKm") as string | null;
-    const validazioneKm = await validaTrasfertaKmServer(trasfertaKmRaw);
-    if (!validazioneKm.success) {
-      return { success: false, error: validazioneKm.error };
+  // Rimborso trasferta: solo se il form contiene la selezione. Se il campo è
+  // assente il rimborso già fotografato sulla riga resta invariato.
+  if (formData.has("voceRimborsoTrasfertaId")) {
+    const voceRimborsoTrasfertaIdRaw = formData.get("voceRimborsoTrasfertaId") as
+      | string
+      | null;
+    const fotografiaRimborso = await fotografaVoceRimborsoTrasferta(
+      voceRimborsoTrasfertaIdRaw
+    );
+    if (!fotografiaRimborso.success) {
+      return { success: false, error: fotografiaRimborso.error };
     }
-    updateData.trasfertaKm = validazioneKm.km ?? null;
+    updateData.rimborsoTrasfertaEtichetta = fotografiaRimborso.etichetta ?? null;
+    updateData.rimborsoTrasfertaImporto = fotografiaRimborso.importo ?? null;
   }
 
   // nota: può essere stringa vuota (l'utente vuole rimuovere la nota)
@@ -415,12 +422,12 @@ export async function eliminaRiga(
 }
 
 /**
- * Rimuove la trasferta da una riga attività (imposta trasfertaKm a null).
+ * Rimuove il rimborso trasferta fotografato su una riga attività.
  * Verifica che la riga appartenga al collaboratore corrente.
  *
- * @param rigaId - ID della riga da cui rimuovere la trasferta
+ * @param rigaId - ID della riga da cui rimuovere il rimborso
  */
-export async function rimuoviTrasferta(
+export async function rimuoviRimborsoTrasferta(
   rigaId: string
 ): Promise<ActionResult> {
   const collaboratore = await richiediCollaboratoreOperativo();
@@ -447,7 +454,7 @@ export async function rimuoviTrasferta(
 
   await db.rigaAttivita.update({
     where: { id: rigaId },
-    data: { trasfertaKm: null },
+    data: { rimborsoTrasfertaEtichetta: null, rimborsoTrasfertaImporto: null },
   });
 
   if (riga) {

@@ -18,22 +18,24 @@ async function main() {
   await prisma.account.deleteMany();
   await prisma.verificationToken.deleteMany();
   await prisma.utente.deleteMany();
-  await prisma.scaglioneKm.deleteMany();
+  await prisma.voceRimborsoTrasferta.deleteMany();
   console.log("🧹 Dati esistenti rimossi.\n");
 
-  // ── Scaglioni Chilometrici ──────────────────────────────────
-  const scaglioni = await Promise.all([
-    prisma.scaglioneKm.create({
-      data: { finoAKm: 50, importo: "35.00" },
+  // ── Voci di Rimborso Trasferta ──────────────────────────────
+  const vociRimborsoTrasferta = await Promise.all([
+    prisma.voceRimborsoTrasferta.create({
+      data: { etichetta: "Rimborso trasferta breve", importo: "35.00" },
     }),
-    prisma.scaglioneKm.create({
-      data: { finoAKm: 100, importo: "60.00" },
+    prisma.voceRimborsoTrasferta.create({
+      data: { etichetta: "Rimborso trasferta media distanza", importo: "60.00" },
     }),
-    prisma.scaglioneKm.create({
-      data: { finoAKm: 250, importo: "110.00" },
+    prisma.voceRimborsoTrasferta.create({
+      data: { etichetta: "Rimborso trasferta lunga distanza", importo: "110.00" },
     }),
   ]);
-  console.log(`✓ Creati ${scaglioni.length} scaglioni chilometrici`);
+  console.log(
+    `✓ Create ${vociRimborsoTrasferta.length} voci di rimborso trasferta`,
+  );
 
   // ── Utente Amministratore ────────────────────────────────────
   // Account Google reale per la demo.
@@ -258,7 +260,8 @@ async function main() {
         ore: "6.50",
         nota: "Stesura documento di architettura",
         fatturabile: true,
-        trasfertaKm: 45,
+        rimborsoTrasfertaEtichetta: "Rimborso trasferta breve",
+        rimborsoTrasfertaImporto: "35.00",
       },
     }),
     // Giorno 4: 2 righe su offerte diverse (una include trasferta demo)
@@ -271,7 +274,8 @@ async function main() {
         ore: "7.00",
         nota: "Setup ambiente di sviluppo",
         fatturabile: true,
-        trasfertaKm: 150,
+        rimborsoTrasfertaEtichetta: "Rimborso trasferta lunga distanza",
+        rimborsoTrasfertaImporto: "110.00",
       },
     }),
     prisma.rigaAttivita.create({
@@ -294,7 +298,7 @@ async function main() {
   // più collaboratori. I giorni 5 e 9 sono scelti per non interferire con
   // gli scenari e2e (che usano i giorni 2, 3, 4, 6, 7).
   const attivitaSecondoCollaboratore = await Promise.all([
-    // Giorno 5: giornata piena fatturabile con trasferta entro scaglione (80 km → 60,00 €)
+    // Giorno 5: giornata piena fatturabile con rimborso trasferta media distanza (60,00 €)
     prisma.rigaAttivita.create({
       data: {
         collaboratoreId: secondoCollaboratore.id,
@@ -304,7 +308,8 @@ async function main() {
         ore: "8.00",
         nota: "Implementazione moduli infrastruttura cloud",
         fatturabile: true,
-        trasfertaKm: 80,
+        rimborsoTrasfertaEtichetta: "Rimborso trasferta media distanza",
+        rimborsoTrasfertaImporto: "60.00",
       },
     }),
     // Giorno 9: giornata piena fatturabile sulla stessa offerta

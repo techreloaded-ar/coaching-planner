@@ -5,10 +5,6 @@ import type { Locator, Page } from "@playwright/test";
 import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
-import {
-  intervalloNuoviScaglioniKm,
-  sogliaStabileInIntervallo,
-} from "./support/reserved-resources";
 
 /**
  * Demo scenario — US-051: Cursore e feedback di attesa uniformi su pulsanti e azioni
@@ -29,13 +25,6 @@ test.use({
   viewport: { width: 1280, height: 720 },
   launchOptions: { slowMo: 300 },
 });
-
-// Intervallo km riservato a questa demo: ScaglioneKm è globale con soglia unica.
-const INTERVALLO_KM_DEMO = intervalloNuoviScaglioniKm(
-  1_052_000,
-  1_052_999,
-  "tests/e2e/demo__cursore-e-feedback-attesa.spec.ts — US-051 demo attesa su eliminazione",
-);
 
 type TrattenutaPost = {
   rilascia: () => void;
@@ -106,7 +95,7 @@ test.describe("US-051 Demo", () => {
     factory,
     collaboratore,
     clienteConOfferta,
-  }, testInfo) => {
+  }) => {
     test.setTimeout(90_000);
 
     // ── 0. Dati di scena ────────────────────────────────────────────
@@ -114,8 +103,11 @@ test.describe("US-051 Demo", () => {
       ragioneSociale: `E2E US-051 Demo attesa ${randomUUID().slice(0, 8)}`,
       citta: "Torino",
     });
-    const km = sogliaStabileInIntervallo(INTERVALLO_KM_DEMO, testInfo.workerIndex);
-    await factory.createScaglioneKm({ finoAKm: km, importo: "38.00" });
+    const etichettaVoce = `E2E US-051 Demo voce ${randomUUID()}`;
+    await factory.createVoceRimborsoTrasferta({
+      etichetta: etichettaVoce,
+      importo: "38.00",
+    });
     await factory.createAbilitazioneOfferta({
       collaboratore,
       offerta: clienteConOfferta.offerta,
@@ -158,29 +150,32 @@ test.describe("US-051 Demo", () => {
     await gateSalvataggio.smetti();
 
     // ── 3. Azione distruttiva: il dialog resta aperto fino all'esito ──
-    await page.goto("/anagrafiche/scaglioni");
-    const tabellaScaglioni = page.locator(
-      "table[aria-label='Elenco scaglioni chilometrici']",
+    await page.goto("/anagrafiche/voci-rimborso");
+    const tabellaVociRimborso = page.locator(
+      "table[aria-label='Elenco voci di rimborso trasferta']",
     );
-    const rigaScaglione = tabellaScaglioni
+    const rigaVoce = tabellaVociRimborso
       .locator("tbody tr")
-      .filter({ hasText: `fino a ${km} km` })
+      .filter({ hasText: etichettaVoce })
       .first();
-    await expect(rigaScaglione).toBeVisible();
+    await expect(rigaVoce).toBeVisible();
 
-    const pulsanteEliminaRiga = rigaScaglione.getByRole("button", { name: "Elimina" });
+    const pulsanteEliminaRiga = rigaVoce.getByRole("button", { name: "Elimina" });
     await attendiIdratazione(pulsanteEliminaRiga);
     await expect.poll(() => cursoreCalcolato(pulsanteEliminaRiga)).toBe("pointer");
 
     await pulsanteEliminaRiga.click();
     const dialogEliminazione = page.getByRole("dialog", {
-      name: new RegExp(`Eliminare lo scaglione «fino a ${km} km»\\?`),
+      name: `Eliminare la voce «${etichettaVoce}»?`,
     });
     await expect(dialogEliminazione).toBeVisible();
 
-    const gateEliminazione = await trattieniPostDellaPagina(page, "/anagrafiche/scaglioni");
+    const gateEliminazione = await trattieniPostDellaPagina(
+      page,
+      "/anagrafiche/voci-rimborso",
+    );
     const confermaEliminazione = dialogEliminazione.getByRole("button", {
-      name: /^(?:Elimina scaglione|Eliminazione…)$/,
+      name: /^(?:Elimina voce|Eliminazione…)$/,
     });
     await confermaEliminazione.click();
 
@@ -189,7 +184,7 @@ test.describe("US-051 Demo", () => {
     await expect(dialogEliminazione).toBeVisible();
 
     gateEliminazione.rilascia();
-    await page.waitForURL("**/anagrafiche/scaglioni?esito=eliminato");
+    await page.waitForURL("**/anagrafiche/voci-rimborso?esito=eliminato");
     await expect(dialogEliminazione).toHaveCount(0);
     await gateEliminazione.smetti();
 

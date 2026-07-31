@@ -5,10 +5,6 @@ import type { Locator, Page } from "@playwright/test";
 import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
-import {
-  intervalloNuoviScaglioniKm,
-  sogliaStabileInIntervallo,
-} from "./support/reserved-resources";
 
 /**
  * Test e2e — US-051: Cursore e feedback di attesa uniformi su pulsanti e azioni
@@ -24,13 +20,6 @@ import {
  * trattenuta da una route registrata sulla pagina di destinazione e sbloccata
  * esplicitamente dal test dopo le asserzioni sullo stato di attesa.
  */
-
-// Intervallo km riservato a questa spec: ScaglioneKm è globale con soglia unica.
-const INTERVALLO_KM_US_051 = intervalloNuoviScaglioniKm(
-  1_051_000,
-  1_051_999,
-  "tests/e2e/feedback-attesa-azioni.spec.ts — US-051 attesa su eliminazione",
-);
 
 type TrattenutaPost = {
   /** Sblocca la POST trattenuta e la lascia proseguire verso il server. */
@@ -83,7 +72,7 @@ async function trattieniPostDellaPagina(
  * il form non passerebbe da `useFormStatus` ma da una POST documentale.
  *
  * Le tabelle offerte e il calendario espongono il contratto `data-idratata`;
- * il form cliente e la tabella scaglioni no, quindi si osserva la proprietà
+ * il form cliente e la tabella voci di rimborso no, quindi si osserva la proprietà
  * `__reactFiber$…` che React attacca al nodo DOM nel momento in cui lo idrata.
  * Resta un polling su stato osservabile, non un'attesa a tempo.
  */
@@ -179,22 +168,22 @@ test.describe("US-051 Feedback di attesa sulle azioni", () => {
     ).toBeVisible();
   });
 
-  test("AC-3/AC-1 — l'eliminazione di uno scaglione tiene il dialog aperto e il pulsante in attesa", async ({
+  test("AC-3/AC-1 — l'eliminazione di una voce di rimborso tiene il dialog aperto e il pulsante in attesa", async ({
     page,
     factory,
   }) => {
-    const km = sogliaStabileInIntervallo(INTERVALLO_KM_US_051, factory.namespace);
-    await factory.createScaglioneKm({ finoAKm: km, importo: "31.00" });
+    const etichetta = `Voce attesa ${randomUUID()}`;
+    await factory.createVoceRimborsoTrasferta({ etichetta, importo: "31.00" });
 
     await accediAlBackOfficeComeAdmin(page);
-    await page.goto("/anagrafiche/scaglioni");
+    await page.goto("/anagrafiche/voci-rimborso");
 
     const tabella = page.locator(
-      "table[aria-label='Elenco scaglioni chilometrici']",
+      "table[aria-label='Elenco voci di rimborso trasferta']",
     );
     const riga = tabella
       .locator("tbody tr")
-      .filter({ hasText: `fino a ${km} km` })
+      .filter({ hasText: etichetta })
       .first();
     await expect(riga).toBeVisible();
 
@@ -205,8 +194,8 @@ test.describe("US-051 Feedback di attesa sulle azioni", () => {
     await expect.poll(() => cursoreCalcolato(pulsanteEliminaRiga)).toBe("pointer");
 
     const dialogConferma = page.getByRole("dialog");
-    const dialogDelloScaglione = page.getByRole("dialog", {
-      name: new RegExp(`Eliminare lo scaglione «fino a ${km} km»\\?`),
+    const dialogDellaVoce = page.getByRole("dialog", {
+      name: `Eliminare la voce «${etichetta}»?`,
     });
 
     // Da chiuso il modale è `aria-hidden`: fuori dall'albero di accessibilità,
@@ -214,12 +203,12 @@ test.describe("US-051 Feedback di attesa sulle azioni", () => {
     await expect(dialogConferma).toHaveCount(0);
 
     await pulsanteEliminaRiga.click();
-    await expect(dialogDelloScaglione).toBeVisible();
+    await expect(dialogDellaVoce).toBeVisible();
 
-    const gate = await trattieniPostDellaPagina(page, "/anagrafiche/scaglioni");
+    const gate = await trattieniPostDellaPagina(page, "/anagrafiche/voci-rimborso");
 
     const confermaEliminazione = dialogConferma.getByRole("button", {
-      name: /^(?:Elimina scaglione|Eliminazione…)$/,
+      name: /^(?:Elimina voce|Eliminazione…)$/,
     });
     await confermaEliminazione.click();
 
@@ -228,16 +217,16 @@ test.describe("US-051 Feedback di attesa sulle azioni", () => {
     await expect(confermaEliminazione).toBeDisabled();
     await expect(confermaEliminazione).toHaveAttribute("aria-busy", "true");
     await expect(dialogConferma.getByText("Eliminazione…")).toBeVisible();
-    await expect(dialogDelloScaglione).toBeVisible();
+    await expect(dialogDellaVoce).toBeVisible();
 
     gate.rilascia();
 
     // AC-3: solo dopo l'esito il dialog si chiude e la riga sparisce.
-    await page.waitForURL("**/anagrafiche/scaglioni?esito=eliminato");
-    await expect(page.getByText("Scaglione eliminato")).toBeVisible();
+    await page.waitForURL("**/anagrafiche/voci-rimborso?esito=eliminato");
+    await expect(page.getByText("Voce di rimborso eliminata")).toBeVisible();
     await expect(dialogConferma).toHaveCount(0);
     await expect(
-      tabella.locator("tbody tr").filter({ hasText: `fino a ${km} km` }),
+      tabella.locator("tbody tr").filter({ hasText: etichetta }),
     ).toHaveCount(0);
 
     expect(gate.conteggioPost()).toBe(1);

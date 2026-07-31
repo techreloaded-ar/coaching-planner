@@ -2,7 +2,6 @@ import type {
 	Cliente,
 	Offerta,
 	RigaAttivita,
-	ScaglioneKm,
 } from "../../../src/generated/prisma/client";
 import { ORE_PER_GIORNATA } from "../../../src/domain/types";
 
@@ -13,8 +12,6 @@ const CODICE_SPEC_REPORT_FATTURAZIONE_CLIENTI =
 	"US-023-TASK-07-REPORT-FATTURAZIONE-CLIENTI";
 const CODICE_SPEC_REPORT_FATTURAZIONE_CLIENTI_VUOTO =
 	"US-023-TASK-08-REPORT-FATTURAZIONE-CLIENTI-VUOTO";
-const TRASFERTE_REPORT_KM_BASE = 20_000_000;
-const TRASFERTE_REPORT_KM_FINESTRA = 500_000;
 const EMAIL_REPORT_E2E_DOMAIN = "report-fatturazione.e2e.invalid";
 
 export type TotaliReportFatturazioneAttesi = {
@@ -44,7 +41,6 @@ export type DatasetReportFatturazioneClienti = {
 	cliente: Cliente;
 	offerta: Offerta;
 	collaboratori: CollaboratoreTestData[];
-	scaglioniTrasferta: ScaglioneKm[];
 	righeFatturabili: RigaAttivita[];
 	righeNonFatturabili: RigaAttivita[];
 	righeTrasferta: RigaAttivita[];
@@ -89,14 +85,6 @@ function importo(valore: number): string {
 	return valore.toFixed(2);
 }
 
-function soglieTrasfertaRiservate(namespace: string, codiceSpec: string): [number, number] {
-	const base =
-		TRASFERTE_REPORT_KM_BASE +
-		(hashStabile(`${namespace}:${codiceSpec}`) % (TRASFERTE_REPORT_KM_FINESTRA - 2));
-
-	return [base, base + 1];
-}
-
 /**
  * Crea un dataset isolato per il report fatturazione clienti in un mese passato
  * riservato dal registro date e restituisce i totali attesi già calcolati.
@@ -116,8 +104,6 @@ export async function creaDatasetReportFatturazioneClienti(
 	const suffisso = tokenBreve(`${factory.namespace}:${codiceSpec}:${mesiIndietro}`);
 	const tariffaGiornaliera = options.tariffaGiornaliera ?? "640.00";
 	const tariffa = Number(tariffaGiornaliera);
-	const [kmTrasfertaFatturabile, kmTrasfertaNonFatturabile] =
-		soglieTrasfertaRiservate(factory.namespace, codiceSpec);
 	const importoTrasfertaFatturabile = 35;
 	const importoTrasfertaNonFatturabile = 22.5;
 
@@ -146,16 +132,6 @@ export async function creaDatasetReportFatturazioneClienti(
 			},
 		}),
 	];
-	const scaglioniTrasferta = [
-		await factory.createScaglioneKm({
-			finoAKm: kmTrasfertaFatturabile,
-			importo: importo(importoTrasfertaFatturabile),
-		}),
-		await factory.createScaglioneKm({
-			finoAKm: kmTrasfertaNonFatturabile,
-			importo: importo(importoTrasfertaNonFatturabile),
-		}),
-	];
 
 	const rigaFatturabileIntera = await factory.createRigaAttivita({
 		collaboratore: collaboratori[0],
@@ -174,7 +150,8 @@ export async function creaDatasetReportFatturazioneClienti(
 		ore: "4.00",
 		nota: `Report fatturabile trasferta ${suffisso}`,
 		fatturabile: true,
-		trasfertaKm: kmTrasfertaFatturabile,
+		rimborsoTrasfertaEtichetta: `Trasferta fatturabile ${suffisso}`,
+		rimborsoTrasfertaImporto: importo(importoTrasfertaFatturabile),
 	});
 	const rigaNonFatturabileTrasferta = await factory.createRigaAttivita({
 		collaboratore: collaboratori[1],
@@ -184,7 +161,8 @@ export async function creaDatasetReportFatturazioneClienti(
 		ore: "6.00",
 		nota: `Report non fatturabile trasferta ${suffisso}`,
 		fatturabile: false,
-		trasfertaKm: kmTrasfertaNonFatturabile,
+		rimborsoTrasfertaEtichetta: `Trasferta non fatturabile ${suffisso}`,
+		rimborsoTrasfertaImporto: importo(importoTrasfertaNonFatturabile),
 	});
 
 	const righeFatturabili = [rigaFatturabileIntera, rigaFatturabileTrasferta];
@@ -211,7 +189,6 @@ export async function creaDatasetReportFatturazioneClienti(
 		cliente,
 		offerta,
 		collaboratori,
-		scaglioniTrasferta,
 		righeFatturabili,
 		righeNonFatturabili,
 		righeTrasferta,

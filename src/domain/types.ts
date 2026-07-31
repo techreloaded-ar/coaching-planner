@@ -54,10 +54,10 @@ export interface Collaboratore {
   updatedAt: Date;
 }
 
-/** Scaglione chilometrico per rimborsi trasferta */
-export interface ScaglioneKm {
+/** Voce di rimborso trasferta a etichetta libera */
+export interface VoceRimborsoTrasferta {
   id: string;
-  finoAKm: number;
+  etichetta: string;
   importo: number; // Decimal
   createdAt: Date;
   updatedAt: Date;
@@ -73,7 +73,8 @@ export interface RigaAttivita {
   ore: number;
   nota?: string;
   fatturabile: boolean;
-  trasfertaKm?: number;
+  rimborsoTrasfertaEtichetta?: string;
+  rimborsoTrasfertaImporto?: number;
   createdAt: Date;
   updatedAt: Date;
 }

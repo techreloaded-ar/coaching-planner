@@ -32,7 +32,7 @@ const IconUtenti = (
   </svg>
 );
 
-const IconScaglioni = (
+const IconVociRimborso = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
     <path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z" /><circle cx="12" cy="10" r="2.6" />
   </svg>
@@ -58,7 +58,7 @@ const NAV_ITEMS = [
   { href: "/offerte", label: "Offerte", icon: IconOfferte },
   { href: "/anagrafiche/collaboratori", label: "Collaboratori", icon: IconCollaboratori },
   { href: "/anagrafiche/utenti", label: "Utenti", icon: IconUtenti },
-  { href: "/anagrafiche/scaglioni", label: "Scaglioni km", icon: IconScaglioni },
+  { href: "/anagrafiche/voci-rimborso", label: "Voci di rimborso", icon: IconVociRimborso },
   { href: "/report/fatturazione-clienti", label: "Fatturazione clienti", icon: IconReport },
 ] as const;
 

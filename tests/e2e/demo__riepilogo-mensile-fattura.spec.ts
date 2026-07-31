@@ -101,7 +101,9 @@ function expectDeltaEsatto(
 
 async function creaScenarioRiepilogo(
   factory: E2eDataFactory,
-  { baselineTrasfertaKm }: { baselineTrasfertaKm?: number | null } = {},
+  {
+    baselineRimborso,
+  }: { baselineRimborso?: { etichetta: string; importo: string } | null } = {},
 ): Promise<ScenarioRiepilogo> {
   const seed = randomUUID().slice(0, 8);
   const mese = meseCorrenteToken();
@@ -127,7 +129,8 @@ async function creaScenarioRiepilogo(
     ore: "2.00",
     nota: `Baseline riepilogo ${seed}`,
     fatturabile: true,
-    trasfertaKm: baselineTrasfertaKm ?? null,
+    rimborsoTrasfertaEtichetta: baselineRimborso?.etichetta ?? null,
+    rimborsoTrasfertaImporto: baselineRimborso?.importo ?? null,
   });
 
   // Gli scenari che usano questa fixture aggiungono righe anche dal form
@@ -198,7 +201,9 @@ test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
   }) => {
     test.setTimeout(90_000);
 
-    const scenario = await creaScenarioRiepilogo(factory, { baselineTrasfertaKm: 50 });
+    const scenario = await creaScenarioRiepilogo(factory, {
+      baselineRimborso: { etichetta: "Baseline riepilogo mensile", importo: "50.00" },
+    });
     const notaNuova = `US-014 demo fatturabile ${randomUUID()}`;
 
     await accediComeCollaboratore(page, scenario.collaboratore.utente.email);
@@ -267,7 +272,9 @@ test.describe("US-014 — scenari complementari", () => {
   }) => {
     test.setTimeout(60_000);
 
-    const scenario = await creaScenarioRiepilogo(factory, { baselineTrasfertaKm: 50 });
+    const scenario = await creaScenarioRiepilogo(factory, {
+      baselineRimborso: { etichetta: "Baseline riepilogo mensile", importo: "50.00" },
+    });
     const notaNuova = `US-014 non fatturabile ${randomUUID()}`;
 
     await accediComeCollaboratore(page, scenario.collaboratore.utente.email);

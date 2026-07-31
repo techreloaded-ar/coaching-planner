@@ -8,12 +8,10 @@ import type {
   Offerta,
   Cliente,
   Collaboratore,
-  ScaglioneKm,
 } from "@/generated/prisma/client";
 import {
   calcolaReportFatturazioneClienti,
   type RigaReportFatturazione,
-  type ScaglioneRimborso,
   type ReportFatturazioneClienti,
 } from "@/domain/consuntivi";
 
@@ -90,15 +88,6 @@ export async function reportFatturazioneClientiMese(
     orderBy: { data: "asc" },
   });
 
-  const scaglioni: ScaglioneRimborso[] = (
-    await db.scaglioneKm.findMany({
-      orderBy: { finoAKm: "asc" },
-    })
-  ).map((s: ScaglioneKm) => ({
-    finoAKm: s.finoAKm,
-    importo: s.importo.toString(),
-  }));
-
   const righeMappate: RigaReportFatturazione[] = righe.map(
     (riga: RigaAttivitaConContesto) => ({
       clienteId: riga.clienteId,
@@ -111,11 +100,11 @@ export async function reportFatturazioneClientiMese(
       collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
       fatturabile: riga.fatturabile,
-      trasfertaKm: riga.trasfertaKm,
+      rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
     }),
   );
 
-  const report = calcolaReportFatturazioneClienti(righeMappate, scaglioni);
+  const report = calcolaReportFatturazioneClienti(righeMappate);
 
   return { token, ...report };
 }

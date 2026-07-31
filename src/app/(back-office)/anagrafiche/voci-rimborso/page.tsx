@@ -1,24 +1,24 @@
 import Link from "next/link";
 import { richiediRuolo } from "@/lib/dal";
-import { elencaScaglioni } from "@/lib/scaglioni";
-import ScaglioniTabella from "./scaglioni-tabella";
+import { elencaVociRimborso } from "@/lib/voci-rimborso";
+import VociRimborsoTabella from "./voci-rimborso-tabella";
 
-interface ScaglioniPageProps {
+interface VociRimborsoPageProps {
   searchParams: Promise<{ esito?: string }>;
 }
 
-export default async function ScaglioniPage({ searchParams }: ScaglioniPageProps) {
+export default async function VociRimborsoPage({ searchParams }: VociRimborsoPageProps) {
   await richiediRuolo("AMMINISTRATORE");
-  const scaglioni = await elencaScaglioni();
+  const vociRimborso = await elencaVociRimborso();
   const { esito } = await searchParams;
 
   const messaggioEsito =
     esito === "creato"
-      ? "Scaglione creato e inserito nella configurazione"
+      ? "Voce di rimborso creata e inserita nella configurazione"
       : esito === "salvato"
-        ? "Modifiche allo scaglione salvate"
+        ? "Modifiche alla voce di rimborso salvate"
         : esito === "eliminato"
-          ? "Scaglione eliminato: le fasce sono state ricalcolate"
+          ? "Voce di rimborso eliminata"
           : null;
 
   return (
@@ -40,32 +40,31 @@ export default async function ScaglioniPage({ searchParams }: ScaglioniPageProps
             Anagrafiche
           </div>
           <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
-            Scaglioni chilometrici
+            Voci di rimborso trasferta
           </h1>
           <p className="mt-[6px] max-w-[560px] text-[13px] text-zinc-400 dark:text-zinc-500">
-            Per ogni soglia di distanza definisci l&apos;importo forfettario del rimborso trasferta. Le fasce
-            sono contigue: ogni scaglione copre i chilometri fino alla sua soglia, a partire dalla soglia
-            precedente.
+            Per ogni voce definisci un&apos;etichetta descrittiva e l&apos;importo forfettario del
+            rimborso trasferta riconosciuto quando la voce viene applicata.
           </p>
         </div>
         <div className="mt-1 flex shrink-0 items-center gap-[10px]">
           <Link
-            href="/anagrafiche/scaglioni/nuovo"
+            href="/anagrafiche/voci-rimborso/nuovo"
             className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[15px] py-[9px] text-[13.5px] font-semibold text-white shadow-sm no-underline transition hover:bg-indigo-600"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
               <path d="M12 5v14M5 12h14" />
             </svg>
-            Nuovo scaglione
+            Nuova voce di rimborso
           </Link>
         </div>
       </div>
 
-      {/* Tabella scaglioni */}
-      <ScaglioniTabella
-        scaglioni={scaglioni.map((scaglione) => ({
-          ...scaglione,
-          importo: scaglione.importo.toString(),
+      {/* Tabella voci di rimborso */}
+      <VociRimborsoTabella
+        vociRimborso={vociRimborso.map((voce) => ({
+          ...voce,
+          importo: voce.importo.toString(),
         }))}
       />
     </div>

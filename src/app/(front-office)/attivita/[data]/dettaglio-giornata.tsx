@@ -6,14 +6,17 @@ import {
   creaRiga,
   modificaRiga,
   eliminaRiga,
-  rimuoviTrasferta,
+  rimuoviRimborsoTrasferta,
   fetchOffertePerCliente,
 } from "@/lib/actions/righe-attivita";
-import { calcolaRimborsoTrasferta, validaKmTrasferta } from "@/domain/consuntivi";
 import { giornoSpostatoDi, parseDataGiorno } from "@/domain/calendario";
 import { PulsanteAttesa } from "@/components";
 import { useCacheCalendario } from "../calendario-cache-provider";
-import type { RigaAttivitaClient, ClienteSelect, ScaglioneRimborsoSerializzato } from "./page";
+import type {
+  RigaAttivitaClient,
+  ClienteSelect,
+  VoceRimborsoTrasfertaSelezionabile,
+} from "./page";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -30,13 +33,21 @@ interface DettaglioGiornataProps {
   righeIniziali: RigaAttivitaClient[];
   /** Clienti attivi per la select */
   clienti: ClienteSelect[];
-  /** Scaglioni configurati per il calcolo rimborso trasferta */
-  scaglioni: ScaglioneRimborsoSerializzato[];
+  /** Voci di rimborso trasferta selezionabili nel form */
+  vociRimborso: VoceRimborsoTrasfertaSelezionabile[];
   /** Token mese (YYYY-MM) da preservare nella navigazione tra giorni, se disponibile */
   meseToken?: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
+
+/**
+ * Valore della tendina che significa "non toccare il rimborso già fotografato
+ * sulla riga": distinto sia da "" (rimuovi il rimborso) sia dall'id di una voce
+ * (rifotografa quella voce). Con questo valore il campo non viene nemmeno
+ * inviato nel FormData, così `modificaRiga` lascia la riga com'è.
+ */
+const SELEZIONE_RIMBORSO_INVARIATO = "invariato";
 
 function nomeGiorno(dataStr: string): string {
   const [a, m, g] = dataStr.split("-").map(Number);
@@ -109,7 +120,7 @@ export default function DettaglioGiornata({
   data,
   righeIniziali,
   clienti,
-  scaglioni,
+  vociRimborso,
   meseToken,
 }: DettaglioGiornataProps) {
   const router = useRouter();
@@ -152,9 +163,10 @@ export default function DettaglioGiornata({
   // trasferta): ne disabilita i pulsanti così da escludere i doppi click.
   const [rigaInAttesaId, setRigaInAttesaId] = useState<string | null>(null);
 
-  // Stato trasferta
-  const [trasfertaKmRaw, setTrasfertaKmRaw] = useState("");
-  const [erroreKm, setErroreKm] = useState<string | null>(null);
+  // Selezione della voce di rimborso: "" = nessun rimborso, l'id di una voce
+  // = rimborso da fotografare, SELEZIONE_RIMBORSO_INVARIATO = lascia intatto
+  // quello già fotografato sulla riga in modifica.
+  const [selezioneRimborso, setSelezioneRimborso] = useState("");
 
   // Modalità modifica
   const [modificaId, setModificaId] = useState<string | null>(null);
@@ -182,12 +194,11 @@ export default function DettaglioGiornata({
     const oreFatturabili = righe
       .filter((r) => r.fatturabile)
       .reduce((s, r) => s + r.ore, 0);
-    const totaleRimborsi = righe
-      .filter((r) => r.rimborso?.stato === "OK")
-      .reduce((s, r) => {
-        const importo = parseFloat(r.rimborso!.importo!);
-        return s + (isNaN(importo) ? 0 : importo);
-      }, 0);
+    const totaleRimborsi = righe.reduce((s, r) => {
+      if (r.rimborsoTrasfertaImporto == null) return s;
+      const importo = parseFloat(r.rimborsoTrasfertaImporto);
+      return s + (isNaN(importo) ? 0 : importo);
+    }, 0);
     return { nRighe, oreTotali, oreFatturabili, totaleRimborsi };
   }, [righe]);
 
@@ -224,14 +235,21 @@ export default function DettaglioGiornata({
   // compare un messaggio esplicito e il salvataggio non è disponibile (AC-2)
   const nessunClienteAbilitato = clienti.length === 0 && modificaId === null;
 
-  // ── Preview rimborso dalla distanza inserita ───────────────
+  // ── Preview della voce di rimborso selezionata ─────────────
 
-  const previewRimborso = useMemo(() => {
-    if (!trasfertaKmRaw || trasfertaKmRaw.trim() === "") return null;
-    const validazione = validaKmTrasferta(trasfertaKmRaw);
-    if (!validazione.valido) return null;
-    return calcolaRimborsoTrasferta(validazione.valore!, scaglioni);
-  }, [trasfertaKmRaw, scaglioni]);
+  const voceRimborsoSelezionata = useMemo(() => {
+    if (selezioneRimborso === "" || selezioneRimborso === SELEZIONE_RIMBORSO_INVARIATO) {
+      return null;
+    }
+    return vociRimborso.find((voce) => voce.id === selezioneRimborso) ?? null;
+  }, [selezioneRimborso, vociRimborso]);
+
+  // Riga aperta in modifica: serve a mostrare il rimborso già fotografato
+  // accanto alla tendina, senza che il select lo rappresenti come opzione.
+  const rigaInModifica = useMemo(
+    () => (modificaId ? righe.find((r) => r.id === modificaId) ?? null : null),
+    [modificaId, righe]
+  );
 
   // ── Cascade select cliente → offerte ───────────────────────
 
@@ -273,32 +291,6 @@ export default function DettaglioGiornata({
     setErroreOre(err);
   }, []);
 
-  // ── Validazione km inline ──────────────────────────────────
-
-  const handleCambioKm = useCallback((valore: string) => {
-    setTrasfertaKmRaw(valore);
-    if (valore.trim() === "") {
-      setErroreKm(null);
-      return;
-    }
-    const validazione = validaKmTrasferta(valore);
-    if (!validazione.valido) {
-      setErroreKm(validazione.errore ?? null);
-      return;
-    }
-    // Verifica anche che rientri in uno scaglione
-    const risultato = calcolaRimborsoTrasferta(validazione.valore!, scaglioni);
-    if (risultato.stato === "OLTRE_SOGLIA") {
-      setErroreKm(risultato.messaggio ?? "Distanza oltre la soglia massima");
-      return;
-    }
-    if (risultato.stato === "NESSUNO_SCAGLIONE") {
-      setErroreKm(risultato.messaggio ?? null);
-      return;
-    }
-    setErroreKm(null);
-  }, [scaglioni]);
-
   // ── Submit form ────────────────────────────────────────────
 
   const handleSubmit = useCallback(
@@ -318,12 +310,6 @@ export default function DettaglioGiornata({
         return;
       }
 
-      // Blocca submit se km non validi o oltre soglia
-      if (erroreKm) {
-        setErroreSubmit(erroreKm);
-        return;
-      }
-
       const fd = new FormData();
       fd.append("clienteId", clienteId);
       fd.append("offertaId", offertaId);
@@ -331,8 +317,11 @@ export default function DettaglioGiornata({
       fd.append("data", data);
       if (nota) fd.append("nota", nota);
       if (fatturabile) fd.append("fatturabile", "on");
-      // Trasferta: invia sempre il valore (anche vuoto per rimuovere)
-      fd.append("trasfertaKm", trasfertaKmRaw);
+      // Il campo viene omesso quando la tendina è su "invariato": è l'assenza
+      // stessa del campo a dire a `modificaRiga` di non rifotografare nulla.
+      if (selezioneRimborso !== SELEZIONE_RIMBORSO_INVARIATO) {
+        fd.append("voceRimborsoTrasfertaId", selezioneRimborso);
+      }
 
       // Il `finally` chiude l'attesa anche quando l'action rifiuta la riga: il
       // messaggio di errore compare con i campi ancora compilati e il pulsante
@@ -367,15 +356,14 @@ export default function DettaglioGiornata({
       setErroreOre(null);
       setFatturabile(true);
       setNota("");
-      setTrasfertaKmRaw("");
-      setErroreKm(null);
+      setSelezioneRimborso("");
       setModificaId(null);
       setOfferte([]);
       setErroreSubmit(null);
       setClienteCambiatoDuranteModifica(false);
       setClienteRigaInModifica(null);
     },
-    [clienteId, offertaId, ore, nota, fatturabile, trasfertaKmRaw, erroreKm, data, modificaId, invalidaMeseERicarica]
+    [clienteId, offertaId, ore, nota, fatturabile, selezioneRimborso, data, modificaId, invalidaMeseERicarica]
   );
 
   // ── Modifica riga ──────────────────────────────────────────
@@ -391,9 +379,8 @@ export default function DettaglioGiornata({
       setFatturabile(riga.fatturabile);
       setOre(riga.ore.toString().replace(".", ","));
       setNota(riga.nota ?? "");
-      setTrasfertaKmRaw(riga.trasfertaKm != null ? String(riga.trasfertaKm) : "");
+      setSelezioneRimborso(SELEZIONE_RIMBORSO_INVARIATO);
       setErroreOre(null);
-      setErroreKm(null);
       setErroreSubmit(null);
       // Ingresso in modifica sulla riga storica: non è un cambio cliente
       // esplicito dell'utente, quindi il banner "nessuna offerta" non deve
@@ -448,8 +435,7 @@ export default function DettaglioGiornata({
     setErroreOre(null);
     setFatturabile(true);
     setNota("");
-    setTrasfertaKmRaw("");
-    setErroreKm(null);
+    setSelezioneRimborso("");
     setOfferte([]);
     setErroreSubmit(null);
     setClienteCambiatoDuranteModifica(false);
@@ -514,15 +500,15 @@ export default function DettaglioGiornata({
     [invalidaMeseERicarica]
   );
 
-  // ── Rimuovi trasferta ──────────────────────────────────────
+  // ── Rimuovi rimborso ───────────────────────────────────────
 
-  const handleRimuoviTrasferta = useCallback(
+  const handleRimuoviRimborso = useCallback(
     async (rigaId: string) => {
-      if (!confirm("Rimuovere la trasferta da questa riga?")) return;
+      if (!confirm("Rimuovere il rimborso da questa riga?")) return;
 
       setRigaInAttesaId(rigaId);
       try {
-        const result = await rimuoviTrasferta(rigaId);
+        const result = await rimuoviRimborsoTrasferta(rigaId);
         if (result.success) {
           invalidaMeseERicarica();
         }
@@ -708,8 +694,8 @@ export default function DettaglioGiornata({
                   </div>
                 </div>
 
-                {/* Trasferta (se presente) */}
-                {riga.trasfertaKm != null && (
+                {/* Rimborso trasferta fotografato (se presente) */}
+                {riga.rimborsoTrasfertaEtichetta != null && (
                   <div className="mt-[8px] flex items-center gap-2 rounded-[7px] bg-amber-50 px-2.5 py-1.5 dark:bg-amber-950/30">
                     <svg
                       viewBox="0 0 24 24"
@@ -722,21 +708,11 @@ export default function DettaglioGiornata({
                       <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
                     </svg>
                     <span className="text-[11.5px] font-semibold text-amber-800 dark:text-amber-300">
-                      {riga.trasfertaKm} km
+                      {riga.rimborsoTrasfertaEtichetta}
                     </span>
-                    {riga.rimborso?.stato === "OK" && (
-                      <>
-                        <span className="text-[11px] text-amber-600 dark:text-amber-400">
-                          · {riga.rimborso.labelFascia}
-                        </span>
-                        <span className="ml-auto text-[13px] font-bold tabular-nums text-amber-800 dark:text-amber-300">
-                          € {parseFloat(riga.rimborso.importo!).toFixed(2)}
-                        </span>
-                      </>
-                    )}
-                    {riga.rimborso?.stato === "OLTRE_SOGLIA" && (
-                      <span className="text-[11px] text-red-600 dark:text-red-400">
-                        · {riga.rimborso.messaggio}
+                    {riga.rimborsoTrasfertaImporto != null && (
+                      <span className="ml-auto text-[13px] font-bold tabular-nums text-amber-800 dark:text-amber-300">
+                        € {parseFloat(riga.rimborsoTrasfertaImporto).toFixed(2)}
                       </span>
                     )}
                   </div>
@@ -761,11 +737,11 @@ export default function DettaglioGiornata({
                     </svg>
                     Modifica
                   </PulsanteAttesa>
-                  {riga.trasfertaKm != null && (
+                  {riga.rimborsoTrasfertaEtichetta != null && (
                     <PulsanteAttesa
                       type="button"
                       attesaEsterna={rigaInAttesaId === riga.id}
-                      onClick={() => handleRimuoviTrasferta(riga.id)}
+                      onClick={() => handleRimuoviRimborso(riga.id)}
                       className="inline-flex items-center gap-[5px] rounded-[8px] border border-amber-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-amber-700 transition hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300"
                     >
                       <svg
@@ -778,7 +754,7 @@ export default function DettaglioGiornata({
                         <path d="M6 17h12l1.5-5.5A2 2 0 0 0 17.6 9H6.4a2 2 0 0 0-1.9 2.5L6 17Z" />
                         <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
                       </svg>
-                      Rimuovi trasferta
+                      Rimuovi rimborso
                     </PulsanteAttesa>
                   )}
                   <PulsanteAttesa
@@ -921,37 +897,44 @@ export default function DettaglioGiornata({
             )}
           </div>
 
-          {/* Trasferta km */}
+          {/* Rimborso trasferta */}
           <div>
             <label
-              htmlFor="trasfertaKm"
+              htmlFor="voceRimborsoTrasferta"
               className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
             >
-              Distanza trasferta <span className="text-zinc-400 font-normal">(opzionale)</span>
+              Rimborso trasferta <span className="text-zinc-400 font-normal">(opzionale)</span>
             </label>
-            <div className="flex items-center">
-              <input
-                id="trasfertaKm"
-                type="text"
-                inputMode="numeric"
-                placeholder="es. 150"
-                value={trasfertaKmRaw}
-                onChange={(e) => handleCambioKm(e.target.value)}
-                className={`w-[140px] rounded-[8px] border bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:outline-none focus:ring-1 ${
-                  erroreKm
-                    ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-800"
-                    : "border-zinc-200 focus:border-rose-500 focus:ring-rose-500 dark:border-zinc-700"
-                } dark:bg-zinc-800 dark:text-zinc-200`}
-              />
-              <span className="ml-2 text-[13px] font-semibold text-zinc-500 dark:text-zinc-400">km</span>
-            </div>
-            {erroreKm && (
-              <p className="mt-1 text-[11.5px] font-medium text-red-600 dark:text-red-400">
-                {erroreKm}
+            <select
+              id="voceRimborsoTrasferta"
+              data-testid="voce-rimborso-trasferta"
+              value={selezioneRimborso}
+              onChange={(e) => setSelezioneRimborso(e.target.value)}
+              className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            >
+              {modificaId && (
+                <option value={SELEZIONE_RIMBORSO_INVARIATO}>
+                  Non modificare il rimborso attuale
+                </option>
+              )}
+              <option value="">Nessun rimborso</option>
+              {vociRimborso.map((voce) => (
+                <option key={voce.id} value={voce.id}>
+                  {voce.etichetta}
+                </option>
+              ))}
+            </select>
+            {modificaId && rigaInModifica?.rimborsoTrasfertaEtichetta != null && (
+              <p
+                data-testid="rimborso-attuale"
+                className="mt-1 text-[11.5px] font-medium text-zinc-500 dark:text-zinc-400"
+              >
+                Rimborso attuale: {rigaInModifica.rimborsoTrasfertaEtichetta}
+                {rigaInModifica.rimborsoTrasfertaImporto != null &&
+                  ` — €${parseFloat(rigaInModifica.rimborsoTrasfertaImporto).toFixed(2)}`}
               </p>
             )}
-            {/* Preview rimborso */}
-            {previewRimborso && previewRimborso.stato === "OK" && (
+            {voceRimborsoSelezionata && (
               <div className="mt-2 inline-flex items-center gap-2 rounded-[7px] bg-amber-50 px-3 py-1.5 dark:bg-amber-950/30">
                 <svg
                   viewBox="0 0 24 24"
@@ -964,22 +947,12 @@ export default function DettaglioGiornata({
                   <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
                 </svg>
                 <span className="text-[11.5px] font-semibold text-amber-800 dark:text-amber-300">
-                  Rimborso stimato: {previewRimborso.labelFascia}
+                  {voceRimborsoSelezionata.etichetta}
                 </span>
                 <span className="text-[13px] font-bold tabular-nums text-amber-800 dark:text-amber-300">
-                  € {parseFloat(previewRimborso.importo!).toFixed(2)}
+                  € {parseFloat(voceRimborsoSelezionata.importo).toFixed(2)}
                 </span>
               </div>
-            )}
-            {previewRimborso && previewRimborso.stato === "OLTRE_SOGLIA" && (
-              <p className="mt-1 text-[11.5px] font-medium text-red-600 dark:text-red-400">
-                {previewRimborso.messaggio}
-              </p>
-            )}
-            {!trasfertaKmRaw && (
-              <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">
-                Inserisci i km per vedere il rimborso automatico.
-              </p>
             )}
           </div>
 

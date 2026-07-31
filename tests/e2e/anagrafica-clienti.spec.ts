@@ -129,14 +129,14 @@ test.describe("Anagrafica clienti", () => {
 			"/anagrafiche/collaboratori",
 		);
 
-		const scaglioniLink = page.getByRole("link", {
-			name: "Scaglioni km",
+		const vociRimborsoLink = page.getByRole("link", {
+			name: "Voci di rimborso",
 			exact: true,
 		});
-		await expect(scaglioniLink).toBeVisible();
-		await expect(scaglioniLink).toHaveAttribute(
+		await expect(vociRimborsoLink).toBeVisible();
+		await expect(vociRimborsoLink).toHaveAttribute(
 			"href",
-			"/anagrafiche/scaglioni",
+			"/anagrafiche/voci-rimborso",
 		);
 
 	});

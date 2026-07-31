@@ -3,7 +3,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { richiediCollaboratoreCorrente, ErroreAutorizzazione } from "@/lib/dal";
 import { parseTokenMese } from "@/domain/calendario";
-import type { RigaAttivita, Offerta, Cliente, ScaglioneKm } from "@/generated/prisma/client";
+import type { RigaAttivita, Offerta, Cliente } from "@/generated/prisma/client";
 import type {
   DatiCalendarioMese,
   SintesiClienteGiorno,
@@ -11,7 +11,6 @@ import type {
 } from "@/lib/attivita-contract";
 import {
   calcolaRiepilogoMese,
-  type ScaglioneRimborso,
   type RigaRiepilogo,
   type VoceRiepilogoOfferta,
   type TotaliRiepilogoMese,
@@ -368,30 +367,33 @@ export async function offerteAbilitatePerCliente(
 }
 
 /**
- * Restituisce gli scaglioni km per il calcolo del rimborso trasferta.
+ * Restituisce le voci di rimborso trasferta selezionabili dal collaboratore.
  *
- * Accessibile al collaboratore autenticato (a differenza di src/lib/scaglioni.ts
+ * Accessibile al collaboratore autenticato (a differenza dell'area back-office
  * che è admin-only). Lancia ErroreAutorizzazione se non autenticato o se non
  * è un collaboratore.
  *
- * @returns Scaglioni ordinati per soglia crescente
+ * @returns Voci ordinate per data di creazione crescente
  */
-export async function scaglioniRimborsoTrasferta(): Promise<ScaglioneRimborso[]> {
+export async function vociRimborsoTrasfertaPerSelezione(): Promise<
+  { id: string; etichetta: string; importo: string }[]
+> {
   const collaboratore = await richiediCollaboratoreCorrente();
   if (!collaboratore) {
     throw new ErroreAutorizzazione(
       401,
-      "Devi essere un collaboratore per visualizzare gli scaglioni di rimborso"
+      "Devi essere un collaboratore per visualizzare le voci di rimborso"
     );
   }
 
-  const scaglioni = await db.scaglioneKm.findMany({
-    orderBy: { finoAKm: "asc" },
+  const voci = await db.voceRimborsoTrasferta.findMany({
+    orderBy: { createdAt: "asc" },
   });
 
-  return scaglioni.map((s: ScaglioneKm) => ({
-    finoAKm: s.finoAKm,
-    importo: s.importo.toString(),
+  return voci.map((voce) => ({
+    id: voce.id,
+    etichetta: voce.etichetta,
+    importo: voce.importo.toString(),
   }));
 }
 
@@ -435,23 +437,20 @@ export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMe
   const inizio = new Date(anno, mese - 1, 1);
   const fine = new Date(anno, mese, 0);
 
-  const [righeDb, scaglioni] = await Promise.all([
-    db.rigaAttivita.findMany({
-      where: {
-        collaboratoreId: collaboratore.id,
-        data: {
-          gte: inizio,
-          lte: fine,
-        },
+  const righeDb = await db.rigaAttivita.findMany({
+    where: {
+      collaboratoreId: collaboratore.id,
+      data: {
+        gte: inizio,
+        lte: fine,
       },
-      include: {
-        offerta: true,
-        cliente: true,
-      },
-      orderBy: { data: "asc" },
-    }),
-    scaglioniRimborsoTrasferta(),
-  ]);
+    },
+    include: {
+      offerta: true,
+      cliente: true,
+    },
+    orderBy: { data: "asc" },
+  });
 
   const tariffa = collaboratore.tariffaGiornaliera.toString();
   const righe: RigaRiepilogo[] = righeDb.map((riga) => ({
@@ -461,10 +460,10 @@ export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMe
     clienteRagioneSociale: riga.cliente.ragioneSociale,
     ore: Number(riga.ore),
     fatturabile: riga.fatturabile,
-    trasfertaKm: riga.trasfertaKm ?? null,
+    rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
   }));
 
-  const riepilogo = calcolaRiepilogoMese(righe, tariffa, scaglioni);
+  const riepilogo = calcolaRiepilogoMese(righe, tariffa);
 
   return {
     token,

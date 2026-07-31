@@ -2,7 +2,7 @@
 type: code-map
 title: Mappa del codice
 description: Matrice fisica fra capability candidate, codice, dati e test
-status: reviewed
+status: generated
 sources:
     - path: package.json
       role: manifest
@@ -87,7 +87,7 @@ coverage:
       pages:
         - domains/fatturazione-clienti
     - kind: capability
-      path: scaglioni
+      path: voci-rimborso
       status: mapped
       pages:
         - domains/politiche-rimborso
@@ -96,11 +96,6 @@ coverage:
       status: mapped
       pages:
         - domains/identita-accesso
-review:
-    content_hash: sha256:092d699ddb2e6e29f85df7340053ccf20b67824ca2f70be8d33ce45818c3d088
-    evidence_revision: c79a6cac3ce770cfeaa00738bb9357e26cabeae7
-    evidence_hash: sha256:0b9cb4141c98ed4d21186dd588173419cc78d4633cb3b6bd8d094a8708fcd9c1
-    reviewed_at: "2026-07-31T14:03:59Z"
 ---
 # Mappa del codice
 
@@ -112,9 +107,9 @@ review:
 | Clienti | `src/app/(back-office)/anagrafiche/clienti/**` | `src/lib/clienti.ts`, `src/domain/anagrafiche/valida-cliente.ts` | `Cliente` | Offerte, Attività, report | unit clienti/validazione; E2E anagrafica clienti | `domains.clienti` |
 | Collaboratori | `src/app/(back-office)/anagrafiche/collaboratori/**`, inclusa la sezione `[id]/abilitazioni-offerte.tsx` con dialog di ricerca e selezione multipla | `src/lib/collaboratori.ts`, validatore, parti di `dal.ts`; la lifecycle action utenti sincronizza il profilo; `src/lib/abilitazioni.ts` e `[id]/abilitazioni-actions.ts` per l'abilitazione esplicita su offerte; `scripts/backfill-abilitazioni-iniziali.ts` (pre-popolamento una tantum, esposto da `npm run db:backfill-abilitazioni` e agganciato anche a `prisma/seed.ts`) | `Collaboratore`, sincronizzazione coordinata con `Utente.attivo`; `AbilitazioneOfferta` | Identità, Attività, Offerte | unit collaboratori/DAL, cambio stato utente, abilitazioni/DAL e backfill abilitazioni; E2E collaboratori, gestione utenti e abilitazioni | `domains.collaboratori` |
 | Offerte | UI annidata cliente, compresa `offerte-cliente-tabella.tsx`, e `src/app/(back-office)/offerte/**`, entrambe con dettaglio avanzamento espandibile | `src/lib/offerte.ts`, inclusa query filtrata per cliente, validatore offerta, `calcolaAvanzamentoOfferte` | `Offerta`, relazione inversa `abilitazioniCollaboratori` verso `AbilitazioneOfferta` (posseduta da Collaboratori) | Clienti, Attività, Collaboratori | unit offerte/avanzamento; E2E offerte e dettaglio avanzamento nelle viste trasversale e cliente | `domains.offerte` |
-| Politiche rimborso | `src/app/(back-office)/anagrafiche/scaglioni/**` | `src/lib/scaglioni.ts`, validatore, `calcolaRimborsoTrasferta` | `ScaglioneKm` | Attività, Fatturazione | unit scaglioni/rimborso; E2E scaglioni/trasferta | `domains.politiche-rimborso` |
-| Attività | `src/app/(front-office)/attivita/**` | `src/lib/actions/righe-attivita.ts`, `src/lib/attivita.ts`, calendario e consuntivi | `RigaAttivita` | tutte le anagrafiche operative | unit attività/action/calendario/riepilogo; E2E attività | `domains.attivita` |
-| Fatturazione clienti | `src/app/(back-office)/report/fatturazione-clienti/**` | `src/lib/report.ts`, `calcolaReportFatturazioneClienti` | sola lettura di attività/offerte/clienti/scaglioni | nessuna esterna | unit ed E2E report fatturazione | `domains.fatturazione-clienti` |
+| Politiche rimborso | `src/app/(back-office)/anagrafiche/voci-rimborso/**` | `src/lib/voci-rimborso.ts`, `src/domain/anagrafiche/valida-voce-rimborso.ts` | `VoceRimborsoTrasferta` | Attività (sola fotografia al salvataggio, nessuna FK) | unit voci-rimborso DAL/action/validazione; E2E anagrafica voci di rimborso e selezione/fotografia | `domains.politiche-rimborso` |
+| Attività | `src/app/(front-office)/attivita/**` | `src/lib/actions/righe-attivita.ts`, `src/lib/attivita.ts`, calendario e consuntivi | `RigaAttivita`, inclusi i campi fotografati `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` | tutte le anagrafiche operative | unit attività/action/calendario/riepilogo; E2E attività e rimborso trasferta selezionato | `domains.attivita` |
+| Fatturazione clienti | `src/app/(back-office)/report/fatturazione-clienti/**` | `src/lib/report.ts`, `calcolaReportFatturazioneClienti` | sola lettura di attività/offerte/clienti, rimborsi già fotografati sulle righe | nessuna esterna | unit ed E2E report fatturazione | `domains.fatturazione-clienti` |
 | Identità e accesso | route Google, root, proxy e `src/app/(back-office)/anagrafiche/utenti/**` | OAuth adapter, session token/cookie, proxy di sola autenticazione e DAL autorevole; `src/lib/utenti.ts`, action, validatore, protezione ultimo amministratore e `scripts/bootstrap-amministratore-iniziale.ts` (bootstrap idempotente al deploy) | `Utente` con stato `attivo` e ruolo, `Account`; tabella `Session` non usata dal flusso | Google OIDC, Collaboratori per la sincronizzazione del profilo | unit session/proxy/DAL, callback, action utenti e bootstrap amministratore; E2E auth/ruoli e gestione utenti | `domains.identita-accesso` |
 
 <!-- archetipo:wiki section=shared -->

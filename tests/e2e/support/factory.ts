@@ -7,8 +7,8 @@ import type {
 	Offerta,
 	RigaAttivita,
 	Ruolo,
-	ScaglioneKm,
 	Utente,
+	VoceRimborsoTrasferta,
 } from "../../../src/generated/prisma/client";
 
 import { e2ePrisma, type E2ePrismaClient } from "./prisma";
@@ -70,11 +70,12 @@ export type CreateRigaAttivitaOptions = {
 	ore?: string | number;
 	nota?: string | null;
 	fatturabile?: boolean;
-	trasfertaKm?: number | null;
+	rimborsoTrasfertaEtichetta?: string | null;
+	rimborsoTrasfertaImporto?: string | number | null;
 };
 
-export type CreateScaglioneKmOptions = {
-	finoAKm: number;
+export type CreateVoceRimborsoTrasfertaOptions = {
+	etichetta: string;
 	importo: string | number;
 };
 
@@ -271,8 +272,8 @@ export class E2eDataFactory {
 
 		return insertReturning<RigaAttivita>(
 			this.prisma,
-			`INSERT INTO "RigaAttivita" ("id", "collaboratoreId", "clienteId", "offertaId", "data", "ore", "nota", "fatturabile", "trasfertaKm", "createdAt", "updatedAt")
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+			`INSERT INTO "RigaAttivita" ("id", "collaboratoreId", "clienteId", "offertaId", "data", "ore", "nota", "fatturabile", "rimborsoTrasfertaEtichetta", "rimborsoTrasfertaImporto", "createdAt", "updatedAt")
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 			 RETURNING *`,
 			[
 				randomUUID(),
@@ -285,23 +286,24 @@ export class E2eDataFactory {
 					? `Riga e2e ${this.namespace}`
 					: options.nota,
 				options.fatturabile ?? true,
-				options.trasfertaKm,
+				options.rimborsoTrasfertaEtichetta,
+				options.rimborsoTrasfertaImporto,
 				now,
 			],
 		);
 	}
 
-	async createScaglioneKm(
-		options: CreateScaglioneKmOptions,
-	): Promise<ScaglioneKm> {
+	async createVoceRimborsoTrasferta(
+		options: CreateVoceRimborsoTrasfertaOptions,
+	): Promise<VoceRimborsoTrasferta> {
 		const now = new Date();
 
-		return insertReturning<ScaglioneKm>(
+		return insertReturning<VoceRimborsoTrasferta>(
 			this.prisma,
-			`INSERT INTO "ScaglioneKm" ("id", "finoAKm", "importo", "createdAt", "updatedAt")
+			`INSERT INTO "VoceRimborsoTrasferta" ("id", "etichetta", "importo", "createdAt", "updatedAt")
 			 VALUES ($1, $2, $3, $4, $4)
 			 RETURNING *`,
-			[randomUUID(), options.finoAKm, options.importo, now],
+			[randomUUID(), options.etichetta, options.importo, now],
 		);
 	}
 

@@ -3,14 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   calcolaRiepilogoMese,
   type RigaRiepilogo,
-  type ScaglioneRimborso,
 } from "@/domain/consuntivi";
-
-const scaglioniDefault: ScaglioneRimborso[] = [
-  { finoAKm: 50, importo: "15.00" },
-  { finoAKm: 100, importo: "28.00" },
-  { finoAKm: 250, importo: "85.00" },
-];
 
 function riga(parziale: Partial<RigaRiepilogo> = {}): RigaRiepilogo {
   return {
@@ -20,14 +13,14 @@ function riga(parziale: Partial<RigaRiepilogo> = {}): RigaRiepilogo {
     clienteRagioneSociale: "Cliente Uno",
     ore: 8,
     fatturabile: true,
-    trasfertaKm: null,
+    rimborsoTrasfertaImporto: null,
     ...parziale,
   };
 }
 
 describe("calcolaRiepilogoMese", () => {
   it("restituisce un riepilogo vuoto per un mese senza righe", () => {
-    const result = calcolaRiepilogoMese([], 450, scaglioniDefault);
+    const result = calcolaRiepilogoMese([], 450);
 
     expect(result.perOfferta).toEqual([]);
     expect(result.importoFattura).toBe("0.00");
@@ -47,11 +40,7 @@ describe("calcolaRiepilogoMese", () => {
   });
 
   it("aggrega più righe sulla stessa offerta e calcola l'importo fattura", () => {
-    const result = calcolaRiepilogoMese(
-      [riga({ ore: 8 }), riga({ ore: 4 })],
-      450,
-      scaglioniDefault,
-    );
+    const result = calcolaRiepilogoMese([riga({ ore: 8 }), riga({ ore: 4 })], 450);
 
     expect(result.perOfferta).toHaveLength(1);
     expect(result.perOfferta[0]).toMatchObject({
@@ -80,7 +69,6 @@ describe("calcolaRiepilogoMese", () => {
         }),
       ],
       400,
-      scaglioniDefault,
     );
 
     expect(result.perOfferta).toHaveLength(2);
@@ -93,7 +81,6 @@ describe("calcolaRiepilogoMese", () => {
     const resultSoloNonFatturabile = calcolaRiepilogoMese(
       [riga({ ore: 4, fatturabile: false })],
       450,
-      scaglioniDefault,
     );
 
     expect(resultSoloNonFatturabile.totali.oreTotali).toBe(4);
@@ -103,7 +90,6 @@ describe("calcolaRiepilogoMese", () => {
     const resultMisto = calcolaRiepilogoMese(
       [riga({ ore: 8, fatturabile: true }), riga({ ore: 4, fatturabile: false })],
       450,
-      scaglioniDefault,
     );
 
     expect(resultMisto.totali.oreTotali).toBe(12);
@@ -112,21 +98,20 @@ describe("calcolaRiepilogoMese", () => {
     expect(resultMisto.importoFattura).toBe("450.00");
   });
 
-  it("somma i rimborsi validi ed esclude quelli oltre soglia", () => {
+  it("somma i rimborsi fotografati e ignora le righe senza rimborso", () => {
     const result = calcolaRiepilogoMese(
       [
-        riga({ ore: 8, trasfertaKm: 45 }),
+        riga({ ore: 8, rimborsoTrasfertaImporto: "15.00" }),
         riga({
           offertaId: "off-2",
           offertaCodice: "OFF-002",
           offertaDescrizione: "Workshop",
           clienteRagioneSociale: "Cliente Due",
           ore: 8,
-          trasfertaKm: 300,
+          rimborsoTrasfertaImporto: null,
         }),
       ],
       350,
-      scaglioniDefault,
     );
 
     expect(result.perOfferta[0]?.rimborsiTrasferta).toBe("15.00");
@@ -138,9 +123,8 @@ describe("calcolaRiepilogoMese", () => {
 
   it("formatta gli importi come stringhe con due decimali", () => {
     const result = calcolaRiepilogoMese(
-      [riga({ ore: 8, trasfertaKm: 100 })],
+      [riga({ ore: 8, rimborsoTrasfertaImporto: "28.00" })],
       "450",
-      scaglioniDefault,
     );
 
     expect(result.perOfferta[0]?.rimborsiTrasferta).toBe("28.00");

@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   calcolaReportFatturazioneClienti,
   type RigaReportFatturazione,
-  type ScaglioneRimborso,
 } from "@/domain/consuntivi";
 
 // ── Helper e dati di esempio ────────────────────────────────────
@@ -22,16 +21,10 @@ function riga(
     collaboratoreNome: "Mario Rossi",
     ore: 8,
     fatturabile: true,
-    trasfertaKm: null,
+    rimborsoTrasfertaImporto: null,
     ...modifiche,
   };
 }
-
-const scaglioni: ScaglioneRimborso[] = [
-  { finoAKm: 50, importo: "15.00" },
-  { finoAKm: 100, importo: "28.00" },
-  { finoAKm: 250, importo: "85.00" },
-];
 
 // ═══════════════════════════════════════════════════════════════
 // calcolaReportFatturazioneClienti
@@ -41,7 +34,7 @@ describe("calcolaReportFatturazioneClienti", () => {
   // ── Mese vuoto ─────────────────────────────────────────────
 
   it("restituisce un report vuoto con totali a zero quando non ci sono righe", () => {
-    const report = calcolaReportFatturazioneClienti([], scaglioni);
+    const report = calcolaReportFatturazioneClienti([]);
 
     expect(report.perCliente).toEqual([]);
     expect(report.totali).toEqual({
@@ -54,7 +47,7 @@ describe("calcolaReportFatturazioneClienti", () => {
   // ── Conversione ore → giornate e tariffa offerta ───────────
 
   it("converte 8 ore in una giornata applicando la tariffa dell'offerta", () => {
-    const report = calcolaReportFatturazioneClienti([riga({ ore: 8 })], scaglioni);
+    const report = calcolaReportFatturazioneClienti([riga({ ore: 8 })]);
 
     const cliente = report.perCliente[0];
     expect(cliente.perOfferta[0].giornateFatturabili).toBe(1);
@@ -68,7 +61,7 @@ describe("calcolaReportFatturazioneClienti", () => {
       riga({ ore: 4 }),
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     const offerta = report.perCliente[0].perOfferta[0];
     expect(offerta.giornateFatturabili).toBe(1.5);
@@ -82,7 +75,7 @@ describe("calcolaReportFatturazioneClienti", () => {
       riga({ ore: 8 }), // collaboratore B, stessa offerta/cliente
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     expect(report.perCliente).toHaveLength(1);
     const offerta = report.perCliente[0].perOfferta[0];
@@ -98,7 +91,7 @@ describe("calcolaReportFatturazioneClienti", () => {
       riga({ offertaId: "offerta-2", offertaCodice: "OFF-002", ore: 8, tariffaOffertaGiornaliera: 400 }),
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     expect(report.perCliente).toHaveLength(1);
     const cliente = report.perCliente[0];
@@ -126,7 +119,7 @@ describe("calcolaReportFatturazioneClienti", () => {
       }),
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     expect(report.perCliente).toHaveLength(2);
     expect(report.perCliente.map((c) => c.clienteRagioneSociale)).toEqual([
@@ -143,7 +136,7 @@ describe("calcolaReportFatturazioneClienti", () => {
       riga({ ore: 8, fatturabile: false }),
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     const offerta = report.perCliente[0].perOfferta[0];
     expect(offerta.giornateFatturabili).toBe(1);
@@ -153,7 +146,7 @@ describe("calcolaReportFatturazioneClienti", () => {
   it("non include un cliente con sole ore non fatturabili e nessun rimborso", () => {
     const righe = [riga({ ore: 8, fatturabile: false })];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     expect(report.perCliente).toEqual([]);
     expect(report.totali.imponibileManodopera).toBe("0.00");
@@ -161,10 +154,10 @@ describe("calcolaReportFatturazioneClienti", () => {
 
   // ── Ribaltamento rimborsi trasferta ────────────────────────
 
-  it("ribalta il rimborso trasferta (stato OK) al cliente corretto", () => {
-    const righe = [riga({ ore: 8, trasfertaKm: 150 })]; // scaglione fino a 250 → 85.00
+  it("ribalta il rimborso trasferta fotografato al cliente corretto", () => {
+    const righe = [riga({ ore: 8, rimborsoTrasfertaImporto: "85.00" })];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     const cliente = report.perCliente[0];
     expect(cliente.rimborsiTrasferta).toBe("85.00");
@@ -177,17 +170,17 @@ describe("calcolaReportFatturazioneClienti", () => {
         clienteId: "cliente-alfa",
         clienteRagioneSociale: "Alfa SPA",
         ore: 8,
-        trasfertaKm: 150,
+        rimborsoTrasfertaImporto: "85.00",
       }),
       riga({
         clienteId: "cliente-beta",
         clienteRagioneSociale: "Beta SRL",
         ore: 8,
-        trasfertaKm: null,
+        rimborsoTrasfertaImporto: null,
       }),
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     const alfa = report.perCliente.find((c) => c.clienteId === "cliente-alfa")!;
     const beta = report.perCliente.find((c) => c.clienteId === "cliente-beta")!;
@@ -195,23 +188,13 @@ describe("calcolaReportFatturazioneClienti", () => {
     expect(beta.rimborsiTrasferta).toBe("0.00");
   });
 
-  it("esclude dai rimborsi le trasferte oltre la soglia massima", () => {
-    const righe = [riga({ ore: 8, trasfertaKm: 300 })]; // oltre 250 → nessun rimborso
-
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
-
-    const cliente = report.perCliente[0];
-    expect(cliente.rimborsiTrasferta).toBe("0.00");
-    expect(cliente.importoTotale).toBe("500.00");
-  });
-
   it("somma più rimborsi trasferta validi dello stesso cliente", () => {
     const righe = [
-      riga({ ore: 8, trasfertaKm: 150 }), // 85.00
-      riga({ ore: 8, trasfertaKm: 30 }), // 15.00
+      riga({ ore: 8, rimborsoTrasfertaImporto: "85.00" }),
+      riga({ ore: 8, rimborsoTrasfertaImporto: "15.00" }),
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     expect(report.perCliente[0].rimborsiTrasferta).toBe("100.00");
   });
@@ -219,9 +202,9 @@ describe("calcolaReportFatturazioneClienti", () => {
   // ── Totali cliente e report ────────────────────────────────
 
   it("calcola il totale cliente come imponibile più rimborsi", () => {
-    const righe = [riga({ ore: 8, tariffaOffertaGiornaliera: 500, trasfertaKm: 150 })];
+    const righe = [riga({ ore: 8, tariffaOffertaGiornaliera: 500, rimborsoTrasfertaImporto: "85.00" })];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     const cliente = report.perCliente[0];
     expect(cliente.imponibileManodopera).toBe("500.00");
@@ -236,18 +219,18 @@ describe("calcolaReportFatturazioneClienti", () => {
         clienteRagioneSociale: "Alfa SPA",
         ore: 8,
         tariffaOffertaGiornaliera: 500,
-        trasfertaKm: 150,
+        rimborsoTrasfertaImporto: "85.00",
       }),
       riga({
         clienteId: "cliente-beta",
         clienteRagioneSociale: "Beta SRL",
         ore: 8,
         tariffaOffertaGiornaliera: 400,
-        trasfertaKm: 30,
+        rimborsoTrasfertaImporto: "15.00",
       }),
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     expect(report.totali.imponibileManodopera).toBe("900.00");
     expect(report.totali.totaleRimborsi).toBe("100.00");
@@ -259,7 +242,7 @@ describe("calcolaReportFatturazioneClienti", () => {
   it("formatta gli importi come stringhe con due decimali", () => {
     const righe = [riga({ ore: 2, tariffaOffertaGiornaliera: 500 })]; // 2/8 * 500 = 125
 
-    const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+    const report = calcolaReportFatturazioneClienti(righe);
 
     const cliente = report.perCliente[0];
     expect(cliente.perOfferta[0].imponibile).toBe("125.00");
@@ -271,7 +254,6 @@ describe("calcolaReportFatturazioneClienti", () => {
   it("accetta la tariffa offerta sia come numero sia come stringa", () => {
     const report = calcolaReportFatturazioneClienti(
       [riga({ ore: 8, tariffaOffertaGiornaliera: "500" })],
-      scaglioni,
     );
 
     expect(report.perCliente[0].perOfferta[0].imponibile).toBe("500.00");
@@ -308,7 +290,7 @@ describe("calcolaReportFatturazioneClienti", () => {
         }),
       ];
 
-      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+      const report = calcolaReportFatturazioneClienti(righe);
 
       const cliente = report.perCliente[0];
       const off1 = cliente.perOfferta.find((o) => o.offertaCodice === "OFF-001")!;
@@ -348,7 +330,7 @@ describe("calcolaReportFatturazioneClienti", () => {
         riga({ collaboratoreId: "ada", collaboratoreNome: "Ada", ore: 4 }),
       ];
 
-      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+      const report = calcolaReportFatturazioneClienti(righe);
 
       const perCollaboratore =
         report.perCliente[0].perOfferta[0].perCollaboratore;
@@ -366,7 +348,7 @@ describe("calcolaReportFatturazioneClienti", () => {
         riga({ collaboratoreId: "bruno", collaboratoreNome: "Bruno", ore: 8, fatturabile: false }),
       ];
 
-      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+      const report = calcolaReportFatturazioneClienti(righe);
 
       const offerta = report.perCliente[0].perOfferta[0];
       expect(offerta.perCollaboratore).toHaveLength(1);
@@ -382,7 +364,7 @@ describe("calcolaReportFatturazioneClienti", () => {
         riga({ collaboratoreId: "bruno", collaboratoreNome: "Bruno", ore: 4 }),
       ];
 
-      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+      const report = calcolaReportFatturazioneClienti(righe);
 
       const nomi = report.perCliente[0].perOfferta[0].perCollaboratore.map(
         (v) => v.collaboratoreNome,
@@ -406,7 +388,7 @@ describe("calcolaReportFatturazioneClienti", () => {
         }),
       ];
 
-      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+      const report = calcolaReportFatturazioneClienti(righe);
 
       const offerta = report.perCliente[0].perOfferta[0];
       expect(report.perCliente[0].imponibileManodopera).toBe("0.25");
@@ -452,7 +434,7 @@ describe("calcolaReportFatturazioneClienti", () => {
         }),
       ];
 
-      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+      const report = calcolaReportFatturazioneClienti(righe);
 
       const cliente = report.perCliente[0];
       const sommaVoci = cliente.perOfferta
@@ -489,7 +471,7 @@ describe("calcolaReportFatturazioneClienti", () => {
         }),
       ];
 
-      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+      const report = calcolaReportFatturazioneClienti(righe);
 
       const cliente = report.perCliente[0];
       expect(cliente.imponibileManodopera).toBe("2.81");
@@ -512,10 +494,10 @@ describe("calcolaReportFatturazioneClienti", () => {
 
     it("include un cliente con soli rimborsi come voce priva di offerte", () => {
       const righe = [
-        riga({ ore: 8, fatturabile: false, trasfertaKm: 150 }),
+        riga({ ore: 8, fatturabile: false, rimborsoTrasfertaImporto: "85.00" }),
       ];
 
-      const report = calcolaReportFatturazioneClienti(righe, scaglioni);
+      const report = calcolaReportFatturazioneClienti(righe);
 
       expect(report.perCliente).toHaveLength(1);
       const cliente = report.perCliente[0];

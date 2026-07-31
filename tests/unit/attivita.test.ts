@@ -62,7 +62,7 @@ function rigaFittizia(
     ore,
     nota: null,
     fatturabile: true,
-    trasfertaKm: null,
+    rimborsoTrasfertaImporto: null,
     createdAt: data,
     updatedAt: data,
     offerta: {

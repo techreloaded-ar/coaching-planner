@@ -329,8 +329,8 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     const notaRigaInAzione = `US-051 riga in azione ${randomUUID()}`;
     const notaRigaSpettatrice = `US-051 riga spettatrice ${randomUUID()}`;
 
-    // La riga in azione ha una trasferta, così espone tutti e tre i pulsanti
-    // governati da `rigaInAttesaId`.
+    // La riga in azione ha un rimborso trasferta fotografato, così espone tutti
+    // e tre i pulsanti governati da `rigaInAttesaId`.
     await factory.createRigaAttivita({
       collaboratore,
       cliente: clienteConOfferta.cliente,
@@ -338,7 +338,8 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
       data: new Date(`${data}T00:00:00.000Z`),
       ore: "4.00",
       nota: notaRigaInAzione,
-      trasfertaKm: 50,
+      rimborsoTrasfertaEtichetta: "Voce attesa front-office",
+      rimborsoTrasfertaImporto: "50.00",
     });
     await factory.createRigaAttivita({
       collaboratore,
@@ -367,8 +368,8 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
       name: "Modifica",
       exact: true,
     });
-    const rimuoviTrasfertaRigaInAzione = rigaInAzione.getByRole("button", {
-      name: "Rimuovi trasferta",
+    const rimuoviRimborsoRigaInAzione = rigaInAzione.getByRole("button", {
+      name: "Rimuovi rimborso",
       exact: true,
     });
     const eliminaRigaSpettatrice = rigaSpettatrice.getByRole("button", {
@@ -396,8 +397,8 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     await expect(eliminaRigaInAzione).toHaveAttribute("aria-busy", "true");
     await expect(modificaRigaInAzione).toBeDisabled();
     await expect(modificaRigaInAzione).toHaveAttribute("aria-busy", "true");
-    await expect(rimuoviTrasfertaRigaInAzione).toBeDisabled();
-    await expect(rimuoviTrasfertaRigaInAzione).toHaveAttribute(
+    await expect(rimuoviRimborsoRigaInAzione).toBeDisabled();
+    await expect(rimuoviRimborsoRigaInAzione).toHaveAttribute(
       "aria-busy",
       "true",
     );

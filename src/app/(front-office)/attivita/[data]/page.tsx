@@ -4,8 +4,11 @@ import {
   risolviProfiloCollaboratoreCorrente,
   verificaSessione,
 } from "@/lib/dal";
-import { righeDelGiorno, clientiAttiviPerSelezione, scaglioniRimborsoTrasferta } from "@/lib/attivita";
-import { calcolaRimborsoTrasferta, type RisultatoCalcoloRimborso } from "@/domain/consuntivi";
+import {
+  righeDelGiorno,
+  clientiAttiviPerSelezione,
+  vociRimborsoTrasfertaPerSelezione,
+} from "@/lib/attivita";
 import { parseDataGiorno } from "@/domain/calendario";
 import DettaglioGiornata from "./dettaglio-giornata";
 import StatoProfiloCollaboratore from "../stato-profilo-collaboratore";
@@ -19,8 +22,8 @@ export interface RigaAttivitaClient {
   ore: number;
   nota: string | null;
   fatturabile: boolean;
-  trasfertaKm: number | null;
-  rimborso: RisultatoCalcoloRimborso | null;
+  rimborsoTrasfertaEtichetta: string | null;
+  rimborsoTrasfertaImporto: string | null;
   offerta: {
     id: string;
     codice: string;
@@ -38,9 +41,10 @@ export interface ClienteSelect {
   ragioneSociale: string;
 }
 
-/** Scaglione rimborso serializzato per il client */
-export interface ScaglioneRimborsoSerializzato {
-  finoAKm: number;
+/** Voce di rimborso trasferta selezionabile nel form riga attività */
+export interface VoceRimborsoTrasfertaSelezionabile {
+  id: string;
+  etichetta: string;
   importo: string;
 }
 
@@ -86,44 +90,31 @@ export default async function DettaglioGiornataPage({
   }
 
   // Carica dati in parallelo
-  const [righe, clienti, scaglioniRaw] = await Promise.all([
+  const [righe, clienti, vociRimborso] = await Promise.all([
     righeDelGiorno(dataStr),
     clientiAttiviPerSelezione(),
-    scaglioniRimborsoTrasferta(),
+    vociRimborsoTrasfertaPerSelezione(),
   ]);
 
-  // Serializza scaglioni per il client (converte importo a stringa)
-  const scaglioni: ScaglioneRimborsoSerializzato[] = scaglioniRaw.map((s) => ({
-    finoAKm: s.finoAKm,
-    importo: typeof s.importo === "number" ? s.importo.toFixed(2) : String(s.importo),
-  }));
-
   // Serializza per il client component
-  const righeClient: RigaAttivitaClient[] = righe.map((r) => {
-    const rimborso: RisultatoCalcoloRimborso | null =
-      r.trasfertaKm != null
-        ? calcolaRimborsoTrasferta(r.trasfertaKm, scaglioniRaw)
-        : null;
-
-    return {
-      id: r.id,
-      data: formattaDataISO(r.data),
-      ore: Number(r.ore),
-      nota: r.nota,
-      fatturabile: r.fatturabile,
-      trasfertaKm: r.trasfertaKm ?? null,
-      rimborso,
-      offerta: {
-        id: r.offerta.id,
-        codice: r.offerta.codice,
-        descrizione: r.offerta.descrizione,
-      },
-      cliente: {
-        id: r.cliente.id,
-        ragioneSociale: r.cliente.ragioneSociale,
-      },
-    };
-  });
+  const righeClient: RigaAttivitaClient[] = righe.map((r) => ({
+    id: r.id,
+    data: formattaDataISO(r.data),
+    ore: Number(r.ore),
+    nota: r.nota,
+    fatturabile: r.fatturabile,
+    rimborsoTrasfertaEtichetta: r.rimborsoTrasfertaEtichetta,
+    rimborsoTrasfertaImporto: r.rimborsoTrasfertaImporto?.toString() ?? null,
+    offerta: {
+      id: r.offerta.id,
+      codice: r.offerta.codice,
+      descrizione: r.offerta.descrizione,
+    },
+    cliente: {
+      id: r.cliente.id,
+      ragioneSociale: r.cliente.ragioneSociale,
+    },
+  }));
 
   const clientiSelect: ClienteSelect[] = clienti;
 
@@ -156,7 +147,7 @@ export default async function DettaglioGiornataPage({
         data={dataStr}
         righeIniziali={righeClient}
         clienti={clientiSelect}
-        scaglioni={scaglioni}
+        vociRimborso={vociRimborso}
         meseToken={meseToken}
       />
     </>

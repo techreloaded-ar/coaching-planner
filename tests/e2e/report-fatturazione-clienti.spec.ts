@@ -10,10 +10,6 @@ import {
   meseVuotoReportFatturazioneClienti,
   type DatasetReportFatturazioneClienti,
 } from "./support/report-data";
-import {
-  intervalloNuoviScaglioniKm,
-  sogliaStabileInIntervallo,
-} from "./support/reserved-resources";
 
 /**
  * Test e2e — US-015/US-023: Report mensile degli importi da fatturare per cliente.
@@ -390,14 +386,6 @@ test.describe("Report fatturazione clienti", () => {
     const mese = mesePassatoRiservato(codiceSpec);
     const suffisso = randomUUID().slice(0, 8);
 
-    const intervalloKm = intervalloNuoviScaglioniKm(
-      1_037_000,
-      1_037_999,
-      "tests/e2e/report-fatturazione-clienti.spec.ts — US-037 solo rimborsi",
-    );
-    const kmRiservato = sogliaStabileInIntervallo(intervalloKm, factory.namespace);
-    await factory.createScaglioneKm({ finoAKm: kmRiservato, importo: "27.50" });
-
     const cliente = await factory.createCliente({
       ragioneSociale: `E2E US-037 Solo rimborsi ${suffisso}`,
     });
@@ -416,7 +404,8 @@ test.describe("Report fatturazione clienti", () => {
       data: dataRiservataReport(codiceSpec, 7),
       ore: "4.00",
       fatturabile: false,
-      trasfertaKm: kmRiservato,
+      rimborsoTrasfertaEtichetta: `US-037 Solo rimborsi ${suffisso}`,
+      rimborsoTrasfertaImporto: "27.50",
     });
 
     await page.goto(`/report/fatturazione-clienti?mese=${mese}`);

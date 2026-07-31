@@ -131,11 +131,11 @@ model Offerta {
   @@unique([codice, clienteId])
 }
 
-// ── Trasferte / Scaglioni Chilometrici ──────────────────────────
+// ── Trasferte / Voci di Rimborso ────────────────────────────────
 
-model ScaglioneKm {
+model VoceRimborsoTrasferta {
   id        String   @id @default(uuid())
-  finoAKm   Int      @unique
+  etichetta String
   importo   Decimal  @db.Decimal(10, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -144,17 +144,18 @@ model ScaglioneKm {
 // ── Attività Giornaliera ────────────────────────────────────────
 
 model RigaAttivita {
-  id              String   @id @default(uuid())
-  collaboratoreId String
-  clienteId       String
-  offertaId       String
-  data            DateTime @db.Date
-  ore             Decimal  @db.Decimal(4, 2)
-  nota            String?  @db.Text
-  fatturabile     Boolean  @default(true)
-  trasfertaKm     Int?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                         String   @id @default(uuid())
+  collaboratoreId            String
+  clienteId                  String
+  offertaId                  String
+  data                       DateTime @db.Date
+  ore                        Decimal  @db.Decimal(4, 2)
+  nota                       String?  @db.Text
+  fatturabile                Boolean  @default(true)
+  rimborsoTrasfertaEtichetta String?
+  rimborsoTrasfertaImporto   Decimal? @db.Decimal(10, 2)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
   collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
   cliente       Cliente       @relation(fields: [clienteId], references: [id])
