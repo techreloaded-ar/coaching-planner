@@ -183,3 +183,58 @@ export function costruisciGrigliaMese(token: string): CellaGiorno[] {
 
   return griglia;
 }
+
+// ── Aritmetica di giorno ────────────────────────────────────────
+
+export interface DataGiorno {
+  anno: number;
+  mese: number;
+  giorno: number;
+}
+
+/**
+ * Parsa una stringa "YYYY-MM-DD" restituendo anno, mese e giorno.
+ * Restituisce null se il formato non è valido o se la data non è
+ * civilmente esistente (es. 31 aprile, 30 febbraio).
+ */
+export function parseDataGiorno(dataStr: string): DataGiorno | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dataStr);
+  if (!match) return null;
+  const anno = parseInt(match[1], 10);
+  const mese = parseInt(match[2], 10);
+  const giorno = parseInt(match[3], 10);
+  const data = new Date(anno, mese - 1, giorno);
+  if (
+    data.getFullYear() !== anno ||
+    data.getMonth() !== mese - 1 ||
+    data.getDate() !== giorno
+  ) {
+    return null;
+  }
+  return { anno, mese, giorno };
+}
+
+/**
+ * Formatta una DataGiorno in stringa "YYYY-MM-DD".
+ */
+function formattaDataGiorno({ anno, mese, giorno }: DataGiorno): string {
+  const mm = String(mese).padStart(2, "0");
+  const dd = String(giorno).padStart(2, "0");
+  return `${anno}-${mm}-${dd}`;
+}
+
+/**
+ * Restituisce la data spostata di `delta` giorni rispetto a `dataStr`,
+ * attraversando correttamente i confini di mese e anno.
+ * Se `dataStr` non è una data valida, viene restituita invariata.
+ */
+export function giornoSpostatoDi(dataStr: string, delta: number): string {
+  const parsed = parseDataGiorno(dataStr);
+  if (!parsed) return dataStr;
+  const spostata = new Date(parsed.anno, parsed.mese - 1, parsed.giorno + delta);
+  return formattaDataGiorno({
+    anno: spostata.getFullYear(),
+    mese: spostata.getMonth() + 1,
+    giorno: spostata.getDate(),
+  });
+}

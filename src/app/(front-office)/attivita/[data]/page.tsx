@@ -6,6 +6,7 @@ import {
 } from "@/lib/dal";
 import { righeDelGiorno, clientiAttiviPerSelezione, scaglioniRimborsoTrasferta } from "@/lib/attivita";
 import { calcolaRimborsoTrasferta, type RisultatoCalcoloRimborso } from "@/domain/consuntivi";
+import { parseDataGiorno } from "@/domain/calendario";
 import DettaglioGiornata from "./dettaglio-giornata";
 import StatoProfiloCollaboratore from "../stato-profilo-collaboratore";
 
@@ -53,21 +54,6 @@ function formattaDataISO(data: Date): string {
   return `${a}-${m}-${g}`;
 }
 
-// ── Validazione data YYYY-MM-DD ─────────────────────────────────
-
-const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
-
-function dataValida(dataStr: string): boolean {
-  if (!RE_DATA.exec(dataStr)) return false;
-  const [anno, mese, giorno] = dataStr.split("-").map(Number);
-  const d = new Date(anno, mese - 1, giorno);
-  return (
-    d.getFullYear() === anno &&
-    d.getMonth() === mese - 1 &&
-    d.getDate() === giorno
-  );
-}
-
 // ═══════════════════════════════════════════════════════════════
 // Pagina
 // ═══════════════════════════════════════════════════════════════
@@ -95,7 +81,7 @@ export default async function DettaglioGiornataPage({
   const { mese: meseToken } = await searchParams;
 
   // Validazione data
-  if (!dataValida(dataStr)) {
+  if (!parseDataGiorno(dataStr)) {
     redirect("/attivita");
   }
 
@@ -166,10 +152,12 @@ export default async function DettaglioGiornataPage({
       </div>
 
       <DettaglioGiornata
+        key={dataStr}
         data={dataStr}
         righeIniziali={righeClient}
         clienti={clientiSelect}
         scaglioni={scaglioni}
+        meseToken={meseToken}
       />
     </>
   );

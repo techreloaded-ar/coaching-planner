@@ -10,6 +10,7 @@ import {
   fetchOffertePerCliente,
 } from "@/lib/actions/righe-attivita";
 import { calcolaRimborsoTrasferta, validaKmTrasferta } from "@/domain/consuntivi";
+import { giornoSpostatoDi, parseDataGiorno } from "@/domain/calendario";
 import { PulsanteAttesa } from "@/components";
 import { useCacheCalendario } from "../calendario-cache-provider";
 import type { RigaAttivitaClient, ClienteSelect, ScaglioneRimborsoSerializzato } from "./page";
@@ -31,6 +32,8 @@ interface DettaglioGiornataProps {
   clienti: ClienteSelect[];
   /** Scaglioni configurati per il calcolo rimborso trasferta */
   scaglioni: ScaglioneRimborsoSerializzato[];
+  /** Token mese (YYYY-MM) da preservare nella navigazione tra giorni, se disponibile */
+  meseToken?: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -107,6 +110,7 @@ export default function DettaglioGiornata({
   righeIniziali,
   clienti,
   scaglioni,
+  meseToken,
 }: DettaglioGiornataProps) {
   const router = useRouter();
   const cacheCalendario = useCacheCalendario();
@@ -452,6 +456,45 @@ export default function DettaglioGiornata({
     setClienteRigaInModifica(null);
   }, []);
 
+  // ── Navigazione tra giorni ───────────────────────────────────
+  //
+  // Il reset di un'eventuale modifica in corso quando cambia il giorno
+  // visualizzato (altrimenti un submit successivo aggiornerebbe silenziosamente
+  // una riga del giorno precedente, dato che `modificaRiga` non valida
+  // l'appartenenza della riga al giorno visualizzato) è delegato al remount
+  // del componente: `page.tsx` passa `key={data}` a `<DettaglioGiornata>`,
+  // così React azzera tutto lo stato locale (equivalente a `handleAnnulla`)
+  // ad ogni cambio giorno, senza richiamare setState in modo sincrono
+  // dentro un effect (vietato da `react-hooks/set-state-in-effect`).
+
+  const vaiAlGiorno = useCallback(
+    (nuovaData: string) => {
+      if (!parseDataGiorno(nuovaData)) return;
+      if (nuovaData === data) return;
+      // Il token mese del breadcrumb "Torna al calendario" segue sempre il
+      // giorno di destinazione, non quello di provenienza: altrimenti,
+      // attraversando un confine di mese, il breadcrumb continuerebbe a
+      // puntare al mese sbagliato (e l'errore si autoperpetuerebbe ad ogni
+      // cambio giorno successivo).
+      const meseTokenDestinazione = meseToken ? nuovaData.slice(0, 7) : null;
+      const href = meseTokenDestinazione
+        ? `/attivita/${nuovaData}?mese=${meseTokenDestinazione}`
+        : `/attivita/${nuovaData}`;
+      startTransition(() => {
+        router.push(href);
+      });
+    },
+    [data, meseToken, router]
+  );
+
+  const vaiAGiornoPrecedente = useCallback(() => {
+    vaiAlGiorno(giornoSpostatoDi(data, -1));
+  }, [data, vaiAlGiorno]);
+
+  const vaiAGiornoSuccessivo = useCallback(() => {
+    vaiAlGiorno(giornoSpostatoDi(data, 1));
+  }, [data, vaiAlGiorno]);
+
   // ── Elimina riga ───────────────────────────────────────────
 
   const handleElimina = useCallback(
@@ -496,6 +539,60 @@ export default function DettaglioGiornata({
 
   return (
     <div className="mx-auto w-full max-w-[1080px] px-8 py-7">
+      {/* ── Controllo cambio giorno ── */}
+      <div data-testid="controllo-cambio-giorno" className="mb-4 flex flex-wrap items-center gap-2.5">
+        <button
+          type="button"
+          onClick={vaiAGiornoPrecedente}
+          disabled={isPending}
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+          aria-label="Giorno precedente"
+          title="Giorno precedente"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            className="h-[18px] w-[18px]"
+          >
+            <path d="m15 6-6 6 6 6" />
+          </svg>
+        </button>
+
+        <label htmlFor="selettore-giorno" className="sr-only">
+          Vai al giorno
+        </label>
+        <input
+          id="selettore-giorno"
+          type="date"
+          data-testid="selettore-giorno"
+          value={data}
+          disabled={isPending}
+          onChange={(e) => vaiAlGiorno(e.target.value)}
+          className="rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:disabled:bg-zinc-800/50"
+        />
+
+        <button
+          type="button"
+          onClick={vaiAGiornoSuccessivo}
+          disabled={isPending}
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+          aria-label="Giorno successivo"
+          title="Giorno successivo"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            className="h-[18px] w-[18px]"
+          >
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </button>
+      </div>
+
       {/* ── Intestazione giornata ── */}
       <div className="mb-7">
         <div className="text-xs font-semibold capitalize text-rose-800 dark:text-rose-300">

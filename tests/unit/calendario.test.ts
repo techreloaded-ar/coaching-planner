@@ -7,6 +7,8 @@ import {
   mesePrecedente,
   meseSuccessivo,
   costruisciGrigliaMese,
+  parseDataGiorno,
+  giornoSpostatoDi,
 } from "@/domain/calendario";
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -265,5 +267,60 @@ describe("costruisciGrigliaMese", () => {
       expect(typeof cella.fuoriMese).toBe("boolean");
       expect(typeof cella.isWeekend).toBe("boolean");
     }
+  });
+});
+
+// ── parseDataGiorno ────────────────────────────────────────────
+
+describe("parseDataGiorno", () => {
+  it("parsa una data valida", () => {
+    expect(parseDataGiorno("2026-07-31")).toEqual({ anno: 2026, mese: 7, giorno: 31 });
+    expect(parseDataGiorno("2025-01-01")).toEqual({ anno: 2025, mese: 1, giorno: 1 });
+  });
+
+  it("restituisce null per formati non validi", () => {
+    expect(parseDataGiorno("2026-7-31")).toBeNull();
+    expect(parseDataGiorno("20260731")).toBeNull();
+    expect(parseDataGiorno("")).toBeNull();
+    expect(parseDataGiorno("abcd-ef-gh")).toBeNull();
+  });
+
+  it("restituisce null per date civilmente impossibili", () => {
+    expect(parseDataGiorno("2026-04-31")).toBeNull();
+    expect(parseDataGiorno("2026-02-30")).toBeNull();
+  });
+});
+
+// ── giornoSpostatoDi ───────────────────────────────────────────
+
+describe("giornoSpostatoDi", () => {
+  it("sposta di un giorno dentro lo stesso mese", () => {
+    expect(giornoSpostatoDi("2026-07-15", 1)).toBe("2026-07-16");
+    expect(giornoSpostatoDi("2026-07-15", -1)).toBe("2026-07-14");
+  });
+
+  it("attraversa il confine di fine mese in avanti", () => {
+    expect(giornoSpostatoDi("2026-07-31", 1)).toBe("2026-08-01"); // 31 giorni
+    expect(giornoSpostatoDi("2026-04-30", 1)).toBe("2026-05-01"); // 30 giorni
+  });
+
+  it("attraversa il confine di fine anno in avanti", () => {
+    expect(giornoSpostatoDi("2026-12-31", 1)).toBe("2027-01-01");
+  });
+
+  it("attraversa il confine di inizio mese a ritroso", () => {
+    expect(giornoSpostatoDi("2026-08-01", -1)).toBe("2026-07-31");
+  });
+
+  it("attraversa il confine di inizio anno a ritroso", () => {
+    expect(giornoSpostatoDi("2026-01-01", -1)).toBe("2025-12-31");
+  });
+
+  it("delta 0 restituisce la stessa data", () => {
+    expect(giornoSpostatoDi("2026-07-15", 0)).toBe("2026-07-15");
+  });
+
+  it("restituisce l'input invariato se non è una data valida", () => {
+    expect(giornoSpostatoDi("non-una-data", 1)).toBe("non-una-data");
   });
 });
