@@ -98,9 +98,9 @@ coverage:
         - domains/identita-accesso
 review:
     content_hash: sha256:092d699ddb2e6e29f85df7340053ccf20b67824ca2f70be8d33ce45818c3d088
-    evidence_revision: 471a818f5645f5e5829c2c8e5fbe0f71f48597ae
-    evidence_hash: sha256:9e25c2512d89ca9063ea48862c6b9c834554755422c1bf732e3b33bd8124866a
-    reviewed_at: "2026-07-29T14:55:34Z"
+    evidence_revision: c79a6cac3ce770cfeaa00738bb9357e26cabeae7
+    evidence_hash: sha256:0b9cb4141c98ed4d21186dd588173419cc78d4633cb3b6bd8d094a8708fcd9c1
+    reviewed_at: "2026-07-31T14:03:59Z"
 ---
 # Mappa del codice
 
