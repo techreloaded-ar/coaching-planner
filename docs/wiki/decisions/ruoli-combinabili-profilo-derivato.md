@@ -29,9 +29,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:edb36260a709fab3ad9dd2f5d1ae2f455988829842c108c90a81de60d49ea24d
-    evidence_revision: 471a818f5645f5e5829c2c8e5fbe0f71f48597ae
-    evidence_hash: sha256:9f58619f0a4d8ad8f248fae8fcf5160f2a35d4eddbdd43aaa754c6b52ca2136a
-    reviewed_at: "2026-07-29T14:55:44Z"
+    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+    evidence_hash: sha256:376ec702cdb58b3e813b7c6f666c75b2f44c0a6f47c615d7994f6e464cbceb43
+    reviewed_at: "2026-07-31T15:56:35Z"
 ---
 # Ruoli combinabili derivati dal profilo collaboratore
 

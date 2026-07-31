@@ -22,9 +22,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:d44ac4e8158b3649c76fa7c8989b2da3ee96a0ee811a9e5c8407e4e11ce6bf85
-    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
-    evidence_hash: sha256:0ae96dc7cd1d71b74c84a868077c2eff0307d1f7af7b97a165c202fc5c39e695
-    reviewed_at: "2026-07-29T06:10:15Z"
+    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+    evidence_hash: sha256:4e836c6317e69cecb0e7553137611ab2f21dffd80569f45177594ffd018e682e
+    reviewed_at: "2026-07-31T15:56:35Z"
 ---
 # Clienti
 

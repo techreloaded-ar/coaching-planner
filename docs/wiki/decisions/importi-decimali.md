@@ -2,7 +2,7 @@
 type: decision
 title: Importi monetari decimali
 description: Persistire gli importi monetari come Decimal per evitare errori contabili
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: docs/PRD.md
@@ -15,6 +15,11 @@ sources:
       role: implementation-status
     - path: tests/unit/report-fatturazione-clienti.test.ts
       role: verification
+review:
+    content_hash: sha256:fcf32cade6b9ad7f73dc4cc79171a09c768b15316ba61ca61d9b49f4611b02ff
+    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+    evidence_hash: sha256:da293eb15cbfc770540e3dbbb1502a66d2ac247cd1625e742fc1b9a8e3fcbf6d
+    reviewed_at: "2026-07-31T15:56:23Z"
 ---
 # Importi monetari decimali
 

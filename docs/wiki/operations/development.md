@@ -2,7 +2,7 @@
 type: operations
 title: Sviluppo e operazioni
 description: Sviluppo locale, build, test, CI, database e vincoli operativi
-status: generated
+status: reviewed
 sources:
     - path: package.json
       role: command-manifest
@@ -22,6 +22,11 @@ sources:
       role: runtime-configuration
     - path: scripts/bootstrap-amministratore-iniziale.ts
       role: deploy-bootstrap-command
+review:
+    content_hash: sha256:22d2d369973b7105590e304cee9d45c283688c486b04302aa4d6045029385eda
+    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+    evidence_hash: sha256:eca0aad2d8e1b4c5855f1a80304f3c7cc5cd91fc4df312b394b52e50d64bfe2f
+    reviewed_at: "2026-07-31T15:56:23Z"
 ---
 # Sviluppo e operazioni
 

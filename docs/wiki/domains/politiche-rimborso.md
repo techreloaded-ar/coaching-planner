@@ -2,7 +2,7 @@
 type: domain
 title: Politiche di rimborso trasferta
 description: Configurazione globale delle voci di rimborso trasferta a etichetta libera e importo forfettario
-status: generated
+status: reviewed
 classification: candidate
 sources:
     - path: src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts
@@ -23,6 +23,11 @@ sources:
       role: verification
     - path: tests/e2e/anagrafica-voci-rimborso.spec.ts
       role: verification
+review:
+    content_hash: sha256:6d6287901e7f76ef4060d3f08d89f731945a71350b6bcb33ab04578df711161e
+    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+    evidence_hash: sha256:ffb7bfe1e94bfaf5f22d38e1c5ec5e94629eef739b26aa481f79bc22bd1e85e9
+    reviewed_at: "2026-07-31T15:56:23Z"
 ---
 # Politiche di rimborso trasferta
 

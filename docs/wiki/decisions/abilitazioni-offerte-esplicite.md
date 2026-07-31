@@ -18,9 +18,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:1821d50e50fcfa7a4d72cffb6ff3fafe28d93c968c0fd1e0d876963c5fb826b7
-    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
-    evidence_hash: sha256:c8df27b3bca95d1a0b46c3391d6f92f80ecd198bc9088b5e60838879f6f3994d
-    reviewed_at: "2026-07-29T06:10:15Z"
+    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+    evidence_hash: sha256:a3b49db09cb06ddc025d6a109293884063e1de86156c5436c6e037da5fc79c24
+    reviewed_at: "2026-07-31T15:56:35Z"
 ---
 # Abilitazioni esplicite collaboratore-offerta
 

@@ -37,9 +37,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:411a8c8741bb4d7eac4282a439bc05fd9c82594ae8147aa9f4516abceb6503f0
-    evidence_revision: eca4d7ed552fd4a5b6a34ba292014b0e0e4d37f0
-    evidence_hash: sha256:65a2d3df2bdb0c0ffa3dead9d1c0051ca45912b7b4e926745bfd68d1babbc19c
-    reviewed_at: "2026-07-29T11:44:38Z"
+    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+    evidence_hash: sha256:4e22d4bc7d22677ea1b8a2ce2dfa44ad7cfa22241cdd3345dfdc8f7331ac0282
+    reviewed_at: "2026-07-31T15:56:35Z"
 ---
 # Cache client dei mesi del calendario collaboratore
 
