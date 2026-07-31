@@ -2,7 +2,7 @@
 type: domain
 title: Fatturazione clienti
 description: Proiezione amministrativa mensile degli importi da fatturare ai clienti
-status: reviewed
+status: generated
 classification: candidate
 sources:
     - path: src/lib/report.ts
@@ -17,10 +17,6 @@ sources:
       role: verification
     - path: tests/e2e/report-fatturazione-clienti.spec.ts
       role: verification
-review:
-    content_hash: sha256:66ac8f75541003ccba3017afd97bcfb1eb6ebb947f369d079bcca541104253a7
-    evidence_revision: a6643836528ddb3d9cdc13e1c9c39eca2c09262d
-    reviewed_at: "2026-07-21T09:35:02Z"
 ---
 # Fatturazione clienti
 
@@ -37,7 +33,7 @@ Mese, cliente, offerta, tariffa giornaliera dell'offerta, ore fatturabili, giorn
 <!-- archetipo:wiki section=ownership -->
 ## Ownership
 
-Possiede il contratto e le regole della proiezione, ma nessun aggregate persistito. Consuma righe attività, metadati cliente/offerta e scaglioni correnti. Non possiede la tariffa commerciale o la distanza registrata.
+Possiede il contratto e le regole della proiezione, ma nessun aggregate persistito. Consuma righe attività — incluso il rimborso trasferta già fotografato su ciascuna riga — e metadati cliente/offerta. Non possiede la tariffa commerciale né alcuna configurazione delle voci di rimborso: quella configurazione non viene più letta al momento dell'aggregazione.
 
 <!-- archetipo:wiki section=contracts -->
 ## Contratti
@@ -48,10 +44,10 @@ Possiede il contratto e le regole della proiezione, ma nessun aggregate persisti
 ## Flussi osservati
 
 1. Il service filtra tutte le righe nel mese, senza filtro collaboratore, e carica offerta, cliente e collaboratore.
-2. Mappa Decimal e relazioni in input serializzabili, carica gli scaglioni e invoca `calcolaReportFatturazioneClienti`.
+2. Mappa Decimal e relazioni in input serializzabili e invoca `calcolaReportFatturazioneClienti`, che non riceve più alcun parametro di configurazione esterna: somma direttamente il `rimborsoTrasfertaImporto` già presente su ogni riga.
 3. Solo le ore con `fatturabile = true` incrementano l'imponibile e alimentano il dettaglio `perCollaboratore`; le giornate sono ore/8 e usano la tariffa dell'offerta.
 4. Per ogni offerta, le voci `perCollaboratore` sono ordinate per ore fatturabili decrescenti (pareggio per nome) e i loro imponibili sono allocati a resto massimo in centesimi interi, ancorati al valore visualizzato di `imponibileManodopera` del cliente: la somma delle stringhe coincide sempre esattamente col totale, senza scostamenti di arrotondamento.
-5. Una trasferta con rimborso `OK` viene ribaltata al cliente anche su riga non fatturabile; questi clienti "solo rimborsi" hanno `perOfferta` vuoto, e la UI lo segnala esplicitamente nel dettaglio.
+5. Una riga con `rimborsoTrasfertaImporto` fotografato viene ribaltata al cliente anche su riga non fatturabile; questi clienti "solo rimborsi" hanno `perOfferta` vuoto, e la UI lo segnala esplicitamente nel dettaglio.
 6. Clienti senza imponibile e senza rimborsi sono omessi; risultati e totali sono formattati a due decimali.
 7. Non esiste stato né write del report: ogni richiesta ricostruisce la proiezione, incluso il dettaglio per collaboratore; l'espansione del dettaglio in UI è stato locale non persistito, esclusivo per una sola scheda cliente alla volta.
 
@@ -63,13 +59,13 @@ Possiede il contratto e le regole della proiezione, ma nessun aggregate persisti
 | UI | `src/app/(back-office)/report/fatturazione-clienti/**` |
 | Query e mapping | `src/lib/report.ts` |
 | Calcolo puro | `src/domain/consuntivi/index.ts` |
-| Dati letti | `prisma/schema.prisma` (`RigaAttivita`, `Offerta`, `Cliente`, `ScaglioneKm`) |
+| Dati letti | `prisma/schema.prisma` (`RigaAttivita`, `Offerta`, `Cliente`) |
 | Test | `tests/unit/report-fatturazione-clienti.test.ts`, `tests/e2e/report-fatturazione-clienti.spec.ts`, scenari demo dedicati |
 
 <!-- archetipo:wiki section=invariants -->
 ## Invarianti e limiti
 
-Accesso solo amministratore. La tariffa è quella corrente dell'offerta e gli scaglioni sono quelli correnti; modifiche successive ricalcolano mesi storici, quindi il risultato non è una fattura immutabile. Lo schema non garantisce coerenza fra cliente diretto della riga e cliente dell'offerta: la proiezione usa il cliente della riga per il raggruppamento e la tariffa dell'offerta per il calcolo. Le distanze oltre soglia o senza fascia non producono rimborso nel report.
+Accesso solo amministratore. La tariffa è quella corrente dell'offerta; modifiche successive alla tariffa ricalcolano mesi storici, quindi il risultato non è una fattura immutabile su quel fronte. Il rimborso trasferta, invece, è uno snapshot: il report somma `rimborsoTrasfertaImporto` già fotografato su ogni riga al momento del salvataggio, quindi una modifica o eliminazione successiva di una voce di rimborso non altera i mesi storici già riportati. Lo schema non garantisce coerenza fra cliente diretto della riga e cliente dell'offerta: la proiezione usa il cliente della riga per il raggruppamento e la tariffa dell'offerta per il calcolo. Una riga senza rimborso fotografato non contribuisce alcun importo di rimborso al report.
 
 <!-- archetipo:wiki section=verification -->
 ## Verifica

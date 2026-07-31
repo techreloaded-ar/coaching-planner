@@ -2,7 +2,7 @@
 type: operations
 title: Sviluppo e operazioni
 description: Sviluppo locale, build, test, CI, database e vincoli operativi
-status: reviewed
+status: generated
 sources:
     - path: package.json
       role: command-manifest
@@ -22,10 +22,6 @@ sources:
       role: runtime-configuration
     - path: scripts/bootstrap-amministratore-iniziale.ts
       role: deploy-bootstrap-command
-review:
-    content_hash: sha256:50444daeaab6b12d6efbe74a04cb732389eaa3d99d5ae1c97bc98e3d7326ab09
-    evidence_revision: 318a1e988d27789e979ab6c847c09cd3d4a71caa
-    reviewed_at: "2026-07-27T09:44:49Z"
 ---
 # Sviluppo e operazioni
 
@@ -69,7 +65,7 @@ Il file autorizzato di esempio è `.env.example`; i segreti reali non fanno part
 
 ## Database e migrazioni
 
-Prisma genera il client in `src/generated/prisma`. Lo schema corrente definisce identità/account, profili, clienti, offerte, scaglioni, righe attività e abilitazioni collaboratore-offerta. Le migrazioni creano lo schema iniziale, aggiungono campi fiscali cliente e rendono unica `ScaglioneKm.finoAKm`. Il seed cancella e ricrea dati dimostrativi; non va eseguito contro un database da preservare.
+Prisma genera il client in `src/generated/prisma`. Lo schema corrente definisce identità/account, profili, clienti, offerte, voci di rimborso trasferta, righe attività e abilitazioni collaboratore-offerta. Le migrazioni creano lo schema iniziale, aggiungono campi fiscali cliente e rendevano unica `ScaglioneKm.finoAKm` — modello poi rimosso dalla migrazione `20260731142725_voci_rimborso_trasferta_libere`, che sostituisce `ScaglioneKm` con `VoceRimborsoTrasferta` e il campo `RigaAttivita.trasfertaKm` con i campi fotografati `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto`. Il seed cancella e ricrea dati dimostrativi; non va eseguito contro un database da preservare.
 
 ## Test
 

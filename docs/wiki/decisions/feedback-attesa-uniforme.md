@@ -2,7 +2,7 @@
 type: decision
 title: Feedback di attesa e cursore uniformi
 description: Cursore dal base layer e un unico PulsanteAttesa basato su useFormStatus, invece di classi e wiring pending ad hoc su ogni pulsante
-status: reviewed
+status: generated
 decision_status: accepted
 sources:
     - path: src/app/globals.css
@@ -17,11 +17,6 @@ sources:
       role: implementation
     - path: tests/e2e/feedback-attesa-azioni.spec.ts
       role: verification
-review:
-    content_hash: sha256:70ba242380b58658167d47acbf2ab6a41abb196fd3d9c06e2bc8b4dd2d6261f3
-    evidence_revision: c79a6cac3ce770cfeaa00738bb9357e26cabeae7
-    evidence_hash: sha256:3cad3b2df41883804adbdf089a1346fb6ee41e19a332948c9488412e1301d188
-    reviewed_at: "2026-07-31T14:03:59Z"
 ---
 # Feedback di attesa e cursore uniformi
 
@@ -51,9 +46,9 @@ Il feedback di attesa e il cursore diventano un contratto unico, applicato in du
 
 Nessun modale chiude sé stesso: **la chiusura non è mai comandata dal client**. Il criterio è come l'action risponde, e la distinzione non è simmetrica.
 
-Le action che comunicano con `redirect()` non restituiscono nulla: Next **rigetta** la promise dell'action al posto di risolverla, quindi qualunque codice scritto dopo il loro `await` non viene mai eseguito e non esiste alcun esito da leggere lato client. Per queste — invalidazione utente, eliminazione scaglione, cambio stato offerta — il form invoca l'action nuda, senza wrapper: l'attesa resta sul pulsante fino alla navigazione, che smonta il sottoalbero e con esso il modale. Non si tenta di ricostruire l'esito lato client: sarebbe codice morto.
+Le action che comunicano con `redirect()` non restituiscono nulla: Next **rigetta** la promise dell'action al posto di risolverla, quindi qualunque codice scritto dopo il loro `await` non viene mai eseguito e non esiste alcun esito da leggere lato client. Per queste — invalidazione utente, eliminazione voce di rimborso, cambio stato offerta — il form invoca l'action nuda, senza wrapper: l'attesa resta sul pulsante fino alla navigazione, che smonta il sottoalbero e con esso il modale. Non si tenta di ricostruire l'esito lato client: sarebbe codice morto.
 
-Quando una di queste action ha un modo di fallire, l'errore viaggia sui parametri dell'URL e compare sul banner della pagina di destinazione. È il caso dell'invalidazione utente: `cambiaStatoUtenteAction` redirige su `?errore=ultimo-amministratore` e la pagina utenti legge quel parametro. L'eliminazione di uno scaglione e il cambio stato di un'offerta appartengono alla stessa categoria — redirigono, e nemmeno a loro si può chiedere un esito lato client — ma non hanno alcun ramo d'errore: redirigono solo sull'esito positivo, e le rispettive pagine leggono il solo parametro `esito`.
+Quando una di queste action ha un modo di fallire, l'errore viaggia sui parametri dell'URL e compare sul banner della pagina di destinazione. È il caso dell'invalidazione utente: `cambiaStatoUtenteAction` redirige su `?errore=ultimo-amministratore` e la pagina utenti legge quel parametro. L'eliminazione di una voce di rimborso (`eliminaVoceRimborso`, `src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts`) e il cambio stato di un'offerta appartengono alla stessa categoria — redirigono, e nemmeno a loro si può chiedere un esito lato client — ma non hanno alcun ramo d'errore: redirigono solo sull'esito positivo, e le rispettive pagine leggono il solo parametro `esito`.
 
 Le action che tornano uno stato al chiamante lo fanno solo per fallire. L'eliminazione di un'offerta restituisce `{ errore }` quando è bloccata, e quel messaggio compare dentro il modale, che resta aperto con il pulsante di nuovo abilitato; quando invece riesce, redirige come le altre. Il modale non ha quindi bisogno di alcun meccanismo di chiusura: lo stato di errore lo tiene aperto, il redirect lo smonta.
 

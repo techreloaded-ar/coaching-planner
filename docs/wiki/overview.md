@@ -2,7 +2,7 @@
 type: overview
 title: Panoramica
 description: Scopo, attori, stack e perimetro della mappa codebase-first di Coaching Planner
-status: reviewed
+status: generated
 sources:
     - path: prisma/schema.prisma
       role: runtime-model
@@ -16,11 +16,6 @@ sources:
       role: administrative-use-cases
     - path: package.json
       role: stack-manifest
-review:
-    content_hash: sha256:f7551c631684774a7b575d4366f127e234dea3a374f05ad8f96c9ed5ac219911
-    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
-    evidence_hash: sha256:e0de604e33692ebf86769324a6cc924190bc74b7d5811cf735e48723bcc39d85
-    reviewed_at: "2026-07-29T06:10:15Z"
 ---
 # Panoramica
 
@@ -31,7 +26,7 @@ Coaching Planner è un gestionale web che consente ai collaboratori di registrar
 ## Attori osservati
 
 - **Collaboratore**: usa un profilo operativo per vedere e modificare soltanto le proprie righe attività e il proprio riepilogo.
-- **Amministratore**: gestisce clienti, collaboratori, offerte e scaglioni; legge report e può usare l'area attività se possiede un profilo collaboratore attivo.
+- **Amministratore**: gestisce clienti, collaboratori, offerte e voci di rimborso trasferta; legge report e può usare l'area attività se possiede un profilo collaboratore attivo.
 - **Google**: provider OAuth/OIDC esterno per l'autenticazione; l'applicazione ammette soltanto email verificate già censite.
 
 I ruoli `AMMINISTRATORE` e `COLLABORATORE` sono dichiarati in Prisma e verificati da proxy e DAL. Il codice non mostra self-registration né una transizione di ruolo.

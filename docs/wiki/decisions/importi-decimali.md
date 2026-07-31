@@ -2,7 +2,7 @@
 type: decision
 title: Importi monetari decimali
 description: Persistire gli importi monetari come Decimal per evitare errori contabili
-status: reviewed
+status: generated
 decision_status: accepted
 sources:
     - path: docs/PRD.md
@@ -15,11 +15,6 @@ sources:
       role: implementation-status
     - path: tests/unit/report-fatturazione-clienti.test.ts
       role: verification
-review:
-    content_hash: sha256:ba7516fcff1874e0ec3801f504ae59afdf44a78308b01de23de3b16dba765b32
-    evidence_revision: 3dc77a95eced5c2786ed7caf027913af75352ed4
-    evidence_hash: sha256:e8813c34a5238db331b90ff9c825d272428b9655b1565a319727131e7ef7dad0
-    reviewed_at: "2026-07-29T06:10:15Z"
 ---
 # Importi monetari decimali
 
@@ -46,7 +41,7 @@ Il database conserva tariffe e importi con scala due. I confini client devono se
 <!-- archetipo:wiki section=verification -->
 ## Verifica
 
-Prisma usa `Decimal(10,2)` per tariffa collaboratore, tariffa offerta e importo scaglione; i validatori normalizzano stringhe decimali. Tuttavia `src/domain/consuntivi/index.ts` converte vari importi in `number`/`parseFloat` per somme e moltiplicazioni prima di formattare a due decimali. La decisione è adottata nello storage ma non integralmente nella catena applicativa; i test verificano gli output correnti, non precisione arbitraria.
+Prisma usa `Decimal(10,2)` per tariffa collaboratore, tariffa offerta e importo della voce di rimborso trasferta (`VoceRimborsoTrasferta.importo`); i validatori normalizzano stringhe decimali. Tuttavia `src/domain/consuntivi/index.ts` converte vari importi in `number`/`parseFloat` per somme e moltiplicazioni prima di formattare a due decimali. La decisione è adottata nello storage ma non integralmente nella catena applicativa; i test verificano gli output correnti, non precisione arbitraria.
 
 ## Concetti correlati
 
