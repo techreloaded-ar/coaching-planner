@@ -1,0 +1,1136 @@
+schema: archetipo/plan/v2
+spec_code: US-054
+body: |-
+  # US-054: Scaglioni di rimborso a voci libere con selezione a tendina — Piano di Implementazione
+
+  **Generato da:** Team di Planning ARchetipo
+  **Data:** 2026-07-31
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** HIGH | **Punti:** 5
+
+  **Storia Utente**
+  Come amministratore, voglio definire le voci di rimborso trasferta come etichette libere con un importo configurato, che il collaboratore seleziona da una tendina al posto dei chilometri percorsi, così da semplificare la gestione dei rimborsi e coprire anche casi non legati alla distanza (es. "rimborso speciale per eventi").
+
+  **Criteri di Accettazione**
+  - AC-1 — L'amministratore crea, modifica ed elimina voci di rimborso composte da etichetta libera obbligatoria e importo; il limite chilometrico non esiste più né nel form né nell'elenco.
+  - AC-2 — Un importo assente, non positivo o con più di due decimali viene rifiutato con un messaggio di errore visibile e la voce non viene salvata.
+  - AC-3 — Nel form della riga attività il campo chilometri è sostituito da una tendina opzionale con le voci configurate, mostrate per etichetta; senza selezione la riga non ha rimborso trasferta.
+  - AC-4 — Al salvataggio la riga fotografa etichetta e importo correnti della voce selezionata; una successiva modifica della voce da parte dell'amministratore non cambia etichetta e importo mostrati sulla riga già salvata.
+  - AC-5 — L'eliminazione di una voce è sempre consentita: la voce sparisce dalla tendina per le nuove righe, mentre le righe già salvate continuano a mostrare etichetta e importo fotografati.
+  - AC-6 — Il riepilogo mensile del collaboratore e i report amministrativi sommano i rimborsi usando gli importi fotografati sulle righe.
+  - AC-7 — I dati chilometrici delle righe esistenti vengono rimossi in modo definitivo: nessuna riga preesistente mostra chilometri o rimborso trasferta dopo la migrazione.
+
+  **Fuori Perimetro:** ordinamento manuale delle voci (si usa l'ordine di creazione); storicizzazione/versioning delle voci; retrocompatibilità con i km percorsi (il dato scompare del tutto); report aggregati per voce di rimborso.
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Oggi il rimborso trasferta è **calcolato al momento della lettura**: la riga attività conserva solo `trasfertaKm` e `calcolaRimborsoTrasferta(km, scaglioni)` in `src/domain/consuntivi/index.ts` seleziona la fascia chilometrica corrente ogni volta che una pagina, un riepilogo o un report vengono renderizzati (per questo la Wiki registra che riepiloghi storici cambiano se cambia la configurazione). US-054 sostituisce questo modello con una **fotografia al salvataggio**: la riga attività smette di riferirsi a un chilometraggio e conserva direttamente `rimborsoTrasfertaEtichetta` ed `rimborsoTrasfertaImporto`, copiati dalla voce selezionata nell'istante del salvataggio. Da quel momento la riga non dipende più in alcun modo dalla configurazione delle voci: una modifica o un'eliminazione successiva della voce non altera nulla di già salvato (AC-4/AC-5), e riepilogo mensile e report smettono di aver bisogno di un calcolo — diventano una semplice somma dei valori già presenti sulle righe (AC-6), il che semplifica anche `src/domain/consuntivi/index.ts` rimuovendo `calcolaRimborsoTrasferta`/`validaKmTrasferta`.
+
+  Punti chiave:
+
+  - **Modello dati**: il modello `ScaglioneKm` (soglia chilometrica + importo) è sostituito da `VoceRimborsoTrasferta` (etichetta libera + importo), senza vincolo di unicità sull'etichetta — non serve, perché le voci non individuano più fasce contigue da non sovrapporre. `RigaAttivita.trasfertaKm` è sostituito dalla coppia `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto`, entrambi nulli insieme (nessun rimborso) o valorizzati insieme (rimborso fotografato). Nessuna FK tra `RigaAttivita` e `VoceRimborsoTrasferta`: è la continuazione dello stesso pattern già in uso (la Wiki registra che l'eliminazione di uno scaglione non aveva FK verso le attività), ma ora la fotografia riguarda anche l'importo, non solo l'identificativo della fascia.
+  - **UX di modifica riga (punto delicato)**: nel form giornata la tendina non può "precompilarsi" con la voce originale della riga in modifica, perché la riga non conserva alcun id di voce (solo etichetta/importo testuali fotografati). Se il form inviasse sempre il campo tendina (comportamento attuale per `trasfertaKm`), un salvataggio che lascia la tendina intonsa in modifica ri-fotograferebbe silenziosamente il rimborso dalla voce corrente, violando AC-4. La tendina in modalità modifica espone quindi tre stati: **"Non modificare il rimborso attuale"** (default all'apertura della modifica — il campo non viene inviato nel FormData, la riga resta esattamente come fotografata), **"Nessun rimborso"** (invia stringa vuota, azzera esplicitamente etichetta/importo), oppure una voce specifica (invia il suo id, la riga viene rifotografata dalla voce corrente). In creazione la tendina non ha lo stato "non modificare": il default è "Nessun rimborso". Il rimborso attualmente fotografato sulla riga in modifica resta visibile come testo informativo separato dalla tendina.
+  - **Riepilogo e report**: `calcolaRiepilogoMese` e `calcolaReportFatturazioneClienti` in `src/domain/consuntivi/index.ts` perdono il parametro `scaglioni` e sommano direttamente `rimborsoTrasfertaImporto` dalle righe: non c'è più alcuna dipendenza da una configurazione esterna al momento dell'aggregazione.
+  - **Denominazione**: in coerenza con l'istruzione di preferire nomi parlanti, l'intera area amministrativa cambia da `anagrafiche/scaglioni` a `anagrafiche/voci-rimborso` (route, file, componenti, copy UI), perché mantenere il nome "scaglioni" per un'etichetta libera senza fasce sarebbe fuorviante.
+
+  ### Decisioni Architetturali
+
+  La scelta "fotografia diretta su `RigaAttivita`, senza FK e senza tabella di versioning" attraversa la soglia ADR: incide sul modello dati persistente e sulla semantica di consistenza (i valori storici restano stabili anche quando la configurazione cambia), e sceglie tra alternative reali — (a) mantenere una FK verso `VoceRimborsoTrasferta` e ricalcolare a lettura (scartata: riprodurrebbe il bug di ricalcolo retroattivo che l'US corregge, viola AC-4); (b) FK più tabella di versioning delle voci (esplicitamente fuori perimetro nella user story); (c) copiare etichetta e importo direttamente sulla riga al salvataggio, senza alcun riferimento all'id della voce (scelta). Questa decisione è registrata nella nuova pagina Wiki `decisions/fotografia-rimborso-trasferta` (TASK-18). Non esiste una decisione `type: decision` preesistente su questo tema da aggiornare o superare.
+
+  ---
+
+  ## Baseline
+
+  | Check | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm test` (vitest run, da `/Users/smarello/repo/coaching-planner`) | 39 file di test, 634 test, tutti superati | Ogni task che tocca un file di test deve mantenere l'intera suite verde; i task che rimuovono funzioni (`calcolaRimborsoTrasferta`, `validaKmTrasferta`) devono anche rimuovere/riscrivere i test che le esercitano nello stesso task o nel task Test immediatamente successivo, mai lasciarli rossi tra un task e l'altro più del necessario |
+  | `npm run lint` (eslint + guardrail e2e anti-flakiness) | Superato, nessun warning | I task che toccano `tests/e2e/**` devono continuare a rispettare il guardrail (niente `workers:1`, niente attese fisse, selezione per label/valore, mai per indice) |
+  | `npx tsc --noEmit -p .` | Superato, nessun errore | Il modello `ScaglioneKm`/campo `trasfertaKm` sarà rimosso da `prisma/schema.prisma` in TASK-01: da quel momento e finché i task successivi non aggiornano tutti i consumatori, `tsc` mostrerà errori attesi e temporanei nei file non ancora toccati — non è una regressione da correggere task per task, ma deve tornare pulito prima del gate finale (TASK-21) |
+  | `npm run build` / `npm run test:e2e` | Non eseguiti in fase di pianificazione (richiedono rispettivamente una build completa e Postgres + Playwright locali) | Il task Test finale (TASK-21) li esegue per primo con dati reali; qualunque fallimento a quel punto è una regressione di questa spec da correggere, non un'eccezione di baseline |
+
+  ---
+
+  ## Mappa di Evidenza dell'Accettazione
+
+  | Criterio | Stato iniziale / fixture | Livello di test | Oracolo osservabile | Task che produce l'evidenza |
+  |---|---|---|---|---|
+  | AC-1 | Nessuna voce di rimborso configurata | unit + e2e | Form `/anagrafiche/voci-rimborso/nuovo` senza alcun campo chilometrico; dopo creazione la voce appare nell'elenco con etichetta e importo; modifica e eliminazione riflesse nell'elenco | TASK-07, TASK-08, TASK-16 |
+  | AC-2 | Form voce di rimborso aperto | unit + e2e | Importo vuoto, `0`, negativo o con >2 decimali produce messaggio di errore visibile e nessuna scrittura (`db.voceRimborsoTrasferta.create/update` non chiamato) | TASK-02, TASK-03, TASK-08, TASK-16 |
+  | AC-3 | Voci di rimborso esistenti, form riga attività aperto | unit + e2e | Tendina con le voci per etichetta al posto del campo km; riga salvata senza selezione non mostra alcun rimborso | TASK-10, TASK-11, TASK-13, TASK-17 |
+  | AC-4 | Riga salvata con una voce selezionata, poi l'amministratore ne cambia l'importo | unit + e2e | La riga già salvata continua a mostrare l'etichetta/importo originali fotografati (assert diretto sui campi persistiti, non un ricalcolo) | TASK-10, TASK-11, TASK-13, TASK-17 |
+  | AC-5 | Voce usata da una riga salvata, poi eliminata dall'amministratore | e2e | L'eliminazione riesce senza blocco; la voce sparisce dalla tendina per nuove righe; la riga storica mantiene etichetta/importo fotografati | TASK-07, TASK-17 |
+  | AC-6 | Più righe del mese con rimborsi fotografati diversi | unit + e2e | `calcolaRiepilogoMese`/`calcolaReportFatturazioneClienti` sommano `rimborsoTrasfertaImporto` senza alcun parametro scaglioni; riepilogo collaboratore e report amministrativo mostrano il totale coerente | TASK-04, TASK-05, TASK-09, TASK-12, TASK-17 |
+  | AC-7 | Righe attività preesistenti con `trasfertaKm` valorizzato | migrazione + unit + tsc | La colonna `trasfertaKm` non esiste più nello schema dopo la migrazione; nessun riferimento residuo nel codice applicativo (grep e `tsc --noEmit` puliti) | TASK-01, TASK-04, TASK-09, TASK-10, TASK-12, TASK-13, TASK-21 |
+
+  Questa è una mappa di evidenza, non un riepilogo dei task: l'elenco completo dei task vive nell'array strutturato `tasks`.
+
+  ---
+
+  ## Strategia di Test
+
+  La maggior parte della logica resta in funzioni pure (`src/domain/**`) e in query/azioni server con Prisma mockato: la copertura unit è quindi il livello primario, come già per la capability sostituita. Gli scenari che attraversano un confine di persistenza reale, di route e di più pagine (creazione voce → selezione in tendina → salvataggio → modifica voce → verifica del congelamento → riepilogo mensile) richiedono e2e Playwright, perché solo lì è osservabile che il dato è davvero persistito e non ricalcolato a runtime.
+
+  - Unit: validazione voce (`validaVoceRimborso`), DAL/azioni amministrative, azioni riga attività (fotografia al salvataggio, stato "non modificare"), riepilogo mensile e report fatturazione con importi già fotografati.
+  - Integrazione: nessuna aggiunta specifica oltre ai mock Prisma già in uso nel repo.
+  - E2E: obbligatorio per AC-1/2 (CRUD amministrativo con redirect e persistenza dopo reload), AC-3/4/5 (selezione in tendina, fotografia al salvataggio, sopravvivenza a modifica/eliminazione della voce — nessun livello inferiore può provare che una riga già a database non cambi quando l'amministratore altrove modifica una voce) e AC-6 (riepilogo mensile e report letti dal browser).
+
+  ### E2E — Simulazione Utente
+
+  **Framework:** Playwright (`tests/e2e`)
+  **Video demo:** Sì, la sezione "Dimostrazione" della spec è filmabile end-to-end (crea voce → seleziona in tendina → salva → modifica importo voce → verifica congelamento → riepilogo); la registrazione è a cura di `archetipo-review`, non di questa fase.
+
+  | Scenario | Descrizione del flusso utente |
+  |---|---|
+  | CRUD voci di rimborso (AC-1, AC-2) | Amministratore crea una voce con etichetta e importo, la vede nell'elenco, la modifica, verifica la persistenza dopo reload, la elimina con conferma |
+  | Selezione e fotografia (AC-3, AC-4, AC-5, AC-6) | Collaboratore apre il dettaglio giornata, seleziona una voce dalla tendina, salva la riga e vede il rimborso nel riepilogo del giorno e nel riepilogo mensile; l'amministratore modifica l'importo della voce usata; la riga e il riepilogo mensile restano invariati; l'amministratore elimina la voce e la riga storica resta invariata mentre la tendina per nuove righe non la propone più |
+
+  Nessuna waiver e2e: il congelamento (AC-4/AC-5) è per definizione un comportamento cross-confine (persistenza + configurazione amministrativa successiva) che nessun test a livello inferiore può dimostrare da solo.
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/politiche-rimborso, domains/attivita, decisions/importi-decimali, decisions/calcoli-puri, architecture/context-map, domains/fatturazione-clienti, overview, operations/development, decisions/feedback-attesa-uniforme]
+    update: [domains/politiche-rimborso, domains/attivita, domains/fatturazione-clienti, architecture/context-map, overview, operations/development, decisions/importi-decimali, decisions/feedback-attesa-uniforme]
+    create: [decisions/fotografia-rimborso-trasferta]
+  ```
+
+  `domains/politiche-rimborso` cambia ownership e linguaggio (non più fasce/soglie ma voci a etichetta libera, nessun calcolo a lettura). `domains/attivita` cambia il contratto del form riga (tendina invece di km) e il comportamento di `modificaRiga`/`rimuoviTrasferta` (fotografia invece di ricalcolo). `domains/fatturazione-clienti` cambia perché il report non consuma più scaglioni al momento dell'aggregazione ma somma direttamente l'importo già fotografato sulla riga: ownership, flussi, dati letti e invarianti vanno riscritti (feedback di rework). `architecture/context-map` cambia perché il candidato "Politiche di rimborso" e le relazioni che lo citano descrivono ancora fasce chilometriche invece di voci a etichetta libera, e l'invariante sullo snapshot deve distinguere tariffa (ricalcolata) da rimborso (fotografato). `overview` e `operations/development` usano ancora il termine "scaglioni" per un'area amministrativa e un modello dati che non esistono più. `decisions/importi-decimali` e `decisions/feedback-attesa-uniforme` restano semanticamente corrette nella sostanza della decisione ma citano nomi di campo/azione ("importo scaglione", "eliminazione di uno scaglione") superati dal rinominamento di questa spec: vanno aggiornate per coerenza terminologica, non per la decisione in sé. `decisions/calcoli-puri` resta semanticamente corretta e viene solo letta per coerenza, senza necessità di aggiornamento di contenuto.
+
+  ## Rework (giro 2)
+
+  La review ha respinto l'incremento non per difetti di codice (AC-1..AC-7 verificati indipendentemente, suite completa verde) ma perché il piano originale non aveva individuato l'intero perimetro di impatto Wiki: `domains/fatturazione-clienti`, `architecture/context-map`, `overview`, `operations/development`, `decisions/importi-decimali` e `decisions/feedback-attesa-uniforme` citano ancora scaglioni/fasce chilometriche o affermano che i rimborsi vengono ricalcolati sui mesi storici, il contrario esatto del comportamento introdotto da questa spec (fotografia al salvataggio, AC-4/AC-6). I 21 task originali restano tutti `DONE` e non vengono ritoccati. TASK-22..TASK-28 correggono puntualmente le sei pagine indicate nel feedback di rework (una pagina, `architecture/context-map`, ha due correzioni indipendenti in sezioni diverse, quindi due task). TASK-29 sostituisce il gate finale con una verifica mirata alla correttezza documentale più una riconferma di non-regressione sul codice, che in questo giro non viene toccato.
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-07-31 (rework)_
+tasks:
+  - id: TASK-01
+    title: Sostituire ScaglioneKm con VoceRimborsoTrasferta e fotografare il rimborso su RigaAttivita
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Lo schema Prisma sostituisce `ScaglioneKm` con `VoceRimborsoTrasferta` (etichetta libera + importo) e `RigaAttivita.trasfertaKm` con i due campi fotografati `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto`, con una migrazione che elimina in modo definitivo i dati chilometrici esistenti (AC-7).
+
+      ## Read
+      - prisma/schema.prisma — modelli `ScaglioneKm` (righe 136-142) e `RigaAttivita` (righe 146-166, in particolare il campo `trasfertaKm Int?`)
+      - src/domain/types.ts — interfacce `ScaglioneKm` e `RigaAttivita` (mirror manuale non consumato da import reali, verificato con grep su `@/domain/types`)
+      - prisma/migrations/ — convenzione di naming delle migrazioni esistenti (es. `20260728201452_indice_calendario_collaboratore`)
+
+      ## Change
+      - prisma/schema.prisma: rimuovi il modello `ScaglioneKm`; aggiungi `model VoceRimborsoTrasferta { id String @id @default(uuid()); etichetta String; importo Decimal @db.Decimal(10,2); createdAt DateTime @default(now()); updatedAt DateTime @updatedAt }` (nessun vincolo di unicità sull'etichetta). Nel modello `RigaAttivita` rimuovi `trasfertaKm Int?` e aggiungi `rimborsoTrasfertaEtichetta String?` e `rimborsoTrasfertaImporto Decimal? @db.Decimal(10,2)` (nessuna relazione/FK verso `VoceRimborsoTrasferta`: i due campi sono un valore congelato, non un riferimento).
+      - prisma/migrations/<timestamp>_voci_rimborso_trasferta_libere/: nuova migrazione generata dallo strumento.
+      - src/domain/types.ts: rinomina l'interfaccia `ScaglioneKm` in `VoceRimborsoTrasferta` con i campi `id`, `etichetta: string`, `importo: number`, `createdAt`, `updatedAt`; nell'interfaccia `RigaAttivita` sostituisci `trasfertaKm?: number` con `rimborsoTrasfertaEtichetta?: string` e `rimborsoTrasfertaImporto?: number`.
+
+      ## Steps
+      1. Applica le modifiche a `prisma/schema.prisma` come descritto in Change.
+      2. Da `/Users/smarello/repo/coaching-planner` esegui `npx prisma migrate dev --name voci_rimborso_trasferta_libere` con un Postgres locale raggiungibile (usa `DATABASE_URL` già configurato nell'ambiente di sviluppo): genera la migrazione SQL (che include `DROP TABLE "ScaglioneKm"`, `CREATE TABLE "VoceRimborsoTrasferta"`, `ALTER TABLE "RigaAttivita" DROP COLUMN "trasfertaKm"`, `ADD COLUMN "rimborsoTrasfertaEtichetta" TEXT`, `ADD COLUMN "rimborsoTrasfertaImporto" DECIMAL(10,2)`) e applica il client generato.
+      3. Se nessun Postgres locale è raggiungibile, scrivi manualmente il file SQL della migrazione seguendo lo schema del punto 2 nella cartella `prisma/migrations/<timestamp>_voci_rimborso_trasferta_libere/migration.sql`, poi esegui comunque `npx prisma generate` per rigenerare `src/generated/prisma/**`.
+      4. Aggiorna `src/domain/types.ts` come da Change.
+
+      ## Verify
+      - Run: `npx prisma validate` — Expect: schema valido, nessun errore.
+      - Run: `npx prisma generate` — Expect: generazione riuscita, `src/generated/prisma/models/VoceRimborsoTrasferta.ts` presente e `ScaglioneKm.ts` assente.
+      - Nota: `npx tsc --noEmit -p .` mostrerà a questo punto errori attesi e temporanei nei file non ancora aggiornati dai task successivi (TASK-02..TASK-17); non è una regressione da correggere in questo task, ma deve sparire entro il gate finale (TASK-21).
+
+      ## Done
+      - [ ] AC-7 — `prisma/schema.prisma` non contiene più `ScaglioneKm` né `trasfertaKm`; la migrazione applicata rimuove fisicamente la colonna e la tabella precedenti.
+      - [ ] `npx prisma validate` e `npx prisma generate` completano senza errori.
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Creare la validazione pura per la voce di rimborso (etichetta + importo)
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Un nuovo modulo di dominio puro valida i dati di una voce di rimborso (etichetta obbligatoria, importo valido e positivo con al massimo due decimali), sostituendo la validazione a soglia chilometrica.
+
+      ## Read
+      - src/domain/anagrafiche/valida-scaglione.ts — struttura da sostituire: `validaScaglione`, `verificaSogliaUnica`, uso di `normalizzaTariffaGiornaliera`
+      - src/domain/anagrafiche/valida-offerta.ts — `normalizzaTariffaGiornaliera` (righe 30-48), da riusare invariata per il campo importo
+
+      ## Change
+      - Crea src/domain/anagrafiche/valida-voce-rimborso.ts con: `export interface DatiVoceRimborsoInput { etichetta: string; importo: string }`; `export type ErroriValidazioneVoceRimborso = Record<string, string>`; `export function validaVoceRimborso(dati: DatiVoceRimborsoInput): ErroriValidazioneVoceRimborso` che: se `etichetta.trim() === ""` imposta `errori.etichetta = "L'etichetta è obbligatoria"`; valida `importo` con `normalizzaTariffaGiornaliera` esattamente come faceva `validaScaglione` per il campo importo (vuoto → `"L'importo forfettario è obbligatorio"`; non normalizzabile → `"Importo non valido: usa massimo 2 decimali"`; `centesimi <= 0` → `"L'importo deve essere maggiore di zero"`).
+      - Elimina src/domain/anagrafiche/valida-scaglione.ts (nessuna funzione equivalente a `verificaSogliaUnica` è necessaria: le etichette non hanno vincolo di unicità).
+
+      ## Steps
+      1. Crea il nuovo file con l'interfaccia, il tipo e la funzione come descritto in Change.
+      2. Elimina `src/domain/anagrafiche/valida-scaglione.ts`.
+      3. Verifica con grep che nessun file sotto `src/` importi ancora `@/domain/anagrafiche/valida-scaglione` (i consumatori vengono aggiornati in TASK-07).
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` sul solo file nuovo non è isolabile; verifica manuale che `src/domain/anagrafiche/valida-voce-rimborso.ts` non abbia errori di sintassi leggendolo dopo la scrittura.
+
+      ## Done
+      - [ ] AC-2 — `validaVoceRimborso` rifiuta importo assente, `"0"`, negativo o con più di due decimali con un messaggio in `errori.importo`; accetta un importo valido con virgola o punto.
+      - [ ] `validaVoceRimborso` rifiuta etichetta vuota o solo spazi con un messaggio in `errori.etichetta`.
+      - [ ] `src/domain/anagrafiche/valida-scaglione.ts` non esiste più.
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Test unitari per validaVoceRimborso
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      La suite unitaria copre tutti i rami di `validaVoceRimborso` definiti in TASK-02, sostituendo la copertura di `validaScaglione`.
+
+      ## Read
+      - tests/unit/valida-scaglione.test.ts — struttura di riferimento per lo stile dei casi di test (input/output, `describe` per campo)
+      - src/domain/anagrafiche/valida-voce-rimborso.ts — funzione da testare
+
+      ## Change
+      - Crea tests/unit/valida-voce-rimborso.test.ts con casi per: etichetta vuota, etichetta con soli spazi, etichetta valida; importo assente, zero, negativo, testuale, con più di due decimali, con virgola, con punto; record completamente valido (mappa errori vuota).
+      - Elimina tests/unit/valida-scaglione.test.ts.
+
+      ## Steps
+      1. Scrivi i casi di test in `tests/unit/valida-voce-rimborso.test.ts` seguendo la struttura `describe`/`it` di `valida-scaglione.test.ts`, adattando gli asserti ai messaggi definiti in TASK-02 (in particolare `"L'etichetta è obbligatoria"`).
+      2. Elimina `tests/unit/valida-scaglione.test.ts`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/valida-voce-rimborso.test.ts` (da `/Users/smarello/repo/coaching-planner`) — Expect: tutti i test passano, nessun riferimento residuo a `valida-scaglione`.
+
+      ## Done
+      - [ ] AC-1 — un test copre esplicitamente che l'etichetta è l'unico campo obbligatorio testuale (nessun campo chilometrico nell'input di `DatiVoceRimborsoInput`).
+      - [ ] AC-2 — test per importo assente/zero/negativo/troppi decimali, ciascuno con l'asserzione sul messaggio di errore atteso.
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: 'Rifattorizzare consuntivi: sommare i rimborsi fotografati invece di calcolarli da km e scaglioni'
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      `calcolaRiepilogoMese` e `calcolaReportFatturazioneClienti` in `src/domain/consuntivi/index.ts` smettono di calcolare il rimborso da km+scaglioni e sommano direttamente l'importo già fotografato su ogni riga; `calcolaRimborsoTrasferta` e `validaKmTrasferta` vengono rimosse perché non più necessarie.
+
+      ## Read
+      - src/domain/consuntivi/index.ts — interi blocchi `RigaRiepilogo`/`VoceRiepilogoOfferta`/`calcolaRiepilogoMese` (righe 44-92, 225-316), `ScaglioneRimborso`/`RisultatoCalcoloRimborso`/`StatoCalcoloRimborso`/`calcolaRimborsoTrasferta`/`validaKmTrasferta` (righe 17-42, 131-223), `RigaReportFatturazione`/`calcolaReportFatturazioneClienti` (righe 320-463)
+
+      ## Change
+      - src/domain/consuntivi/index.ts:
+        - Rimuovi i tipi `ScaglioneRimborso`, `StatoCalcoloRimborso`, `RisultatoCalcoloRimborso` e le funzioni `validaKmTrasferta`, `calcolaRimborsoTrasferta`.
+        - `RigaRiepilogo`: sostituisci il campo `trasfertaKm: number | null` con `rimborsoTrasfertaImporto: string | number | null`.
+        - `calcolaRiepilogoMese(righe: RigaRiepilogo[], tariffaGiornaliera: string | number): RiepilogoMese` — rimuovi il parametro `scaglioni`; nel ciclo, se `riga.rimborsoTrasfertaImporto != null`, converti con `Number(riga.rimborsoTrasfertaImporto)` (se `!Number.isNaN`) e sommalo direttamente a `voce.rimborsiTrasferta`/`totaleRimborsi`, senza chiamare alcuna funzione di calcolo.
+        - `RigaReportFatturazione`: sostituisci `trasfertaKm: number | null` con `rimborsoTrasfertaImporto: string | number | null`.
+        - `calcolaReportFatturazioneClienti(righe: RigaReportFatturazione[]): ReportFatturazioneClienti` — rimuovi il parametro `scaglioni`; nel ciclo, se `riga.rimborsoTrasfertaImporto != null`, somma `Number(riga.rimborsoTrasfertaImporto)` direttamente a `cliente.rimborsiTrasferta`, senza chiamare alcuna funzione di calcolo.
+
+      ## Steps
+      1. Rimuovi i tipi e le funzioni dedicate al calcolo km→rimborso elencati in Change.
+      2. Aggiorna `RigaRiepilogo` e `calcolaRiepilogoMese` come descritto.
+      3. Aggiorna `RigaReportFatturazione` e `calcolaReportFatturazioneClienti` come descritto.
+      4. Lascia invariate tutte le altre funzioni del file (`validaOre`, `raggruppaAttivitaPerMese`, `calcolaAvanzamentoOfferte`, ecc.).
+
+      ## Verify
+      - Non eseguire ancora `npx tsc --noEmit -p .` come gate di questo task: i consumatori (`src/lib/attivita.ts`, `src/lib/report.ts`, i test) vengono aggiornati nei task successivi e mostreranno errori attesi fino a TASK-12/TASK-05 completati.
+      - Verifica manuale: grep `calcolaRimborsoTrasferta\|validaKmTrasferta\|ScaglioneRimborso` su `src/domain/consuntivi/index.ts` non produce risultati.
+
+      ## Done
+      - [ ] AC-6 — `calcolaRiepilogoMese` e `calcolaReportFatturazioneClienti` non ricevono più un parametro scaglioni e sommano `rimborsoTrasfertaImporto` letto dalla riga.
+      - [ ] AC-7 — nessuna funzione del modulo fa più riferimento a chilometri o scaglioni.
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Aggiornare i test unitari di riepilogo mensile e report fatturazione ai rimborsi fotografati
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      La suite unitaria di `calcolaRiepilogoMese` e `calcolaReportFatturazioneClienti` verifica la nuova somma diretta di `rimborsoTrasfertaImporto`, e la suite dedicata al vecchio calcolo km→scaglione viene rimossa.
+
+      ## Read
+      - tests/unit/riepilogo-mese.test.ts — fixture `scaglioniDefault` e helper `riga()` (righe 9-26), casi con `trasfertaKm` (righe 115-151)
+      - tests/unit/report-fatturazione-clienti.test.ts — fixture `scaglioni` (righe 30-34) e tutti i casi con `trasfertaKm` (usato in gran parte del file)
+      - tests/unit/rimborso-trasferta.test.ts — file da eliminare per intero
+
+      ## Change
+      - tests/unit/riepilogo-mese.test.ts: rimuovi la fixture `scaglioniDefault`; in `riga()` sostituisci `trasfertaKm: null` con `rimborsoTrasfertaImporto: null`; aggiorna ogni chiamata `calcolaRiepilogoMese(righe, tariffa, scaglioniDefault)` in `calcolaRiepilogoMese(righe, tariffa)`; nei casi che oggi passano `trasfertaKm: 45`/`trasfertaKm: 300`/`trasfertaKm: 100` sostituisci con `rimborsoTrasfertaImporto` pari all'importo atteso già noto dal caso originale (es. il caso "soglia 50→15.00" diventa `rimborsoTrasfertaImporto: "15.00"`; il caso oltre soglia, che oggi produce nessun rimborso, diventa semplicemente `rimborsoTrasfertaImporto: null`, perché con la fotografia non esiste più uno stato "oltre soglia" — una riga o ha un rimborso fotografato o non ce l'ha).
+      - tests/unit/report-fatturazione-clienti.test.ts: applica la stessa trasformazione a `riga()`, alla fixture `scaglioni` (rimuovila) e a ogni chiamata `calcolaReportFatturazioneClienti(righe, scaglioni)` → `calcolaReportFatturazioneClienti(righe)`; il caso "esclude dai rimborsi le trasferte oltre la soglia massima" (righe 198-206) non ha più senso concettuale e va rimosso, non riscritto (non esiste più uno stato oltre-soglia nella fotografia).
+      - Elimina tests/unit/rimborso-trasferta.test.ts.
+
+      ## Steps
+      1. Aggiorna `tests/unit/riepilogo-mese.test.ts` come da Change, preservando gli importi attesi nei nomi e nelle asserzioni dei test (i valori numerici finali dei test restano identici, cambia solo come vengono forniti in input).
+      2. Aggiorna `tests/unit/report-fatturazione-clienti.test.ts` come da Change.
+      3. Elimina `tests/unit/rimborso-trasferta.test.ts`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/riepilogo-mese.test.ts tests/unit/report-fatturazione-clienti.test.ts` (da `/Users/smarello/repo/coaching-planner`) — Expect: tutti i test passano.
+
+      ## Done
+      - [ ] AC-6 — i test asseriscono la somma diretta degli importi fotografati, senza alcuna fixture di scaglioni.
+      - [ ] `tests/unit/rimborso-trasferta.test.ts` non esiste più.
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Creare src/lib/voci-rimborso.ts come DAL amministrativa delle voci di rimborso
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Un nuovo modulo di query server-only espone `elencaVociRimborso()` e `vocePerId(id)` per l'area amministrativa, in ordine di creazione (nessun ordinamento manuale, come da Fuori Perimetro), sostituendo `src/lib/scaglioni.ts`.
+
+      ## Read
+      - src/lib/scaglioni.ts — struttura da sostituire (`elencaScaglioni`, `scaglionePerId`, guardia `richiediRuoloApi("AMMINISTRATORE")`)
+
+      ## Change
+      - Crea src/lib/voci-rimborso.ts con `export async function elencaVociRimborso(): Promise<VoceRimborsoTrasferta[]>` (`db.voceRimborsoTrasferta.findMany({ orderBy: { createdAt: "asc" } })`, guardia `richiediRuoloApi("AMMINISTRATORE")`) e `export async function vocePerId(id: string): Promise<VoceRimborsoTrasferta | null>` (stessa guardia, `db.voceRimborsoTrasferta.findUnique({ where: { id } })`).
+      - Elimina src/lib/scaglioni.ts.
+
+      ## Steps
+      1. Crea `src/lib/voci-rimborso.ts` con `import "server-only"`, `import { db } from "@/lib/db"`, `import { richiediRuoloApi } from "@/lib/dal"`, `import type { VoceRimborsoTrasferta } from "@/generated/prisma/client"` e le due funzioni come da Change.
+      2. Elimina `src/lib/scaglioni.ts`.
+
+      ## Verify
+      - Verifica manuale: il nuovo file compila concettualmente (stessa forma di `src/lib/scaglioni.ts`, solo nomi di modello/campo cambiati); `tsc` pulito è verificato più avanti quando anche i consumatori sono aggiornati (TASK-07).
+
+      ## Done
+      - [ ] AC-1 — `elencaVociRimborso()` restituisce le voci ordinate per data di creazione crescente, senza alcun campo chilometrico.
+      - [ ] `src/lib/scaglioni.ts` non esiste più.
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Riscrivere l'area amministrativa da anagrafiche/scaglioni a anagrafiche/voci-rimborso
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-06
+    body: |-
+      ## Objective
+      L'amministratore crea, modifica ed elimina voci di rimborso (etichetta + importo, nessun campo chilometrico) da una nuova area `/anagrafiche/voci-rimborso`, che sostituisce integralmente `/anagrafiche/scaglioni`.
+
+      ## Read
+      - src/app/(back-office)/anagrafiche/scaglioni/actions.ts — intero file, in particolare `creaScaglione`/`aggiornaScaglione`/`eliminaScaglione` e la gestione P2002 legata al vincolo di unicità di `finoAKm`
+      - src/app/(back-office)/anagrafiche/scaglioni/scaglione-form.tsx — intero file, in particolare `sogliaMinima` e `testoAnteprima` (righe 32-72, logica di fascia da rimuovere)
+      - src/app/(back-office)/anagrafiche/scaglioni/scaglioni-tabella.tsx — intero file, in particolare `etichettaFascia` e il calcolo di `sogliaPrecedente` (righe 9-12, 92-97) e il testo del dialog di conferma (righe 178-186)
+      - src/app/(back-office)/anagrafiche/scaglioni/page.tsx, nuovo/page.tsx, [id]/page.tsx — struttura di orchestrazione da replicare
+      - src/app/(back-office)/console-sidebar.tsx — voce `NAV_ITEMS` per `/anagrafiche/scaglioni` (riga 61) e `IconScaglioni` (righe 35-39)
+      - src/components/use-valori-inviati.ts — commento di documentazione che cita `scaglione-form` (riga 32)
+
+      ## Change
+      - Crea la cartella `src/app/(back-office)/anagrafiche/voci-rimborso/` con: `actions.ts` (nuove `creaVoceRimborso`/`aggiornaVoceRimborso`/`eliminaVoceRimborso` basate su `validaVoceRimborso` di TASK-02 e `elencaVociRimborso`/`vocePerId` di TASK-06; **nessuna** gestione di unicità/P2002, perché l'etichetta non ha vincolo unico — rimuovi `verificaSogliaUnica`, `ERRORE_SOGLIA_DUPLICATA` e `isPrismaUniqueConstraintError` senza equivalente), `page.tsx` (elenco, guardia `richiediRuolo("AMMINISTRATORE")`, banner esito basati su `creato`/`salvato`/`eliminato`), `nuovo/page.tsx`, `[id]/page.tsx` (con `notFound()` se la voce non esiste), `voce-rimborso-form.tsx` (campi "Etichetta" testo libero obbligatorio e "Importo forfettario" invariato nello stile; **rimuovi** `sogliaMinima` e il box di anteprima fascia: non c'è più nulla da anticipare), `voci-rimborso-tabella.tsx` (colonne Etichetta, Importo, Azioni; **rimuovi** `etichettaFascia` e il calcolo di `sogliaPrecedente`; il dialog di conferma eliminazione diventa `Eliminare la voce «{etichetta}»?` con testo esplicativo che non menziona più fasce successive da ricalcolare; l'`aria-label` della tabella diventa `"Elenco voci di rimborso trasferta"`).
+      - Elimina l'intera cartella `src/app/(back-office)/anagrafiche/scaglioni/`.
+      - src/app/(back-office)/console-sidebar.tsx: rinomina `IconScaglioni` in `IconVociRimborso` (stesso SVG) e la voce `NAV_ITEMS` in `{ href: "/anagrafiche/voci-rimborso", label: "Voci di rimborso", icon: IconVociRimborso }`.
+      - src/components/use-valori-inviati.ts: aggiorna il commento che cita `scaglione-form` in `voce-rimborso-form`.
+
+      ## Steps
+      1. Crea `voce-rimborso-form.tsx` adattando `scaglione-form.tsx`: sostituisci il campo "Soglia massima" con "Etichetta" (`type="text"`, nessun suffisso, hint "Testo libero, es. «Rimborso trasferta breve»"), mantieni il campo "Importo forfettario" invariato; rimuovi interamente la logica di anteprima fascia (`sogliaMinima`, `testoAnteprima`, il box con icona frecce) — non sostituirla con altro.
+      2. Crea `voci-rimborso-tabella.tsx` adattando `scaglioni-tabella.tsx`: colonna "Etichetta" al posto di "Fascia chilometrica"/"Soglia massima" (rimuovi entrambe le colonne km, mantieni solo Etichetta e Importo forfettario), rimuovi `etichettaFascia`/`sogliaPrecedente`, aggiorna `aria-label` della tabella e i testi del dialog di conferma come da Change.
+      3. Crea `actions.ts` adattando `actions.ts` di scaglioni: rimuovi ogni gestione di unicità/P2002; `creaVoceRimborso`/`aggiornaVoceRimborso` chiamano `validaVoceRimborso`, poi `db.voceRimborsoTrasferta.create/update({ data: { etichetta, importo: importoNormalizzato.valore } })`; `eliminaVoceRimborso` chiama `db.voceRimborsoTrasferta.delete({ where: { id } })` senza alcun controllo preventivo (l'eliminazione è sempre consentita, AC-5).
+      4. Crea `page.tsx`, `nuovo/page.tsx`, `[id]/page.tsx` adattando gli equivalenti di scaglioni, sostituendo `elencaScaglioni`/`scaglionePerId` con `elencaVociRimborso`/`vocePerId` e i testi UI ("Scaglioni chilometrici" → "Voci di rimborso trasferta", "Nuovo scaglione" → "Nuova voce di rimborso", "Modifica scaglione" → "Modifica voce di rimborso", "Crea scaglione" → "Crea voce").
+      5. Elimina la cartella `src/app/(back-office)/anagrafiche/scaglioni/` per intero.
+      6. Aggiorna `console-sidebar.tsx` e `use-valori-inviati.ts` come da Change.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` (da `/Users/smarello/repo/coaching-planner`) — Expect: nessun errore relativo a `src/app/(back-office)/anagrafiche/voci-rimborso/**`, `console-sidebar.tsx` o `use-valori-inviati.ts` (altri errori residui nei file non ancora toccati da task successivi sono attesi fino al gate finale).
+
+      ## Done
+      - [ ] AC-1 — il form `/anagrafiche/voci-rimborso/nuovo` ha solo i campi Etichetta e Importo forfettario; l'elenco mostra etichetta e importo senza alcun campo di limite chilometrico.
+      - [ ] AC-2 — un importo non valido blocca la creazione/modifica con messaggio visibile.
+      - [ ] AC-5 — `eliminaVoceRimborso` non ha alcuna verifica bloccante prima della cancellazione.
+      - [ ] `src/app/(back-office)/anagrafiche/scaglioni/` non esiste più; `console-sidebar.tsx` punta a `/anagrafiche/voci-rimborso`.
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Test unitari per la DAL e le azioni amministrative delle voci di rimborso
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-07
+    body: |-
+      ## Objective
+      La suite unitaria copre `elencaVociRimborso`/`vocePerId` e `creaVoceRimborso`/`aggiornaVoceRimborso`/`eliminaVoceRimborso`, sostituendo la copertura di `tests/unit/scaglioni-dal-actions.test.ts`.
+
+      ## Read
+      - tests/unit/scaglioni-dal-actions.test.ts — intero file: struttura dei mock (`vi.hoisted`, `vi.mock("@/lib/db")`, `vi.mock("@/lib/dal")`, `vi.mock("next/cache")`, `vi.mock("next/navigation")`), casi su DAL e su ciascuna azione
+
+      ## Change
+      - Crea tests/unit/voci-rimborso-dal-actions.test.ts: mocka `db.voceRimborsoTrasferta` (invece di `db.scaglioneKm`) e `@/domain/anagrafiche/valida-voce-rimborso` (invece di `valida-scaglione`); adatta ogni caso rimuovendo gli scenari di soglia duplicata/P2002 (non più applicabili, AC-2/AC-1 non li prevedono) e aggiungendo un caso che verifica che `creaVoceRimborso`/`aggiornaVoceRimborso` scrivano `{ etichetta, importo }` e che `eliminaVoceRimborso` chiami `delete` senza alcuna verifica preventiva.
+      - Elimina tests/unit/scaglioni-dal-actions.test.ts.
+
+      ## Steps
+      1. Scrivi `tests/unit/voci-rimborso-dal-actions.test.ts` adattando la struttura di mock del file di riferimento ai nuovi simboli (`elencaVociRimborso`, `vocePerId` da `@/lib/voci-rimborso`; `creaVoceRimborso`, `aggiornaVoceRimborso`, `eliminaVoceRimborso` da `@/app/(back-office)/anagrafiche/voci-rimborso/actions`).
+      2. Rimuovi tutti i test legati a `verificaSogliaUnica`/P2002/soglia duplicata.
+      3. Aggiungi un caso "con dati invalidi non scrive a DB e restituisce la mappa errori" analogo a quello esistente, ma sull'etichetta vuota.
+      4. Elimina `tests/unit/scaglioni-dal-actions.test.ts`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/voci-rimborso-dal-actions.test.ts` (da `/Users/smarello/repo/coaching-planner`) — Expect: tutti i test passano.
+
+      ## Done
+      - [ ] AC-1 — test copre creazione/modifica/eliminazione con la guardia `richiediRuoloApi("AMMINISTRATORE")` asserita su ciascuna funzione.
+      - [ ] AC-2 — test copre il rifiuto di dati non validi senza scrittura a DB.
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: 'Aggiornare src/lib/attivita.ts: voci per la tendina e riepilogo mensile fotografato'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-04
+    body: |-
+      ## Objective
+      `src/lib/attivita.ts` espone la lista delle voci di rimborso per la tendina del collaboratore e calcola `riepilogoMese` sommando gli importi già fotografati sulle righe, senza più interrogare una configurazione scaglioni.
+
+      ## Read
+      - src/lib/attivita.ts — `scaglioniRimborsoTrasferta()` (righe 370-396), `riepilogoMese()` (righe 420-477), `righeDelGiorno()`/`attivitaDelMese()` per capire dove `trasfertaKm` viene letto dal DB
+
+      ## Change
+      - src/lib/attivita.ts: sostituisci `scaglioniRimborsoTrasferta(): Promise<ScaglioneRimborso[]>` con `vociRimborsoTrasfertaPerSelezione(): Promise<{ id: string; etichetta: string; importo: string }[]>` — stessa guardia `richiediCollaboratoreCorrente()`, query `db.voceRimborsoTrasferta.findMany({ orderBy: { createdAt: "asc" } })`, mappata a `{ id: v.id, etichetta: v.etichetta, importo: v.importo.toString() }`.
+      - `riepilogoMese(token)`: rimuovi la chiamata a `scaglioniRimborsoTrasferta()` all'interno del `Promise.all`; mappa ogni riga db a `RigaRiepilogo` con `rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null` al posto di `trasfertaKm: riga.trasfertaKm ?? null`; chiama `calcolaRiepilogoMese(righe, tariffa)` senza terzo argomento (firma aggiornata in TASK-04).
+
+      ## Steps
+      1. Sostituisci `scaglioniRimborsoTrasferta` con `vociRimborsoTrasfertaPerSelezione` come da Change.
+      2. Aggiorna `riepilogoMese` come da Change, rimuovendo l'import del tipo `ScaglioneRimborso` non più esportato da `@/domain/consuntivi`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` (da `/Users/smarello/repo/coaching-planner`) — Expect: nessun errore relativo a `src/lib/attivita.ts` (i consumatori del vecchio nome `scaglioniRimborsoTrasferta`, cioè `dettaglio-giornata.tsx`/`page.tsx`/`righe-attivita.ts`, mostreranno errori attesi finché TASK-10/TASK-13 non li aggiornano).
+
+      ## Done
+      - [ ] AC-3 — `vociRimborsoTrasfertaPerSelezione()` restituisce le voci ordinate per data di creazione, con etichetta e importo, per popolare la tendina.
+      - [ ] AC-6 — `riepilogoMese()` non dipende più da alcuna configurazione scaglioni: somma direttamente i valori fotografati sulle righe del mese.
+
+      ## Blockers
+      None.
+    ref: TASK-09
+  - id: TASK-10
+    title: Fotografare etichetta e importo sulla riga attività al salvataggio
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-09
+    body: |-
+      ## Objective
+      `creaRiga`/`modificaRiga` in `src/lib/actions/righe-attivita.ts` copiano etichetta e importo correnti della voce selezionata sulla riga al momento del salvataggio (AC-4); senza selezione la riga non ha rimborso (AC-3); una modifica che non tocca la selezione lascia il rimborso già fotografato invariato (AC-4); `rimuoviTrasferta` diventa `rimuoviRimborsoTrasferta` e azzera entrambi i campi fotografati.
+
+      ## Read
+      - src/lib/actions/righe-attivita.ts — intero file, in particolare `validaTrasfertaKmServer` (righe 128-163), `creaRiga` (righe 180-251, in particolare la lettura di `trasfertaKmRaw` e il campo `trasfertaKm` nella `data` di `create`), `modificaRiga` (righe 259-370, in particolare il blocco `if (formData.has("trasfertaKm"))` righe 329-336), `rimuoviTrasferta` (righe 423-462)
+
+      ## Change
+      - src/lib/actions/righe-attivita.ts: sostituisci `validaTrasfertaKmServer` con `async function fotografaVoceRimborsoTrasferta(voceIdRaw: string | null): Promise<ActionResult & { etichetta?: string | null; importo?: string | null }>` — se `voceIdRaw` è vuoto/assente restituisce `{ success: true, etichetta: null, importo: null }` (nessuna selezione, AC-3); altrimenti cerca `db.voceRimborsoTrasferta.findUnique({ where: { id: voceIdRaw } })`: se non trovata restituisce `{ success: false, error: "La voce di rimborso selezionata non è più disponibile" }`; se trovata restituisce `{ success: true, etichetta: voce.etichetta, importo: voce.importo.toString() }` (fotografia, AC-4).
+      - `creaRiga`: leggi `formData.get("voceRimborsoTrasfertaId")` invece di `trasfertaKm`; chiama `fotografaVoceRimborsoTrasferta(...)`; se fallisce propaga l'errore come già avviene; nella `data` di `db.rigaAttivita.create` sostituisci `trasfertaKm: validazioneKm.km ?? null` con `rimborsoTrasfertaEtichetta: risultato.etichetta ?? null, rimborsoTrasfertaImporto: risultato.importo ?? null`.
+      - `modificaRiga`: sostituisci il blocco `if (formData.has("trasfertaKm"))` con `if (formData.has("voceRimborsoTrasfertaId"))` (**se il campo non è presente nel FormData, non toccare affatto `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` in `updateData`** — questo è il caso "non modificare il rimborso attuale" del form, AC-4 critico); quando presente, chiama `fotografaVoceRimborsoTrasferta(voceRimborsoTrasfertaIdRaw)` e imposta `updateData.rimborsoTrasfertaEtichetta`/`updateData.rimborsoTrasfertaImporto` di conseguenza (stringa vuota → entrambi `null`, id valido → fotografia dalla voce corrente).
+      - Rinomina `rimuoviTrasferta` in `rimuoviRimborsoTrasferta`: la `data` dell'`update` diventa `{ rimborsoTrasfertaEtichetta: null, rimborsoTrasfertaImporto: null }`.
+      - Aggiorna l'import da `@/lib/attivita`: `scaglioniRimborsoTrasferta` → `vociRimborsoTrasfertaPerSelezione` non è più usato qui (era usato solo dentro `validaTrasfertaKmServer`, ora sostituito da una query diretta per id).
+
+      ## Steps
+      1. Sostituisci `validaTrasfertaKmServer` con `fotografaVoceRimborsoTrasferta` come da Change (usa `db.voceRimborsoTrasferta.findUnique` direttamente, non serve più `scaglioniRimborsoTrasferta`/`calcolaRimborsoTrasferta`).
+      2. Aggiorna `creaRiga` come da Change.
+      3. Aggiorna `modificaRiga` come da Change, prestando particolare attenzione a non toccare i campi fotografati quando `voceRimborsoTrasfertaId` non è nel FormData.
+      4. Rinomina `rimuoviTrasferta` in `rimuoviRimborsoTrasferta` in tutto il file (nessun altro consumatore server-side oltre a questo file e `dettaglio-giornata.tsx`, aggiornato in TASK-13).
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` (da `/Users/smarello/repo/coaching-planner`) — Expect: nessun errore relativo a `src/lib/actions/righe-attivita.ts` (il consumatore client `dettaglio-giornata.tsx` mostrerà errori attesi finché TASK-13 non lo aggiorna).
+
+      ## Done
+      - [ ] AC-3 — `creaRiga` senza `voceRimborsoTrasfertaId` (o vuoto) salva la riga con entrambi i campi rimborso a `null`.
+      - [ ] AC-4 — `modificaRiga` senza il campo `voceRimborsoTrasfertaId` nel FormData non modifica i campi rimborso già presenti sulla riga; con un id valido li rifotografa dalla voce corrente al momento della chiamata.
+      - [ ] `rimuoviRimborsoTrasferta` azzera entrambi i campi fotografati.
+
+      ## Blockers
+      None.
+    ref: TASK-10
+  - id: TASK-11
+    title: Test unitari per la fotografia del rimborso in righe-attivita e attivita
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-10
+    body: |-
+      ## Objective
+      La suite unitaria di `src/lib/actions/righe-attivita.ts` verifica la fotografia al salvataggio, il caso "nessuna modifica al rimborso" e la rimozione esplicita; `tests/unit/attivita.test.ts` usa i nuovi nomi di campo nella sua fixture.
+
+      ## Read
+      - tests/unit/righe-attivita-actions.test.ts — intero file, in particolare il mock `mockScaglioneKm` (righe 13-15, 27-28), i casi "crea una riga con trasfertaKm valido"/"rifiuta trasfertaKm oltre soglia massima" (righe 170-216), i casi in `modificaRiga` su `trasfertaKm` (righe 459-503), e la describe `rimuoviTrasferta` (righe 793-856)
+      - tests/unit/attivita.test.ts — riga 65, fixture con `trasfertaKm: null` da rinominare
+
+      ## Change
+      - tests/unit/righe-attivita-actions.test.ts: rinomina il mock `mockScaglioneKm` in `mockVoceRimborsoTrasferta` con `findUnique` (non più `findMany`, perché la fotografia cerca una singola voce per id) e aggiorna `vi.mock("@/lib/db")` di conseguenza; sostituisci i casi che testavano `trasfertaKm: "150"`/`"500"` (validazione km/soglia) con casi equivalenti su `voceRimborsoTrasfertaId`: (a) id di una voce esistente mockata via `mockVoceRimborsoTrasferta.findUnique` → la riga creata ha `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` copiati dalla voce; (b) id di una voce inesistente (`findUnique` restituisce `null`) → `success: false`, nessuna scrittura; in `modificaRiga` aggiungi un caso **critico per AC-4**: FormData senza il campo `voceRimborsoTrasfertaId` → `updateData` non contiene affatto le chiavi `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` (verifica con `expect(chiamata.data).not.toHaveProperty("rimborsoTrasfertaEtichetta")`), a dimostrazione che una modifica che non tocca la tendina non rifotografa nulla; rinomina la describe e i test `rimuoviTrasferta` in `rimuoviRimborsoTrasferta`, aggiornando l'asserzione `data: { trasfertaKm: null }` in `data: { rimborsoTrasfertaEtichetta: null, rimborsoTrasfertaImporto: null }`.
+      - tests/unit/attivita.test.ts: rinomina `trasfertaKm: null` in `rimborsoTrasfertaImporto: null` nella fixture a riga 65 (nessun altro cambiamento: il test non riguarda i rimborsi).
+
+      ## Steps
+      1. Aggiorna i mock e i casi di `creaRiga` in `tests/unit/righe-attivita-actions.test.ts` come da Change.
+      2. Aggiorna i casi di `modificaRiga`, includendo il nuovo caso critico "nessuna modifica al rimborso quando il campo è assente".
+      3. Rinomina la describe/i test di `rimuoviTrasferta` in `rimuoviRimborsoTrasferta`.
+      4. Aggiorna la fixture in `tests/unit/attivita.test.ts`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/righe-attivita-actions.test.ts tests/unit/attivita.test.ts` (da `/Users/smarello/repo/coaching-planner`) — Expect: tutti i test passano.
+
+      ## Done
+      - [ ] AC-3 — test copre creazione senza selezione (entrambi i campi rimborso `null`).
+      - [ ] AC-4 — test copre sia la fotografia alla creazione/modifica esplicita, sia il caso in cui una modifica senza toccare la tendina lascia intatti i campi già fotografati.
+      - [ ] AC-5 — test copre id di voce inesistente (coerente con un'eliminazione avvenuta nel frattempo) senza scrittura.
+
+      ## Blockers
+      None.
+    ref: TASK-11
+  - id: TASK-12
+    title: Aggiornare src/lib/report.ts ai rimborsi fotografati
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-04
+    body: |-
+      ## Objective
+      Il report di fatturazione clienti somma i rimborsi già fotografati sulle righe, senza più interrogare `ScaglioneKm`.
+
+      ## Read
+      - src/lib/report.ts — intero file, in particolare l'import di `ScaglioneKm` (riga 11), la query `db.scaglioneKm.findMany` (righe 93-100) e il campo `trasfertaKm` nella mappatura (riga 114)
+
+      ## Change
+      - src/lib/report.ts: rimuovi l'import del tipo `ScaglioneKm` e l'import del tipo `ScaglioneRimborso` da `@/domain/consuntivi`; rimuovi il blocco che interroga `db.scaglioneKm.findMany`; nella mappatura di `righeMappate` sostituisci `trasfertaKm: riga.trasfertaKm` con `rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null`; chiama `calcolaReportFatturazioneClienti(righeMappate)` senza il secondo argomento.
+
+      ## Steps
+      1. Applica le modifiche descritte in Change a `src/lib/report.ts`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` (da `/Users/smarello/repo/coaching-planner`) — Expect: nessun errore relativo a `src/lib/report.ts`.
+
+      ## Done
+      - [ ] AC-6 — `reportFatturazioneClientiMese` non interroga più `ScaglioneKm` e passa a `calcolaReportFatturazioneClienti` solo le righe con l'importo già fotografato.
+
+      ## Blockers
+      None.
+    ref: TASK-12
+  - id: TASK-13
+    title: Sostituire il campo km con una tendina di voci nel form riga attività
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-09
+      - TASK-10
+    body: |-
+      ## Objective
+      Nel dettaglio giornata il collaboratore seleziona la voce di rimborso da una tendina invece di digitare i chilometri (AC-3); il form in modalità modifica distingue esplicitamente "non modificare il rimborso attuale" da una nuova selezione o dalla rimozione esplicita, così un salvataggio che non tocca la tendina non rifotografa nulla (AC-4).
+
+      ## Read
+      - src/app/(front-office)/attivita/[data]/page.tsx — intero file, in particolare `ScaglioneRimborsoSerializzato` (righe 42-45), `RigaAttivitaClient` (righe 16-33), la chiamata a `scaglioniRimborsoTrasferta()` (riga 92) e la mappatura `rimborso`/`trasfertaKm` (righe 102-126)
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — intero file, in particolare lo stato `trasfertaKmRaw`/`erroreKm` (righe 156-157), `previewRimborso` (righe 229-234), `handleCambioKm` (righe 278-300), il campo `trasfertaKm` nel submit (riga 335), `handleModifica` (righe 383-439, in particolare riga 394 `setTrasfertaKmRaw`), `handleAnnulla` (righe 443-457), il blocco JSX "Trasferta km" (righe 924-984), la visualizzazione della trasferta sulla riga salvata (righe 711-743) e il pulsante "Rimuovi trasferta" (righe 764-783)
+
+      ## Change
+      - page.tsx: rinomina il tipo `ScaglioneRimborsoSerializzato` in `VoceRimborsoTrasfertaSelezionabile` (`{ id: string; etichetta: string; importo: string }`); sostituisci la chiamata `scaglioniRimborsoTrasferta()` con `vociRimborsoTrasfertaPerSelezione()`; in `RigaAttivitaClient` sostituisci `trasfertaKm: number | null` e `rimborso: RisultatoCalcoloRimborso | null` con `rimborsoTrasfertaEtichetta: string | null` e `rimborsoTrasfertaImporto: string | null`; rimuovi l'import di `calcolaRimborsoTrasferta`/`RisultatoCalcoloRimborso` (non più necessari: il valore è già fotografato sulla riga, non va ricalcolato); nella mappatura di `righeClient` copia direttamente `r.rimborsoTrasfertaEtichetta`/`r.rimborsoTrasfertaImporto?.toString() ?? null`; passa la prop `vociRimborso` (rinominata da `scaglioni`) al componente.
+      - dettaglio-giornata.tsx: sostituisci lo stato `trasfertaKmRaw`/`erroreKm` con `selezioneRimborso: string` (valori possibili: `"invariato"`, `""` per nessun rimborso, oppure l'id di una voce), inizializzato a `""` per una nuova riga; sostituisci `previewRimborso` con una `useMemo` che, se `selezioneRimborso` è un id di voce, cerca la voce nella prop `vociRimborso` e ne mostra etichetta/importo (nessuna chiamata a funzioni di dominio: è una semplice ricerca in un array); sostituisci il blocco JSX "Trasferta km" con un `<select>` che, in modalità creazione, ha come prima opzione "Nessun rimborso" (`value=""`) seguita da un'opzione per voce (`value={voce.id}`, testo `voce.etichetta`), e in modalità modifica ha in più, come prima opzione selezionata di default, "Non modificare il rimborso attuale" (`value="invariato"`); mostra separatamente, solo in modifica e solo se la riga ha un rimborso fotografato, un testo informativo "Rimborso attuale: {etichetta} — €{importo}" non collegato al `<select>`; nel submit, appendi `voceRimborsoTrasfertaId` al FormData **solo se** `selezioneRimborso !== "invariato"` (se `"invariato"`, non appendere affatto il campo — coerente con `modificaRiga` di TASK-10); `handleModifica` imposta `selezioneRimborso` a `"invariato"`; `handleSubmit` (ramo creazione) e `handleAnnulla` lo azzerano a `""`; nella visualizzazione della riga salvata sostituisci il blocco che leggeva `riga.trasfertaKm`/`riga.rimborso` con la lettura diretta di `riga.rimborsoTrasfertaEtichetta`/`riga.rimborsoTrasfertaImporto` (nessun ramo `OLTRE_SOGLIA`: con la fotografia una riga ha o non ha un rimborso, senza stati intermedi); rinomina il pulsante/handler "Rimuovi trasferta"/`handleRimuoviTrasferta` in "Rimuovi rimborso"/`handleRimuoviRimborso`, che chiama l'azione rinominata `rimuoviRimborsoTrasferta` di TASK-10; rimuovi l'import di `calcolaRimborsoTrasferta`/`validaKmTrasferta` da `@/domain/consuntivi` (non più usati in questo file).
+
+      ## Steps
+      1. Aggiorna `page.tsx` come da Change (tipi, fetch, mappatura, nome prop).
+      2. Aggiorna `dettaglio-giornata.tsx`: sostituisci lo stato e la UI del campo trasferta con la tendina a tre stati descritta in Change.
+      3. Aggiorna il submit del form per inviare (o omettere) `voceRimborsoTrasfertaId` secondo `selezioneRimborso`.
+      4. Aggiorna la visualizzazione della riga salvata e il pulsante di rimozione come da Change.
+      5. Rimuovi ogni import di funzioni di dominio relative al calcolo km→rimborso non più usate nel file.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` (da `/Users/smarello/repo/coaching-planner`) — Expect: nessun errore relativo a `src/app/(front-office)/attivita/[data]/**`.
+
+      ## Done
+      - [ ] AC-3 — il form mostra una tendina opzionale con le voci per etichetta al posto del campo chilometri; senza selezione (creazione, `selezioneRimborso === ""`) la riga salvata non ha rimborso.
+      - [ ] AC-4 — in modifica, se l'utente non tocca la tendina (`selezioneRimborso === "invariato"`), il campo non viene inviato e la riga mantiene il rimborso già fotografato; se l'utente seleziona una voce diversa, la riga viene rifotografata dalla voce corrente.
+      - [ ] La riga salvata mostra etichetta e importo fotografati letti direttamente dai campi della riga, senza alcun ricalcolo lato client.
+
+      ## Blockers
+      None.
+    ref: TASK-13
+  - id: TASK-14
+    title: Aggiornare il seed con voci di rimborso libere al posto degli scaglioni chilometrici
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il seed di sviluppo/CI crea voci di rimborso a etichetta libera e fotografa etichetta/importo sulle righe dimostrative che in precedenza avevano `trasfertaKm`, preservando gli importi già usati nella demo.
+
+      ## Read
+      - prisma/seed.ts — intero file, in particolare `prisma.scaglioneKm.deleteMany()` (riga 21), il blocco di creazione scaglioni (righe 25-36), e le tre righe con `trasfertaKm: 45` (riga 261, giorno 3), `trasfertaKm: 150` (riga 274, giorno 4), `trasfertaKm: 80` (riga 307, giorno 5, secondo collaboratore, commento "80 km → 60,00 €" a riga 297)
+
+      ## Change
+      - prisma/seed.ts: sostituisci `prisma.scaglioneKm.deleteMany()` con `prisma.voceRimborsoTrasferta.deleteMany()`; sostituisci il blocco di creazione scaglioni con tre voci: `{ etichetta: "Rimborso trasferta breve", importo: "35.00" }`, `{ etichetta: "Rimborso trasferta media distanza", importo: "60.00" }`, `{ etichetta: "Rimborso trasferta lunga distanza", importo: "110.00" }` (stessi importi delle fasce preesistenti, per non alterare i totali già usati nella demo); sostituisci `trasfertaKm: 45` (giorno 3) con `rimborsoTrasfertaEtichetta: "Rimborso trasferta breve", rimborsoTrasfertaImporto: "35.00"`; sostituisci `trasfertaKm: 150` (giorno 4) con `rimborsoTrasfertaEtichetta: "Rimborso trasferta lunga distanza", rimborsoTrasfertaImporto: "110.00"`; sostituisci `trasfertaKm: 80` (giorno 5, secondo collaboratore) con `rimborsoTrasfertaEtichetta: "Rimborso trasferta media distanza", rimborsoTrasfertaImporto: "60.00"` e aggiorna il commento che lo precede (rimuovi il riferimento a "km"/"scaglione").
+
+      ## Steps
+      1. Applica le modifiche descritte in Change, mantenendo l'ordine e la struttura del resto del file invariati.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` (da `/Users/smarello/repo/coaching-planner`) — Expect: nessun errore relativo a `prisma/seed.ts`.
+      - Il seed effettivo (`npm run db:seed`) viene eseguito ed è parte del gate finale (TASK-21), non di questo task, perché richiede un Postgres locale/CI raggiungibile.
+
+      ## Done
+      - [ ] AC-7 — il seed non crea più alcuna riga con dati chilometrici.
+      - [ ] Gli importi totali delle righe dimostrative restano gli stessi di prima (35.00/110.00/60.00), per non alterare scenari e2e o demo che assumono quei totali.
+
+      ## Blockers
+      None.
+    ref: TASK-14
+  - id: TASK-15
+    title: 'Aggiornare l''infrastruttura e2e: factory delle voci di rimborso e ritiro della riserva km'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      La factory e2e crea voci di rimborso a etichetta libera e righe attività con i campi fotografati; il modulo di riserva di intervalli chilometrici globali (`reserved-resources.ts`), non più necessario perché `VoceRimborsoTrasferta` non ha vincoli di unicità su cui più worker in parallelo possano collidere, viene rimosso.
+
+      ## Read
+      - tests/e2e/support/factory.ts — intero file, in particolare `CreateRigaAttivitaOptions.trasfertaKm` (riga 73), `CreateScaglioneKmOptions`/`createScaglioneKm` (righe 76-79, 294-306), l'INSERT SQL di `createRigaAttivita` (righe 272-291)
+      - tests/e2e/support/reserved-resources.ts — intero file (da rimuovere)
+
+      ## Change
+      - tests/e2e/support/factory.ts: sostituisci `CreateScaglioneKmOptions`/`createScaglioneKm` con `CreateVoceRimborsoTrasfertaOptions { etichetta: string; importo: string | number }` e `createVoceRimborsoTrasferta(options)` che inserisce in `"VoceRimborsoTrasferta"` (`id, etichetta, importo, createdAt, updatedAt`); in `CreateRigaAttivitaOptions` sostituisci `trasfertaKm?: number | null` con `rimborsoTrasfertaEtichetta?: string | null` e `rimborsoTrasfertaImporto?: string | number | null`; aggiorna l'INSERT SQL di `createRigaAttivita` per scrivere le due nuove colonne al posto di `trasfertaKm`; aggiorna l'import di tipo da `"../../../src/generated/prisma/client"` sostituendo `ScaglioneKm` con `VoceRimborsoTrasferta`.
+      - Elimina tests/e2e/support/reserved-resources.ts.
+
+      ## Steps
+      1. Aggiorna `factory.ts` come da Change: la nuova `createVoceRimborsoTrasferta` non richiede alcuna riserva numerica (a differenza di `createScaglioneKm`, che aveva bisogno di `finoAKm` univoco); i test che la usano genereranno etichette con un suffisso univoco (namespace/`randomUUID`), come già avviene per `ragioneSociale`/`codice` in `createCliente`/`createOfferta`.
+      2. Elimina `tests/e2e/support/reserved-resources.ts`.
+      3. Verifica con grep che nessun file sotto `tests/e2e/` importi ancora `./support/reserved-resources` (i consumatori vengono aggiornati in TASK-16/TASK-17).
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` (da `/Users/smarello/repo/coaching-planner`) — Expect: nessun errore relativo a `tests/e2e/support/factory.ts` (gli spec consumer mostreranno errori attesi finché TASK-16/TASK-17 non li aggiornano).
+
+      ## Done
+      - [ ] `createVoceRimborsoTrasferta` e i nuovi campi di `createRigaAttivita` sono disponibili e tipizzati.
+      - [ ] `tests/e2e/support/reserved-resources.ts` non esiste più.
+
+      ## Blockers
+      None.
+    ref: TASK-15
+  - id: TASK-16
+    title: Adattare gli e2e amministrativi a /anagrafiche/voci-rimborso
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-07
+      - TASK-15
+    body: |-
+      ## Objective
+      Gli scenari e2e amministrativi (CRUD voci di rimborso, e i due scenari di feedback di attesa che riusano quella pagina come esempio) puntano alla nuova area `/anagrafiche/voci-rimborso` con la nuova copy; lo scenario e demo dedicati agli scaglioni chilometrici, ormai privi di oggetto, vengono ritirati.
+
+      ## Read
+      - tests/e2e/anagrafica-scaglioni.spec.ts — intero file (da riscrivere)
+      - tests/e2e/demo__anagrafica-scaglioni.spec.ts — intero file (da eliminare: filmava la configurazione a soglie chilometriche, non più esistente)
+      - tests/e2e/anagrafica-clienti.spec.ts — righe 130-140 (asserzione sul link di navigazione verso `/anagrafiche/scaglioni`)
+      - tests/e2e/feedback-attesa-azioni.spec.ts — righe 28-33 (`INTERVALLO_KM_US_051`), righe 182-236 (scenario "l'eliminazione di uno scaglione tiene il dialog aperto")
+      - tests/e2e/demo__cursore-e-feedback-attesa.spec.ts — righe 33, 118, 161-192 (stesso pattern di `feedback-attesa-azioni.spec.ts`)
+
+      ## Change
+      - Crea tests/e2e/anagrafica-voci-rimborso.spec.ts (sostituisce `anagrafica-scaglioni.spec.ts`) con: validazione campi obbligatori senza creazione (etichetta e importo vuoti → messaggi visibili, nessun redirect); creazione con `factory.createCliente`-style univocità (etichetta con suffisso `randomUUID`, nessuna riserva km necessaria) e verifica in elenco per etichetta e importo; modifica dell'importo persistita dopo reload; eliminazione con conferma (`Eliminare la voce «{etichetta}»?`) che rimuove la voce dall'elenco. Naviga su `/anagrafiche/voci-rimborso` e `/anagrafiche/voci-rimborso/nuovo`; usa l'`aria-label` `"Elenco voci di rimborso trasferta"` e i testi bottone `"Crea voce"`/`"Salva modifiche"`/`"Elimina voce"` definiti in TASK-07.
+      - Elimina tests/e2e/anagrafica-scaglioni.spec.ts e tests/e2e/demo__anagrafica-scaglioni.spec.ts.
+      - tests/e2e/anagrafica-clienti.spec.ts: aggiorna l'asserzione del link di navigazione da `/anagrafiche/scaglioni` a `/anagrafiche/voci-rimborso` (e, se il test verifica anche il testo del link, da "Scaglioni km" a "Voci di rimborso").
+      - tests/e2e/feedback-attesa-azioni.spec.ts: rimuovi l'import e l'uso di `intervalloNuoviScaglioniKm`/`sogliaStabileInIntervallo`/`REGISTRO_SCAGLIONI_KM` (non più necessari, TASK-15); sostituisci `factory.createScaglioneKm({ finoAKm: km, importo: "31.00" })` con `factory.createVoceRimborsoTrasferta({ etichetta: \`Voce attesa ${randomUUID()}\`, importo: "31.00" })`; aggiorna la navigazione a `/anagrafiche/voci-rimborso`, l'`aria-label` della tabella, il nome del dialog (`Eliminare la voce «{etichetta}»?`) e il nome del pulsante (`Elimina voce`/`Eliminazione…`) coerentemente con TASK-07.
+      - tests/e2e/demo__cursore-e-feedback-attesa.spec.ts: applica la stessa adattamento di `feedback-attesa-azioni.spec.ts` (stesso pattern di route/copy/factory).
+
+      ## Steps
+      1. Scrivi `tests/e2e/anagrafica-voci-rimborso.spec.ts` riusando la struttura (`test.describe`, `accediComeAdmin`) di `anagrafica-scaglioni.spec.ts`, ma senza alcuna riserva numerica: ogni voce creata dal test usa un'etichetta univoca generata dal test stesso.
+      2. Elimina `anagrafica-scaglioni.spec.ts` e `demo__anagrafica-scaglioni.spec.ts`.
+      3. Aggiorna `anagrafica-clienti.spec.ts` come da Change.
+      4. Aggiorna `feedback-attesa-azioni.spec.ts` come da Change.
+      5. Aggiorna `demo__cursore-e-feedback-attesa.spec.ts` come da Change.
+      6. Esegui `npm run lint` per verificare che il guardrail e2e anti-flakiness resti soddisfatto (nessun `workers: 1`, nessuna attesa fissa introdotta, selezione per label/valore).
+
+      ## Verify
+      - Run: `npm run lint` (da `/Users/smarello/repo/coaching-planner`) — Expect: superato, incluso il guardrail e2e anti-flakiness.
+      - Run: `npx tsc --noEmit -p .` — Expect: nessun errore relativo ai file di questo task.
+      - L'esecuzione reale di Playwright (`npm run test:e2e`) è parte del gate finale (TASK-21), perché richiede Postgres e l'app buildata.
+
+      ## Done
+      - [ ] AC-1, AC-2 — `anagrafica-voci-rimborso.spec.ts` copre creazione/modifica/eliminazione e il rifiuto di un importo non valido.
+      - [ ] Nessun file e2e importa più `./support/reserved-resources` né referenzia `/anagrafiche/scaglioni`.
+
+      ## Blockers
+      None.
+    ref: TASK-16
+  - id: TASK-17
+    title: Nuovo scenario e2e di selezione/fotografia del rimborso e adattamento degli e2e di report
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-10
+      - TASK-13
+      - TASK-15
+      - TASK-12
+    body: |-
+      ## Objective
+      Un nuovo scenario e2e dimostra l'intero script della spec (selezione in tendina, fotografia al salvataggio, riepilogo mensile, sopravvivenza a modifica ed eliminazione della voce), sostituendo la spec di validazione km ormai priva di oggetto; gli scenari e2e di report/riepilogo che usavano `trasfertaKm`/`ScaglioneKm` vengono adattati ai campi fotografati.
+
+      ## Read
+      - tests/e2e/trasferta-rimborso-validazione.spec.ts — intero file (tutti gli scenari testano formati non validi del campo km testuale, non più possibile con una `<select>`: il file va eliminato, non riscritto in loco)
+      - tests/e2e/demo__trasferta-rimborso-automatico.spec.ts — intero file (filmava il calcolo automatico da km, non più esistente: da eliminare)
+      - tests/e2e/feedback-attesa-front-office.spec.ts — riga 341 (`trasfertaKm: 50` in una `createRigaAttivita`)
+      - tests/e2e/report-fatturazione-clienti.spec.ts — righe 391-419 (`intervalloNuoviScaglioniKm`, `factory.createScaglioneKm`, `trasfertaKm: kmRiservato`)
+      - tests/e2e/support/report-data.ts — intero file, in particolare `ScaglioneKm` (riga 5), `scaglioniTrasferta` (righe 47, 149-157, 214), `trasfertaKm` (righe 177, 187), `soglieTrasfertaRiservate` (righe 89-96)
+      - tests/e2e/demo__riepilogo-mensile-fattura.spec.ts — righe 103, 130 (`baselineTrasfertaKm`)
+
+      ## Change
+      - Crea tests/e2e/rimborso-trasferta-selezione.spec.ts con uno scenario che copre l'intero script "Dimostrazione" della spec: (1) admin crea una voce di rimborso con etichetta e importo univoci (`factory.createVoceRimborsoTrasferta`); (2) collaboratore apre `/attivita/{data}`, seleziona la voce dalla tendina (per etichetta, mai per indice), salva la riga e verifica che la riga mostri etichetta e importo e che il riepilogo mensile (`/attivita/riepilogo` o la sezione riepilogo già presente in pagina) rifletta l'importo; (3) admin modifica l'importo della stessa voce da `/anagrafiche/voci-rimborso/{id}`; (4) si torna sulla riga già salvata (reload) e sul riepilogo mensile e si verifica che etichetta/importo mostrati siano ancora quelli originali, non quelli aggiornati (AC-4); (5) admin elimina la voce; (6) si verifica che la riga storica mostri ancora etichetta/importo fotografati e che la tendina per una nuova riga non proponga più la voce eliminata (AC-5).
+      - Elimina tests/e2e/trasferta-rimborso-validazione.spec.ts e tests/e2e/demo__trasferta-rimborso-automatico.spec.ts.
+      - tests/e2e/feedback-attesa-front-office.spec.ts: sostituisci `trasfertaKm: 50` con `rimborsoTrasfertaEtichetta: "Voce attesa front-office", rimborsoTrasfertaImporto: "50.00"` nella chiamata a `factory.createRigaAttivita`.
+      - tests/e2e/report-fatturazione-clienti.spec.ts: rimuovi `intervalloNuoviScaglioniKm`/`sogliaStabileInIntervallo`/`kmRiservato`; sostituisci `factory.createScaglioneKm({ finoAKm: kmRiservato, importo: "27.50" })` con nessuna chiamata equivalente (non serve più creare una voce separata se la riga porta già i campi fotografati) e passa direttamente `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto: "27.50"` a `factory.createRigaAttivita`.
+      - tests/e2e/support/report-data.ts: sostituisci il tipo `ScaglioneKm` con la rimozione del campo `scaglioniTrasferta` dal tipo `DatasetReportFatturazioneClienti` (non serve più creare voci a parte: i totali attesi si calcolano sommando direttamente gli importi fotografati passati a `createRigaAttivita`); rimuovi `soglieTrasfertaRiservate`/`TRASFERTE_REPORT_KM_BASE`/`TRASFERTE_REPORT_KM_FINESTRA`; nelle chiamate a `createRigaAttivita` per `rigaFatturabileTrasferta`/`rigaNonFatturabileTrasferta` sostituisci `trasfertaKm: kmTrasfertaFatturabile`/`kmTrasfertaNonFatturabile` con `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` pari a `importoTrasfertaFatturabile`/`importoTrasfertaNonFatturabile` già calcolati nel file (i totali attesi restano identici, cambia solo come il rimborso arriva sulla riga).
+      - tests/e2e/demo__riepilogo-mensile-fattura.spec.ts: sostituisci il parametro `baselineTrasfertaKm?: number | null` di `creaScenarioRiepilogo` con `baselineRimborso?: { etichetta: string; importo: string } | null`, e la chiamata `createRigaAttivita` di conseguenza (righe 103, 130).
+
+      ## Steps
+      1. Scrivi `tests/e2e/rimborso-trasferta-selezione.spec.ts` con lo scenario completo descritto in Change, usando `tests/e2e/support/fixtures.ts` e la factory (mai seed condivisi), e selezionando l'opzione della tendina per testo etichetta (mai per indice, come richiesto dalle regole e2e del progetto).
+      2. Elimina `trasferta-rimborso-validazione.spec.ts` e `demo__trasferta-rimborso-automatico.spec.ts`.
+      3. Aggiorna `feedback-attesa-front-office.spec.ts` come da Change.
+      4. Aggiorna `report-fatturazione-clienti.spec.ts` e `support/report-data.ts` come da Change, verificando che i totali attesi calcolati nel file (`imponibile`, `rimborsi`, `totale`) restino invariati.
+      5. Aggiorna `demo__riepilogo-mensile-fattura.spec.ts` come da Change.
+      6. Esegui `npm run lint` per il guardrail e2e anti-flakiness.
+
+      ## Verify
+      - Run: `npm run lint` (da `/Users/smarello/repo/coaching-planner`) — Expect: superato.
+      - Run: `npx tsc --noEmit -p .` — Expect: nessun errore relativo ai file di questo task.
+      - L'esecuzione reale di Playwright è parte del gate finale (TASK-21).
+
+      ## Done
+      - [ ] AC-3, AC-4, AC-5, AC-6 — `rimborso-trasferta-selezione.spec.ts` copre l'intero script di dimostrazione, inclusa la sopravvivenza della riga storica a modifica ed eliminazione della voce.
+      - [ ] Nessun file e2e residuo referenzia `trasfertaKm`, `ScaglioneKm` o l'infrastruttura di riserva km.
+
+      ## Blockers
+      None.
+    ref: TASK-17
+  - id: TASK-18
+    title: 'Wiki: creare decisions/fotografia-rimborso-trasferta'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-10
+    body: |-
+      ## Objective
+      Una nuova pagina Wiki `type: decision` registra la scelta architetturale di fotografare etichetta e importo direttamente su `RigaAttivita`, senza FK né versioning, con le alternative scartate e le conseguenze.
+
+      ## Read
+      - docs/wiki/decisions/importi-decimali.md — esempio di pagina `type: decision` da usare come riferimento di formato (frontmatter, sezioni con marcatori `<!-- archetipo:wiki section=... -->`)
+      - docs/wiki/decisions/calcoli-puri.md — secondo esempio di formato
+      - Sezione "Decisioni Architetturali" di questo piano (plan_body) per il contenuto della decisione
+
+      ## Change
+      - Crea docs/wiki/decisions/fotografia-rimborso-trasferta.md con frontmatter `type: decision`, `decision_status: accepted`, `sources` che referenzia `prisma/schema.prisma` (campi `RigaAttivita.rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto`, modello `VoceRimborsoTrasferta`), `src/lib/actions/righe-attivita.ts` (`fotografaVoceRimborsoTrasferta`) e `tests/e2e/rimborso-trasferta-selezione.spec.ts`; sezioni Contesto (il calcolo a lettura precedente rendeva i rimborsi storici dipendenti dalla configurazione corrente), Decisione (fotografia diretta sui due campi, nessuna FK, nessuna tabella di versioning), Alternative (FK con ricalcolo a lettura — scartata; FK con versioning delle voci — esplicitamente fuori perimetro nella user story), Conseguenze (i totali storici sono stabili, riepilogo e report diventano una somma diretta, l'eliminazione di una voce non richiede alcun controllo di integrità referenziale), Verifica (test unitari di TASK-11, e2e di TASK-17).
+
+      ## Steps
+      1. Scrivi la pagina seguendo esattamente la struttura a marcatori di sezione delle due pagine di riferimento.
+      2. Collega la pagina da "Concetti correlati" a `domains/politiche-rimborso` e `domains/attivita` (aggiornate nei task successivi).
+
+      ## Verify
+      - Verifica manuale: la pagina ha tutte le sezioni richieste dal contratto `type: decision` (Contesto, Decisione, Alternative, Conseguenze, Verifica) con i marcatori `<!-- archetipo:wiki section=... -->` coerenti con gli esempi letti.
+
+      ## Done
+      - [ ] La pagina `decisions/fotografia-rimborso-trasferta` esiste con `decision_status: accepted` e documenta le alternative scartate citate nella user story (FK+ricalcolo, FK+versioning).
+
+      ## Blockers
+      None.
+    ref: TASK-18
+  - id: TASK-19
+    title: 'Wiki: aggiornare domains/politiche-rimborso alle voci libere'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-06
+      - TASK-07
+    body: |-
+      ## Objective
+      La pagina Wiki `domains/politiche-rimborso` descrive il nuovo modello a voci libere (etichetta + importo, nessuna fascia, nessun calcolo a lettura), sostituendo la descrizione a scaglioni chilometrici.
+
+      ## Read
+      - docs/wiki/domains/politiche-rimborso.md — intero file, ogni sezione (Scopo, Linguaggio, Ownership, Contratti, Flussi osservati, Codice, Invarianti e limiti, Verifica) contiene affermazioni specifiche sulle fasce chilometriche da sostituire
+      - src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts, src/lib/voci-rimborso.ts (creati in TASK-06/TASK-07) — comportamento reale da documentare
+
+      ## Change
+      - docs/wiki/domains/politiche-rimborso.md: aggiorna `sources` (percorsi `anagrafiche/scaglioni` → `anagrafiche/voci-rimborso`, `src/lib/scaglioni.ts` → `src/lib/voci-rimborso.ts`, `src/domain/anagrafiche/valida-scaglione.ts` → `valida-voce-rimborso.ts`, `tests/unit/rimborso-trasferta.test.ts` rimosso, aggiungi `tests/unit/voci-rimborso-dal-actions.test.ts` e `tests/e2e/anagrafica-voci-rimborso.spec.ts`); riscrivi Scopo (configurazione di voci a etichetta libera con importo, nessuna fascia da selezionare per distanza); Linguaggio ("Voce di rimborso": etichetta + importo; rimuovi "Scaglione chilometrico"/"Fino a km"/gli esiti `OK`/`NESSUNO_SCAGLIONE`/`OLTRE_SOGLIA`, ormai inesistenti); Ownership (possiede `VoceRimborsoTrasferta`; non possiede più alcun algoritmo di selezione — la selezione è manuale del collaboratore, non calcolata); Contratti (le Server Action creano/aggiornano/eliminano voci; `elencaVociRimborso` restituisce le voci per data di creazione; non esiste più una funzione di calcolo del rimborso: la riga attività fotografa etichetta/importo al salvataggio, si veda [Fotografia del rimborso trasferta](/decisions/fotografia-rimborso-trasferta.md)); Flussi osservati (creazione/modifica validano solo etichetta e importo, nessun controllo di sovrapposizione/unicità; l'eliminazione resta fisica ma ora è sempre priva di conseguenze sulle righe storiche, che non referenziano la voce ma solo il suo valore fotografato); Codice (aggiorna la tabella percorsi); Invarianti e limiti (etichetta obbligatoria, importo positivo con massimo due decimali; nessun vincolo di unicità; una modifica o eliminazione della configurazione non altera più alcun riepilogo o report storico, a differenza di prima); Verifica (aggiorna riferimenti ai test).
+
+      ## Steps
+      1. Riscrivi ogni sezione della pagina seguendo Change, mantenendo i marcatori `<!-- archetipo:wiki section=... -->` esistenti.
+      2. Aggiorna "Concetti correlati" per linkare anche `decisions/fotografia-rimborso-trasferta`.
+
+      ## Verify
+      - Verifica manuale: nessuna menzione residua di "scaglione", "soglia", "fascia" o `finoAKm` nel testo della pagina (il concetto non esiste più nel dominio).
+
+      ## Done
+      - [ ] La pagina descrive fedelmente il comportamento implementato in TASK-06/TASK-07 (CRUD voci a etichetta libera, nessun calcolo a lettura, nessun vincolo di unicità).
+
+      ## Blockers
+      None.
+    ref: TASK-19
+  - id: TASK-20
+    title: 'Wiki: aggiornare domains/attivita alla tendina e alla fotografia del rimborso'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-09
+      - TASK-10
+      - TASK-13
+    body: |-
+      ## Objective
+      La pagina Wiki `domains/attivita` descrive il nuovo contratto del form riga (tendina di voci invece di km) e il comportamento di fotografia in `creaRiga`/`modificaRiga`/`rimuoviRimborsoTrasferta`, sostituendo i riferimenti a `trasfertaKm` e al calcolo a lettura.
+
+      ## Read
+      - docs/wiki/domains/attivita.md — intero file; riferimenti a `trasfertaKm`/km/scaglioni nel Linguaggio (riga 73), Contratti, Flussi osservati (in particolare i punti 3, 4, 5, 12 su validazione km/scaglione, `rimuoviTrasferta`, aggregazione del riepilogo), Codice (tabella con `src/domain/consuntivi/index.ts` — `validaOre, validaKmTrasferta, calcolaRiepilogoMese`), Invarianti e limiti ("I km, se presenti, sono interi positivi coperti da uno scaglione", "Tariffa e scaglioni correnti ricalcolano retroattivamente il riepilogo")
+
+      ## Change
+      - docs/wiki/domains/attivita.md: aggiorna `sources` (simbolo `validaKmTrasferta` → rimosso da `src/domain/consuntivi/index.ts`; aggiungi `tests/e2e/rimborso-trasferta-selezione.spec.ts`, rimuovi `tests/e2e/trasferta-rimborso-validazione.spec.ts` se presente in altri elenchi correlati); Linguaggio (sostituisci "trasferta km" con "voce di rimborso trasferta (etichetta + importo fotografati)"); Contratti/Flussi osservati: descrivi che il form propone una tendina di voci correnti (non un input numerico), che la selezione è opzionale, e che `creaRiga`/`modificaRiga` fotografano etichetta e importo della voce scelta al momento del salvataggio — una modifica che non tocca la tendina lascia invariato il rimborso già fotografato, mentre `rimuoviRimborsoTrasferta` (rinominata da `rimuoviTrasferta`) azzera entrambi i campi; punto 12 (riepilogo): sostituisci "aggiunge i rimborsi validi" con "somma i rimborsi già fotografati sulle righe, senza alcun ricalcolo"; Codice: aggiorna la riga della tabella per `src/domain/consuntivi/index.ts` rimuovendo `validaKmTrasferta`; Invarianti e limiti: sostituisci l'invariante sui km con "Il rimborso, se presente, è una coppia etichetta/importo fotografata al salvataggio; non esiste più alcun vincolo di copertura da uno scaglione", e rimuovi/riformula la frase "Tariffa e scaglioni correnti ricalcolano retroattivamente il riepilogo" in "La tariffa corrente del collaboratore ricalcola retroattivamente l'imponibile del riepilogo, ma i rimborsi trasferta restano quelli fotografati sulle singole righe e non sono più influenzati dalla configurazione corrente".
+
+      ## Steps
+      1. Aggiorna `sources`, Linguaggio, Contratti, Flussi osservati, Codice e Invarianti e limiti come da Change, mantenendo i marcatori di sezione esistenti.
+      2. Aggiorna "Concetti correlati" se necessario per riflettere il nuovo collegamento a `decisions/fotografia-rimborso-trasferta`.
+
+      ## Verify
+      - Verifica manuale: nessuna menzione residua di "trasferta km", `trasfertaKm` o `validaKmTrasferta` nel testo della pagina; la frase sull'invarianza dei rimborsi storici rispetto alla configurazione corrente è presente ed esplicita.
+
+      ## Done
+      - [ ] La pagina riflette fedelmente il comportamento di TASK-09/TASK-10/TASK-13 (tendina opzionale, fotografia al salvataggio, nessun ricalcolo retroattivo dei rimborsi).
+
+      ## Blockers
+      None.
+    ref: TASK-20
+  - id: TASK-21
+    title: 'Gate finale: suite completa, build ed e2e prima della review'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-05
+      - TASK-08
+      - TASK-11
+      - TASK-12
+      - TASK-14
+      - TASK-16
+      - TASK-17
+      - TASK-18
+      - TASK-19
+      - TASK-20
+    body: |-
+      ## Objective
+      L'intera suite di verifica (tipi, lint, unit, build, e2e) passa pulita end-to-end sul codice finale della spec, e lo stato del backlog conferma che ogni task è `DONE` prima di richiedere la review.
+
+      ## Read
+      - .github/workflows/ci.yml — ordine esatto dei passi da riprodurre localmente: install, `prisma migrate deploy`, `prisma db seed`, install Playwright, lint, `npm test`, `npm run build`, `npm run test:e2e`
+
+      ## Change
+      Nessun file di produzione: questo task esegue verifiche, non modifica codice (salvo eventuali fix minori emersi dall'esecuzione, che restano nello scope di questa spec e vanno applicati nei file pertinenti già toccati dai task precedenti).
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner`, con un Postgres locale raggiungibile, esegui in ordine: `npx prisma migrate deploy` (o `npx prisma migrate dev` se la migrazione di TASK-01 non è ancora applicata), `npx prisma db seed`.
+      2. Esegui `npx tsc --noEmit -p .` e correggi ogni errore residuo prima di proseguire (deve essere pulito: nessun riferimento a `trasfertaKm`/`ScaglioneKm` in tutto l'albero).
+      3. Esegui `npm run lint`.
+      4. Esegui `npm test`.
+      5. Esegui `npm run build`.
+      6. Esegui `npm run test:e2e`.
+      7. Solo dopo che tutti i passi 2-6 sono verdi, marca questo task `DONE`.
+      8. Esegui `archetipo spec show US-054` da `/Users/smarello/repo/coaching-planner` e verifica che **ogni** task del piano risulti `DONE`.
+      9. Solo a questo punto è consentito richiedere `archetipo spec review`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` — Expect: nessun errore.
+      - Run: `npm run lint` — Expect: superato, incluso il guardrail e2e anti-flakiness.
+      - Run: `npm test` — Expect: tutti i file di test superati (la baseline pre-implementazione era 39 file/634 test verdi; il numero totale cambierà per i file aggiunti/rimossi da questa spec, ma zero test devono fallire).
+      - Run: `npm run build` — Expect: build Next.js completata senza errori.
+      - Run: `npm run test:e2e` — Expect: tutti gli scenari Playwright superati, inclusi quelli nuovi/adattati da TASK-16/TASK-17.
+      - Run: `archetipo spec show US-054` (da `/Users/smarello/repo/coaching-planner`) — Expect: `data.tasks` mostra tutti i task, incluso questo, con `status: "DONE"`.
+
+      ## Done
+      - [ ] AC-1..AC-7 — tutte le evidenze elencate nella Mappa di Evidenza dell'Accettazione del piano sono verificate dall'esecuzione reale di questo gate (non solo per lettura del codice).
+      - [ ] `archetipo spec show US-054` conferma che nessun task resta `TODO`.
+
+      ## Blockers
+      None.
+    ref: TASK-21
+  - id: TASK-22
+    title: 'Wiki: correggere domains/fatturazione-clienti.md ai rimborsi fotografati (rework)'
+    type: Fix
+    status: DONE
+    body: |-
+      ## Objective
+      La pagina `domains/fatturazione-clienti` smette di descrivere il report come dipendente da scaglioni/fasce chilometriche ricalcolate a lettura e riflette il comportamento reale introdotto da US-054: il report somma l'importo di rimborso già fotografato su ogni riga, senza consultare alcuna configurazione esterna al momento dell'aggregazione. Corregge il commento di rework su `docs/wiki/domains/fatturazione-clienti.md:72` (e le righe collegate 40, 51, 54, 66) che affermava l'esatto contrario del comportamento attuale.
+
+      ## Read
+      - docs/wiki/domains/fatturazione-clienti.md — intera pagina, in particolare frontmatter (righe 1-24), sezione Ownership (riga 40), Flussi osservati punti 2 e 5 (righe 51, 54), tabella Codice riga «Dati letti» (riga 66), sezione Invarianti e limiti (riga 72)
+      - src/lib/report.ts — conferma che `reportFatturazioneClientiMese` non carica più alcuna voce/scaglione e mappa `rimborsoTrasfertaImporto` dalla riga (riga 103)
+      - src/domain/consuntivi/index.ts — conferma che `calcolaReportFatturazioneClienti` non riceve più un parametro di configurazione esterna
+
+      ## Change
+      - docs/wiki/domains/fatturazione-clienti.md, frontmatter: cambia `status: reviewed` in `status: generated` e rimuovi interamente il blocco `review:` (le quattro righe `content_hash`, `evidence_revision`, `reviewed_at` prima del delimitatore `---` di chiusura).
+      - Riga 40 (Ownership), testo attuale: "Possiede il contratto e le regole della proiezione, ma nessun aggregate persistito. Consuma righe attività, metadati cliente/offerta e scaglioni correnti. Non possiede la tariffa commerciale o la distanza registrata." — sostituiscilo con: "Possiede il contratto e le regole della proiezione, ma nessun aggregate persistito. Consuma righe attività — incluso il rimborso trasferta già fotografato su ciascuna riga — e metadati cliente/offerta. Non possiede la tariffa commerciale né alcuna configurazione delle voci di rimborso: quella configurazione non viene più letta al momento dell'aggregazione."
+      - Riga 51 (Flussi osservati, punto 2), testo attuale: "Mappa Decimal e relazioni in input serializzabili, carica gli scaglioni e invoca `calcolaReportFatturazioneClienti`." — sostituiscilo con: "Mappa Decimal e relazioni in input serializzabili e invoca `calcolaReportFatturazioneClienti`, che non riceve più alcun parametro di configurazione esterna: somma direttamente il `rimborsoTrasfertaImporto` già presente su ogni riga."
+      - Riga 54 (Flussi osservati, punto 5), testo attuale: "Una trasferta con rimborso `OK` viene ribaltata al cliente anche su riga non fatturabile; questi clienti \"solo rimborsi\" hanno `perOfferta` vuoto, e la UI lo segnala esplicitamente nel dettaglio." — sostituiscilo con: "Una riga con `rimborsoTrasfertaImporto` fotografato viene ribaltata al cliente anche su riga non fatturabile; questi clienti \"solo rimborsi\" hanno `perOfferta` vuoto, e la UI lo segnala esplicitamente nel dettaglio."
+      - Riga 66 (tabella Codice, riga «Dati letti»), testo attuale: "| Dati letti | `prisma/schema.prisma` (`RigaAttivita`, `Offerta`, `Cliente`, `ScaglioneKm`) |" — sostituiscilo con: "| Dati letti | `prisma/schema.prisma` (`RigaAttivita`, `Offerta`, `Cliente`) |"
+      - Riga 72 (Invarianti e limiti), testo attuale: "Accesso solo amministratore. La tariffa è quella corrente dell'offerta e gli scaglioni sono quelli correnti; modifiche successive ricalcolano mesi storici, quindi il risultato non è una fattura immutabile. Lo schema non garantisce coerenza fra cliente diretto della riga e cliente dell'offerta: la proiezione usa il cliente della riga per il raggruppamento e la tariffa dell'offerta per il calcolo. Le distanze oltre soglia o senza fascia non producono rimborso nel report." — sostituiscilo con: "Accesso solo amministratore. La tariffa è quella corrente dell'offerta; modifiche successive alla tariffa ricalcolano mesi storici, quindi il risultato non è una fattura immutabile su quel fronte. Il rimborso trasferta, invece, è uno snapshot: il report somma `rimborsoTrasfertaImporto` già fotografato su ogni riga al momento del salvataggio, quindi una modifica o eliminazione successiva di una voce di rimborso non altera i mesi storici già riportati. Lo schema non garantisce coerenza fra cliente diretto della riga e cliente dell'offerta: la proiezione usa il cliente della riga per il raggruppamento e la tariffa dell'offerta per il calcolo. Una riga senza rimborso fotografato non contribuisce alcun importo di rimborso al report."
+
+      ## Steps
+      1. Applica la modifica al frontmatter come da Change.
+      2. Applica in ordine le cinque sostituzioni di testo elencate in Change, senza alterare il resto della pagina (titoli di sezione, commenti `<!-- archetipo:wiki section=... -->`, link in "Concetti correlati").
+      3. Rileggi l'intera pagina per verificare che nessun riferimento a `scaglioni`, `ScaglioneKm`, `fascia`/`fasce` o `soglia` sia rimasto, salvo dove esplicitamente richiesto da un'altra pagina (non applicabile qui).
+
+      ## Verify
+      - Run: `grep -niE "scaglion|fascia|soglia" docs/wiki/domains/fatturazione-clienti.md` (da `/Users/smarello/repo/coaching-planner/.archetipo/worktrees/US-054`) — Expect: nessun risultato.
+      - Run: `archetipo wiki --project-root "$(pwd)" validate --profile bootstrap` — Expect: `data.ok: true` (i warning `WIKI_EVIDENCE_CHANGED` preesistenti restano ammessi, non sono un blocco).
+
+      ## Done
+      - [ ] Rework — `docs/wiki/domains/fatturazione-clienti.md` non descrive più un ricalcolo a lettura dei rimborsi né cita `ScaglioneKm`/fasce/soglie; afferma esplicitamente che il rimborso è uno snapshot fotografato e la tariffa resta ricalcolata.
+      - [ ] Frontmatter aggiornato a `status: generated` senza blocco `review:` residuo.
+
+      ## Blockers
+      None.
+    ref: TASK-22
+  - id: TASK-23
+    title: 'Wiki: correggere architecture/context-map.md — candidato Politiche di rimborso e relazione con Fatturazione clienti (rework)'
+    type: Fix
+    status: DONE
+    body: |-
+      ## Objective
+      La pagina `architecture/context-map` smette di descrivere "Politiche di rimborso" come una configurazione a fasce chilometriche e la relazione verso Fatturazione clienti come lettura diretta di fasce, riflettendo il modello a voci libere e la fotografia al salvataggio introdotti da US-054. Corregge i commenti di rework su `docs/wiki/architecture/context-map.md:31` e `:41` (linguaggio a fasce ormai inesistente).
+
+      ## Read
+      - docs/wiki/architecture/context-map.md — intera pagina, in particolare frontmatter (righe 1-20), tabella "Contesti candidati" riga «Politiche di rimborso» (riga 31), sezione "Relazioni osservate" punto Fatturazione clienti (riga 41)
+      - prisma/schema.prisma — modello `VoceRimborsoTrasferta` (righe 136 e seguenti) e campi `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` su `RigaAttivita`
+
+      ## Change
+      - docs/wiki/architecture/context-map.md, frontmatter: cambia `status: reviewed` in `status: generated` e rimuovi interamente il blocco `review:` (le righe `content_hash`, `evidence_revision`, `evidence_hash`, `reviewed_at` prima del delimitatore `---` di chiusura).
+      - Riga 31 (tabella "Contesti candidati"), riga attuale: "| Politiche di rimborso | Configurazione e selezione fascia chilometrica | `ScaglioneKm`, calcolo rimborso |" — sostituiscila con: "| Politiche di rimborso | Configurazione di voci di rimborso a etichetta libera, senza fasce né calcolo a lettura | `VoceRimborsoTrasferta`, fotografia su `RigaAttivita` |"
+      - Riga 41 (sezione "Relazioni osservate"), testo attuale: "- Fatturazione clienti legge fatti da Attività, tariffa e metadati da Offerte, ragione sociale da Clienti e fasce da Politiche di rimborso." — sostituiscilo con: "- Fatturazione clienti legge fatti da Attività — incluso il rimborso trasferta già fotografato — tariffa e metadati da Offerte, ragione sociale da Clienti; non legge più direttamente Politiche di rimborso al momento dell'aggregazione, perché il rimborso è già uno snapshot sulla riga."
+
+      ## Steps
+      1. Applica la modifica al frontmatter come da Change.
+      2. Applica le due sostituzioni di testo (riga 31 e riga 41) senza alterare altre righe della pagina, inclusa la riga 39 (non oggetto di questo task) e la sezione "Confini e incertezze" (corretta separatamente in TASK-24).
+
+      ## Verify
+      - Run: `grep -n "fascia chilometrica\|ScaglioneKm" docs/wiki/architecture/context-map.md` (da `/Users/smarello/repo/coaching-planner/.archetipo/worktrees/US-054`) — Expect: nessun risultato sulle righe 31 e 41 corrette (eventuali altri riferimenti restano di competenza di TASK-24).
+
+      ## Done
+      - [ ] Rework — la riga "Politiche di rimborso" nella tabella dei contesti candidati cita `VoceRimborsoTrasferta` e non `ScaglioneKm`/fasce; la relazione con Fatturazione clienti non parla più di "fasce".
+      - [ ] Frontmatter aggiornato a `status: generated` senza blocco `review:` residuo.
+
+      ## Blockers
+      None.
+    ref: TASK-23
+  - id: TASK-24
+    title: 'Wiki: correggere architecture/context-map.md — invariante snapshot tariffa vs rimborso (rework)'
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-23
+    body: |-
+      ## Objective
+      La sezione "Confini e incertezze" di `architecture/context-map` smette di affermare che i rimborsi trasferta vengono ricalcolati con la configurazione corrente: da US-054 il rimborso è uno snapshot immutabile fotografato sulla riga, mentre resta ricalcolata solo la tariffa giornaliera del collaboratore. Corregge il commento di rework su `docs/wiki/architecture/context-map.md:60`.
+
+      ## Read
+      - docs/wiki/architecture/context-map.md (dopo TASK-23) — sezione "Confini e incertezze", riga con "Tariffe e scaglioni non sono snapshot" (riga 60 nella versione pre-rework; il numero di riga può essere leggermente diverso dopo le modifiche di TASK-23, individua la riga per contenuto)
+      - src/lib/actions/righe-attivita.ts — conferma che `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` vengono scritti una sola volta al salvataggio e non ricalcolati altrove
+
+      ## Change
+      - docs/wiki/architecture/context-map.md, sezione "Confini e incertezze": individua la riga con testo attuale "- Tariffe e scaglioni non sono snapshot: riepiloghi e report storici sono ricalcolati con configurazione corrente." e sostituiscila con: "- La tariffa giornaliera del collaboratore non è uno snapshot: riepiloghi e report storici la ricalcolano con la configurazione corrente. Il rimborso trasferta, invece, è uno snapshot dalla fotografia al salvataggio (US-054): `RigaAttivita.rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` restano quelli del momento del salvataggio anche se la voce di rimborso viene successivamente modificata o eliminata."
+
+      ## Steps
+      1. Individua la riga esatta nella sezione "Confini e incertezze" (per contenuto, non solo per numero di riga, perché TASK-23 può averlo spostato).
+      2. Sostituiscila con il nuovo testo indicato in Change, senza alterare le altre righe della sezione.
+
+      ## Verify
+      - Run: `grep -n "non sono snapshot" docs/wiki/architecture/context-map.md` (da `/Users/smarello/repo/coaching-planner/.archetipo/worktrees/US-054`) — Expect: nessun risultato che accomuni ancora "tariffe" e "rimborsi"/"scaglioni" nella stessa affermazione di non-snapshot.
+      - Run: `archetipo wiki --project-root "$(pwd)" validate --profile bootstrap` — Expect: `data.ok: true`.
+
+      ## Done
+      - [ ] Rework — la sezione "Confini e incertezze" distingue esplicitamente tariffa (ricalcolata) da rimborso trasferta (snapshot immutabile dal salvataggio).
+
+      ## Blockers
+      None.
+    ref: TASK-24
+  - id: TASK-25
+    title: 'Wiki: correggere overview.md — attore Amministratore non gestisce più scaglioni (rework)'
+    type: Fix
+    status: DONE
+    body: |-
+      ## Objective
+      La pagina `overview` smette di elencare "scaglioni" tra i dati gestiti dall'Amministratore, sostituendo il termine con "voci di rimborso trasferta", coerente con l'area `/anagrafiche/voci-rimborso` introdotta da US-054. Corregge il commento di rework su `docs/wiki/overview.md:34`.
+
+      ## Read
+      - docs/wiki/overview.md — intera pagina, in particolare frontmatter (righe 1-24) e sezione "Attori osservati" (riga 34)
+
+      ## Change
+      - docs/wiki/overview.md, frontmatter: cambia `status: reviewed` in `status: generated` e rimuovi interamente il blocco `review:` (le righe `content_hash`, `evidence_revision`, `evidence_hash`, `reviewed_at` prima del delimitatore `---` di chiusura).
+      - Riga 34, testo attuale: "- **Amministratore**: gestisce clienti, collaboratori, offerte e scaglioni; legge report e può usare l'area attività se possiede un profilo collaboratore attivo." — sostituiscilo con: "- **Amministratore**: gestisce clienti, collaboratori, offerte e voci di rimborso trasferta; legge report e può usare l'area attività se possiede un profilo collaboratore attivo."
+
+      ## Steps
+      1. Applica la modifica al frontmatter come da Change.
+      2. Applica la sostituzione di testo alla riga 34 senza alterare altre righe della pagina (in particolare non toccare la riga 50 "Politiche di rimborso trasferta", già corretta).
+
+      ## Verify
+      - Run: `grep -n "scaglioni" docs/wiki/overview.md` (da `/Users/smarello/repo/coaching-planner/.archetipo/worktrees/US-054`) — Expect: nessun risultato.
+
+      ## Done
+      - [ ] Rework — la sezione "Attori osservati" descrive l'Amministratore come gestore di "voci di rimborso trasferta", non di "scaglioni".
+      - [ ] Frontmatter aggiornato a `status: generated` senza blocco `review:` residuo.
+
+      ## Blockers
+      None.
+    ref: TASK-25
+  - id: TASK-26
+    title: 'Wiki: correggere operations/development.md — schema corrente senza scaglioni (rework)'
+    type: Fix
+    status: DONE
+    body: |-
+      ## Objective
+      La pagina `operations/development` smette di descrivere lo schema corrente come contenente "scaglioni", riflettendo che `ScaglioneKm` è stato rimosso dalla migrazione `20260731142725_voci_rimborso_trasferta_libere` e sostituito da `VoceRimborsoTrasferta`, mantenendo però la menzione storica della migrazione precedente come nota esplicitamente storica. Corregge il commento di rework su `docs/wiki/operations/development.md:72`.
+
+      ## Read
+      - docs/wiki/operations/development.md — intera pagina, in particolare frontmatter (righe 1-29) e sezione "Database e migrazioni" (riga 72)
+      - prisma/migrations/ — conferma il nome esatto della cartella di migrazione `20260731142725_voci_rimborso_trasferta_libere`
+
+      ## Change
+      - docs/wiki/operations/development.md, frontmatter: cambia `status: reviewed` in `status: generated` e rimuovi interamente il blocco `review:` (le righe `content_hash`, `evidence_revision`, `reviewed_at` prima del delimitatore `---` di chiusura).
+      - Riga 72, testo attuale: "Prisma genera il client in `src/generated/prisma`. Lo schema corrente definisce identità/account, profili, clienti, offerte, scaglioni, righe attività e abilitazioni collaboratore-offerta. Le migrazioni creano lo schema iniziale, aggiungono campi fiscali cliente e rendono unica `ScaglioneKm.finoAKm`. Il seed cancella e ricrea dati dimostrativi; non va eseguito contro un database da preservare." — sostituiscilo con: "Prisma genera il client in `src/generated/prisma`. Lo schema corrente definisce identità/account, profili, clienti, offerte, voci di rimborso trasferta, righe attività e abilitazioni collaboratore-offerta. Le migrazioni creano lo schema iniziale, aggiungono campi fiscali cliente e rendevano unica `ScaglioneKm.finoAKm` — modello poi rimosso dalla migrazione `20260731142725_voci_rimborso_trasferta_libere`, che sostituisce `ScaglioneKm` con `VoceRimborsoTrasferta` e il campo `RigaAttivita.trasfertaKm` con i campi fotografati `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto`. Il seed cancella e ricrea dati dimostrativi; non va eseguito contro un database da preservare."
+
+      ## Steps
+      1. Applica la modifica al frontmatter come da Change.
+      2. Applica la sostituzione di testo alla riga 72 senza alterare altre righe della pagina.
+
+      ## Verify
+      - Run: `grep -n "definisce identità" docs/wiki/operations/development.md` (da `/Users/smarello/repo/coaching-planner/.archetipo/worktrees/US-054`) — Expect: la riga trovata cita "voci di rimborso trasferta" e non elenca più "scaglioni" tra i dati correnti dello schema.
+
+      ## Done
+      - [ ] Rework — la sezione "Database e migrazioni" non descrive più "scaglioni" come parte dello schema corrente; la menzione di `ScaglioneKm.finoAKm` resta solo come nota storica esplicitamente superata dalla migrazione che l'ha rimossa.
+      - [ ] Frontmatter aggiornato a `status: generated` senza blocco `review:` residuo.
+
+      ## Blockers
+      None.
+    ref: TASK-26
+  - id: TASK-27
+    title: 'Wiki: correggere decisions/importi-decimali.md — terminologia importo voce di rimborso (rework)'
+    type: Fix
+    status: DONE
+    body: |-
+      ## Objective
+      La pagina `decisions/importi-decimali` smette di citare "importo scaglione", terminologia del modello `ScaglioneKm` rimosso da US-054, sostituendola con il nome del campo attuale `VoceRimborsoTrasferta.importo`. La sostanza della decisione (Decimal, normalizzazione a due cifre) resta invariata. Corregge il commento di rework su `docs/wiki/decisions/importi-decimali.md:49`.
+
+      ## Read
+      - docs/wiki/decisions/importi-decimali.md — intera pagina, in particolare frontmatter (righe 1-23) e sezione "Verifica" (riga 49)
+      - prisma/schema.prisma — conferma `VoceRimborsoTrasferta.importo Decimal @db.Decimal(10, 2)`
+
+      ## Change
+      - docs/wiki/decisions/importi-decimali.md, frontmatter: cambia `status: reviewed` in `status: generated` e rimuovi interamente il blocco `review:` (le righe `content_hash`, `evidence_revision`, `evidence_hash`, `reviewed_at` prima del delimitatore `---` di chiusura).
+      - Riga 49, testo attuale: "Prisma usa `Decimal(10,2)` per tariffa collaboratore, tariffa offerta e importo scaglione; i validatori normalizzano stringhe decimali. Tuttavia `src/domain/consuntivi/index.ts` converte vari importi in `number`/`parseFloat` per somme e moltiplicazioni prima di formattare a due decimali. La decisione è adottata nello storage ma non integralmente nella catena applicativa; i test verificano gli output correnti, non precisione arbitraria." — sostituiscilo con: "Prisma usa `Decimal(10,2)` per tariffa collaboratore, tariffa offerta e importo della voce di rimborso trasferta (`VoceRimborsoTrasferta.importo`); i validatori normalizzano stringhe decimali. Tuttavia `src/domain/consuntivi/index.ts` converte vari importi in `number`/`parseFloat` per somme e moltiplicazioni prima di formattare a due decimali. La decisione è adottata nello storage ma non integralmente nella catena applicativa; i test verificano gli output correnti, non precisione arbitraria."
+
+      ## Steps
+      1. Applica la modifica al frontmatter come da Change.
+      2. Applica la sostituzione di testo alla riga 49 senza alterare altre righe della pagina.
+
+      ## Verify
+      - Run: `grep -n "importo scaglione" docs/wiki/decisions/importi-decimali.md` (da `/Users/smarello/repo/coaching-planner/.archetipo/worktrees/US-054`) — Expect: nessun risultato.
+
+      ## Done
+      - [ ] Rework — la sezione "Verifica" cita `VoceRimborsoTrasferta.importo` e non più "importo scaglione"; la decisione resta `decision_status: accepted` invariata nella sostanza.
+      - [ ] Frontmatter aggiornato a `status: generated` senza blocco `review:` residuo.
+
+      ## Blockers
+      None.
+    ref: TASK-27
+  - id: TASK-28
+    title: 'Wiki: correggere decisions/feedback-attesa-uniforme.md — esempio con azione rimossa (rework)'
+    type: Fix
+    status: DONE
+    body: |-
+      ## Objective
+      La pagina `decisions/feedback-attesa-uniforme` smette di citare "l'eliminazione di uno scaglione" come esempio di action senza ramo d'errore, sostituendo il riferimento con l'azione equivalente attuale `eliminaVoceRimborso`. Il comportamento descritto (nessun ramo d'errore, redirect solo sull'esito positivo) resta corretto e invariato. Corregge il commento di rework su `docs/wiki/decisions/feedback-attesa-uniforme.md:56`.
+
+      ## Read
+      - docs/wiki/decisions/feedback-attesa-uniforme.md — intera pagina, in particolare frontmatter (righe 1-25) e sezione "Decisione", punto 4 (riga 56)
+      - src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts — conferma che `eliminaVoceRimborso` (riga 91) non ha alcun ramo d'errore e redirige solo sull'esito positivo
+
+      ## Change
+      - docs/wiki/decisions/feedback-attesa-uniforme.md, frontmatter: cambia `status: reviewed` in `status: generated` e rimuovi interamente il blocco `review:` (le righe `content_hash`, `evidence_revision`, `evidence_hash`, `reviewed_at` prima del delimitatore `---` di chiusura).
+      - Riga 56, testo attuale: "Quando una di queste action ha un modo di fallire, l'errore viaggia sui parametri dell'URL e compare sul banner della pagina di destinazione. È il caso dell'invalidazione utente: `cambiaStatoUtenteAction` redirige su `?errore=ultimo-amministratore` e la pagina utenti legge quel parametro. L'eliminazione di uno scaglione e il cambio stato di un'offerta appartengono alla stessa categoria — redirigono, e nemmeno a loro si può chiedere un esito lato client — ma non hanno alcun ramo d'errore: redirigono solo sull'esito positivo, e le rispettive pagine leggono il solo parametro `esito`." — sostituiscilo con: "Quando una di queste action ha un modo di fallire, l'errore viaggia sui parametri dell'URL e compare sul banner della pagina di destinazione. È il caso dell'invalidazione utente: `cambiaStatoUtenteAction` redirige su `?errore=ultimo-amministratore` e la pagina utenti legge quel parametro. L'eliminazione di una voce di rimborso (`eliminaVoceRimborso`, `src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts`) e il cambio stato di un'offerta appartengono alla stessa categoria — redirigono, e nemmeno a loro si può chiedere un esito lato client — ma non hanno alcun ramo d'errore: redirigono solo sull'esito positivo, e le rispettive pagine leggono il solo parametro `esito`."
+
+      ## Steps
+      1. Applica la modifica al frontmatter come da Change.
+      2. Applica la sostituzione di testo alla riga 56 senza alterare altre righe della pagina (in particolare non toccare gli altri esempi della stessa sezione, ancora corretti).
+
+      ## Verify
+      - Run: `grep -n "eliminazione di uno scaglione" docs/wiki/decisions/feedback-attesa-uniforme.md` (da `/Users/smarello/repo/coaching-planner/.archetipo/worktrees/US-054`) — Expect: nessun risultato.
+
+      ## Done
+      - [ ] Rework — l'esempio nella sezione "Decisione" cita `eliminaVoceRimborso` e non più "l'eliminazione di uno scaglione"; il comportamento descritto (nessun ramo d'errore) resta invariato.
+      - [ ] Frontmatter aggiornato a `status: generated` senza blocco `review:` residuo.
+
+      ## Blockers
+      None.
+    ref: TASK-28
+  - id: TASK-29
+    title: 'Gate finale di rework: correttezza documentale delle sei pagine Wiki e non-regressione del codice'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-22
+      - TASK-23
+      - TASK-24
+      - TASK-25
+      - TASK-26
+      - TASK-27
+      - TASK-28
+    body: |-
+      ## Objective
+      Prova che tutte le sei pagine Wiki indicate nel feedback di rework sono state corrette, che nessuna pagina toccata contiene più i riferimenti obsoleti segnalati dalla review, che la Wiki resta strutturalmente valida, e che il codice applicativo (non toccato da questo giro, solo file `.md`) resta esattamente allo stato verde già verificato dalla review — prima di poter richiedere una nuova review.
+
+      ## Read
+      - docs/wiki/domains/fatturazione-clienti.md, docs/wiki/architecture/context-map.md, docs/wiki/overview.md, docs/wiki/operations/development.md, docs/wiki/decisions/importi-decimali.md, docs/wiki/decisions/feedback-attesa-uniforme.md — le sei pagine corrette da TASK-22..TASK-28
+      - .archetipo/specs/US-054.yaml (via `archetipo spec show US-054`) — stato dei 29 task dopo l'esecuzione
+
+      ## Change
+      Nessuna modifica di codice o di contenuto in questo task: è un task di sola verifica. Non toccare alcun file oltre a quanto già fatto nei task precedenti.
+
+      ## Steps
+      1. Esegui i controlli grep di non-regressione terminologica elencati in Verify sulle sei pagine.
+      2. Esegui `archetipo wiki --project-root "$(pwd)" validate --profile bootstrap` e verifica `data.ok: true`.
+      3. Riesegui la suite completa per confermare che il codice applicativo (non toccato da questo giro di rework) resta esattamente verde come già accertato dalla review: `npx vitest run`, `npx tsc --noEmit -p .`, `npm run lint`.
+      4. Da `/Users/smarello/repo/coaching-planner` (project root, non il worktree) esegui `archetipo spec show US-054` e verifica che tutti i 29 task (TASK-01..TASK-29) risultino `DONE`, inclusi i 21 task originali (già `DONE` da prima di questo giro) e i sette task di correzione TASK-22..TASK-28.
+      5. Solo dopo che tutti i controlli precedenti sono verdi, segna questo task come `DONE` e richiedi `archetipo spec review US-054`.
+
+      ## Verify
+      - Run: `grep -rniE "scaglion|fascia chilometrica" docs/wiki/domains/fatturazione-clienti.md docs/wiki/architecture/context-map.md docs/wiki/overview.md docs/wiki/decisions/importi-decimali.md docs/wiki/decisions/feedback-attesa-uniforme.md` (da `/Users/smarello/repo/coaching-planner/.archetipo/worktrees/US-054`) — Expect: nessun risultato (la sola menzione storica ammessa di `ScaglioneKm.finoAKm` in `operations/development.md` resta, per costruzione di TASK-26, chiaramente qualificata come superata: verificala a parte con `grep -n "ScaglioneKm" docs/wiki/operations/development.md` e conferma che la frase la descrive come rimossa dalla migrazione, non come stato corrente).
+      - Run: `archetipo wiki --project-root "$(pwd)" validate --profile bootstrap` — Expect: `data.ok: true`.
+      - Run: `npx vitest run` (da `/Users/smarello/repo/coaching-planner/.archetipo/worktrees/US-054`) — Expect: tutti i file e test passano (baseline pre-rework: 38 file, 607 test verdi secondo la review; nessuna regressione attesa perché questo giro non tocca codice applicativo).
+      - Run: `npx tsc --noEmit -p .` — Expect: nessun errore (baseline pre-rework pulita).
+      - Run: `npm run lint` — Expect: nessun errore, guardrail e2e incluso (baseline pre-rework pulita).
+      - Run: `archetipo spec show US-054` (da `/Users/smarello/repo/coaching-planner`) — Expect: tutti i 29 task in stato `DONE`.
+
+      ## Done
+      - [ ] Rework — tutte le sei pagine Wiki citate nel feedback (`domains/fatturazione-clienti`, `architecture/context-map`, `overview`, `operations/development`, `decisions/importi-decimali`, `decisions/feedback-attesa-uniforme`) non contengono più i riferimenti obsoleti a scaglioni/fasce/soglie/azioni rimosse segnalati dalla review.
+      - [ ] `archetipo wiki validate --profile bootstrap` riporta `data.ok: true`.
+      - [ ] `npx vitest run`, `npx tsc --noEmit -p .` e `npm run lint` restano verdi come nella baseline pre-rework.
+      - [ ] `archetipo spec show US-054` conferma tutti i 29 task `DONE` prima che venga richiesta `archetipo spec review US-054`.
+
+      ## Blockers
+      None.
+    ref: TASK-29

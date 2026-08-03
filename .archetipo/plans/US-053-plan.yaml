@@ -1,0 +1,363 @@
+schema: archetipo/plan/v2
+spec_code: US-053
+body: |-
+  ## Soluzione tecnica
+
+  **Approccio.** La pagina `/attivita/[data]` è già una Server Component (`page.tsx`) che legge `params.data` e passa `righeIniziali`/`data` al client component `dettaglio-giornata.tsx`. Cambiare giorno significa quindi navigare verso un nuovo URL dinamico `/attivita/{nuovaData}` — Next.js ri-esegue il rendering server per il nuovo segmento e il client component riceve nuove props (`data`, `righeIniziali`, ecc.). Non serve introdurre stato client per le righe: `dettaglio-giornata.tsx` già legge `righe = righeIniziali` direttamente dalla prop ad ogni render, quindi un nuovo `data` porta automaticamente le righe corrette (AC-1) e il form invia sempre `fd.append("data", data)` con il valore della prop corrente, quindi una riga aggiunta dopo il cambio giorno si registra sul giorno visualizzato (AC-3) senza toccare le server action in `src/lib/actions/righe-attivita.ts`. L'URL riflette sempre il giorno (AC-4) perché la navigazione è sempre verso `/attivita/{nuovaData}`, mai uno stato client-only.
+
+  **Componenti nuovi.**
+  1. `src/domain/calendario/index.ts` guadagna funzioni pure per l'aritmetica di giorno: `parseDataGiorno` (parsing+validazione civile di `YYYY-MM-DD`, sullo stesso schema di `parseTokenMese`) e `giornoSpostatoDi(dataStr, delta)` (giorno spostato di `delta` giorni, attraversa correttamente confini di mese/anno lasciando `Date` normalizzare l'overflow — stesso schema di `formattaTokenMese`). Questo segue il pattern già stabilito dalla decisione [Calcoli di dominio in funzioni pure](/decisions/calcoli-puri.md) — `src/domain/calendario/index.ts` è già una sorgente di quella decisione — quindi non serve una nuova ADR: si estende un pattern esistente, non se ne introduce uno nuovo.
+  2. `page.tsx` riusa `parseDataGiorno` al posto della validazione locale duplicata (`RE_DATA`/`dataValida`), e passa `meseToken` come prop a `DettaglioGiornata` così i nuovi controlli di navigazione possono preservare il contesto mese esistente nel link di ritorno, con lo stesso contratto già usato dal breadcrumb "Torna al calendario".
+  3. `dettaglio-giornata.tsx` aggiunge una barra di controllo (pulsante «Giorno precedente», input `type="date"`, pulsante «Giorno successivo») sopra l'intestazione giornata. Il gestore comune `vaiAlGiorno(nuovaData)` valida con `parseDataGiorno`, ignora no-op sulla stessa data, costruisce l'href `/attivita/{nuovaData}` (con `?mese={meseToken}` se presente, stesso contratto del breadcrumb) e naviga con `router.push` dentro `startTransition` (riusa l'`isPending` già presente nel componente per disabilitare i controlli durante la navigazione, evitando doppie navigazioni da click ripetuti). `giornoSpostatoDi(data, ±1)` alimenta i due pulsanti.
+  4. Un `useEffect` con dipendenza `[data]` chiama il reset del form (stesso codice di `handleAnnulla`) ogni volta che la prop `data` cambia: senza questo, un'edizione (`modificaId`) aperta su una riga del giorno di partenza resterebbe agganciata dopo un cambio giorno, e un submit successivo modificherebbe silenziosamente la riga del giorno precedente mentre l'utente guarda il giorno nuovo — `modificaRiga` non usa il campo `data` per validare l'appartenenza al giorno visualizzato, quindi nulla lo impedirebbe lato server. Non è un AC esplicito ma è un requisito implicito necessario per non introdurre un bug di corruzione dati silenziosa con la nuova funzionalità.
+
+  **Perimetro.** Nessuna modifica alle server action (`src/lib/actions/righe-attivita.ts`), alla validazione del form riga, al calendario mensile o al riepilogo — come richiesto dal "Fuori Perimetro" della spec. Il ritorno al calendario e il mese su cui si apre restano quelli già determinati da `meseToken`, comportamento invariato.
+
+  ## Baseline (eseguita in data 2026-07-31 dalla directory di progetto)
+
+  - `npx tsc --noEmit -p .` → nessun errore.
+  - `npm run lint` → passa (`eslint` + guardrail e2e anti-flakiness).
+  - `npx vitest run tests/unit/calendario.test.ts tests/unit/attivita.test.ts tests/unit/righe-attivita-actions.test.ts` → 3 file, 90 test, tutti superati.
+  - `npm run build` → build di produzione Next.js completata senza errori (23 route generate).
+
+  Nessun fallimento preesistente noto sui file che questo piano tocca: ogni task deve mantenere `tsc`/`lint`/test verdi, non solo "non peggiorare".
+
+  ## Mappa di evidenza di accettazione
+
+  | AC | Livello | Oracolo osservabile | Fixture / stato iniziale | Task che produce l'evidenza |
+  |---|---|---|---|---|
+  | AC-1 | e2e (Playwright, browser) | Dopo l'uso del selettore data verso un giorno di un mese diverso: `page.url()` termina con `/attivita/{nuovaData}`; l'intestazione (`h1`) mostra la data estesa attesa per `nuovaData` (calcolata indipendentemente nel test con `Intl.DateTimeFormat("it-IT", {day:"numeric",month:"long",year:"numeric"})`); la sezione righe mostra lo stato del nuovo giorno (vuoto, non quello di partenza) | Collaboratore/cliente/offerta creati via factory, abilitazione concessa, una riga esistente sul giorno di partenza | TASK-05 |
+  | AC-2 | e2e (Playwright, browser) | Dal primo giorno di un mese riservato, click su «Giorno precedente» porta l'URL e l'intestazione all'ultimo giorno del mese precedente (confine di mese attraversato); click su «Giorno successivo» torna esattamente al giorno di partenza (spostamento di un solo giorno, non un mese) | Stesso collaboratore di fixture, nessuna riga necessaria per questo scenario | TASK-05 |
+  | AC-3 | e2e (Playwright, browser) | Dopo il cambio data via selettore, si compila e invia il form: la nuova riga (localizzata per nota univoca) compare nella lista `data-testid="activity-row"` del giorno **attualmente visualizzato**; si naviga poi su `/attivita?mese={tokenNuovaData}` e si verifica che la cella calendario con `href="/attivita/{nuovaData}?mese={tokenNuovaData}"` abbia `data-con-attivita="true"` e contenga l'etichetta del cliente scelto — prova diretta che la riga è stata registrata sul giorno nuovo, non su quello di partenza | Stessa fixture di AC-1 | TASK-05 |
+  | AC-4 | e2e (Playwright, browser) | Dopo la navigazione su un nuovo giorno, `page.reload()` mantiene lo stesso URL e la stessa intestazione/riga appena creata (il giorno riaperto è quello dell'URL, non quello di partenza) | Stessa fixture di AC-1, eseguito in coda allo stesso test | TASK-05 |
+
+  ## Strategia di test
+
+  **Perché e2e browser e non un livello inferiore.** Tutti gli AC attraversano il confine rotta dinamica (`/attivita/[data]`) + persistenza (nuova riga scritta via server action) + navigazione client (`router.push`) + rilettura server (RSC). Nessun livello inferiore può provare che l'URL cambia, che il rendering server rilegge il giorno corretto e che la riga finisce davvero nel giorno visualizzato: un test di funzione pura non tocca né routing né action, e in questo progetto non esiste un livello di component-test (Vitest gira in `environment: "node"`, nessun `testing-library`/`jsdom` configurato — vedi `vitest.config.ts`). Nessuna deroga (waiver) quindi: browser e2e è obbligatorio per tutti e 4 gli AC.
+
+  **Unit test.** Le nuove funzioni pure `parseDataGiorno`/`giornoSpostatoDi` in `src/domain/calendario/index.ts` sono testate in isolamento in `tests/unit/calendario.test.ts`, sullo stesso schema già usato per `parseTokenMese`/`formattaTokenMese` nello stesso file: validità/invalidità del parsing (incluse date civili impossibili come 31 aprile) e attraversamento di confini di mese/anno in entrambe le direzioni per `giornoSpostatoDi`. Non è collegato a un AC specifico (è infrastruttura pura), ma è la stessa disciplina già applicata al resto del dominio calendario.
+
+  **Demo.** La Dimostrazione della spec è interamente filmabile (cambio data via selettore, giorno prec/succ, aggiunta riga dopo cambio, verifica nel calendario) — `archetipo-review` valuterà la registrazione, questo piano segnala solo che il percorso è filmabile end-to-end in un'unica sessione browser.
+
+  ## Impatto sulla Wiki
+
+  Unico impatto sostanziale: `domains/attivita` (aggiornamento) — la capability guadagna una nuova modalità di navigazione del giorno con due nuove funzioni di dominio pure e due nuovi file UI toccati (`page.tsx`, `dettaglio-giornata.tsx`) che non erano ancora sorgenti tracciate della pagina. `decisions/calcoli-puri` e `decisions/feedback-attesa-uniforme` sono stati segnalati da `wiki affected` come co-citazioni (file toccati che sono già loro sorgenti), ma le loro affermazioni restano accurate senza modifiche testuali: la prima perché stiamo solo aggiungendo un altro esempio dello stesso pattern già descritto, la seconda perché i nuovi controlli di navigazione sono pulsanti di navigazione client sincroni (stesso schema dei pulsanti mese in `calendario-mensile.tsx`, che già non usano `PulsanteAttesa`), non nuove istanze del pattern pending/`useFormStatus` che quella decisione normalizza. Restano fuori dal contratto obbligatorio e si riconciliano in review con il confronto puntuale del diff.
+tasks:
+  - id: TASK-01
+    title: Aggiungi l'aritmetica di giorno pura a src/domain/calendario/index.ts
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Il dominio calendario espone `parseDataGiorno` (parsing/validazione civile di una stringa `YYYY-MM-DD`) e `giornoSpostatoDi` (giorno spostato di N giorni, attraversando correttamente i confini di mese e anno) come funzioni pure esportate.
+
+      ## Read
+      - src/domain/calendario/index.ts — schema esistente di `parseTokenMese`/`formattaTokenMese`/`mesePrecedente`/`meseSuccessivo` (righe 47-120): stesso stile di validazione con regex + costruzione `Date`, stessa convenzione di normalizzazione dell'overflow lasciando fare a `Date`.
+      - src/app/(front-office)/attivita/[data]/page.tsx — funzione locale `dataValida` (righe 56-69) e `RE_DATA`: logica di validazione civile che `parseDataGiorno` deve rimpiazzare (verrà consumata da TASK-03, non toccare questo file in questo task).
+
+      ## Change
+      - src/domain/calendario/index.ts — aggiungi in coda al file (dopo la sezione "Griglia mese") una nuova sezione `// ── Aritmetica di giorno ────` con:
+        - `export interface DataGiorno { anno: number; mese: number; giorno: number; }` (mese 1-based, coerente con `TokenMese`);
+        - `export function parseDataGiorno(dataStr: string): DataGiorno | null` — regex `/^(\d{4})-(\d{2})-(\d{2})$/`, costruisce `new Date(anno, mese - 1, giorno)` e restituisce `null` se `getFullYear()`/`getMonth()`/`getDate()` non corrispondono ai componenti forniti (stesso schema di validazione civile già usato in `dataValida` di `page.tsx`), altrimenti l'oggetto `{ anno, mese, giorno }`;
+        - una funzione privata (non esportata) `formattaDataGiorno({ anno, mese, giorno }: DataGiorno): string` che produce `YYYY-MM-DD` con `padStart(2, "0")` su mese e giorno;
+        - `export function giornoSpostatoDi(dataStr: string, delta: number): string` — usa `parseDataGiorno`; se `null` restituisce `dataStr` invariata (nessun input malformato deve lanciare); altrimenti costruisce `new Date(parsed.anno, parsed.mese - 1, parsed.giorno + delta)` e la riformatta con `formattaDataGiorno` leggendo `getFullYear()/getMonth()+1/getDate()` dal risultato — lascia che `Date` normalizzi l'overflow di giorno/mese/anno in entrambe le direzioni.
+      - Non toccare `parseTokenMese`, `formattaTokenMese` o altre funzioni esistenti: sono un pattern diverso (token mese, non data di giorno) e restano invariate.
+
+      ## Steps
+      1. Apri `src/domain/calendario/index.ts` e individua la fine del file (dopo `costruisciGrigliaMese`).
+      2. Aggiungi l'interfaccia `DataGiorno` e la funzione `parseDataGiorno` come descritto in Change, con JSDoc breve coerente con lo stile esistente del file (es. quello di `parseTokenMese`).
+      3. Aggiungi la funzione privata `formattaDataGiorno`.
+      4. Aggiungi `giornoSpostatoDi` con JSDoc che menzioni esplicitamente l'attraversamento dei confini di mese/anno.
+      5. Verifica che non ci siano export duplicati o conflitti di nome con simboli esistenti nel file.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` (dalla project root) — Expect: nessun errore, come nella baseline.
+      - Run: `npx vitest run tests/unit/calendario.test.ts` — Expect: tutti i test esistenti continuano a passare (il file di test non è ancora stato esteso in questo task, è un controllo di non-regressione).
+
+      ## Done
+      - [ ] `parseDataGiorno` e `giornoSpostatoDi` sono esportati da `src/domain/calendario/index.ts` con la firma descritta.
+      - [ ] `giornoSpostatoDi` attraversa correttamente confini di mese e anno (verificato dal task TASK-02, questo task fornisce solo l'implementazione).
+      - [ ] `npx tsc --noEmit -p .` resta pulito.
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test per parseDataGiorno e giornoSpostatoDi in tests/unit/calendario.test.ts
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Le nuove funzioni pure di TASK-01 hanno copertura unit test esplicita per parsing valido/non valido e per l'attraversamento dei confini di mese/anno in entrambe le direzioni.
+
+      ## Read
+      - tests/unit/calendario.test.ts — stile esistente dei blocchi `describe`/`it` per `parseTokenMese` (righe 43-60) e per le altre funzioni del dominio calendario: riusa lo stesso stile di asserzione (`toEqual`, `toBeNull`, `toBe`).
+      - src/domain/calendario/index.ts — firme finali di `parseDataGiorno` e `giornoSpostatoDi` prodotte da TASK-01.
+
+      ## Change
+      - tests/unit/calendario.test.ts — aggiungi in coda al file due nuovi blocchi `describe`:
+        - `describe("parseDataGiorno", ...)`: casi validi (es. `"2026-07-31"` → `{ anno: 2026, mese: 7, giorno: 31 }`), casi non validi per formato (`"2026-7-31"`, `"20260731"`, `""`, `"abcd-ef-gh"`) e per data civile impossibile (`"2026-04-31"` → `null`, `"2026-02-30"` → `null`).
+        - `describe("giornoSpostatoDi", ...)`: spostamento di un giorno dentro lo stesso mese (`+1`, `-1`); attraversamento di fine mese in avanti (es. ultimo giorno di un mese con 30 o 31 giorni `+1` → primo giorno del mese successivo, incluso il caso dicembre → gennaio dell'anno successivo); attraversamento a ritroso (primo giorno di un mese `-1` → ultimo giorno del mese precedente, incluso gennaio → dicembre dell'anno precedente); delta `0` restituisce la stessa data; input non valido restituito invariato (es. `giornoSpostatoDi("non-una-data", 1)` → `"non-una-data"`).
+
+      ## Steps
+      1. Apri `tests/unit/calendario.test.ts` e individua l'import esistente da `@/domain/calendario` in cima al file.
+      2. Estendi l'import aggiungendo `parseDataGiorno, giornoSpostatoDi`.
+      3. Aggiungi il blocco `describe("parseDataGiorno", ...)` con i casi elencati in Change.
+      4. Aggiungi il blocco `describe("giornoSpostatoDi", ...)` con i casi elencati in Change, usando almeno un caso di confine anno (dicembre→gennaio e gennaio→dicembre).
+      5. Esegui i test e correggi eventuali refusi prima di procedere.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/calendario.test.ts` — Expect: tutti i test del file passano, incluso il nuovo blocco (nessun fallimento, nessun test skippato).
+      - Run: `npx tsc --noEmit -p .` — Expect: nessun errore.
+
+      ## Done
+      - [ ] `parseDataGiorno` è testato per almeno un caso valido, un formato non valido e una data civile impossibile.
+      - [ ] `giornoSpostatoDi` è testato per attraversamento di confine mese in entrambe le direzioni e per attraversamento di confine anno in entrambe le direzioni.
+      - [ ] `npx vitest run tests/unit/calendario.test.ts` passa per intero.
+
+      ## Blockers
+      TASK-01 deve essere completato (le funzioni da testare devono esistere).
+    ref: TASK-02
+  - id: TASK-03
+    title: 'page.tsx: riusa parseDataGiorno e passa meseToken a DettaglioGiornata'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      `page.tsx` valida la data con la funzione di dominio condivisa invece di una regex locale duplicata, e passa `meseToken` come prop al client component così i nuovi controlli di navigazione (TASK-04) possono preservare il contesto mese nello stesso modo del breadcrumb esistente.
+
+      ## Read
+      - src/app/(front-office)/attivita/[data]/page.tsx — l'intero file, in particolare `RE_DATA`/`dataValida` (righe 56-69), la destrutturazione di `searchParams` (riga 95), `ritornoHref` (riga 145) e il render di `<DettaglioGiornata .../>` (righe 168-173).
+      - src/domain/calendario/index.ts — firma di `parseDataGiorno` prodotta da TASK-01.
+
+      ## Change
+      - src/app/(front-office)/attivita/[data]/page.tsx:
+        - aggiungi `parseDataGiorno` all'import esistente da `@/domain/calendario` (nuovo import, il file non importa già da quel modulo — verifica se serve una riga di import dedicata);
+        - rimuovi la costante `RE_DATA` e la funzione locale `dataValida`;
+        - nel punto in cui oggi si chiama `if (!dataValida(dataStr)) { redirect("/attivita"); }`, sostituisci con `if (!parseDataGiorno(dataStr)) { redirect("/attivita"); }` (comportamento osservabile identico: redirect su data non valida o civilmente impossibile);
+        - aggiungi `meseToken={meseToken}` alle props passate a `<DettaglioGiornata ... />`.
+      - Non toccare `ritornoHref`, il breadcrumb, il caricamento dati (`Promise.all`) o la serializzazione delle righe: restano invariati.
+
+      ## Steps
+      1. Apri `src/app/(front-office)/attivita/[data]/page.tsx`.
+      2. Aggiungi `parseDataGiorno` all'import da `@/domain/calendario`.
+      3. Rimuovi `RE_DATA` e `dataValida`.
+      4. Sostituisci la chiamata di validazione con `parseDataGiorno(dataStr)`.
+      5. Aggiungi la prop `meseToken={meseToken}` al render di `<DettaglioGiornata>` (il valore `meseToken` è già destrutturato da `searchParams` alla riga 95, tipo `string | undefined`).
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` — Expect: nessun errore (in particolare nessun errore di tipo sulla nuova prop finché TASK-04 non estende l'interfaccia — se TypeScript segnala una prop sconosciuta perché TASK-04 non è ancora applicato, è atteso in questo momento intermedio; il gate finale in TASK-07 richiede che sia pulito dopo entrambi i task).
+      - Run: `npx eslint "src/app/(front-office)/attivita/[data]/page.tsx"` — Expect: nessun errore.
+
+      ## Done
+      - [ ] `page.tsx` non contiene più `RE_DATA`/`dataValida` locali; usa `parseDataGiorno` dal dominio.
+      - [ ] Il redirect su data non valida (`/attivita/2026-99-99` o simili) resta invariato nel comportamento osservabile (supporta AC-4: URL malformati continuano a essere rifiutati con lo stesso redirect di oggi).
+      - [ ] `<DettaglioGiornata>` riceve `meseToken`.
+
+      ## Blockers
+      TASK-01 deve essere completato (import di `parseDataGiorno`).
+    ref: TASK-03
+  - id: TASK-04
+    title: 'dettaglio-giornata.tsx: controlli di cambio giorno (selettore data, giorno prec/succ) e reset del form allo switch'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+    body: |-
+      ## Objective
+      Dalla pagina di dettaglio giornata, un selettore data e due pulsanti «Giorno precedente»/«Giorno successivo» permettono di navigare verso qualsiasi giorno (anche di un mese diverso) spostando l'URL di conseguenza; un'eventuale modifica di riga aperta viene azzerata quando il giorno visualizzato cambia, per evitare che un submit successivo aggiorni silenziosamente la riga del giorno precedente.
+
+      ## Read
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — l'intero file: import esistenti (righe 1-15), `DettaglioGiornataProps` (righe 25-34), stato e hook (`useRouter`, `useTransition`, righe 111-113), `handleAnnulla` (righe 439-453), il render dell'intestazione giornata (righe 497-507).
+      - src/app/(front-office)/attivita/calendario-mensile.tsx — pattern esistente dei pulsanti di navigazione mese (righe 330-373): stile Tailwind dei pulsanti icona (`h-9 w-9`, `rounded-[10px]`, `border-zinc-200`, chevron SVG `m15 6-6 6 6 6` / `m9 6 6 6-6 6`) da riusare identico per coerenza visiva, e conferma che i pulsanti di navigazione client in questa codebase NON usano `PulsanteAttesa` (restano `<button>` semplici).
+      - src/domain/calendario/index.ts — firme di `parseDataGiorno` e `giornoSpostatoDi` prodotte da TASK-01.
+      - src/lib/actions/righe-attivita.ts — `modificaRiga` (righe 259 in poi): conferma che il campo `data` inviato dal form NON è usato per validare l'appartenenza al giorno visualizzato (nessuna verifica lato server che la riga in modifica appartenga al giorno corrente), motivo per cui il reset del form allo switch giorno è necessario lato client.
+
+      ## Change
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx:
+        - import: aggiungi `giornoSpostatoDi, parseDataGiorno` da `@/domain/calendario`;
+        - `DettaglioGiornataProps`: aggiungi `meseToken?: string;`;
+        - firma del componente: destruttura anche `meseToken` dalle props;
+        - dopo la definizione di `handleAnnulla` (non prima: la nuova funzione la richiama), aggiungi:
+          - `useEffect(() => { handleAnnulla(); }, [data]);` con import di `useEffect` da `react` (aggiungilo all'import esistente `useState, useCallback, useMemo, useTransition`);
+          - `vaiAlGiorno` (`useCallback`) che valida `nuovaData` con `parseDataGiorno`, esce senza fare nulla se non valida o uguale a `data`, costruisce l'href (`meseToken ? \`/attivita/${nuovaData}?mese=${meseToken}\` : \`/attivita/${nuovaData}\``) e chiama `startTransition(() => router.push(href))`;
+          - `vaiAGiornoPrecedente`/`vaiAGiornoSuccessivo` (`useCallback`) che chiamano `vaiAlGiorno(giornoSpostatoDi(data, -1))` / `(data, 1)`.
+        - nel render, subito prima del blocco `{/* ── Intestazione giornata ── */}`, aggiungi un blocco `<div data-testid="controllo-cambio-giorno" className="mb-4 flex flex-wrap items-center gap-2.5">` con: pulsante icona `aria-label="Giorno precedente"` (`onClick={vaiAGiornoPrecedente}`, `disabled={isPending}`, stesso stile Tailwind e stessa icona chevron-sinistra dei pulsanti mese in `calendario-mensile.tsx`); un `<label htmlFor="selettore-giorno" className="sr-only">Vai al giorno</label>` seguito da `<input id="selettore-giorno" type="date" data-testid="selettore-giorno" value={data} disabled={isPending} onChange={(e) => vaiAlGiorno(e.target.value)} className="..." />` (stile coerente con gli altri input del form, es. bordo/focus rosa già usato altrove nel file); pulsante icona `aria-label="Giorno successivo"` speculare al primo.
+        - Non modificare `handleSubmit`, `creaRiga`/`modificaRiga`, il calcolo di `riepilogo`, né alcuna validazione esistente del form.
+
+      ## Steps
+      1. Apri `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx`.
+      2. Aggiorna l'import React per includere `useEffect`; aggiungi l'import da `@/domain/calendario`.
+      3. Estendi `DettaglioGiornataProps` con `meseToken?: string` e la destrutturazione delle props del componente.
+      4. Individua `handleAnnulla` (righe ~439-453) e subito dopo la sua definizione aggiungi l'effetto di reset su `[data]` descritto in Change.
+      5. Aggiungi `vaiAlGiorno`, `vaiAGiornoPrecedente`, `vaiAGiornoSuccessivo` come `useCallback` (dopo l'effetto o insieme agli altri handler di navigazione, in un punto coerente con l'organizzazione esistente del file, es. vicino a `invalidaMeseERicarica`).
+      6. Aggiungi il blocco JSX dei controlli di cambio giorno subito prima dell'intestazione giornata esistente, con i `data-testid`/`aria-label` esatti indicati in Change (sono un contratto vincolante: il task e2e TASK-05 li userà come selettori).
+      7. Verifica manualmente (lettura del diff) che `isPending` disabiliti correttamente tutti e tre i controlli durante la navigazione.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` — Expect: nessun errore (ora che sia `page.tsx` che questo file sono aggiornati, la prop `meseToken` deve tipizzare correttamente da entrambi i lati).
+      - Run: `npx eslint "src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx"` — Expect: nessun errore (incluse le regole `react-hooks/exhaustive-deps` sui nuovi hook).
+
+      ## Done
+      - [ ] AC-1 — Il file espone un input `type="date"` (`data-testid="selettore-giorno"`) che, al cambio, naviga verso `/attivita/{nuovaData}` con `router.push`.
+      - [ ] AC-2 — Due pulsanti (`aria-label="Giorno precedente"`/`"Giorno successivo"`) spostano la vista di esattamente un giorno tramite `giornoSpostatoDi(data, ±1)`, attraversando i confini di mese/anno per costruzione della funzione di dominio.
+      - [ ] Il form di modifica/inserimento riga viene azzerato (`handleAnnulla`) ogni volta che `data` cambia, così un submit dopo un cambio giorno non può aggiornare una riga del giorno precedente.
+      - [ ] `npx tsc --noEmit -p .` e l'eslint del file restano puliti.
+
+      ## Blockers
+      TASK-01 (funzioni di dominio) e TASK-03 (prop `meseToken` da `page.tsx`) devono essere completati prima di questo task.
+    ref: TASK-04
+  - id: TASK-05
+    title: 'E2E: tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts copre AC-1..AC-4'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-04
+    body: |-
+      ## Objective
+      Una nuova suite Playwright prova, su browser reale con dati factory isolati, che il selettore data cambia giorno (anche di mese diverso) aggiornando URL e contenuto (AC-1), che i pulsanti prec/succ spostano di un giorno alla volta attraversando i confini di mese (AC-2), che una riga aggiunta dopo il cambio giorno si registra sul giorno visualizzato e risulta visibile anche nel calendario mensile (AC-3), e che l'URL del giorno sopravvive a un reload (AC-4).
+
+      ## Read
+      - tests/e2e/support/fixtures.ts — fixture `test`/`expect`/`factory`/`collaboratore`/`clienteConOfferta` da importare al posto di `@playwright/test`.
+      - tests/e2e/support/date.ts — `meseRiservato`, `dataNelMeseRiservato`.
+      - tests/e2e/support/auth.ts — `accediComeCollaboratore(page, email)`.
+      - tests/e2e/calendario-navigazione-reattiva.spec.ts (righe 1-60) — pattern `dataDb(dataIso)` (`new Date(\`${dataIso}T00:00:00.000Z\`)`) per creare righe con `factory.createRigaAttivita({ ..., data: dataDb(...) })`.
+      - tests/e2e/demo__inserimento-righe-attivita-flusso.spec.ts (righe 1-140) — pattern di selezione cliente/offerta (`page.locator("#cliente").selectOption(...)`, attesa che `#offerta` sia popolato) e pattern di localizzazione riga per nota univoca (`page.getByTestId("activity-row").filter({ has: page.getByText(nota, { exact: true }) })`).
+      - src/app/(front-office)/attivita/calendario-mensile.tsx (righe 579-594) — markup della cella calendario: `<Link href="/attivita/{key}?mese={tokenCella}" data-testid="cella-giorno" data-con-attivita="true|false">` e, dentro, `data-testid="etichetta-cliente"` con `{ragioneSociale} {ore} h`.
+      - src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — dopo TASK-04: `data-testid="controllo-cambio-giorno"`, `data-testid="selettore-giorno"`, `aria-label="Giorno precedente"`/`"Giorno successivo"`.
+
+      ## Change
+      - tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts — nuovo file. Nessun altro file va toccato (i fixture/support esistenti bastano; non introdurre nuovi helper condivisi salvo una funzione locale `dataDb` identica al pattern citato).
+
+      ## Steps
+      1. Crea `tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts` importando `test, expect` da `./support/fixtures`, `accediComeCollaboratore` da `./support/auth`, `dataNelMeseRiservato, meseRiservato` da `./support/date`.
+      2. Definisci una funzione locale `dataDb(dataIso: string): Date { return new Date(\`${dataIso}T00:00:00.000Z\`); }`.
+      3. Definisci una funzione locale `etichettaGiornoAttesa(dataIso: string): string` che usa `new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "long", year: "numeric" })` su una `Date` costruita con componenti locali (`new Date(anno, mese-1, giorno)` a partire dallo split di `dataIso`) — calcolo indipendente dall'implementazione, da confrontare (case-insensitive o con normalizzazione minima) col testo dell'`h1` della pagina.
+      4. **Test A** — `test("il selettore data cambia giorno anche su un mese diverso e la nuova riga si registra sul giorno visualizzato, visibile anche nel calendario", async ({ page, factory, collaboratore, clienteConOfferta }) => { ... })`:
+         - `await factory.createAbilitazioneOfferta({ collaboratore, offerta: clienteConOfferta.offerta });`
+         - `const dataPartenza = dataNelMeseRiservato("US-053", 5);`
+         - crea una riga esistente sul giorno di partenza con `factory.createRigaAttivita({ collaboratore, cliente: clienteConOfferta.cliente, offerta: clienteConOfferta.offerta, data: dataDb(dataPartenza), nota: "Riga di partenza US-053" })` (soddisfa "almeno una riga attività" della Dimostrazione);
+         - `const dataArrivo = dataNelMeseRiservato("US-053-arrivo", 12);` (usa un codice spec diverso per garantire un mese riservato distinto da quello di partenza, così il cambio attraversa sempre un mese diverso indipendentemente dal mese corrente reale);
+         - `await accediComeCollaboratore(page, collaboratore.utente.email); await page.goto(\`/attivita/${dataPartenza}\`); await page.waitForURL(\`**/attivita/${dataPartenza}\`);`
+         - AC-1: `await page.getByTestId("selettore-giorno").fill(dataArrivo);` (per `<input type="date">` Playwright accetta `fill` con stringa `YYYY-MM-DD`) poi `await page.waitForURL(\`**/attivita/${dataArrivo}**\`);` e `await expect(page.getByRole("heading", { level: 1 })).toHaveText(etichettaGiornoAttesa(dataArrivo), { ignoreCase: true });` e `await expect(page.getByText("Nessuna attività registrata per questa giornata.")).toBeVisible();` (il nuovo giorno è vuoto, prova che non mostra la riga del giorno di partenza).
+         - AC-3 (prima parte): compila il form (`page.locator("#cliente").selectOption(clienteConOfferta.cliente.id)`, attendi che `#offerta` sia abilitato e abbia più di un'opzione, `selectOption(clienteConOfferta.offerta.id)`, `page.locator("#ore").fill("4")`, nota univoca via `randomUUID()`), invia con `page.getByRole("button", { name: "Aggiungi riga" }).click()`; verifica che la riga (localizzata per nota) sia visibile nella lista.
+         - AC-3 (seconda parte, calendario): `const tokenArrivo = dataArrivo.slice(0, 7); await page.goto(\`/attivita?mese=${tokenArrivo}\`);` poi `const cella = page.locator(\`a[href="/attivita/${dataArrivo}?mese=${tokenArrivo}"]\`); await expect(cella).toHaveAttribute("data-con-attivita", "true"); await expect(cella.getByTestId("etichetta-cliente")).toContainText(clienteConOfferta.cliente.ragioneSociale);`
+         - AC-4: `await page.goto(\`/attivita/${dataArrivo}\`); await page.waitForURL(\`**/attivita/${dataArrivo}\`); await page.reload(); await expect(page).toHaveURL(new RegExp(\`/attivita/${dataArrivo}$\`)); await expect(page.getByRole("heading", { level: 1 })).toHaveText(etichettaGiornoAttesa(dataArrivo), { ignoreCase: true });` e verifica che la riga creata sia ancora visibile dopo il reload.
+      5. **Test B** — `test("i pulsanti giorno precedente e successivo spostano di un giorno alla volta attraversando i confini di mese", async ({ page, collaboratore }) => { ... })`:
+         - `const tokenRiservato = meseRiservato("US-053-confine"); const primoGiorno = \`${tokenRiservato}-01\`;`
+         - calcola `ultimoGiornoMesePrecedente` con una funzione locale che usa `new Date(anno, mese - 1, 0)` (giorno 0 = ultimo del mese precedente) a partire dallo split di `tokenRiservato`, formattato `YYYY-MM-DD`;
+         - `await accediComeCollaboratore(page, collaboratore.utente.email); await page.goto(\`/attivita/${primoGiorno}\`); await page.waitForURL(\`**/attivita/${primoGiorno}\`);`
+         - click su `page.getByRole("button", { name: "Giorno precedente" })`; `await page.waitForURL(\`**/attivita/${ultimoGiornoMesePrecedente}\`);` e verifica l'intestazione con `etichettaGiornoAttesa`.
+         - click su `page.getByRole("button", { name: "Giorno successivo" })`; `await page.waitForURL(\`**/attivita/${primoGiorno}\`);` (torna esattamente al giorno di partenza, provando lo spostamento di un solo giorno e non un mese).
+      6. Nessun `waitForTimeout` per sincronizzazione funzionale; usa solo `waitForURL`/`expect` web-first, come richiesto dalle regole e2e del progetto.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts --retries=0` — Expect: entrambi i test passano in modo deterministico (nessun retry necessario).
+      - Run: `npm run lint` — Expect: passa, incluso il guardrail e2e anti-flakiness (`lint:e2e-guardrails`), perché il nuovo file non introduce `workers: 1`, selettori Tailwind come contratto primario, o `waitForTimeout` funzionali.
+
+      ## Done
+      - [ ] AC-1 — Test A prova che il selettore data porta a un giorno di un mese diverso, con URL e intestazione aggiornati e lista righe del nuovo giorno (non del giorno di partenza).
+      - [ ] AC-2 — Test B prova che «Giorno precedente»/«Giorno successivo» spostano di un giorno alla volta, attraversando un confine di mese in entrambe le direzioni.
+      - [ ] AC-3 — Test A prova che la riga aggiunta dopo il cambio giorno appare sul giorno visualizzato e nella cella calendario corrispondente (non su quella di partenza).
+      - [ ] AC-4 — Test A prova che un reload dopo il cambio giorno riapre lo stesso giorno (URL e contenuto invariati).
+      - [ ] `npx playwright test tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts --retries=0` passa.
+
+      ## Blockers
+      TASK-03 e TASK-04 devono essere completati (i `data-testid`/`aria-label` usati dai test devono esistere nell'app).
+    ref: TASK-05
+  - id: TASK-06
+    title: 'Wiki: aggiorna domains/attivita con la nuova navigazione di giorno'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-03
+      - TASK-04
+      - TASK-05
+    body: |-
+      ## Objective
+      La pagina Wiki `domains/attivita` riflette la nuova capacità di cambio giorno rapido (selettore data, giorno prec/succ) come conoscenza corrente del dominio, con le nuove sorgenti tracciate.
+
+      ## Read
+      - docs/wiki/domains/attivita.md — l'intero file: frontmatter `sources` (righe 7-51), sezione `## Flussi osservati` (punto 7, righe 93), sezione `## Codice` (tabella righe 104-114), sezione `## Verifica` (riga 124).
+      - src/domain/calendario/index.ts, src/app/(front-office)/attivita/[data]/page.tsx, src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx — stato finale dopo TASK-01/03/04.
+      - tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts — file prodotto da TASK-05.
+
+      ## Change
+      - docs/wiki/domains/attivita.md:
+        - nel frontmatter `sources`, aggiungi due nuove voci: `path: src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx` (`role: inbound-ui`) e `path: tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts` (`role: verification`); estendi la voce esistente `path: src/domain/calendario/index.ts` aggiungendo `symbol: parseDataGiorno, giornoSpostatoDi` (oltre a quanto già presente, se assente aggiungi il campo `symbol`);
+        - non toccare manualmente `review.content_hash`/`evidence_hash`/`evidence_revision`: restano gestiti dal ciclo di review della Wiki, non da questo task;
+        - nella sezione `## Flussi osservati`, aggiungi un nuovo punto (dopo il punto 7 sul calendario mensile) che descriva: dalla pagina di dettaglio giornata un selettore data e due pulsanti «Giorno precedente»/«Giorno successivo» (funzione pura `giornoSpostatoDi`) permettono di navigare verso qualsiasi giorno tramite `router.push` su `/attivita/{data}` (con `?mese=` preservato se presente), che il cambio giorno è quindi sempre una navigazione RSC autorevole (non uno stato client-only) e che il form di inserimento/modifica riga viene azzerato ad ogni cambio di `data` per evitare che una modifica in corso resti agganciata al giorno precedente;
+        - nella tabella `## Codice`, aggiungi alla riga `Test` il file `tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts`;
+        - nella sezione `## Verifica`, aggiungi una frase che descriva cosa copre `tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts` (selettore data verso un mese diverso, pulsanti prec/succ attraverso un confine di mese, registrazione della riga sul giorno visualizzato verificata anche nella cella calendario, persistenza dell'URL al reload).
+
+      ## Steps
+      1. Apri `docs/wiki/domains/attivita.md`.
+      2. Aggiorna il frontmatter `sources` come descritto in Change (mantieni l'indentazione YAML esistente a 4 spazi per voce).
+      3. Aggiungi il nuovo punto in `## Flussi osservati`.
+      4. Aggiorna la tabella `## Codice` (riga Test).
+      5. Aggiorna `## Verifica` con la frase sul nuovo file e2e.
+      6. Non modificare `status`, `classification` o i campi sotto `review:` nel frontmatter.
+
+      ## Verify
+      - Run: `archetipo wiki validate --profile bootstrap` (dalla project root) — Expect: `kind: "validation_result"` con `data.ok: true` per la pagina `domains/attivita` (nessun errore strutturale introdotto; eventuali warning preesistenti non peggiorati).
+
+      ## Done
+      - [ ] `docs/wiki/domains/attivita.md` cita `dettaglio-giornata.tsx`, i nuovi simboli di `src/domain/calendario/index.ts` e il nuovo file e2e tra le sorgenti.
+      - [ ] La sezione Flussi osservati descrive la nuova navigazione di giorno e il reset del form allo switch giorno.
+      - [ ] `archetipo wiki validate --profile bootstrap` non introduce nuovi errori sulla pagina.
+
+      ## Blockers
+      TASK-01, TASK-03, TASK-04 e TASK-05 devono essere completati: questo task documenta lo stato finale del codice e cita il file di test prodotto da TASK-05.
+    ref: TASK-06
+  - id: TASK-07
+    title: 'Gate finale: regressione completa e verifica DONE prima della review'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+    body: |-
+      ## Objective
+      L'intero incremento di US-053 (funzioni di dominio, UI di navigazione, test unitari ed e2e, aggiornamento Wiki) passa la stessa pipeline di controlli che CI esegue, senza introdurre regressioni rispetto alla baseline registrata nel piano, e tutti i task dello spec risultano `DONE` prima di richiedere la review.
+
+      ## Read
+      - .github/workflows/ci.yml — passi `Lint`, `Unit tests (Vitest)`, `Build` (la pipeline CI non esegue l'intera suite e2e nello step qui rilevante per questo piano, ma il progetto la richiede localmente prima di considerare stabile una modifica e2e, come da `tests/e2e/README.md`, sezione "Gate locale").
+      - Baseline registrata in `plan_body` (sezione "Baseline"): tutti i comandi qui sotto erano già verdi prima di questo piano.
+
+      ## Change
+      Nessuna modifica di codice in questo task: è un task di sola verifica ed è l'ultimo della catena di dipendenze.
+
+      ## Steps
+      1. Esegui, dalla project root, nell'ordine indicato in Verify, tutti i comandi.
+      2. Se un comando fallisce, non contrassegnare questo task come `DONE`: torna al task implementativo pertinente, correggi, ripeti da qui.
+      3. Solo dopo che tutti i comandi sono verdi, segna TASK-07 come `DONE`.
+      4. Esegui `archetipo spec show US-053` dalla project root e verifica nel campo `data.tasks` che **ogni** task del piano (TASK-01..TASK-07) abbia `status: DONE`.
+      5. Solo se il punto 4 conferma tutti i task `DONE`, richiedi la review dello spec (`archetipo spec review US-053` o equivalente del connettore configurato). Non richiedere la review prima di questa conferma.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p .` — Expect: nessun errore (come da baseline).
+      - Run: `npm run lint` — Expect: passa, incluso `lint:e2e-guardrails` (come da baseline).
+      - Run: `npx vitest run` — Expect: tutti i test unitari del progetto passano, incluso il nuovo blocco di TASK-02 (baseline: 90 test su 3 file prima di questo piano; il numero totale cresce con i nuovi test, nessun test deve fallire).
+      - Run: `npx playwright test tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts --retries=0` — Expect: entrambi i test passano senza retry (ripetuto qui come regressione finale, non solo come verifica isolata di TASK-05).
+      - Run: `npm run build` — Expect: build di produzione Next.js completata senza errori (come da baseline: 23+ route generate, nessun errore TypeScript in fase di build).
+      - Run: `archetipo spec show US-053` (dalla project root) — Expect: `data.tasks` mostra tutti i task TASK-01..TASK-07 con `status: DONE`.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4 — tutti coperti e verdi tramite TASK-05 (nessun AC lasciato senza evidenza).
+      - [ ] Nessuna regressione: `tsc`, `lint`, `vitest run`, `playwright test` (file dedicato) e `build` sono tutti verdi.
+      - [ ] `archetipo spec show US-053` conferma tutti i task `DONE` prima di richiedere la review.
+
+      ## Blockers
+      Tutti i task precedenti (TASK-01..TASK-06) devono essere `DONE`.
+    ref: TASK-07

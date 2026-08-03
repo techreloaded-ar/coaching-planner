@@ -6,8 +6,8 @@ epic:
   title: Evoluzioni Post-MVP
 priority: HIGH
 points: 5
-status: TODO
-body: |-
+status: DONE
+body: |
   #### US-054: Scaglioni di rimborso a voci libere con selezione a tendina
 
   **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
@@ -34,6 +34,35 @@ body: |-
   Ordinamento manuale delle voci nella tendina (si assume l'ordine di creazione). Storicizzazione o versioning delle voci di rimborso. Retrocompatibilità con l'inserimento dei chilometri percorsi: il dato km scompare dall'applicazione. Report aggregati per voce di rimborso.
 
   **Contesto Wiki:** domains/politiche-rimborso, domains/attivita, decisions/importi-decimali, decisions/calcoli-puri
+
+  ## Rework Feedback
+
+  <!-- Added by request-changes. archetipo-plan converts each item into a Fix task. -->
+
+  - **docs/wiki/domains/fatturazione-clienti.md:72** — Questa pagina non è nel wiki_impact del piano ma cita direttamente src/lib/report.ts e calcolaReportFatturazioneClienti, entrambi cambiati da US-054. La riga 72 ('gli scaglioni sono quelli correnti; modifiche successive ricalcolano mesi storici') afferma l'esatto contrario del comportamento attuale: con la fotografia al salvataggio (AC-4/AC-6) i mesi storici NON vengono più ricalcolati quando l'amministratore modifica o elimina una voce di rimborso — è il punto centrale corretto da questa spec. Vanno aggiornate anche: riga 40 ('Consuma ... scaglioni correnti' → il report ora consuma solo l'importo già fotografato sulle righe, nessuna configurazione esterna al momento dell'aggregazione), riga 51 ('carica gli scaglioni e invoca calcolaReportFatturazioneClienti' → calcolaReportFatturazioneClienti non riceve più un parametro scaglioni), riga 54 ('Una trasferta con rimborso OK viene ribaltata' → lo stato OK/OLTRE_SOGLIA/NESSUNO_SCAGLIONE non esiste più, sostituito da rimborsoTrasfertaImporto null o valorizzato), riga 66 (tabella 'Dati letti' cita ancora ScaglioneKm, rimosso dallo schema) e riga 72 ('Le distanze oltre soglia o senza fascia non producono rimborso' → non esiste più il concetto di distanza/soglia).
+  - **docs/wiki/architecture/context-map.md:31** — La tabella dei candidati descrive ancora 'Politiche di rimborso' come 'Configurazione e selezione fascia chilometrica' con dato principale `ScaglioneKm`. Da US-054 il modello è `VoceRimborsoTrasferta` (etichetta libera + importo, nessuna fascia/soglia chilometrica) e la riga va riscritta di conseguenza; anche la riga 41 ('fasce da Politiche di rimborso') usa un linguaggio a fasce ormai inesistente.
+  - **docs/wiki/architecture/context-map.md:60** — 'Tariffe e scaglioni non sono snapshot: riepiloghi e report storici sono ricalcolati con configurazione corrente' è ora falso per i rimborsi trasferta: con la fotografia al salvataggio introdotta da US-054, i rimborsi SONO uno snapshot immutabile sulla riga (RigaAttivita.rimborsoTrasfertaEtichetta/rimborsoTrasfertaImporto) e non vengono più ricalcolati quando la configurazione cambia. Solo la tariffa giornaliera del collaboratore resta ricalcolata a lettura. Riformulare distinguendo esplicitamente i due casi.
+  - **docs/wiki/overview.md:34** — 'gestisce clienti, collaboratori, offerte e scaglioni' cita ancora 'scaglioni', un'area amministrativa che US-054 ha sostituito con /anagrafiche/voci-rimborso (voci di rimborso a etichetta libera). Aggiornare il termine.
+  - **docs/wiki/operations/development.md:72** — 'Lo schema corrente definisce identità/account, profili, clienti, offerte, scaglioni, righe attività e abilitazioni collaboratore-offerta' non è più accurato: lo schema corrente non contiene più 'scaglioni'/`ScaglioneKm` (rimosso dalla migrazione 20260731142725_voci_rimborso_trasferta_libere), ma `VoceRimborsoTrasferta` e i campi fotografati su `RigaAttivita`. Aggiornare la frase sullo stato corrente dello schema; la menzione storica della migrazione che rendeva unica `ScaglioneKm.finoAKm` può restare come nota storica ma va chiarito che quel modello non esiste più.
+  - **docs/wiki/decisions/importi-decimali.md:49** — 'importo scaglione' è terminologia residua del modello `ScaglioneKm` rimosso da US-054. Il campo equivalente oggi è `VoceRimborsoTrasferta.importo` (ancora `Decimal(10,2)`, la sostanza della decisione resta valida): aggiornare solo il nome per coerenza con lo stato attuale del codice.
+  - **docs/wiki/decisions/feedback-attesa-uniforme.md:56** — L'esempio 'L'eliminazione di uno scaglione ... redirigono solo sull'esito positivo' cita un'azione (eliminazione scaglione) che non esiste più. Il comportamento descritto resta corretto per l'equivalente attuale `eliminaVoceRimborso` (src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts): nessun ramo d'errore, redirect solo sull'esito positivo. Aggiornare l'esempio al nuovo nome per evitare di documentare un'azione rimossa.
+  - Il resto dell'incremento di codice è solido e verificato indipendentemente durante la review: tutti gli AC-1..AC-7 sono soddisfatti dal codice (creazione/modifica/eliminazione voce senza vincoli, validazione importo, tendina a tre stati in modifica riga inclusa l'opzione 'Non modificare il rimborso attuale', fotografia al salvataggio, nessuna FK, riepilogo mensile e report che sommano l'importo fotografato, nessun residuo di trasfertaKm/ScaglioneKm nel codice applicativo). Suite completa: `npx vitest run` 38 file / 607 test passati, `npx tsc --noEmit -p .` pulito, `npm run lint` pulito (incluso il guardrail e2e), `npm run build` completato con le nuove route /anagrafiche/voci-rimborso/**, ed e2e mirati (tests/e2e/rimborso-trasferta-selezione.spec.ts, tests/e2e/anagrafica-voci-rimborso.spec.ts, tests/e2e/report-fatturazione-clienti.spec.ts, tests/e2e/demo__riepilogo-mensile-fattura.spec.ts) tutti verdi contro un database e2e reale. È stato inoltre creato tests/e2e/demo__voci-rimborso-trasferta.spec.ts (non ancora presente nell'incremento) che riproduce integralmente lo script della sezione Dimostrazione della spec ed è già verde con video registrato in docs/test-results/US-054/; consigliamo di mantenerlo nel prossimo giro come demo ufficiale della spec. L'unico motivo del rifiuto in questo giro è la mancata attualizzazione delle pagine Wiki elencate sopra, il cui perimetro di impatto (context-map, fatturazione-clienti, overview, operations/development) non era stato individuato nella sezione 'Impatto Wiki' del piano, che elencava solo domains/politiche-rimborso e domains/attivita come da aggiornare.
 history:
   - status: TODO
     at: "2026-07-29T15:44:15Z"
+  - status: PLANNED
+    at: "2026-07-31T14:22:21Z"
+  - status: IN PROGRESS
+    at: "2026-07-31T14:23:24Z"
+  - status: REVIEW
+    at: "2026-07-31T15:06:01Z"
+  - status: TODO
+    at: "2026-07-31T15:18:30Z"
+  - status: PLANNED
+    at: "2026-07-31T15:43:44Z"
+  - status: IN PROGRESS
+    at: "2026-07-31T15:44:51Z"
+  - status: REVIEW
+    at: "2026-07-31T15:48:09Z"
+  - status: DONE
+    at: "2026-07-31T15:57:18Z"

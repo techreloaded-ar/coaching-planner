@@ -1,0 +1,44 @@
+schema: archetipo/spec/v2
+code: US-056
+title: Cambio giorno servito dalla cache client nel dettaglio attività
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: HIGH
+points: 5
+status: TODO
+body: |-
+  #### US-056: Cambio giorno servito dalla cache client nel dettaglio attività
+
+  **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio che spostarmi tra i giorni dalla pagina di dettaglio attività mostri le righe della giornata senza attendere il server,
+  così da consultare e registrare le attività di più giorni consecutivi con la stessa immediatezza del calendario mensile.
+
+  **Contesto**
+  Il cambio mese del calendario è già servito da una cache client di scheda (vedi decisione "Cache client dei mesi del calendario collaboratore"): ritorno su un mese già visitato a zero richieste, finestra fresca di 300 secondi, rivalidazione su focus, invalidazione dopo mutazione. Il cambio giorno nel dettaglio attività paga invece ancora un round-trip completo ad ogni click, che ricarica anche due dati invarianti rispetto al giorno: i clienti abilitati e le voci di rimborso trasferta. Questa spec estende al giorno lo stesso modello di immediatezza, con la stessa finestra di staleness accettata.
+
+  **Dimostrazione**
+  Partendo da un collaboratore autenticato creato dalle factory e2e con righe di attività su almeno tre giorni consecutivi, il reviewer apre il dettaglio del primo giorno, passa al successivo con la freccia e torna indietro: il giorno già visitato appare immediatamente e un oracolo di rete conta zero richieste dati per quel ritorno. Il reviewer usa poi Indietro/Avanti del browser tra i giorni visitati e osserva lo stesso comportamento. Salva quindi una nuova riga di attività, cambia giorno e torna: la riga appena salvata è presente. Infine ricarica la pagina sull'URL del giorno corrente e osserva le stesse righe servite dal server.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Il ritorno su un giorno già visitato nella stessa scheda mostra righe, totali e URL corretti senza produrre alcuna richiesta dati, provato con oracolo di rete che conta e aborta sia le navigazioni verso la pagina del giorno sia le eventuali richieste dati dedicate.
+  - [ ] AC-2 — Il primo accesso a un giorno mai visitato mostra un feedback di attesa mantenendo visibile il contenuto precedente, e l'URL passa al nuovo giorno solo quando i dati sono pronti.
+  - [ ] AC-3 — Clienti abilitati e voci di rimborso trasferta non vengono richiesti ad ogni cambio giorno: entro la finestra di freschezza di 300 secondi i cambi giorno successivi al primo li riusano, e un nuovo cliente abilitato compare comunque entro la finestra o al ritorno sulla scheda.
+  - [ ] AC-4 — Dopo il salvataggio, la modifica o l'eliminazione di una riga, la riapertura dello stesso giorno e il calendario del mese corrispondente mostrano il dato aggiornato, mai la versione precedente alla mutazione.
+  - [ ] AC-5 — Ad ogni cambio giorno lo stato del form di inserimento riparte azzerato: i valori in compilazione sul giorno di partenza non compaiono sul giorno di arrivo.
+  - [ ] AC-6 — I pulsanti Indietro e Avanti del browser tra giorni visitati mostrano il giorno corretto e beneficiano della cache, senza creare voci di cronologia duplicate.
+  - [ ] AC-7 — Dopo un accesso con un altro account nella stessa finestra, il dettaglio giorno non mostra mai righe, clienti o voci del collaboratore precedente; su sessione scaduta la pagina esegue una navigazione completa.
+  - [ ] AC-8 — Il caricamento diretto di un URL `/attivita/[data]` (reload, link profondo, breadcrumb con `?mese`) continua a essere servito dal server con il contratto URL invariato, e la suite e2e esistente del cambio rapido giorno resta verde.
+
+  **Fuori Perimetro**
+  Il prefetch di giorni arbitrari selezionati dal campo data: solo i giorni adiacenti a quello mostrato possono essere anticipati; un salto lontano può attendere come oggi. Qualunque modifica al meccanismo già consegnato del calendario mensile. La persistenza della cache oltre la scheda del browser (localStorage, service worker), esclusa dalla decisione architetturale di riferimento. Modifiche al comportamento del form di inserimento oltre all'azzeramento già esistente al cambio giorno.
+
+  **Contesto Wiki**
+  `decisions/cache-client-calendario-collaboratore`, `domains/attivita`, `decisions/feedback-attesa-uniforme`
+history:
+  - status: TODO
+    at: "2026-08-03T08:32:28Z"

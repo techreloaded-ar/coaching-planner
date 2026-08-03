@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: HIGH
 points: 2
-status: TODO
+status: DONE
 body: |-
   #### US-053: Cambio rapido del giorno dal dettaglio attività
 
@@ -34,3 +34,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-07-29T15:44:15Z"
+  - status: PLANNED
+    at: "2026-07-31T13:29:50Z"
+  - status: IN PROGRESS
+    at: "2026-07-31T13:31:13Z"
+  - status: REVIEW
+    at: "2026-07-31T13:57:42Z"
+  - status: DONE
+    at: "2026-07-31T14:04:34Z"
