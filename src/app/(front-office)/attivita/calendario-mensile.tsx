@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -110,6 +118,16 @@ export default function CalendarioMensile({
   /** Ultimo payload ricevuto dal server, per riconoscerne uno nuovo. */
   const [payloadServer, setPayloadServer] = useState(datiMeseIniziale);
 
+  // ── Selettore di salto diretto a un mese ─────────────────────
+  const idSelettoreMese = useId();
+  const [valoreSelettoreMese, setValoreSelettoreMese] = useState(
+    datiMeseIniziale.token
+  );
+  /** Ultimo mese in griglia già riflesso nel selettore. */
+  const [tokenSelettoreSincronizzato, setTokenSelettoreSincronizzato] = useState(
+    datiMeseIniziale.token
+  );
+
   const intentoCorrente = useRef<IntentoNavigazione>({
     token: datiMeseIniziale.token,
     registraHistory: false,
@@ -204,6 +222,15 @@ export default function CalendarioMensile({
     setMeseVisualizzato(datiMeseIniziale);
     setInCaricamento(false);
     setErrore(null);
+  }
+
+  // Il selettore di salto mostra sempre il mese effettivamente in griglia,
+  // qualunque sia la causa del cambio: frecce, «Mese corrente», Back/Forward,
+  // salto diretto o nuovo payload del server. Anche qui l'allineamento avviene
+  // durante il render, non in un effetto.
+  if (tokenSelettoreSincronizzato !== tokenVisualizzato) {
+    setTokenSelettoreSincronizzato(tokenVisualizzato);
+    setValoreSelettoreMese(tokenVisualizzato);
   }
 
   // La cache va seminata come effetto: è un sistema esterno a React.
@@ -308,6 +335,17 @@ export default function CalendarioMensile({
     vaiA(intentoCorrente.current);
   }
 
+  function submitSaltoMese(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    // Il token deve essere valido: su browser senza input mese nativo il campo
+    // degrada a testo libero.
+    if (!parseTokenMese(valoreSelettoreMese)) return;
+
+    // Stesso ingresso di navigazione dei controlli esistenti: l'URL lo scrive
+    // `commit`, cioè solo a dati pronti.
+    vaiA({ token: valoreSelettoreMese, registraHistory: true });
+  }
+
   // Totale mese
   const totaleRighe = useMemo(() => {
     let r = 0;
@@ -389,6 +427,31 @@ export default function CalendarioMensile({
             </svg>
             Mese corrente
           </button>
+
+          {/* Salto diretto a un mese lontano */}
+          <form
+            onSubmit={submitSaltoMese}
+            className="ml-1 flex items-center gap-1.5"
+          >
+            <label htmlFor={idSelettoreMese} className="sr-only">
+              Vai a un mese specifico
+            </label>
+            <input
+              id={idSelettoreMese}
+              type="month"
+              value={valoreSelettoreMese}
+              onChange={(evento) => setValoreSelettoreMese(evento.target.value)}
+              className="h-9 cursor-pointer rounded-[10px] border border-zinc-200 bg-white px-2.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            />
+            <button
+              type="submit"
+              aria-label="Vai al mese selezionato"
+              disabled={!parseTokenMese(valoreSelettoreMese)}
+              className="inline-flex h-9 cursor-pointer items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            >
+              Vai
+            </button>
+          </form>
 
           <Link
             href={`/attivita/riepilogo?mese=${tokenVisualizzato}`}
