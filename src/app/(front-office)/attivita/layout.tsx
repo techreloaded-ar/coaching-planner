@@ -1,13 +1,14 @@
 import { verificaSessione } from "@/lib/dal";
-import CalendarioCacheProvider from "./calendario-cache-provider";
+import AttivitaCacheProvider from "./attivita-cache-provider";
 
 /**
  * Confine dell'area attività.
  *
  * Resta un Server Component: risolve la sessione (memoizzata nella richiesta,
- * quindi non aggiunge letture) e monta la cache dei mesi del calendario attorno
- * a `/attivita` e alle sue route figlie, così la cache sopravvive alla
- * navigazione verso il dettaglio giornata e al ritorno al calendario.
+ * quindi non aggiunge letture) e monta le cache dell'area attività — mesi del
+ * calendario, giornate e contesto di inserimento — attorno a `/attivita` e alle
+ * sue route figlie, così le cache sopravvivono alla navigazione verso il
+ * dettaglio giornata e al ritorno al calendario.
  */
 export default async function AttivitaLayout({
   children,
@@ -17,11 +18,11 @@ export default async function AttivitaLayout({
   const sessione = await verificaSessione();
 
   return (
-    <CalendarioCacheProvider
+    <AttivitaCacheProvider
       key={sessione.utenteId}
       chiaveSessione={sessione.utenteId}
     >
       {children}
-    </CalendarioCacheProvider>
+    </AttivitaCacheProvider>
   );
 }

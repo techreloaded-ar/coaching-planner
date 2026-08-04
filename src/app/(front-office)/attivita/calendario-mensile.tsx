@@ -23,9 +23,9 @@ import {
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
 import { useIdratata } from "@/components";
 import {
-  ErroreSessioneCalendario,
+  ErroreSessioneAttivita,
   useCacheCalendario,
-} from "./calendario-cache-provider";
+} from "./attivita-cache-provider";
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -199,7 +199,7 @@ export default function CalendarioMensile({
         .catch((causa: unknown) => {
           // La sessione decaduta è gestita dal provider con una navigazione
           // completa: qui non si mostra un errore recuperabile.
-          if (causa instanceof ErroreSessioneCalendario) return;
+          if (causa instanceof ErroreSessioneAttivita) return;
           if (intentoCorrente.current.token !== destinazione) return;
 
           setInCaricamento(false);

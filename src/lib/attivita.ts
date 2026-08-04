@@ -2,12 +2,17 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { richiediCollaboratoreCorrente, ErroreAutorizzazione } from "@/lib/dal";
-import { parseTokenMese } from "@/domain/calendario";
+import { parseDataGiorno, parseTokenMese } from "@/domain/calendario";
 import type { RigaAttivita, Offerta, Cliente } from "@/generated/prisma/client";
 import type {
+  ClienteSelect,
+  ContestoInserimentoGiornata,
   DatiCalendarioMese,
+  DatiGiornataAttivita,
+  RigaAttivitaClient,
   SintesiClienteGiorno,
   SintesiGiorno,
+  VoceRimborsoTrasfertaSelezionabile,
 } from "@/lib/attivita-contract";
 import {
   calcolaRiepilogoMese,
@@ -243,39 +248,44 @@ export async function datiCalendarioMesePerCollaboratoreAutorizzato(
 }
 
 /**
- * Recupera le righe attività del collaboratore corrente per una data specifica.
+ * Lettura della giornata di attività per un collaboratore **già autorizzato**.
  *
- * Include offerta e cliente. Ordinate per ora di creazione.
- * Lancia ErroreAutorizzazione se non autenticato o se non è un collaboratore.
+ * Come `datiCalendarioMesePerCollaboratoreAutorizzato`, non risolve sessione né
+ * profilo: riceve l'id del collaboratore da chi ha già effettuato il controllo
+ * (pagina RSC o route handler).
+ *
+ * **Contratto di sicurezza:** l'id deve provenire esclusivamente dal DAL, mai
+ * da search params, body o header. Il chiamante è responsabile
+ * dell'autorizzazione; questa funzione è una lettura, non una guardia.
+ *
+ * Su data non nel formato `YYYY-MM-DD`, o su data inesistente nel calendario,
+ * restituisce il DTO con righe vuote senza interrogare il database: è lo stesso
+ * esito della lettura mensile su token non valido, e **non** è una guardia di
+ * autorizzazione.
+ *
+ * La serializzazione delle righe vive qui e in un solo punto, così rendering
+ * server ed endpoint HTTP non possono divergere.
  *
  * @param dataStr - Data in formato YYYY-MM-DD
- * @returns Righe attività del giorno con contesto offerta e cliente
+ * @param collaboratoreId - Id del collaboratore già autorizzato dal chiamante
+ * @returns DTO serializzabile della giornata; data non valida ⇒ giornata vuota
  */
-export async function righeDelGiorno(
-  dataStr: string
-): Promise<RigaAttivitaConContesto[]> {
-  const collaboratore = await richiediCollaboratoreCorrente();
-  if (!collaboratore) {
-    throw new ErroreAutorizzazione(
-      401,
-      "Devi essere un collaboratore per visualizzare le attività"
-    );
+export async function righeDelGiornoPerCollaboratoreAutorizzato(
+  dataStr: string,
+  collaboratoreId: string
+): Promise<DatiGiornataAttivita> {
+  const parsed = parseDataGiorno(dataStr);
+  if (!parsed) {
+    return { data: dataStr, collaboratoreId, righe: [] };
   }
 
-  // Parsa la data YYYY-MM-DD
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dataStr);
-  if (!match) return [];
-
-  const anno = parseInt(match[1], 10);
-  const mese = parseInt(match[2], 10);
-  const giorno = parseInt(match[3], 10);
-
+  const { anno, mese, giorno } = parsed;
   const inizio = new Date(anno, mese - 1, giorno);
   const fine = new Date(anno, mese - 1, giorno, 23, 59, 59, 999);
 
-  return db.rigaAttivita.findMany({
+  const righe = await db.rigaAttivita.findMany({
     where: {
-      collaboratoreId: collaboratore.id,
+      collaboratoreId,
       data: {
         gte: inizio,
         lte: fine,
@@ -287,6 +297,61 @@ export async function righeDelGiorno(
     },
     orderBy: { createdAt: "asc" },
   });
+
+  return {
+    data: dataStr,
+    collaboratoreId,
+    righe: righe.map(serializzaRigaAttivita),
+  };
+}
+
+/** Serializza una riga attività per il client (Date → string, Decimal → number/string). */
+function serializzaRigaAttivita(
+  riga: RigaAttivitaConContesto
+): RigaAttivitaClient {
+  return {
+    id: riga.id,
+    data: formattaDataISO(riga.data),
+    ore: Number(riga.ore),
+    nota: riga.nota,
+    fatturabile: riga.fatturabile,
+    rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta,
+    rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
+    offerta: {
+      id: riga.offerta.id,
+      codice: riga.offerta.codice,
+      descrizione: riga.offerta.descrizione,
+    },
+    cliente: {
+      id: riga.cliente.id,
+      ragioneSociale: riga.cliente.ragioneSociale,
+    },
+  };
+}
+
+/**
+ * Lettura del contesto di inserimento per un collaboratore **già autorizzato**.
+ *
+ * Raccoglie in un solo DTO i dati che popolano il form riga attività e che sono
+ * invarianti rispetto al giorno: clienti selezionabili e voci di rimborso
+ * trasferta. Le due letture vengono eseguite in parallelo.
+ *
+ * **Contratto di sicurezza:** vale lo stesso contratto di
+ * `righeDelGiornoPerCollaboratoreAutorizzato`: l'id deve provenire dal DAL e
+ * l'autorizzazione è responsabilità del chiamante.
+ *
+ * @param collaboratoreId - Id del collaboratore già autorizzato dal chiamante
+ * @returns DTO serializzabile del contesto di inserimento
+ */
+export async function contestoInserimentoPerCollaboratoreAutorizzato(
+  collaboratoreId: string
+): Promise<ContestoInserimentoGiornata> {
+  const [clienti, vociRimborso] = await Promise.all([
+    leggiClientiAttiviPerSelezione(collaboratoreId),
+    leggiVociRimborsoTrasfertaPerSelezione(),
+  ]);
+
+  return { collaboratoreId, clienti, vociRimborso };
 }
 
 /**
@@ -299,9 +364,7 @@ export async function righeDelGiorno(
  *
  * @returns Lista clienti attivi e abilitati con id e ragione sociale, ordinati per ragione sociale
  */
-export async function clientiAttiviPerSelezione(): Promise<
-  { id: string; ragioneSociale: string }[]
-> {
+export async function clientiAttiviPerSelezione(): Promise<ClienteSelect[]> {
   const collaboratore = await richiediCollaboratoreCorrente();
   if (!collaboratore) {
     throw new ErroreAutorizzazione(
@@ -310,6 +373,19 @@ export async function clientiAttiviPerSelezione(): Promise<
     );
   }
 
+  return leggiClientiAttiviPerSelezione(collaboratore.id);
+}
+
+/**
+ * Query dei clienti selezionabili, senza guardia di autorizzazione.
+ *
+ * Condivisa da `clientiAttiviPerSelezione`, che risolve il collaboratore dalla
+ * sessione, e da `contestoInserimentoPerCollaboratoreAutorizzato`, che riceve
+ * un id già autorizzato dal chiamante: le due non possono divergere.
+ */
+function leggiClientiAttiviPerSelezione(
+  collaboratoreId: string
+): Promise<ClienteSelect[]> {
   return db.cliente.findMany({
     where: {
       attivo: true,
@@ -317,7 +393,7 @@ export async function clientiAttiviPerSelezione(): Promise<
         some: {
           attiva: true,
           abilitazioniCollaboratori: {
-            some: { collaboratoreId: collaboratore.id },
+            some: { collaboratoreId },
           },
         },
       },
@@ -376,7 +452,7 @@ export async function offerteAbilitatePerCliente(
  * @returns Voci ordinate per data di creazione crescente
  */
 export async function vociRimborsoTrasfertaPerSelezione(): Promise<
-  { id: string; etichetta: string; importo: string }[]
+  VoceRimborsoTrasfertaSelezionabile[]
 > {
   const collaboratore = await richiediCollaboratoreCorrente();
   if (!collaboratore) {
@@ -386,6 +462,19 @@ export async function vociRimborsoTrasfertaPerSelezione(): Promise<
     );
   }
 
+  return leggiVociRimborsoTrasfertaPerSelezione();
+}
+
+/**
+ * Query delle voci di rimborso selezionabili, senza guardia di autorizzazione.
+ *
+ * Le voci non dipendono dal collaboratore: la guardia resta nella funzione
+ * esportata, mentre questa è condivisa con
+ * `contestoInserimentoPerCollaboratoreAutorizzato`.
+ */
+async function leggiVociRimborsoTrasfertaPerSelezione(): Promise<
+  VoceRimborsoTrasfertaSelezionabile[]
+> {
   const voci = await db.voceRimborsoTrasferta.findMany({
     orderBy: { createdAt: "asc" },
   });

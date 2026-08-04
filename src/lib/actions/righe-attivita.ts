@@ -8,7 +8,6 @@ import {
 } from "@/lib/dal";
 import type { Collaboratore } from "@/generated/prisma/client";
 import { validaOre } from "@/domain/consuntivi";
-import { offerteAbilitatePerCliente } from "@/lib/attivita";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -468,23 +467,8 @@ export async function rimuoviRimborsoTrasferta(
   return { success: true };
 }
 
-/**
- * Server Action per recuperare le offerte attive di un cliente su cui il
- * collaboratore corrente è abilitato.
- * Chiamabile dal client per il cascade select cliente → offerta.
- */
-export async function fetchOffertePerCliente(
-  clienteId: string
-): Promise<{ success: boolean; data?: { id: string; codice: string; descrizione: string }[]; error?: string }> {
-  const collaboratore = await richiediCollaboratoreOperativo();
-  if ("success" in collaboratore) {
-    return collaboratore;
-  }
-
-  try {
-    const offerte = await offerteAbilitatePerCliente(clienteId);
-    return { success: true, data: offerte };
-  } catch {
-    return { success: false, error: "Errore nel recupero delle offerte" };
-  }
-}
+// Il cascade select cliente → offerta non passa più da una Server Action: la
+// lettura vive in `GET /api/attivita/offerte-cliente`. La risposta di una
+// Server Action riconcilia l'albero RSC del router con l'URL corrente e, dopo
+// un cambio giorno scritto con la History API dall'isola della giornata, quella
+// riconciliazione rimonta la pagina azzerando il form in compilazione.

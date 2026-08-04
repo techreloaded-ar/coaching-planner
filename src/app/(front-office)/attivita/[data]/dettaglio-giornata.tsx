@@ -1,42 +1,46 @@
 "use client";
 
 import { useState, useCallback, useMemo, useTransition, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import {
   creaRiga,
   modificaRiga,
   eliminaRiga,
   rimuoviRimborsoTrasferta,
-  fetchOffertePerCliente,
 } from "@/lib/actions/righe-attivita";
-import { giornoSpostatoDi, parseDataGiorno } from "@/domain/calendario";
 import { PulsanteAttesa } from "@/components";
-import { useCacheCalendario } from "../calendario-cache-provider";
 import type {
   RigaAttivitaClient,
   ClienteSelect,
   VoceRimborsoTrasfertaSelezionabile,
-} from "./page";
+} from "@/lib/attivita-contract";
+import {
+  ErroreSessioneAttivita,
+  useLetturaOfferteCliente,
+  type ApiOfferteCliente,
+  type OffertaAbilitataCliente,
+} from "../attivita-cache-provider";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
-interface OffertaSelect {
-  id: string;
-  codice: string;
-  descrizione: string;
-}
+type OffertaSelect = OffertaAbilitataCliente;
 
 interface DettaglioGiornataProps {
-  /** Data in formato YYYY-MM-DD */
+  /** Data in formato YYYY-MM-DD della giornata mostrata */
   data: string;
-  /** Righe già registrate per la giornata */
-  righeIniziali: RigaAttivitaClient[];
+  /** Righe già registrate per la giornata mostrata */
+  righe: RigaAttivitaClient[];
   /** Clienti attivi per la select */
   clienti: ClienteSelect[];
   /** Voci di rimborso trasferta selezionabili nel form */
   vociRimborso: VoceRimborsoTrasfertaSelezionabile[];
-  /** Token mese (YYYY-MM) da preservare nella navigazione tra giorni, se disponibile */
-  meseToken?: string;
+  /**
+   * Notifica all'isola che una riga della giornata è stata creata, modificata
+   * o eliminata, così le cache della scheda possano rileggere il dato.
+   *
+   * Riceve il giorno **visualizzato**, che dopo un cambio giorno client può
+   * differire da quello dell'ultimo payload prodotto dal server.
+   */
+  onMutazioneCompletata: (giorno: string) => void | Promise<void>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -48,6 +52,43 @@ interface DettaglioGiornataProps {
  * inviato nel FormData, così `modificaRiga` lascia la riga com'è.
  */
 const SELEZIONE_RIMBORSO_INVARIATO = "invariato";
+
+/**
+ * Legge le offerte abilitate per un cliente dal confine HTTP dell'area
+ * attività, per il cascade select cliente → offerta.
+ *
+ * È una `fetch` e non una Server Action deliberatamente: la risposta di una
+ * Server Action riconcilia l'albero RSC del router con l'URL corrente e, dopo
+ * un cambio giorno scritto con la History API, quella riconciliazione rimonta
+ * la pagina azzerando il form in compilazione. Una lettura HTTP non tocca
+ * l'albero del router.
+ *
+ * Quando la scheda ha il provider delle letture attività — il caso normale
+ * dentro l'isola — la lettura passa di lì, così una sessione decaduta finisce
+ * nel canale di sessione della scheda e produce la navigazione completa
+ * promessa dall'area, invece di una tendina che si svuota in silenzio. Il
+ * percorso diretto resta per il caso senza provider.
+ */
+async function leggiOffertePerCliente(
+  clienteId: string,
+  letturaCondivisa: ApiOfferteCliente | null
+): Promise<OffertaSelect[]> {
+  if (letturaCondivisa) {
+    return letturaCondivisa.leggi(clienteId);
+  }
+
+  const risposta = await fetch(
+    `/api/attivita/offerte-cliente?cliente=${encodeURIComponent(clienteId)}`,
+    { headers: { Accept: "application/json" }, credentials: "same-origin" }
+  );
+
+  if (!risposta.ok) {
+    throw new Error(`Lettura delle offerte non riuscita (HTTP ${risposta.status})`);
+  }
+
+  const dati = (await risposta.json()) as { offerte: OffertaSelect[] };
+  return dati.offerte;
+}
 
 function nomeGiorno(dataStr: string): string {
   const [a, m, g] = dataStr.split("-").map(Number);
@@ -118,32 +159,24 @@ function AvvisoAbilitazioneMancante({
 
 export default function DettaglioGiornata({
   data,
-  righeIniziali,
+  righe,
   clienti,
   vociRimborso,
-  meseToken,
+  onMutazioneCompletata,
 }: DettaglioGiornataProps) {
-  const router = useRouter();
-  const cacheCalendario = useCacheCalendario();
   const [isPending, startTransition] = useTransition();
 
   /**
-   * Applica entrambe le invalidazioni dopo una mutazione riuscita.
+   * Notifica la mutazione all'isola, che possiede le cache della scheda.
    *
-   * `revalidatePath` nelle server action protegge il rendering SSR/RSC;
-   * l'invalidazione del mese nella cache client protegge l'isola del
-   * calendario, che altrimenti riuserebbe una sintesi antecedente alla
-   * modifica. Centralizzata qui perché ogni handler deve farle entrambe.
+   * La transizione tiene l'attesa continua dal click fino ai dati aggiornati a
+   * schermo: l'isola aggiorna la vista dentro questo scope.
    */
-  const invalidaMeseERicarica = useCallback(() => {
-    cacheCalendario?.invalidate(data.slice(0, 7));
-    startTransition(() => {
-      router.refresh();
+  const invalidaDopoMutazione = useCallback(() => {
+    startTransition(async () => {
+      await onMutazioneCompletata(data);
     });
-  }, [cacheCalendario, data, router]);
-
-  // ── Dati righe refreshed dal server ───────────────────────
-  const righe = righeIniziali;
+  }, [data, onMutazioneCompletata]);
 
   // ── Stato form ─────────────────────────────────────────────
   const [clienteId, setClienteId] = useState("");
@@ -155,8 +188,9 @@ export default function DettaglioGiornata({
   const [erroreSubmit, setErroreSubmit] = useState<string | null>(null);
 
   // Attesa del salvataggio: copre l'intera chiamata alla server action, mentre
-  // `isPending` copre il successivo `router.refresh()`. Insieme rendono l'attesa
-  // continua dal click fino ai dati aggiornati a schermo.
+  // `isPending` copre la successiva rilettura della giornata fatta dall'isola.
+  // Insieme rendono l'attesa continua dal click fino ai dati aggiornati a
+  // schermo.
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
 
   // Riga su cui è in corso un'azione (modifica, eliminazione, rimozione
@@ -174,6 +208,9 @@ export default function DettaglioGiornata({
   // Cascade select: offerte del cliente selezionato
   const [offerte, setOfferte] = useState<OffertaSelect[]>([]);
   const [offerteLoading, setOfferteLoading] = useState(false);
+  // Lettura delle offerte non riuscita: l'elenco vuoto non basta a spiegarlo.
+  const [erroreOfferte, setErroreOfferte] = useState<string | null>(null);
+  const letturaOfferteCliente = useLetturaOfferteCliente();
 
   // Traccia se, durante la modifica di una riga, l'utente ha esplicitamente
   // cambiato il cliente selezionato (a differenza del cliente/offerta della
@@ -210,9 +247,12 @@ export default function DettaglioGiornata({
   // quel caso e il banner non deve comparire. Il banner deve invece comparire
   // se l'utente, durante la modifica, cambia esplicitamente il cliente verso
   // uno per cui il fetch restituisce un elenco offerte vuoto (AC-3).
+  // Un elenco vuoto per errore di lettura non è un'assenza di abilitazioni:
+  // in quel caso parla il messaggio d'errore, non questo banner.
   const nessunaOffertaAbilitata =
     clienteId !== "" &&
     !offerteLoading &&
+    erroreOfferte === null &&
     offerte.length === 0 &&
     (!modificaId || clienteCambiatoDuranteModifica);
 
@@ -258,6 +298,7 @@ export default function DettaglioGiornata({
       setClienteId(nuovoClienteId);
       setOffertaId("");
       setOfferte([]);
+      setErroreOfferte(null);
       // Se siamo in modifica, questo è un cambio cliente esplicito dell'utente
       // (a differenza del caricamento iniziale della riga in handleModifica)
       setClienteCambiatoDuranteModifica(modificaId !== null);
@@ -266,17 +307,25 @@ export default function DettaglioGiornata({
 
       setOfferteLoading(true);
       try {
-        const result = await fetchOffertePerCliente(nuovoClienteId);
-        if (result.success && result.data) {
-          setOfferte(result.data);
-        }
-      } catch {
-        // ignora
+        setOfferte(
+          await leggiOffertePerCliente(nuovoClienteId, letturaOfferteCliente)
+        );
+      } catch (causa) {
+        // La sessione decaduta è già stata riconosciuta dal canale di sessione
+        // della scheda, che porta a una navigazione completa: qui non c'è nulla
+        // da mostrare, la pagina sta per essere abbandonata.
+        if (causa instanceof ErroreSessioneAttivita) return;
+
+        // Ogni altro errore va detto: un elenco vuoto significherebbe
+        // «nessuna offerta abilitata», che è un'informazione diversa.
+        setErroreOfferte(
+          "Non è stato possibile caricare le offerte di questo cliente."
+        );
       } finally {
         setOfferteLoading(false);
       }
     },
-    [modificaId]
+    [letturaOfferteCliente, modificaId]
   );
 
   // ── Validazione ore inline ─────────────────────────────────
@@ -347,7 +396,7 @@ export default function DettaglioGiornata({
       }
 
       // Aggiorna i dati server e invalida il mese nella cache del calendario
-      invalidaMeseERicarica();
+      invalidaDopoMutazione();
 
       // Reset form
       setClienteId("");
@@ -363,7 +412,7 @@ export default function DettaglioGiornata({
       setClienteCambiatoDuranteModifica(false);
       setClienteRigaInModifica(null);
     },
-    [clienteId, offertaId, ore, nota, fatturabile, selezioneRimborso, data, modificaId, invalidaMeseERicarica]
+    [clienteId, offertaId, ore, nota, fatturabile, selezioneRimborso, data, modificaId, invalidaDopoMutazione]
   );
 
   // ── Modifica riga ──────────────────────────────────────────
@@ -382,6 +431,7 @@ export default function DettaglioGiornata({
       setSelezioneRimborso(SELEZIONE_RIMBORSO_INVARIATO);
       setErroreOre(null);
       setErroreSubmit(null);
+      setErroreOfferte(null);
       // Ingresso in modifica sulla riga storica: non è un cambio cliente
       // esplicito dell'utente, quindi il banner "nessuna offerta" non deve
       // comparire anche se, per un errore di fetch, `offerte` restasse vuoto.
@@ -391,26 +441,43 @@ export default function DettaglioGiornata({
       setRigaInAttesaId(riga.id);
       setOfferteLoading(true);
       try {
-        const result = await fetchOffertePerCliente(riga.cliente.id);
-        if (result.success && result.data) {
-          const offerteCaricate = result.data;
-          const offertaPresente = offerteCaricate.some((o) => o.id === riga.offerta.id);
-          setOfferte(
-            offertaPresente
-              ? offerteCaricate
-              : [
-                  ...offerteCaricate,
-                  {
-                    id: riga.offerta.id,
-                    codice: riga.offerta.codice,
-                    descrizione: riga.offerta.descrizione,
-                  },
-                ]
-          );
-          setOffertaId(riga.offerta.id);
-        }
-      } catch {
-        // ignora
+        const offerteCaricate = await leggiOffertePerCliente(
+          riga.cliente.id,
+          letturaOfferteCliente
+        );
+        const offertaPresente = offerteCaricate.some(
+          (o) => o.id === riga.offerta.id
+        );
+        setOfferte(
+          offertaPresente
+            ? offerteCaricate
+            : [
+                ...offerteCaricate,
+                {
+                  id: riga.offerta.id,
+                  codice: riga.offerta.codice,
+                  descrizione: riga.offerta.descrizione,
+                },
+              ]
+        );
+        setOffertaId(riga.offerta.id);
+      } catch (causa) {
+        // Sessione decaduta: la navigazione completa è già in corso.
+        if (causa instanceof ErroreSessioneAttivita) return;
+
+        // La riga resta modificabile con la propria offerta storica, ma
+        // l'elenco è incompleto e l'utente deve saperlo.
+        setOfferte([
+          {
+            id: riga.offerta.id,
+            codice: riga.offerta.codice,
+            descrizione: riga.offerta.descrizione,
+          },
+        ]);
+        setOffertaId(riga.offerta.id);
+        setErroreOfferte(
+          "Non è stato possibile caricare le offerte di questo cliente."
+        );
       } finally {
         setOfferteLoading(false);
         setRigaInAttesaId(null);
@@ -422,7 +489,7 @@ export default function DettaglioGiornata({
         block: "start",
       });
     },
-    []
+    [letturaOfferteCliente]
   );
 
   // ── Annulla modifica ───────────────────────────────────────
@@ -438,48 +505,22 @@ export default function DettaglioGiornata({
     setSelezioneRimborso("");
     setOfferte([]);
     setErroreSubmit(null);
+    setErroreOfferte(null);
     setClienteCambiatoDuranteModifica(false);
     setClienteRigaInModifica(null);
   }, []);
 
-  // ── Navigazione tra giorni ───────────────────────────────────
+  // ── Reset dello stato al cambio giorno ───────────────────────
   //
   // Il reset di un'eventuale modifica in corso quando cambia il giorno
   // visualizzato (altrimenti un submit successivo aggiornerebbe silenziosamente
   // una riga del giorno precedente, dato che `modificaRiga` non valida
   // l'appartenenza della riga al giorno visualizzato) è delegato al remount
-  // del componente: `page.tsx` passa `key={data}` a `<DettaglioGiornata>`,
-  // così React azzera tutto lo stato locale (equivalente a `handleAnnulla`)
-  // ad ogni cambio giorno, senza richiamare setState in modo sincrono
-  // dentro un effect (vietato da `react-hooks/set-state-in-effect`).
-
-  const vaiAlGiorno = useCallback(
-    (nuovaData: string) => {
-      if (!parseDataGiorno(nuovaData)) return;
-      if (nuovaData === data) return;
-      // Il token mese del breadcrumb "Torna al calendario" segue sempre il
-      // giorno di destinazione, non quello di provenienza: altrimenti,
-      // attraversando un confine di mese, il breadcrumb continuerebbe a
-      // puntare al mese sbagliato (e l'errore si autoperpetuerebbe ad ogni
-      // cambio giorno successivo).
-      const meseTokenDestinazione = meseToken ? nuovaData.slice(0, 7) : null;
-      const href = meseTokenDestinazione
-        ? `/attivita/${nuovaData}?mese=${meseTokenDestinazione}`
-        : `/attivita/${nuovaData}`;
-      startTransition(() => {
-        router.push(href);
-      });
-    },
-    [data, meseToken, router]
-  );
-
-  const vaiAGiornoPrecedente = useCallback(() => {
-    vaiAlGiorno(giornoSpostatoDi(data, -1));
-  }, [data, vaiAlGiorno]);
-
-  const vaiAGiornoSuccessivo = useCallback(() => {
-    vaiAlGiorno(giornoSpostatoDi(data, 1));
-  }, [data, vaiAlGiorno]);
+  // del componente: `isola-giornata.tsx` passa `key={giornoVisualizzato}` a
+  // `<DettaglioGiornata>`, così React azzera tutto lo stato locale
+  // (equivalente a `handleAnnulla`) ad ogni cambio giorno, senza richiamare
+  // setState in modo sincrono dentro un effect (vietato da
+  // `react-hooks/set-state-in-effect`).
 
   // ── Elimina riga ───────────────────────────────────────────
 
@@ -491,13 +532,13 @@ export default function DettaglioGiornata({
       try {
         const result = await eliminaRiga(rigaId);
         if (result.success) {
-          invalidaMeseERicarica();
+          invalidaDopoMutazione();
         }
       } finally {
         setRigaInAttesaId(null);
       }
     },
-    [invalidaMeseERicarica]
+    [invalidaDopoMutazione]
   );
 
   // ── Rimuovi rimborso ───────────────────────────────────────
@@ -510,13 +551,13 @@ export default function DettaglioGiornata({
       try {
         const result = await rimuoviRimborsoTrasferta(rigaId);
         if (result.success) {
-          invalidaMeseERicarica();
+          invalidaDopoMutazione();
         }
       } finally {
         setRigaInAttesaId(null);
       }
     },
-    [invalidaMeseERicarica]
+    [invalidaDopoMutazione]
   );
 
   // ═════════════════════════════════════════════════════════════
@@ -524,61 +565,7 @@ export default function DettaglioGiornata({
   // ═════════════════════════════════════════════════════════════
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] px-8 py-7">
-      {/* ── Controllo cambio giorno ── */}
-      <div data-testid="controllo-cambio-giorno" className="mb-4 flex flex-wrap items-center gap-2.5">
-        <button
-          type="button"
-          onClick={vaiAGiornoPrecedente}
-          disabled={isPending}
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
-          aria-label="Giorno precedente"
-          title="Giorno precedente"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.2}
-            className="h-[18px] w-[18px]"
-          >
-            <path d="m15 6-6 6 6 6" />
-          </svg>
-        </button>
-
-        <label htmlFor="selettore-giorno" className="sr-only">
-          Vai al giorno
-        </label>
-        <input
-          id="selettore-giorno"
-          type="date"
-          data-testid="selettore-giorno"
-          value={data}
-          disabled={isPending}
-          onChange={(e) => vaiAlGiorno(e.target.value)}
-          className="rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:disabled:bg-zinc-800/50"
-        />
-
-        <button
-          type="button"
-          onClick={vaiAGiornoSuccessivo}
-          disabled={isPending}
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
-          aria-label="Giorno successivo"
-          title="Giorno successivo"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.2}
-            className="h-[18px] w-[18px]"
-          >
-            <path d="m9 6 6 6-6 6" />
-          </svg>
-        </button>
-      </div>
-
+    <>
       {/* ── Intestazione giornata ── */}
       <div className="mb-7">
         <div className="text-xs font-semibold capitalize text-rose-800 dark:text-rose-300">
@@ -867,6 +854,15 @@ export default function DettaglioGiornata({
                 Nessuna offerta abilitata per questo cliente. Chiedi a un amministratore di abilitarti.
               </AvvisoAbilitazioneMancante>
             )}
+            {erroreOfferte && (
+              <p
+                role="alert"
+                data-testid="errore-offerte-cliente"
+                className="mt-1 text-[11.5px] font-medium text-red-600 dark:text-red-400"
+              >
+                {erroreOfferte}
+              </p>
+            )}
           </div>
 
           {/* Ore */}
@@ -1040,6 +1036,6 @@ export default function DettaglioGiornata({
           </div>
         </form>
       </section>
-    </div>
+    </>
   );
 }

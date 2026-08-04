@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   attivitaDelMese,
   clientiAttiviPerSelezione,
+  contestoInserimentoPerCollaboratoreAutorizzato,
   datiCalendarioMesePerCollaboratoreAutorizzato,
   offerteAbilitatePerCliente,
+  righeDelGiornoPerCollaboratoreAutorizzato,
 } from "@/lib/attivita";
 import { ErroreAutorizzazione } from "@/lib/dal";
 
@@ -21,11 +23,16 @@ const mockCliente = vi.hoisted(() => ({
   findMany: vi.fn(),
 }));
 
+const mockVoceRimborsoTrasferta = vi.hoisted(() => ({
+  findMany: vi.fn(),
+}));
+
 vi.mock("@/lib/db", () => ({
   db: {
     rigaAttivita: mockRigaAttivita,
     offerta: mockOfferta,
     cliente: mockCliente,
+    voceRimborsoTrasferta: mockVoceRimborsoTrasferta,
   },
 }));
 
@@ -879,5 +886,350 @@ describe("clientiAttiviPerSelezione", () => {
       ErroreAutorizzazione
     );
     expect(mockCliente.findMany).not.toHaveBeenCalled();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// US-056 — Letture della giornata e del contesto di inserimento
+//
+// Entrambe ricevono l'id del collaboratore **già autorizzato** dal chiamante:
+// non risolvono la sessione e non sono guardie. I test qui sotto asseriscono
+// il payload Prisma esatto e il DTO restituito.
+// ═══════════════════════════════════════════════════════════════
+
+/** Riga come la restituisce l'`include` della lettura della giornata. */
+function rigaConContesto(
+  modifiche: {
+    id?: string;
+    data?: Date;
+    ore?: { toString: () => string };
+    nota?: string | null;
+    fatturabile?: boolean;
+    rimborsoTrasfertaEtichetta?: string | null;
+    rimborsoTrasfertaImporto?: { toString: () => string } | null;
+    createdAt?: Date;
+    clienteId?: string;
+    ragioneSociale?: string;
+    offertaId?: string;
+    codiceOfferta?: string;
+    descrizioneOfferta?: string;
+  } = {},
+) {
+  const data = modifiche.data ?? new Date(2026, 5, 10);
+  const clienteId = modifiche.clienteId ?? "cliente-techsolutions";
+  const offertaId = modifiche.offertaId ?? "offerta-ts-001";
+  return {
+    id: modifiche.id ?? "riga-1",
+    collaboratoreId: "collab-autorizzato",
+    clienteId,
+    offertaId,
+    data,
+    // Simula il Decimal Prisma con un oggetto dotato di toString()
+    ore: modifiche.ore ?? { toString: () => "7.25" },
+    nota: modifiche.nota ?? null,
+    fatturabile: modifiche.fatturabile ?? true,
+    rimborsoTrasfertaEtichetta: modifiche.rimborsoTrasfertaEtichetta ?? null,
+    rimborsoTrasfertaImporto: modifiche.rimborsoTrasfertaImporto ?? null,
+    createdAt: modifiche.createdAt ?? data,
+    updatedAt: data,
+    offerta: {
+      id: offertaId,
+      codice: modifiche.codiceOfferta ?? "TS-001",
+      descrizione: modifiche.descrizioneOfferta ?? "Consulenza",
+      clienteId,
+      tariffaGiornaliera: { toString: () => "550.00" },
+      giorniPrevisti: 40,
+      attiva: true,
+      createdAt: data,
+      updatedAt: data,
+    },
+    cliente: {
+      id: clienteId,
+      ragioneSociale: modifiche.ragioneSociale ?? "TechSolutions Srl",
+      partitaIva: null,
+      codiceFiscale: null,
+      indirizzo: null,
+      citta: null,
+      cap: null,
+      provincia: null,
+      pec: null,
+      codiceDestinatario: null,
+      attivo: true,
+      createdAt: data,
+      updatedAt: data,
+    },
+  };
+}
+
+describe("righeDelGiornoPerCollaboratoreAutorizzato", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // ── Filtri, proiezione e ordinamento ────────────────────────
+
+  it("filtra per il collaboratore ricevuto e per l'intervallo del giorno, ordinando per creazione crescente", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([]);
+
+    await righeDelGiornoPerCollaboratoreAutorizzato("2026-06-10", "collab-autorizzato");
+
+    expect(mockRigaAttivita.findMany).toHaveBeenCalledTimes(1);
+    expect(mockRigaAttivita.findMany).toHaveBeenCalledWith({
+      where: {
+        collaboratoreId: "collab-autorizzato",
+        data: {
+          gte: new Date(2026, 5, 10),
+          lte: new Date(2026, 5, 10, 23, 59, 59, 999),
+        },
+      },
+      include: {
+        offerta: true,
+        cliente: true,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+  });
+
+  it("non accetta l'id dal chiamante per aggirare il filtro: l'id ricevuto è l'unico usato", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([]);
+
+    const risultato = await righeDelGiornoPerCollaboratoreAutorizzato(
+      "2026-06-10",
+      "collab-solo-questo",
+    );
+
+    const chiamata = mockRigaAttivita.findMany.mock.calls[0][0];
+    expect(chiamata.where.collaboratoreId).toBe("collab-solo-questo");
+    expect(Object.keys(chiamata.where)).toEqual(["collaboratoreId", "data"]);
+    expect(risultato.collaboratoreId).toBe("collab-solo-questo");
+  });
+
+  it("non risolve alcuna sessione: l'autorizzazione resta al chiamante", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([]);
+
+    await righeDelGiornoPerCollaboratoreAutorizzato("2026-06-10", "collab-autorizzato");
+
+    expect(mockRichiediCollaboratoreCorrente).not.toHaveBeenCalled();
+  });
+
+  // ── DTO restituito ──────────────────────────────────────────
+
+  it("serializza le righe della giornata nel DTO del client mantenendo l'ordine di lettura", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([
+      rigaConContesto({
+        id: "riga-mattina",
+        ore: { toString: () => "4.5" },
+        nota: "Analisi requisiti",
+        rimborsoTrasfertaEtichetta: "Pranzo",
+        rimborsoTrasfertaImporto: { toString: () => "12.50" },
+      }),
+      rigaConContesto({
+        id: "riga-pomeriggio",
+        ore: { toString: () => "3" },
+        fatturabile: false,
+        clienteId: "cliente-dataflow",
+        ragioneSociale: "DataFlow SpA",
+        offertaId: "offerta-df-001",
+        codiceOfferta: "DF-001",
+        descrizioneOfferta: "Formazione",
+      }),
+    ]);
+
+    const risultato = await righeDelGiornoPerCollaboratoreAutorizzato(
+      "2026-06-10",
+      "collab-autorizzato",
+    );
+
+    expect(risultato).toEqual({
+      data: "2026-06-10",
+      collaboratoreId: "collab-autorizzato",
+      righe: [
+        {
+          id: "riga-mattina",
+          data: "2026-06-10",
+          ore: 4.5,
+          nota: "Analisi requisiti",
+          fatturabile: true,
+          rimborsoTrasfertaEtichetta: "Pranzo",
+          rimborsoTrasfertaImporto: "12.50",
+          offerta: {
+            id: "offerta-ts-001",
+            codice: "TS-001",
+            descrizione: "Consulenza",
+          },
+          cliente: {
+            id: "cliente-techsolutions",
+            ragioneSociale: "TechSolutions Srl",
+          },
+        },
+        {
+          id: "riga-pomeriggio",
+          data: "2026-06-10",
+          ore: 3,
+          nota: null,
+          fatturabile: false,
+          rimborsoTrasfertaEtichetta: null,
+          rimborsoTrasfertaImporto: null,
+          offerta: {
+            id: "offerta-df-001",
+            codice: "DF-001",
+            descrizione: "Formazione",
+          },
+          cliente: {
+            id: "cliente-dataflow",
+            ragioneSociale: "DataFlow SpA",
+          },
+        },
+      ],
+    });
+  });
+
+  it("restituisce una giornata vuota quando il collaboratore non ha righe", async () => {
+    mockRigaAttivita.findMany.mockResolvedValue([]);
+
+    const risultato = await righeDelGiornoPerCollaboratoreAutorizzato(
+      "2026-06-10",
+      "collab-autorizzato",
+    );
+
+    expect(risultato).toEqual({
+      data: "2026-06-10",
+      collaboratoreId: "collab-autorizzato",
+      righe: [],
+    });
+  });
+
+  // ── Data non valida ─────────────────────────────────────────
+
+  it("restituisce una giornata vuota senza interrogare il DB se la data non è nel formato YYYY-MM-DD", async () => {
+    const risultato = await righeDelGiornoPerCollaboratoreAutorizzato(
+      "10-06-2026",
+      "collab-autorizzato",
+    );
+
+    expect(risultato).toEqual({
+      data: "10-06-2026",
+      collaboratoreId: "collab-autorizzato",
+      righe: [],
+    });
+    expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
+    expect(mockRichiediCollaboratoreCorrente).not.toHaveBeenCalled();
+  });
+
+  it("restituisce una giornata vuota senza interrogare il DB se il giorno non esiste nel calendario", async () => {
+    const risultato = await righeDelGiornoPerCollaboratoreAutorizzato(
+      "2026-02-30",
+      "collab-autorizzato",
+    );
+
+    expect(risultato).toEqual({
+      data: "2026-02-30",
+      collaboratoreId: "collab-autorizzato",
+      righe: [],
+    });
+    expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("contestoInserimentoPerCollaboratoreAutorizzato", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCliente.findMany.mockResolvedValue([]);
+    mockVoceRimborsoTrasferta.findMany.mockResolvedValue([]);
+  });
+
+  // ── Payload Prisma delle due letture ────────────────────────
+
+  it("interroga i clienti attivi con almeno un'offerta attiva abilitata per il collaboratore ricevuto", async () => {
+    await contestoInserimentoPerCollaboratoreAutorizzato("collab-autorizzato");
+
+    expect(mockCliente.findMany).toHaveBeenCalledTimes(1);
+    expect(mockCliente.findMany).toHaveBeenCalledWith({
+      where: {
+        attivo: true,
+        offerte: {
+          some: {
+            attiva: true,
+            abilitazioniCollaboratori: {
+              some: { collaboratoreId: "collab-autorizzato" },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        ragioneSociale: true,
+      },
+      orderBy: { ragioneSociale: "asc" },
+    });
+  });
+
+  it("legge le voci di rimborso trasferta ordinate per data di creazione crescente", async () => {
+    await contestoInserimentoPerCollaboratoreAutorizzato("collab-autorizzato");
+
+    expect(mockVoceRimborsoTrasferta.findMany).toHaveBeenCalledTimes(1);
+    expect(mockVoceRimborsoTrasferta.findMany).toHaveBeenCalledWith({
+      orderBy: { createdAt: "asc" },
+    });
+  });
+
+  it("non risolve alcuna sessione: l'autorizzazione resta al chiamante", async () => {
+    await contestoInserimentoPerCollaboratoreAutorizzato("collab-autorizzato");
+
+    expect(mockRichiediCollaboratoreCorrente).not.toHaveBeenCalled();
+  });
+
+  // ── DTO restituito ──────────────────────────────────────────
+
+  it("restituisce clienti e voci in un solo DTO, con l'importo convertito in stringa e l'identità ricevuta", async () => {
+    mockCliente.findMany.mockResolvedValue([
+      { id: "cliente-dataflow", ragioneSociale: "DataFlow SpA" },
+      { id: "cliente-techsolutions", ragioneSociale: "TechSolutions Srl" },
+    ]);
+    mockVoceRimborsoTrasferta.findMany.mockResolvedValue([
+      {
+        id: "voce-pranzo",
+        etichetta: "Pranzo",
+        // Simula il Decimal Prisma con un oggetto dotato di toString()
+        importo: { toString: () => "12.50" },
+        createdAt: new Date(2026, 0, 1),
+        updatedAt: new Date(2026, 0, 1),
+      },
+      {
+        id: "voce-pernotto",
+        etichetta: "Pernottamento",
+        importo: { toString: () => "80.00" },
+        createdAt: new Date(2026, 0, 2),
+        updatedAt: new Date(2026, 0, 2),
+      },
+    ]);
+
+    const risultato = await contestoInserimentoPerCollaboratoreAutorizzato(
+      "collab-solo-questo",
+    );
+
+    expect(risultato).toEqual({
+      collaboratoreId: "collab-solo-questo",
+      clienti: [
+        { id: "cliente-dataflow", ragioneSociale: "DataFlow SpA" },
+        { id: "cliente-techsolutions", ragioneSociale: "TechSolutions Srl" },
+      ],
+      vociRimborso: [
+        { id: "voce-pranzo", etichetta: "Pranzo", importo: "12.50" },
+        { id: "voce-pernotto", etichetta: "Pernottamento", importo: "80.00" },
+      ],
+    });
+  });
+
+  it("restituisce liste vuote senza fallire quando non ci sono clienti né voci", async () => {
+    const risultato = await contestoInserimentoPerCollaboratoreAutorizzato(
+      "collab-autorizzato",
+    );
+
+    expect(risultato).toEqual({
+      collaboratoreId: "collab-autorizzato",
+      clienti: [],
+      vociRimborso: [],
+    });
   });
 });

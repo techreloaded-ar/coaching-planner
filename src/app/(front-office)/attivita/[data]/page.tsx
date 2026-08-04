@@ -1,62 +1,15 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import {
   risolviProfiloCollaboratoreCorrente,
   verificaSessione,
 } from "@/lib/dal";
 import {
-  righeDelGiorno,
-  clientiAttiviPerSelezione,
-  vociRimborsoTrasfertaPerSelezione,
+  righeDelGiornoPerCollaboratoreAutorizzato,
+  contestoInserimentoPerCollaboratoreAutorizzato,
 } from "@/lib/attivita";
 import { parseDataGiorno } from "@/domain/calendario";
-import DettaglioGiornata from "./dettaglio-giornata";
+import IsolaGiornata from "./isola-giornata";
 import StatoProfiloCollaboratore from "../stato-profilo-collaboratore";
-
-// ── Tipi serializzati ───────────────────────────────────────────
-
-/** Riga attività dopo serializzazione (Date → string, Decimal → number) */
-export interface RigaAttivitaClient {
-  id: string;
-  data: string;
-  ore: number;
-  nota: string | null;
-  fatturabile: boolean;
-  rimborsoTrasfertaEtichetta: string | null;
-  rimborsoTrasfertaImporto: string | null;
-  offerta: {
-    id: string;
-    codice: string;
-    descrizione: string;
-  };
-  cliente: {
-    id: string;
-    ragioneSociale: string;
-  };
-}
-
-/** Cliente per la select */
-export interface ClienteSelect {
-  id: string;
-  ragioneSociale: string;
-}
-
-/** Voce di rimborso trasferta selezionabile nel form riga attività */
-export interface VoceRimborsoTrasfertaSelezionabile {
-  id: string;
-  etichetta: string;
-  importo: string;
-}
-
-// ── Helpers ─────────────────────────────────────────────────────
-
-/** Formatta una data in YYYY-MM-DD senza dipendere dal timezone */
-function formattaDataISO(data: Date): string {
-  const a = data.getFullYear();
-  const m = String(data.getMonth() + 1).padStart(2, "0");
-  const g = String(data.getDate()).padStart(2, "0");
-  return `${a}-${m}-${g}`;
-}
 
 // ═══════════════════════════════════════════════════════════════
 // Pagina
@@ -70,7 +23,9 @@ export default async function DettaglioGiornataPage({
   searchParams: Promise<{ mese?: string }>;
 }) {
   const sessione = await verificaSessione();
-  const profilo = await risolviProfiloCollaboratoreCorrente();
+  // La sessione è già verificata: il resolver del profilo la riusa invece di
+  // risolverla una seconda volta.
+  const profilo = await risolviProfiloCollaboratoreCorrente(sessione);
 
   if (profilo.stato !== "ATTIVO") {
     return (
@@ -89,67 +44,24 @@ export default async function DettaglioGiornataPage({
     redirect("/attivita");
   }
 
-  // Carica dati in parallelo
-  const [righe, clienti, vociRimborso] = await Promise.all([
-    righeDelGiorno(dataStr),
-    clientiAttiviPerSelezione(),
-    vociRimborsoTrasfertaPerSelezione(),
+  // Dati letti con il collaboratore già autorizzato: la giornata e il contesto
+  // di inserimento sono prodotti dalle stesse letture usate dai route handler,
+  // così rendering server ed endpoint non possono divergere.
+  const [datiGiornata, contestoInserimento] = await Promise.all([
+    righeDelGiornoPerCollaboratoreAutorizzato(dataStr, profilo.collaboratore.id),
+    contestoInserimentoPerCollaboratoreAutorizzato(profilo.collaboratore.id),
   ]);
 
-  // Serializza per il client component
-  const righeClient: RigaAttivitaClient[] = righe.map((r) => ({
-    id: r.id,
-    data: formattaDataISO(r.data),
-    ore: Number(r.ore),
-    nota: r.nota,
-    fatturabile: r.fatturabile,
-    rimborsoTrasfertaEtichetta: r.rimborsoTrasfertaEtichetta,
-    rimborsoTrasfertaImporto: r.rimborsoTrasfertaImporto?.toString() ?? null,
-    offerta: {
-      id: r.offerta.id,
-      codice: r.offerta.codice,
-      descrizione: r.offerta.descrizione,
-    },
-    cliente: {
-      id: r.cliente.id,
-      ragioneSociale: r.cliente.ragioneSociale,
-    },
-  }));
-
-  const clientiSelect: ClienteSelect[] = clienti;
-
-  // Link di ritorno: preserva il token mese se disponibile
-  const ritornoHref = meseToken ? `/attivita?mese=${meseToken}` : "/attivita";
-
+  // L'isola client possiede breadcrumb, cambio giorno e giornata mostrata: non
+  // riceve alcun `key`, perché deve sopravvivere ai cambi giorno scritti con la
+  // History API — è ciò che rende il cambio giorno una lettura dalla cache
+  // invece di una navigazione RSC. Il remount che azzera il form è passato sul
+  // componente di dettaglio, dentro l'isola.
   return (
-    <>
-      {/* Breadcrumb */}
-      <div className="mb-5">
-        <Link
-          href={ritornoHref}
-          className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            className="h-[15px] w-[15px]"
-          >
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          Torna al calendario
-        </Link>
-      </div>
-
-      <DettaglioGiornata
-        key={dataStr}
-        data={dataStr}
-        righeIniziali={righeClient}
-        clienti={clientiSelect}
-        vociRimborso={vociRimborso}
-        meseToken={meseToken}
-      />
-    </>
+    <IsolaGiornata
+      datiGiornataIniziale={datiGiornata}
+      contestoIniziale={contestoInserimento}
+      meseToken={meseToken}
+    />
   );
 }
