@@ -2,7 +2,7 @@
 type: domain
 title: Attività e consuntivazione
 description: Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore
-status: generated
+status: reviewed
 classification: candidate
 sources:
     - path: src/lib/actions/righe-attivita.ts
@@ -60,6 +60,11 @@ sources:
       role: verification
     - path: tests/e2e/calendario-salto-mese.spec.ts
       role: verification
+review:
+    content_hash: sha256:1b39b7d710a8886ab2cd8b2efaabafaf13baef5ba73fd62dee8fca92fbc7622e
+    evidence_revision: fd4db88fb2060bf05bc0e58bace703d44948c068
+    evidence_hash: sha256:985cd1482c885977e7a22f7cfc52fe6ca593907eaafe72f47473c8237eb947de
+    reviewed_at: "2026-08-04T17:57:44Z"
 ---
 # Attività e consuntivazione
 
