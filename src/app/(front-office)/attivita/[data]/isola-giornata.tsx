@@ -10,6 +10,7 @@ import type {
 } from "@/lib/attivita-contract";
 import { useIdratata } from "@/components";
 import {
+  ErroreIdentitaSchedaCambiata,
   ErroreSessioneAttivita,
   useCacheCalendario,
   useCacheContestoInserimento,
@@ -174,8 +175,15 @@ export default function IsolaGiornata({
       setErrore(null);
 
       // L'URL viene registrato solo ora, quando la giornata è davvero pronta.
-      if (intento.registraHistory) {
-        window.history.pushState(null, "", urlDelGiorno(intento.data));
+      // Un intento che chiede di registrare la cronologia ma la cui
+      // destinazione coincide già con l'URL corrente non deve produrre una
+      // voce duplicata: è il caso tipico di una corsa fra intenti opposti
+      // (es. "successivo" in volo seguito subito da "precedente") in cui il
+      // secondo intento ricade su un giorno già mostrato in URL.
+      const urlDestinazione = urlDelGiorno(intento.data);
+      const urlCorrente = window.location.pathname + window.location.search;
+      if (intento.registraHistory && urlDestinazione !== urlCorrente) {
+        window.history.pushState(null, "", urlDestinazione);
       }
     },
     [urlDelGiorno]
@@ -224,6 +232,10 @@ export default function IsolaGiornata({
           // La sessione decaduta è gestita dalla sottoscrizione di sessione con
           // una navigazione completa: qui non si mostra un errore recuperabile.
           if (causa instanceof ErroreSessioneAttivita) return;
+          // La guardia d'identità ha già svuotato tutte le cache della scheda
+          // e sta per far ricaricare la pagina tramite il canale di sessione:
+          // qui non c'è nulla di recuperabile da mostrare.
+          if (causa instanceof ErroreIdentitaSchedaCambiata) return;
           if (!montata.current) return;
           if (intentoCorrente.current.data !== destinazione) return;
 

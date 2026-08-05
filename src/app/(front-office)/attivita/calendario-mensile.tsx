@@ -23,6 +23,7 @@ import {
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
 import { useIdratata } from "@/components";
 import {
+  ErroreIdentitaSchedaCambiata,
   ErroreSessioneAttivita,
   useCacheCalendario,
 } from "./attivita-cache-provider";
@@ -200,6 +201,10 @@ export default function CalendarioMensile({
           // La sessione decaduta è gestita dal provider con una navigazione
           // completa: qui non si mostra un errore recuperabile.
           if (causa instanceof ErroreSessioneAttivita) return;
+          // La guardia d'identità ha già svuotato tutte le cache della scheda
+          // e sta per far ricaricare la pagina tramite il canale di sessione:
+          // qui non c'è nulla di recuperabile da mostrare.
+          if (causa instanceof ErroreIdentitaSchedaCambiata) return;
           if (intentoCorrente.current.token !== destinazione) return;
 
           setInCaricamento(false);

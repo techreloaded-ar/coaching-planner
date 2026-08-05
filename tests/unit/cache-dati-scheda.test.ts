@@ -6,10 +6,14 @@ import type {
 } from "@/lib/attivita-contract";
 import {
   DURATA_FRESH_MS,
+  ErroreIdentitaSchedaCambiata,
   GuardiaIdentitaScheda,
 } from "@/app/(front-office)/attivita/cache-dati-scheda";
 import { CacheCalendarioMesi } from "@/app/(front-office)/attivita/calendario-cache";
-import { creaContenitoreCacheAttivita } from "@/app/(front-office)/attivita/attivita-cache-provider";
+import {
+  ErroreSessioneAttivita,
+  creaContenitoreCacheAttivita,
+} from "@/app/(front-office)/attivita/attivita-cache-provider";
 import {
   CHIAVE_CONTESTO_INSERIMENTO,
   CacheContestoInserimento,
@@ -202,8 +206,8 @@ describe("GuardiaIdentitaScheda condivisa fra le cache della scheda", () => {
 
     // Nel frattempo, in un'altra scheda, si accede con un altro account: se ne
     // accorge la sola cache delle giornate.
-    await expect(cacheGiornate.load("2026-06-11")).resolves.toEqual(
-      giornataDiAltri,
+    await expect(cacheGiornate.load("2026-06-11")).rejects.toBeInstanceOf(
+      ErroreIdentitaSchedaCambiata,
     );
 
     // Anche il contesto, che non ha ricevuto nulla, smette di essere leggibile.
@@ -251,7 +255,9 @@ describe("GuardiaIdentitaScheda condivisa fra le cache della scheda", () => {
     expect(guardia.identitaRegistrata()).toBe(COLLABORATORE);
 
     // Se ne accorge la sola cache dei mesi: è l'unica che riceve una risposta.
-    await expect(cacheMesi.load("2026-07")).resolves.toEqual(meseDiAltri);
+    await expect(cacheMesi.load("2026-07")).rejects.toBeInstanceOf(
+      ErroreIdentitaSchedaCambiata,
+    );
 
     // Nessun dato del collaboratore precedente resta leggibile, in nessuna
     // delle tre cache.
@@ -303,8 +309,10 @@ describe("GuardiaIdentitaScheda condivisa fra le cache della scheda", () => {
     cacheGiornate.seed(giornataFittizia("2026-06-10", 8));
     cacheContesto.seed(contestoFittizio("TechSolutions Srl"));
 
-    // Cambio di account: entrambe le cache si svuotano.
-    await cacheGiornate.load("2026-06-11");
+    // Cambio di account: entrambe le cache si svuotano. La guardia rifiuta la
+    // scrittura e `load` rigetta: qui interessa solo l'effetto collaterale
+    // dello svuotamento, non il dato rifiutato.
+    await cacheGiornate.load("2026-06-11").catch(() => undefined);
     expect(cacheGiornate.read("2026-06-10")).toBeNull();
     expect(cacheContesto.read()).toBeNull();
 
@@ -349,14 +357,76 @@ describe("Contenitore delle cache dell'area attività", () => {
     contenitore.cacheContesto.seed(contestoFittizio("TechSolutions Srl"));
     expect(contenitore.cacheGiornate.read("2026-06-10")).not.toBeNull();
 
-    await expect(contenitore.cacheMesi.load("2026-07")).resolves.toEqual(
-      meseDiAltri,
+    await expect(contenitore.cacheMesi.load("2026-07")).rejects.toBeInstanceOf(
+      ErroreIdentitaSchedaCambiata,
     );
 
     expect(contenitore.cacheGiornate.read("2026-06-10")).toBeNull();
     expect(contenitore.cacheContesto.read()).toBeNull();
     expect(contenitore.cacheMesi.read("2026-07")).toBeNull();
     expect(contenitore.guardia.identitaRegistrata()).toBeNull();
+    expect(sessioneNonPiuValida).toHaveBeenCalledTimes(1);
+  });
+
+  it("una sessione scaduta (401) svuota le tre cache e notifica una sola volta gli ascoltatori di sessione", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 401 })),
+    );
+
+    const contenitore = creaContenitoreCacheAttivita("sessione-401");
+    const sessioneNonPiuValida = vi.fn();
+    contenitore.ascoltatoriSessione.add(sessioneNonPiuValida);
+
+    // La scheda è partita con i dati del collaboratore proprietario nelle tre
+    // cache: la sessione scaduta deve svuotarle tutte, non solo quella
+    // interrogata.
+    contenitore.cacheGiornate.seed(giornataFittizia("2026-06-10", 8));
+    contenitore.cacheContesto.seed(contestoFittizio("TechSolutions Srl"));
+    contenitore.cacheMesi.seed(meseFittizio("2026-06"));
+
+    // Un'unica chiamata a `load`: la promise rifiutata viene attesa due
+    // volte per verificare sia il tipo dell'errore sia il suo `statusCode`,
+    // senza rifare la richiesta e quindi senza duplicare la notifica.
+    const richiestaGiornata = contenitore.cacheGiornate.load("2026-06-11");
+    await expect(richiestaGiornata).rejects.toBeInstanceOf(
+      ErroreSessioneAttivita,
+    );
+    await richiestaGiornata.catch((errore: unknown) => {
+      expect((errore as ErroreSessioneAttivita).statusCode).toBe(401);
+    });
+
+    expect(contenitore.cacheGiornate.read("2026-06-10")).toBeNull();
+    expect(contenitore.cacheContesto.read()).toBeNull();
+    expect(contenitore.cacheMesi.read("2026-06")).toBeNull();
+    expect(sessioneNonPiuValida).toHaveBeenCalledTimes(1);
+  });
+
+  it("una sessione con profilo non operativo (403) produce lo stesso abbandono", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 403 })),
+    );
+
+    const contenitore = creaContenitoreCacheAttivita("sessione-403");
+    const sessioneNonPiuValida = vi.fn();
+    contenitore.ascoltatoriSessione.add(sessioneNonPiuValida);
+
+    contenitore.cacheGiornate.seed(giornataFittizia("2026-06-10", 8));
+    contenitore.cacheContesto.seed(contestoFittizio("TechSolutions Srl"));
+    contenitore.cacheMesi.seed(meseFittizio("2026-06"));
+
+    const richiestaGiornata = contenitore.cacheGiornate.load("2026-06-11");
+    await expect(richiestaGiornata).rejects.toBeInstanceOf(
+      ErroreSessioneAttivita,
+    );
+    await richiestaGiornata.catch((errore: unknown) => {
+      expect((errore as ErroreSessioneAttivita).statusCode).toBe(403);
+    });
+
+    expect(contenitore.cacheGiornate.read("2026-06-10")).toBeNull();
+    expect(contenitore.cacheContesto.read()).toBeNull();
+    expect(contenitore.cacheMesi.read("2026-06")).toBeNull();
     expect(sessioneNonPiuValida).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
+import { offsetMeseRiservato } from "../tests/e2e/support/date";
+
 const ROOT = process.cwd();
 const E2E_DIR = path.join(ROOT, "tests", "e2e");
 
@@ -138,6 +140,207 @@ function checkSource(relativePath: string, source: string): Finding[] {
 	return findings;
 }
 
+// Ogni coppia è una collisione di mese riservato scoperta dal controllo sotto,
+// pre-esistente e fuori perimetro della spec che ha introdotto il controllo:
+// entrambe le chiavi restano allowlistate, non corrette.
+const COLLISIONI_PREESISTENTI_ALLOWLIST: ReadonlyArray<readonly [string, string]> = [
+	// collisione pre-esistente, fuori perimetro di questa spec
+	["US-036", "US-052-segregazione"],
+	// collisione pre-esistente, fuori perimetro di questa spec
+	["US-036", "US-031"],
+	// collisione pre-esistente, fuori perimetro di questa spec
+	["US-051-DEMO-cursore-e-feedback-attesa", "US-056-rientro"],
+	// collisione pre-esistente, fuori perimetro di questa spec
+	["US-055-DEMO-SALTO-MESE", "US-053-confine"],
+	// collisione pre-esistente, fuori perimetro di questa spec
+	["US-034", "US-023-TASK-07-REPORT-FATTURAZIONE-CLIENTI-SPEC"],
+	// collisione pre-esistente, fuori perimetro di questa spec
+	["US-052-cache-identita", "US-056-cronologia"],
+	// collisione pre-esistente, fuori perimetro di questa spec
+	["US-054-SELEZIONE-RIMBORSO-TRASFERTA", "US-043-DEMO"],
+	// collisione pre-esistente, fuori perimetro di questa spec
+	["US-049", "US-056-contesto"],
+	// collisione pre-esistente, fuori perimetro di questa spec
+	["US-056-server", "US-037-ESPANSIONE-SINGOLA"],
+];
+
+type NomeFunzioneMeseRiservato =
+	| "meseRiservato"
+	| "mesePassatoRiservato"
+	| "dataNelMeseRiservato"
+	| "dataNelMesePassatoRiservato";
+
+function estraiCostantiStringa(source: string): Map<string, string> {
+	const costanti = new Map<string, string>();
+	const regex = /\b(?:const|let)\s+(\w+)\s*(?::\s*string)?\s*=\s*"([^"]*)"/g;
+
+	for (const match of source.matchAll(regex)) {
+		costanti.set(match[1], match[2]);
+	}
+
+	return costanti;
+}
+
+function splitArgomentiTopLevel(argomenti: string): string[] {
+	const parti: string[] = [];
+	let corrente = "";
+	let quoteChar: string | null = null;
+
+	for (const carattere of argomenti) {
+		if (quoteChar) {
+			corrente += carattere;
+			if (carattere === quoteChar) {
+				quoteChar = null;
+			}
+			continue;
+		}
+
+		if (carattere === '"' || carattere === "'" || carattere === "`") {
+			quoteChar = carattere;
+			corrente += carattere;
+			continue;
+		}
+
+		if (carattere === ",") {
+			parti.push(corrente.trim());
+			corrente = "";
+			continue;
+		}
+
+		corrente += carattere;
+	}
+
+	if (corrente.trim().length > 0) {
+		parti.push(corrente.trim());
+	}
+
+	return parti;
+}
+
+function risolviChiaveRiservata(
+	argomento: string,
+	costanti: Map<string, string>,
+): string | undefined {
+	const letteraleDoppie = argomento.match(/^"([^"]*)"$/);
+	if (letteraleDoppie) {
+		return letteraleDoppie[1];
+	}
+
+	const letteraleSingole = argomento.match(/^'([^']*)'$/);
+	if (letteraleSingole) {
+		return letteraleSingole[1];
+	}
+
+	const templateConPlaceholder = argomento.match(/^`\$\{(\w+)\}([^`]*)`$/);
+	if (templateConPlaceholder) {
+		const valoreIdentificatore = costanti.get(templateConPlaceholder[1]);
+		return valoreIdentificatore === undefined
+			? undefined
+			: `${valoreIdentificatore}${templateConPlaceholder[2]}`;
+	}
+
+	const identificatoreSemplice = argomento.match(/^(\w+)$/);
+	if (identificatoreSemplice) {
+		return costanti.get(identificatoreSemplice[1]);
+	}
+
+	return undefined;
+}
+
+type RiservazioneMeseTrovata = {
+	chiave: string;
+	mesiIndietro: number;
+	line: number;
+};
+
+function estraiRiservazioni(
+	relativePath: string,
+	source: string,
+): RiservazioneMeseTrovata[] {
+	const costanti = estraiCostantiStringa(source);
+	const riservazioni: RiservazioneMeseTrovata[] = [];
+	const regex =
+		/\b(meseRiservato|mesePassatoRiservato|dataNelMeseRiservato|dataNelMesePassatoRiservato)\s*\(([^)]*)\)/g;
+
+	for (const match of source.matchAll(regex)) {
+		const nomeFunzione = match[1] as NomeFunzioneMeseRiservato;
+		const argomenti = splitArgomentiTopLevel(match[2]);
+		const primoArgomento = argomenti[0];
+		const { line } = position(source, match.index ?? 0);
+
+		const chiave =
+			primoArgomento === undefined
+				? undefined
+				: risolviChiaveRiservata(primoArgomento, costanti);
+
+		if (chiave === undefined) {
+			console.log(
+				`⚠️ chiave riservata non risolvibile staticamente: ${relativePath}:${line}`,
+			);
+			continue;
+		}
+
+		let mesiIndietro = 0;
+		if (nomeFunzione === "mesePassatoRiservato") {
+			mesiIndietro = /^\d+$/.test(argomenti[1] ?? "") ? Number(argomenti[1]) : 1;
+		} else if (nomeFunzione === "dataNelMesePassatoRiservato") {
+			mesiIndietro = /^\d+$/.test(argomenti[2] ?? "") ? Number(argomenti[2]) : 1;
+		}
+
+		riservazioni.push({ chiave, mesiIndietro, line });
+	}
+
+	return riservazioni;
+}
+
+type OccorrenzaRiservazione = { chiave: string; file: string; line: number };
+
+function coppiaAllowlistata(chiaviDistinte: ReadonlySet<string>): boolean {
+	if (chiaviDistinte.size !== 2) {
+		return false;
+	}
+
+	const [prima, seconda] = [...chiaviDistinte];
+	return COLLISIONI_PREESISTENTI_ALLOWLIST.some(
+		([a, b]) => (a === prima && b === seconda) || (a === seconda && b === prima),
+	);
+}
+
+function checkCollisioniMesiRiservati(
+	filesLetti: Array<{ relativePath: string; source: string }>,
+): string[] {
+	const perOffset = new Map<number, OccorrenzaRiservazione[]>();
+
+	for (const { relativePath, source } of filesLetti) {
+		for (const riservazione of estraiRiservazioni(relativePath, source)) {
+			const offset = offsetMeseRiservato(riservazione.chiave) - riservazione.mesiIndietro;
+			const occorrenze = perOffset.get(offset) ?? [];
+			occorrenze.push({
+				chiave: riservazione.chiave,
+				file: relativePath,
+				line: riservazione.line,
+			});
+			perOffset.set(offset, occorrenze);
+		}
+	}
+
+	const errori: string[] = [];
+
+	for (const [offset, occorrenze] of perOffset) {
+		const chiaviDistinte = new Set(occorrenze.map((occorrenza) => occorrenza.chiave));
+		if (chiaviDistinte.size <= 1 || coppiaAllowlistata(chiaviDistinte)) {
+			continue;
+		}
+
+		const dettaglio = occorrenze
+			.map((occorrenza) => `${occorrenza.chiave} (${occorrenza.file}:${occorrenza.line})`)
+			.join(", ");
+		errori.push(`collisione di mese riservato all'offset ${offset}: ${dettaglio}`);
+	}
+
+	return errori;
+}
+
 function runSelfTest(): void {
 	const cases: Array<{ name: string; source: string; shouldFail: boolean }> = [
 		{
@@ -186,8 +389,13 @@ function main(): void {
 		return;
 	}
 
-	const findings = walk(E2E_DIR).flatMap((filePath) =>
-		checkSource(relative(filePath), readFileSync(filePath, "utf8")),
+	const filesLetti = walk(E2E_DIR).map((filePath) => ({
+		relativePath: relative(filePath),
+		source: readFileSync(filePath, "utf8"),
+	}));
+
+	const findings = filesLetti.flatMap(({ relativePath, source }) =>
+		checkSource(relativePath, source),
 	);
 
 	if (findings.length > 0) {
@@ -196,6 +404,16 @@ function main(): void {
 			console.error(
 				`${finding.file}:${finding.line}:${finding.column} [${finding.rule}] ${finding.message}`,
 			);
+		}
+		process.exit(1);
+	}
+
+	const collisioniMesiRiservati = checkCollisioniMesiRiservati(filesLetti);
+
+	if (collisioniMesiRiservati.length > 0) {
+		console.error("❌ Guardrail e2e mesi riservati falliti:\n");
+		for (const collisione of collisioniMesiRiservati) {
+			console.error(collisione);
 		}
 		process.exit(1);
 	}

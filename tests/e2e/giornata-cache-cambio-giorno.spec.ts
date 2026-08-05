@@ -316,6 +316,84 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
     await page.unroute(eRichiestaDatiGiornata);
   });
 
+  test("un click su Giorno precedente durante il miss verso il giorno successivo non duplica la cronologia", async ({
+    page,
+    collaboratore,
+    factory,
+  }) => {
+    const mese = meseRiservato(`${CODICE_SPEC}-cronologia-corsa`);
+    const giornoPartenza = dataNelMese(mese, 15);
+    const giornoSuccessivo = dataNelMese(mese, 16);
+
+    const clienteConOfferta = await factory.createClienteConOfferta({
+      ragioneSociale: "E2E US056 Corsa Cronologia",
+    });
+    await creaGiornataConDueRighe(
+      factory,
+      collaboratore,
+      clienteConOfferta,
+      giornoPartenza,
+    );
+
+    // Il cancello va registrato prima di accedere e navigare: l'isola
+    // prefetcha automaticamente il giorno successivo dopo ogni commit, quindi
+    // la richiesta da trattenere è quella del prefetch, non una richiesta
+    // scatenata direttamente dal click su "Giorno successivo".
+    const cancelloSuccessivo = cancelloRilasciabile();
+    const richiestaGiornoSuccessivo = (url: URL) =>
+      url.pathname === "/api/attivita/giornata" &&
+      url.searchParams.get("data") === giornoSuccessivo;
+    await page.route(richiestaGiornoSuccessivo, async (route) => {
+      await cancelloSuccessivo.attesa;
+      await route.continue();
+    });
+
+    await accediComeCollaboratore(page, collaboratore.utente.email);
+    await page.goto(`/attivita/${giornoPartenza}`);
+    await attendiGiornataIdratata(page);
+    await attendiGiornataPopolata(page, giornoPartenza, clienteConOfferta);
+
+    const vociCronologiaPrima = await page.evaluate(
+      () => window.history.length,
+    );
+
+    // Click verso un giorno mai visitato: la richiesta è trattenuta dal
+    // cancello (single-flight con il prefetch già in volo), quindi il miss è
+    // ancora in corso quando arriva il click successivo.
+    await page.getByRole("button", { name: "Giorno successivo" }).click();
+    await expect(
+      page.getByTestId("indicatore-caricamento-giornata"),
+    ).toBeVisible();
+
+    // Subito dopo, senza rilasciare il cancello: la corsa segnalata dal
+    // reviewer. La destinazione ricalcolata coincide con il giorno già
+    // mostrato, quindi il ritorno deve essere un hit sincrono di cache.
+    await page.getByRole("button", { name: "Giorno precedente" }).click();
+
+    await expect(intestazioneGiornata(page)).toHaveText(
+      etichettaGiornoAttesa(giornoPartenza),
+      { ignoreCase: true },
+    );
+    await expect(page).toHaveURL(`/attivita/${giornoPartenza}`);
+    // Con il fix di TASK-16 nessuna voce viene aggiunta, perché l'URL di
+    // destinazione coincide già con quello corrente.
+    expect(await page.evaluate(() => window.history.length)).toBe(
+      vociCronologiaPrima,
+    );
+
+    cancelloSuccessivo.rilascia();
+
+    // La risposta tardiva del giorno abbandonato non deve toccare né vista,
+    // né URL, né cronologia.
+    await expect(page).toHaveURL(`/attivita/${giornoPartenza}`);
+    await attendiGiornataPopolata(page, giornoPartenza, clienteConOfferta);
+    expect(await page.evaluate(() => window.history.length)).toBe(
+      vociCronologiaPrima,
+    );
+
+    await page.unroute(richiestaGiornoSuccessivo);
+  });
+
   test("sul giorno mai visitato resta visibile la giornata precedente con l'indicatore e l'URL cambia solo a dati pronti", async ({
     page,
     collaboratore,
@@ -596,7 +674,7 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
     page,
     factory,
   }) => {
-    const mese = meseRiservato(`${CODICE_SPEC}-identita`);
+    const mese = meseRiservato(`${CODICE_SPEC}-identita-account`);
     const giornoCondiviso = dataNelMese(mese, 11);
     const giornoLontano = dataNelMese(mese, 21);
 

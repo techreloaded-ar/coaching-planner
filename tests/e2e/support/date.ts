@@ -55,7 +55,7 @@ export function dataNelMeseCorrente(giorno: number): string {
 	return dataNelMese(meseCorrenteToken(), giorno);
 }
 
-function offsetMeseRiservato(codiceSpec: string): number {
+export function offsetMeseRiservato(codiceSpec: string): number {
 	const codiceNormalizzato = codiceSpec.trim();
 
 	if (!codiceNormalizzato) {

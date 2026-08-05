@@ -119,6 +119,21 @@ export class GuardiaIdentitaScheda {
   }
 }
 
+/**
+ * Il caricatore ha risposto con dati di un'altra identità: la guardia ha già
+ * svuotato tutte le cache della scheda e notificato il cambio. La scrittura è
+ * stata rifiutata — nessun chiamante di `revalida` deve ricevere quel dato
+ * come se fosse stato scritto.
+ */
+export class ErroreIdentitaSchedaCambiata extends Error {
+  constructor() {
+    super(
+      "La risposta appartiene a un'altra identità: scrittura rifiutata dalla guardia della scheda."
+    );
+    this.name = "ErroreIdentitaSchedaCambiata";
+  }
+}
+
 // ── Opzioni ─────────────────────────────────────────────────────
 
 export interface OpzioniCacheDatiScheda<T> {
@@ -314,7 +329,9 @@ export class CacheDatiScheda<T extends DatiDiCollaboratore>
         // Se nel frattempo la voce è stata invalidata o la cache svuotata,
         // questa risposta è antecedente alla mutazione: non deve ripopolare.
         if ((this.epoche.get(chiave) ?? 0) === epocaAllAvvio) {
-          this.scrivi(chiave, dati);
+          if (!this.scrivi(chiave, dati)) {
+            throw new ErroreIdentitaSchedaCambiata();
+          }
         }
         return dati;
       })
@@ -353,12 +370,12 @@ export class CacheDatiScheda<T extends DatiDiCollaboratore>
 
   // ── Interni ──────────────────────────────────────────────────
 
-  private scrivi(chiave: string, dati: T): void {
+  private scrivi(chiave: string, dati: T): boolean {
     // Guardia d'identità: una risposta che dichiara un altro collaboratore
     // significa che la sessione della scheda è cambiata (per esempio un accesso
     // con un altro account nella stessa finestra). In quel caso nessun dato
     // precedente può restare leggibile, nemmeno per un fresh hit.
-    if (!this.guardia.verifica(dati.collaboratoreId)) return;
+    if (!this.guardia.verifica(dati.collaboratoreId)) return false;
 
     this.voci.delete(chiave);
     this.voci.set(chiave, { dati, cachedAt: this.orologio() });
@@ -371,6 +388,7 @@ export class CacheDatiScheda<T extends DatiDiCollaboratore>
     }
 
     this.notifica(chiave);
+    return true;
   }
 
   private notifica(chiave: string): void {

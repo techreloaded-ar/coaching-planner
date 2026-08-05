@@ -13,7 +13,10 @@ import type {
   DatiCalendarioMese,
   DatiGiornataAttivita,
 } from "@/lib/attivita-contract";
-import { GuardiaIdentitaScheda } from "./cache-dati-scheda";
+import {
+  ErroreIdentitaSchedaCambiata,
+  GuardiaIdentitaScheda,
+} from "./cache-dati-scheda";
 import {
   CacheCalendarioMesi,
   type LetturaCalendario,
@@ -43,6 +46,8 @@ export class ErroreSessioneAttivita extends Error {
     this.statusCode = statusCode;
   }
 }
+
+export { ErroreIdentitaSchedaCambiata };
 
 // ── API esposte ai consumer ─────────────────────────────────────
 

@@ -425,8 +425,10 @@ describe("CacheCalendarioMesi", () => {
     cache.seed(meseFittizio("2026-07", 4));
     expect(cache.identitaInCache()).toBe(COLLABORATORE);
 
-    // Nel frattempo, in un'altra scheda, si accede con un altro account.
-    await cache.load("2026-05");
+    // Nel frattempo, in un'altra scheda, si accede con un altro account. La
+    // guardia rifiuta la scrittura e `load` rigetta: qui interessa solo
+    // l'effetto collaterale dello svuotamento, non il dato rifiutato.
+    await cache.load("2026-05").catch(() => undefined);
 
     // Nessun mese resta leggibile: né quello nuovo né quelli precedenti.
     expect(cache.tokenInCache()).toEqual([]);
