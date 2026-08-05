@@ -2,7 +2,7 @@
 type: code-map
 title: Mappa del codice
 description: Matrice fisica fra capability candidate, codice, dati e test
-status: generated
+status: reviewed
 sources:
     - path: package.json
       role: manifest
@@ -96,6 +96,11 @@ coverage:
       status: mapped
       pages:
         - domains/identita-accesso
+review:
+    content_hash: sha256:6d553593a8d0fd4ac4743761d6fb1f6370c1c393d057ca0efb2439151223ce01
+    evidence_revision: 8c555e4e212062e4ae73e66ea4b1b049cd082901
+    evidence_hash: sha256:02b59f69b7a90fcd12fa46797a25d92bbc3ded48cc2deca4f6dee0f89fbb8076
+    reviewed_at: "2026-08-05T07:29:39Z"
 ---
 # Mappa del codice
 

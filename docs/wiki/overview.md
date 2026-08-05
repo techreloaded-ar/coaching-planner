@@ -18,9 +18,9 @@ sources:
       role: stack-manifest
 review:
     content_hash: sha256:e233860ea507181b78ef542fd013dfa32578bbdb211be3a3df00f470fc137185
-    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
-    evidence_hash: sha256:47bc327df53457ec6478f309f8426c2f98f41b2df2b5f131eb4d1e4629771848
-    reviewed_at: "2026-07-31T15:56:23Z"
+    evidence_revision: 8c555e4e212062e4ae73e66ea4b1b049cd082901
+    evidence_hash: sha256:4a19621ad7f7a11d800cb987b013260241470433fee1e7739f5588253004870d
+    reviewed_at: "2026-08-05T07:29:49Z"
 ---
 # Panoramica
 

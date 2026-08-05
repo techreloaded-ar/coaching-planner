@@ -2,7 +2,7 @@
 type: domain
 title: Attività e consuntivazione
 description: Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore
-status: generated
+status: reviewed
 classification: candidate
 sources:
     - path: src/lib/actions/righe-attivita.ts
@@ -86,6 +86,11 @@ sources:
       role: verification
     - path: tests/e2e/giornata-cache-cambio-giorno.spec.ts
       role: verification
+review:
+    content_hash: sha256:0d4eddca099f9f0d153c52551b146cb9e54245a7595be39cc78d89e4a090b154
+    evidence_revision: 8c555e4e212062e4ae73e66ea4b1b049cd082901
+    evidence_hash: sha256:d05abe7bf26096fd2d569ab3e7b9f7770fb9eded823d1c5633da0f12d57b913c
+    reviewed_at: "2026-08-05T07:29:39Z"
 ---
 # Attività e consuntivazione
 
