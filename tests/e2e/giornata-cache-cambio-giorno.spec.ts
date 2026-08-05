@@ -703,11 +703,28 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
     });
 
     await accediComeCollaboratore(page, primoCollaboratore.utente.email);
+
+    // I prefetch dei giorni adiacenti al mount vanno attesi come eventi prima
+    // dello switch di sessione: sono innescati con il cookie del primo
+    // collaboratore e, se le loro risposte arrivassero dopo lo switch, il
+    // rinnovo sliding del cookie (proxy.ts) le firmerebbe di nuovo con quel
+    // cookie e resusciterebbe la sessione precedente nel browser.
+    const prefetchGiornoPrecedente = rispostaGiornata(
+      page,
+      dataNelMese(mese, 10),
+    );
+    const prefetchGiornoSuccessivo = rispostaGiornata(
+      page,
+      dataNelMese(mese, 12),
+    );
+
     await page.goto(`/attivita/${giornoCondiviso}`);
     await attendiGiornataIdratata(page);
     await expect(page.getByTestId("activity-row")).toContainText(
       clienteDelPrimo.cliente.ragioneSociale,
     );
+
+    await Promise.all([prefetchGiornoPrecedente, prefetchGiornoSuccessivo]);
 
     // Accesso con un altro account nella stessa finestra: cambia solo il
     // cookie, la scheda resta montata con le cache del collaboratore
