@@ -1,6 +1,10 @@
 import { loadEnvConfig } from "@next/env";
 import { defineConfig, devices } from "@playwright/test";
 import { validaSessionSecret } from "./src/lib/session-config";
+import {
+	assertDatabaseE2eDistintoDaDatabaseApplicativo,
+	costruisciAmbienteE2e,
+} from "./tests/e2e/e2e-database-safety";
 
 loadEnvConfig(process.cwd());
 
@@ -11,6 +15,14 @@ if (!e2eDatabaseUrl) {
 		"E2E_DATABASE_URL is required to run Playwright end-to-end tests.",
 	);
 }
+
+// La configurazione è il primo codice valutato da Playwright, prima del
+// globalSetup e prima dell'avvio del web server: qui il rifiuto avviene senza
+// che alcun processo abbia toccato dati.
+assertDatabaseE2eDistintoDaDatabaseApplicativo(
+	e2eDatabaseUrl,
+	process.env.DATABASE_URL,
+);
 
 const webServerCommand =
 	process.env.PLAYWRIGHT_WEB_SERVER_COMMAND?.trim() || "npm run dev";
@@ -29,10 +41,7 @@ function resolveE2ESessionSecret(secret: string | undefined) {
 const e2eSessionSecret = resolveE2ESessionSecret(process.env.SESSION_SECRET);
 
 const e2eEnvironment = {
-	...process.env,
-	DATABASE_URL: e2eDatabaseUrl,
-	E2E_DATABASE_URL: e2eDatabaseUrl,
-	E2E_TEST_MODE: "true",
+	...costruisciAmbienteE2e(process.env, e2eDatabaseUrl),
 	// Il fallback vale solo per il processo web server lanciato da Playwright.
 	SESSION_SECRET: e2eSessionSecret,
 };

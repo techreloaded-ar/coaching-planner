@@ -4,7 +4,8 @@ Questa suite gira con `fullyParallel: true`. I test devono quindi essere determi
 
 ## Setup, seed e teardown
 
-- `global-setup.ts` verifica che `E2E_DATABASE_URL` punti a un database e2e dedicato e vuoto, applica le migrazioni e carica il seed.
+- `global-setup.ts` verifica che `E2E_DATABASE_URL` non coincida con `DATABASE_URL`, crea il database e2e se non esiste, ne ricrea lo schema `public` da zero, applica le migrazioni e carica il seed.
+- Ogni run parte quindi da uno schema ricreato: nessun test può contare su dati residui del run precedente, e un run interrotto non blocca quelli successivi. Se l'istanza PostgreSQL non risponde, la suite lo dice esplicitamente e indica `docker compose up -d` come rimedio.
 - Il seed è una baseline **read-only/smoke**: utenti come Giulia Conti, clienti come TechSolutions/DataFlow e scaglioni km sotto 1000 km non devono essere mutati da test che scrivono.
 - `global-teardown.ts` pulisce i dati applicativi una sola volta a fine suite.
 - Non fare cleanup concorrente per-test: con worker paralleli una cancellazione locale può rompere un altro test. L'isolamento si ottiene con namespace e risorse riservate.

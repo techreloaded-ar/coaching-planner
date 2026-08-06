@@ -19,6 +19,8 @@ cd coaching-planner
 npm install
 
 # 3. Avvia il database PostgreSQL locale
+# Alla prima inizializzazione il container crea sia `coaching_planner` sia
+# `coaching_planner_e2e`: non serve alcuna preparazione manuale del database e2e.
 docker compose up -d
 
 # 4. Configura le variabili d'ambiente
@@ -53,16 +55,28 @@ L'applicazione esegue un fail-fast all'avvio se `SESSION_SECRET` è assente, vuo
 
 ### Test end-to-end e database dedicato
 
-`npm run test:e2e` richiede `E2E_DATABASE_URL` valorizzata verso un database dedicato ai test e vuoto nelle tabelle applicative.
+`npm run test:e2e` richiede `E2E_DATABASE_URL` valorizzata verso un database **dedicato e diverso** da quello indicato da `DATABASE_URL`. Non serve che sia vuoto e non serve crearlo a mano: la preparazione è interamente a carico della suite.
 
 Durante la suite e2e Playwright:
 
-- avvia Next con `DATABASE_URL=E2E_DATABASE_URL`
+- verifica che `E2E_DATABASE_URL` non coincida con `DATABASE_URL` (stesso host, porta e nome database) e si ferma prima di qualunque operazione distruttiva
+- crea il database e2e se non esiste ancora
+- ne ripristina lo stato pulito ricreando lo schema `public` da zero
 - applica le migrazioni al database e2e
 - esegue il seed sul database e2e
+- avvia Next con `DATABASE_URL=E2E_DATABASE_URL`
 - ripulisce i dati applicativi al teardown finale
 
+Poiché lo schema viene ricreato a ogni run, un run interrotto non blocca quelli successivi e nessun test può contare su dati residui del run precedente.
+
 `DATABASE_URL` resta quindi il database normale dell'applicazione fuori dai test e2e.
+
+#### Rifiuti espliciti
+
+La suite si interrompe con un messaggio azionabile in due casi:
+
+- **Database e2e coincidente con quello applicativo** — «Il database e2e configurato in E2E_DATABASE_URL coincide con il database di sviluppo indicato da DATABASE_URL (host:porta/nome). … Configura un database dedicato, per esempio `coaching_planner_e2e`, e rilancia la suite.» Il controllo è puramente sintattico e viene eseguito per primo, anche prima dell'avvio del web server.
+- **Istanza PostgreSQL non raggiungibile** — «Il database locale non risponde su host:porta (CODICE). Avvia l'istanza PostgreSQL con `docker compose up -d` e rilancia la suite e2e.»
 
 Playwright passa sempre al web server una `SESSION_SECRET` conforme alla stessa policy dell'applicazione. Se l'ambiente locale non la definisce o lascia il placeholder, il solo web server e2e usa un fallback esplicitamente non produttivo ma valido.
 
@@ -105,6 +119,12 @@ docker compose up -d          # Avvia PostgreSQL in background
 docker compose down            # Arresta PostgreSQL
 docker compose down -v         # Arresta e cancella i dati (reset completo)
 ```
+
+Alla **prima** inizializzazione del volume `pgdata`, l'entrypoint di PostgreSQL esegue gli script in `docker/postgres/initdb` e crea automaticamente sia il database applicativo `coaching_planner` sia quello dedicato agli end-to-end `coaching_planner_e2e`.
+
+Su un volume già inizializzato quegli script non vengono rieseguiti: se il database e2e manca, viene comunque creato dalla suite al primo `npm run test:e2e`. Non è quindi mai necessario crearlo a mano.
+
+`docker compose down -v` resta il reset totale, ma attenzione: cancella anche i dati di sviluppo del database applicativo.
 
 ### Comandi Prisma
 

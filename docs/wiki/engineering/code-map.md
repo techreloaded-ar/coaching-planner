@@ -2,7 +2,7 @@
 type: code-map
 title: Mappa del codice
 description: Matrice fisica fra capability candidate, codice, dati e test
-status: reviewed
+status: generated
 sources:
     - path: package.json
       role: manifest
@@ -18,6 +18,11 @@ coverage:
       status: mapped
       pages:
         - engineering/code-map
+        - operations/development
+    - kind: boundary
+      path: docker
+      status: mapped
+      pages:
         - operations/development
     - kind: boundary
       path: docs
@@ -96,11 +101,6 @@ coverage:
       status: mapped
       pages:
         - domains/identita-accesso
-review:
-    content_hash: sha256:6d553593a8d0fd4ac4743761d6fb1f6370c1c393d057ca0efb2439151223ce01
-    evidence_revision: 67133f5adf25203fb1b17a224c25b5b65dd89772
-    evidence_hash: sha256:e193adceede977ed2fb7b82ce40c23002946020856f95143f46ad083277d80b6
-    reviewed_at: "2026-08-06T16:26:38Z"
 ---
 # Mappa del codice
 
@@ -135,13 +135,14 @@ review:
 - `docs/mockups/**` sono prototipi isolati e fonti d'intento, non runtime.
 - `src/generated/prisma/**` è codice generato.
 - `scripts/check-e2e-guardrails.ts`, `scripts/siteground-connectivity-check.ts`, `scripts/bootstrap-amministratore-iniziale.ts` e `scripts/backfill-abilitazioni-iniziali.ts` sono tooling operativo.
+- `docker/postgres/initdb/**` è infrastruttura locale: script eseguiti dall'entrypoint di PostgreSQL alla prima inizializzazione del volume, non codice applicativo.
 - Asset binari, favicon, `.DS_Store`, output Playwright e directory build/dependency non rappresentano capability.
 - I modelli Prisma `Session` e `VerificationToken` e `src/lib/auth.ts` sono dichiarati/placeholder ma non partecipano al flusso di sessione osservato.
 
 <!-- archetipo:wiki section=coverage -->
 ## Copertura dell'ispezione
 
-Tutti i sei boundary e i dieci candidati restituiti da `archetipo wiki inspect` sono rappresentati nel frontmatter `coverage`. Root, Prisma e script sono mappati. `docs`, `src` e `tests` restano `partial` perché l'inspector li dichiara campionati; per i candidati sono stati comunque letti tutti i file riportati e le dipendenze/test pertinenti. `anagrafiche` è distribuito sulle pagine di Clienti, Collaboratori, Offerte, Politiche rimborso e Identità/accesso; il candidato `utenti`, introdotto dalla UI `/anagrafiche/utenti`, è assegnato a Identità/accesso. Il dettaglio di avanzamento appartiene a Offerte, mentre `report` mappa solo Fatturazione clienti. Il candidato `calendario`, comparso con la route dati `src/app/api/attivita/calendario/route.ts` introdotta dalla cache client dei mesi, è assegnato ad Attività: non è una capability autonoma, è un confine dati di quella capability. Quella route non è però più l'unico confine dati dell'area: sotto `src/app/api/attivita/` ne convivono oggi quattro — `calendario/route.ts` (parametro `mese`), `giornata/route.ts` (parametro `data`), `contesto-inserimento/route.ts` (senza parametri) e `offerte-cliente/route.ts` (parametro `cliente`, subentrata alla server action del cascade cliente → offerta perché la risposta di una server action riconcilia l'albero RSC con l'URL e azzererebbe il form dopo un cambio giorno scritto con la History API). Sono tutte confini dati della **stessa** capability Attività e nessuna è una capability autonoma: derivano sempre il collaboratore dalla sessione e rispondono con le intestazioni condivise `Cache-Control: private, no-store` e `Vary: Cookie` di `src/lib/risposta-dati-privati.ts`. L'ispezione continua infatti a restituire dieci candidati, senza candidati nuovi per le route aggiunte.
+Tutti i sette boundary e i dieci candidati restituiti da `archetipo wiki inspect` sono rappresentati nel frontmatter `coverage`. Root, Prisma, script e `docker` sono mappati. Il boundary `docker` è comparso con `docker/postgres/initdb/`, gli script che l'entrypoint di PostgreSQL esegue alla prima inizializzazione del volume per creare il database dedicato agli e2e: è infrastruttura locale mappata su [Sviluppo e operazioni](/operations/development.md), non una capability, e infatti l'ispezione continua a restituire dieci candidati. `docs`, `src` e `tests` restano `partial` perché l'inspector li dichiara campionati; per i candidati sono stati comunque letti tutti i file riportati e le dipendenze/test pertinenti. `anagrafiche` è distribuito sulle pagine di Clienti, Collaboratori, Offerte, Politiche rimborso e Identità/accesso; il candidato `utenti`, introdotto dalla UI `/anagrafiche/utenti`, è assegnato a Identità/accesso. Il dettaglio di avanzamento appartiene a Offerte, mentre `report` mappa solo Fatturazione clienti. Il candidato `calendario`, comparso con la route dati `src/app/api/attivita/calendario/route.ts` introdotta dalla cache client dei mesi, è assegnato ad Attività: non è una capability autonoma, è un confine dati di quella capability. Quella route non è però più l'unico confine dati dell'area: sotto `src/app/api/attivita/` ne convivono oggi quattro — `calendario/route.ts` (parametro `mese`), `giornata/route.ts` (parametro `data`), `contesto-inserimento/route.ts` (senza parametri) e `offerte-cliente/route.ts` (parametro `cliente`, subentrata alla server action del cascade cliente → offerta perché la risposta di una server action riconcilia l'albero RSC con l'URL e azzererebbe il form dopo un cambio giorno scritto con la History API). Sono tutte confini dati della **stessa** capability Attività e nessuna è una capability autonoma: derivano sempre il collaboratore dalla sessione e rispondono con le intestazioni condivise `Cache-Control: private, no-store` e `Vary: Cookie` di `src/lib/risposta-dati-privati.ts`. L'ispezione continua infatti a restituire dieci candidati, senza candidati nuovi per le route aggiunte.
 
 ## Concetti correlati
 
