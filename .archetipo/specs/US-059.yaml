@@ -1,0 +1,39 @@
+schema: archetipo/spec/v2
+code: US-059
+title: Suite e2e locale autonoma con database dedicato e database dev protetto
+epic:
+  code: EP-000
+priority: MEDIUM
+points: 3
+status: TODO
+scope: MVP
+body: |-
+  #### US-059: Suite e2e locale autonoma con database dedicato e database dev protetto
+
+  **Epic:** EP-000 | **Priorità:** MEDIUM | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come sviluppatore del progetto Coaching Planner,
+  voglio che la suite e2e locale prepari da sola il proprio database dedicato partendo sempre da uno stato pulito, mentre il mio database di sviluppo persistente resta fuori dalla sua portata,
+  così da poter lanciare `npm run test:e2e` in qualunque momento senza preparazioni manuali e senza timore di perdere i dati delle mie prove locali.
+
+  **Dimostrazione**
+  Partendo dal container Docker locale avviato con dati di prova presenti nel database di sviluppo e dati residui sporchi nel database e2e (simulando un run interrotto), il revisore lancia `npm run test:e2e` e osserva che la suite si prepara da sola — ripristino dello stato pulito, migrazioni, seed — e completa senza alcun intervento manuale; al termine verifica che i dati di prova nel database di sviluppo sono rimasti identici. Il revisore poi imposta la variabile del database e2e sullo stesso database di sviluppo e rilancia la suite: osserva un errore esplicito che rifiuta l'esecuzione prima di toccare qualsiasi dato. Infine, a container Docker fermo, rilancia la suite e osserva un errore immediato che indica il comando da eseguire per avviare il database locale.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Avviando il container Docker locale da zero, sono disponibili automaticamente sia il database di sviluppo persistente sia il database dedicato agli e2e, senza creazione manuale di database
+  - [ ] AC-2 — Lanciando la suite e2e con dati residui nel database e2e, la suite riporta da sola quel database a uno stato pulito e completa il run senza intervento manuale
+  - [ ] AC-3 — Dopo un run e2e completo, i dati presenti nel database di sviluppo risultano invariati
+  - [ ] AC-4 — Se il database e2e configurato coincide con il database di sviluppo, la suite rifiuta di partire con un messaggio esplicito prima di modificare qualsiasi dato
+  - [ ] AC-5 — Se il database locale non è raggiungibile, la suite fallisce subito con un messaggio che indica il comando per avviarlo
+  - [ ] AC-6 — La suite e2e esistente passa invariata, mantenendo l'esecuzione parallela attuale
+
+  **Out of Scope**
+  Avvio automatico del container Docker da parte della suite; un secondo container Postgres dedicato agli e2e; modifiche al comportamento del database in CI, che continua a creare il proprio database e2e nella pipeline; strumenti di reset per il database di sviluppo stesso.
+
+  **Wiki context**
+  `operations/development` · `decisions/postgres-siteground`
+history:
+  - status: TODO
+    at: "2026-08-06T09:48:57Z"

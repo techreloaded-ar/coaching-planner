@@ -153,15 +153,11 @@ const COLLISIONI_PREESISTENTI_ALLOWLIST: ReadonlyArray<readonly [string, string]
 	// collisione pre-esistente, fuori perimetro di questa spec
 	["US-055-DEMO-SALTO-MESE", "US-053-confine"],
 	// collisione pre-esistente, fuori perimetro di questa spec
-	["US-034", "US-023-TASK-07-REPORT-FATTURAZIONE-CLIENTI-SPEC"],
-	// collisione pre-esistente, fuori perimetro di questa spec
 	["US-052-cache-identita", "US-056-cronologia"],
 	// collisione pre-esistente, fuori perimetro di questa spec
 	["US-054-SELEZIONE-RIMBORSO-TRASFERTA", "US-043-DEMO"],
 	// collisione pre-esistente, fuori perimetro di questa spec
 	["US-049", "US-056-contesto"],
-	// collisione pre-esistente, fuori perimetro di questa spec
-	["US-056-server", "US-037-ESPANSIONE-SINGOLA"],
 ];
 
 type NomeFunzioneMeseRiservato =

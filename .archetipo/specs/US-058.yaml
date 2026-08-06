@@ -1,0 +1,39 @@
+schema: archetipo/spec/v2
+code: US-058
+title: Selettore di mese compatto sull'etichetta con navigazione immediata
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: HIGH
+points: 2
+status: TODO
+scope: Growth
+body: |-
+  #### US-058: Selettore di mese compatto sull'etichetta con navigazione immediata
+
+  **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 2 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio aprire il selettore di mese direttamente dall'etichetta del mese corrente e vedere il calendario cambiare appena scelgo un mese,
+  così da raggiungere un mese lontano con un solo gesto, senza controlli duplicati né conferme aggiuntive.
+
+  **Dimostrazione**
+  Partendo dal calendario mensile sul mese corrente, il revisore nota che l'etichetta del mese è visivamente interattiva e la clicca: si apre un selettore con l'anno navigabile e i dodici mesi. Il revisore sposta l'anno, clicca un mese di un anno diverso e osserva che il selettore si chiude e la griglia mostra subito il mese scelto, con il token `YYYY-MM` nell'URL. Il revisore verifica che il vecchio campo mese con pulsante «Vai» non è più presente nella barra, riapre il selettore e lo chiude con `Esc` osservando che il mese in griglia resta invariato, infine preme «Mese corrente» e osserva il ritorno al mese odierno.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — L'etichetta del mese nella barra del calendario è un controllo interattivo riconoscibile (indicatore visivo di apertura); attivandola si apre un selettore con anno navigabile e i dodici mesi, con il mese in griglia evidenziato.
+  - [ ] AC-2 — La scelta di un mese nel selettore chiude il selettore e la griglia mostra subito il mese scelto, senza alcun passaggio di conferma aggiuntivo.
+  - [ ] AC-3 — Il precedente controllo di salto separato (campo mese e pulsante «Vai») non è più presente nella barra di navigazione.
+  - [ ] AC-4 — Il mese raggiunto dal selettore è rappresentato dal token `YYYY-MM` nell'URL, condivisibile e riapribile direttamente.
+  - [ ] AC-5 — La chiusura del selettore senza scelta (clic fuori o `Esc`) lascia invariato il mese mostrato in griglia.
+  - [ ] AC-6 — Il selettore è utilizzabile da tastiera: apertura dall'etichetta, spostamento fra anni e mesi, scelta e chiusura senza mouse.
+
+  **Fuori Perimetro**
+  Nessuna modifica alla cache client dei mesi, al prefetch dei mesi adiacenti, ai controlli freccia, al pulsante «Mese corrente» o al feedback di attesa, che restano quelli esistenti. Nessuna estensione della selezione rapida ad altre pagine (es. report amministrativi) né selezione del giorno.
+
+  **Contesto Wiki:** domains/attivita, decisions/cache-client-calendario-collaboratore, decisions/feedback-attesa-uniforme
+history:
+  - status: TODO
+    at: "2026-08-06T09:46:34Z"

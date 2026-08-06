@@ -31,6 +31,19 @@ Usa gli helper in `support/date.ts`:
 - `meseRiservato(codiceSpec)` / `dataNelMeseRiservato(...)` per mesi stabili;
 - `mesePassatoRiservato(codiceSpec)` / `dataNelMesePassatoRiservato(...)` per report e casi su date passate.
 
+Attenzione: i mesi riservati "normali" sono assegnati con un hash su una
+finestra di 120 mesi, quindi due chiavi diverse possono cadere nello stesso
+mese. Va bene finché il test asserisce solo su entità proprie (cliente,
+offerta, collaboratore creati dalla factory), perché le righe estranee non
+compaiono nelle sue asserzioni.
+
+Un test che asserisce **valori globali del mese** — totali di pagina del
+report fatturazione (`report-total-*`), oppure che un mese sia vuoto — non
+tollera nessuna riga estranea nel mese: la sua chiave va registrata in
+`SLOT_MESI_RISERVATI_ESCLUSIVI` in `support/date.ts` con uno slot libero.
+Gli slot espliciti garantiscono l'unicità del mese per costruzione, in una
+banda (360+ mesi indietro) fuori dalla portata delle chiavi hash.
+
 ## Scaglioni km
 
 `ScaglioneKm.finoAKm` è una risorsa globale con vincolo di unicità, quindi non è namespaceabile per relazione come clienti/offerte.
