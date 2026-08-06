@@ -2,7 +2,7 @@
 type: decision
 title: Reset per costruzione del database e2e dedicato
 description: La suite e2e azzera e ricostruisce a ogni run il proprio database dedicato, creandolo se assente, subordinando l'operazione distruttiva a una guardia sintattica d'identità verso il database applicativo
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: tests/e2e/e2e-database-safety.ts
@@ -16,6 +16,11 @@ sources:
       role: local-infrastructure
     - path: tests/unit/e2e-database-safety.test.ts
       role: verification
+review:
+    content_hash: sha256:5f17a6a6ac917d8a2d2bbd4fe0dec60bd743ced742691ee98575d864ddd48f31
+    evidence_revision: 728e8ca4fd8de5a351130466b789229bc537d553
+    evidence_hash: sha256:2c4a34354197a6b2286c0a52f1e2b4af0aa0a396b918ec000bacfec2ad9ef2b5
+    reviewed_at: "2026-08-06T17:32:22Z"
 ---
 # Reset per costruzione del database e2e dedicato
 

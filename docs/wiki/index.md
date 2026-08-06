@@ -16,8 +16,8 @@
 * [Fotografia del rimborso trasferta sulla riga attività](decisions/fotografia-rimborso-trasferta.md) - Congelare etichetta e importo della voce di rimborso sulla riga al salvataggio, senza chiave esterna né versioning delle voci. _State: reviewed._
 * [Giornata equivalente a otto ore](decisions/giornata-otto-ore.md) - Convertire ore e giornate con la costante fissa di otto ore per giornata. _State: reviewed._
 * [Importi monetari decimali](decisions/importi-decimali.md) - Persistire gli importi monetari come Decimal per evitare errori contabili. _State: reviewed._
-* [PostgreSQL con target SiteGround](decisions/postgres-siteground.md) - Usare PostgreSQL con target dichiarato SiteGround e sviluppo locale equivalente. _State: evidence-changed._
-* [Reset per costruzione del database e2e dedicato](decisions/reset-database-e2e-dedicato.md) - La suite e2e azzera e ricostruisce a ogni run il proprio database dedicato, creandolo se assente, subordinando l'operazione distruttiva a una guardia sintattica d'identità verso il database applicativo. _State: generated._
+* [PostgreSQL con target SiteGround](decisions/postgres-siteground.md) - Usare PostgreSQL con target dichiarato SiteGround e sviluppo locale equivalente. _State: reviewed._
+* [Reset per costruzione del database e2e dedicato](decisions/reset-database-e2e-dedicato.md) - La suite e2e azzera e ricostruisce a ogni run il proprio database dedicato, creandolo se assente, subordinando l'operazione distruttiva a una guardia sintattica d'identità verso il database applicativo. _State: reviewed._
 * [Ruoli combinabili derivati dal profilo collaboratore](decisions/ruoli-combinabili-profilo-derivato.md) - Derivare il ruolo Collaboratore dalla presenza del profilo, riusando enum e relazione 1:1 esistenti senza modifiche allo schema. _State: reviewed._
 * [Tariffa unica per collaboratore](decisions/tariffa-unica-collaboratore.md) - Mantenere una sola tariffa giornaliera per ogni collaboratore nel MVP. _State: reviewed._
 * [Unica applicazione con aree a ruolo](decisions/unica-app-ruoli.md) - Servire front office e back office da un’unica applicazione con ruoli distinti. _State: reviewed._
@@ -34,12 +34,12 @@
 
 ## Engineering
 
-* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: generated._
+* [Mappa del codice](engineering/code-map.md) - Matrice fisica fra capability candidate, codice, dati e test. _State: reviewed._
 
 ## Operations
 
 * [Deploy — Vercel + PostgreSQL SiteGround](operations/deploy-vercel-siteground.md) - Guida operativa per portare Coaching Planner in staging e produzione su Vercel, con database PostgreSQL ospitato su SiteGround. _State: reviewed._
-* [Sviluppo e operazioni](operations/development.md) - Sviluppo locale, build, test, CI, database e vincoli operativi. _State: generated._
+* [Sviluppo e operazioni](operations/development.md) - Sviluppo locale, build, test, CI, database e vincoli operativi. _State: reviewed._
 
 ## Project
 
