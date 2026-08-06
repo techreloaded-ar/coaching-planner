@@ -19,9 +19,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:d4337736ff45912e04fc7a373f34f18ecf7ce0ec3e45a6dbaa15e7be7eba10c5
-    evidence_revision: 8c555e4e212062e4ae73e66ea4b1b049cd082901
-    evidence_hash: sha256:9f50bd376b68ca817b0c813e223b0c1d4d7ab7a34a3161842d67db4ee3c7948d
-    reviewed_at: "2026-08-05T07:29:49Z"
+    evidence_revision: 08d10077f33ac8619ca0151e75df8fd63349b9f0
+    evidence_hash: sha256:17c0adc625aabab4641661ab7dbbd3d4a0f7a3ebbafac6330d4975e7ebc93580
+    reviewed_at: "2026-08-06T15:14:25Z"
 ---
 # Feedback di attesa e cursore uniformi
 

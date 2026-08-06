@@ -2,7 +2,7 @@
 type: decision
 title: Fotografia del rimborso trasferta sulla riga attività
 description: Congelare etichetta e importo della voce di rimborso sulla riga al salvataggio, senza chiave esterna né versioning delle voci
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: prisma/schema.prisma
@@ -26,6 +26,11 @@ sources:
       role: verification
     - path: tests/e2e/duplica-riga-su-giorni.spec.ts
       role: verification
+review:
+    content_hash: sha256:6ff0bca461dfe3ded881bc87cfebfcce43b8f30ec1ec9c44ad8430b66569fe03
+    evidence_revision: 08d10077f33ac8619ca0151e75df8fd63349b9f0
+    evidence_hash: sha256:9bdda41081ac2657f15c79c659b0ac88f5ae855fce7f28f8fc52d90760b4b166
+    reviewed_at: "2026-08-06T15:14:13Z"
 ---
 # Fotografia del rimborso trasferta sulla riga attività
 

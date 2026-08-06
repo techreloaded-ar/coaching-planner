@@ -2,7 +2,7 @@
 type: decision
 title: Cache client dell'area attività del collaboratore — mesi del calendario e giornate
 description: Isole SPA su calendario e dettaglio giornata con GET autenticati, cache in memoria della scheda con TTL 300 s e guardia d'identità condivisa, invece del runtime prefetching non stabile
-status: generated
+status: reviewed
 decision_status: accepted
 sources:
     - path: src/app/(front-office)/attivita/cache-dati-scheda.ts
@@ -66,6 +66,11 @@ sources:
       role: verification
     - path: tests/e2e/duplica-riga-su-giorni.spec.ts
       role: verification
+review:
+    content_hash: sha256:0837af5a73fadb4d3e8c5806df2ac2d43c508d0a63d0715b96ef2b3a7e42b241
+    evidence_revision: 08d10077f33ac8619ca0151e75df8fd63349b9f0
+    evidence_hash: sha256:2a4f6ac943d52ee37eee4685429fced9a05e08e84cc5a61ee443cb401ee60ead
+    reviewed_at: "2026-08-06T15:14:13Z"
 ---
 # Cache client dell'area attività del collaboratore — mesi del calendario e giornate
 
