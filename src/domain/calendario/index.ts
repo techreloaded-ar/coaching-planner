@@ -26,6 +26,39 @@ const formattatoreMese = new Intl.DateTimeFormat("it-IT", {
   year: "numeric",
 });
 
+/**
+ * Etichette abbreviate dei dodici mesi civili, in italiano.
+ *
+ * Sono dichiarate e non derivate da `Intl` di proposito: la griglia del
+ * selettore di mese ha bisogno di stringhe corte, stabili fra runtime e fra
+ * versioni di ICU, e verificabili in un unit test che non dipenda dai dati di
+ * localizzazione dell'ambiente. `etichettaMese` resta la fonte dell'etichetta
+ * lunga, dove la formattazione locale è invece esattamente ciò che serve.
+ */
+export const NOMI_MESI_ABBREVIATI = [
+  "gen",
+  "feb",
+  "mar",
+  "apr",
+  "mag",
+  "giu",
+  "lug",
+  "ago",
+  "set",
+  "ott",
+  "nov",
+  "dic",
+] as const;
+
+/**
+ * Etichetta abbreviata del mese (1 = gennaio … 12 = dicembre).
+ * Restituisce stringa vuota per un mese fuori intervallo.
+ */
+export function etichettaMeseBreve(mese: number): string {
+  if (!Number.isInteger(mese) || mese < 1 || mese > 12) return "";
+  return NOMI_MESI_ABBREVIATI[mese - 1];
+}
+
 /** Giorni della settimana: lunedì = 0, domenica = 6 (ISO) */
 function isoWeekday(d: Date): number {
   // getDay() restituisce 0=domenica, 1=lunedì, ..., 6=sabato

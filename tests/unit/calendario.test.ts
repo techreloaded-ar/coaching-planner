@@ -9,6 +9,8 @@ import {
   costruisciGrigliaMese,
   parseDataGiorno,
   giornoSpostatoDi,
+  etichettaMeseBreve,
+  NOMI_MESI_ABBREVIATI,
 } from "@/domain/calendario";
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -322,5 +324,37 @@ describe("giornoSpostatoDi", () => {
 
   it("restituisce l'input invariato se non è una data valida", () => {
     expect(giornoSpostatoDi("non-una-data", 1)).toBe("non-una-data");
+  });
+});
+
+// ── etichettaMeseBreve ─────────────────────────────────────────
+
+describe("etichettaMeseBreve", () => {
+  it("dichiara dodici etichette tutte distinte", () => {
+    expect(NOMI_MESI_ABBREVIATI).toHaveLength(12);
+    expect(new Set(NOMI_MESI_ABBREVIATI).size).toBe(12);
+  });
+
+  it("rispetta l'ordine dei mesi civili", () => {
+    expect(etichettaMeseBreve(1)).toBe("gen");
+    expect(etichettaMeseBreve(8)).toBe("ago");
+    expect(etichettaMeseBreve(12)).toBe("dic");
+  });
+
+  it("è coerente con l'etichetta lunga di ogni mese", () => {
+    // Le abbreviazioni italiane sono prefissi dei nomi estesi: il legame con
+    // la formattazione Intl è asserito senza dipendere dai suoi valori esatti.
+    for (let mese = 1; mese <= 12; mese++) {
+      const token = `2026-${String(mese).padStart(2, "0")}`;
+      expect(etichettaMese(token).startsWith(etichettaMeseBreve(mese))).toBe(
+        true
+      );
+    }
+  });
+
+  it("non produce etichetta per un mese fuori intervallo", () => {
+    expect(etichettaMeseBreve(0)).toBe("");
+    expect(etichettaMeseBreve(13)).toBe("");
+    expect(etichettaMeseBreve(1.5)).toBe("");
   });
 });

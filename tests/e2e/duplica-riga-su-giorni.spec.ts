@@ -154,8 +154,18 @@ function cellaDelGiorno(page: Page, giorno: string, mese: string): Locator {
   return page.locator(`a[href="/attivita/${giorno}?mese=${mese}"]`);
 }
 
+/** Etichetta lunga del mese, con la stessa convenzione locale dell'app. */
+function etichettaMeseLunga(mese: string): string {
+  const [anno, numeroMese] = mese.split("-").map(Number);
+  return new Intl.DateTimeFormat("it-IT", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(anno, numeroMese - 1, 1));
+}
+
 /**
- * Salto a un mese con il controllo dell'applicazione.
+ * Salto a un mese con il controllo dell'applicazione: il selettore compatto
+ * aperto dall'etichetta del mese.
  *
  * L'attesa è sulla comparsa della cella richiesta: durante un miss la griglia
  * del mese precedente resta visibile, quindi la cella del mese di destinazione
@@ -163,8 +173,30 @@ function cellaDelGiorno(page: Page, giorno: string, mese: string): Locator {
  * hard wait.
  */
 async function vaiAlMese(page: Page, mese: string, giornoAtteso: string) {
-  await page.getByLabel("Vai a un mese specifico").fill(mese);
-  await page.getByRole("button", { name: "Vai al mese selezionato" }).click();
+  await page.getByTestId("calendar-month-label").click();
+  const pannello = page.getByTestId("selettore-mese-pannello");
+  await expect(pannello).toBeVisible();
+
+  // L'anno mostrato è letto una sola volta: il numero di clic è determinato
+  // prima di iniziare, quindi non c'è alcun ciclo di polling.
+  const annoMostrato = Number(
+    await pannello.getByTestId("selettore-mese-anno").innerText()
+  );
+  const passi = Number(mese.slice(0, 4)) - annoMostrato;
+  const freccia = passi < 0 ? "Anno precedente" : "Anno successivo";
+  for (let i = 0; i < Math.abs(passi); i++) {
+    await pannello.getByRole("button", { name: freccia }).click();
+  }
+  await expect(pannello.getByTestId("selettore-mese-anno")).toHaveText(
+    mese.slice(0, 4)
+  );
+
+  // Il locator della cella è ancorato al pannello: il trigger ha lo stesso
+  // nome accessibile della cella quando l'anno mostrato è quello in griglia.
+  await pannello
+    .getByRole("button", { name: etichettaMeseLunga(mese), exact: true })
+    .click();
+
   await expect(page).toHaveURL(`/attivita?mese=${mese}`);
   await expect(cellaDelGiorno(page, giornoAtteso, mese)).toBeVisible();
 }
