@@ -1,0 +1,37 @@
+schema: archetipo/spec/v2
+code: US-057
+title: Duplicazione di una riga attività su più giorni scelti
+epic:
+  code: EP-005
+  title: Evoluzioni Post-MVP
+priority: HIGH
+points: 3
+status: TODO
+body: |-
+  #### US-057: Duplicazione di una riga attività su più giorni scelti
+
+  **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio duplicare una riga attività già salvata su più giorni che scelgo io,
+  così da registrare in un solo passaggio lo stesso lavoro svolto su giorni diversi senza riaprire e ricompilare ogni giornata.
+
+  **Dimostrazione**
+  Partendo dalla pagina di dettaglio di un giorno con una riga salvata che include una voce di rimborso trasferta, il revisore avvia "Duplica..." dalla riga, aggiunge tre date non contigue di cui una in un mese diverso, conferma e osserva l'esito con il numero di giorni replicati; aprendo ciascuno di quei giorni osserva una riga con gli stessi cliente, offerta, ore, nota, fatturabilità e la stessa etichetta e importo di rimborso della riga di origine. Il revisore riapre il selettore e osserva che la conferma non è disponibile prima di aver scelto almeno una data e che il giorno di origine non è selezionabile. Infine, su una riga storica la cui offerta non è più abilitata, avvia la duplicazione e osserva un errore visibile e nessuna riga creata su nessuno dei giorni scelti.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Ogni riga già salvata nel dettaglio giornata espone un'azione di duplicazione che apre un selettore in cui il revisore aggiunge una o più date arbitrarie, anche non contigue e appartenenti a mesi diversi; alla conferma la pagina mostra un esito che indica su quanti giorni la riga è stata replicata.
+  - [ ] AC-2 — Ogni riga creata riporta gli stessi cliente, offerta, ore, nota e fatturabilità della riga di origine e la stessa coppia etichetta/importo di rimborso trasferta già congelata su di essa, senza rileggere il catalogo corrente delle voci di rimborso.
+  - [ ] AC-3 — Il giorno di origine non è fra le destinazioni selezionabili e la conferma resta non disponibile finché non è stata scelta almeno una data.
+  - [ ] AC-4 — Se l'offerta della riga di origine non è più attiva o non è più abilitata per il collaboratore corrente, la duplicazione è rifiutata con un messaggio di errore visibile e nessuna riga viene creata su nessuno dei giorni scelti.
+  - [ ] AC-5 — Dopo una duplicazione che ha coinvolto un giorno di un mese diverso da quello di provenienza, il calendario mostra le celle di quel mese valorizzate con le nuove righe senza che il revisore debba ricaricare la pagina.
+
+  **Fuori Perimetro**
+  Nessuna modifica al form di inserimento e modifica riga, alle validazioni delle action esistenti o al riepilogo mensile. Nessuna multi-selezione di celle nel calendario e nessun blocco "ripeti su intervallo" con filtro dei giorni lavorativi. Nessun rilevamento di righe già presenti o duplicate sui giorni di destinazione: la duplicazione aggiunge righe, non le confronta. Nessuna duplicazione di più righe di origine in un unico passaggio.
+
+  **Contesto Wiki:** domains/attivita, decisions/fotografia-rimborso-trasferta, decisions/abilitazioni-offerte-esplicite, decisions/cache-client-calendario-collaboratore
+history:
+  - status: TODO
+    at: "2026-08-04T18:25:12Z"

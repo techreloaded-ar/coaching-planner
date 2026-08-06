@@ -6,8 +6,8 @@ epic:
   title: Evoluzioni Post-MVP
 priority: HIGH
 points: 5
-status: TODO
-body: |-
+status: DONE
+body: |
   #### US-056: Cambio giorno servito dalla cache client nel dettaglio attività
 
   **Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
@@ -39,6 +39,49 @@ body: |-
 
   **Contesto Wiki**
   `decisions/cache-client-calendario-collaboratore`, `domains/attivita`, `decisions/feedback-attesa-uniforme`
+
+  ## Rework Feedback
+
+  <!-- Added by request-changes. archetipo-plan converts each item into a Fix task. -->
+
+  - **tests/e2e/giornata-cache-cambio-giorno.spec.ts:599** — BLOCCANTE — collisione di mese riservato che rompe la suite e2e esistente (AC-8) e farebbe fallire lo step «E2E tests (Playwright)» in CI. `meseRiservato("US-056-identita")` risolve a 2017-10, che e' esattamente il mese preteso vuoto da `tests/e2e/report-fatturazione-clienti.spec.ts` (`meseVuotoReportFatturazioneClienti()` = `mesePassatoRiservato("US-023-TASK-08-REPORT-FATTURAZIONE-CLIENTI-VUOTO")` = 2017-10). Le due `createRigaAttivita` di questo scenario scrivono righe l'11/10/2017, quindi il report di quel mese non e' piu' vuoto e il test «un mese riservato senza righe del test mostra lo stato vuoto» fallisce sull'assenza dell'intestazione «Nessuna attivita' da fatturare per questo mese». Verificato eseguendo la suite completa sul branch: 1 failed, 175 passed. Non e' un flake: con `fullyParallel: true` e lo stesso database e2e la collisione e' deterministica. La causa di fondo e' che `offsetMeseRiservato` e' un hash modulo 120, quindi chiavi diverse possono cadere sullo stesso mese senza che nulla lo impedisca. Scegliere una chiave di riservazione che non collida (verificandolo, non assumendolo) e' il minimo; meglio ancora rendere la collisione impossibile per costruzione o farla emergere come errore esplicito invece che come test rosso a distanza.
+  - **src/app/(front-office)/attivita/[data]/isola-giornata.tsx:477** — AC-6 non soddisfatto su un percorso raggiungibile: «senza creare voci di cronologia duplicate». `navigaDiGiorni` calcola la destinazione da `intentoCorrente.current.data` e `navigaVersoGiorno` si difende solo dal caso `nuovaData === intentoCorrente.current.data`. Sequenza: sul giorno A l'utente clicca «Giorno successivo» (B e' un miss, lettura in volo, URL ancora A), poi clicca subito «Giorno precedente»; la destinazione calcolata e' B-1 = A, diversa dall'intento corrente B, quindi si procede con `vaiA({ data: A, registraHistory: true })`, A e' un hit di cache e `commit` esegue `window.history.pushState` verso `/attivita/A` sopra una voce che e' gia' A. Risultato: due voci di cronologia consecutive identiche e un «Indietro» che all'utente sembra non fare nulla. La correzione naturale e' non scrivere la history quando l'URL calcolato coincide con `window.location.pathname + window.location.search`, cosi' la guardia copre anche i casi futuri oltre a questa specifica corsa.
+  - **src/app/(front-office)/attivita/[data]/isola-giornata.tsx:392** — AC-7 coperto solo a meta': la parte «su sessione scaduta la pagina esegue una navigazione completa» e' implementata ma non verificata da alcun test, a nessun livello. `attivita-cache-provider.tsx:279-303` mappa 401/403/`redirected` su `ErroreSessioneAttivita` piu' `abbandonaSessione`, e qui la sottoscrizione esegue `window.location.reload()`, ma nessun test unit o e2e attraversa quel ramo (nessuna occorrenza di `ErroreSessioneAttivita` sotto `tests/`). La meta' relativa all'identita' e' invece ben coperta, sia e2e sia unit sul contenitore reale. Va aggiunta una verifica del percorso di sessione decaduta: a livello unit sul provider e' sufficiente e piu' stabile che a livello e2e. Nota: la stessa lacuna esiste gia' sul calendario di US-052, quindi conviene coprire la convenzione una volta sola per entrambe le isole.
+  - **src/app/(front-office)/attivita/cache-dati-scheda.ts:317** — Robustezza della guardia d'identita': `revalida` risolve con dati la cui scrittura la guardia ha appena rifiutato. `scrivi` esce silenziosamente quando `guardia.verifica()` e' falsa, ma la promise di `revalida` risolve comunque con `dati`; in `isola-giornata.tsx` il ramo miss di `vaiA` fa `commit(intento, dati)`, quindi vista e cronologia vengono scritte con un payload che la cache ha esplicitamente rifiutato, in corsa con il `window.location.reload()` appena innescato dalla guardia. Non risulta una violazione di AC-7 — quel payload appartiene alla sessione nuova, non a quella precedente, quindi non vengono mostrate righe del collaboratore precedente — ma resta un momento fail-open in un punto che esiste proprio per essere fail-closed. Far fallire `revalida` con `ErroreSessioneAttivita` quando la guardia rifiuta allinea il contratto della cache a quello che i chiamanti gia' assumono (il ramo `catch` di `vaiA` ignora gia' quell'errore di proposito).
+  - **docs/wiki/domains/attivita.md:168** — Pagina Wiki richiesta con affermazione falsa sulla propria evidenza: «Gli otto scenari provano...» mentre `tests/e2e/giornata-cache-cambio-giorno.spec.ts` contiene undici `test`. L'elenco che segue ne descrive effettivamente otto e ne lascia fuori tre, che non sono dettagli implementativi ma comportamenti osservabili: «il selettore data svuotato torna a descrivere il giorno mostrato», «il rientro nell'isola da un'altra rotta mostra il giorno dell'URL, non quello dell'albero ripristinato» e «una risposta tardiva arrivata dopo l'uscita dall'isola non riscrive URL e cronologia». Correggere il numero e descrivere i tre scenari mancanti, cosi' che la sezione Verifica resti una descrizione fedele dell'evidenza citata.
+  - **docs/wiki/domains/attivita.md:120** — Pagina Wiki richiesta, contratto HTTP sovrageneralizzato e in contraddizione con se stesso: «Tutte e tre ... Rispondono `400` su parametro assente o malformato». `src/app/api/attivita/contesto-inserimento/route.ts` non dichiara alcun parametro e non ha alcun ramo 400 — cosa che la pagina stessa afferma correttamente alla riga 170 («la route del contesto non dichiara alcun parametro di richiesta»). Riformulare limitando il 400 alle due route parametriche (`giornata` con `data`, `offerte-cliente` con `cliente`) e dicendo esplicitamente che `contesto-inserimento` non ha parametri, quindi non ha quel caso.
+  - **docs/wiki/domains/attivita.md:166** — Pagina Wiki richiesta, sezione Verifica incompleta proprio sull'evidenza aggiunta da questa spec: `tests/unit/attivita.test.ts` e' descritto come se coprisse ancora soltanto «il filtro delle query `offerteAbilitatePerCliente` e `clientiAttiviPerSelezione`», ma il diff gli aggiunge circa 350 righe che coprono le nuove letture — serializzazione del DTO di `righeDelGiornoPerCollaboratoreAutorizzato`, rifiuto di un id proveniente dal chiamante, assenza di risoluzione di sessione, giornata vuota senza interrogare il database su data malformata o civilmente non valida, e la lettura del contesto di inserimento. Aggiornare la descrizione: e' un file gia' citato fra le fonti, quindi la pagina ne descrive uno stato che non esiste piu'.
+  - **docs/wiki/decisions/cache-client-calendario-collaboratore.md:191** — Imprecisione minore nella pagina di decisione (per il resto accurata e completa: contesto, opzione scelta, alternative realmente distinte, conseguenze negative esplicite, ciclo di vita ed evidenza verificata riga per riga contro il codice). La frase copre «tutte e tre le nuove route» con «400 su parametro assente o malformato» e con «l'unico id passato alla lettura sia quello del profilo risolto dal DAL»: per `contesto-inserimento` non esiste alcun parametro e quindi alcun 400, e per `offerte-cliente` l'id passato alla lettura e' proprio il cliente della query — e' `offerteAbilitatePerCliente` a risolvere internamente il collaboratore dalla sessione, come dice il nome del test «legge le offerte con il solo id cliente della query, senza alcuna identita' proveniente dal browser». Vale la pena distinguere i tre casi, perche' e' esattamente la frase che un lettore usera' per fidarsi del confine di sicurezza.
+
+  ## Rework Feedback
+
+  <!-- Added by request-changes. archetipo-plan converts each item into a Fix task. -->
+
+  - **tests/e2e/giornata-cache-cambio-giorno.spec.ts:673** — BLOCCANTE — AC-7 non provato in modo affidabile: il test "dopo un accesso con un altro account il dettaglio giorno non mostra i dati del collaboratore precedente" fallisce in modo deterministico nell'ambiente di review (5/5 esecuzioni, sia nella suite combinata di TASK-24 sia isolato con --retries=0, con e senza un'attesa aggiuntiva di 1s prima del cambio giorno). Riproduzione e diagnosi: dopo la POST a /api/e2e-test/sessione (che restituisce correttamente un Set-Cookie per il secondo collaboratore, verificato decodificando il payload JWT della risposta), un fetch diretto verso /api/attivita/giornata eseguito subito dopo — o anche dopo un'attesa esplicita di 1000ms — continua a restituire il collaboratoreId del PRIMO collaboratore. Decodificando il cookie di sessione realmente presente nel browser (via page.context().cookies()) subito dopo lo switch, il suo payload appartiene ancora al primo collaboratore. La causa più probabile: al momento dello switch sono ancora in volo i due fetch di prefetch dei giorni adiacenti (/api/attivita/giornata?data=<giorno-1> e <giorno+1>), partiti automaticamente al mount con il cookie del primo collaboratore; le loro risposte arrivano DOPO la risposta dello switch e, se il meccanismo di rinnovo sliding della sessione (proxy.ts, citato nella baseline del piano) ri-firma e re-imposta un Set-Cookie basato sul cookie con cui ciascuna richiesta era partita, quelle risposte tardive sovrascrivono nel browser il cookie appena impostato per il secondo collaboratore, resuscitando la sessione precedente. Risultato osservabile: nessuna navigazione documentale viene mai eseguita (la guardia d'identità non rileva alcun mismatch perché la risposta successiva dichiara ancora il primo collaboratore), il cambio giorno prosegue come una normale SPA transition, e l'asserzione finale del test fallisce sul contenuto del giorno condiviso mostrando ancora dati riconducibili al primo collaboratore. Non è imputabile a un flake del test runner: è riproducibile a colpo sicuro. Va risolto uno dei due lati — rendere il test deterministico trattenendo/attendendo esplicitamente i prefetch dei giorni adiacenti prima di eseguire lo switch di sessione (come già fatto altrove nella stessa suite con i cancelli di page.route), oppure — se il problema è più profondo — evitare che il rinnovo sliding di una richiesta più vecchia possa sovrascrivere un cookie di sessione più recente. In ogni caso l'evidenza e2e di AC-7 per il caso "cambio account nella stessa finestra" deve tornare verde in modo ripetibile, non intermittente, prima di una nuova review.
 history:
   - status: TODO
     at: "2026-08-03T08:32:28Z"
+  - status: PLANNED
+    at: "2026-08-04T18:21:30Z"
+  - status: IN PROGRESS
+    at: "2026-08-04T18:22:40Z"
+  - status: REVIEW
+    at: "2026-08-04T20:21:41Z"
+  - status: TODO
+    at: "2026-08-04T20:37:12Z"
+  - status: PLANNED
+    at: "2026-08-05T06:13:47Z"
+  - status: IN PROGRESS
+    at: "2026-08-05T06:15:34Z"
+  - status: REVIEW
+    at: "2026-08-05T06:36:46Z"
+  - status: TODO
+    at: "2026-08-05T06:54:25Z"
+  - status: PLANNED
+    at: "2026-08-05T07:05:12Z"
+  - status: IN PROGRESS
+    at: "2026-08-05T07:06:27Z"
+  - status: REVIEW
+    at: "2026-08-05T07:09:53Z"
+  - status: DONE
+    at: "2026-08-05T07:30:53Z"

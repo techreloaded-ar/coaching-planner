@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: HIGH
 points: 2
-status: TODO
+status: DONE
 body: |-
   #### US-055: Selezione diretta di un mese lontano nel calendario
 
@@ -34,3 +34,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-07-29T15:44:15Z"
+  - status: PLANNED
+    at: "2026-08-04T17:34:04Z"
+  - status: IN PROGRESS
+    at: "2026-08-04T17:35:14Z"
+  - status: REVIEW
+    at: "2026-08-04T17:51:32Z"
+  - status: DONE
+    at: "2026-08-04T17:58:29Z"

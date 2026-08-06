@@ -1,0 +1,1414 @@
+schema: archetipo/plan/v2
+spec_code: US-056
+body: |-
+  # US-056: Cambio giorno servito dalla cache client nel dettaglio attività — Piano di implementazione
+
+  **Generato da:** Team di Planning ARchetipo
+  **Data:** 4 agosto 2026
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** HIGH | **Punti:** 5 | **Bloccata da:** -
+
+  **Storia utente**
+  Come collaboratore, voglio che spostarmi tra i giorni dalla pagina di dettaglio attività mostri le righe della giornata senza attendere il server, così da consultare e registrare le attività di più giorni consecutivi con la stessa immediatezza del calendario mensile.
+
+  ---
+
+  ## Soluzione tecnica
+
+  ### Stato di partenza accertato (ricognizione del 4 agosto 2026)
+
+  Verifiche eseguite su `data.workdir` = `/Users/smarello/repo/coaching-planner` (nessun worktree dedicato), a `HEAD` = `55820dc`:
+
+  - `/attivita` è già un'isola SPA completa: `calendario-cache.ts` (macchina di cache pura, testata con orologio iniettato), `calendario-cache-provider.tsx` (montato da `layout.tsx` con `key` uguale a `sessione.utenteId`), `GET /api/attivita/calendario`, `calendario-mensile.tsx` con intento di navigazione `vaiA`, `commit`, History API, prefetch dei mesi adiacenti, timer di scadenza e rivalidazione su focus.
+  - `/attivita/[data]` è invece interamente RSC. `page.tsx` risolve sessione e profilo, esegue in parallelo `righeDelGiorno`, `clientiAttiviPerSelezione` e `vociRimborsoTrasfertaPerSelezione`, serializza e passa i dati a `<DettaglioGiornata key={dataStr}>`. Il cambio giorno è un `router.push` dentro `startTransition`: un round-trip completo che ricarica anche i due dati invarianti rispetto al giorno.
+  - Il reset del form al cambio giorno oggi **non** è codice: è il remount forzato da `key={dataStr}` in `page.tsx` (commento esplicito alle righe 445-455 di `dettaglio-giornata.tsx`).
+  - Le mutazioni chiamano `invalidaMeseERicarica`, che invalida il token mese nella cache client e poi esegue `router.refresh()`; le quattro server action fanno già `revalidatePath` su `/attivita/{data}`, `/attivita/riepilogo` e `/attivita`.
+  - `RigaAttivitaClient`, `ClienteSelect` e `VoceRimborsoTrasfertaSelezionabile` sono dichiarati dentro `page.tsx` e importati come tipi dal client component: contratto fragile fra server e client.
+  - `righeDelGiorno` e `vociRimborsoTrasfertaPerSelezione` hanno un solo chiamante (`[data]/page.tsx`); `clientiAttiviPerSelezione` ha anche test unit propri che ne asseriscono payload Prisma e guardia.
+  - Verifica documentale sulla versione in uso (Next 16.2.9): `node_modules/next/dist/docs/01-app/01-getting-started/04-linking-and-navigating.md`, sezione «Native History API», dichiara `window.history.pushState` e `replaceState` integrati nel router e sincronizzati con `usePathname`/`useSearchParams`; l'esempio di `replaceState` cambia il **pathname**, non solo la query. Nel runtime, `node_modules/next/dist/client/components/app-router.js` patcha `pushState` copiando `__PRIVATE_NEXTJS_INTERNALS_TREE` nella nuova entry e su `popstate` esegue `dispatchTraverseAction` con quell'albero, che `restore-reducer.js` ripristina senza richieste quando l'albero non cambia. È lo stesso meccanismo già provato a zero richieste dal calendario.
+
+  ### Approccio
+
+  Il dettaglio giornata diventa la **seconda isola SPA della stessa area**, montata sull'infrastruttura già consegnata invece che su una copia parallela.
+
+  1. **Una sola macchina di cache, tre risorse.** `CacheCalendarioMesi` viene generalizzata in `CacheDatiScheda<T>` (`cache-dati-scheda.ts`): stessa semantica già provata — finestra fresca di 300 000 ms, espulsione LRU, single-flight, epoche di invalidazione che neutralizzano le risposte in volo, `subscribe` — parametrizzata dal tipo del DTO e da una funzione `chiaveDi`. `CacheCalendarioMesi` resta una specializzazione con la **stessa firma di costruttore**, così `tests/unit/calendario-cache-provider.test.ts` continua a passare senza una riga di modifica: è la prova che la generalizzazione non ha cambiato comportamento. Il provider monta tre istanze: mesi (LRU 12), giornate (LRU 31), contesto di inserimento (una voce sola).
+  2. **Guardia d'identità condivisa.** L'identità del collaboratore esce dalla singola cache e diventa `GuardiaIdentitaScheda`, a cui tutte e tre le istanze si registrano: una risposta che dichiara un altro collaboratore svuota **tutte** le cache della scheda e notifica una sola volta il consumer, che esegue una navigazione completa. Senza questa condivisione un cambio account rilevato dal calendario lascerebbe leggibili le giornate del collaboratore precedente, e un *fresh hit* non emette per costruzione alcuna richiesta che possa accorgersene (AC-7).
+  3. **Due confini dati distinti, perché la loro invalidazione è distinta.** `GET /api/attivita/giornata?data=YYYY-MM-DD` restituisce `DatiGiornataAttivita` (`{ data, collaboratoreId, righe }`); `GET /api/attivita/contesto-inserimento` restituisce `ContestoInserimentoGiornata` (`{ collaboratoreId, clienti, vociRimborso }`). Il contesto è invariante rispetto al giorno: seminato dal rendering server, non viene più richiesto ad ogni cambio giorno, e la sua freschezza è delimitata dalle stesse mitigazioni del mese — scadenza a 300 secondi e rivalidazione forzata al ritorno sulla scheda. È esattamente ciò che AC-3 chiede.
+  4. **Un'isola per la giornata.** `isola-giornata.tsx` possiede intento di navigazione, letture dalla cache, indicatore di attesa, History API, breadcrumb e barra dei controlli; rende `<DettaglioGiornata key={giornoVisualizzato}>`, quindi il remount che oggi azzera il form resta il meccanismo di AC-5, spostato dal server al client senza cambiarne la natura. L'URL viene scritto dentro `commit`, cioè solo a dati pronti (AC-2).
+  5. **Un solo DTO prodotto in un solo punto.** La serializzazione delle righe vive in `righeDelGiornoPerCollaboratoreAutorizzato`, usata sia dalla pagina sia dalla route: rendering server ed endpoint non possono divergere.
+  6. **Invalidazione dopo mutazione senza round-trip RSC.** `invalidaMeseERicarica` diventa `invalidaDopoMutazione`: invalida il giorno e il mese nelle rispettive cache e forza una `revalida` del giorno; l'aggiornamento raggiunge la vista tramite `subscribe`. `router.refresh()` viene rimosso perché ridondante e dannoso: le server action continuano a fare `revalidatePath` e la loro risposta invalida già la Router Cache client per quei percorsi.
+  7. **Prefetch dei soli giorni adiacenti** (`giornoSpostatoDi` di più o meno uno) dopo ogni commit, con errori silenziosi. Un salto lontano dal selettore data resta un miss, coerentemente con il Fuori Perimetro.
+
+  ### Decisioni architetturali
+
+  **Nessun nuovo ADR.** La scelta portante — isola SPA sull'area attività, GET autenticato che deriva sempre il collaboratore dalla sessione, cache nella sola memoria della scheda, finestra di 300 secondi, nessuno storage persistente — è già registrata in `decisions/cache-client-calendario-collaboratore`, e questa spec la **estende** al giorno anziché sceglierne un'altra. Le tre scelte materiali dell'estensione appartengono per contenuto a quella stessa pagina e vanno registrate lì (`wiki_impact.update`), non su una pagina nuova che frammenterebbe il razionale:
+
+  - *Guardia d'identità condivisa fra le cache della scheda*, invece di una identità per cache. Alternativa scartata: tenere l'identità dentro ogni istanza, che lascerebbe leggibili le giornate del collaboratore precedente quando il cambio account è rilevato solo dal calendario. Costo accettato: la guardia diventa stato condiviso della scheda e va provata a parte.
+  - *Contesto di inserimento come risorsa separata*, invece che incluso nel payload della giornata. Alternativa scartata: un solo endpoint che restituisce righe più contesto — più economico su un miss freddo, ma riporterebbe clienti e voci di rimborso nel percorso di **ogni** cambio giorno, cioè esattamente ciò che AC-3 vieta.
+  - *Generalizzazione della macchina di cache*, invece di una seconda copia per le giornate. Alternativa scartata: duplicare la classe, duplicando una macchina a stati sottile (epoche, single-flight, LRU, guardia) e la sua manutenzione.
+
+  L'ID della pagina di decisione non cambia — è referenziato da `domains/attivita`, `decisions/feedback-attesa-uniforme` e `engineering/code-map` — mentre titolo e descrizione vengono ampliati in loco perché la decisione non riguarda più i soli mesi. Nessuna dipendenza nuova, nessun flag di rendering, nessuno storage persistente: il perimetro tecnico resta quello già deciso.
+
+  ### Rischio principale e sua verifica anticipata
+
+  `window.history.pushState` verso un **pathname diverso** (`/attivita/A` verso `/attivita/B`, stesso segmento dinamico) non è il caso già provato dal calendario, che cambiava solo la query string della stessa rotta. La lettura del runtime e la guida bundled indicano che l'albero memorizzato viene ripristinato senza rifetch e che il cambio di pathname è un uso legittimo, ma la verifica non resta documentale: TASK-10 impone di scrivere ed eseguire **per primo** il test a oracolo di rete di AC-1. Se quella prova mostrasse una richiesta o una navigazione documentale, il piano si ferma e l'esito va riportato: non va inventato un meccanismo di navigazione parallelo né toccato il contratto URL, che AC-8 dichiara invariante.
+
+  Secondo rischio, meno evidente: una `revalidatePath` eseguita da una server action rigenera l'albero RSC del giorno **da cui l'utente è partito**, non di quello che sta guardando. Adottare senza condizioni un nuovo payload server riporterebbe la vista al giorno sbagliato subito dopo un salvataggio. Il piano lo previene adottando il payload server solo quando è coerente con `usePathname()`, e lo prova nello scenario di AC-4.
+
+  ---
+
+  ## Baseline
+
+  Tutti i comandi eseguiti il 4 agosto 2026 da `/Users/smarello/repo/coaching-planner` su `HEAD` = `55820dc`.
+
+  | Check | Esito prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm run lint` | verde — eslint senza errori e messaggio «✅ Guardrail e2e anti-flakiness passed» | ogni task che tocca `src` o `tests/e2e` rilancia lint; nessun `Expect` può ammettere nuove violazioni del guardrail |
+  | `npx tsc --noEmit` | verde — nessuna diagnostica | i file toccati devono restare senza diagnostiche; nessun file già degradato da bonificare |
+  | `npm test` (vitest) | verde — 38 file, 607 test | il gate confronta con questi numeri: sono ammessi solo test **in più**, mai in meno |
+  | `npm run build` | verde — build production completata; `/attivita`, `/attivita/[data]` e `/api/attivita/calendario` elencate come dinamiche (`ƒ`) | le due nuove route devono comparire come dinamiche nello stesso elenco |
+  | `npx playwright test tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts` | verde — 2 test passati in 5,6 s | è la suite di non regressione di AC-8: deve restare verde **senza modifiche al file** |
+
+  Prerequisiti d'ambiente, distinti dai fallimenti di codice: `E2E_DATABASE_URL` deve essere valorizzata e viene letta da `.env` tramite `loadEnvConfig` in `playwright.config.ts`; Playwright avvia da sé il web server (`PLAYWRIGHT_WEB_SERVER_COMMAND`, default `npm run dev`) e `tests/e2e/global-setup.ts` esegue il seed del database e2e; `prisma generate` è già dentro `npm run build`. La suite e2e **completa** non è stata eseguita in planning: la baseline e2e registrata è quella del solo file indicato, e il gate finale esegue le suite adiacenti elencate in TASK-14.
+
+  ---
+
+  ## Mappa delle evidenze di accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello | Oracolo osservabile | Task che produce l'evidenza |
+  |---|---|---|---|---|
+  | AC-1 | collaboratore factory con righe su tre giorni consecutivi di un mese riservato | e2e | gate `page.route` che **conta e aborta** le richieste verso `/attivita/` seguito da una data, `/api/attivita/giornata` e `/api/attivita/contesto-inserimento`: contatore a 0, righe, totali e URL del giorno di ritorno corretti, indicatore mai visibile | TASK-10 |
+  | AC-2 | giorno mai visitato, risposta trattenuta da una `page.route` sbloccata da una Promise del test | e2e | `aria-busy` uguale a `true` sul contenitore `contenuto-giornata` e `indicatore-caricamento-giornata` visibile, righe del giorno precedente ancora presenti, URL ancora sul giorno di partenza; al rilascio URL e righe passano al nuovo giorno e l'indicatore scompare | TASK-10 |
+  | AC-3 | tre cambi giorno consecutivi entro la finestra fresca | e2e | contatore delle richieste a `/api/attivita/contesto-inserimento` fermo a 0 dopo il rendering iniziale, mentre le richieste a `/api/attivita/giornata` avvengono; la select `#cliente` contiene ancora la ragione sociale del cliente factory su ogni giorno | TASK-10 |
+  | AC-3 (bordo) | orologio iniettato, nessun timer reale | unit | al bordo esatto di `DURATA_FRESH_MS` la voce del contesto è scaduta e tre letture consecutive producono **una sola** rivalidazione; `revalida` forza la lettura anche su voce fresca | TASK-04 |
+  | AC-4 | riga salvata sul giorno raggiunto dopo un cambio giorno | e2e | dopo il salvataggio la vista **resta** sul giorno salvato e mostra la riga; cambio giorno e ritorno la mostrano ancora; la cella del calendario del mese corrispondente riporta le ore aggiornate, mai quelle precedenti | TASK-10 |
+  | AC-5 | valori digitati in `#ore` e `#nota` sul giorno di partenza | e2e | dopo il cambio giorno `#ore` e `#nota` sono vuoti e `#cliente` è tornato al valore vuoto | TASK-10 |
+  | AC-6 | due giorni già visitati nella stessa scheda | e2e | `goBack` e `goForward` mostrano il giorno corretto con il gate di rete a 0; `history.length` invariato prima e dopo Back+Forward | TASK-10 |
+  | AC-7 | due collaboratori factory con righe sullo stesso giorno | e2e | dopo l'accesso con il secondo account nella stessa finestra: navigazione documentale osservata e zero occorrenze della ragione sociale del cliente del primo collaboratore; il secondo vede le proprie righe | TASK-10 |
+  | AC-7 (unità) | due cache registrate sulla stessa guardia | unit | una risposta con `collaboratoreId` diverso rende illeggibili le voci di **entrambe** e notifica una sola volta | TASK-04 |
+  | AC-8 | URL diretto di giornata, con e senza `?mese=` | e2e + unit | reload e link profondo servono le righe dal server con intestazione e breadcrumb corretti; `tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts` resta verde **senza modifiche** | TASK-10, TASK-14 |
+  | Confini dati (AC-1, AC-3, AC-7) | DAL mockato | unit | le due nuove route rispondono 400/401/403/200, portano `Cache-Control: private, no-store` e `Vary: Cookie`, e passano alla lettura soltanto l'id risolto dal DAL | TASK-06 |
+
+  Ogni oracolo resta osservabile attraverso i test double scelti: i mock coprono soltanto il DAL e il caricatore di rete, mai il componente o il confine responsabile dell'esito. L'assenza di richieste è provata abortendo le richieste, non contandole soltanto: un dato che comparisse grazie a una richiesta farebbe fallire l'asserzione invece di passare.
+
+  ---
+
+  ## Strategia di test
+
+  Quattro livelli, ciascuno sul confine che applica davvero la regola.
+
+  - **Unit puri con orologio e caricatore iniettati** per la macchina di cache generalizzata, la guardia condivisa e le cache di giornata e contesto: bordo esatto della finestra fresca, singola rivalidazione, deduplica, LRU, invalidazione di risposte in volo, svuotamento condiviso. Nessun timer reale.
+  - **Unit sui confini HTTP** con DAL mockato, sullo stesso modello di `tests/unit/attivita-calendario-route.test.ts`: la sicurezza è provata verificando che l'unico id passato alla lettura sia quello risolto dal DAL, non provando a iniettarne uno altrui.
+  - **Unit sulle letture autorizzate** con payload Prisma asserito, come già fatto per `clientiAttiviPerSelezione`.
+  - **E2E su browser** per ogni criterio osservabile, con oracolo di rete che conta **e** aborta.
+
+  ### Test E2E — simulazione utente
+
+  **Framework:** Playwright (già presente, `playwright.config.ts` con `fullyParallel: true`).
+  **Demo video:** atteso — la Dimostrazione della spec è filmabile. La registrazione è competenza di `archetipo-review`, non dell'implementazione.
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Ritorno a giorno già visitato | Il collaboratore apre il dettaglio del primo giorno, passa al successivo con la freccia e torna indietro: il giorno riappare immediatamente e il contatore di rete resta a zero |
+  | Indietro/Avanti del browser | Dopo aver visitato due giorni, usa Back e poi Forward: entrambi mostrano il giorno corretto dalla cache, senza nuove voci di cronologia |
+  | Primo accesso a un giorno mai visitato | Salta a un giorno lontano: resta visibile il contenuto precedente con l'indicatore di attesa e l'URL cambia solo a dati pronti |
+  | Clienti e voci non richiesti ad ogni giorno | Tre cambi giorno consecutivi: nessuna richiesta al contesto di inserimento e select cliente ancora popolata |
+  | Salvataggio e ritorno | Salva una riga sul giorno raggiunto, cambia giorno e torna: la riga è presente; il calendario del mese mostra le ore aggiornate |
+  | Form azzerato al cambio giorno | Compila ore e nota, cambia giorno: i campi del giorno di arrivo sono vuoti |
+  | Cambio account nella stessa finestra | Dopo l'accesso con un altro account: navigazione completa e nessuna riga o cliente del collaboratore precedente |
+  | Ricarica sull'URL del giorno | Reload e link profondo con `?mese=`: righe servite dal server, contratto URL invariato |
+
+  **Regole e2e obbligatorie** (`tests/e2e/README.md` e guardrail in `npm run lint`): `fullyParallel` invariato, nessun `workers: 1`, nessun aumento dei retry; dati creati dalle factory di `tests/e2e/support/fixtures.ts`, mai entità seed; mesi e giorni dalle helper riservate di `tests/e2e/support/date.ts` con codice spec `US-056`; selezione per label o valore derivato dalla factory, mai per indice; nessun selettore di classi Tailwind; nessun hard wait. Le finestre di attesa nascono da una `page.route` registrata prima del `goto` e sbloccata da una Promise dopo le asserzioni, come in `calendario-navigazione-reattiva.spec.ts` e `calendario-salto-mese.spec.ts`.
+
+  ---
+
+  ## Wiki Impact
+
+  ```yaml
+  wiki_impact:
+    read:
+      - decisions/cache-client-calendario-collaboratore
+      - decisions/feedback-attesa-uniforme
+      - domains/attivita
+      - engineering/code-map
+    update:
+      - decisions/cache-client-calendario-collaboratore
+      - domains/attivita
+      - engineering/code-map
+    create: []
+  ```
+
+  **Nota di rilevanza.** `archetipo wiki affected` sui percorsi attesi ha restituito cinque candidati. Tre entrano nel contratto perché la loro conoscenza cambia davvero: la decisione, che estende il proprio perimetro dal mese al giorno con guardia condivisa e contesto separato; il dominio, i cui flussi 10 e 11, la tabella «Codice» e la sezione «Verifica» descrivono un cambio giorno che dopo questa spec non è più una navigazione RSC; e la mappa del codice, che oggi dichiara `src/app/api/attivita/calendario/route.ts` come unico confine dati dell'area attività. Restano fuori `decisions/feedback-attesa-uniforme`, perché la convenzione osservabile `aria-busy` viene riusata senza modificarla, e `decisions/tariffa-unica-collaboratore`, perché nulla della tariffa cambia: sono co-citazioni tracciate che potranno risultare `evidence-changed`, e la loro riconferma è competenza esplicita dell'accettazione, non un lavoro di documentazione di questo piano.
+
+  ---
+
+  _Piano generato da ARchetipo Planning — 4 agosto 2026_
+
+
+  ---
+
+  ## Rework
+
+  Il reviewer ha rimandato la spec da REVIEW con otto osservazioni puntuali (una BLOCCANTE). Tutti i 14 task originali restano `DONE` e invariati: il piano tecnico, la baseline e la mappa delle evidenze sopra non cambiano. Questa sezione riassume solo il lavoro di correzione aggiunto.
+
+  1. **Collisione di mese riservato (BLOCCANTE, AC-8/CI).** `meseRiservato("US-056-identita")` e il mese vuoto del report fatturazione (`US-023-TASK-08-...-VUOTO`) risolvono allo stesso mese calendariale (`2017-10`), verificato riproducendo il fallimento sulla suite completa (`report-fatturazione-clienti.spec.ts`: 1 failed) e ricalcolando l'hash `djb2`-like di `offsetMeseRiservato` in isolamento. TASK-15 sceglie una chiave verificata non collidente e aggiunge al guardrail e2e un controllo statico che risolve ogni chiamata `meseRiservato`/`mesePassatoRiservato` dell'intera suite e fallisce su qualunque collisione non allowlistata — comprese nove collisioni pre-esistenti e indipendenti da questa spec, scoperte dallo stesso controllo e allowlistate esplicitamente perché fuori perimetro.
+  2. **Voci di cronologia duplicate su una corsa Indietro/Avanti (AC-6).** TASK-16 sposta la guardia anti-duplicazione dentro `commit`, confrontando l'URL di destinazione con `window.location.pathname + search` prima di ogni `pushState`, così la protezione copre anche corse future oltre a quella segnalata. TASK-17 aggiunge lo scenario e2e che riproduce esattamente la corsa (miss verso il giorno successivo, click immediato su «Giorno precedente») e prova `history.length` invariato.
+  3. **Percorso di sessione scaduta mai verificato (AC-7).** TASK-18 aggiunge due unit test sul contenitore reale del provider (`creaContenitoreCacheAttivita`, già esportato come cucitura di verifica) che provano 401 e 403 come sessione scaduta: svuotamento delle tre cache e notifica singola agli ascoltatori.
+  4. **`revalida` fail-open sulla guardia d'identità.** TASK-19 introduce `ErroreIdentitaSchedaCambiata` e fa rigettare `revalida` quando la guardia rifiuta la scrittura, invece di risolvere con un dato già dichiarato illeggibile; aggiorna i due punti che consumavano il fail-open (`isola-giornata.tsx`, `calendario-mensile.tsx`) e le tre asserzioni di test che oggi assumono il comportamento vecchio.
+  5-7. **Tre imprecisioni nella pagina Wiki `domains/attivita.md`** (conteggio scenari 8 invece di 11 con tre scenari omessi; contratto 400 sovrageneralizzato a `contesto-inserimento`, che non ha parametri; descrizione superata della copertura di `tests/unit/attivita.test.ts`). TASK-20, TASK-21, TASK-22 correggono ciascuna affermazione contro il codice e i test reali.
+  8. **Stessa imprecisione sul 400/id-passato nella pagina di decisione.** TASK-23 corregge `decisions/cache-client-calendario-collaboratore.md` distinguendo le tre route.
+
+  TASK-24 è il nuovo gate finale di rework: verifica i task aggiunti, la non regressione rispetto alla baseline, l'assenza di nuove diagnostiche sui file toccati e conferma via `archetipo spec show` che tutti i 24 task sono `DONE` prima di richiedere una nuova review.
+
+
+  ---
+
+  ## Rework (secondo giro)
+
+  Il reviewer ha rimandato la spec da REVIEW una seconda volta con una sola osservazione, BLOCCANTE: lo scenario e2e "dopo un accesso con un altro account il dettaglio giorno non mostra i dati del collaboratore precedente" (AC-7) fallisce in modo non deterministico (5/5 nell'ambiente del reviewer). Tutti i 24 task del giro precedente restano `DONE` e invariati; il piano tecnico, la baseline e la mappa delle evidenze sopra non cambiano.
+
+  **Diagnosi riprodotta in planning.** Il mount dell'isola giornata avvia, subito dopo il commit del giorno mostrato, il prefetch dei due giorni adiacenti (`isola-giornata.tsx:358-362`). Queste due GET verso `/api/attivita/giornata` attraversano `src/proxy.ts`, che su ogni richiesta protetta rinnova incondizionatamente il cookie di sessione **in base al cookie con cui la richiesta è partita** (`verificaERinnovaTokenSessione` + `applicaRinnovo`), non a quello attualmente nel browser. Nello scenario, lo switch di sessione avviene tramite una `fetch` diretta a `/api/e2e-test/sessione` mentre i due prefetch del primo collaboratore sono ancora in volo: se la loro risposta arriva dopo lo switch, il suo `Set-Cookie` tardivo resuscita la sessione del primo collaboratore, la guardia d'identità non rileva alcun mismatch (la risposta successiva dichiara ancora il primo collaboratore) e l'oracolo di navigazione documentale va in timeout. Riprodotto in planning su questo worktree (`a6b722a`): `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts -g "dopo un accesso con un altro account" --repeat-each=3 --retries=0` → 1 fallimento su 3, sempre con lo stesso timeout sull'oracolo.
+
+  **Scelta del fix.** Fra le due alternative proposte dal reviewer, questo piano adotta la prima: rendere il test deterministico attendendo esplicitamente le risposte dei due prefetch prima dello switch di sessione, con l'helper `rispostaGiornata` già usato altrove nella stessa suite per lo stesso scopo (`giornata-cache-cambio-giorno.spec.ts:201-206`). La seconda alternativa — impedire che il rinnovo sliding di una richiesta più vecchia sovrascriva un cookie più recente — richiederebbe una modifica a `src/proxy.ts`, politica trasversale a ogni rotta protetta dell'applicazione: un cambiamento del genere eccede il perimetro di un fix e2e mirato a questa spec e meriterebbe una propria analisi indipendente, non innescata da un singolo scenario di test. TASK-25 applica quindi il fix minimale e locale; l'esito è stato verificato in planning applicando il fix in via sperimentale sul worktree e poi ripristinando il file al commit `a6b722a`: 15 esecuzioni consecutive dello scenario (5 + 10, `--repeat-each`) tutte verdi, più l'intero file (12/12 scenari) verde nello stesso run.
+
+  TASK-25 applica il fix al solo file di test. TASK-26 è il nuovo gate finale di questo giro di rework: verifica il fix, la non regressione rispetto alla baseline del giro precedente, l'assenza di nuove diagnostiche, e conferma via `archetipo spec show` che tutti i 26 task sono `DONE` prima di richiedere una nuova review.
+tasks:
+  - id: TASK-01
+    title: Contratti dati della giornata e letture autorizzate in src/lib
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      La giornata e il contesto di inserimento diventano due DTO serializzabili dichiarati nel contratto condiviso e prodotti da letture che ricevono un collaboratore già autorizzato, così rendering server ed endpoint non potranno divergere.
+
+      ## Read
+      - `src/lib/attivita-contract.ts` — stile e commenti di `DatiCalendarioMese`, in particolare il razionale del campo `collaboratoreId` come identità dichiarata dalla risposta e mai accettata dal client.
+      - `src/lib/attivita.ts` — `datiCalendarioMesePerCollaboratoreAutorizzato` (modello di lettura autorizzata, righe 205-243), `righeDelGiorno` (254-290), `clientiAttiviPerSelezione` (302-331), `vociRimborsoTrasfertaPerSelezione` (378-398).
+      - `src/app/(front-office)/attivita/[data]/page.tsx` — tipi locali `RigaAttivitaClient`, `ClienteSelect`, `VoceRimborsoTrasfertaSelezionabile`, helper `formattaDataISO` e serializzazione delle righe (righe 16-120).
+      - `src/app/(front-office)/attivita/page.tsx` — come la pagina calendario riusa la sessione già verificata passandola a `risolviProfiloCollaboratoreCorrente`.
+      - `tests/unit/attivita.test.ts` — dalla riga 828, come sono asseriti payload Prisma e guardia `ErroreAutorizzazione`.
+
+      ## Change
+      - `src/lib/attivita-contract.ts`: aggiungere `RigaAttivitaClient`, `ClienteSelect`, `VoceRimborsoTrasfertaSelezionabile`, `DatiGiornataAttivita`, `ContestoInserimentoGiornata`.
+      - `src/lib/attivita.ts`: aggiungere `righeDelGiornoPerCollaboratoreAutorizzato(dataStr, collaboratoreId)` e `contestoInserimentoPerCollaboratoreAutorizzato(collaboratoreId)`; estrarre due funzioni private riusate dalle esportate esistenti; rimuovere `righeDelGiorno`, che dopo questo task non ha più chiamanti.
+      - `src/app/(front-office)/attivita/[data]/page.tsx`: usare le nuove letture, importare i tipi dal contratto, eliminare tipi locali, helper di formattazione e serializzazione inline.
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx`: importare i tipi da `@/lib/attivita-contract` invece che da `./page`.
+
+      Non-goal: nessuna nuova route, nessuna modifica a cache, navigazione o markup. `clientiAttiviPerSelezione` e `vociRimborsoTrasfertaPerSelezione` restano esportate con guardia e payload Prisma **invariati**, perché i loro test unit li asseriscono.
+
+      ## Steps
+      1. Nel contratto dichiarare `DatiGiornataAttivita` con `data: string`, `collaboratoreId: string`, `righe: RigaAttivitaClient[]`, e `ContestoInserimentoGiornata` con `collaboratoreId: string`, `clienti: ClienteSelect[]`, `vociRimborso: VoceRimborsoTrasfertaSelezionabile[]`. Documentare `collaboratoreId` con lo stesso razionale di `DatiCalendarioMese`.
+      2. Spostare nel contratto i tre tipi oggi dichiarati in `page.tsx`, senza cambiarne un solo campo: `ore` resta `number`, `rimborsoTrasfertaImporto` resta `string | null`, `data` resta `YYYY-MM-DD`.
+      3. In `attivita.ts` estrarre da `clientiAttiviPerSelezione` e `vociRimborsoTrasfertaPerSelezione` il corpo Prisma in due funzioni private non esportate; le funzioni esportate mantengono guardia, payload ed esito identici.
+      4. Implementare `righeDelGiornoPerCollaboratoreAutorizzato`: stessa query di `righeDelGiorno` ma con il `collaboratoreId` ricevuto dal chiamante, più la serializzazione oggi in `page.tsx`. Su data non nel formato `YYYY-MM-DD` restituire il DTO con `righe` vuoto senza interrogare il database, come la lettura mensile fa con un token non valido. Documentare che non è una guardia: l'autorizzazione è responsabilità del chiamante.
+      5. Implementare `contestoInserimentoPerCollaboratoreAutorizzato` eseguendo le due letture private in `Promise.all` e restituendo il DTO con il `collaboratoreId` ricevuto.
+      6. Rimuovere `righeDelGiorno` e il suo import in `page.tsx`.
+      7. In `page.tsx` risolvere il profilo con la sessione già verificata e chiamare in `Promise.all` le due nuove letture con `profilo.collaboratore.id`; passare i DTO a `<DettaglioGiornata>` mantenendo per ora props, `key={dataStr}` e breadcrumb invariati.
+      8. Aggiornare l'import dei tipi in `dettaglio-giornata.tsx`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica, come in baseline.
+      - Run: `npm test`
+      - Expect: 38 file e 607 test verdi come in baseline; nessun test rimosso, perché `righeDelGiorno` non ne aveva.
+      - Run: `npm run lint`
+      - Expect: eslint senza errori e messaggio «✅ Guardrail e2e anti-flakiness passed».
+      - Run: `npx playwright test tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts --retries=0`
+      - Expect: 2 test passati, come in baseline, con il file di test non modificato.
+
+      ## Done
+      - [ ] AC-8 — il caricamento diretto di `/attivita/[data]` continua a essere servito dal server con lo stesso contenuto osservabile: intestazione, righe e breadcrumb invariati nella suite e2e esistente.
+      - [ ] `DatiGiornataAttivita` e `ContestoInserimentoGiornata` sono dichiarati nel contratto condiviso e prodotti in un unico punto del codice.
+      - [ ] Nessuna nuova diagnostica TypeScript o eslint sui file toccati.
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit sulle letture autorizzate di giornata e contesto di inserimento
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Provare che le due nuove letture producono i DTO attesi con il payload Prisma corretto e senza risolvere alcuna sessione, e che le funzioni con guardia restano invariate.
+
+      ## Read
+      - `tests/unit/attivita.test.ts` — blocco `clientiAttiviPerSelezione` dalla riga 828 e i test della lettura mensile: stile dei mock Prisma, asserzioni sul payload e sulla guardia.
+      - `src/lib/attivita.ts` — le funzioni introdotte da TASK-01.
+
+      ## Change
+      - `tests/unit/attivita.test.ts`: aggiungere due blocchi `describe`, uno per `righeDelGiornoPerCollaboratoreAutorizzato` e uno per `contestoInserimentoPerCollaboratoreAutorizzato`.
+
+      Non-goal: non modificare i test esistenti e non creare nuovi file di test.
+
+      ## Steps
+      1. Per `righeDelGiornoPerCollaboratoreAutorizzato` asserire che il `where` filtra per il `collaboratoreId` **ricevuto** e per l'intervallo del giorno, che l'ordinamento è per `createdAt` ascendente, e che la riga restituita ha `data` in formato `YYYY-MM-DD`, `ore` numerico e `rimborsoTrasfertaImporto` stringa oppure `null`.
+      2. Asserire che una data malformata restituisce un DTO con `righe` vuoto senza invocare il client Prisma, e che il DTO riporta esattamente il `collaboratoreId` ricevuto.
+      3. Asserire che la funzione non risolve alcuna sessione: il DAL mockato non deve ricevere chiamate.
+      4. Per `contestoInserimentoPerCollaboratoreAutorizzato` asserire il payload Prisma dei clienti (cliente attivo, offerta attiva abilitata per quel collaboratore, `select` con `id` e `ragioneSociale`, ordinamento per ragione sociale ascendente), l'ordinamento delle voci di rimborso per `createdAt` ascendente, la conversione dell'importo a stringa e il `collaboratoreId` nel DTO.
+      5. Non toccare il test esistente che prova `ErroreAutorizzazione` 401 su `clientiAttiviPerSelezione` senza collaboratore corrente: deve restare verde così com'è, a prova che il refactor non ha spostato la guardia.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/attivita.test.ts`
+      - Expect: tutti i test del file verdi, con i nuovi casi presenti nell'elenco eseguito.
+      - Run: `npm test`
+      - Expect: nessuna regressione; totale maggiore o uguale a 607 test, tutti verdi.
+
+      ## Done
+      - [ ] AC-8 — la lettura server della giornata è provata sul payload Prisma esatto e sul DTO restituito, non solo sul fatto che il mock sia stato chiamato.
+      - [ ] AC-3 — il contesto di inserimento è provato come lettura unica che restituisce clienti e voci con l'identità dichiarata.
+      - [ ] Le funzioni con guardia mantengono comportamento identico, provato dai test preesistenti immutati.
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Macchina di cache di scheda generalizzata, guardia d'identità condivisa e cache di giornata e contesto
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Estrarre da `CacheCalendarioMesi` una macchina di cache riusabile e una guardia d'identità condivisibile fra più cache della stessa scheda, e specializzarla per giornate e contesto di inserimento, senza cambiare il comportamento del calendario.
+
+      ## Read
+      - `src/app/(front-office)/attivita/calendario-cache.ts` — intera classe: `seed`, `read`, `load`, `revalida`, `prefetch`, `invalidate`, `clear`, `scrivi`, epoche, espulsione LRU, guardia d'identità.
+      - `tests/unit/calendario-cache-provider.test.ts` — righe 1-80: la firma di costruttore usata dai test (`caricatore`, `orologio`, `durataFreshMs`, `massimoMesi`, `onIdentitaCambiata`) e i comportamenti che devono restare identici.
+      - `src/lib/attivita-contract.ts` — i DTO introdotti da TASK-01.
+
+      ## Change
+      - Nuovo `src/app/(front-office)/attivita/cache-dati-scheda.ts`: `CacheDatiScheda<T>` generica su un DTO che dichiara `collaboratoreId`, più `GuardiaIdentitaScheda` e la costante `DURATA_FRESH_MS`.
+      - `src/app/(front-office)/attivita/calendario-cache.ts`: ridotto alla specializzazione `CacheCalendarioMesi` e a `MASSIMO_MESI_IN_CACHE`, con re-export di `DURATA_FRESH_MS` per non rompere gli import esistenti.
+      - Nuovo `src/app/(front-office)/attivita/giornata-cache.ts`: `CacheGiornateAttivita`, `CacheContestoInserimento`, `MASSIMO_GIORNATE_IN_CACHE` uguale a 31 e `CHIAVE_CONTESTO_INSERIMENTO`.
+
+      Non-goal: nessuna modifica ai test esistenti, al provider, al calendario o alle route. La firma pubblica di `CacheCalendarioMesi` non cambia.
+
+      ## Steps
+      1. Spostare la classe in `cache-dati-scheda.ts` rendendola generica su `T` e aggiungendo due opzioni: `chiaveDi`, funzione che ricava la chiave dal DTO ed è usata da `seed`, e `massimoVoci`.
+      2. Estrarre l'identità in `GuardiaIdentitaScheda`, che espone `registra`, `verifica` e `reset`. `verifica(collaboratoreId)` restituisce falso quando l'identità già registrata è diversa: in quel caso svuota **tutte** le cache registrate, azzera la propria identità e invoca una sola volta la callback di cambio identità.
+      3. In `CacheDatiScheda` accettare una `guardia` opzionale. Se assente, crearne una privata inizializzata con `onIdentitaCambiata`: così comportamento e firma odierni di `CacheCalendarioMesi` restano identici. In `scrivi`, prima di scrivere, interrogare la guardia e uscire senza scrivere quando risponde negativamente.
+      4. `clear` deve continuare a incrementare le epoche dei token presenti e di quelli in volo e ad azzerare l'identità nella guardia, così una risposta già partita non può ripopolare la cache.
+      5. In `calendario-cache.ts` lasciare `CacheCalendarioMesi` come sottoclasse di `CacheDatiScheda` con chiave ricavata da `token` e massimo ricavato dall'opzione `massimoMesi`, mantenendo il nome di quell'opzione per i test esistenti.
+      6. In `giornata-cache.ts` definire `CacheGiornateAttivita` con chiave ricavata da `data` e massimo `MASSIMO_GIORNATE_IN_CACHE`, e `CacheContestoInserimento` con chiave costante `CHIAVE_CONTESTO_INSERIMENTO` e massimo 1. Entrambe accettano la guardia condivisa.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/calendario-cache-provider.test.ts`
+      - Expect: tutti i test del file verdi **senza alcuna modifica al file**. È la prova che la generalizzazione non ha cambiato semantica: bordo esatto dei 300 000 ms, singola rivalidazione, deduplica, espulsione LRU, invalidazione di risposte in volo, svuotamento e guardia d'identità.
+      - Run: `npm test`
+      - Expect: 38 file e 607 test verdi, come in baseline.
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+      - Run: `npm run lint`
+      - Expect: eslint senza errori e guardrail e2e passato.
+
+      ## Done
+      - [ ] La cache dei mesi conserva ogni comportamento provato dai test esistenti, che non vengono toccati.
+      - [ ] AC-7 — `GuardiaIdentitaScheda` può essere condivisa da più cache e le svuota tutte quando l'identità cambia.
+      - [ ] AC-1, AC-3 — esistono le cache specializzate di giornata (LRU 31) e di contesto (voce singola) sulla stessa finestra fresca di 300 secondi.
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Unit sulla guardia condivisa e sulle cache di giornata e contesto
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      Provare con orologio e caricatore iniettati che la guardia condivisa svuota tutte le cache registrate e che le cache di giornata e contesto hanno chiave, finestra fresca ed espulsione attese.
+
+      ## Read
+      - `tests/unit/calendario-cache-provider.test.ts` — righe 1-140: orologio controllabile, caricatore iniettato, asserzioni sui dati restituiti e non solo sulle chiamate.
+      - `src/app/(front-office)/attivita/cache-dati-scheda.ts` e `src/app/(front-office)/attivita/giornata-cache.ts`.
+
+      ## Change
+      - Nuovo `tests/unit/cache-dati-scheda.test.ts`.
+
+      Non-goal: non duplicare i casi già coperti per i mesi. Qui si prova ciò che è nuovo: guardia condivisa, chiave della giornata, cache a voce singola del contesto.
+
+      ## Steps
+      1. Guardia condivisa: registrare una `CacheGiornateAttivita` e una `CacheContestoInserimento` sulla stessa `GuardiaIdentitaScheda`; seminarle entrambe con un primo collaboratore; far arrivare al caricatore della giornata una risposta che dichiara un secondo collaboratore. Asserire che la lettura di **entrambe** restituisce `null`, che il dato del secondo collaboratore non diventa leggibile e che la callback di cambio identità è invocata una sola volta con il nuovo id.
+      2. Asserire il caso simmetrico: una risposta dello stesso collaboratore non svuota nulla e le due cache restano leggibili con i dati attesi.
+      3. Asserire che dopo lo svuotamento entrambe accettano la nuova identità e tornano leggibili.
+      4. Giornata: `seed` indicizza per `data`; a un millisecondo prima della scadenza la lettura non invoca il caricatore; al bordo esatto di `DURATA_FRESH_MS` la voce è scaduta e tre letture consecutive producono **una sola** rivalidazione; superato `MASSIMO_GIORNATE_IN_CACHE` viene espulsa la voce meno recentemente usata e non quella appena scritta.
+      5. Contesto: `seed` usa sempre la chiave costante, quindi due semine consecutive non fanno crescere la cache oltre una voce; `revalida` forza la lettura anche su una voce ancora fresca; una invalidazione neutralizza una risposta già in volo, che non ripopola la voce.
+      6. Nessun timer reale e nessuna attesa: il tempo è iniettato.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/cache-dati-scheda.test.ts`
+      - Expect: tutti i nuovi test verdi, in meno di un secondo, senza timer reali.
+      - Run: `npm test`
+      - Expect: nessuna regressione; totale maggiore o uguale a 607 test, tutti verdi.
+
+      ## Done
+      - [ ] AC-7 — una risposta che dichiara un altro collaboratore rende illeggibili giornate **e** contesto, non solo la cache che l'ha ricevuta, provato leggendo i dati e non contando le chiamate.
+      - [ ] AC-3 — il bordo della finestra fresca del contesto e la sua singola rivalidazione sono provati sul dato restituito con orologio iniettato.
+      - [ ] AC-1 — la cache di giornata restituisce una voce fresca senza invocare il caricatore.
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Confini dati HTTP della giornata e del contesto di inserimento
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Esporre due GET autenticate che restituiscono i DTO della giornata e del contesto di inserimento derivando sempre il collaboratore dalla sessione server, con le stesse intestazioni private già usate dal calendario.
+
+      ## Read
+      - `src/app/api/attivita/calendario/route.ts` — intero file: intestazioni `private, no-store` e `Vary: Cookie`, esiti 400/401/403/500, uso di `ErroreAutorizzazione`, assenza di qualunque parametro di identità.
+      - `src/lib/attivita.ts` — le letture autorizzate introdotte da TASK-01.
+      - `src/domain/calendario/index.ts` — `parseDataGiorno`, per validare la data ricevuta.
+
+      ## Change
+      - Nuovo `src/lib/risposta-dati-privati.ts` con le intestazioni condivise e l'helper che costruisce la risposta JSON.
+      - Nuovo `src/app/api/attivita/giornata/route.ts`.
+      - Nuovo `src/app/api/attivita/contesto-inserimento/route.ts`.
+      - `src/app/api/attivita/calendario/route.ts`: usa l'helper condiviso, con comportamento ed esiti invariati.
+
+      Non-goal: nessun parametro di identità accettato dal browser, nessuna modifica alle server action, nessun cambiamento agli esiti della route calendario.
+
+      ## Steps
+      1. Nell'helper esportare le intestazioni (`Cache-Control` uguale a `private, no-store` e `Vary` uguale a `Cookie`) e una funzione che costruisce la risposta JSON con quelle intestazioni, replicando il comportamento oggi locale alla route calendario.
+      2. `GET /api/attivita/giornata` accetta il solo parametro `data`: risponde 400 se assente o se non supera `parseDataGiorno`, **senza** interrogare il read model; poi risolve il profilo con `risolviProfiloCollaboratoreCorrente`, risponde 403 se lo stato non è ATTIVO, propaga lo status di `ErroreAutorizzazione` (401 senza sessione) e risponde 200 con `righeDelGiornoPerCollaboratoreAutorizzato` invocata con l'id del profilo risolto. Nessun dettaglio dell'errore interno esce sul 500.
+      3. `GET /api/attivita/contesto-inserimento` non accetta alcun parametro: stessi esiti 401, 403 e 500, e 200 con `contestoInserimentoPerCollaboratoreAutorizzato` invocata con l'id del profilo risolto.
+      4. Rifattorizzare la route calendario perché usi l'helper, senza cambiare né gli esiti né le intestazioni né i messaggi.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+      - Run: `npm run lint`
+      - Expect: eslint senza errori e guardrail e2e passato.
+      - Run: `npm test`
+      - Expect: `tests/unit/attivita-calendario-route.test.ts` resta verde **senza modifiche**, prova che il refactor non ha alterato il contratto esistente; totale verde come in baseline.
+      - Run: `npm run build`
+      - Expect: build completata e, nell'elenco delle rotte, `/api/attivita/giornata` e `/api/attivita/contesto-inserimento` marcate come dinamiche, accanto a `/api/attivita/calendario` già presente in baseline.
+
+      ## Done
+      - [ ] AC-1, AC-3 — esistono due confini dati distinti e nessuno dei due accetta un identificativo di collaboratore dal browser.
+      - [ ] AC-7 — l'unico id usato nelle letture è quello del profilo risolto dal DAL.
+      - [ ] Le risposte portano `Cache-Control` `private, no-store` e `Vary: Cookie`, così la staleness resta governata soltanto dalla cache client.
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Unit sui confini HTTP di giornata e contesto di inserimento
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Objective
+      Provare il contratto osservabile delle due nuove route: validazione, esiti di autorizzazione, intestazioni private e id usato nella lettura.
+
+      ## Read
+      - `tests/unit/attivita-calendario-route.test.ts` — intero file: come sono montati i mock di `@/lib/dal` e `@/lib/attivita` con `vi.hoisted`, e come è asserito che l'unico id passato alla lettura è quello del profilo risolto.
+      - `src/app/api/attivita/giornata/route.ts` e `src/app/api/attivita/contesto-inserimento/route.ts`.
+
+      ## Change
+      - Nuovo `tests/unit/attivita-giornata-routes.test.ts`, con due blocchi `describe`, uno per route.
+
+      Non-goal: non modificare `tests/unit/attivita-calendario-route.test.ts`, che resta la prova di non regressione del refactor delle intestazioni.
+
+      ## Steps
+      1. Route giornata: asserire 400 su parametro `data` assente e su formato non valido, verificando che la lettura mockata **non** venga invocata; 401 quando il DAL lancia `ErroreAutorizzazione` senza sessione; 403 con profilo assente o disattivato; 200 con il DTO restituito dalla lettura.
+      2. Asserire che l'unico argomento identificativo passato alla lettura è l'id del profilo risolto dal DAL, e che nessun valore proveniente dalla query string vi arriva.
+      3. Asserire le intestazioni `Cache-Control` uguale a `private, no-store` e `Vary` uguale a `Cookie` su tutti gli esiti, incluso il 400.
+      4. Route contesto: asserire 401, 403 e 200 con il DTO atteso, l'assenza di parametri accettati e le stesse intestazioni.
+      5. Asserire che un errore inatteso produce 500 senza far uscire il messaggio interno nel corpo.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/attivita-giornata-routes.test.ts`
+      - Expect: tutti i nuovi test verdi.
+      - Run: `npm test`
+      - Expect: nessuna regressione; totale maggiore o uguale a 607 test, tutti verdi.
+
+      ## Done
+      - [ ] AC-7 — le route non espongono alcun parametro di identità e usano solo l'id risolto dal DAL, provato sull'argomento effettivamente passato alla lettura.
+      - [ ] AC-1, AC-3 — 400 su data assente o malformata senza interrogare il read model, 401 senza sessione, 403 con profilo non operativo, 200 con il DTO atteso e le intestazioni private su ogni esito.
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Provider di cache dell'area attività con mesi, giornate e contesto
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-05
+    body: |-
+      ## Objective
+      Il provider dell'area attività monta le tre cache sulla stessa guardia d'identità e le espone ai consumer, con un solo canale di notifica per la sessione non più valida.
+
+      ## Read
+      - `src/app/(front-office)/attivita/calendario-cache-provider.tsx` — intero file: contenitore, `leggiMeseDaEndpoint`, trattamento di 401, 403 e risposta reindirizzata, `ErroreSessioneCalendario`, API esposta, effetto di smontaggio.
+      - `src/app/(front-office)/attivita/layout.tsx` — montaggio con `key` uguale all'id utente.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — uso di `useCacheCalendario` e `ErroreSessioneCalendario`.
+
+      ## Change
+      - Rinominare `calendario-cache-provider.tsx` in `attivita-cache-provider.tsx`; il componente diventa `AttivitaCacheProvider` e l'errore `ErroreSessioneCalendario` diventa `ErroreSessioneAttivita`.
+      - Aggiornare gli import in `layout.tsx`, `calendario-mensile.tsx` e `[data]/dettaglio-giornata.tsx`.
+      - Il provider crea una `GuardiaIdentitaScheda` per contenitore, vi registra le tre cache ed espone `useCacheCalendario` con forma invariata, più `useCacheGiornate` e `useCacheContestoInserimento`.
+
+      Non-goal: nessuna modifica al comportamento del calendario; la chiave di sessione e lo svuotamento all'uscita dall'area restano quelli attuali; nessuna modifica ai test esistenti.
+
+      ## Steps
+      1. Rinominare il file con `git mv` e rinominare i due simboli; aggiornare ogni import segnalato da `npx tsc --noEmit`. Il file `tests/unit/calendario-cache-provider.test.ts` importa da `calendario-cache` e non va toccato.
+      2. Nel contenitore creare la guardia e passarla alle tre cache; l'unica callback di cambio identità della guardia notifica gli ascoltatori di sessione già esistenti.
+      3. Aggiungere due caricatori accanto a quello del mese: uno verso `/api/attivita/giornata` con il parametro `data` codificato, uno verso `/api/attivita/contesto-inserimento`. Entrambi replicano il trattamento già usato per il mese: su 401, 403 o risposta reindirizzata svuotano **tutte** le cache del contenitore, notificano gli ascoltatori e lanciano `ErroreSessioneAttivita`; su altro esito non ok lanciano un errore ordinario, recuperabile con un nuovo tentativo.
+      4. L'effetto di smontaggio deve svuotare tutte e tre le cache.
+      5. Esporre le tre API con la stessa forma odierna (`seed`, `read`, `load`, `revalida`, `prefetch`, `invalidate`, `clear`, `subscribe`), con `subscribeSessioneScaduta` una sola volta a livello di contenitore, condivisa dai consumer.
+      6. I metodi esposti devono restare stabili fra un render e l'altro, come oggi, per non ridisegnare le route figlie.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica e nessun import residuo del vecchio nome di file o di simbolo.
+      - Run: `npm run lint`
+      - Expect: eslint senza errori e guardrail e2e passato.
+      - Run: `npm test`
+      - Expect: verde come baseline, con `tests/unit/calendario-cache-provider.test.ts` non modificato.
+      - Run: `npx playwright test tests/e2e/calendario-cache-mesi.spec.ts --retries=0`
+      - Expect: tutti i test verdi: il calendario continua a non produrre alcuna richiesta sul ritorno a un mese già visitato e continua a gestire il cambio account con navigazione documentale.
+
+      ## Done
+      - [ ] AC-7 — le tre cache condividono una sola identità di scheda e un solo canale di notifica di sessione non più valida.
+      - [ ] AC-1, AC-3 — i consumer possono leggere giornate e contesto dalla cache della scheda.
+      - [ ] Il comportamento del calendario è invariato, provato dalla sua suite e2e senza modifiche.
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: 'Isola client della giornata: navigazione dalla cache, attesa e History API'
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-07
+    body: |-
+      ## Objective
+      Il cambio giorno diventa un commit client dalla cache delle giornate, con l'URL scritto solo a dati pronti, il contenuto precedente visibile durante l'attesa e il form azzerato ad ogni giorno.
+
+      ## Read
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — modello da riusare: interfaccia `IntentoNavigazione`, `commit`, `vaiA`, sincronizzazione con il payload server durante il render, gestione di `popstate`, prefetch dei mesi adiacenti, overlay con `aria-busy`, attributo `data-idratata` e hook `useIdratata`.
+      - `src/app/(front-office)/attivita/[data]/page.tsx` — breadcrumb, `key={dataStr}`, props passate al client component.
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx` — barra `controllo-cambio-giorno` (righe 528-580), `vaiAlGiorno`, `vaiAGiornoPrecedente`, `vaiAGiornoSuccessivo`, e il commento alle righe 445-455 sul reset del form affidato al remount.
+      - `src/domain/calendario/index.ts` — `giornoSpostatoDi` e `parseDataGiorno`.
+      - `node_modules/next/dist/docs/01-app/01-getting-started/04-linking-and-navigating.md`, sezione «Native History API» — conferma che `pushState` è integrato nel router e sincronizzato con `usePathname`.
+
+      ## Change
+      - Nuovo `src/app/(front-office)/attivita/[data]/isola-giornata.tsx`, client component.
+      - `src/app/(front-office)/attivita/[data]/page.tsx`: rende l'isola passando i due DTO iniziali e il token mese; il breadcrumb si sposta nell'isola; il `key` sul componente di dettaglio non è più responsabilità della pagina.
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx`: perde la barra di navigazione, `useRouter` e la `useTransition` usata per la navigazione; riceve `data`, `righe`, `clienti`, `vociRimborso` e una callback `onMutazioneCompletata` che in questo task può essere ancora quella attuale, e viene ricablata in TASK-09.
+
+      Non-goal: nessuna modifica al form, alle sue validazioni, ai suoi messaggi o al contratto URL. Nessun prefetch di giorni non adiacenti: il salto lontano dal selettore data resta un miss.
+
+      ## Steps
+      1. L'isola possiede: giornata visualizzata, contesto, flag di caricamento, errore, ultimo payload server ricevuto e l'intento corrente in un `useRef`, esattamente come il calendario.
+      2. `commit(intento, dati)` aggiorna la giornata mostrata, spegne attesa ed errore e, se l'intento chiede di registrare la cronologia, scrive l'URL con `window.history.pushState`. L'URL è `/attivita/` seguito dalla data e, quando la pagina è stata aperta con un token mese, dal parametro `mese` calcolato sul giorno di **destinazione**: è la regola già presente oggi in `vaiAlGiorno` e va conservata, altrimenti attraversando un confine di mese il breadcrumb punterebbe al mese sbagliato.
+      3. `vaiA(intento)`: senza provider resta `router.push`. Con provider si legge la cache: su hit commit sincrono e, se la voce è scaduta, una sola rivalidazione in background; su miss si accende l'attesa e si invoca il caricamento, con commit soltanto se l'intento corrente punta ancora a quella destinazione, così una risposta tardiva non ruba la scena. Su `ErroreSessioneAttivita` non mostrare alcun errore recuperabile: la navigazione completa è gestita dalla sottoscrizione di sessione.
+      4. La barra `controllo-cambio-giorno` si sposta nell'isola conservando identici `data-testid` e nomi accessibili: `controllo-cambio-giorno`, `selettore-giorno`, label «Vai al giorno», pulsanti «Giorno precedente» e «Giorno successivo». Va rimosso l'attributo disabilitante legato alla transizione: i click rapidi incatenano gli intenti a partire dall'intento corrente, come le frecce del calendario. Il valore del selettore si riallinea **durante il render** al giorno mostrato, con lo stesso schema del campo mese del calendario, mai in un effetto.
+      5. Il contenuto della giornata è avvolto in un contenitore con `data-testid` uguale a `contenuto-giornata`, attributo `aria-busy` legato al flag di caricamento e attributo `data-idratata` valorizzato da `useIdratata`, indispensabile perché i test possano attendere l'idratazione prima di cliccare i controlli.
+      6. Durante il miss compare un indicatore con `data-testid` uguale a `indicatore-caricamento-giornata`, ruolo `status`, testo per screen reader e il keyframe `comparsa-caricamento` già usato dal calendario, sovrapposto al contenuto precedente, che resta visibile.
+      7. Su errore di lettura mostrare un banner con ruolo `alert` e `data-testid` uguale a `errore-caricamento-giornata`, con un pulsante «Riprova» che richiama `vaiA` sull'intento corrente, lasciando visibile la giornata precedente.
+      8. Rendere il componente di dettaglio con `key` uguale alla data della giornata mostrata: il remount resta il meccanismo che azzera il form ad ogni cambio giorno. Il breadcrumb «Torna al calendario» resta un `Link` con lo stesso nome accessibile e con href calcolato sul giorno mostrato.
+      9. Sincronizzazione con il payload server: quando il DTO iniziale cambia identità, adottarlo **solo se coerente con l'URL corrente**, cioè solo se `usePathname()` corrisponde a `/attivita/` seguito dalla data di quel DTO; altrimenti limitarsi a seminarlo in cache senza spostare la vista. Senza questa condizione una `revalidatePath` di server action, che rigenera l'albero RSC del giorno da cui l'utente è partito, riporterebbe la vista su quel giorno mentre l'utente ne sta guardando un altro. L'allineamento avviene durante il render, non in un effetto.
+      10. Seminare in un effetto la giornata iniziale e il contesto iniziale nelle rispettive cache e allineare l'intento corrente.
+      11. Gestire `popstate`: leggere il pathname corrente e, solo se corrisponde a `/attivita/` seguito da una data in formato `YYYY-MM-DD`, richiamare `vaiA` senza registrare cronologia; altrimenti non fare nulla e lasciare che sia il router di Next a gestire quella voce.
+      12. Dopo ogni commit, prefetch dei soli giorni adiacenti calcolati con `giornoSpostatoDi`, con errori silenziosi.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+      - Run: `npm run lint`
+      - Expect: eslint senza errori, incluse le regole sui hook, e guardrail e2e passato.
+      - Run: `npm test`
+      - Expect: verde come baseline.
+      - Run: `npm run build`
+      - Expect: build completata, con `/attivita/[data]` ancora dinamica.
+      - Run: `npx playwright test tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts tests/e2e/calendario-cache-mesi.spec.ts --retries=0`
+      - Expect: tutti verdi. La prima è la suite di AC-8 e non va modificata; la seconda prova che il calendario non ha regredito e che il percorso dalla cella del calendario al dettaglio giornata e ritorno continua a funzionare.
+
+      ## Done
+      - [ ] AC-2 — sul giorno non ancora in cache resta visibile il contenuto precedente con `aria-busy` a `true` e l'indicatore, e l'URL cambia soltanto dentro `commit`.
+      - [ ] AC-5 — il componente di dettaglio è montato con `key` sul giorno mostrato, quindi lo stato del form riparte azzerato ad ogni cambio giorno.
+      - [ ] AC-6 — `popstate` gestisce soltanto gli URL di giornata e non registra nuove voci di cronologia.
+      - [ ] AC-8 — contratto URL invariato e suite `cambio-rapido-giorno-dettaglio.spec.ts` verde senza modifiche al file.
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: Freschezza, invalidazione dopo mutazione e sessione non più valida nella giornata
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-08
+    body: |-
+      ## Objective
+      Giornata e contesto di inserimento ottengono le stesse mitigazioni di staleness del mese, e una mutazione non può lasciare visibile il dato precedente né spostare la vista sul giorno sbagliato.
+
+      ## Read
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — effetti di scadenza, `focus` e `visibilitychange`, sottoscrizione agli aggiornamenti in background e sottoscrizione alla sessione scaduta (righe 252-300).
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx` — `invalidaMeseERicarica` (righe 130-143) e i tre handler che la usano: `handleSubmit`, `handleElimina`, `handleRimuoviRimborso`.
+      - `src/lib/actions/righe-attivita.ts` — le `revalidatePath` già presenti alle righe 247-249, 372-374, 416-419 e 463-466.
+
+      ## Change
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx`: sottoscrizioni agli aggiornamenti in background, timer di scadenza e rivalidazione forzata al ritorno sulla scheda per giornata **e** contesto; sottoscrizione alla sessione non più valida; funzione `invalidaDopoMutazione` passata al componente di dettaglio.
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx`: `invalidaMeseERicarica` sostituita dalla callback ricevuta; rimozione di `useCacheCalendario`, `useRouter` e della chiamata a `router.refresh()`.
+
+      Non-goal: nessuna modifica alle server action né alle loro `revalidatePath`, che restano la protezione del rendering server.
+
+      ## Steps
+      1. Sottoscrivere la cache delle giornate: quando cambia la chiave uguale al giorno dell'intento corrente, aggiornare la giornata mostrata. Stesso schema per il contesto, che ha una chiave sola.
+      2. Armare un timer sulla scadenza della voce attiva e registrare `focus` e `visibilitychange`: al ritorno sulla scheda la rivalidazione della giornata mostrata **e** del contesto è forzata, cioè usa `revalida` e non `prefetch`, perché un prefetch condizionato uscirebbe subito su una voce ancora fresca e il ritorno sulla scheda non delimiterebbe alcuna staleness. È anche il momento in cui la risposta rivela un cambio di sessione avvenuto altrove.
+      3. Implementare `invalidaDopoMutazione(giorno)`: invalida quel giorno nella cache delle giornate e il token mese corrispondente nella cache dei mesi, poi forza la rivalidazione della giornata. L'aggiornamento raggiunge la vista attraverso la sottoscrizione del punto 1, senza alcuna navigazione RSC.
+      4. Rimuovere `router.refresh()` dal percorso di mutazione, documentando la scelta con un commento nel codice: le server action continuano a invalidare i percorsi lato server e la risposta della server action invalida già la Router Cache client, quindi un rientro successivo sulla giornata rilegge dal server. Il refresh sarebbe inoltre dannoso, perché rigenererebbe l'albero del giorno di partenza.
+      5. Sottoscrivere nell'isola la notifica di sessione non più valida e reagire con una navigazione completa, come fa il calendario.
+      6. Verificare che i tre handler chiamino la callback con il giorno **visualizzato** e non con quello del payload server: dopo un cambio giorno client i due possono differire.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+      - Run: `npm run lint`
+      - Expect: eslint senza errori, incluse le regole sui hook, e guardrail e2e passato.
+      - Run: `npm test`
+      - Expect: verde come baseline.
+      - Run: `npm run build`
+      - Expect: build completata.
+      - Run: `npx playwright test tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts tests/e2e/calendario-cache-mesi.spec.ts tests/e2e/rimborso-trasferta-selezione.spec.ts --retries=0`
+      - Expect: tutti verdi. `calendario-cache-mesi.spec.ts` contiene lo scenario «dopo una modifica il ritorno al calendario mostra la sintesi aggiornata», che è la prova diretta dell'invalidazione del mese fatta dalla giornata; `rimborso-trasferta-selezione.spec.ts` esercita salvataggio e rimozione del rimborso dalla stessa pagina.
+
+      ## Done
+      - [ ] AC-3 — clienti abilitati e voci di rimborso sono rivalidati alla scadenza e al ritorno sulla scheda, non ad ogni cambio giorno.
+      - [ ] AC-4 — dopo salvataggio, modifica ed eliminazione la giornata e il mese corrispondente sono invalidati prima di essere riletti, quindi nessuna versione precedente alla mutazione può restare visibile.
+      - [ ] AC-7 — una sessione decaduta o sostituita porta a una navigazione completa anche dal dettaglio giornata.
+
+      ## Blockers
+      None.
+    ref: TASK-09
+  - id: TASK-10
+    title: Suite e2e del cambio giorno servito dalla cache
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-09
+    body: |-
+      ## Objective
+      Provare sul browser, con oracolo di rete che conta **e** aborta, che il ritorno su un giorno già visitato non produce alcuna richiesta dati e che valgono tutte le altre condizioni di accettazione osservabili.
+
+      ## Read
+      - `tests/e2e/calendario-cache-mesi.spec.ts` — intero file: gate di rete che conta e aborta, helper `cancelloRilasciabile`, attesa dell'idratazione, scenario di cambio account tramite l'endpoint di sessione e2e.
+      - `tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts` — helper di etichetta del giorno e uso delle date riservate.
+      - `tests/e2e/support/fixtures.ts`, `tests/e2e/support/date.ts`, `tests/e2e/support/auth.ts`, `tests/e2e/support/factory.ts` — factory, mesi e giorni riservati, accesso come collaboratore.
+      - `tests/e2e/README.md` — contratto e2e del progetto.
+
+      ## Change
+      - Nuovo `tests/e2e/giornata-cache-cambio-giorno.spec.ts`.
+
+      Non-goal: non modificare `tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts`, che è la prova di non regressione di AC-8, né `playwright.config.ts`. Nessuna entità seed: solo factory e giorni riservati con codice spec `US-056`.
+
+      ## Steps
+      1. **Prima di ogni altro scenario**, scrivere ed eseguire il test di AC-1. Il gate è una `page.route` che conta e aborta le richieste il cui pathname è `/attivita/` seguito da una data in formato `YYYY-MM-DD`, oppure è `/api/attivita/giornata` o `/api/attivita/contesto-inserimento`. Partendo da un giorno riservato con righe create dalla factory, passare al giorno successivo con la freccia, attivare il gate e tornare indietro: asserire righe e totali del giorno di ritorno, URL corretto, indicatore mai visibile e contatore a zero. Se questo test non passa perché `pushState` verso un pathname diverso genera una richiesta o una navigazione documentale, **fermarsi e riportare l'esito**: non introdurre un meccanismo di navigazione alternativo e non cambiare il contratto URL.
+      2. AC-6: visitare due giorni, poi usare `goBack` e `goForward` con lo stesso gate attivo; asserire il giorno mostrato in entrambi i casi e che `history.length` è identico prima e dopo la coppia Back e Forward.
+      3. AC-2: trattenere la risposta di `/api/attivita/giornata` per un giorno mai visitato con una `page.route` registrata prima della navigazione e sbloccata da una Promise risolta dal test dopo le asserzioni; asserire `aria-busy` a `true` su `contenuto-giornata`, indicatore visibile, righe del giorno precedente ancora presenti e URL ancora sul giorno di partenza; dopo il rilascio, URL e righe passano al nuovo giorno e l'indicatore scompare.
+      4. AC-3: contare, **senza abortire**, le richieste verso `/api/attivita/contesto-inserimento`; eseguire tre cambi giorno consecutivi e asserire che il contatore resta a zero mentre le richieste verso `/api/attivita/giornata` avvengono, e che la select `#cliente` continua a contenere la ragione sociale del cliente creato dalla factory su ciascun giorno.
+      5. AC-5: compilare `#ore` e `#nota` sul giorno di partenza, cambiare giorno e asserire che entrambi sono vuoti e che `#cliente` è tornato al valore vuoto.
+      6. AC-4: dopo un cambio giorno, salvare una riga sul giorno visualizzato selezionando cliente e offerta per valore derivato dalla factory; asserire che la vista **resta** su quel giorno e mostra la riga appena salvata; cambiare giorno e tornare: la riga è ancora presente; aprire poi il calendario del mese corrispondente e asserire le ore aggiornate nella cella di quel giorno.
+      7. AC-7: due collaboratori creati dalla factory con righe sullo stesso giorno; dopo l'accesso con il secondo account nella stessa finestra tramite l'endpoint di sessione e2e già usato dalla spec del calendario, attendere la navigazione documentale e asserire che la ragione sociale del cliente del primo non compare; poi verificare che il secondo veda le proprie righe su quel giorno.
+      8. AC-8: reload sull'URL del giorno raggiunto e apertura diretta di un URL con il parametro `mese`: righe servite dal server, intestazione corretta e breadcrumb che punta al mese atteso.
+      9. In tutti gli scenari attendere l'idratazione osservando l'attributo `data-idratata` a `true` su `contenuto-giornata` prima di cliccare i controlli: prima dell'idratazione il click è un no-op e il test resterebbe appeso.
+      10. Nessun hard wait, nessuna email seed, nessun selettore di classi Tailwind, nessuna selezione per indice: le attese nascono solo da eventi e da `page.route` sbloccate dal test.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts --retries=0`
+      - Expect: tutti gli scenari verdi al primo tentativo, senza retry, con la configurazione `fullyParallel` invariata.
+      - Run: `npm run lint`
+      - Expect: eslint senza errori e messaggio «✅ Guardrail e2e anti-flakiness passed».
+      - Run: `npx playwright test tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts --retries=0`
+      - Expect: 2 test verdi, con il file non modificato.
+
+      ## Done
+      - [ ] AC-1 — contatore delle richieste dati a zero sul ritorno a un giorno già visitato, con le richieste contate **e** abortite, righe, totali e URL corretti.
+      - [ ] AC-2 — attesa osservabile con contenuto precedente ancora visibile e URL che cambia solo a dati pronti.
+      - [ ] AC-3 — nessuna richiesta di contesto durante i cambi giorno successivi al primo, con la select cliente ancora popolata.
+      - [ ] AC-4 — la vista resta sul giorno salvato, il dato aggiornato sopravvive al cambio giorno e compare nella cella del calendario.
+      - [ ] AC-5 — form azzerato ad ogni cambio giorno.
+      - [ ] AC-6 — Back e Forward mostrano il giorno corretto senza richieste e senza voci di cronologia duplicate.
+      - [ ] AC-7 — nessuna riga o cliente del collaboratore precedente dopo il cambio account, con navigazione completa osservata.
+      - [ ] AC-8 — reload e link profondo serviti dal server con contratto URL invariato.
+
+      ## Blockers
+      None. Nota di sequenza: la prova del punto 1 abilita tutte le altre; se fallisce, il piano va rivisto invece di aggirato.
+    ref: TASK-10
+  - id: TASK-11
+    title: Aggiornare la pagina Wiki decisions/cache-client-calendario-collaboratore
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-10
+    body: |-
+      ## Objective
+      Portare `decisions/cache-client-calendario-collaboratore` in linea con il codice consegnato: la decisione non riguarda più i soli mesi del calendario ma l'intera area attività, con guardia d'identità condivisa, cache della giornata e contesto di inserimento cachato a parte.
+
+      ## Read
+      - `docs/wiki/decisions/cache-client-calendario-collaboratore.md` — frontmatter `sources` e blocco `review`, e le sezioni marcate `context`, `decision`, `alternatives`, `consequences`, `verification`.
+      - Il codice consegnato dai task precedenti, per citare percorsi e simboli esatti.
+      - `docs/wiki/index.md` — catalogo, rigenerato dal comando e mai a mano.
+
+      ## Change
+      - `docs/wiki/decisions/cache-client-calendario-collaboratore.md`.
+      - `docs/wiki/index.md` e `docs/wiki/log.md`: solo come output dei comandi `archetipo wiki reset` e `archetipo wiki catalog`, mai modificati a mano.
+
+      Non-goal: non creare una nuova pagina di decisione e non cambiare l'ID della pagina, referenziato da `domains/attivita`, `decisions/feedback-attesa-uniforme` e `engineering/code-map`. Non toccare `decisions/feedback-attesa-uniforme` né `decisions/tariffa-unica-collaboratore`: sono co-citazioni tracciate le cui affermazioni restano accurate, e la loro eventuale riconferma è competenza dell'accettazione.
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset decisions/cache-client-calendario-collaboratore`, che riporta la pagina a `status: generated` rimuovendo il blocco `review`.
+      2. Ampliare `title` e `description` del frontmatter perché la decisione copre ora calendario **e** dettaglio giornata, lasciando invariato il nome del file e quindi l'ID della pagina.
+      3. Aggiornare `sources` con i percorsi consegnati: `cache-dati-scheda.ts`, `giornata-cache.ts`, `attivita-cache-provider.tsx` al posto di `calendario-cache-provider.tsx`, `[data]/isola-giornata.tsx`, `[data]/page.tsx`, `src/app/api/attivita/giornata/route.ts`, `src/app/api/attivita/contesto-inserimento/route.ts`, `src/lib/risposta-dati-privati.ts`, e le verifiche `tests/unit/cache-dati-scheda.test.ts`, `tests/unit/attivita-giornata-routes.test.ts`, `tests/e2e/giornata-cache-cambio-giorno.spec.ts`. Rimuovere le voci che non esistono più e verificare che ogni percorso citato esista davvero su disco.
+      4. Nella sezione `decision` aggiungere, senza riscrivere ciò che resta valido: l'estensione dell'isola al dettaglio giornata; le tre cache sulla stessa finestra di 300 secondi con i rispettivi limiti (mesi 12, giornate 31, contesto una voce); la guardia d'identità condivisa che svuota tutte le cache della scheda; i due confini dati distinti e il perché il contesto non viaggia nel payload della giornata; l'URL di giornata scritto dentro il commit e la gestione di `popstate` limitata agli URL di giornata; la sostituzione di `router.refresh()` con l'invalidazione delle cache; la regola per cui un payload server viene adottato solo se coerente con il pathname corrente.
+      5. Nella sezione `alternatives` registrare le tre alternative scartate con il loro motivo: identità per singola cache; contesto incluso nel payload della giornata; seconda copia della macchina di cache.
+      6. Nella sezione `consequences` dichiarare che la finestra di incoerenza di 300 secondi vale ora anche per righe della giornata, clienti abilitati e voci di rimborso, con le stesse mitigazioni già elencate e senza alcun canale cross-tab.
+      7. Nella sezione `verification` citare i file di test consegnati e l'oracolo di rete che conta e aborta anche le navigazioni verso gli URL di giornata.
+      8. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: envelope con `kind` uguale a `validation_result` e `data.ok` a `true`; nessun finding di severità `error`. I warning banali vanno risolti.
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner status`
+      - Expect: la pagina risulta `generated`, in attesa dell'approvazione durante l'accettazione, non `reviewed`.
+
+      ## Done
+      - [ ] AC-1, AC-3, AC-7 — la pagina descrive la conoscenza effettivamente consegnata: estensione al giorno, contesto separato e guardia condivisa, con contesto, decisione, alternative, conseguenze e verifica aggiornati.
+      - [ ] Tutti i marcatori di sezione `archetipo:wiki` esistenti sono conservati e ogni percorso in `sources` esiste su disco.
+      - [ ] Nessuna nuova pagina di decisione creata e ID della pagina invariato.
+
+      ## Blockers
+      None.
+    ref: TASK-11
+  - id: TASK-12
+    title: Aggiornare la pagina Wiki domains/attivita
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-10
+    body: |-
+      ## Objective
+      Portare `domains/attivita` in linea con il codice consegnato: il cambio giorno non è più una navigazione RSC autorevole ma un commit dalla cache client, con due nuovi confini dati e un nuovo contratto di lettura autorizzata.
+
+      ## Read
+      - `docs/wiki/domains/attivita.md` — frontmatter `sources` e blocco `review`, sezione `contracts`, punti 7, 8, 9, 10 e 11 di «Flussi osservati», tabella della sezione «Codice» e sezione «Verifica».
+      - Il codice consegnato dai task precedenti.
+
+      ## Change
+      - `docs/wiki/domains/attivita.md`.
+      - `docs/wiki/index.md` e `docs/wiki/log.md`: solo come output dei comandi.
+
+      Non-goal: non riscrivere i flussi 1-6 e 12-14, che restano validi. Non toccare le pagine di dominio collegate.
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset domains/attivita`.
+      2. In `sources` aggiornare il simbolo di `src/lib/attivita.ts` (rimozione di `righeDelGiorno`, aggiunta di `righeDelGiornoPerCollaboratoreAutorizzato` e `contestoInserimentoPerCollaboratoreAutorizzato`), il simbolo di `src/lib/attivita-contract.ts` con i nuovi DTO, sostituire `calendario-cache-provider.tsx` con `attivita-cache-provider.tsx`, aggiungere `cache-dati-scheda.ts`, `giornata-cache.ts`, `[data]/isola-giornata.tsx`, le due nuove route con ruolo `inbound-query`, e in coda alle verifiche `tests/unit/cache-dati-scheda.test.ts`, `tests/unit/attivita-giornata-routes.test.ts` e `tests/e2e/giornata-cache-cambio-giorno.spec.ts`.
+      3. Nella sezione `contracts` aggiungere il contratto dati della giornata: `DatiGiornataAttivita` e `ContestoInserimentoGiornata`, esposti da due GET che derivano sempre il collaboratore dalla sessione, rispondono 400 su data assente o malformata, 401 senza sessione e 403 con profilo non operativo, e portano le stesse intestazioni private del calendario. Precisare che le letture autorizzate ricevono un collaboratore già autorizzato e non sono guardie.
+      4. Riscrivere il punto 10 dei flussi: il cambio giorno resta ancorato all'URL `/attivita/{data}` con `?mese` preservato, ma non è più una navigazione RSC; è un commit dalla cache delle giornate con URL scritto solo a dati pronti, indicatore di attesa sul miss, prefetch dei soli giorni adiacenti, Back e Forward dalla stessa cache, e il reset del form ottenuto dal remount comandato ora dall'isola client anziché dalla pagina server.
+      5. Aggiungere un punto sul contesto di inserimento: clienti abilitati e voci di rimborso sono invarianti rispetto al giorno, seminati dal rendering server e rivalidati alla scadenza o al ritorno sulla scheda, non ad ogni cambio giorno.
+      6. Aggiornare il punto 9 sull'invalidazione: dopo una mutazione il dettaglio invalida giornata **e** mese nelle cache client e rilegge la giornata, mentre le server action continuano a invalidare i percorsi lato server; `router.refresh()` non è più usato.
+      7. Aggiornare la tabella «Codice» con le nuove righe (confine dati della giornata, cache di scheda, isola giornata) e l'elenco dei test.
+      8. Nella sezione «Verifica» descrivere che cosa prova la nuova suite e2e e che cosa provano i nuovi unit, con lo stesso livello di specificità delle frasi già presenti.
+      9. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: `data.ok` a `true`, nessun finding di severità `error`, nessun link rotto.
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner status`
+      - Expect: `domains/attivita` risulta `generated`.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-4, AC-8 — i flussi descrivono il cambio giorno effettivamente consegnato, non quello precedente.
+      - [ ] AC-3 — il contesto di inserimento è documentato come risorsa invariante rispetto al giorno, con le sue mitigazioni di freschezza.
+      - [ ] Ogni percorso in `sources` esiste su disco e tutti i marcatori di sezione sono conservati.
+
+      ## Blockers
+      None.
+    ref: TASK-12
+  - id: TASK-13
+    title: Aggiornare la pagina Wiki engineering/code-map
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-10
+    body: |-
+      ## Objective
+      Portare `engineering/code-map` in linea con il codice consegnato: l'area attività non ha più un solo confine dati HTTP e la sua colonna di verifica non elenca più tutti i test rilevanti.
+
+      ## Read
+      - `docs/wiki/engineering/code-map.md` — riga della matrice dedicata ad Attività (riga 116) e il paragrafo di copertura che dichiara `src/app/api/attivita/calendario/route.ts` come confine dati comparso con la cache client dei mesi (riga 144).
+      - Il codice consegnato dai task precedenti.
+
+      ## Change
+      - `docs/wiki/engineering/code-map.md`.
+      - `docs/wiki/index.md` e `docs/wiki/log.md`: solo come output dei comandi.
+
+      Non-goal: non toccare le altre righe della matrice né le altre capability; nessuna modifica ai file mappati.
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset engineering/code-map`.
+      2. Nella riga della matrice dedicata ad Attività aggiornare la colonna del codice applicativo e quella dei test perché includano l'isola giornata, le cache di scheda e le tre nuove suite consegnate.
+      3. Aggiornare il paragrafo di copertura perché il confine dati dell'area attività non sia più descritto come la sola route del calendario: sono tre route sotto `src/app/api/attivita/`, tutte confini dati della stessa capability e nessuna una capability autonoma.
+      4. Verificare che il frontmatter `sources` e i blocchi `coverage` restino coerenti con i file effettivamente presenti.
+      5. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: `data.ok` a `true`, nessun finding di severità `error`.
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner status`
+      - Expect: `engineering/code-map` risulta `generated`.
+
+      ## Done
+      - [ ] AC-1, AC-3 — la mappa del codice registra i due nuovi confini dati e non descrive più il calendario come unico confine dell'area attività.
+      - [ ] La colonna dei test della riga Attività elenca le suite consegnate.
+      - [ ] Nessun altro contenuto della mappa è stato modificato.
+
+      ## Blockers
+      None.
+    ref: TASK-13
+  - id: TASK-14
+    title: 'Gate finale: nessuna regressione rispetto alla baseline e tutti i task DONE prima della review'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+      - TASK-09
+      - TASK-10
+      - TASK-11
+      - TASK-12
+      - TASK-13
+    body: |-
+      ## Objective
+      Provare che l'incremento non introduce regressioni rispetto alla baseline registrata nel piano e che ogni task risulta `DONE` prima di richiedere la review.
+
+      ## Read
+      - La sezione «Baseline» del corpo di questo piano, per confrontare gli esiti comando per comando.
+      - `.github/workflows/ci.yml` — per confermare che i comandi eseguiti qui coprono gli step di CI rilevanti per questo diff: install, migrate, seed, lint, unit, build, e2e.
+
+      ## Change
+      Nessuna modifica di codice: task di sola esecuzione e verifica.
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire, nell'ordine: `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`.
+      2. Eseguire la suite e2e sulle aree toccate e sulle loro regressioni plausibili: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts tests/e2e/calendario-cache-mesi.spec.ts tests/e2e/calendario-navigazione-reattiva.spec.ts tests/e2e/calendario-salto-mese.spec.ts tests/e2e/rimborso-trasferta-selezione.spec.ts tests/e2e/clienti-abilitati-inserimento.spec.ts tests/e2e/offerte-abilitate-inserimento.spec.ts tests/e2e/feedback-attesa-azioni.spec.ts tests/e2e/calendario-segregazione.spec.ts --retries=0`.
+      3. Confrontare ogni esito con la baseline: nessun comando può passare da verde a rosso, il totale dei test unit non può scendere sotto 607 e nessuna nuova diagnostica può comparire sui file toccati.
+      4. Valutare gli step di CI a lettura: nessuna dipendenza nuova è stata aggiunta a `package.json`, nessuna migrazione Prisma è richiesta perché lo schema non cambia, il seed non è toccato, i nuovi e2e usano solo factory e risorse riservate, e le due nuove route sono dinamiche e quindi non richiedono dati al build.
+      5. Marcare TASK-14 come `DONE` solo dopo che tutti i comandi dei punti 1 e 2 sono verdi.
+      6. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo spec show US-056` e confermare che tutti i task da TASK-01 a TASK-14 risultano `DONE`, senza alcun task ancora `TODO`.
+      7. Solo dopo la conferma del punto 6, eseguire `archetipo spec review US-056`. Non richiedere la review con task ancora aperti.
+
+      ## Verify
+      - Run: `npm run lint && npx tsc --noEmit && npm test && npm run build`
+      - Expect: tutti verdi. Riferimento di baseline: eslint senza errori, messaggio «✅ Guardrail e2e anti-flakiness passed», nessuna diagnostica TypeScript, almeno 607 test unit passati su almeno 38 file, build production completata con `/api/attivita/giornata` e `/api/attivita/contesto-inserimento` fra le rotte dinamiche.
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts tests/e2e/calendario-cache-mesi.spec.ts tests/e2e/calendario-navigazione-reattiva.spec.ts tests/e2e/calendario-salto-mese.spec.ts tests/e2e/rimborso-trasferta-selezione.spec.ts tests/e2e/clienti-abilitati-inserimento.spec.ts tests/e2e/offerte-abilitate-inserimento.spec.ts tests/e2e/feedback-attesa-azioni.spec.ts tests/e2e/calendario-segregazione.spec.ts --retries=0`
+      - Expect: tutti i test dei dieci file verdi al primo tentativo. In particolare `cambio-rapido-giorno-dettaglio.spec.ts` deve restare verde senza modifiche (AC-8) e `calendario-cache-mesi.spec.ts` deve continuare a contare zero richieste sul ritorno a un mese già visitato.
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: `data.ok` a `true`, nessun finding di severità `error`.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 — la suite `tests/e2e/giornata-cache-cambio-giorno.spec.ts` è verde nell'esecuzione di gate.
+      - [ ] AC-8 — `cambio-rapido-giorno-dettaglio.spec.ts` è verde senza alcuna modifica al file e il contratto URL è invariato.
+      - [ ] Nessuna regressione rispetto alla baseline su lint, guardrail e2e, type-check, unit, build e le nove suite e2e adiacenti.
+      - [ ] La valutazione statica degli step di CI non ha individuato passi a rischio.
+      - [ ] `archetipo spec show US-056` conferma tutti i task `DONE`.
+      - [ ] La spec viene portata in review con `archetipo spec review US-056` solo dopo la conferma precedente.
+
+      ## Blockers
+      None.
+    ref: TASK-14
+  - id: TASK-15
+    title: Fix rework — collisione di mese riservato in giornata-cache-cambio-giorno.spec.ts (BLOCCANTE)
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-10
+    body: |-
+      ## Objective
+      La chiave di riservazione dello scenario "cambio account" smette di collidere con il mese vuoto del report fatturazione, e un nuovo controllo statico nel guardrail e2e trasforma qualunque futura collisione fra chiavi riservate in un errore esplicito di `npm run lint`, invece che in un test rosso a distanza.
+
+      ## Read
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts:599` — `const mese = meseRiservato(\`${CODICE_SPEC}-identita\`);` nello scenario "dopo un accesso con un altro account...".
+      - `tests/e2e/support/date.ts` — `hashStabile`, `offsetMeseRiservato` (non esportata), `meseRiservato`, `mesePassatoRiservato`, `MESI_RISERVATI_BASE_OFFSET`, `MESI_RISERVATI_FINESTRA`.
+      - `tests/e2e/support/report-data.ts:59-61` — `meseVuotoReportFatturazioneClienti()` risolve `mesePassatoRiservato("US-023-TASK-08-REPORT-FATTURAZIONE-CLIENTI-VUOTO")` (mesiIndietro di default = 1): è la chiave che collide.
+      - `scripts/check-e2e-guardrails.ts` — struttura esistente: `FORBIDDEN_PATTERNS`, `walk`, `checkSource`, `runSelfTest`, `main`; stile degli allowlist già presenti (`SEED_EMAIL_ALLOWLIST`, `XPATH_ALLOWLIST`).
+      - Riproduzione verificata in planning: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts tests/e2e/report-fatturazione-clienti.spec.ts --retries=0` fallisce su `report-fatturazione-clienti.spec.ts:182` ("un mese riservato senza righe del test mostra lo stato vuoto") perché lo scenario US-056 scrive due righe l'11 del mese 2017-10, lo stesso mese vuoto atteso dal report.
+
+      ## Change
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts`: la sola riga 599, cambiando la chiave.
+      - `tests/e2e/support/date.ts`: aggiungere `export` a `offsetMeseRiservato` (nessun'altra modifica), così il guardrail può calcolare l'offset senza duplicare l'algoritmo dell'hash.
+      - `scripts/check-e2e-guardrails.ts`: aggiungere un secondo controllo, indipendente dai `FORBIDDEN_PATTERNS` esistenti, che analizza tutte le chiamate a `meseRiservato`/`mesePassatoRiservato`/`dataNelMeseRiservato`/`dataNelMesePassatoRiservato` in `tests/e2e/**/*.ts` e fallisce su collisioni non allowlistate.
+
+      Non-goal: non toccare `MESI_RISERVATI_FINESTRA` né alcun'altra chiave riservata usata da altre spec — le nove collisioni pre-esistenti scoperte dal nuovo controllo restano allowlistate, non corrette, perché sono fuori perimetro di questa spec.
+
+      ## Steps
+      1. In `date.ts` aggiungere `export` davanti a `function offsetMeseRiservato`, lasciando corpo e firma invariati.
+      2. In `check-e2e-guardrails.ts` importare `offsetMeseRiservato` da `../tests/e2e/support/date` (percorso relativo da `scripts/`).
+      3. Implementare `estraiCostantiStringa(source: string): Map<string,string>` che risolve, per ogni file, le dichiarazioni locali `const NOME = "letterale";` (anche con `let`) con una regex tipo `/\b(?:const|let)\s+(\w+)\s*(?::\s*string)?\s*=\s*"([^"]*)"/g`.
+      4. Implementare `estraiRiservazioni(relativePath: string, source: string): Array<{ chiave: string; mesiIndietro: number; line: number }>` con una regex che cattura le quattro funzioni: `/\b(meseRiservato|mesePassatoRiservato|dataNelMeseRiservato|dataNelMesePassatoRiservato)\s*\(([^)]*)\)/g`. Per ogni match, dividere gli argomenti sulle virgole di primo livello (non dentro apici) e risolvere il primo argomento: se è un letterale fra apici doppi o singoli, usarlo direttamente; se è un template letterale nella forma `` `${IDENT}suffisso` `` con un solo placeholder a inizio stringa, risolvere `IDENT` con la mappa di `estraiCostantiStringa` e concatenare il suffisso restante; se è un identificatore semplice, risolverlo con la stessa mappa. Se non risolvibile staticamente, scartare la chiamata e stampare una riga informativa su stdout (`⚠️ chiave riservata non risolvibile staticamente: file:line`), senza fallire la build per questo. Calcolare `mesiIndietro`: `meseRiservato`/`dataNelMeseRiservato` ⇒ 0; `mesePassatoRiservato` ⇒ secondo argomento se letterale numerico, altrimenti 1 (default della funzione reale); `dataNelMesePassatoRiservato` ⇒ terzo argomento se letterale numerico, altrimenti 1.
+      5. Calcolare per ogni riservazione risolta `offset = offsetMeseRiservato(chiave) - mesiIndietro` e raggruppare per `offset` in una `Map<number, Array<{chiave, file, line}>>`.
+      6. Definire `COLLISIONI_PREESISTENTI_ALLOWLIST: ReadonlyArray<readonly [string, string]>` con le nove coppie scoperte in planning (non ordinate, confrontare come insieme non ordinato di due chiavi): `["US-036", "US-052-segregazione"]`, `["US-036", "US-031"]`, `["US-051-DEMO-cursore-e-feedback-attesa", "US-056-rientro"]`, `["US-055-DEMO-SALTO-MESE", "US-053-confine"]`, `["US-034", "US-023-TASK-07-REPORT-FATTURAZIONE-CLIENTI-SPEC"]`, `["US-052-cache-identita", "US-056-cronologia"]`, `["US-054-SELEZIONE-RIMBORSO-TRASFERTA", "US-043-DEMO"]`, `["US-049", "US-056-contesto"]`, `["US-056-server", "US-037-ESPANSIONE-SINGOLA"]`. Commentare la lista come le allowlist esistenti: una riga per coppia con la spiegazione "collisione pre-esistente, fuori perimetro di questa spec".
+      7. Per ogni gruppo con più di una chiave **distinta**, verificare se l'insieme delle chiavi coincide con una coppia allowlistata (confronto per coppia non ordinata; un gruppo con più di due chiavi distinte non è mai allowlistabile da una singola coppia e va sempre segnalato). Se non allowlistato, produrre un errore con tutte le chiavi, i file e le righe coinvolte e l'offset condiviso.
+      8. In `main()`, eseguire anche questo controllo dopo quello esistente sui `FORBIDDEN_PATTERNS`; se emette errori, stamparli con lo stesso stile (`❌ ...`) ed uscire con `process.exit(1)`.
+      9. Eseguire `npx tsx scripts/check-e2e-guardrails.ts` **prima** di correggere la riga 599: deve fallire segnalando esattamente la coppia `US-056-identita` / `US-023-TASK-08-REPORT-FATTURAZIONE-CLIENTI-VUOTO` — è la riprova che il controllo funziona sul caso reale che ha causato il rework.
+      10. Correggere la riga 599 in `${CODICE_SPEC}-identita-account` (verificato in planning: offset -22, non presente fra le collisioni allowlistate né fra le altre chiavi note).
+      11. Rieseguire `npx tsx scripts/check-e2e-guardrails.ts`: deve terminare con successo, riportando solo le nove collisioni allowlistate (non più come errori) e nessun'altra.
+
+      ## Verify
+      - Run: `npx tsx scripts/check-e2e-guardrails.ts`
+      - Expect: `✅ Guardrail e2e anti-flakiness passed`, nessuna collisione non allowlistata riportata.
+      - Run: `npm run lint`
+      - Expect: verde, comprensivo del nuovo controllo.
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts tests/e2e/report-fatturazione-clienti.spec.ts --retries=0`
+      - Expect: tutti i test verdi (in planning, prima del fix, `report-fatturazione-clienti.spec.ts:182` falliva; dopo il fix deve passare senza toccare quel file).
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+
+      ## Done
+      - [ ] AC-8 (CI) — la suite e2e non fallisce più per collisione di dati fra spec diverse sullo stesso mese riservato.
+      - [ ] Il guardrail e2e rifiuta esplicitamente qualunque futura collisione di chiave riservata non allowlistata, provato riproducendo l'errore sul caso reale prima della correzione.
+      - [ ] Le nove collisioni pre-esistenti sono documentate nell'allowlist con la loro motivazione, non corrette.
+
+      ## Blockers
+      None.
+    ref: TASK-15
+  - id: TASK-16
+    title: Fix rework — voci di cronologia duplicate su una corsa Giorno successivo/precedente (AC-6)
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-08
+      - TASK-09
+    body: |-
+      ## Objective
+      `commit` non scrive più una voce di cronologia quando l'URL di destinazione coincide già con quello corrente, così qualunque corsa fra intenti di navigazione — non solo quella segnalata — non produce mai una voce duplicata.
+
+      ## Read
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx:163-182` — `commit`, in particolare il blocco `if (intento.registraHistory) { window.history.pushState(...) }`.
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx:465-478` — `navigaVersoGiorno` e `navigaDiGiorni`: la guardia esistente confronta solo `nuovaData === intentoCorrente.current.data`, insufficiente sulla corsa descritta dal reviewer (click su "successivo" verso B, miss in volo, click immediato su "precedente" che ricalcola B-1 = A, diverso dall'intento corrente B, quindi procede anche se l'URL è già A).
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx:184-240` — `vaiA`, per capire quando `commit` viene invocato in hit sincrono vs. dopo un `load` asincrono.
+
+      ## Change
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx`: solo la funzione `commit` (righe 163-182).
+
+      Non-goal: non toccare `navigaVersoGiorno`/`navigaDiGiorni` — la guardia in `commit` è deliberatamente il punto unico dove si scrive la history, quindi copre anche le corse non ancora osservate, senza bisogno di guardie sparse sui singoli chiamanti.
+
+      ## Steps
+      1. In `commit`, prima del blocco `if (intento.registraHistory) { ... }`, calcolare `const urlDestinazione = urlDelGiorno(intento.data);` e `const urlCorrente = window.location.pathname + window.location.search;`.
+      2. Sostituire la condizione con `if (intento.registraHistory && urlDestinazione !== urlCorrente) { window.history.pushState(null, "", urlDestinazione); }`.
+      3. Aggiungere un commento breve che spiega la ragione: un intento che chiede di registrare la cronologia ma la cui destinazione coincide già con l'URL corrente non deve produrre una voce duplicata — caso tipico di una corsa fra intenti opposti dove il secondo intento ricade su un giorno già mostrato.
+      4. Non modificare `navigazioneInVolo.current`, `setGiornataVisualizzata`, `setInCaricamento`, `setErrore`: restano invariati, perché la vista deve comunque riflettere il nuovo intento anche quando la history non viene toccata.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/cache-dati-scheda.test.ts tests/unit/calendario-cache-provider.test.ts`
+      - Expect: verdi, invariati (nessuna cache toccata da questo task).
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+      - Run: `npm run lint`
+      - Expect: verde.
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts --retries=0`
+      - Expect: tutti verdi, incluso lo scenario Indietro/Avanti esistente (`history.length` invariato, comportamento preesistente non toccato dalla guardia aggiuntiva perché quello scenario non coinvolge mai un `pushState` con URL già corrente).
+
+      ## Done
+      - [ ] AC-6 — nessuna voce di cronologia duplicata quando l'URL calcolato dal `commit` coincide già con `window.location.pathname + search`, qualunque sia la sequenza di click che ci arriva.
+      - [ ] Il comportamento esistente di AC-1, AC-2, AC-6 (hit sincrono, miss con indicatore, Back/Forward) resta identico: la guardia interviene solo quando l'URL non cambierebbe.
+
+      ## Blockers
+      None.
+    ref: TASK-16
+  - id: TASK-17
+    title: 'Test rework — e2e: click su Giorno precedente durante un miss verso il giorno successivo non duplica la cronologia'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-16
+    body: |-
+      ## Objective
+      Uno scenario e2e riproduce esattamente la corsa segnalata dal reviewer (click su "Giorno successivo" verso un giorno mai visitato, poi subito click su "Giorno precedente" mentre la risposta è ancora in volo) e prova che `window.history.length` non cresce, verificando così il fix di TASK-16 sul caso reale che lo ha motivato.
+
+      ## Read
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts:76-83` — `cancelloRilasciabile()`, il pattern di attesa controllata dal test.
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts:319-390` — lo scenario "sul giorno mai visitato...", stesso pattern `page.route` + `cancelloRilasciabile` su un endpoint specifico da riusare.
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts:248-317` — lo scenario Indietro/Avanti, per lo stile di asserzione su `window.history.length`.
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx:344-350` — l'effetto di prefetch dei giorni adiacenti dopo ogni commit: il giorno successivo a quello raggiunto da `page.goto` viene prefetchato automaticamente, quindi la richiesta da trattenere è quella del prefetch, non una richiesta scatenata direttamente dal click.
+
+      ## Change
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts`: un nuovo `test(...)` dentro `test.describe("US-056 Cambio giorno servito dalla cache delle giornate", ...)`, dopo lo scenario Indietro/Avanti esistente.
+
+      Non-goal: non modificare gli scenari esistenti né gli helper condivisi (`rispostaGiornata`, `cancelloRilasciabile`, `attendiGiornataIdratata`, `attendiGiornataPopolata`).
+
+      ## Steps
+      1. Riservare `const mese = meseRiservato(\`${CODICE_SPEC}-cronologia-corsa\`);` (verificato in planning: non collide con nessuna chiave nota né con quelle allowlistate da TASK-15).
+      2. `const giornoPartenza = dataNelMese(mese, 15);` e `const giornoSuccessivo = dataNelMese(mese, 16);`.
+      3. Creare un cliente con offerta e popolare `giornoPartenza` con `creaGiornataConDueRighe`; lasciare `giornoSuccessivo` e il giorno precedente a `giornoPartenza` vuoti, come da convenzione del file.
+      4. **Prima** di `accediComeCollaboratore`/`page.goto`, registrare `const cancelloSuccessivo = cancelloRilasciabile();` e `await page.route((url) => url.pathname === "/api/attivita/giornata" && url.searchParams.get("data") === giornoSuccessivo, async (route) => { await cancelloSuccessivo.attesa; await route.continue(); });` — così anche il prefetch automatico verso `giornoSuccessivo` resta trattenuto, non solo un'eventuale richiesta scatenata dal click.
+      5. `await page.goto(\`/attivita/${giornoPartenza}\`)`, `attendiGiornataIdratata`, `attendiGiornataPopolata(page, giornoPartenza, clienteConOfferta)`.
+      6. `const vociCronologiaPrima = await page.evaluate(() => window.history.length);`.
+      7. Click su `page.getByRole("button", { name: "Giorno successivo" })`. Asserire `await expect(page.getByTestId("indicatore-caricamento-giornata")).toBeVisible();` (prova, senza hard wait, che il miss è in corso: la richiesta trattenuta dal prefetch è quella deduplicata dal click, per il single-flight della cache).
+      8. Subito dopo, click su `page.getByRole("button", { name: "Giorno precedente" })`, **senza rilasciare il cancello**.
+      9. Asserire `await expect(intestazioneGiornata(page)).toHaveText(etichettaGiornoAttesa(giornoPartenza), { ignoreCase: true });` e `await expect(page).toHaveURL(\`/attivita/${giornoPartenza}\`);` — il ritorno a `giornoPartenza` è un hit sincrono di cache.
+      10. Asserire `expect(await page.evaluate(() => window.history.length)).toBe(vociCronologiaPrima);` — con il fix di TASK-16 nessuna voce viene aggiunta, perché l'URL di destinazione coincide già con quello corrente.
+      11. Rilasciare il cancello: `cancelloSuccessivo.rilascia();`.
+      12. Asserire che nulla cambia dopo il rilascio: `await expect(page).toHaveURL(\`/attivita/${giornoPartenza}\`);`, `expect(await page.evaluate(() => window.history.length)).toBe(vociCronologiaPrima);`, e che le righe mostrate restino quelle di `giornoPartenza` (`attendiGiornataPopolata`) — la risposta tardiva del giorno abbandonato non deve toccare né vista né cronologia.
+      13. `await page.unroute(...)` sul predicato usato al passo 4.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts --retries=0`
+      - Expect: tutti gli scenari del file verdi, incluso quello nuovo. Senza il fix di TASK-16 il nuovo scenario fallisce sull'asserzione del passo 10 (`history.length` cresciuto di 1); con il fix passa.
+      - Run: `npm run lint`
+      - Expect: verde, guardrail e2e compreso (nessun hard wait, nessuna classe Tailwind, dati da factory su mese riservato).
+
+      ## Done
+      - [ ] AC-6 — la corsa reale segnalata dal reviewer (click "successivo" in miss, click immediato "precedente") è riprodotta e provata a `history.length` invariato, non solo asserita a parole.
+      - [ ] Lo scenario fallisce in modo deterministico se il fix di TASK-16 viene rimosso (verificato eseguendolo su una copia locale di `isola-giornata.tsx` senza la guardia, se necessario per la propria fiducia nel test; non è un passo bloccante per il completamento del task).
+
+      ## Blockers
+      None.
+    ref: TASK-17
+  - id: TASK-18
+    title: Fix rework — unit test del percorso di sessione scaduta sul contenitore reale del provider (AC-7)
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-04
+      - TASK-07
+    body: |-
+      ## Objective
+      Il percorso di sessione scaduta (401/403 tradotti in `ErroreSessioneAttivita`, svuotamento delle tre cache, notifica agli ascoltatori) è provato a livello unit sul contenitore reale del provider, colmando l'unica parte di AC-7 rimasta implementata ma mai verificata da alcun test.
+
+      ## Read
+      - `src/app/(front-office)/attivita/attivita-cache-provider.tsx:212-268` — `creaContenitoreCacheAttivita` (esportata come "cucitura di verifica"), `abbandonaSessione`, `svuotaTutteLeCache`.
+      - `src/app/(front-office)/attivita/attivita-cache-provider.tsx:279-303` — `leggiDaEndpoint`: mappa 401/403/`redirected` su `ErroreSessioneAttivita` e chiama `abbandonaSessione` **prima** di lanciare l'errore.
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx:385-394` — il consumer che, alla notifica di sessione scaduta, esegue `window.location.reload()`: non va replicato nel test, la reviewer indica esplicitamente che la verifica sul provider è sufficiente e più stabile di una verifica e2e su questo ramo.
+      - `tests/unit/cache-dati-scheda.test.ts:329-362` — `describe("Contenitore delle cache dell'area attività", ...)`, in particolare il test esistente che usa `vi.stubGlobal("fetch", ...)` e `creaContenitoreCacheAttivita("sessione-di-prova")`: stesso seam, stesso stile di mock, da riusare invariato.
+
+      ## Change
+      - `tests/unit/cache-dati-scheda.test.ts`: due nuovi `it(...)` dentro `describe("Contenitore delle cache dell'area attività", ...)`, dopo il test esistente. Aggiungere `ErroreSessioneAttivita` all'import già presente da `@/app/(front-office)/attivita/attivita-cache-provider`.
+
+      Non-goal: non testare `window.location.reload()` né montare `isola-giornata.tsx`: il confine da provare è il provider, non il consumer React.
+
+      ## Steps
+      1. `it("una sessione scaduta (401) svuota le tre cache e notifica una sola volta gli ascoltatori di sessione", async () => { ... })`: `vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 401 })));`. Creare `const contenitore = creaContenitoreCacheAttivita("sessione-401");`, registrare `const sessioneNonPiuValida = vi.fn(); contenitore.ascoltatoriSessione.add(sessioneNonPiuValida);`. Seminare le tre cache con dati fittizi del collaboratore proprietario (`giornataFittizia`, `contestoFittizio`, `meseFittizio`, già definite nel file). Asserire `await expect(contenitore.cacheGiornate.load("2026-06-11")).rejects.toBeInstanceOf(ErroreSessioneAttivita);` e, sull'errore catturato con un secondo `try/catch` o `.catch`, che `statusCode` sia `401`. Dopo il rigetto, asserire `contenitore.cacheGiornate.read(...)`, `contenitore.cacheContesto.read()`, `contenitore.cacheMesi.read(...)` tutti `null`, e `sessioneNonPiuValida` chiamato esattamente una volta.
+      2. `it("una sessione con profilo non operativo (403) produce lo stesso abbandono", async () => { ... })`: stessa struttura con `new Response(null, { status: 403 })`, asserendo `statusCode` uguale a `403` e lo stesso svuotamento e la stessa singola notifica.
+      3. In entrambi i test usare `afterEach(() => vi.unstubAllGlobals())`, già presente nel blocco `describe`, quindi non serve ripeterlo.
+      4. Non usare timer reali né `waitFor`: la promise si stabilizza nel prossimo microtask, `await expect(...).rejects...` è sufficiente.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/cache-dati-scheda.test.ts`
+      - Expect: tutti i test verdi, inclusi i due nuovi.
+      - Run: `npm test`
+      - Expect: nessuna regressione; totale maggiore o uguale a 668 test (baseline di rework), tutti verdi.
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+
+      ## Done
+      - [ ] AC-7 — il ramo "su sessione scaduta la pagina esegue una navigazione completa" è ora coperto nella sua parte di rilevazione (401/403 ⇒ `ErroreSessioneAttivita` ⇒ svuotamento e notifica), a livello unit sul contenitore reale, non su una sua ricostruzione.
+      - [ ] La notifica agli ascoltatori resta singola per l'intera scheda, provato leggendo il numero di chiamate, non solo che sia stata invocata.
+
+      ## Blockers
+      None.
+    ref: TASK-18
+  - id: TASK-19
+    title: Fix rework — revalida non risolve più con un dato che la guardia d'identità ha rifiutato
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-04
+      - TASK-08
+    body: |-
+      ## Objective
+      `CacheDatiScheda.revalida` rigetta con un errore esplicito quando la guardia d'identità rifiuta la scrittura della risposta appena arrivata, invece di risolvere comunque con quel dato: il contratto della cache smette di essere fail-open proprio nel punto che esiste per essere fail-closed, per la cache delle giornate come per quella dei mesi, che eredita lo stesso metodo.
+
+      ## Read
+      - `src/app/(front-office)/attivita/cache-dati-scheda.ts:302-329` — `revalida`, in particolare `.then((dati) => { if (epoca invariata) { this.scrivi(chiave, dati); } return dati; })`: `scrivi` può rifiutare silenziosamente (riga 356-374, `if (!this.guardia.verifica(...)) return;`) mentre `revalida` risolve comunque.
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx:213-237` — `vaiA`, ramo miss: `cacheGiornate.load(destinazione)` propaga direttamente la promise di `revalida` quando la voce non è in cache; il `.catch` a riga 223-236 ignora oggi solo `ErroreSessioneAttivita`.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx:184-211` — lo stesso pattern `vaiA`/`commit`/`.catch` per il calendario mensile, che eredita lo stesso `CacheDatiScheda.revalida` tramite `CacheCalendarioMesi`: la stessa lacuna esiste già lì, segnalato dal reviewer come nota a margine di AC-7.
+      - `tests/unit/cache-dati-scheda.test.ts:184-226` (`cacheGiornate.load("2026-06-11")).resolves.toEqual(giornataDiAltri)`), `:228-272` (`cacheMesi.load("2026-07")).resolves.toEqual(meseDiAltri)`), `:334-361` (`contenitore.cacheMesi.load("2026-07")).resolves.toEqual(meseDiAltri)`): le tre asserzioni che oggi provano — e quindi fissano come contratto — il comportamento fail-open che questo task corregge.
+
+      ## Change
+      - `src/app/(front-office)/attivita/cache-dati-scheda.ts`: `scrivi` (righe 356-374) e `revalida` (righe 302-329); nuova classe esportata `ErroreIdentitaSchedaCambiata`.
+      - `src/app/(front-office)/attivita/attivita-cache-provider.tsx`: re-esportare `ErroreIdentitaSchedaCambiata` accanto a `ErroreSessioneAttivita`.
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx`: import e catch di `vaiA` (riga ~226).
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx`: import e catch di `vaiA` (riga ~202).
+      - `tests/unit/cache-dati-scheda.test.ts`: le tre asserzioni elencate sopra, più l'import di `ErroreIdentitaSchedaCambiata`.
+
+      Non-goal: non toccare `load` né `prefetch`, che già ignorano gli errori di `revalida` con un `.catch(() => undefined)` e restano corretti così; non toccare `seed`, che ignora il valore di ritorno di `scrivi` per costruzione (la semina iniziale non ha un chiamante da far fallire).
+
+      ## Steps
+      1. In `cache-dati-scheda.ts`, dopo la classe `GuardiaIdentitaScheda`, aggiungere:
+         ```ts
+         /**
+          * Il caricatore ha risposto con dati di un'altra identità: la guardia ha già
+          * svuotato tutte le cache della scheda e notificato il cambio. La scrittura è
+          * stata rifiutata — nessun chiamante di `revalida` deve ricevere quel dato
+          * come se fosse stato scritto.
+          */
+         export class ErroreIdentitaSchedaCambiata extends Error {
+           constructor() {
+             super(
+               "La risposta appartiene a un'altra identità: scrittura rifiutata dalla guardia della scheda."
+             );
+             this.name = "ErroreIdentitaSchedaCambiata";
+           }
+         }
+         ```
+      2. Cambiare la firma di `scrivi` da `private scrivi(chiave: string, dati: T): void` a `private scrivi(chiave: string, dati: T): boolean`; nel ramo di rifiuto della guardia, `return false;` al posto di `return;`; alla fine del metodo (dopo `this.notifica(chiave);`), `return true;`.
+      3. In `revalida`, nel `.then`, sostituire
+         ```ts
+         if ((this.epoche.get(chiave) ?? 0) === epocaAllAvvio) {
+           this.scrivi(chiave, dati);
+         }
+         return dati;
+         ```
+         con
+         ```ts
+         if ((this.epoche.get(chiave) ?? 0) === epocaAllAvvio) {
+           if (!this.scrivi(chiave, dati)) {
+             throw new ErroreIdentitaSchedaCambiata();
+           }
+         }
+         return dati;
+         ```
+         Il ramo "epoca cambiata" (invalidazione in volo) resta invariato: non chiama `scrivi`, quindi non lancia mai questo errore.
+      4. In `attivita-cache-provider.tsx`, cambiare `import { GuardiaIdentitaScheda } from "./cache-dati-scheda";` in `import { ErroreIdentitaSchedaCambiata, GuardiaIdentitaScheda } from "./cache-dati-scheda";` e aggiungere `export { ErroreIdentitaSchedaCambiata };` accanto alla dichiarazione/esportazione esistente di `ErroreSessioneAttivita`.
+      5. In `isola-giornata.tsx`, aggiungere `ErroreIdentitaSchedaCambiata` all'import da `"../attivita-cache-provider"` e, nel `.catch` di `vaiA` (riga ~226), aggiungere subito dopo `if (causa instanceof ErroreSessioneAttivita) return;` la riga `if (causa instanceof ErroreIdentitaSchedaCambiata) return;` con un commento che spiega: la guardia ha già svuotato le cache e sta per far ricaricare la pagina tramite il canale di sessione, qui non c'è nulla di recuperabile da mostrare.
+      6. Applicare la stessa modifica a `calendario-mensile.tsx` (import + riga equivalente nel proprio `.catch`, riga ~202).
+      7. In `tests/unit/cache-dati-scheda.test.ts`, aggiungere `ErroreIdentitaSchedaCambiata` all'import da `@/app/(front-office)/attivita/cache-dati-scheda`.
+      8. Sostituire `await expect(cacheGiornate.load("2026-06-11")).resolves.toEqual(giornataDiAltri);` (riga ~205) con `await expect(cacheGiornate.load("2026-06-11")).rejects.toBeInstanceOf(ErroreIdentitaSchedaCambiata);` — le asserzioni successive dello stesso test (cache vuote, guardia azzerata, notifica singola) restano invariate, perché lo svuotamento avviene sincronamente dentro `scrivi` prima del rigetto.
+      9. Stessa sostituzione per `await expect(cacheMesi.load("2026-07")).resolves.toEqual(meseDiAltri);` (riga ~254) e per `await expect(contenitore.cacheMesi.load("2026-07")).resolves.toEqual(meseDiAltri,);` (righe ~352-354).
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/cache-dati-scheda.test.ts`
+      - Expect: tutti i test verdi con le tre asserzioni aggiornate; nessun altro test del file cambia esito.
+      - Run: `npm test`
+      - Expect: nessuna regressione; totale maggiore o uguale a quello di TASK-18, tutti verdi.
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica sui cinque file toccati.
+      - Run: `npm run lint`
+      - Expect: verde.
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts tests/e2e/calendario-cache-mesi.spec.ts --retries=0`
+      - Expect: tutti verdi — in particolare gli scenari di cambio account di entrambi i file, che ora attraversano il ramo di rigetto appena introdotto tramite il `.catch` aggiornato, devono continuare a mostrare la sola navigazione completa, senza messaggio di errore recuperabile.
+
+      ## Done
+      - [ ] Robustezza della guardia d'identità — `revalida` non risolve più con un dato che la guardia ha appena dichiarato illeggibile; le tre asserzioni preesistenti che fissavano il comportamento fail-open ora provano il comportamento fail-closed.
+      - [ ] AC-7 — il cambio account nella stessa finestra continua a mostrare solo la navigazione completa, sia per la giornata sia per il mese, provato dalla suite e2e esistente dopo l'aggiornamento dei due `.catch`.
+      - [ ] Nessuna nuova diagnostica TypeScript o eslint sui cinque file toccati.
+
+      ## Blockers
+      None.
+    ref: TASK-19
+  - id: TASK-20
+    title: 'Fix rework — Wiki domains/attivita.md: correggere il conteggio e la descrizione degli scenari e2e (riga 168)'
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-17
+    body: |-
+      ## Objective
+      La sezione Verifica di `docs/wiki/domains/attivita.md` descrive fedelmente gli undici scenari reali di `tests/e2e/giornata-cache-cambio-giorno.spec.ts`, non otto, includendo i tre comportamenti osservabili oggi omessi.
+
+      ## Read
+      - `docs/wiki/domains/attivita.md:168` — frase corrente: "Gli otto scenari provano..." seguita da una descrizione che ne copre solo otto.
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts` — undici `test(...)` reali (verificato in planning con `grep -c "  test("`): righe 177, 248, 319, 392, 469, 511, 595, 681, 707, 770, 840. I tre non descritti dalla pagina sono ai titoli delle righe 681, 707, 770: "il selettore data svuotato torna a descrivere il giorno mostrato", "il rientro nell'isola da un'altra rotta mostra il giorno dell'URL, non quello dell'albero ripristinato", "una risposta tardiva arrivata dopo l'uscita dall'isola non riscrive URL e cronologia".
+      - `docs/wiki/decisions/cache-client-calendario-collaboratore.md:185-187` — la stessa evidenza è già descritta correttamente lì ("undici scenari", con i tre scenari URL/cronologia descritti separatamente al paragrafo "URL e vista non si contraddicono mai"): riusare lo stesso taglio descrittivo per coerenza fra le due pagine.
+
+      ## Change
+      - `docs/wiki/domains/attivita.md`: solo il paragrafo alla riga 168 (sezione `<!-- archetipo:wiki section=verification -->`).
+
+      Non-goal: non toccare la riga 166 (task separato) né la riga 120 (task separato), anche se nello stesso file.
+
+      ## Steps
+      1. Sostituire "Gli otto scenari provano" con "Gli undici scenari provano".
+      2. Alla fine dell'elenco esistente (dopo "...serviti dal server con il contratto URL invariato"), prima della frase "Le attese nascono sempre da...", aggiungere una clausola che descrive i tre scenari mancanti, sul modello della pagina di decisione: il selettore data svuotato che torna a descrivere il giorno effettivamente mostrato invece di restare a metà; il rientro nell'isola da un'altra rotta (Indietro dal calendario) che mostra il giorno dell'URL e non quello dell'albero RSC ripristinato dal router; una risposta trattenuta e rilasciata dopo che l'utente ha già lasciato l'isola, che non riscrive né l'URL né la cronologia.
+      3. Non modificare nessun'altra frase del paragrafo.
+
+      ## Verify
+      - Run: `git -C . diff --stat docs/wiki/domains/attivita.md` (dalla working copy del worktree)
+      - Expect: una sola porzione di riga modificata all'interno del paragrafo della riga 168, nessun'altra riga del file toccata.
+      - Manuale: confrontare il testo aggiornato con l'elenco dei titoli `test(...)` di `giornata-cache-cambio-giorno.spec.ts` — ogni titolo deve trovare corrispondenza in una frase della pagina.
+
+      ## Done
+      - [ ] La pagina dichiara "undici scenari", numero verificabile con `grep -c "  test(" tests/e2e/giornata-cache-cambio-giorno.spec.ts`.
+      - [ ] I tre scenari prima omessi (selettore svuotato, rientro da altra rotta, risposta tardiva dopo l'uscita) sono descritti nel paragrafo.
+
+      ## Blockers
+      None.
+    ref: TASK-20
+  - id: TASK-21
+    title: 'Fix rework — Wiki domains/attivita.md: delimitare il contratto 400 alle sole route parametriche (riga 120)'
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-20
+    body: |-
+      ## Objective
+      `docs/wiki/domains/attivita.md` non afferma più che tutte e tre le nuove route rispondono `400` su parametro assente o malformato: la pagina distingue esplicitamente `giornata` e `offerte-cliente`, che hanno un parametro, da `contesto-inserimento`, che non ne dichiara alcuno e quindi non ha un caso `400`, eliminando la contraddizione con quanto la stessa pagina afferma già correttamente alla riga 170.
+
+      ## Read
+      - `docs/wiki/domains/attivita.md:120` — frase corrente: "Tutte e tre derivano **sempre** il collaboratore dalla sessione server e non accettano alcun identificativo dal browser: l'unico parametro ammesso è la risorsa da guardare (`data`, oppure `cliente`). Rispondono `400` su parametro assente o malformato — rilevato prima di interrogare il read model — `401` senza sessione, `403` con profilo non operativo, `200` con il DTO; nessun dettaglio dell'errore interno esce dal confine."
+      - `docs/wiki/domains/attivita.md:170` — frase che già afferma correttamente "la route del contesto non dichiara alcun parametro di richiesta": è il riferimento con cui la riga 120 deve restare coerente.
+      - `src/app/api/attivita/giornata/route.ts` — `400` su `data` assente o non `YYYY-MM-DD`.
+      - `src/app/api/attivita/contesto-inserimento/route.ts` — nessun parametro, nessun ramo `400`: solo 401/403/200/500.
+      - `src/app/api/attivita/offerte-cliente/route.ts` — `400` su `cliente` assente, vuoto o di soli spazi.
+
+      ## Change
+      - `docs/wiki/domains/attivita.md`: solo la frase alla riga 120.
+
+      Non-goal: non toccare la riga 166 né la riga 168, corrette da altri task su questo stesso file.
+
+      ## Steps
+      1. Sostituire la frase indicata con: "Tutte e tre derivano **sempre** il collaboratore dalla sessione server e non accettano alcun identificativo dal browser: `giornata` e `offerte-cliente` accettano un solo parametro ciascuna (rispettivamente `data` e `cliente`) e rispondono `400` su quel parametro assente o malformato — rilevato prima di interrogare il read model; `contesto-inserimento` non dichiara alcun parametro di richiesta e non ha quindi un caso `400`. Tutte e tre rispondono `401` senza sessione, `403` con profilo non operativo, `200` con il DTO; nessun dettaglio dell'errore interno esce dal confine."
+      2. Non modificare il resto del paragrafo (intestazioni private, `Vary: Cookie`, staleness).
+
+      ## Verify
+      - Manuale: la riga 120 e la riga 170 (post-rinumerazione dovuta a TASK-20) non si contraddicono più — entrambe affermano che `contesto-inserimento` non ha parametri né un caso 400.
+      - Manuale: la frase aggiornata corrisponde esattamente al comportamento dei tre file route letti sopra.
+
+      ## Done
+      - [ ] La pagina non afferma più un `400` per `contesto-inserimento`.
+      - [ ] La pagina distingue esplicitamente quale parametro genera il `400` per ciascuna delle due route che lo hanno.
+
+      ## Blockers
+      None.
+    ref: TASK-21
+  - id: TASK-22
+    title: 'Fix rework — Wiki domains/attivita.md: aggiornare la descrizione della copertura di tests/unit/attivita.test.ts (riga 166)'
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-21
+    body: |-
+      ## Objective
+      La sezione Verifica descrive la copertura reale e attuale di `tests/unit/attivita.test.ts`, includendo le letture autorizzate di giornata e contesto di inserimento introdotte da questa spec (circa 350 righe aggiunte da TASK-02), non solo il filtro delle due query preesistenti.
+
+      ## Read
+      - `docs/wiki/domains/attivita.md:166` — frase corrente: "...e il filtro delle query `offerteAbilitatePerCliente` e `clientiAttiviPerSelezione` (`tests/unit/attivita.test.ts`, dove il payload Prisma esatto e la guardia `ErroreAutorizzazione` sono asseriti per entrambe)."
+      - `tests/unit/attivita.test.ts` — i due nuovi blocchi `describe` aggiunti da TASK-02 per `righeDelGiornoPerCollaboratoreAutorizzato` e `contestoInserimentoPerCollaboratoreAutorizzato`: payload Prisma, formato del DTO, comportamento su data malformata (righe vuote senza interrogare il database), assenza di risoluzione di sessione.
+
+      ## Change
+      - `docs/wiki/domains/attivita.md`: solo la frase alla riga 166, all'interno del paragrafo più ampio della sezione Verifica.
+
+      Non-goal: non toccare le altre frasi dello stesso paragrafo (calendario, e2e, cache); non toccare le righe 120, 168, già corrette da altri task.
+
+      ## Steps
+      1. Dopo "...dove il payload Prisma esatto e la guardia `ErroreAutorizzazione` sono asseriti per entrambe)", aggiungere: ", oltre alle due letture autorizzate della giornata introdotte da questa spec: `righeDelGiornoPerCollaboratoreAutorizzato` (payload Prisma e DTO serializzato, `righe` vuoto senza interrogare il database su una data malformata o civilmente non valida, nessuna risoluzione di sessione) e `contestoInserimentoPerCollaboratoreAutorizzato` (payload di clienti e voci di rimborso, `collaboratoreId` riportato nel DTO)."
+      2. Lasciare invariato il resto della frase e del paragrafo.
+
+      ## Verify
+      - Manuale: confrontare la frase aggiornata con i blocchi `describe` reali di `tests/unit/attivita.test.ts` aggiunti da TASK-02 — ogni comportamento citato deve trovare un test corrispondente.
+
+      ## Done
+      - [ ] La pagina non descrive più `tests/unit/attivita.test.ts` come se coprisse solo le due query preesistenti.
+      - [ ] La descrizione aggiunta corrisponde ai test realmente presenti nel file dopo TASK-02.
+
+      ## Blockers
+      None.
+    ref: TASK-22
+  - id: TASK-23
+    title: 'Fix rework — Wiki decisions/cache-client-calendario-collaboratore.md: distinguere il contratto 400 e l''id passato alla lettura per ciascuna route (riga 191)'
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-22
+    body: |-
+      ## Objective
+      La pagina di decisione non generalizza più a "tutte e tre le nuove route" un comportamento (400, id passato alla lettura) che in realtà differisce da route a route: distingue `giornata`/`contesto-inserimento` (a cui viene passato l'id del profilo risolto dal DAL) da `offerte-cliente` (a cui viene passato il solo id cliente della query, mentre il collaboratore è risolto internamente dalla lettura), e limita il `400` alle sole due route con un parametro.
+
+      ## Read
+      - `docs/wiki/decisions/cache-client-calendario-collaboratore.md:191` — frase corrente: "`tests/unit/attivita-giornata-routes.test.ts` copre con DAL mockato tutte e tre le nuove route — `giornata`, `contesto-inserimento` e `offerte-cliente` — sugli esiti 400 su parametro assente o malformato senza interrogare il read model, 401 su sessione assente, 403 su profilo assente o disattivato, 200 sul percorso felice, intestazioni `private, no-store` e `Vary: Cookie`, e il fatto che l'unico id passato alla lettura sia quello del profilo risolto dal DAL."
+      - `src/app/api/attivita/offerte-cliente/route.ts` — passa a `offerteAbilitatePerCliente(clienteId)` il solo id cliente della query; il collaboratore non è un parametro della funzione.
+      - `src/lib/attivita.ts:419-428` — `offerteAbilitatePerCliente` risolve internamente `richiediCollaboratoreCorrente()`: nessuna identità di collaboratore arriva dal chiamante HTTP.
+      - `tests/unit/attivita-giornata-routes.test.ts:217` (`"legge la giornata esclusivamente con l'id del profilo risolto dal DAL"`), `:350` (`"legge il contesto esclusivamente con l'id del profilo risolto dal DAL"`), `:579` (`"legge le offerte con il solo id cliente della query, senza alcuna identità proveniente dal browser"`) — i tre titoli reali, che già distinguono correttamente il caso `offerte-cliente` dagli altri due.
+
+      ## Change
+      - `docs/wiki/decisions/cache-client-calendario-collaboratore.md`: solo la frase alla riga 191.
+
+      ## Steps
+      1. Sostituire la frase con: "`tests/unit/attivita-giornata-routes.test.ts` copre con DAL mockato tutte e tre le nuove route — `giornata`, `contesto-inserimento` e `offerte-cliente` — su 401 su sessione assente, 403 su profilo assente o disattivato, 200 sul percorso felice e le intestazioni `private, no-store` e `Vary: Cookie`. `giornata` e `offerte-cliente` rispondono inoltre 400 sul proprio parametro (`data`, `cliente`) assente o malformato, rilevato prima di interrogare il read model; `contesto-inserimento` non dichiara alcun parametro e non ha quindi un caso 400. La sicurezza è provata in modo specifico per ciascuna route: `giornata` e `contesto-inserimento` passano alla propria lettura esclusivamente l'id del profilo risolto dal DAL, mentre `offerte-cliente` passa alla lettura il solo id cliente ricevuto dalla query — il collaboratore non viaggia mai dal browser, perché la lettura lo risolve internamente dalla sessione."
+      2. Non modificare il resto della sezione "Confini dati delle nuove route" né le sezioni circostanti.
+
+      ## Verify
+      - Manuale: la frase aggiornata corrisponde esattamente ai tre titoli di test citati sopra e al codice delle tre route.
+      - Manuale: nessuna contraddizione residua con `docs/wiki/domains/attivita.md` dopo TASK-21 (stessa distinzione fra le route, stesso perimetro del 400).
+
+      ## Done
+      - [ ] La pagina non generalizza più il 400 a `contesto-inserimento`.
+      - [ ] La pagina distingue esplicitamente quale id viaggia verso la lettura per ciascuna delle tre route, coerentemente con `offerteAbilitatePerCliente` che risolve il collaboratore internamente.
+
+      ## Blockers
+      None.
+    ref: TASK-23
+  - id: TASK-24
+    title: Gate finale di rework — nessuna regressione, nessuna nuova diagnostica, tutti i task DONE prima della review
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-15
+      - TASK-16
+      - TASK-17
+      - TASK-18
+      - TASK-19
+      - TASK-20
+      - TASK-21
+      - TASK-22
+      - TASK-23
+    body: |-
+      ## Objective
+      L'intero lavoro di rework (TASK-15..23) è verificato insieme al lavoro preesistente (TASK-01..14): nessuna regressione rispetto alla baseline di rework, nessuna nuova diagnostica sui file toccati, e tutti i 24 task risultano `DONE` prima di richiedere una nuova review.
+
+      ## Read
+      - Baseline di rework misurata in planning su questo stesso worktree (`d38d4cc`, prima di TASK-15..23): `npm run lint` verde, `npx tsc --noEmit` senza diagnostica, `npm test` 40 file / 668 test verdi, `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts tests/e2e/report-fatturazione-clienti.spec.ts --retries=0` con **2 fallimenti** (la collisione BLOCCANTE e il timeout correlato in `giornata-cache-cambio-giorno.spec.ts:595`, entrambi riconducibili alla stessa collisione di mese riservato).
+      - `.github/workflows/ci.yml` — passi di install, prisma migrate/seed, lint, unit test, build, e2e, per l'impatto CI statico richiesto da `archetipo-review`.
+
+      ## Change
+      Nessuna modifica di codice: questo task esegue soltanto verifiche.
+
+      ## Steps
+      1. Eseguire nell'ordine i comandi della sezione Verify.
+      2. Se un comando fallisce in un modo non già coperto da TASK-15..23, il gate non va marcato `DONE`: tornare al task pertinente, non introdurre qui una correzione non pianificata.
+      3. Dopo che tutti i comandi passano, eseguire `archetipo spec show US-056` da `data.project_root` (`/Users/smarello/repo/coaching-planner`, non dal worktree) e verificare che `data.tasks` non contenga alcun task con `status` diverso da `DONE`.
+      4. Solo dopo il passo 3, marcare questo task come `DONE` e — non prima — è lecito eseguire `archetipo spec review US-056` per richiedere una nuova review.
+
+      ## Verify
+      - Run: `npm run lint` (da `.archetipo/worktrees/US-056`)
+      - Expect: verde, incluso il nuovo controllo di collisione di TASK-15 (nessuna collisione non allowlistata).
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+      - Run: `npm test`
+      - Expect: 40 file verdi con almeno 668 + i nuovi test di TASK-18 (2) più eventuali assestamenti di TASK-19 (nessun test rimosso, solo asserzioni aggiornate) — nessuna regressione rispetto alla baseline di rework.
+      - Run: `npm run build`
+      - Expect: build di produzione completata senza errori, con `/attivita`, `/attivita/[data]`, `/api/attivita/calendario`, `/api/attivita/giornata`, `/api/attivita/contesto-inserimento`, `/api/attivita/offerte-cliente` elencate come dinamiche (`ƒ`).
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts tests/e2e/report-fatturazione-clienti.spec.ts tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts tests/e2e/calendario-cache-mesi.spec.ts --retries=0`
+      - Expect: tutti verdi — in particolare i due test che fallivano nella baseline di rework (`report-fatturazione-clienti.spec.ts:182` e `giornata-cache-cambio-giorno.spec.ts:595`) ora passano, e nessun altro file di questo elenco regredisce.
+      - Run: `archetipo spec show US-056` (da `/Users/smarello/repo/coaching-planner`)
+      - Expect: `data.tasks` con tutti i 24 task in stato `DONE`, nessuno `TODO`.
+
+      ## Done
+      - [ ] AC-1..AC-8 — tutti gli scenari e2e di `giornata-cache-cambio-giorno.spec.ts` e la suite di non regressione `cambio-rapido-giorno-dettaglio.spec.ts` sono verdi nello stesso run.
+      - [ ] Nessuna regressione rispetto alla baseline di rework su lint, tsc, unit test, build.
+      - [ ] `archetipo spec show US-056` conferma tutti i task `DONE` prima che questo gate venga marcato tale.
+
+      ## Blockers
+      None.
+    ref: TASK-24
+  - id: TASK-25
+    title: Fix rework — race di rinnovo sessione fra prefetch giorni adiacenti e switch account rende AC-7 non deterministico
+    type: Fix
+    status: DONE
+    dependencies:
+      - TASK-24
+    body: |-
+      ## Objective
+      Lo scenario e2e "dopo un accesso con un altro account il dettaglio giorno non mostra i dati del collaboratore precedente" (AC-7) diventa deterministico: attendendo le risposte dei due prefetch dei giorni adiacenti prima dello switch di sessione si elimina la race per cui il rinnovo sliding del cookie, innescato da quelle risposte tardive, può resuscitare la sessione del primo collaboratore dopo lo switch.
+
+      ## Read
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts:673-737` — lo scenario, con lo switch di sessione via `fetch("/api/e2e-test/sessione")` alle righe 715-722 e l'oracolo di navigazione completa alle righe 726-737.
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts:98-106` — helper `rispostaGiornata(page, data)`, già usato altrove nella stessa suite (righe 201-206) per attendere la risposta di un prefetch prima di procedere.
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx:358-362` — l'effetto che avvia, subito dopo il commit del giorno mostrato, il prefetch dei due giorni adiacenti (`giornoSpostatoDi(giornoVisualizzato, -1)` e `(+1)`) tramite `cacheGiornate.prefetch`.
+      - `src/proxy.ts:44-52` — `verificaERinnovaTokenSessione` + `applicaRinnovo`: ogni richiesta protetta (comprese le GET di prefetch) rinnova e re-imposta il cookie di sessione in base al cookie con cui la richiesta è partita, non a quello attualmente nel browser.
+      - Diagnosi riprodotta in planning: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts -g "dopo un accesso con un altro account" --repeat-each=3 --retries=0` fallisce in modo intermittente (1 fallimento su 3 osservato in planning) con `page.waitForResponse: Test timeout of 30000ms exceeded` sull'oracolo di navigazione documentale, perché i due prefetch avviati al mount con il cookie del primo collaboratore sono ancora in volo quando lo switch avviene.
+
+      ## Change
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts`: solo lo scenario alle righe 673-737 ("dopo un accesso con un altro account..."). Nessun'altra riga del file, nessun file di produzione.
+
+      Non-goal: non modificare `src/proxy.ts` né la politica di rinnovo sliding della sessione — è trasversale a ogni rotta protetta dell'app e cambiarla eccede il perimetro di un fix mirato a questo scenario e2e; la correzione qui applicata è quella esplicitamente proposta come alternativa dal reviewer (rendere il test deterministico attendendo i prefetch) e ricalca un pattern già presente nella stessa suite.
+
+      ## Steps
+      1. Subito dopo `await accediComeCollaboratore(page, primoCollaboratore.utente.email);` (riga 705) e prima di `page.goto`, registrare due promise con l'helper esistente `rispostaGiornata`: una per `dataNelMese(mese, 10)` (il giorno precedente a `giornoCondiviso`) e una per `dataNelMese(mese, 12)` (il giorno successivo) — `giornoCondiviso` è `dataNelMese(mese, 11)`, quindi 10 e 12 sono esattamente i due giorni che l'effetto di prefetch dell'isola richiede al mount.
+      2. Dopo `page.goto`, `attendiGiornataIdratata` e l'asserzione sul contenuto del primo collaboratore (righe 706-710, invariate), attendere `Promise.all` delle due promise registrate al passo 1, prima del blocco che esegue lo switch di sessione (riga 715).
+      3. Non toccare il blocco dello switch di sessione (715-722) né l'oracolo di navigazione documentale (726-737): la correzione riguarda solo il momento in cui lo switch viene eseguito, non il suo meccanismo.
+      4. Aggiungere un breve commento che spiega perché si attendono questi due prefetch (rinnovo sliding del cookie che potrebbe resuscitare la sessione precedente se le loro risposte arrivassero dopo lo switch), così un lettore futuro non li rimuova come codice morto.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts -g "dopo un accesso con un altro account" --repeat-each=10 --retries=0`
+      - Expect: 10 esecuzioni su 10 verdi. Baseline prima del fix (misurata in planning): fallimento intermittente, 1 caso su 3 in `--repeat-each=3`, sempre con lo stesso timeout — non è un comando già rosso in modo stabile, è la stessa intermittenza segnalata dal reviewer (5/5 fallimenti nel suo ambiente), quindi il gate richiede ripetizioni multiple e non una singola esecuzione verde.
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts --retries=0`
+      - Expect: tutti i 12 scenari del file verdi nello stesso run (verificato in planning: 12 passed).
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+      - Run: `npm run lint`
+      - Expect: eslint senza errori e messaggio «✅ Guardrail e2e anti-flakiness passed» (obbligatorio dopo una modifica e2e per AGENTS.md).
+
+      ## Done
+      - [ ] AC-7 — lo scenario "cambio account nella stessa finestra" è verde in modo ripetibile su almeno 10 esecuzioni consecutive, non intermittente.
+      - [ ] Nessuna modifica a `src/proxy.ts` o ad altro codice di produzione: il fix resta contenuto nel file di test.
+      - [ ] Nessuna nuova diagnostica TypeScript o eslint sul file toccato.
+
+      ## Blockers
+      None.
+    ref: TASK-25
+  - id: TASK-26
+    title: Gate finale del secondo giro di rework — determinismo di AC-7, nessuna regressione, tutti i task DONE prima della review
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-24
+      - TASK-25
+    body: |-
+      ## Objective
+      Il secondo giro di rework (TASK-25) è verificato insieme a tutto il lavoro preesistente (TASK-01..24): nessuna regressione rispetto alla baseline, nessuna nuova diagnostica sui file toccati, e tutti i 26 task risultano `DONE` prima di richiedere una nuova review.
+
+      ## Read
+      - Baseline misurata in planning su questo stesso worktree (`a6b722a`, prima di TASK-25): `npm run lint` verde (con gli stessi 8 avvisi non bloccanti già presenti su `date.ts`/`report-data.ts`), `npx tsc --noEmit` senza diagnostica, `npm test` 40 file / 670 test verdi, `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts -g "dopo un accesso con un altro account" --repeat-each=3 --retries=0` con 1 fallimento su 3 (la race BLOCCANTE di questo giro di rework).
+      - `.github/workflows/ci.yml` — passi di install, prisma migrate/seed, lint, unit test, build, e2e, per l'impatto CI statico richiesto da `archetipo-review`. Nessun passo diverso da Lint ed E2E è a rischio: questo giro tocca solo un file di test, nessuna dipendenza nuova, nessuna migrazione, nessun seed toccato.
+
+      ## Change
+      Nessuna modifica di codice: questo task esegue soltanto verifiche.
+
+      ## Steps
+      1. Eseguire nell'ordine i comandi della sezione Verify.
+      2. Se un comando fallisce in un modo non già coperto da TASK-25, il gate non va marcato `DONE`: tornare al task pertinente, non introdurre qui una correzione non pianificata.
+      3. Dopo che tutti i comandi passano, eseguire `archetipo spec show US-056` da `data.project_root` (`/Users/smarello/repo/coaching-planner`, non dal worktree) e verificare che `data.tasks` non contenga alcun task con `status` diverso da `DONE`.
+      4. Solo dopo il passo 3, marcare questo task come `DONE` e — non prima — è lecito eseguire `archetipo spec review US-056` per richiedere una nuova review.
+
+      ## Verify
+      - Run: `npm run lint` (da `.archetipo/worktrees/US-056`)
+      - Expect: verde, «✅ Guardrail e2e anti-flakiness passed».
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica.
+      - Run: `npm test`
+      - Expect: almeno 40 file e 670 test verdi, nessuna regressione rispetto alla baseline di questo giro di rework.
+      - Run: `npm run build`
+      - Expect: build di produzione completata senza errori, con le stesse rotte dinamiche già confermate nei gate precedenti.
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts -g "dopo un accesso con un altro account" --repeat-each=10 --retries=0`
+      - Expect: 10 esecuzioni su 10 verdi — è il caso che falliva in modo intermittente nella baseline di questo giro di rework.
+      - Run: `npx playwright test tests/e2e/giornata-cache-cambio-giorno.spec.ts tests/e2e/report-fatturazione-clienti.spec.ts tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts tests/e2e/calendario-cache-mesi.spec.ts --retries=0`
+      - Expect: tutti verdi, nessuna regressione rispetto al gate di rework precedente (TASK-24).
+      - Run: `archetipo spec show US-056` (da `/Users/smarello/repo/coaching-planner`)
+      - Expect: `data.tasks` con tutti i 26 task in stato `DONE`, nessuno `TODO`.
+
+      ## Done
+      - [ ] AC-7 — lo scenario "cambio account nella stessa finestra" è verde in modo ripetibile, non intermittente.
+      - [ ] AC-1..AC-6, AC-8 — nessuna regressione rispetto al gate di rework precedente.
+      - [ ] `archetipo spec show US-056` conferma tutti i 26 task `DONE` prima che questo gate venga marcato tale.
+
+      ## Blockers
+      None.
+    ref: TASK-26

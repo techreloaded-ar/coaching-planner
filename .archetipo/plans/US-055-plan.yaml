@@ -1,0 +1,292 @@
+schema: archetipo/plan/v2
+spec_code: US-055
+body: |
+  ## Soluzione tecnica
+
+  ### Stato di partenza accertato (ricognizione del 4 agosto 2026)
+
+  Verifiche eseguite su `data.workdir` = `/Users/smarello/repo/coaching-planner` (nessun worktree dedicato a questa spec):
+
+  - `src/app/(front-office)/attivita/calendario-mensile.tsx` **non** contiene alcun controllo di salto diretto (zero occorrenze di `salto` o di `type="month"`) ed e identico a `HEAD` (`b0b108e`).
+  - `tests/e2e/calendario-salto-mese.spec.ts` e `tests/e2e/demo__salto-diretto-mese-calendario.spec.ts` **non esistono**.
+  - `docs/wiki/domains/attivita.md` e `status: reviewed`, non cita `calendario-mensile.tsx` fra le `sources` e non descrive alcun salto diretto.
+  - Esistono tre commit orfani intestati a US-055 (`6692871`, `dfe5af2`, `4e3c707`, 3 agosto 2026) **non raggiungibili da alcun branch** (`git branch -a --contains 6692871` restituisce vuoto): sono il residuo di un worktree rimosso. Il file `.archetipo/plans/US-055-plan.yaml` trovato su disco descriveva quel contenuto come gia consegnato ed e quindi **stale**; questo piano lo sostituisce integralmente.
+
+  Conclusione: US-055 va implementata da zero sul codice corrente. I commit orfani sono stati letti solo come riferimento di design (sono soggetti a garbage collection e non contengono nulla di non riproducibile), non come lavoro da recuperare con un cherry-pick.
+
+  ### Approccio
+
+  Il calendario mensile e gia un'isola client con un unico punto di ingresso per la navigazione: `vaiA(intento)`. Ogni controllo esistente (mese precedente, mese successivo, «Mese corrente», Back/Forward) passa da li, e solo da li derivano lettura dalla cache dei mesi, indicatore di attesa sul miss, protezione dalle risposte tardive e scrittura dell'URL dentro `commit`.
+
+  La scelta portante del piano e quindi **non** introdurre un percorso di navigazione parallelo: il salto diretto e un nuovo *ingresso* verso `vaiA`, non un nuovo meccanismo. Ne discendono gratuitamente AC-2 (il contratto URL e scritto da `commit` tramite `urlDelMese`), AC-3 (i controlli esistenti ripartono da `intentoCorrente.current.token`, che `vaiA` aggiorna) e AC-4 (il ramo miss che accende `inCaricamento` e lo stesso). E anche cio che tiene il piano dentro il Fuori Perimetro della spec: nessuna modifica a cache, prefetch o contenuto delle celle.
+
+  Il controllo e un `<input type="month">` nativo piu un pulsante di conferma dentro un `<form onSubmit>`, inserito nella barra mese fra «Mese corrente» e «Riepilogo mese».
+
+  Decisione tecnica esplicita, gia presa qui e non lasciata all'implementatore: **input nativo mese/anno** invece di due select separate anno + mese. Motivi: produce esattamente il token `YYYY-MM` gia usato dal contratto URL e da `parseTokenMese`, non richiede nuove funzioni di dominio ne una lista di anni da delimitare arbitrariamente, e su un browser senza supporto nativo (Safari desktop) degrada a input testuale che accetta comunque lo stesso token, con la validazione client che continua a valere. La suite e2e gira solo su Chromium (unico project in `playwright.config.ts`), dove il supporto e nativo.
+
+  Secondo punto di attenzione: il valore mostrato dal controllo deve seguire il mese effettivamente in griglia anche quando il mese cambia per una causa diversa dal salto (frecce, «Mese corrente», Back/Forward, nuovo payload del server). Si risolve con una **sincronizzazione durante il render** su `tokenVisualizzato` — lo stesso pattern gia usato nel file per `payloadServer` — e non con un `useEffect`, che provocherebbe un render a cascata.
+
+  ### Perche nessun ADR
+
+  Non c'e una scelta fra alternative architetturali che tocchi modello dati persistente, modello di sicurezza, confine di integrazione, topologia di deploy, semantiche di consistenza o una policy tecnica trasversale. La sola alternativa reale (input nativo contro select multiple) e un dettaglio di UI locale e reversibile: sotto la soglia ADR. La decisione architetturale che governa quest'area — l'isola client con cache dei mesi — e gia registrata in `decisions/cache-client-calendario-collaboratore` e non viene ne modificata ne estesa.
+
+  ## Baseline
+
+  Eseguita da `data.workdir` (project root) su `b0b108e`, prima di qualunque modifica:
+
+  | Comando | Esito |
+  |---|---|
+  | `npx vitest run` | verde — 38 file, 607 test passati |
+  | `npx tsc --noEmit -p tsconfig.json` | verde — nessuna diagnostica |
+  | `npm run lint` (eslint + `lint:e2e-guardrails`) | verde — nessun errore, «Guardrail e2e anti-flakiness passed» |
+
+  Nessun comando di baseline e rosso: ogni `Verify` dei task puo quindi attendersi legittimamente il verde, e nessuna eccezione del tipo «regressione preesistente» e ammessa. Il file da modificare (`src/app/(front-office)/attivita/calendario-mensile.tsx`) e pulito da diagnostiche in baseline e deve restare tale.
+
+  Non eseguiti in fase di planning, delegati ai task:
+
+  - `npx playwright test ...` — prerequisito d'ambiente, non di codice: richiede `E2E_DATABASE_URL` dedicato con migrazioni e seed applicati da `tests/e2e/global-setup.ts` e il web server avviato da `playwright.config.ts`. Predisponibile con `archetipo e2e ensure` (idempotente) e con i comandi documentati in `tests/e2e/README.md`. Un fallimento per infrastruttura assente va segnalato come prerequisito mancante, mai come fallimento del codice.
+  - `npm run build` — eseguito nel gate finale (TASK-04) perche e uno step di CI e il file toccato e un componente client compilato dal build.
+
+  ## Impatto Wiki
+
+  `archetipo wiki affected --file "src/app/(front-office)/attivita/calendario-mensile.tsx"` restituisce due candidati: `decisions/cache-client-calendario-collaboratore` ed `engineering/code-map`. Decisione ragionata sulla conoscenza, non sulla co-citazione dei path:
+
+  - **update — `domains/attivita`**: e la pagina la cui conoscenza cambia davvero. Oggi non cita `calendario-mensile.tsx` fra le `sources`, e il flusso 7 descrive la navigazione mensile come limitata a frecce e «Mese corrente». Va aggiornata su `sources`, flusso 7, tabella «Codice» e sezione «Verifica». Prodotta da TASK-03.
+  - **fuori contratto — `decisions/cache-client-calendario-collaboratore`**: co-citazione tracciata di `calendario-mensile.tsx`. Le sue affermazioni (isola SPA, GET autenticato, TTL 300 s, LRU 12, invalidazioni) restano tutte accurate, perche il salto riusa la cache senza alterarne la semantica. Puo risultare `evidence-changed`; la riconferma contro il diff esatto e competenza dell'accettazione, non un lavoro di documentazione da pianificare.
+  - **fuori contratto — `engineering/code-map`**: mappa boundary e capability, entrambe invariate (nessun nuovo file sorgente, nessuna nuova capability).
+  - **read** (letti per pianificare, nessuna modifica attesa): `docs/wiki/index.md`, `decisions/cache-client-calendario-collaboratore`, `engineering/code-map`.
+  - **create**: nessuna pagina nuova e nessun ADR nuovo (vedi «Perche nessun ADR»).
+
+  ## Mappa di evidenza per l'accettazione
+
+  | AC | Livello | Oracolo osservabile | Fixture / stato iniziale | Task |
+  |---|---|---|---|---|
+  | AC-1 | e2e browser (Chromium) | dopo `fill` del controllo con `meseRiservato("US-055")` e click su «Vai al mese selezionato», la cella `a[href="/attivita/{data}?mese={meseArrivo}"]` ha `data-con-attivita="true"` e la sua `etichetta-cliente` mostra ragione sociale e ore attese | collaboratore, cliente e offerta da factory piu una riga attivita di 4.00 h nel mese riservato (almeno 12 mesi indietro, quindi anno diverso da quello di partenza) | TASK-02 |
+  | AC-2 | e2e browser | l'URL matcha `mese={meseArrivo}` subito dopo il salto **e** dopo `page.reload()`, con la cella ancora `data-con-attivita="true"` | stesso stato di AC-1 | TASK-02 |
+  | AC-3 | e2e browser | dal mese raggiunto, «Mese successivo» porta l'URL a `mese={meseSuccessivo(meseArrivo)}`; «Mese corrente» riporta l'URL a `/attivita` senza query, l'etichetta `calendar-month-label` al mese odierno e il valore del controllo di salto al token del mese corrente | stesso stato di AC-1, proseguendo sulla stessa pagina | TASK-02 |
+  | AC-4 | e2e browser con gate deterministico su `page.route` | mentre la lettura del mese di arrivo e trattenuta, `indicatore-caricamento-mese` e visibile e il contenitore ha `aria-busy="true"`; sbloccata la route, l'indicatore e `toBeHidden()`, `aria-busy="false"`, la cella e valorizzata e l'URL riflette il mese raggiunto | partenza su `meseRiservato("US-055")`, arrivo su `mesePassatoRiservato("US-055", 40)`: non adiacente, quindi non toccato dal prefetch e certamente non in cache | TASK-02 |
+
+  Ogni AC ha un oracolo diretto sul DOM o sull'URL, mai un proxy. Nessun test double nasconde il componente responsabile del contratto: in AC-4 la cache client reale e il round-trip HTTP reale sono attraversati, e l'unica cosa sostituita e il *momento* in cui la risposta arriva, trattenuta da una promessa invece che da una rete lenta e non deterministica.
+
+  ## Strategia di test e classificazione e2e
+
+  **Browser e2e obbligatorio, nessun waiver.** Il percorso di accettazione attraversa un confine di rete (`GET /api/attivita/calendario`), l'autenticazione del collaboratore, la persistenza (le righe che valorizzano le celle), la History API del browser e uno stato di cache che decide se mostrare l'indicatore di attesa. Nessun test di componente isolato puo provare AC-2 (URL condivisibile e riapribile al reload) ne AC-4 (indicatore legato al miss di cache). L'infrastruttura Playwright e gia presente e non va bootstrappata.
+
+  Determinismo, in conformita a `tests/e2e/README.md` e a `scripts/check-e2e-guardrails.ts`:
+
+  - `fullyParallel: true` resta invariato; nessun `workers: 1`, nessuna serializzazione, nessun aumento di `retries`;
+  - collaboratore, cliente, offerta e righe vengono creati dalle fixture di `tests/e2e/support/fixtures.ts`; nessuna entita seed (Giulia Conti, TechSolutions, DataFlow, scaglioni seed) viene mutata;
+  - i mesi provengono da `meseRiservato` e `mesePassatoRiservato` di `tests/e2e/support/date.ts`, mai dal mese corrente condiviso per i dati mutati;
+  - nessun `waitForTimeout`, nessun `selectOption({ index })`, nessuna classe Tailwind come contratto, nessun XPath: si usano `getByLabel`, `getByRole` con nome esatto e i soli `data-testid` gia esistenti (`etichetta-cliente`, `indicatore-caricamento-mese`, `calendar-month-label`);
+  - prima di interagire si attende `data-idratata="true"` sul contenitore del calendario, perche prima dell'idratazione il submit sarebbe un no-op;
+  - `npm run lint` (che include il guardrail e2e) va eseguito dopo le modifiche e2e.
+
+  **Filmabilita.** La spec e filmabile: la sezione Dimostrazione e uno script lineare e osservabile (salto a un mese di un anno diverso, ritorno con «Mese corrente», salto a un mese non in cache con indicatore di attesa). Questo piano non include un task per lo scenario demo: nel progetto il file `demo__*.spec.ts` viene aggiunto in fase di accettazione (per US-053 il commit `c79a6ca` e successivo al `feat` `88b8df0`), e la registrazione del video con la decisione finale record/skip resta competenza di `archetipo-review`.
+
+  ## Rischi e note per l'implementazione
+
+  - Il blocco di sincronizzazione durante il render va scritto con il guard su un token gia sincronizzato (`tokenSelettoreSincronizzato`), altrimenti si ottiene un loop di render.
+  - L'URL non va scritto dal gestore del submit: la scrittura di history appartiene a `commit` e avviene solo a dati pronti. Anticiparla romperebbe AC-4, perche l'URL mostrerebbe un mese non ancora visualizzato.
+  - In AC-4 il mese di arrivo deve essere **non adiacente** a quello di partenza: un mese adiacente e gia prefetchato al mount e potrebbe risultare un hit di cache, che non accende l'indicatore e renderebbe il test flaky.
+tasks:
+  - id: TASK-01
+    title: Controllo di selezione diretta mese/anno nella barra del calendario mensile
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Aggiungere alla barra di navigazione del calendario mensile un controllo di selezione diretta mese/anno che, alla conferma, porta la griglia sul mese scelto riusando lo stesso intento di navigazione (`vaiA`) dei controlli esistenti, senza introdurre un percorso parallelo.
+
+      ## Read
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — interfaccia `IntentoNavigazione`, helper `urlDelMese`, callback `commit` e `vaiA`, il blocco di sincronizzazione durante il render su `payloadServer` (intorno a riga 202), le funzioni `navigaVersoMese`, `navigaVersoMeseCorrente`, `ritentaMese`, e il blocco JSX «Barra navigazione mese» (righe circa 330-431, dal pulsante «Mese precedente» al `Link` «Riepilogo mese»).
+      - `src/domain/calendario/index.ts` — `parseTokenMese` (regex `^(\d{4})-(0[1-9]|1[0-2])$`), gia importata nel componente.
+
+      ## Change
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — unico file da modificare.
+
+      Non-goal espliciti, corrispondenti al Fuori Perimetro della spec: non toccare `calendario-cache.ts`, `calendario-cache-provider.tsx`, `layout.tsx`, `page.tsx`, `src/app/api/attivita/calendario/route.ts`, il prefetch dei mesi adiacenti, il contenuto delle celle, `urlDelMese` e la funzione `commit`. Non introdurre un nuovo endpoint, una nuova cache, un secondo indicatore di attesa o una nuova funzione di dominio.
+
+      ## Steps
+      1. Estendere l'import da `react` con `useId` e `type FormEvent`, mantenendo `useCallback, useEffect, useMemo, useRef, useState`.
+      2. Subito dopo lo state `payloadServer`, aggiungere: `const idSelettoreMese = useId();`, `const [valoreSelettoreMese, setValoreSelettoreMese] = useState(datiMeseIniziale.token);` e `const [tokenSelettoreSincronizzato, setTokenSelettoreSincronizzato] = useState(datiMeseIniziale.token);`.
+      3. Subito dopo il blocco `if (payloadServer !== datiMeseIniziale) { ... }`, aggiungere il blocco di risincronizzazione durante il render: `if (tokenSelettoreSincronizzato !== tokenVisualizzato) { setTokenSelettoreSincronizzato(tokenVisualizzato); setValoreSelettoreMese(tokenVisualizzato); }`. Deve essere una sincronizzazione durante il render (stesso pattern gia usato per `payloadServer`) e **non** un `useEffect`, che provocherebbe un render a cascata. Garantisce che il controllo mostri sempre il mese effettivamente in griglia dopo qualunque navigazione: precedente, successivo, «Mese corrente», Back/Forward e salto.
+      4. Accanto a `ritentaMese`, aggiungere il gestore: `function submitSaltoMese(evento: FormEvent<HTMLFormElement>) { evento.preventDefault(); if (!parseTokenMese(valoreSelettoreMese)) return; vaiA({ token: valoreSelettoreMese, registraHistory: true }); }`. Non chiamare `router.push` e non scrivere l'URL qui: la scrittura di history resta responsabilita di `commit`, cioe solo a dati pronti.
+      5. Nella barra JSX, subito dopo il pulsante «Mese corrente» e prima del `Link` «Riepilogo mese», inserire `<form onSubmit={submitSaltoMese} className="ml-1 flex items-center gap-1.5">` contenente, nell'ordine:
+         - `<label htmlFor={idSelettoreMese} className="sr-only">Vai a un mese specifico</label>`;
+         - `<input id={idSelettoreMese} type="month" value={valoreSelettoreMese} onChange={(e) => setValoreSelettoreMese(e.target.value)} />`, con classi coerenti con gli altri controlli della barra: altezza `h-9`, `cursor-pointer`, `rounded-[10px]`, bordo, sfondo e testo nelle varianti chiara e scura del pulsante «Mese corrente»;
+         - `<button type="submit" aria-label="Vai al mese selezionato" disabled={!parseTokenMese(valoreSelettoreMese)}>Vai</button>`, con le stesse classi del pulsante «Mese corrente» piu `disabled:cursor-not-allowed disabled:opacity-50`.
+      6. Non aggiungere nuovi `data-testid`: l'input e raggiungibile con `getByLabel("Vai a un mese specifico")` e il pulsante con `getByRole("button", { name: "Vai al mese selezionato" })`, coerentemente con la regola e2e del progetto che preferisce ruoli e label ai test id.
+      7. Non modificare i pulsanti, le etichette o i test id esistenti della barra: `calendar-month-label`, «Mese precedente», «Mese successivo», «Mese corrente» e «Riepilogo mese» restano invariati.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p tsconfig.json` (dalla project root)
+      - Expect: uscita vuota ed exit 0, identico alla baseline registrata nel piano.
+      - Run: `npx eslint "src/app/(front-office)/attivita/calendario-mensile.tsx"`
+      - Expect: nessun errore e nessun warning. Il file e pulito in baseline e non deve acquisire diagnostiche.
+
+      ## Done
+      - [ ] AC-1 — il controllo di selezione diretta esiste nella barra mese ed e collegato a `vaiA`, quindi la conferma porta la griglia sul mese scelto.
+      - [ ] AC-2 — il salto non scrive l'URL per conto proprio: passa da `commit`, che usa `urlDelMese(token)` e mantiene il contratto `/attivita?mese=YYYY-MM`.
+      - [ ] AC-3 — `submitSaltoMese` aggiorna `intentoCorrente` tramite `vaiA`, quindi «Mese precedente», «Mese successivo» e «Mese corrente» ripartono dal mese raggiunto.
+      - [ ] AC-4 — nessun ramo di caricamento dedicato al salto: entra nello stesso ramo miss di `vaiA` che accende `inCaricamento`.
+      - [ ] Il valore del controllo segue `tokenVisualizzato` dopo ogni navigazione, grazie alla sincronizzazione durante il render.
+      - [ ] `npx tsc --noEmit` e `npx eslint` sul file modificato restano senza diagnostiche.
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Suite e2e del salto diretto a mese/anno (AC-1, AC-2, AC-3, AC-4)
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Produrre l'evidenza osservabile a livello browser che il salto diretto soddisfa AC-1, AC-2, AC-3 e AC-4, con un nuovo file e2e deterministico e parallelizzabile.
+
+      ## Read
+      - `tests/e2e/calendario-navigazione-reattiva.spec.ts` — pattern completo da riusare: helper `dataDb`, gate `page.route` registrato **prima** del `goto` con promessa di sblocco, attesa di `data-idratata="true"` prima di interagire, asserzioni su `indicatore-caricamento-mese` e su `aria-busy`.
+      - `tests/e2e/support/date.ts` — `meseCorrenteToken`, `meseRiservato`, `mesePassatoRiservato`, `dataNelMese`.
+      - `tests/e2e/support/fixtures.ts` — fixture `collaboratore`, `clienteConOfferta`, `factory` (`createClienteConOfferta`, `createRigaAttivita`).
+      - `tests/e2e/support/auth.ts` — `accediComeCollaboratore`.
+      - `tests/e2e/README.md` — contratto e2e del progetto.
+      - `scripts/check-e2e-guardrails.ts` — elenco dei pattern vietati dal guardrail anti-flakiness.
+
+      ## Change
+      - Creare `tests/e2e/calendario-salto-mese.spec.ts`.
+
+      Non-goal: non modificare `playwright.config.ts` (`fullyParallel: true`, `retries: 1`, unico project `chromium` restano invariati), non modificare altri file di test, non introdurre `demo__*.spec.ts` (lo scenario demo appartiene alla fase di accettazione).
+
+      ## Steps
+      1. Intestare il file con un commento che dichiara la spec coperta e spiega perche il gate su `page.route` sostituisce una rete rallentata (determinismo, nessun hard wait).
+      2. Definire due helper locali nel file: `dataDb(dataIso)` come in `calendario-navigazione-reattiva.spec.ts`, e `meseSuccessivoToken(token)` che calcola il token `YYYY-MM` del mese successivo con aritmetica locale. Non importare da `@/`: nessun test e2e del progetto usa l'alias sorgente.
+      3. Test 1, «il salto diretto raggiunge un mese di un anno diverso e lascia coerenti i controlli esistenti» (AC-1, AC-2, AC-3):
+         - `const meseArrivo = meseRiservato("US-055")` — sempre almeno 12 mesi indietro, quindi anno diverso da quello corrente; `const data = dataNelMese(meseArrivo, 14)`;
+         - creare cliente e offerta con `factory.createClienteConOfferta()` e una riga con `factory.createRigaAttivita({ collaboratore, cliente, offerta, data: dataDb(data), ore: "4.00" })`;
+         - `accediComeCollaboratore(page, collaboratore.utente.email)`, poi `page.goto("/attivita")` (mese corrente) e attendere che `page.getByLabel("Calendario mensile delle attivita")` sia visibile con `data-idratata="true"` (usare la stringa dell'`aria-label` esattamente come compare nel componente);
+         - eseguire il salto: `await page.getByLabel("Vai a un mese specifico").fill(meseArrivo);` seguito da `await page.getByRole("button", { name: "Vai al mese selezionato" }).click();`;
+         - AC-1: la cella `page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`)` ha `data-con-attivita="true"` e la sua `getByTestId("etichetta-cliente")` ha testo `${ragioneSociale} 4.0 h`;
+         - AC-2: `await expect(page).toHaveURL(new RegExp(`mese=${meseArrivo}`));` poi `await page.reload();` e riasserire sia l'URL sia la cella valorizzata;
+         - AC-3: click su `page.getByLabel("Mese successivo")` e attendere l'URL con `mese=${meseSuccessivoToken(meseArrivo)}`; poi click su `page.getByRole("button", { name: "Mese corrente" })`, attendere che `getByTestId("calendar-month-label")` mostri l'etichetta italiana del mese odierno e che `page.getByLabel("Vai a un mese specifico")` abbia valore `meseCorrenteToken()` (prova diretta della risincronizzazione del controllo).
+      4. Test 2, «il salto verso un mese non ancora in cache mostra il feedback di attesa esistente» (AC-4):
+         - `const mesePartenza = meseRiservato("US-055")` e `const meseArrivo = mesePassatoRiservato("US-055", 40)`: l'arrivo non e adiacente alla partenza, quindi non e toccato dal prefetch dei mesi adiacenti e non puo essere un hit di cache; `const data = dataNelMese(meseArrivo, 9)`;
+         - creare cliente, offerta e una riga attivita nel mese di arrivo come nel test 1;
+         - **prima** del `goto`, registrare il gate: predicato `(url) => (url.pathname === "/attivita" || url.pathname === "/api/attivita/calendario") && url.searchParams.get("mese") === meseArrivo`, handler che attende una promessa risolvibile e poi chiama `route.continue()`;
+         - `page.goto(`/attivita?mese=${mesePartenza}`)`, attendere `data-idratata="true"`;
+         - compilare il controllo con `meseArrivo` e confermare;
+         - AC-4 durante l'attesa: `await expect(page.getByTestId("indicatore-caricamento-mese")).toBeVisible();` e `await expect(calendario).toHaveAttribute("aria-busy", "true");`;
+         - sbloccare la promessa; AC-4 a dati pronti: la cella `a[href="/attivita/${data}?mese=${meseArrivo}"]` ha `data-con-attivita="true"`, `indicatore-caricamento-mese` e `toBeHidden()`, il contenitore ha `aria-busy="false"` e l'URL matcha `mese=${meseArrivo}`;
+         - chiudere con `await page.unroute(predicato)`.
+      5. Rispettare i vincoli del guardrail anti-flakiness: nessun `waitForTimeout`, nessun `selectOption({ index })`, nessuna email seed, nessun selettore su classi Tailwind, nessun XPath, nessuna mutazione di entita seed. Usare solo label, ruoli con nome esatto e i `data-testid` gia esistenti.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/calendario-salto-mese.spec.ts --retries=0` (dalla project root)
+      - Expect: 2 test passati, 0 falliti. Se l'ambiente e2e non e predisposto (`E2E_DATABASE_URL`, migrazioni, seed, web server), eseguire prima `archetipo e2e ensure` e i comandi di `tests/e2e/README.md`: un blocco infrastrutturale va segnalato come prerequisito mancante, non come fallimento del codice.
+      - Run: `npm run lint`
+      - Expect: eslint senza errori e messaggio «Guardrail e2e anti-flakiness passed», come nella baseline.
+
+      ## Done
+      - [ ] AC-1 — evidenza e2e: dopo il salto a un mese di un anno diverso la cella del giorno con attivita ha `data-con-attivita="true"` e l'etichetta cliente mostra ragione sociale e ore attese.
+      - [ ] AC-2 — evidenza e2e: l'URL contiene `mese=YYYY-MM` del mese raggiunto subito dopo il salto e dopo `page.reload()`, con la cella ancora valorizzata.
+      - [ ] AC-3 — evidenza e2e: dal mese raggiunto «Mese successivo» porta al token corretto e «Mese corrente» riporta al mese odierno, con il controllo di salto risincronizzato sul mese mostrato.
+      - [ ] AC-4 — evidenza e2e: con la lettura trattenuta l'indicatore e visibile e `aria-busy="true"`; sbloccata la route l'indicatore e nascosto, `aria-busy="false"` e le celle sono valorizzate.
+      - [ ] `npm run lint` verde, guardrail e2e incluso.
+
+      ## Blockers
+      None. La dipendenza da TASK-01 (senza il controllo il selettore non esiste) e gia dichiarata in `dependencies`.
+    ref: TASK-02
+  - id: TASK-03
+    title: Aggiornare la pagina Wiki domains/attivita con il salto diretto a mese/anno
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+    body: |-
+      ## Objective
+      Portare la conoscenza registrata in `docs/wiki/domains/attivita` in linea con il codice consegnato: il calendario mensile ha un controllo di selezione diretta mese/anno, e la sua verifica e coperta da un nuovo file e2e.
+
+      ## Read
+      - `docs/wiki/domains/attivita.md` — frontmatter `sources` e blocco `review`, punto 7 di «Flussi osservati», tabella della sezione «Codice» (riga «Test»), sezione «Verifica».
+      - `docs/wiki/index.md` — catalogo delle pagine, rigenerato dal comando e mai a mano.
+      - `docs/wiki/decisions/cache-client-calendario-collaboratore.md` — per confermare che le sue affermazioni restano accurate e che non va toccata.
+
+      ## Change
+      - `docs/wiki/domains/attivita.md`: frontmatter `sources`, punto 7 dei flussi, tabella «Codice», sezione «Verifica».
+      - `docs/wiki/index.md` e `docs/wiki/log.md`: solo come output dei comandi `archetipo wiki reset` e `archetipo wiki catalog`, mai modificati a mano.
+
+      Non-goal: **non** modificare `docs/wiki/decisions/cache-client-calendario-collaboratore.md` ne `docs/wiki/engineering/code-map.md`. Sono co-citazioni tracciate di `calendario-mensile.tsx` restituite da `wiki affected`, ma le loro affermazioni restano accurate perche il salto riusa cache e confini gia documentati senza alterarne la semantica; la loro eventuale riconferma `evidence-changed` e competenza dell'accettazione. Non creare nuove pagine e nessun ADR.
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset domains/attivita`, che riporta la pagina a `status: generated` rimuovendo il blocco `review` consolidato il 31 luglio.
+      2. Nel frontmatter `sources` aggiungere due voci, coerenti con lo stile delle esistenti:
+         - `- path: src/app/(front-office)/attivita/calendario-mensile.tsx` con `role: inbound-ui`, accanto alla voce di `[data]/dettaglio-giornata.tsx`;
+         - `- path: tests/e2e/calendario-salto-mese.spec.ts` con `role: verification`, in coda alle altre voci `verification`.
+      3. Nel punto 7 di «Flussi osservati» aggiungere in coda al paragrafo esistente una frase che descrive il controllo di selezione diretta: raggiunge in un solo passo qualunque mese e anno riusando lo stesso intento di navigazione e lo stesso commit dei controlli esistenti, quindi stesso indicatore di attesa sul mese non ancora in cache, stesso contratto URL `?mese=YYYY-MM` e controlli esistenti coerenti dal mese raggiunto. Non riscrivere il resto del paragrafo ne i punti 8, 9 e 10.
+      4. Nella tabella della sezione «Codice», aggiungere `tests/e2e/calendario-salto-mese.spec.ts` all'elenco della riga «Test».
+      5. Nella sezione «Verifica», aggiungere una frase che dichiara cosa copre il nuovo file e2e: mese di un anno diverso valorizzato dopo il salto, contratto URL condivisibile e riapribile al reload, coerenza dei controlli esistenti dal mese raggiunto, indicatore di attesa sul mese non ancora in cache.
+      6. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog` per rigenerare `docs/wiki/index.md`.
+      7. Non eseguire `archetipo wiki approve`: l'approvazione della conoscenza appartiene a `archetipo-review`.
+
+      ## Verify
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap` (da `/Users/smarello/repo/coaching-planner`)
+      - Expect: envelope `kind: "validation_result"` con `data.ok: true`. Eventuali warning vanno letti e corretti se la riparazione e immediata, ma non bloccano.
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner affected --file "src/app/(front-office)/attivita/calendario-mensile.tsx" --file "tests/e2e/calendario-salto-mese.spec.ts"`
+      - Expect: fra gli `items` compare `domains/attivita` con `status: generated`, prova che la pagina e tracciata sulle nuove evidenze e in attesa di approvazione.
+
+      ## Done
+      - [ ] `docs/wiki/domains/attivita.md` e `status: generated`, cita `src/app/(front-office)/attivita/calendario-mensile.tsx` e `tests/e2e/calendario-salto-mese.spec.ts` fra le `sources`, e descrive il salto diretto nel punto 7 dei flussi, nella tabella «Codice» e nella sezione «Verifica».
+      - [ ] `docs/wiki/index.md` e stato rigenerato da `archetipo wiki catalog` e non modificato a mano.
+      - [ ] `archetipo wiki validate --profile bootstrap` restituisce `data.ok: true`.
+      - [ ] `decisions/cache-client-calendario-collaboratore` ed `engineering/code-map` non sono stati modificati.
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: 'Gate finale: nessuna regressione rispetto alla baseline e tutti i task DONE prima della review'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+    body: |-
+      ## Objective
+      Provare che l'incremento non introduce regressioni rispetto alla baseline registrata nel piano e che ogni task del piano risulta `DONE` prima di richiedere la review.
+
+      ## Read
+      - La sezione «Baseline» del corpo di questo piano, per confrontare gli esiti attesi comando per comando.
+      - `.github/workflows/ci.yml` — per confermare che i comandi eseguiti qui coprono gli step di CI rilevanti per questo diff (lint, test unit, build, e2e).
+
+      ## Change
+      Nessuna modifica di codice: task di sola esecuzione e verifica.
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire, nell'ordine:
+         - `npx vitest run` (suite unit completa);
+         - `npm run lint` (eslint piu guardrail e2e anti-flakiness);
+         - `npx tsc --noEmit -p tsconfig.json`;
+         - `npm run build`;
+         - `npx playwright test tests/e2e/calendario-salto-mese.spec.ts tests/e2e/calendario-navigazione-reattiva.spec.ts tests/e2e/calendario-cache-mesi.spec.ts --retries=0`.
+      2. Confrontare ogni esito con la baseline: nessun comando deve passare da verde a rosso e nessuna nuova diagnostica deve comparire su `src/app/(front-office)/attivita/calendario-mensile.tsx`. Le due suite e2e aggiuntive sono scelte perche insistono sulla stessa barra di navigazione e sulla stessa cache dei mesi: sono le regressioni plausibili di questa modifica.
+      3. Marcare TASK-04 come `DONE` solo dopo che tutti i comandi del punto 1 sono verdi.
+      4. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo spec show US-055` e confermare che TASK-01, TASK-02, TASK-03 e TASK-04 risultano tutti `DONE`, senza alcun task ancora `TODO`.
+      5. Solo dopo la conferma del punto 4, eseguire `archetipo spec review US-055` per portare la spec in revisione. Non richiedere la review con task ancora aperti.
+
+      ## Verify
+      - Run: `npx vitest run && npm run lint && npx tsc --noEmit -p tsconfig.json && npm run build`
+      - Expect: tutti verdi. Riferimento di baseline: 38 file e 607 test unit passati, eslint senza errori, messaggio «Guardrail e2e anti-flakiness passed», nessuna diagnostica TypeScript. Il build non e stato eseguito in fase di planning: e atteso verde perche il repository e verde su `b0b108e` in CI e la modifica e limitata a un componente client gia compilato.
+      - Run: `npx playwright test tests/e2e/calendario-salto-mese.spec.ts tests/e2e/calendario-navigazione-reattiva.spec.ts tests/e2e/calendario-cache-mesi.spec.ts --retries=0`
+      - Expect: tutti i test dei tre file passati. In particolare `calendario-cache-mesi.spec.ts` deve restare verde: e la prova che il salto non ha aggiunto round-trip ne alterato il conteggio delle richieste.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3 e AC-4 — la suite `tests/e2e/calendario-salto-mese.spec.ts` e verde nell'esecuzione di gate.
+      - [ ] Nessuna regressione rispetto alla baseline su unit, lint, guardrail e2e, type-check, build e le due suite e2e calendario adiacenti.
+      - [ ] `archetipo spec show US-055` conferma TASK-01, TASK-02, TASK-03 e TASK-04 tutti `DONE`.
+      - [ ] La spec viene portata in review con `archetipo spec review US-055` solo dopo la conferma precedente.
+
+      ## Blockers
+      None.
+    ref: TASK-04
