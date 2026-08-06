@@ -1,0 +1,472 @@
+/* ============================================================
+   Coaching Planner — US-057
+   Duplicazione di una riga attività su più giorni scelti.
+
+   Superficie: il DETTAGLIO GIORNATA del front office, non la
+   console amministrativa. Per questo la scala primaria non è
+   l'indigo dei mockup di back office (US-026, US-038, US-039,
+   US-044) ma il ROSA dell'area attività reale — rose-600 sui
+   comandi, rose-800 sui numeri — con i neutri zinc condivisi,
+   l'ambra riservata al rimborso trasferta e il rosso ai rifiuti.
+
+   L'elemento memorabile è la "pista dei giorni": le date scelte
+   non sono una lista verticale ma una fila di tessere-calendario
+   con il numero grande e il mese in alto, raggruppate per mese e
+   separate da un piccolo divisorio. Rende immediatamente
+   leggibile ciò che la storia chiede — date arbitrarie, non
+   contigue, anche di mesi diversi — senza spiegarlo a parole.
+   ============================================================ */
+
+:root{
+  /* neutri — scala zinc */
+  --bg:        #fafafa;
+  --surface:   #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #fbfbfc;
+  --ink:       #27272a;
+  --ink-2:     #52525b;
+  --ink-3:     #a1a1aa;
+  --line:      #e4e4e7;
+  --line-2:    #f0f0f1;
+
+  /* primario — rose (area attività del collaboratore) */
+  --primary:      #e11d48;
+  --primary-600:  #be123c;
+  --primary-deep: #9f1239;
+  --primary-soft: #fff1f2;
+  --primary-tint: #fecdd3;
+  --on-primary:   #ffffff;
+
+  /* semantici */
+  --ok:      #059669;
+  --ok-t:    #ecfdf5;
+  --ok-tint: #a7f3d0;
+  --warn:      #b45309;
+  --warn-t:    #fffbeb;
+  --warn-tint: #fcd34d;
+  --err:     #dc2626;
+  --err-t:   #fef2f2;
+  --err-tint:#fecaca;
+
+  --radius: 11px;
+  --radius-sm: 9px;
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / .05), 0 1px 3px rgb(24 24 27 / .05);
+  --shadow:    0 2px 6px rgb(24 24 27 / .06), 0 8px 24px rgb(24 24 27 / .07);
+  --shadow-lg: 0 14px 46px rgb(24 24 27 / .18);
+
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+[data-theme="dark"]{
+  --bg:        #09090b;
+  --surface:   #18181b;
+  --surface-2: #27272a;
+  --surface-3: #1c1c20;
+  --ink:       #f4f4f5;
+  --ink-2:     #a1a1aa;
+  --ink-3:     #71717a;
+  --line:      #2c2c30;
+  --line-2:    #222226;
+
+  --primary:      #f43f5e;
+  --primary-600:  #fb7185;
+  --primary-deep: #fda4af;
+  --primary-soft: rgb(244 63 94 / .15);
+  --primary-tint: rgb(251 113 133 / .45);
+
+  --ok:      #34d399;
+  --ok-t:    rgb(16 185 129 / .14);
+  --ok-tint: rgb(52 211 153 / .4);
+  --warn:      #fbbf24;
+  --warn-t:    rgb(245 158 11 / .13);
+  --warn-tint: rgb(251 191 36 / .42);
+  --err:     #f87171;
+  --err-t:   rgb(239 68 68 / .14);
+  --err-tint:rgb(248 113 113 / .4);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / .35), 0 1px 3px rgb(0 0 0 / .3);
+  --shadow:    0 2px 6px rgb(0 0 0 / .35), 0 8px 24px rgb(0 0 0 / .35);
+  --shadow-lg: 0 14px 46px rgb(0 0 0 / .55);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  font-size:15px;line-height:1.5;
+  transition:background .25s, color .25s;
+}
+h1,h2,h3{margin:0;letter-spacing:-0.02em;line-height:1.15;font-weight:700;}
+a{color:inherit;}
+
+/* ============================================================
+   Shell della pagina giornata
+   ============================================================ */
+.pagina{max-width:1080px;margin:0 auto;padding:26px 30px 60px;}
+
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 30px;border-bottom:1px solid var(--line);
+  background:var(--surface);position:sticky;top:0;z-index:5;
+}
+.brand-mark{
+  width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--primary),var(--primary-deep));
+  color:#fff;font-weight:800;font-size:12.5px;letter-spacing:.02em;
+}
+.brand-name b{display:block;font-size:13.5px;}
+.brand-name span{display:block;font-size:11px;color:var(--ink-3);}
+.topbar .spacer{flex:1;}
+
+.theme-toggle{
+  width:34px;height:34px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+  display:grid;place-items:center;transition:background .18s,color .18s;
+}
+.theme-toggle:hover{background:var(--surface-2);color:var(--ink);}
+.theme-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;}
+.ic-sun{display:none;}
+[data-theme="dark"] .ic-moon{display:none;}
+[data-theme="dark"] .ic-sun{display:block;}
+
+.crumb{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid var(--line);background:var(--surface);
+  border-radius:10px;padding:6px 12px;
+  font-size:12.5px;font-weight:600;color:var(--ink-2);
+  box-shadow:var(--shadow-sm);text-decoration:none;margin-bottom:18px;
+}
+.crumb svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+.giorno-nav{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px;}
+.nav-quadro{
+  width:36px;height:36px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-3);
+  display:grid;place-items:center;box-shadow:var(--shadow-sm);
+}
+.nav-quadro svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+input[type="date"]{
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:8px;padding:8px 12px;font:inherit;font-size:13.5px;
+  box-shadow:var(--shadow-sm);
+}
+input[type="date"]:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);}
+
+.intestazione-giorno{margin-bottom:22px;}
+.intestazione-giorno .dow{font-size:12px;font-weight:700;color:var(--primary-deep);text-transform:capitalize;}
+.intestazione-giorno h1{margin-top:2px;font-size:26px;text-transform:capitalize;}
+
+/* ---------- Tessere di riepilogo ---------- */
+.riepilogo{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:26px;}
+.kpi{
+  flex:1;min-width:130px;border-radius:var(--radius);
+  border:1px solid var(--primary-tint);background:var(--primary-soft);
+  padding:13px 16px;
+}
+.kpi .lbl{font-size:11px;font-weight:700;color:var(--ink-3);}
+.kpi .val{margin-top:2px;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--primary-deep);}
+
+/* ============================================================
+   Card di riga attività
+   ============================================================ */
+.sez-titolo{
+  font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 12px;
+}
+.righe{display:flex;flex-direction:column;gap:11px;}
+.riga{
+  border:1px solid var(--line);background:var(--surface);
+  border-radius:var(--radius);padding:13px 15px;box-shadow:var(--shadow-sm);
+  transition:box-shadow .18s,border-color .18s;
+}
+.riga:hover{box-shadow:var(--shadow);}
+.riga.origine{border-color:var(--primary-tint);box-shadow:0 0 0 3px var(--primary-soft);}
+.riga-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;}
+.riga .cliente{font-size:14.5px;font-weight:700;}
+.tag-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
+.tag{
+  border-radius:6px;background:var(--surface-2);color:var(--ink-2);
+  padding:2px 7px;font-size:10px;font-weight:800;letter-spacing:.02em;
+}
+.riga .nota{margin-top:8px;font-size:12.5px;color:var(--ink-2);}
+.riga-dx{display:flex;align-items:center;gap:10px;flex:none;}
+.pill{
+  border-radius:999px;padding:3px 10px;font-size:10px;font-weight:800;
+  background:var(--ok-t);color:var(--ok);border:1px solid var(--ok-tint);
+}
+.pill.no{background:var(--warn-t);color:var(--warn);border-color:var(--warn-tint);}
+.ore{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--primary-deep);white-space:nowrap;}
+
+.rimborso{
+  margin-top:9px;display:flex;align-items:center;gap:8px;
+  border-radius:7px;background:var(--warn-t);padding:6px 10px;
+}
+.rimborso svg{width:13px;height:13px;fill:none;stroke:var(--warn);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.rimborso .et{font-size:11.5px;font-weight:700;color:var(--warn);}
+.rimborso .im{margin-left:auto;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--warn);}
+
+.azioni-riga{
+  margin-top:11px;padding-top:10px;border-top:1px solid var(--line-2);
+  display:flex;flex-wrap:wrap;gap:8px;
+}
+
+/* ---------- Pulsanti ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  border-radius:8px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink-2);padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;
+  transition:background .16s,color .16s,border-color .16s,box-shadow .16s;
+}
+.btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.btn:hover{background:var(--surface-2);color:var(--ink);}
+.btn-duplica{border-color:var(--primary-tint);color:var(--primary-600);background:var(--surface);}
+.btn-duplica:hover{background:var(--primary-soft);color:var(--primary-deep);}
+.btn-warn{border-color:var(--warn-tint);color:var(--warn);}
+.btn-warn:hover{background:var(--warn-t);}
+.btn-danger{border-color:var(--err-tint);color:var(--err);}
+.btn-danger:hover{background:var(--err-t);}
+
+.btn-lg{padding:9px 18px;font-size:13.5px;border-radius:10px;}
+.btn-lg svg{width:15px;height:15px;stroke-width:2.2;}
+.btn-primary{
+  background:var(--primary);border-color:var(--primary);color:var(--on-primary);
+  box-shadow:var(--shadow-sm);
+}
+.btn-primary:hover{background:var(--primary-600);border-color:var(--primary-600);color:var(--on-primary);}
+.btn:disabled,.btn[aria-disabled="true"]{
+  cursor:not-allowed;opacity:.5;
+  background:var(--surface-2);border-color:var(--line);color:var(--ink-3);
+  box-shadow:none;
+}
+
+/* ============================================================
+   Esito della duplicazione (banner sulla pagina)
+   ============================================================ */
+.esito{
+  display:flex;align-items:flex-start;gap:11px;
+  border-radius:var(--radius);padding:13px 16px;margin-bottom:20px;
+  border:1px solid var(--ok-tint);background:var(--ok-t);color:var(--ok);
+  box-shadow:var(--shadow-sm);
+  animation:entra .3s ease-out;
+}
+.esito.errore{border-color:var(--err-tint);background:var(--err-t);color:var(--err);}
+.esito svg.ic{width:18px;height:18px;flex:none;margin-top:1px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+.esito .testo{flex:1;font-size:13px;font-weight:700;}
+.esito .dettaglio{margin-top:5px;font-size:12px;font-weight:600;opacity:.88;}
+.esito .chiudi{
+  border:0;background:transparent;color:inherit;cursor:pointer;
+  padding:2px;border-radius:6px;opacity:.65;
+}
+.esito .chiudi:hover{opacity:1;}
+.esito .chiudi svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;}
+
+@keyframes entra{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+
+/* ============================================================
+   Dialog "Duplica su più giorni"
+   ============================================================ */
+.overlay{
+  position:fixed;inset:0;z-index:40;
+  background:rgb(24 24 27 / .45);backdrop-filter:blur(2px);
+  display:none;align-items:center;justify-content:center;padding:26px;
+}
+.overlay.aperto{display:flex;animation:sfuma .18s ease-out;}
+@keyframes sfuma{from{opacity:0;}to{opacity:1;}}
+
+.dialog{
+  width:min(620px,100%);max-height:88vh;display:flex;flex-direction:column;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;
+  animation:sali .22s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes sali{from{opacity:0;transform:translateY(14px) scale(.985);}to{opacity:1;transform:none;}}
+
+.dialog-head{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:17px 19px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--primary-soft),transparent);
+}
+.dialog-head .m-ic{
+  width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;
+  background:var(--primary);color:#fff;
+}
+.dialog-head .m-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;}
+.dialog-head h3{font-size:16px;}
+.dialog-head p{margin:3px 0 0;font-size:12.5px;color:var(--ink-2);}
+.dialog-close{
+  margin-left:auto;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink-3);border-radius:8px;width:28px;height:28px;cursor:pointer;
+  display:grid;place-items:center;flex:none;
+}
+.dialog-close:hover{background:var(--surface-2);color:var(--ink);}
+.dialog-close svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;}
+
+.dialog-body{padding:17px 19px;overflow:auto;}
+
+/* ---------- Scheda della riga di origine ---------- */
+.origine-box{
+  border:1px dashed var(--primary-tint);background:var(--primary-soft);
+  border-radius:var(--radius);padding:11px 13px;margin-bottom:17px;
+}
+.origine-box .cap{
+  font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--primary-600);
+}
+.origine-box .riepilogo-riga{
+  margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  font-size:13px;font-weight:700;color:var(--ink);
+}
+.origine-box .sep{color:var(--ink-3);font-weight:400;}
+.origine-box .meta{margin-top:6px;font-size:11.5px;color:var(--ink-2);font-weight:600;}
+
+/* ---------- Aggiunta di una data ---------- */
+.campo-lbl{
+  display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:6px;
+}
+.aggiungi-data{display:flex;flex-wrap:wrap;gap:9px;align-items:center;}
+.aggiungi-data input[type="date"]{flex:1;min-width:180px;}
+.aiuto{margin:8px 0 0;font-size:11.5px;color:var(--ink-3);}
+
+.avviso-inline{
+  display:flex;align-items:flex-start;gap:8px;margin-top:10px;
+  border-radius:var(--radius-sm);padding:8px 11px;
+  border:1px solid var(--warn-tint);background:var(--warn-t);color:var(--warn);
+  font-size:12px;font-weight:700;
+}
+.avviso-inline svg{width:14px;height:14px;flex:none;margin-top:1px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;}
+
+/* ---------- Pista dei giorni scelti ---------- */
+.pista{margin-top:19px;padding-top:16px;border-top:1px solid var(--line-2);}
+.pista-head{display:flex;align-items:baseline;gap:8px;margin-bottom:11px;}
+.pista-head h4{margin:0;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);}
+.conta{
+  margin-left:auto;font-size:11.5px;font-weight:800;
+  color:var(--primary-600);background:var(--primary-soft);
+  border:1px solid var(--primary-tint);border-radius:999px;padding:2px 10px;
+}
+
+.gruppi{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:flex-start;}
+.gruppo-mese{display:flex;flex-direction:column;gap:7px;}
+.gruppo-mese .mese-lbl{
+  font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+}
+.gruppo-mese .tessere{display:flex;flex-wrap:wrap;gap:7px;}
+
+.tessera{
+  position:relative;width:60px;border-radius:10px;overflow:hidden;
+  border:1px solid var(--primary-tint);background:var(--surface);
+  box-shadow:var(--shadow-sm);text-align:center;
+  animation:entra .22s ease-out;
+}
+.tessera .cima{
+  background:var(--primary);color:#fff;
+  font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 0;
+}
+.tessera .num{
+  font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;
+  color:var(--ink);padding:5px 0 1px;
+}
+.tessera .dow{font-size:9.5px;font-weight:700;color:var(--ink-3);padding-bottom:6px;text-transform:capitalize;}
+.tessera .rimuovi{
+  position:absolute;top:20px;right:3px;width:17px;height:17px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-3);
+  display:grid;place-items:center;cursor:pointer;padding:0;
+  opacity:0;transition:opacity .15s;
+}
+.tessera:hover .rimuovi,.tessera:focus-within .rimuovi{opacity:1;}
+.tessera .rimuovi:hover{border-color:var(--err-tint);color:var(--err);background:var(--err-t);}
+.tessera .rimuovi svg{width:9px;height:9px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;}
+
+.divisore-mese{width:1px;align-self:stretch;background:var(--line);margin-top:16px;}
+
+.pista-vuota{
+  border:1px dashed var(--line);border-radius:var(--radius);
+  padding:22px 18px;text-align:center;color:var(--ink-3);font-size:12.5px;
+  background:var(--surface-3);
+}
+.pista-vuota svg{width:26px;height:26px;opacity:.4;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;display:block;margin:0 auto 8px;}
+
+/* ---------- Errore del dialog (AC-4) ---------- */
+.errore-dialog{
+  display:flex;align-items:flex-start;gap:9px;margin-top:16px;
+  border-radius:var(--radius-sm);padding:10px 13px;
+  border:1px solid var(--err-tint);background:var(--err-t);color:var(--err);
+  font-size:12.5px;font-weight:700;
+}
+.errore-dialog svg{width:15px;height:15px;flex:none;margin-top:1px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;}
+
+.dialog-foot{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 19px;border-top:1px solid var(--line);background:var(--surface-3);
+}
+.dialog-foot .nota{font-size:11.5px;color:var(--ink-3);font-weight:600;flex:1;}
+
+/* ============================================================
+   Calendario mensile — vista di verifica dell'AC-5
+   ============================================================ */
+.cal-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;}
+.cal-barra .mese-corrente{
+  font-size:17px;font-weight:800;text-transform:capitalize;min-width:170px;
+}
+.cal-griglia{
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  background:var(--surface);box-shadow:var(--shadow-sm);
+}
+.cal-testate,.cal-celle{display:grid;grid-template-columns:repeat(7,1fr);}
+.cal-testate span{
+  padding:8px 6px;text-align:center;font-size:10.5px;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+  background:var(--surface-2);border-bottom:1px solid var(--line);
+}
+.cella{
+  min-height:86px;padding:7px 8px;border-right:1px solid var(--line-2);
+  border-bottom:1px solid var(--line-2);display:flex;flex-direction:column;gap:4px;
+}
+.cella:nth-child(7n){border-right:0;}
+.cella.fuori{background:var(--surface-3);opacity:.5;}
+.cella .n{font-size:12px;font-weight:800;color:var(--ink-2);font-variant-numeric:tabular-nums;}
+.cella .voce{
+  font-size:10px;font-weight:700;border-radius:5px;padding:2px 5px;
+  background:var(--surface-2);color:var(--ink-2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.cella.nuova{background:var(--primary-soft);}
+.cella.nuova .n{color:var(--primary-deep);}
+.cella.nuova .voce{
+  background:var(--primary);color:#fff;
+  animation:accendi .5s ease-out;
+}
+@keyframes accendi{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:none;}}
+
+/* ============================================================
+   Note di contesto e barra demo
+   ============================================================ */
+.note-card{
+  display:flex;gap:10px;margin-top:26px;
+  border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);
+  padding:13px 15px;font-size:12.5px;color:var(--ink-2);box-shadow:var(--shadow-sm);
+}
+.note-card svg{width:16px;height:16px;flex:none;margin-top:1px;fill:none;stroke:var(--primary);stroke-width:2;stroke-linecap:round;}
+.note-card code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px;}
+
+.demo-bar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:16px;
+  border:1px dashed var(--line);border-radius:var(--radius);padding:11px 14px;
+}
+.demo-bar .demo-label{
+  display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;
+  letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);margin-right:4px;
+}
+.demo-bar .demo-label svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;}
+.demo-bar a{text-decoration:none;}
+
+@media (max-width:720px){
+  .pagina{padding:20px 16px 48px;}
+  .topbar{padding:12px 16px;}
+  .riga-top{flex-direction:column;}
+}

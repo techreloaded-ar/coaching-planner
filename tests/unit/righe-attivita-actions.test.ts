@@ -4,12 +4,14 @@ import {
   modificaRiga,
   eliminaRiga,
   rimuoviRimborsoTrasferta,
+  duplicaRigaSuGiorni,
 } from "@/lib/actions/righe-attivita";
 
 // ── Mock di Prisma ──────────────────────────────────────────────
 
 const mockRigaAttivita = vi.hoisted(() => ({
   create: vi.fn(),
+  createMany: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
   findUnique: vi.fn(),
@@ -891,5 +893,194 @@ describe("rimuoviRimborsoTrasferta", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("profilo Collaboratore");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+
+describe("duplicaRigaSuGiorni", () => {
+  /** Giorno civile della riga di origine usata da tutti gli scenari. */
+  const GIORNO_ORIGINE = "2026-03-11";
+
+  /**
+   * Contenuto della riga sorgente: include la fotografia del rimborso
+   * trasferta già congelata su di essa (US-045), che la duplicazione deve
+   * propagare senza rileggere il catalogo.
+   */
+  function rigaSorgenteMock() {
+    return {
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-1",
+      clienteId: "cliente-1",
+      data: new Date(Date.UTC(2026, 2, 11, 12)),
+      ore: "6.00",
+      nota: "Coaching del team",
+      fatturabile: true,
+      rimborsoTrasfertaEtichetta: "Trasferta fuori provincia",
+      rimborsoTrasfertaImporto: "85.00",
+    };
+  }
+
+  /** Record atteso in `createMany` per un giorno di destinazione. */
+  function copiaAttesaPer(giorno: string) {
+    const [anno, mese, giornoDelMese] = giorno.split("-").map(Number);
+    return {
+      collaboratoreId: "collab-giulia",
+      clienteId: "cliente-1",
+      offertaId: "offerta-1",
+      data: new Date(Date.UTC(anno, mese - 1, giornoDelMese, 12)),
+      ore: "6.00",
+      nota: "Coaching del team",
+      fatturabile: true,
+      rimborsoTrasfertaEtichetta: "Trasferta fuori provincia",
+      rimborsoTrasfertaImporto: "85.00",
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue(rigaSorgenteMock());
+    mockOfferta.findUnique.mockResolvedValue({
+      clienteId: "cliente-1",
+      attiva: true,
+    });
+    mockAbilitazioneOfferta.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-1",
+    });
+    mockRigaAttivita.createMany.mockResolvedValue({ count: 3 });
+  });
+
+  it("copia integralmente la riga su ogni giorno scelto, anche in mesi diversi", async () => {
+    const giorni = ["2026-03-17", "2026-03-24", "2026-04-07"];
+
+    await duplicaRigaSuGiorni("riga-1", giorni);
+
+    expect(mockRigaAttivita.createMany).toHaveBeenCalledTimes(1);
+    expect(mockRigaAttivita.createMany).toHaveBeenCalledWith({
+      data: giorni.map(copiaAttesaPer),
+    });
+  });
+
+  it("propaga la fotografia del rimborso senza rileggere il catalogo delle voci", async () => {
+    await duplicaRigaSuGiorni("riga-1", [
+      "2026-03-17",
+      "2026-03-24",
+      "2026-04-07",
+    ]);
+
+    // Oracolo della propagazione: se l'importo venisse rifotografato dal
+    // catalogo, l'asserzione sui campi passerebbe comunque per coincidenza.
+    expect(mockVoceRimborsoTrasferta.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("restituisce il numero di giorni creati e invalida ciascuno di essi", async () => {
+    const giorni = ["2026-03-17", "2026-03-24", "2026-04-07"];
+
+    const result = await duplicaRigaSuGiorni("riga-1", giorni);
+
+    expect(result).toEqual({ success: true, giorniCreati: 3 });
+    for (const giorno of giorni) {
+      aspettatiPercorsiInvalidati(giorno);
+    }
+  });
+
+  it("deduplica i giorni ripetuti ed esclude il giorno di origine", async () => {
+    const result = await duplicaRigaSuGiorni("riga-1", [
+      "2026-03-17",
+      "2026-03-17",
+      GIORNO_ORIGINE,
+    ]);
+
+    expect(result.success).toBe(true);
+    expect(result.giorniCreati).toBe(1);
+    expect(mockRigaAttivita.createMany).toHaveBeenCalledTimes(1);
+    expect(mockRigaAttivita.createMany).toHaveBeenCalledWith({
+      data: [copiaAttesaPer("2026-03-17")],
+    });
+  });
+
+  it("rifiuta una lista di giorni vuota senza scrivere né invalidare", async () => {
+    const result = await duplicaRigaSuGiorni("riga-1", []);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
+  });
+
+  it("rifiuta una lista con il solo giorno di origine senza scrivere né invalidare", async () => {
+    const result = await duplicaRigaSuGiorni("riga-1", [GIORNO_ORIGINE]);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
+  });
+
+  it("rifiuta una data malformata senza scrivere né invalidare", async () => {
+    const result = await duplicaRigaSuGiorni("riga-1", ["11/03/2026"]);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
+  });
+
+  it("rifiuta la duplicazione quando l'offerta non è più attiva", async () => {
+    mockOfferta.findUnique.mockResolvedValue({
+      clienteId: "cliente-1",
+      attiva: false,
+    });
+
+    const result = await duplicaRigaSuGiorni("riga-1", ["2026-03-17"]);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("L'offerta non è più attiva");
+    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
+  });
+
+  it("rifiuta la duplicazione quando l'abilitazione all'offerta è stata revocata", async () => {
+    mockAbilitazioneOfferta.findUnique.mockResolvedValue(null);
+
+    const result = await duplicaRigaSuGiorni("riga-1", ["2026-03-17"]);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe(
+      "Non sei abilitato a registrare attività su questa offerta"
+    );
+    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
+  });
+
+  it("rifiuta la riga di un altro collaboratore", async () => {
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      ...rigaSorgenteMock(),
+      collaboratoreId: "collab-altro",
+    });
+
+    const result = await duplicaRigaSuGiorni("riga-altrui", ["2026-03-17"]);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("altro collaboratore");
+    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
+  });
+
+  it("rifiuta la duplicazione con profilo collaboratore assente, senza leggere la riga", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({ stato: "ASSENTE" });
+
+    const result = await duplicaRigaSuGiorni("riga-1", ["2026-03-17"]);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("profilo Collaboratore");
+    expect(mockRigaAttivita.findUnique).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
   });
 });

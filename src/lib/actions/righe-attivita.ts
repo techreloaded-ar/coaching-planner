@@ -6,7 +6,7 @@ import {
   risolviProfiloCollaboratoreCorrente,
   type StatoProfiloCollaboratore,
 } from "@/lib/dal";
-import type { Collaboratore } from "@/generated/prisma/client";
+import type { Collaboratore, RigaAttivita } from "@/generated/prisma/client";
 import { validaOre } from "@/domain/consuntivi";
 
 // ── Tipi ────────────────────────────────────────────────────────
@@ -15,6 +15,24 @@ interface ActionResult {
   success: boolean;
   error?: string;
 }
+
+/**
+ * Dati della riga di origine necessari ai controlli di ammissibilità e alla
+ * duplicazione: oltre alla coppia offerta/cliente include tutto il contenuto
+ * replicabile su un altro giorno, compresa la fotografia del rimborso trasferta
+ * già congelata sulla riga.
+ */
+type DatiRigaDiOrigine = Pick<
+  RigaAttivita,
+  | "offertaId"
+  | "clienteId"
+  | "data"
+  | "ore"
+  | "nota"
+  | "fatturabile"
+  | "rimborsoTrasfertaEtichetta"
+  | "rimborsoTrasfertaImporto"
+>;
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -41,15 +59,26 @@ async function richiediCollaboratoreOperativo(): Promise<
 
 /**
  * Verifica che la riga appartenga al collaboratore corrente e ne restituisce
- * i dati essenziali (offertaId, clienteId) per i controlli successivi.
+ * il contenuto (coppia offerta/cliente più i campi replicabili) per i
+ * controlli successivi e per la duplicazione.
  */
 async function caricaRigaDelCollaboratore(
   rigaId: string,
   collaboratoreId: string
-): Promise<{ errore: ActionResult | null; riga?: { offertaId: string; clienteId: string } }> {
+): Promise<{ errore: ActionResult | null; riga?: DatiRigaDiOrigine }> {
   const riga = await db.rigaAttivita.findUnique({
     where: { id: rigaId },
-    select: { collaboratoreId: true, offertaId: true, clienteId: true },
+    select: {
+      collaboratoreId: true,
+      offertaId: true,
+      clienteId: true,
+      data: true,
+      ore: true,
+      nota: true,
+      fatturabile: true,
+      rimborsoTrasfertaEtichetta: true,
+      rimborsoTrasfertaImporto: true,
+    },
   });
 
   if (!riga) {
@@ -67,7 +96,16 @@ async function caricaRigaDelCollaboratore(
 
   return {
     errore: null,
-    riga: { offertaId: riga.offertaId, clienteId: riga.clienteId },
+    riga: {
+      offertaId: riga.offertaId,
+      clienteId: riga.clienteId,
+      data: riga.data,
+      ore: riga.ore,
+      nota: riga.nota,
+      fatturabile: riga.fatturabile,
+      rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta,
+      rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto,
+    },
   };
 }
 
@@ -155,6 +193,59 @@ async function fotografaVoceRimborsoTrasferta(
     etichetta: voce.etichetta,
     importo: voce.importo.toString(),
   };
+}
+
+/**
+ * Formatta come token `YYYY-MM-DD` il giorno civile di una riga già salvata.
+ *
+ * Usa i getter UTC di proposito: la colonna è `@db.Date`, Prisma la restituisce
+ * a mezzanotte UTC e `creaRiga` la scrive a mezzogiorno UTC. I getter locali
+ * sposterebbero il giorno indietro nei fusi a offset negativo.
+ */
+function giornoDellaRiga(data: Date): string {
+  const anno = data.getUTCFullYear();
+  const mese = String(data.getUTCMonth() + 1).padStart(2, "0");
+  const giorno = String(data.getUTCDate()).padStart(2, "0");
+  return `${anno}-${mese}-${giorno}`;
+}
+
+/**
+ * Normalizza i giorni di destinazione della duplicazione: valida il formato,
+ * deduplica, esclude il giorno di origine e ordina in modo crescente.
+ *
+ * Il giorno di origine non è un errore ma un no-op da scartare: la selezione
+ * lato client lo esclude già, questa è la difesa server-side.
+ */
+function normalizzaGiorniDestinazione(
+  giorni: string[] | undefined,
+  giornoOrigine: string
+): { errore: ActionResult | null; giorni?: string[] } {
+  if (!Array.isArray(giorni) || giorni.length === 0) {
+    return {
+      errore: { success: false, error: "Scegli almeno un giorno di destinazione" },
+    };
+  }
+
+  const giorniPuliti = giorni.map((giorno) => giorno.trim());
+
+  if (giorniPuliti.some((giorno) => !/^\d{4}-\d{2}-\d{2}$/.test(giorno))) {
+    return { errore: { success: false, error: "Data non valida" } };
+  }
+
+  const giorniDistinti = [...new Set(giorniPuliti)].filter(
+    (giorno) => giorno !== giornoOrigine
+  );
+
+  if (giorniDistinti.length === 0) {
+    return {
+      errore: {
+        success: false,
+        error: "Scegli almeno un giorno di destinazione diverso da quello di origine",
+      },
+    };
+  }
+
+  return { errore: null, giorni: giorniDistinti.sort() };
 }
 
 // ── Server Actions ──────────────────────────────────────────────
@@ -465,6 +556,94 @@ export async function rimuoviRimborsoTrasferta(
   revalidatePath("/attivita");
 
   return { success: true };
+}
+
+/**
+ * Duplica una riga attività già salvata su uno o più giorni scelti.
+ *
+ * Il rimborso trasferta viene **propagato** dalla riga di origine, cioè copiato
+ * dalla fotografia già congelata su di essa: il catalogo corrente delle voci non
+ * viene mai riletto, quindi una duplicazione non può reintrodurre importi
+ * cambiati dopo il salvataggio della riga sorgente.
+ *
+ * L'ammissibilità applicata è quella della **creazione** (offerta attiva,
+ * coerente col cliente e abilitata per il collaboratore), non quella più
+ * clemente di `modificaRiga`: qui non si aggiorna una riga storica, si creano
+ * righe nuove, che devono rispettare le regole valide oggi.
+ *
+ * La scrittura è unica e atomica: o tutti i giorni ammessi ricevono la copia,
+ * o non viene creata alcuna riga.
+ *
+ * @param rigaId - ID della riga di origine
+ * @param giorni - giorni di destinazione in formato `YYYY-MM-DD`
+ */
+export async function duplicaRigaSuGiorni(
+  rigaId: string,
+  giorni: string[]
+): Promise<ActionResult & { giorniCreati?: number }> {
+  const collaboratore = await richiediCollaboratoreOperativo();
+  if ("success" in collaboratore) {
+    return collaboratore;
+  }
+
+  if (!rigaId) {
+    return { success: false, error: "ID riga mancante" };
+  }
+
+  // Verifica proprietà e recupero del contenuto da replicare
+  const { errore: erroreProprietario, riga } = await caricaRigaDelCollaboratore(
+    rigaId,
+    collaboratore.id
+  );
+  if (erroreProprietario) return erroreProprietario;
+  // Restringimento di tipo esplicito, come in `modificaRiga`.
+  if (!riga) {
+    return { success: false, error: "Riga non trovata" };
+  }
+
+  const { errore: erroreGiorni, giorni: giorniDestinazione } =
+    normalizzaGiorniDestinazione(giorni, giornoDellaRiga(riga.data));
+  if (erroreGiorni) return erroreGiorni;
+  if (!giorniDestinazione) {
+    return { success: false, error: "Scegli almeno un giorno di destinazione" };
+  }
+
+  // Riverifica dell'ammissibilità sull'offerta della riga di origine
+  const erroreOfferta = await verificaOffertaCliente(riga.offertaId, riga.clienteId);
+  if (erroreOfferta) return erroreOfferta;
+
+  const erroreAbilitazione = await verificaAbilitazioneOfferta(
+    collaboratore.id,
+    riga.offertaId
+  );
+  if (erroreAbilitazione) return erroreAbilitazione;
+
+  await db.rigaAttivita.createMany({
+    data: giorniDestinazione.map((giornoDestinazione) => {
+      const [anno, mese, giorno] = giornoDestinazione.split("-").map(Number);
+      return {
+        collaboratoreId: collaboratore.id,
+        clienteId: riga.clienteId,
+        offertaId: riga.offertaId,
+        // Mantiene il giorno civile anche quando server e database usano fusi
+        // diversi, esattamente come in `creaRiga`.
+        data: new Date(Date.UTC(anno, mese - 1, giorno, 12)),
+        ore: riga.ore,
+        nota: riga.nota,
+        fatturabile: riga.fatturabile,
+        rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta,
+        rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto,
+      };
+    }),
+  });
+
+  for (const giornoDestinazione of giorniDestinazione) {
+    revalidatePath(`/attivita/${giornoDestinazione}`);
+  }
+  revalidatePath("/attivita/riepilogo");
+  revalidatePath("/attivita");
+
+  return { success: true, giorniCreati: giorniDestinazione.length };
 }
 
 // Il cascade select cliente → offerta non passa più da una Server Action: la

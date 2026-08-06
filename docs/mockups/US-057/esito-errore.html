@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Duplicazione rifiutata — Coaching Planner (US-057)</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand-mark">CP</div>
+  <div class="brand-name">
+    <b>Coaching Planner</b>
+    <span>Le mie attività</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+    <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+    <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+  </button>
+</header>
+
+<main class="pagina">
+
+  <a class="crumb" href="index.html">
+    <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+    Torna al calendario
+  </a>
+
+  <div class="intestazione-giorno">
+    <div class="dow">mercoledì</div>
+    <h1>11 marzo 2026</h1>
+  </div>
+
+  <div id="esitoHost"></div>
+
+  <section>
+    <h2 class="sez-titolo">Attività della giornata</h2>
+    <div class="righe">
+      <article class="riga origine">
+        <div class="riga-top">
+          <div>
+            <div class="cliente">Vetreria Marconi s.n.c.</div>
+            <div class="tag-row">
+              <span class="tag">OFF-2024-102</span>
+              <span class="tag">Coaching su misura (offerta chiusa)</span>
+            </div>
+            <p class="nota">Riga storica: l'offerta non è più abilitata per il collaboratore corrente.</p>
+          </div>
+          <div class="riga-dx">
+            <span class="pill">Fatt.</span>
+            <span class="ore">4.0 h</span>
+          </div>
+        </div>
+        <div class="azioni-riga">
+          <button class="btn" type="button">
+            <svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Modifica
+          </button>
+          <button class="btn btn-duplica" type="button" data-apri-duplica>
+            <svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2.2"/><path d="M15.5 5.5H5.8A2.3 2.3 0 0 0 3.5 7.8v9.7"/></svg>
+            Duplica…
+          </button>
+          <button class="btn btn-danger" type="button">
+            <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Elimina
+          </button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <div class="note-card">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+    <span><b>AC-4</b> — una riga storica resta modificabile ed eliminabile, ma <b>duplicarla crea righe nuove</b>: la stessa regola della creazione vale allora anche qui. Se l'offerta non è più attiva o non è più abilitata, il rifiuto è visibile dentro il selettore, i giorni scelti restano in pista per non perdere il lavoro fatto, e <b>nessuna riga viene creata su nessuno di essi</b>.</span>
+  </div>
+
+  <div class="demo-bar">
+    <div class="demo-label">
+      <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg>
+      Altre viste di questo flusso:
+    </div>
+    <a class="btn" href="index.html">Selettore compilato ed esito positivo</a>
+    <a class="btn" href="selettore-vuoto.html">Selettore appena aperto (conferma non disponibile)</a>
+  </div>
+
+</main>
+
+<div class="overlay" id="overlayDuplica" role="dialog" aria-modal="true" aria-labelledby="titoloDuplica">
+  <div class="dialog">
+
+    <div class="dialog-head">
+      <span class="m-ic">
+        <svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2.2"/><path d="M15.5 5.5H5.8A2.3 2.3 0 0 0 3.5 7.8v9.7"/></svg>
+      </span>
+      <div>
+        <h3 id="titoloDuplica">Duplica su più giorni</h3>
+        <p>Scegli i giorni su cui replicare questa riga. Verranno create righe nuove, identiche all'originale.</p>
+      </div>
+      <button class="dialog-close" type="button" data-chiudi-duplica aria-label="Chiudi la finestra">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="dialog-body">
+
+      <div class="origine-box">
+        <span class="cap">Riga di origine — 11 marzo 2026</span>
+        <div class="riepilogo-riga">
+          Vetreria Marconi s.n.c.
+          <span class="sep">·</span> OFF-2024-102
+          <span class="sep">·</span> 4,0 h
+          <span class="sep">·</span> fatturabile
+        </div>
+        <div class="meta">Nessun rimborso trasferta su questa riga · Nota inclusa</div>
+      </div>
+
+      <label class="campo-lbl" for="campoData">Aggiungi un giorno di destinazione</label>
+      <div class="aggiungi-data">
+        <input type="date" id="campoData" aria-describedby="aiutoData">
+        <button class="btn btn-lg" type="button" id="btnAggiungi">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Aggiungi data
+        </button>
+      </div>
+      <p class="aiuto" id="aiutoData">Puoi aggiungere quanti giorni vuoi, anche non consecutivi e di mesi diversi. Il giorno di origine (11 marzo 2026) non è selezionabile.</p>
+
+      <div class="avviso-inline" id="avvisoInline" role="status" style="display:none;">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+        <span></span>
+      </div>
+
+      <div class="pista">
+        <div class="pista-head">
+          <h4>Giorni scelti</h4>
+          <span class="conta" id="conta">2 giorni</span>
+        </div>
+        <div id="pista"><!-- generato da app.js --></div>
+      </div>
+
+      <div class="errore-dialog" id="erroreDialog" role="alert" style="display:flex;">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.4M12 16.4h.01"/></svg>
+        <span>Non sei abilitato a registrare attività su questa offerta: nessuna riga è stata creata sui giorni scelti.</span>
+      </div>
+
+    </div>
+
+    <div class="dialog-foot">
+      <span class="nota">Le righe esistenti sui giorni scelti non vengono toccate.</span>
+      <button class="btn btn-lg" type="button" data-chiudi-duplica>Annulla</button>
+      <button class="btn btn-lg btn-primary" type="button" id="btnConferma">
+        <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+        <span class="etichetta">Duplica su 2 giorni</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  CP.initTheme();
+  CP.initSelettore({
+    dateIniziali: ["2026-03-18", "2026-04-02"],
+    erroreOfferta: true,
+    aperto: true,
+  });
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ import {
   rimuoviRimborsoTrasferta,
 } from "@/lib/actions/righe-attivita";
 import { PulsanteAttesa } from "@/components";
+import { SelettoreDuplicazione } from "./selettore-duplicazione";
 import type {
   RigaAttivitaClient,
   ClienteSelect,
@@ -38,9 +39,14 @@ interface DettaglioGiornataProps {
    * o eliminata, così le cache della scheda possano rileggere il dato.
    *
    * Riceve il giorno **visualizzato**, che dopo un cambio giorno client può
-   * differire da quello dell'ultimo payload prodotto dal server.
+   * differire da quello dell'ultimo payload prodotto dal server, ed
+   * eventualmente gli altri giorni toccati da una mutazione multi-giorno
+   * (la duplicazione di una riga su più giornate).
    */
-  onMutazioneCompletata: (giorno: string) => void | Promise<void>;
+  onMutazioneCompletata: (
+    giorno: string,
+    giorniAggiuntivi?: readonly string[]
+  ) => void | Promise<void>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -172,11 +178,14 @@ export default function DettaglioGiornata({
    * La transizione tiene l'attesa continua dal click fino ai dati aggiornati a
    * schermo: l'isola aggiorna la vista dentro questo scope.
    */
-  const invalidaDopoMutazione = useCallback(() => {
-    startTransition(async () => {
-      await onMutazioneCompletata(data);
-    });
-  }, [data, onMutazioneCompletata]);
+  const invalidaDopoMutazione = useCallback(
+    (giorniAggiuntivi?: readonly string[]) => {
+      startTransition(async () => {
+        await onMutazioneCompletata(data, giorniAggiuntivi);
+      });
+    },
+    [data, onMutazioneCompletata]
+  );
 
   // ── Stato form ─────────────────────────────────────────────
   const [clienteId, setClienteId] = useState("");
@@ -204,6 +213,18 @@ export default function DettaglioGiornata({
 
   // Modalità modifica
   const [modificaId, setModificaId] = useState<string | null>(null);
+
+  // Riga per cui è aperto il selettore di duplicazione: `null` = pannello chiuso.
+  const [rigaDaDuplicare, setRigaDaDuplicare] =
+    useState<RigaAttivitaClient | null>(null);
+
+  // Esito dell'ultima duplicazione riuscita, mostrato nel banner sopra
+  // l'elenco delle righe finché il collaboratore non lo chiude (o finché il
+  // cambio giorno non rimonta il componente).
+  const [esitoDuplicazione, setEsitoDuplicazione] = useState<{
+    giorniCreati: number;
+    giorni: string[];
+  } | null>(null);
 
   // Cascade select: offerte del cliente selezionato
   const [offerte, setOfferte] = useState<OffertaSelect[]>([]);
@@ -560,6 +581,23 @@ export default function DettaglioGiornata({
     [invalidaDopoMutazione]
   );
 
+  // ── Duplicazione su più giorni ─────────────────────────────
+
+  /**
+   * Chiude il selettore, mostra l'esito e — soprattutto — porta i giorni di
+   * destinazione fino all'isola: `invalidaDopoMutazione` li inoltra come
+   * `giorniAggiuntivi`, ed è da lì che discende l'invalidazione anche dei mesi
+   * diversi da quello della giornata visualizzata.
+   */
+  const gestisciDuplicazione = useCallback(
+    (giorniDestinazione: string[], giorniCreati: number) => {
+      setRigaDaDuplicare(null);
+      setEsitoDuplicazione({ giorniCreati, giorni: giorniDestinazione });
+      invalidaDopoMutazione(giorniDestinazione);
+    },
+    [invalidaDopoMutazione]
+  );
+
   // ═════════════════════════════════════════════════════════════
   // Render
   // ═════════════════════════════════════════════════════════════
@@ -575,6 +613,51 @@ export default function DettaglioGiornata({
           {dataEstesa(data)}
         </h1>
       </div>
+
+      {/* ── Esito della duplicazione ── */}
+      {esitoDuplicazione && (
+        <div
+          data-testid="esito-duplicazione"
+          role="status"
+          className="mb-7 flex items-start gap-[11px] rounded-[11px] border border-emerald-200 bg-emerald-50 p-[13px_16px] shadow-sm dark:border-emerald-800 dark:bg-emerald-950/40"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mt-px h-[18px] w-[18px] flex-none text-emerald-700 dark:text-emerald-400"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          <div className="flex-1 text-[13px] font-bold text-emerald-700 dark:text-emerald-400">
+            Riga replicata su {esitoDuplicazione.giorniCreati}{" "}
+            {esitoDuplicazione.giorniCreati === 1 ? "giorno" : "giorni"}.
+            <div className="mt-[5px] text-[12px] font-semibold opacity-90">
+              {esitoDuplicazione.giorni.map(dataEstesa).join(" · ")}
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Chiudi l'esito"
+            onClick={() => setEsitoDuplicazione(null)}
+            className="flex-none rounded-md p-0.5 text-emerald-700 opacity-65 transition hover:opacity-100 dark:text-emerald-400"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              className="h-[15px] w-[15px]"
+            >
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* ── Riepilogo dinamico ── */}
       <div className="mb-7 flex flex-wrap gap-3">
@@ -723,6 +806,28 @@ export default function DettaglioGiornata({
                       <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                     </svg>
                     Modifica
+                  </PulsanteAttesa>
+                  <PulsanteAttesa
+                    type="button"
+                    data-testid="duplica-riga"
+                    attesaEsterna={rigaInAttesaId === riga.id}
+                    onClick={() => {
+                      setEsitoDuplicazione(null);
+                      setRigaDaDuplicare(riga);
+                    }}
+                    className="inline-flex items-center gap-[5px] rounded-[8px] border border-rose-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-rose-700 transition hover:bg-rose-50 hover:text-rose-800 dark:border-rose-800 dark:bg-zinc-800 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      className="h-[13px] w-[13px]"
+                    >
+                      <rect x="8.5" y="8.5" width="12" height="12" rx="2.2" />
+                      <path d="M15.5 5.5H5.8A2.3 2.3 0 0 0 3.5 7.8v9.7" />
+                    </svg>
+                    Duplica…
                   </PulsanteAttesa>
                   {riga.rimborsoTrasfertaEtichetta != null && (
                     <PulsanteAttesa
@@ -1036,6 +1141,16 @@ export default function DettaglioGiornata({
           </div>
         </form>
       </section>
+
+      {/* ── Selettore di duplicazione su più giorni ── */}
+      {rigaDaDuplicare && (
+        <SelettoreDuplicazione
+          riga={rigaDaDuplicare}
+          giornoOrigine={data}
+          onChiudi={() => setRigaDaDuplicare(null)}
+          onDuplicata={gestisciDuplicazione}
+        />
+      )}
     </>
   );
 }

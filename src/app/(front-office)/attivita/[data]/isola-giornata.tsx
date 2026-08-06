@@ -508,6 +508,17 @@ export default function IsolaGiornata({
    * dal server: dopo un cambio giorno client i due possono differire, e il
    * mese da invalidare è quello del giorno davvero mutato.
    *
+   * `giorniAggiuntivi` sono gli altri giorni toccati da una mutazione
+   * multi-giorno (la duplicazione di una riga su più giornate). Vengono
+   * invalidati insieme al giorno visualizzato, e con loro **tutti** i token di
+   * mese distinti che li contengono: è da qui che discende la valorizzazione
+   * senza reload delle celle di un mese diverso da quello di partenza, perché
+   * l'isola del calendario non può più riusare la sintesi di quel mese.
+   * La rilettura forzata resta però limitata al giorno visualizzato: i giorni
+   * di destinazione restano invalidati e vengono riletti al primo ingresso,
+   * mentre forzarne qui la rilettura produrrebbe N richieste per dati che
+   * l'utente non sta guardando.
+   *
    * Nessun `router.refresh()` in questo percorso, deliberatamente. È
    * ridondante, perché le server action continuano a fare `revalidatePath` e
    * la risposta della server action invalida già la Router Cache client per
@@ -516,8 +527,11 @@ export default function IsolaGiornata({
    * l'utente è partito, riportando la vista sul giorno sbagliato.
    */
   const invalidaDopoMutazione = useCallback(
-    async (giorno: string) => {
-      cacheCalendario?.invalidate(giorno.slice(0, 7));
+    async (giorno: string, giorniAggiuntivi?: readonly string[]) => {
+      const giorniToccati = [...new Set([giorno, ...(giorniAggiuntivi ?? [])])];
+      const mesiToccati = [...new Set(giorniToccati.map((g) => g.slice(0, 7)))];
+
+      cacheCalendario?.invalidate(...mesiToccati);
 
       if (!cacheGiornate) {
         // Senza isola client (provider assente) non c'è cache da rileggere:
@@ -526,7 +540,7 @@ export default function IsolaGiornata({
         return;
       }
 
-      cacheGiornate.invalidate(giorno);
+      cacheGiornate.invalidate(...giorniToccati);
 
       try {
         // L'attesa copre la rilettura: la vista viene aggiornata dalla
