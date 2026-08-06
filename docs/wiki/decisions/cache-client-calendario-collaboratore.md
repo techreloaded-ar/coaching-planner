@@ -68,9 +68,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:0837af5a73fadb4d3e8c5806df2ac2d43c508d0a63d0715b96ef2b3a7e42b241
-    evidence_revision: 08d10077f33ac8619ca0151e75df8fd63349b9f0
-    evidence_hash: sha256:2a4f6ac943d52ee37eee4685429fced9a05e08e84cc5a61ee443cb401ee60ead
-    reviewed_at: "2026-08-06T15:14:13Z"
+    evidence_revision: 67133f5adf25203fb1b17a224c25b5b65dd89772
+    evidence_hash: sha256:cd782707de3dea949c8b4a39bc21eb9c9ec022cdbc3572df4d76fcb1f4498fde
+    reviewed_at: "2026-08-06T16:26:38Z"
 ---
 # Cache client dell'area attività del collaboratore — mesi del calendario e giornate
 

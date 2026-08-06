@@ -28,9 +28,9 @@ sources:
       role: verification
 review:
     content_hash: sha256:6ff0bca461dfe3ded881bc87cfebfcce43b8f30ec1ec9c44ad8430b66569fe03
-    evidence_revision: 08d10077f33ac8619ca0151e75df8fd63349b9f0
-    evidence_hash: sha256:9bdda41081ac2657f15c79c659b0ac88f5ae855fce7f28f8fc52d90760b4b166
-    reviewed_at: "2026-08-06T15:14:13Z"
+    evidence_revision: 67133f5adf25203fb1b17a224c25b5b65dd89772
+    evidence_hash: sha256:9a0bf9241f1cc3c31b2f55412353af9c345cef7747677d70876afc9e01dd423a
+    reviewed_at: "2026-08-06T16:26:38Z"
 ---
 # Fotografia del rimborso trasferta sulla riga attività
 
