@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selettore di mese sull'etichetta — Coaching Planner (US-058)</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<!-- ============ BARRA SUPERIORE ============ -->
+<header class="topbar">
+  <div class="brand-mark">CP</div>
+  <div class="brand-name">
+    <b>Coaching Planner</b>
+    <span>Le mie attività</span>
+  </div>
+  <div class="spacer"></div>
+  <!-- Finta barra indirizzo: rende osservabile il token del mese (AC-4) -->
+  <div class="url-chip" id="urlChip">
+    <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+    <span>/attivita<b data-token>?mese=2026-08</b></span>
+  </div>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+    <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+    <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+  </button>
+</header>
+
+<main class="pagina">
+
+  <div class="stato-pagina">
+    <span class="n">1</span>
+    <div>
+      <h2>Barra del calendario — selettore chiuso</h2>
+      <p>
+        L'etichetta del mese è ora un controllo: chevron rosa sempre visibile, tinta e bordo che
+        compaiono al passaggio e al focus. Il campo mese nativo con il pulsante «Vai» non è più
+        nella barra. <b>Il prototipo è vivo:</b> apri il selettore dall'etichetta, naviga l'anno,
+        scegli un mese e guarda la griglia e il token nell'URL cambiare senza conferme.
+      </p>
+      <div class="ac-list"><span class="ac">AC-1</span><span class="ac">AC-2</span><span class="ac">AC-3</span><span class="ac">AC-4</span><span class="ac">AC-5</span><span class="ac">AC-6</span></div>
+    </div>
+  </div>
+
+  <!-- ============ BARRA DI NAVIGAZIONE DEL MESE ============ -->
+  <div class="barra-mese">
+    <div class="barra-comandi">
+
+      <button class="nav-quadro" type="button" data-mese-passo="-1" aria-label="Mese precedente" title="Mese precedente">
+        <svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>
+      </button>
+
+      <!-- ⬇ US-058: l'etichetta è il trigger del selettore -->
+      <div class="mese-selettore" id="selettoreMese">
+        <button
+          class="mese-trigger"
+          id="triggerMese"
+          type="button"
+          data-testid="calendar-month-label"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="pannelloMese"
+          title="Scegli il mese">
+          <span class="etichetta">agosto 2026</span>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+
+        <div class="mese-pannello" id="pannelloMese" role="dialog" aria-label="Scegli il mese">
+          <div class="anno-nav">
+            <button class="anno-freccia" type="button" data-anno-passo="-1" aria-label="Anno precedente" title="Anno precedente">
+              <svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>
+            </button>
+            <span class="anno-valore" id="annoValore" aria-live="polite">
+              <span data-anno>2026</span>
+              <span class="fuori" data-fuori></span>
+            </span>
+            <button class="anno-freccia" type="button" data-anno-passo="1" aria-label="Anno successivo" title="Anno successivo">
+              <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+          </div>
+
+          <div class="mesi-griglia" role="group" aria-label="Mesi dell'anno">
+            <button class="cella-mese" type="button" data-mese="1"  aria-label="gennaio">gen</button>
+            <button class="cella-mese" type="button" data-mese="2"  aria-label="febbraio">feb</button>
+            <button class="cella-mese" type="button" data-mese="3"  aria-label="marzo">mar</button>
+            <button class="cella-mese" type="button" data-mese="4"  aria-label="aprile">apr</button>
+            <button class="cella-mese" type="button" data-mese="5"  aria-label="maggio">mag</button>
+            <button class="cella-mese" type="button" data-mese="6"  aria-label="giugno">giu</button>
+            <button class="cella-mese" type="button" data-mese="7"  aria-label="luglio">lug</button>
+            <button class="cella-mese" type="button" data-mese="8"  aria-label="agosto">ago</button>
+            <button class="cella-mese" type="button" data-mese="9"  aria-label="settembre">set</button>
+            <button class="cella-mese" type="button" data-mese="10" aria-label="ottobre">ott</button>
+            <button class="cella-mese" type="button" data-mese="11" aria-label="novembre">nov</button>
+            <button class="cella-mese" type="button" data-mese="12" aria-label="dicembre">dic</button>
+          </div>
+
+          <div class="pannello-piede"><kbd>↑ ↓ ← →</kbd> per spostarsi · <kbd>Invio</kbd> per scegliere · <kbd>Esc</kbd> per chiudere</div>
+        </div>
+      </div>
+
+      <button class="nav-quadro" type="button" data-mese-passo="1" aria-label="Mese successivo" title="Mese successivo">
+        <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+
+      <button class="btn-barra ml" type="button" id="btnMeseCorrente">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.5"/></svg>
+        Mese corrente
+      </button>
+
+      <a class="btn-barra" id="linkRiepilogo" href="#riepilogo-2026-08">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        Riepilogo mese
+      </a>
+    </div>
+
+    <div class="flex-1"></div>
+
+    <div class="chip-totali" id="chipTotali">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <b data-righe>0 righe</b>
+      <span class="div"></span>
+      <b data-ore>0.0 h</b>
+    </div>
+  </div>
+
+  <!-- ============ GRIGLIA DEL MESE ============ -->
+  <section class="calendario" aria-label="Calendario mensile delle attività">
+    <div class="dow-head" id="dowHead"></div>
+    <div class="griglia" id="griglia"></div>
+  </section>
+
+  <div class="legenda">
+    <span><i class="attiva"></i> Giorno con attività registrate</span>
+    <span><i class="oggi"></i> Oggi</span>
+    <span><i class="vuota"></i> Nessuna attività</span>
+    <span>Clicca un giorno qualsiasi per inserire o modificare le righe</span>
+  </div>
+
+  <!-- ============ CONFRONTO PRIMA / DOPO (AC-3) ============ -->
+  <section class="confronto">
+    <h3>Cosa cambia nella barra</h3>
+
+    <div class="confronto-riga prima">
+      <span class="confronto-tag">Prima</span>
+      <div class="ghost">
+        <span class="etichetta-statica">agosto 2026</span>
+        <span class="finto-input">2026-08 <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></span>
+        <span class="finto-btn">Vai</span>
+      </div>
+      <span class="badge-rimosso">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+        Campo mese + «Vai» rimossi
+      </span>
+    </div>
+
+    <div class="confronto-riga">
+      <span class="confronto-tag">Dopo</span>
+      <div class="ghost">
+        <span class="mese-trigger" style="cursor:default;">
+          <span class="etichetta">agosto 2026</span>
+          <svg class="chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </span>
+      </div>
+      <span style="font-size:12.5px;color:var(--ink-2);">
+        Un solo controllo: l'etichetta apre il selettore, la scelta è immediata.
+      </span>
+    </div>
+  </section>
+
+  <div class="note-card">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+    <span>
+      <b>US-058</b> — il trigger conserva il <code>data-testid="calendar-month-label"</code> e la
+      tipografia dell'etichetta (19px, bold, <i>capitalize</i>): la gerarchia della barra non
+      cambia, cambia solo l'affordance. Il pannello è un <b>popover ancorato</b> — nessun overlay a
+      pieno schermo, nessuna trappola del focus, la griglia resta leggibile sotto. Frecce mese,
+      «Mese corrente», «Riepilogo mese», cache e prefetch restano fuori perimetro.
+    </span>
+  </div>
+
+  <div class="demo-bar">
+    <div class="demo-label">
+      <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg>
+      Stati di questo flusso:
+    </div>
+    <span class="corrente">1 · Selettore chiuso</span>
+    <a href="selettore-aperto.html">2 · Selettore aperto sull'anno corrente</a>
+    <a href="selettore-altro-anno.html">3 · Selettore su un anno diverso</a>
+    <a href="focus-tastiera.html">4 · Focus da tastiera su una cella mese</a>
+  </div>
+
+</main>
+
+<script src="app.js"></script>
+<script>
+  CP.init({ token: "2026-08" });
+</script>
+</body>
+</html>

@@ -3,9 +3,10 @@ code: US-059
 title: Suite e2e locale autonoma con database dedicato e database dev protetto
 epic:
   code: EP-000
+  title: Fondazione del Progetto
 priority: MEDIUM
 points: 3
-status: TODO
+status: DONE
 scope: MVP
 body: |-
   #### US-059: Suite e2e locale autonoma con database dedicato e database dev protetto
@@ -37,3 +38,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-08-06T09:48:57Z"
+  - status: PLANNED
+    at: "2026-08-06T16:41:17Z"
+  - status: IN PROGRESS
+    at: "2026-08-06T16:42:37Z"
+  - status: REVIEW
+    at: "2026-08-06T17:24:00Z"
+  - status: DONE
+    at: "2026-08-06T17:33:23Z"

@@ -1,0 +1,480 @@
+schema: archetipo/plan/v2
+spec_code: US-058
+body: "# US-058: Selettore di mese compatto sull'etichetta con navigazione immediata — Piano di Implementazione\n\n**Generato da:** Team di Planning ARchetipo\n**Data:** 2026-08-06\n\n---\n\n## Spec\n\n**Epic:** EP-005 — Evoluzioni Post-MVP\n**Priorità:** HIGH | **Punti:** 2\n\n**Storia Utente**\nCome collaboratore, voglio aprire il selettore di mese direttamente dall'etichetta del mese corrente e vedere il calendario cambiare appena scelgo un mese, così da raggiungere un mese lontano con un solo gesto, senza controlli duplicati né conferme aggiuntive.\n\n**Criteri di Accettazione**\n- AC-1 — L'etichetta del mese nella barra del calendario è un controllo interattivo riconoscibile (indicatore visivo di apertura); attivandola si apre un selettore con anno navigabile e i dodici mesi, con il mese in griglia evidenziato.\n- AC-2 — La scelta di un mese nel selettore chiude il selettore e la griglia mostra subito il mese scelto, senza alcun passaggio di conferma aggiuntivo.\n- AC-3 — Il precedente controllo di salto separato (campo mese e pulsante «Vai») non è più presente nella barra di navigazione.\n- AC-4 — Il mese raggiunto dal selettore è rappresentato dal token `YYYY-MM` nell'URL, condivisibile e riapribile direttamente.\n- AC-5 — La chiusura del selettore senza scelta (clic fuori o `Esc`) lascia invariato il mese mostrato in griglia.\n- AC-6 — Il selettore è utilizzabile da tastiera: apertura dall'etichetta, spostamento fra anni e mesi, scelta e chiusura senza mouse.\n\n**Fuori Perimetro**\nNessuna modifica alla cache client dei mesi, al prefetch dei mesi adiacenti, ai controlli freccia, al pulsante «Mese corrente» o al feedback di attesa. Nessuna estensione della selezione rapida ad altre pagine né selezione del giorno.\n\n---\n\n## Soluzione Tecnica\n\nL'etichetta del mese smette di essere una didascalia e diventa il **solo** ingresso al salto diretto: un nuovo componente client `selettore-mese.tsx` incapsula trigger e pannello, mentre `calendario-mensile.tsx` perde il form `<input type=\"month\">` + «Vai» introdotto da US-055 e guadagna una sola callback. Il salto non è un nuovo percorso di navigazione: chiama lo stesso intento `vaiA({ token, registraHistory: true })` già usato da frecce, «Mese corrente» e Back/Forward, quindi cache, prefetch, indicatore di attesa e scrittura dell'URL dentro `commit` restano quelli esistenti, senza una riga di codice in più.\n\n- **Nuovo componente `src/app/(front-office)/attivita/selettore-mese.tsx`** (client). Props: `tokenVisualizzato: string` e `onScegliMese: (token: string) => void`. Il trigger è un `<button>` che conserva `data-testid=\"calendar-month-label\"` e il cui **testo è esattamente** `etichettaMese(tokenVisualizzato)` (il chevron è un `<svg>` senza testo): le asserzioni `toHaveText` già presenti in `calendario-cache-mesi.spec.ts` e `demo__calendario-mensile.spec.ts` restano valide senza modifiche. Espone `aria-haspopup=\"dialog\"` e `aria-expanded`.\n- **Pannello ancorato, non modale.** `role=\"dialog\"`, `aria-label=\"Scelta del mese\"`, `data-testid=\"selettore-mese-pannello\"`, posizionato in `absolute` sotto il trigger dentro un wrapper `relative`. Contiene la riga anno («Anno precedente» ← `data-testid=\"selettore-mese-anno\"` → «Anno successivo») e una griglia 3×4 di dodici celle mese. Ogni cella è un `<button>` con `data-testid=\"selettore-mese-cella\"`, `data-token={token}`, `aria-label={etichettaMese(token)}` (es. `marzo 2025`) e testo abbreviato (`gen`…`dic`); la cella il cui token coincide con `tokenVisualizzato` porta `aria-current=\"true\"`.\n- **Stato locale del pannello:** `aperto`, `annoMostrato`, `indiceMeseAttivo`. L'apertura riparte **sempre** da `tokenVisualizzato`, quindi il pannello non conserva un anno stantio fra due aperture; cambiare anno non cambia il mese in griglia finché non si sceglie una cella.\n- **Chiusura:** scelta di un mese, `Escape` (con ritorno del focus al trigger) e `mousedown` fuori dal wrapper. Nessun overlay a tutto schermo e nessun focus trap: il pannello è un popover, non una finestra modale come `selettore-duplicazione.tsx`.\n- **Tastiera (AC-6):** il trigger è raggiungibile con Tab e si apre con Invio/Spazio (comportamento nativo del `<button>`); all'apertura il focus va sulla cella del mese in griglia; le frecce Sinistra/Destra spostano il focus di un mese e, superando il bordo di gennaio o dicembre, **cambiano anno** portando il focus su dicembre dell'anno precedente o gennaio del successivo; Su/Giù spostano di tre celle restando dentro l'anno; Invio/Spazio scelgono; `Escape` chiude. I due pulsanti anno restano nell'ordine di tabulazione naturale.\n- **Funzione pura di dominio.** `src/domain/calendario/index.ts` guadagna `NOMI_MESI_ABBREVIATI` e `etichettaMeseBreve(mese)`. Sono dodici etichette dichiarate esplicitamente e non derivate da `Intl`: la griglia ha bisogno di stringhe corte, stabili e verificabili in un unit test che non dipenda dalla versione di ICU del runtime. `etichettaMese` (Intl) resta la fonte dell'etichetta lunga di trigger e `aria-label`.\n- **`calendario-mensile.tsx`** rimuove `idSelettoreMese`, `valoreSelettoreMese`, `tokenSelettoreSincronizzato`, il blocco di risincronizzazione durante il render, `submitSaltoMese`, il `<form>` con `<input type=\"month\">` e «Vai», e gli import `useId`/`FormEvent` rimasti inutilizzati. Il memo `etichetta` sparisce perché l'etichetta viene calcolata dentro il selettore; `parseTokenMese` resta usato dal gestore `popstate`, `etichettaMese` dal messaggio d'errore.\n\n### Decisioni Architetturali\n\nNessuna scelta di questa spec supera la soglia ADR. L'alternativa considerata — continuare a delegare al popup nativo di `<input type=\"month\">` spostandone il trigger sull'etichetta — è stata scartata perché l'apertura programmatica del picker nativo non è governabile in modo uniforme fra browser e non consente né l'evidenziazione del mese in griglia né il contratto da tastiera di AC-6; la terza opzione (una libreria di date-picker) introdurrebbe una dipendenza per un pannello di dodici pulsanti. È una scelta di presentazione locale a una barra di navigazione, reversibile, che non tocca modello dati persistente, modello di sicurezza, confini di integrazione, topologia di deploy né semantica di consistenza: resta quindi nel piano e non genera una pagina `decisions/`.\n\n---\n\n## Baseline\n\nComandi eseguiti in fase di planning da `/Users/smarello/repo/coaching-planner`, prima di qualunque modifica.\n\n| Controllo | Esito prima dell'implementazione | Conseguenza sul piano |\n|---|---|---|\n| `npm run lint` | Passa. Un solo **warning pre-esistente**: `tests/e2e/demo__duplicazione-riga-su-piu-giorni.spec.ts:41 'MESE_ALTRO' is assigned a value but never used`. Il guardrail e2e stampa nove avvisi `chiave riservata non risolvibile staticamente` (helper generici in `support/date.ts` e `support/report-data.ts`) e termina con `✅ Guardrail e2e anti-flakiness passed`. | I task non devono azzerare quel warning (file fuori perimetro) ma **non devono aggiungerne altri**: nessun import o stato residuo dopo la rimozione del vecchio form. Il guardrail deve continuare a passare: le nuove chiavi di mese riservato sono già state verificate libere da collisioni (vedi TASK-06 e TASK-07). |\n| `npx tsc --noEmit -p tsconfig.json` | Passa, exit 0, nessuna diagnostica. | Ogni task che tocca `.ts`/`.tsx` deve lasciare il type-check a zero errori. |\n| `npm test` (vitest) | Passa: 40 file, 681 test. | Il nuovo unit test si aggiunge senza rompere i 681 esistenti. |\n| `npx vitest run tests/unit/calendario.test.ts` | Passa: 39 test. | Il file esistente è il posto dove aggiungere i casi della funzione pura. |\n| `npx playwright test tests/e2e/calendario-salto-mese.spec.ts --reporter=line` | Passa: 2 test in 5.0 s (scenari US-055 sul vecchio campo mese + «Vai»). | Questi due scenari asseriscono il controllo che AC-3 rimuove: il file viene **riscritto**, non semplicemente esteso. Dopo la riscrittura lo stesso comando deve tornare verde sui nuovi scenari. |\n\n**Prerequisiti d'ambiente (non sono fallimenti di codice).** Gli e2e richiedono `E2E_DATABASE_URL` valorizzato (`playwright.config.ts` lancia un'eccezione se manca) e un PostgreSQL raggiungibile: in locale è il servizio di `docker-compose.yml` (container `coaching-planner-db`, porta 5432, verificato `healthy` durante il planning). `globalSetup` esegue migrazioni e seed e `webServer` avvia `npm run dev` con `reuseExistingServer: false`, quindi non serve alcun server già in ascolto. `prisma generate` è coperto dagli script `dev`/`build`/`postinstall`. Il client Prisma deve essere generato prima di `npm test` in un checkout fresco (`npm run db:generate`).\n\n---\n\n## Mappa delle Evidenze di Accettazione\n\n| Criterio | Stato iniziale / fixture | Livello di test | Oracolo osservabile | Task che produce l'evidenza |\n|---|---|---|---|---|\n| AC-1 | Collaboratore, cliente, offerta e riga da factory in `meseRiservato(\"US-058\")`; `/attivita` sul mese corrente con `data-idratata=\"true\"` | e2e browser | `calendar-month-label` ha `aria-expanded=\"false\"`; dopo il clic ha `aria-expanded=\"true\"`, `selettore-mese-pannello` è visibile, `selettore-mese-anno` mostra l'anno del mese in griglia e la cella con `data-token` pari al mese in griglia ha `aria-current=\"true\"` | TASK-06 |\n| AC-2 | Pannello aperto, anno portato su quello del mese riservato | e2e browser | Il clic sulla cella chiude il pannello (`toBeHidden()`) e la cella giorno `a[href=\"/attivita/{data}?mese={meseArrivo}\"]` espone `data-con-attivita=\"true\"` con l'etichetta cliente attesa; nessun pulsante di conferma è presente nel pannello | TASK-06 |\n| AC-3 | Barra di navigazione del calendario | e2e browser | `page.getByLabel(\"Vai a un mese specifico\")` ha `toHaveCount(0)` **e** `page.getByRole(\"button\", { name: \"Vai al mese selezionato\" })` ha `toHaveCount(0)` | TASK-06 |\n| AC-4 | Subito dopo la scelta del mese | e2e browser | L'URL contiene `mese={meseArrivo}`; dopo `page.reload()` l'URL è invariato e la cella giorno è ancora valorizzata (mese servito dal server) | TASK-06 |\n| AC-5 | Pannello aperto e anno spostato di uno | e2e browser | Dopo `Escape`: pannello nascosto, `calendar-month-label` ancora sull'etichetta del mese di partenza, URL invariato. Stesso oracolo ripetuto chiudendo con un clic fuori dal pannello su un elemento non navigante della legenda | TASK-06 |\n| AC-6 | Nessun uso del mouse dopo il `focus()` iniziale sul trigger | e2e browser | `Enter` apre il pannello e la cella del mese in griglia è `toBeFocused()`; N pressioni di `ArrowLeft` (N = numero del mese corrente) portano `selettore-mese-anno` all'anno precedente con la cella `dicembre {anno-1}` `toBeFocused()`; `Enter` sceglie e l'URL porta `mese={anno-1}-12` con `calendar-month-label` aggiornata; riaperto con `Enter`, `Escape` chiude e il trigger è `toBeFocused()` | TASK-06 |\n| AC-1..AC-6 (script di dimostrazione) | Come sopra, su mese riservato dedicato alla demo | e2e browser con video | Percorso completo della sezione «Dimostrazione» in un solo test filmabile | TASK-07 |\n| Funzione pura di supporto | Nessuna | unit (vitest, ambiente node) | `etichettaMeseBreve(1..12)` restituisce le dodici abbreviazioni attese, tutte distinte, e stringa vuota fuori intervallo; `NOMI_MESI_ABBREVIATI` ha lunghezza 12 | TASK-02 |\n| Nessuna regressione sul salto usato da altre suite | Riga sorgente e mesi riservati di US-057 | e2e browser | `tests/e2e/duplica-riga-su-giorni.spec.ts` continua a raggiungere il mese di destinazione e a osservare la cella accesa, ora passando dal selettore | TASK-05 |\n\nOgni criterio ha un oracolo osservabile nel browser reale: nessun test double nasconde il componente responsabile, perché non ci sono mock nel percorso e2e.\n\n---\n\n## Strategia di Test\n\nL'evidenza principale è nel browser. Il percorso di accettazione attraversa il confine di rotta e l'URL condivisibile (`?mese=YYYY-MM`), la persistenza (le celle valorizzate arrivano dal database), l'idratazione dell'isola client e il comportamento da tastiera: sono tutti fatti che nessun livello più basso può provare.\n\n- **Browser e2e obbligatorio.** AC-2, AC-4 e AC-6 dipendono da URL, `history` e focus reali; AC-1, AC-3 e AC-5 dipendono dal DOM effettivamente montato dopo l'idratazione. Il framework è già in repo (`@playwright/test` con `playwright.config.ts`, `fullyParallel: true`, un progetto `chromium`): non serve alcun task di bootstrap né `archetipo e2e ensure`.\n- **Nessun test di componente.** Il setup vitest è `environment: \"node\"` con `include: [\"tests/unit/**/*.test.ts\"]` e non esiste alcuna infrastruttura DOM (nessun jsdom, nessuna testing-library, nessun file `.tsx` di test). Introdurne una per questa spec sarebbe un bootstrap di framework fuori perimetro; il livello unit copre quindi solo la funzione pura di dominio, dove è realmente il posto giusto.\n- **Determinismo secondo il contratto e2e del progetto.** Mesi riservati dagli helper di `tests/e2e/support/date.ts`, entità create dalle factory di `tests/e2e/support/fixtures.ts`, nessuna mutazione di entità seed, nessun hard wait (l'unica `waitForTimeout` ammessa è la pausa finale del video demo con il commento richiesto dal guardrail), nessun selettore su classi Tailwind, attesa esplicita di `data-idratata=\"true\"` prima di interagire con l'isola.\n- **Disambiguazione dei locator.** Il trigger e la cella del mese in griglia hanno lo **stesso nome accessibile** (es. `agosto 2026`). Ogni locator di cella deve essere quindi ancorato dentro il pannello (`page.getByTestId(\"selettore-mese-pannello\").getByRole(\"button\", { name, exact: true })`), mai su `page` direttamente.\n- **Chiavi di mese riservato già verificate.** `US-058` (offset −87, e −129 con `mesePassatoRiservato(\"US-058\", 42)`) e `US-058-DEMO-SELETTORE-MESE` (offset −128) non collidono con nessuna delle 39 chiavi oggi in uso né fra loro: la verifica è stata eseguita in fase di planning riproducendo la logica di `scripts/check-e2e-guardrails.ts` sull'intera cartella `tests/e2e`, considerando i file riscritti come rimossi. Le voci di `COLLISIONI_PREESISTENTI_ALLOWLIST` relative alle chiavi `US-055` che spariscono restano inerti e non vanno toccate.\n\n### Test E2E — Simulazione utente\n\n**Framework:** Playwright (`@playwright/test`)\n**Video di dimostrazione:** atteso — la spec è filmabile (registrato più avanti da `archetipo-review`, non durante l'implementazione)\n\n| Scenario | Flusso utente |\n|---|---|\n| Selettore compatto e salto immediato | Dal calendario sul mese corrente il collaboratore verifica che il vecchio campo mese con «Vai» non esiste più, apre il selettore dall'etichetta, osserva anno e mese in griglia evidenziato, sposta l'anno indietro fino all'anno del mese riservato, clicca il mese e vede pannello chiuso, cella del giorno valorizzata e token nell'URL, che sopravvive al reload |\n| Chiusura senza scelta | Il collaboratore apre il selettore, sposta l'anno e preme `Esc`: il mese in griglia e l'URL non cambiano; ripete chiudendo con un clic fuori dal pannello |\n| Uso da tastiera | Il collaboratore raggiunge l'etichetta, apre con `Invio`, si sposta con le frecce oltre il bordo di gennaio arrivando a dicembre dell'anno precedente, sceglie con `Invio`, riapre e chiude con `Esc` riprendendo il focus sul trigger |\n| Feedback di attesa invariato | Con la lettura del mese di arrivo trattenuta da una `page.route` sbloccata da una promessa, il salto verso un mese lontano mostra lo stesso `indicatore-caricamento-mese` e `aria-busy=\"true\"` già esistenti, che spariscono a dati pronti |\n| Dimostrazione (video) | Lo script completo della sezione «Dimostrazione» della spec, in un unico test con `video: \"on\"` e `slowMo` |\n\n---\n\n## Impatto Wiki\n\n```yaml\nwiki_impact:\n  read: [domains/attivita, decisions/cache-client-calendario-collaboratore, decisions/feedback-attesa-uniforme, decisions/calcoli-puri, engineering/code-map]\n  update: [domains/attivita]\n  create: []\n```\n\n`archetipo wiki affected` sui percorsi attesi restituisce cinque candidati; la decisione pagina per pagina è la seguente.\n\n- **`domains/attivita` → `update`.** È l'unica pagina la cui conoscenza cambia davvero: il punto 8 dei flussi descrive testualmente «un campo mese («Vai a un mese specifico») con il pulsante di conferma «Vai»», che AC-3 elimina, e la sezione di verifica descrive gli scenari di `tests/e2e/calendario-salto-mese.spec.ts` che vengono riscritti. Vanno inoltre aggiunti il nuovo `selettore-mese.tsx` fra le sorgenti `inbound-ui` e il nuovo simbolo di `src/domain/calendario/index.ts`.\n- **`decisions/cache-client-calendario-collaboratore` → solo candidato.** Traccia `calendario-mensile.tsx`, quindi risulterà `evidence-changed`, ma le sue affermazioni restano vere: TTL, LRU, prefetch dei mesi adiacenti, commit sincrono, History API e contratto URL sono esplicitamente fuori perimetro e non cambiano. Riconciliazione esplicita in accettazione, senza task di documentazione.\n- **`decisions/calcoli-puri` → solo candidato.** Traccia `src/domain/calendario/index.ts`: aggiungere un'altra funzione pura è esattamente ciò che la decisione già afferma, quindi la conoscenza non cambia.\n- **`decisions/fotografia-rimborso-trasferta` → solo candidato.** Compare per co-citazione di `tests/e2e/duplica-riga-su-giorni.spec.ts`, di cui cambia un solo helper di navigazione; nessuna affermazione sulla fotografia del rimborso è toccata.\n- **`engineering/code-map` → solo candidato.** La riga «Attività» mappa il glob `src/app/(front-office)/attivita/**`: un nuovo file dentro quel glob non altera la matrice capability→codice→dati→test.\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-058/`\n\n_Piano generato con ARchetipo Planning — 2026-08-06_"
+tasks:
+  - id: TASK-01
+    title: Etichette abbreviate dei dodici mesi come funzione pura di dominio
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      `src/domain/calendario/index.ts` espone le dodici etichette abbreviate dei mesi in italiano, stabili e indipendenti dalla versione di ICU, pronte per le celle del selettore.
+
+      ## Read
+      - `src/domain/calendario/index.ts` — sezione «Costanti» con `formattatoreMese`, e le funzioni `parseTokenMese`, `formattaTokenMese`, `etichettaMese`: stile dei commenti, convenzioni di export e di validazione del token.
+
+      ## Change
+      - `src/domain/calendario/index.ts`: aggiungere la costante esportata `NOMI_MESI_ABBREVIATI` e la funzione esportata `etichettaMeseBreve`.
+
+      Non-goal: non modificare `etichettaMese`, `formattaTokenMese`, `parseTokenMese` né alcuna funzione esistente; non introdurre dipendenze; non toccare altri file.
+
+      ## Steps
+      1. Nella sezione «Costanti», subito dopo `formattatoreMese`, dichiarare:
+         `export const NOMI_MESI_ABBREVIATI = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"] as const;`
+      2. Documentare con un commento perché le etichette sono dichiarate e non derivate da `Intl`: la griglia del selettore ha bisogno di stringhe corte stabili fra runtime e versioni di ICU, mentre `etichettaMese` resta la fonte dell'etichetta lunga.
+      3. Aggiungere sotto la costante:
+         ```ts
+         /**
+          * Etichetta abbreviata del mese (1 = gennaio … 12 = dicembre).
+          * Restituisce stringa vuota per un mese fuori intervallo.
+          */
+         export function etichettaMeseBreve(mese: number): string {
+           if (!Number.isInteger(mese) || mese < 1 || mese > 12) return "";
+           return NOMI_MESI_ABBREVIATI[mese - 1];
+         }
+         ```
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p tsconfig.json`
+      - Expect: exit 0, nessuna diagnostica (baseline: già a zero).
+      - Run: `npx vitest run tests/unit/calendario.test.ts`
+      - Expect: 39 test passati, come da baseline (nessun test nuovo ancora).
+
+      ## Done
+      - [ ] `NOMI_MESI_ABBREVIATI` ed `etichettaMeseBreve` sono esportate da `src/domain/calendario/index.ts` e tipizzate senza errori.
+      - [ ] Nessuna funzione preesistente del modulo è stata modificata.
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test delle etichette abbreviate dei mesi
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      `tests/unit/calendario.test.ts` prova che le etichette abbreviate sono dodici, distinte, nell'ordine dei mesi civili, e che un mese fuori intervallo non produce un'etichetta.
+
+      ## Read
+      - `tests/unit/calendario.test.ts` — stile dei `describe`/`it`, import da `@/domain/calendario`, convenzioni di asserzione.
+      - `src/domain/calendario/index.ts` — firma di `etichettaMeseBreve` e valori di `NOMI_MESI_ABBREVIATI` prodotti da TASK-01.
+
+      ## Change
+      - `tests/unit/calendario.test.ts`: aggiungere un blocco `describe("etichettaMeseBreve", ...)` in coda ai blocchi esistenti.
+
+      Non-goal: non modificare i 39 test esistenti; non introdurre ambiente DOM né nuove dipendenze di test.
+
+      ## Steps
+      1. Importare `etichettaMeseBreve` e `NOMI_MESI_ABBREVIATI` da `@/domain/calendario`.
+      2. Asserire che `NOMI_MESI_ABBREVIATI` ha lunghezza 12 e che tutte le etichette sono distinte (`new Set(NOMI_MESI_ABBREVIATI).size === 12`).
+      3. Asserire l'ordine civile con i valori attesi espliciti: `etichettaMeseBreve(1) === "gen"`, `etichettaMeseBreve(8) === "ago"`, `etichettaMeseBreve(12) === "dic"`.
+      4. Asserire la coerenza con l'etichetta lunga: per ogni mese `m` da 1 a 12, `etichettaMese(\`2026-${String(m).padStart(2, "0")}\`)` inizia con `etichettaMeseBreve(m)` (le abbreviazioni italiane sono prefissi dei nomi estesi). Questo lega la costante dichiarata alla formattazione `Intl` senza dipendere dai suoi valori esatti.
+      5. Asserire i casi fuori intervallo: `etichettaMeseBreve(0)`, `etichettaMeseBreve(13)` e `etichettaMeseBreve(1.5)` restituiscono `""`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/calendario.test.ts`
+      - Expect: tutti i test passano, con un numero di test superiore ai 39 di baseline.
+      - Run: `npm test`
+      - Expect: 40 file passati, nessun fallimento (baseline: 681 test verdi, ora superiori).
+
+      ## Done
+      - [ ] Il blocco `etichettaMeseBreve` asserisce ordine, distinzione, coerenza con `etichettaMese` e casi fuori intervallo, non la sola esistenza della funzione.
+      - [ ] La suite unit completa resta verde.
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Componente client SelettoreMese — trigger sull'etichetta e pannello anno/mesi
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Esiste un componente client riutilizzabile che rende l'etichetta del mese un controllo interattivo e apre un pannello con anno navigabile e dodici mesi, con evidenziazione del mese in griglia, chiusura senza scelta e uso completo da tastiera.
+
+      ## Read
+      - `docs/mockups/US-058/` — `index.html` (barra con selettore chiuso), `selettore-aperto.html`, `selettore-altro-anno.html`, `focus-tastiera.html`, `README.md` e `shared.css`: sono il riferimento visivo vincolante per chevron, pannello ancorato, evidenziazione e anello di focus.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` righe 370-500 — classi Tailwind effettive della barra (`rounded-[10px]`, `border-zinc-200`, `bg-white`, `shadow-sm`, varianti `dark:`), e il div `data-testid="calendar-month-label"` con `min-w-[188px] text-center text-[19px] font-bold capitalize` che il trigger deve sostituire senza far saltare la barra.
+      - `src/app/(front-office)/attivita/[data]/selettore-duplicazione.tsx` righe 120-140 — pattern già usato nel progetto per la chiusura con `Escape` tramite listener registrato in `useEffect` senza `setState` nell'effetto.
+      - `src/domain/calendario/index.ts` — `etichettaMese`, `parseTokenMese`, `formattaTokenMese`, `NOMI_MESI_ABBREVIATI`.
+
+      ## Change
+      - Nuovo file `src/app/(front-office)/attivita/selettore-mese.tsx`.
+
+      Non-goal: non toccare `calendario-mensile.tsx` (è TASK-04); nessuna chiamata di rete, nessun accesso alla cache, nessun `router`; nessun overlay a tutto schermo e nessun focus trap — è un popover, non una modale.
+
+      ## Steps
+      1. Creare il file con la direttiva `"use client"` e l'interfaccia:
+         ```ts
+         interface SelettoreMeseProps {
+           /** Token YYYY-MM del mese effettivamente in griglia. */
+           tokenVisualizzato: string;
+           /** Notifica la scelta di un mese; la navigazione è del chiamante. */
+           onScegliMese: (token: string) => void;
+         }
+         ```
+         Esportare `export function SelettoreMese({ tokenVisualizzato, onScegliMese }: SelettoreMeseProps)`.
+      2. Stato locale: `aperto` (boolean), `annoMostrato` (number), `indiceMeseAttivo` (number 0-11). Riferimenti: `riferimentoContenitore` (div wrapper), `riferimentoTrigger` (button), `riferimentiCelleMese` (array di 12 `HTMLButtonElement | null`).
+      3. `function apri()`: leggere `parseTokenMese(tokenVisualizzato)`; con token valido impostare `annoMostrato` all'anno e `indiceMeseAttivo` a `mese - 1`, altrimenti lasciare l'anno corrente e indice 0; poi `aperto = true`. Il pannello riparte **sempre** dal mese in griglia, così due aperture consecutive non conservano un anno stantio.
+      4. `function chiudi(riportaFocus: boolean)`: `aperto = false` e, se richiesto, `riferimentoTrigger.current?.focus()`.
+      5. Wrapper: `<div className="relative" ref={riferimentoContenitore}>`.
+      6. Trigger: `<button type="button" ref={riferimentoTrigger} data-testid="calendar-month-label" aria-haspopup="dialog" aria-expanded={aperto} onClick={() => (aperto ? chiudi(false) : apri())}>`. Il contenuto testuale deve essere **esattamente** `etichettaMese(tokenVisualizzato)` seguito dal solo `<svg>` del chevron (nessun altro testo, nessuno spazio significativo aggiuntivo), perché altre suite asseriscono `toHaveText` su questo test id. Conservare `min-w-[188px] text-center text-[19px] font-bold capitalize -tracking-[0.02em]` e i colori zinc del div originale, aggiungendo `cursor-pointer`, hover e anello di focus come nei mockup; il chevron ruota quando `aperto`.
+      7. Pannello, renderizzato solo quando `aperto`: `<div role="dialog" aria-label="Scelta del mese" data-testid="selettore-mese-pannello" className="absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 …">` con bordo, sfondo, ombra e varianti dark dei mockup.
+      8. Riga anno dentro il pannello, in quest'ordine nel DOM: `<button type="button" aria-label="Anno precedente" onClick={() => setAnnoMostrato(a => a - 1)}>`, `<span data-testid="selettore-mese-anno">{annoMostrato}</span>`, `<button type="button" aria-label="Anno successivo" onClick={() => setAnnoMostrato(a => a + 1)}>`. Cambiare anno **non** cambia il mese in griglia.
+      9. Griglia `grid grid-cols-3` con dodici celle. Per l'indice `i` (0-11): `const token = formattaTokenMese(annoMostrato, i + 1);` e
+         ```tsx
+         <button
+           type="button"
+           ref={(elemento) => { riferimentiCelleMese.current[i] = elemento; }}
+           data-testid="selettore-mese-cella"
+           data-token={token}
+           aria-label={etichettaMese(token)}
+           aria-current={token === tokenVisualizzato ? "true" : undefined}
+           onClick={() => scegliMese(i)}
+         >
+           {NOMI_MESI_ABBREVIATI[i]}
+         </button>
+         ```
+         La cella con `aria-current="true"` è resa in pieno rosa come nei mockup; le altre restano neutre.
+      10. `function scegliMese(indice: number)`: calcolare il token con `formattaTokenMese(annoMostrato, indice + 1)`, chiamare `chiudi(false)` e poi `onScegliMese(token)`. Nessun passaggio di conferma (AC-2).
+      11. Navigazione da tastiera: `onKeyDown` sul contenitore della griglia. `ArrowRight`: se `indiceMeseAttivo < 11` incrementa l'indice, altrimenti `annoMostrato + 1` e indice `0`. `ArrowLeft`: se `indiceMeseAttivo > 0` decrementa, altrimenti `annoMostrato - 1` e indice `11`. `ArrowDown`: `indice + 3` se `<= 11`. `ArrowUp`: `indice - 3` se `>= 0`. Su questi quattro tasti chiamare `evento.preventDefault()`; ogni altro tasto passa (Invio e Spazio sono gestiti nativamente dal `<button>`).
+      12. Effetto di focus: quando `aperto`, focalizzare `riferimentiCelleMese.current[indiceMeseAttivo]`, con dipendenze `[aperto, indiceMeseAttivo, annoMostrato]`. È così che all'apertura il focus va sul mese in griglia e che le frecce lo spostano davvero.
+      13. Effetto `keydown` su `document`, attivo solo quando `aperto`: su `Escape` chiamare `chiudi(true)`. Registrare e rimuovere il listener come in `selettore-duplicazione.tsx`.
+      14. Effetto `mousedown` su `document`, attivo solo quando `aperto`: se il bersaglio non è contenuto in `riferimentoContenitore.current`, chiamare `chiudi(false)`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p tsconfig.json`
+      - Expect: exit 0, nessuna diagnostica sul nuovo file.
+      - Run: `npm run lint`
+      - Expect: nessun errore e nessun warning nuovo; resta il solo warning pre-esistente su `tests/e2e/demo__duplicazione-riga-su-piu-giorni.spec.ts:41`.
+
+      ## Done
+      - [ ] AC-1 — il trigger espone `aria-expanded` e il pannello contiene riga anno (`selettore-mese-anno`) e dodici celle, con `aria-current="true"` sulla cella pari a `tokenVisualizzato`.
+      - [ ] AC-2 — la scelta di una cella chiude il pannello e invoca `onScegliMese` con il token `YYYY-MM`, senza alcun pulsante di conferma nel pannello.
+      - [ ] AC-5 — `Escape` e il `mousedown` fuori dal wrapper chiudono il pannello senza invocare `onScegliMese`.
+      - [ ] AC-6 — all'apertura il focus è sulla cella del mese in griglia, le frecce orizzontali attraversano il confine d'anno e `Escape` riporta il focus al trigger.
+      - [ ] Il testo del trigger è esattamente l'etichetta lunga del mese, senza testo aggiuntivo.
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Integrare il selettore nella barra del calendario e rimuovere il campo mese con «Vai»
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      La barra del calendario mensile usa il nuovo selettore come unico ingresso al salto diretto e non contiene più il campo mese con il pulsante «Vai».
+
+      ## Read
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — per intero, in particolare: gli import (righe 1-29), lo stato del selettore di salto (righe 122-130), il memo `etichetta` (righe 142-145), la callback `vaiA` (righe 165-217), il blocco di risincronizzazione del selettore durante il render (righe 236-239), il gestore `popstate` (righe 308-320), `submitSaltoMese` (righe 343-352), il div `calendar-month-label` (righe 393-398) e il `<form>` di salto (righe 436-459).
+      - `src/app/(front-office)/attivita/selettore-mese.tsx` — firma delle props prodotte da TASK-03.
+      - `docs/mockups/US-058/index.html` — ordine dei controlli nella barra dopo la rimozione.
+
+      ## Change
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx`.
+
+      Non-goal: non toccare `vaiA`, `commit`, `IntentoNavigazione`, la semina della cache, il prefetch dei mesi adiacenti, la rivalidazione su focus/visibilità, il gestore `popstate`, il blocco d'errore con «Riprova», la griglia, la legenda o il link «Riepilogo mese». Nessuna modifica ai file di cache o al provider.
+
+      ## Steps
+      1. Importare `SelettoreMese` da `./selettore-mese`.
+      2. Rimuovere lo stato `valoreSelettoreMese`, `tokenSelettoreSincronizzato` e la costante `idSelettoreMese`, insieme al blocco `if (tokenSelettoreSincronizzato !== tokenVisualizzato) { … }` che li risincronizzava durante il render: la risincronizzazione non serve più, perché il pannello legge `tokenVisualizzato` a ogni apertura.
+      3. Rimuovere la funzione `submitSaltoMese` e l'intero `<form onSubmit={submitSaltoMese}>` con la label «Vai a un mese specifico», l'`<input type="month">` e il pulsante «Vai al mese selezionato» (AC-3).
+      4. Rimuovere il memo `etichetta`: l'etichetta lunga è ora calcolata dentro il selettore.
+      5. Sostituire il div `data-testid="calendar-month-label"` con:
+         ```tsx
+         <SelettoreMese
+           tokenVisualizzato={tokenVisualizzato}
+           onScegliMese={(token) => vaiA({ token, registraHistory: true })}
+         />
+         ```
+         posizionato fra la freccia «Mese precedente» e la freccia «Mese successivo», invariate.
+      6. Ripulire gli import rimasti inutilizzati: `useId` da `react` e il type import `FormEvent`. Verificare che `useMemo` resti usato (griglia, totali), che `etichettaMese` resti importato perché usato nel messaggio d'errore di `vaiA`, e che `parseTokenMese` resti importato perché usato dal gestore `popstate`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p tsconfig.json`
+      - Expect: exit 0.
+      - Run: `npm run lint`
+      - Expect: nessun errore; nessun warning di variabile o import non usati sul file modificato; resta il solo warning pre-esistente su `tests/e2e/demo__duplicazione-riga-su-piu-giorni.spec.ts:41`.
+      - Run: `npx playwright test tests/e2e/calendario-cache-mesi.spec.ts --reporter=line`
+      - Expect: tutti gli scenari verdi — è la prova che il trigger conserva `data-testid="calendar-month-label"` con il testo dell'etichetta e che cache, Back/Forward e invalidazione non sono stati toccati.
+
+      ## Done
+      - [ ] AC-3 — nel sorgente non esistono più né la label «Vai a un mese specifico» né il pulsante «Vai al mese selezionato».
+      - [ ] AC-2, AC-4 — la scelta di un mese entra in `vaiA({ token, registraHistory: true })`, quindi l'URL `?mese=YYYY-MM` è scritto da `commit` a dati pronti, come per gli altri controlli.
+      - [ ] `tests/e2e/calendario-cache-mesi.spec.ts` resta verde senza modifiche al test.
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Adeguare l'helper di salto mese di duplica-riga-su-giorni al nuovo selettore
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      La suite di US-057 continua a raggiungere il mese di destinazione dal calendario, passando dal selettore compatto invece che dal campo mese rimosso.
+
+      ## Read
+      - `tests/e2e/duplica-riga-su-giorni.spec.ts` righe 140-175 — `cellaDelGiorno` e l'helper `vaiAlMese`, che oggi usa `getByLabel("Vai a un mese specifico")` e il pulsante «Vai al mese selezionato».
+      - `src/app/(front-office)/attivita/selettore-mese.tsx` — test id e nomi accessibili consegnati da TASK-03.
+      - `tests/e2e/README.md` — contratto e2e del progetto (niente hard wait, niente classi Tailwind, locator per ruolo/label/test id).
+
+      ## Change
+      - `tests/e2e/duplica-riga-su-giorni.spec.ts`: solo l'helper `vaiAlMese` e, se serve, un piccolo helper locale per l'etichetta lunga del mese.
+
+      Non-goal: non modificare gli scenari, le factory, i mesi riservati `US-057`, le asserzioni di duplicazione o il preambolo che scalda le cache. L'obiettivo è la sola aderenza al nuovo controllo.
+
+      ## Steps
+      1. Aggiungere un helper locale che produce l'etichetta lunga del mese dal token, con la stessa convenzione dell'app:
+         ```ts
+         function etichettaMeseLunga(mese: string): string {
+           const [anno, numeroMese] = mese.split("-").map(Number);
+           return new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric" })
+             .format(new Date(anno, numeroMese - 1, 1));
+         }
+         ```
+      2. Riscrivere `vaiAlMese` così:
+         - `await page.getByTestId("calendar-month-label").click();`
+         - `const pannello = page.getByTestId("selettore-mese-pannello");` e `await expect(pannello).toBeVisible();`
+         - leggere **una sola volta** l'anno mostrato: `const annoMostrato = Number(await pannello.getByTestId("selettore-mese-anno").innerText());`
+         - calcolare `const passi = Number(mese.slice(0, 4)) - annoMostrato;` e cliccare `Math.abs(passi)` volte il pulsante `passi < 0 ? "Anno precedente" : "Anno successivo"` (nessun ciclo di polling: il numero di clic è determinato prima di iniziare);
+         - `await expect(pannello.getByTestId("selettore-mese-anno")).toHaveText(mese.slice(0, 4));`
+         - cliccare la cella: `await pannello.getByRole("button", { name: etichettaMeseLunga(mese), exact: true }).click();` — il locator **deve** essere ancorato al pannello, perché il trigger ha lo stesso nome accessibile della cella quando l'anno mostrato è quello in griglia;
+         - conservare le due asserzioni finali già presenti: `await expect(page).toHaveURL(\`/attivita?mese=${mese}\`);` e `await expect(cellaDelGiorno(page, giornoAtteso, mese)).toBeVisible();`, che restano la barriera sull'arrivo dei dati.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/duplica-riga-su-giorni.spec.ts --reporter=line`
+      - Expect: tutti gli scenari passano, incluso quello che osserva la cella accesa nel mese di destinazione senza reload.
+      - Run: `npm run lint`
+      - Expect: guardrail e2e verde, nessun nuovo warning.
+
+      ## Done
+      - [ ] AC-3 — il file non contiene più alcun riferimento a «Vai a un mese specifico» o «Vai al mese selezionato».
+      - [ ] Gli scenari di US-057 restano verdi con le stesse asserzioni di dominio, senza hard wait e senza cicli di attesa a polling.
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Riscrivere calendario-salto-mese.spec.ts sui sei criteri del selettore compatto
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      `tests/e2e/calendario-salto-mese.spec.ts` prova nel browser tutti e sei i criteri di US-058 e conserva la copertura di regressione sul feedback di attesa del salto.
+
+      ## Read
+      - `tests/e2e/calendario-salto-mese.spec.ts` — versione US-055 da sostituire: struttura delle fixture, `dataDb`, `meseSuccessivoToken`, `etichettaMeseCorrente`, gate deterministico con `page.route` sbloccato da una promessa.
+      - `tests/e2e/support/date.ts` — `meseRiservato`, `mesePassatoRiservato`, `meseCorrenteToken`, `dataNelMese`.
+      - `tests/e2e/support/fixtures.ts` e `tests/e2e/support/auth.ts` — factory e `accediComeCollaboratore`.
+      - `tests/e2e/README.md` — contratto e2e.
+      - `src/app/(front-office)/attivita/selettore-mese.tsx` — test id, nomi accessibili e contratto tastiera consegnati da TASK-03.
+
+      ## Change
+      - `tests/e2e/calendario-salto-mese.spec.ts`: contenuto interamente riscritto, percorso del file invariato (è citato fra le `sources` di `domains/attivita`).
+
+      Non-goal: non toccare altri file di test; non modificare `tests/e2e/support/date.ts` (le chiavi usate qui non sono esclusive e non vanno registrate in `SLOT_MESI_RISERVATI_ESCLUSIVI`, perché nessuno scenario asserisce totali o vuoto dell'intero mese).
+
+      ## Steps
+      1. Intestare il file con un commento che spiega quali criteri copre e perché l'attesa è resa deterministica con `page.route`, nello stile del commento esistente.
+      2. Chiavi di mese riservato — già verificate libere da collisioni in fase di planning: `meseRiservato("US-058")` per il mese di arrivo e `mesePassatoRiservato("US-058", 42)` per il mese lontano dello scenario di attesa. **Non** usare offset diversi da 42 senza rieseguire `npm run lint`, che contiene il controllo delle collisioni.
+      3. Helper locali: `dataDb`, `etichettaMeseCorrente` (come nella versione attuale), `etichettaMeseLunga(token)` con `Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric" })`, e `apriSelettore(page)` che clicca `calendar-month-label`, attende `selettore-mese-pannello` visibile e restituisce il locator del pannello.
+      4. Helper `portaAnno(pannello, annoTarget)`: legge **una sola volta** `Number(await pannello.getByTestId("selettore-mese-anno").innerText())`, calcola i passi e clicca il pulsante «Anno precedente»/«Anno successivo» esattamente `Math.abs(passi)` volte, poi asserisce `toHaveText(String(annoTarget))`. Nessun ciclo di polling.
+      5. **Scenario 1 — «il selettore sull'etichetta raggiunge un mese di un anno diverso» (AC-1, AC-2, AC-3, AC-4).**
+         - Fixture: `factory.createClienteConOfferta()` e `factory.createRigaAttivita` su `dataNelMese(meseArrivo, 14)` con 4 ore.
+         - `accediComeCollaboratore`, `page.goto("/attivita")`, attendere `getByLabel("Calendario mensile delle attività")` visibile e `data-idratata="true"`.
+         - AC-3: `await expect(page.getByLabel("Vai a un mese specifico")).toHaveCount(0);` e `await expect(page.getByRole("button", { name: "Vai al mese selezionato" })).toHaveCount(0);`
+         - AC-1: il trigger ha `aria-expanded="false"`; dopo `apriSelettore` ha `aria-expanded="true"`, `selettore-mese-anno` mostra l'anno corrente e la cella con `[data-token="${meseCorrenteToken()}"]` dentro il pannello ha `aria-current="true"`.
+         - `portaAnno(pannello, Number(meseArrivo.slice(0, 4)))`; a quel punto nessuna cella deve avere `aria-current="true"` (`await expect(pannello.locator('[aria-current="true"]')).toHaveCount(0)`), perché il mese in griglia è di un altro anno.
+         - AC-2: cliccare `pannello.getByRole("button", { name: etichettaMeseLunga(meseArrivo), exact: true })`; asserire `await expect(pannello).toBeHidden();` e che la cella `a[href="/attivita/${data}?mese=${meseArrivo}"]` ha `data-con-attivita="true"` con `etichetta-cliente` uguale a `${ragioneSociale} 4.0 h`. Il locator della cella mese **deve** essere ancorato al pannello: il trigger ha lo stesso nome accessibile.
+         - AC-4: `await expect(page).toHaveURL(new RegExp(\`mese=${meseArrivo}\`));`, poi `page.reload()` e nuovamente URL e cella valorizzata.
+      6. **Scenario 2 — «la chiusura senza scelta lascia invariato il mese in griglia» (AC-5).**
+         - Ingresso su `/attivita` (mese corrente), idratazione attesa.
+         - Aprire il selettore, cliccare una volta «Anno precedente», premere `Escape`: pannello `toBeHidden()`, `calendar-month-label` ancora `toHaveText(etichettaMeseCorrente())`, `await expect(page).toHaveURL(/\/attivita$/)`.
+         - Riaprire, cliccare «Anno successivo», poi chiudere con un clic fuori su un elemento non navigante della legenda (`page.getByText("Giorno con attività registrate")`): stesse tre asserzioni.
+      7. **Scenario 3 — «il selettore è utilizzabile da tastiera» (AC-6).**
+         - Ingresso su `/attivita`, idratazione attesa. Calcolare `const [annoCorrente, meseCorrente] = meseCorrenteToken().split("-").map(Number);`.
+         - `await page.getByTestId("calendar-month-label").focus(); await page.keyboard.press("Enter");` — il pannello è visibile e la cella `[data-token="${meseCorrenteToken()}"]` è `toBeFocused()`.
+         - Premere `ArrowLeft` esattamente `meseCorrente` volte: dopo l'ultima pressione `selettore-mese-anno` mostra `annoCorrente - 1` e la cella `[data-token="${annoCorrente - 1}-12"]` è `toBeFocused()` — è la prova che lo spostamento attraversa il confine d'anno senza mouse.
+         - `await page.keyboard.press("Enter");` — pannello nascosto, `await expect(page).toHaveURL(new RegExp(\`mese=${annoCorrente - 1}-12\`));` e `calendar-month-label` con l'etichetta lunga di quel mese. Questo scenario asserisce solo URL ed etichetta, mai totali o assenza di righe, quindi non richiede un mese riservato ed è sicuro in parallelo.
+         - Riaprire con `focus()` + `Enter`, premere `Escape`: pannello `toBeHidden()` e `calendar-month-label` `toBeFocused()`.
+      8. **Scenario 4 — «il salto verso un mese non ancora in cache mostra il feedback di attesa esistente».**
+         - Riusare la struttura dell'attuale secondo test: `mesePartenza = meseRiservato("US-058")`, `meseArrivo = mesePassatoRiservato("US-058", 42)`, riga da factory su `dataNelMese(meseArrivo, 9)` con 2 ore, `page.route` registrata **prima** del `goto` su `/attivita` e `/api/attivita/calendario` con `mese=meseArrivo`, sbloccata da una promessa dopo le asserzioni.
+         - `goto(\`/attivita?mese=${mesePartenza}\`)`, idratazione attesa, apertura del selettore, `portaAnno` all'anno di `meseArrivo`, clic sulla cella.
+         - Con la lettura trattenuta: `indicatore-caricamento-mese` visibile e calendario con `aria-busy="true"`; dopo lo sblocco, cella valorizzata con `${ragioneSociale} 2.0 h`, indicatore nascosto, `aria-busy="false"`, URL con il token. Chiudere con `page.unroute`.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/calendario-salto-mese.spec.ts --reporter=line`
+      - Expect: quattro scenari passati (baseline: due scenari US-055 passati in 5.0 s), nessun retry necessario.
+      - Run: `npm run lint`
+      - Expect: guardrail e2e verde, in particolare nessuna «collisione di mese riservato»; nessun nuovo warning ESLint.
+
+      ## Done
+      - [ ] AC-1 — provato con `aria-expanded`, pannello visibile, anno mostrato e `aria-current="true"` sulla cella del mese in griglia.
+      - [ ] AC-2 — provato con pannello nascosto e cella giorno valorizzata subito dopo il clic, senza alcuna conferma.
+      - [ ] AC-3 — provato con `toHaveCount(0)` su label e pulsante del vecchio controllo.
+      - [ ] AC-4 — provato con il token nell'URL e la sua riapertura al reload.
+      - [ ] AC-5 — provato due volte (Esc e clic fuori) su etichetta e URL invariati.
+      - [ ] AC-6 — provato con apertura da `Enter`, focus sulla cella del mese in griglia, attraversamento del confine d'anno con le frecce, scelta con `Enter` e chiusura con `Escape` che riporta il focus al trigger.
+      - [ ] Il feedback di attesa preesistente resta coperto sul percorso di salto.
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Riscrivere la demo e2e filmabile sullo script di dimostrazione di US-058
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+      Esiste un unico test filmabile che riproduce passo per passo la sezione «Dimostrazione» della spec, pronto per la registrazione video in accettazione.
+
+      ## Read
+      - `tests/e2e/demo__salto-diretto-mese-calendario.spec.ts` — demo US-055 da sostituire: `test.use({ video: "on", viewport, launchOptions: { slowMo: 300 } })`, `test.setTimeout(120_000)`, commento della pausa finale.
+      - La sezione «Dimostrazione» di US-058 (nel corpo della spec).
+      - `tests/e2e/calendario-salto-mese.spec.ts` riscritto da TASK-06 — helper e locator da riusare con le stesse convenzioni.
+
+      ## Change
+      - `tests/e2e/demo__salto-diretto-mese-calendario.spec.ts`: contenuto interamente riscritto, percorso invariato.
+
+      Non-goal: non aggiungere altri file demo; non registrare video in questa fase (lo fa `archetipo-review`); non estendere la demo a scenari fuori dallo script della spec.
+
+      ## Steps
+      1. Impostare `const CODICE_SPEC = "US-058-DEMO-SELETTORE-MESE";` — chiave verificata libera da collisioni in fase di planning. Il mese di arrivo è `meseRiservato(CODICE_SPEC)`; se servisse un secondo mese, `mesePassatoRiservato(CODICE_SPEC, 40)` è pure libero.
+      2. Conservare `test.use({ video: "on", viewport: { width: 1280, height: 720 }, launchOptions: { slowMo: 300 } })` e `test.setTimeout(120_000)`.
+      3. Fixture: cliente con offerta e una riga attività su `dataNelMese(meseArrivo, 12)` con 4 ore, tutto da factory.
+      4. Passi del test, nell'ordine della dimostrazione:
+         - accesso come collaboratore, `goto("/attivita")`, calendario visibile, `calendar-month-label` con l'etichetta del mese odierno, `data-idratata="true"`;
+         - il vecchio controllo non esiste più: `toHaveCount(0)` su `getByLabel("Vai a un mese specifico")` e sul pulsante «Vai al mese selezionato»;
+         - clic sull'etichetta: pannello visibile, anno corrente mostrato, cella del mese odierno con `aria-current="true"`;
+         - spostamento dell'anno fino all'anno del mese riservato con il numero di clic calcolato una sola volta, e clic sulla cella del mese, ancorata al pannello;
+         - il pannello si chiude, la cella `a[href="/attivita/${data}?mese=${meseArrivo}"]` espone `data-con-attivita="true"` con l'etichetta cliente `${ragioneSociale} 4.0 h` e l'URL porta `mese=${meseArrivo}`;
+         - riapertura del selettore e chiusura con `Escape`: `calendar-month-label` resta sull'etichetta del mese raggiunto e l'URL non cambia;
+         - clic su «Mese corrente»: URL `/attivita` senza query ed etichetta del mese odierno.
+      5. Chiudere con la pausa di ritmo video preceduta dal commento **esatto** richiesto dal guardrail: `// Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.` seguito da `await page.waitForTimeout(1500);`. Senza quel commento il guardrail fallisce.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/demo__salto-diretto-mese-calendario.spec.ts --reporter=line`
+      - Expect: un test passato, con il video prodotto sotto `test-results/`.
+      - Run: `npm run lint`
+      - Expect: guardrail e2e verde (hard wait allowlistato dal commento, nessuna collisione di mese riservato).
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4, AC-5 — lo script eseguibile percorre apertura dall'etichetta, spostamento d'anno, scelta immediata, token nell'URL, assenza del vecchio controllo, chiusura con `Esc` a mese invariato e ritorno con «Mese corrente».
+      - [ ] Il test è filmabile: `video: "on"` e ritmo `slowMo` conservati, unica pausa finale correttamente commentata.
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Aggiornare la pagina Wiki domains/attivita sul selettore compatto
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-06
+      - TASK-07
+    body: |-
+      ## Objective
+      La pagina `domains/attivita` descrive il salto diretto come è stato consegnato — un selettore compatto sull'etichetta — e non più come il campo mese con pulsante «Vai» rimosso da AC-3.
+
+      ## Read
+      - `docs/wiki/domains/attivita.md` — frontmatter `sources` e blocco `review`, punto 8 di «Flussi osservati» (che descrive testualmente «un campo mese («Vai a un mese specifico») con il pulsante di conferma «Vai»»), tabella della sezione «Codice» (riga «Isola giornata» e riga «Test») e la frase della sezione «Verifica» che descrive gli scenari di `tests/e2e/calendario-salto-mese.spec.ts`.
+      - Il codice consegnato da TASK-03, TASK-04, TASK-06 e TASK-07.
+
+      ## Change
+      - `docs/wiki/domains/attivita.md`.
+      - `docs/wiki/index.md` e `docs/wiki/log.md`: solo come output dei comandi `archetipo wiki`.
+
+      Non-goal: non modificare `decisions/cache-client-calendario-collaboratore`, `decisions/calcoli-puri`, `decisions/fotografia-rimborso-trasferta` ed `engineering/code-map` — sono candidati `affected` le cui affermazioni restano vere e vanno riconciliati in accettazione, non riscritti qui. Non riscrivere i flussi diversi dall'8 né la parte del punto 8 su cache, prefetch, History API e contratto URL, che restano invariati.
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset domains/attivita`, che riporta la pagina a `status: generated` rimuovendo il blocco `review`.
+      2. In `sources` aggiungere `src/app/(front-office)/attivita/selettore-mese.tsx` con `role: inbound-ui`, accanto a `calendario-mensile.tsx`.
+      3. In `sources`, alla voce `src/domain/calendario/index.ts` (`role: supporting-domain`), aggiungere `etichettaMeseBreve` all'elenco dei simboli.
+      4. Riscrivere la parte finale del punto 8: il salto diretto non è più un campo mese affiancato da un pulsante «Vai», ma il selettore aperto **dall'etichetta stessa** del mese — un pannello ancorato con anno navigabile e dodici mesi, mese in griglia evidenziato, scelta senza conferma, chiusura con `Esc` o clic fuori a mese invariato e uso completo da tastiera con attraversamento del confine d'anno con le frecce. Conservare l'affermazione strutturale che resta vera: non è un percorso di navigazione parallelo ma un ulteriore ingresso allo stesso intento `vaiA`, da cui discendono senza codice aggiuntivo lo stesso indicatore di attesa, la stessa scrittura dell'URL dentro `commit` e la coerenza dei controlli esistenti. Eliminare la frase sulla risincronizzazione del campo durante il render, non più applicabile: il pannello rilegge il mese in griglia a ogni apertura.
+      5. Nella tabella «Codice» aggiungere `selettore-mese.tsx` alla riga che elenca i componenti dell'area attività del front office.
+      6. Nella sezione «Verifica» sostituire la frase sugli scenari di `tests/e2e/calendario-salto-mese.spec.ts` con la descrizione dei quattro scenari consegnati (salto su anno diverso con URL riapribile al reload; chiusura senza scelta con `Esc` e con clic fuori; uso da tastiera con attraversamento del confine d'anno e ritorno del focus al trigger; feedback di attesa invariato con lettura trattenuta), mantenendo lo stesso livello di specificità delle frasi vicine e la nota sul perché l'attesa non nasce da un hard wait.
+      7. Aggiungere una riga sulla copertura unit della nuova funzione pura in `tests/unit/calendario.test.ts`.
+      8. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: envelope `kind: validation_result` con `data.ok: true`, nessun finding di severità `error`, nessun link rotto.
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner status`
+      - Expect: `domains/attivita` risulta `generated`, in attesa dell'approvazione in accettazione, non `reviewed`.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-5, AC-6 — il punto 8 descrive il selettore effettivamente consegnato, con evidenziazione, chiusura senza scelta e contratto da tastiera.
+      - [ ] AC-3 — nella pagina non resta alcuna descrizione del campo mese con pulsante «Vai» come controllo presente.
+      - [ ] Ogni percorso citato in `sources` esiste su disco e tutti i marcatori di sezione della pagina sono conservati.
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: Gate finale — controlli di accettazione, regressione e stato dei task
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+    body: |-
+      ## Objective
+      L'incremento è verificato con l'esatta batteria di controlli concordata e la spec entra in revisione solo con tutti i task chiusi.
+
+      ## Read
+      - La sezione «Baseline» del corpo di questo piano — esiti attesi prima delle modifiche, incluso l'unico warning ESLint pre-esistente.
+      - La «Mappa delle Evidenze di Accettazione» — ogni criterio e il task che lo prova.
+
+      ## Change
+      - Nessuna modifica di codice. Se un controllo fallisce, la correzione appartiene al task che possiede quel file, non a questo gate.
+
+      Non-goal: non allargare il perimetro, non silenziare warning con direttive `eslint-disable`, non introdurre `retries` o `workers: 1` per stabilizzare un e2e.
+
+      ## Steps
+      1. Eseguire i controlli sotto, nell'ordine indicato, da `/Users/smarello/repo/coaching-planner`. Non dedurre la batteria dalle convenzioni del progetto: è esattamente questa.
+      2. A tutti i controlli verdi, marcare questo task `DONE` con `archetipo task done US-058 TASK-09` da `/Users/smarello/repo/coaching-planner`.
+      3. Ricaricare la spec con `archetipo spec show US-058` da `/Users/smarello/repo/coaching-planner` e verificare che **nessun** task risulti ancora `TODO`.
+      4. Solo allora richiedere la revisione con `archetipo spec review US-058`. L'ordine è vincolante: controlli → gate `DONE` → rilettura della spec → richiesta di revisione.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p tsconfig.json`
+      - Expect: exit 0, nessuna diagnostica (baseline: già a zero; nessun file toccato deve introdurne).
+      - Run: `npm run lint`
+      - Expect: 0 errori; l'unico warning ammesso è quello pre-esistente `tests/e2e/demo__duplicazione-riga-su-piu-giorni.spec.ts:41 'MESE_ALTRO' is assigned a value but never used`; il guardrail e2e termina con `✅ Guardrail e2e anti-flakiness passed` e nessuna «collisione di mese riservato».
+      - Run: `npm test`
+      - Expect: tutti i file vitest verdi, con un numero di test superiore ai 681 di baseline grazie a TASK-02.
+      - Run: `npm run build`
+      - Expect: build Next completata senza errori (nessun errore di tipo o di compilazione introdotto dal nuovo componente client).
+      - Run: `npx playwright test tests/e2e/calendario-salto-mese.spec.ts tests/e2e/demo__salto-diretto-mese-calendario.spec.ts tests/e2e/duplica-riga-su-giorni.spec.ts tests/e2e/calendario-cache-mesi.spec.ts tests/e2e/calendario-navigazione-reattiva.spec.ts tests/e2e/demo__calendario-mensile.spec.ts --reporter=line`
+      - Expect: tutti gli scenari passati senza retry — i primi tre sono l'accettazione e l'adeguamento, gli ultimi tre sono la regressione sui consumatori di `calendar-month-label` e sulla navigazione mensile.
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: `data.ok: true`, nessun finding `error`.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4, AC-5, AC-6 — tutti provati dagli scenari verdi di `tests/e2e/calendario-salto-mese.spec.ts`, con la demo filmabile pure verde.
+      - [ ] Nessun file modificato dal piano introduce diagnostiche di compilatore o di linter rispetto alla baseline registrata.
+      - [ ] `archetipo spec show US-058` non riporta alcun task `TODO` prima di `archetipo spec review US-058`.
+
+      ## Blockers
+      None.
+    ref: TASK-09

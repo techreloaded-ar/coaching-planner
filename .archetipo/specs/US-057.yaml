@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: HIGH
 points: 3
-status: TODO
+status: DONE
 body: |-
   #### US-057: Duplicazione di una riga attività su più giorni scelti
 
@@ -35,3 +35,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-08-04T18:25:12Z"
+  - status: PLANNED
+    at: "2026-08-06T11:06:40Z"
+  - status: IN PROGRESS
+    at: "2026-08-06T11:07:45Z"
+  - status: REVIEW
+    at: "2026-08-06T15:02:52Z"
+  - status: DONE
+    at: "2026-08-06T15:15:49Z"

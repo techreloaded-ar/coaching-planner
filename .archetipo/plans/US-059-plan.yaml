@@ -1,0 +1,694 @@
+schema: archetipo/plan/v2
+spec_code: US-059
+body: |-
+  # US-059: Suite e2e locale autonoma con database dedicato e database dev protetto — Piano di Implementazione
+
+  **Generato da:** Team di Planning ARchetipo
+  **Data:** 2026-08-06
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-000 — Fondazione del Progetto
+  **Priorità:** MEDIUM | **Punti:** 3
+
+  **Storia Utente**
+  Come sviluppatore del progetto Coaching Planner, voglio che la suite e2e locale prepari da sola il proprio database dedicato partendo sempre da uno stato pulito, mentre il mio database di sviluppo persistente resta fuori dalla sua portata, così da poter lanciare `npm run test:e2e` in qualunque momento senza preparazioni manuali e senza timore di perdere i dati delle mie prove locali.
+
+  **Criteri di Accettazione**
+  - AC-1 — Avviando il container Docker locale da zero, sono disponibili automaticamente sia il database di sviluppo persistente sia il database dedicato agli e2e, senza creazione manuale di database.
+  - AC-2 — Lanciando la suite e2e con dati residui nel database e2e, la suite riporta da sola quel database a uno stato pulito e completa il run senza intervento manuale.
+  - AC-3 — Dopo un run e2e completo, i dati presenti nel database di sviluppo risultano invariati.
+  - AC-4 — Se il database e2e configurato coincide con il database di sviluppo, la suite rifiuta di partire con un messaggio esplicito prima di modificare qualsiasi dato.
+  - AC-5 — Se il database locale non è raggiungibile, la suite fallisce subito con un messaggio che indica il comando per avviarlo.
+  - AC-6 — La suite e2e esistente passa invariata, mantenendo l'esecuzione parallela attuale.
+
+  **Fuori Perimetro**
+  Avvio automatico del container Docker da parte della suite; un secondo container Postgres dedicato agli e2e; modifiche al comportamento del database in CI, che continua a creare il proprio database e2e nella pipeline; strumenti di reset per il database di sviluppo stesso.
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Oggi la preparazione e2e è **assertiva**: `tests/e2e/global-setup.ts` chiama `assertE2eDatabaseHasNoApplicationData` e, se trova anche una sola riga applicativa, interrompe la suite chiedendo implicitamente allo sviluppatore di ripulire a mano. Il database `coaching_planner_e2e` inoltre non esiste finché qualcuno non lo crea (`docker-compose.yml` crea solo `coaching_planner`; in CI lo crea uno step dedicato del workflow). Questa spec ribalta il contratto: la preparazione diventa **imperativa e idempotente** — la suite porta il proprio database allo stato voluto — e la protezione si sposta dal «database vuoto» al **confine giusto**, cioè «il database e2e non deve essere il database applicativo».
+
+  - **Creazione automatica del database e2e all'avvio del container (AC-1).** Nuovo `docker/postgres/initdb/01-crea-database-e2e.sh`, montato in sola lettura su `/docker-entrypoint-initdb.d/` dal servizio `postgres` di `docker-compose.yml`. L'entrypoint dell'immagine `postgres:17-alpine` esegue gli script di quella cartella alla **prima inizializzazione del volume**, dopo aver creato `POSTGRES_DB`. Lo script crea il database indicato dalla nuova variabile di servizio `POSTGRES_E2E_DB` (default `coaching_planner_e2e`), con lo stesso owner di `POSTGRES_USER`.
+  - **Rete di sicurezza per i volumi già esistenti.** Gli script di init non vengono rieseguiti su un volume `pgdata` già inizializzato (è il caso di ogni sviluppatore che ha già lavorato sul progetto: nel checkout di planning il database `coaching_planner_e2e` esiste solo perché creato a mano). Per questo la preparazione runtime, se la connessione al database e2e fallisce con `3D000` (`invalid_catalog_name`), si ricollega al database di manutenzione `postgres` sulla stessa istanza e lo crea. È lo stesso fatto osservabile di AC-1 — «senza creazione manuale di database» — garantito anche senza distruggere il volume di sviluppo.
+  - **Un solo seam per la sicurezza e la preparazione: `tests/e2e/e2e-database-safety.ts`.** Il modulo esistente (già l'unico punto che parla con il database e2e fuori dai test) guadagna:
+    - `descriviIdentitaDatabase(stringaConnessione)` → `{ host, porta, nomeDatabase }` normalizzati (host in minuscolo con `localhost`/`127.0.0.1`/`::1`/`[::1]` ricondotti a un unico valore, porta assente = `5432`, nome database dal path). Errore esplicito su stringa non parsabile.
+    - `sonoLoStessoDatabase(a, b)` e `assertDatabaseE2eDistintoDaDatabaseApplicativo(urlE2e, urlApplicativo)`: quest'ultima lancia un errore che nomina host, porta e database coincidenti e indica il rimedio (`coaching_planner_e2e`). È **puramente sintattica**: non apre connessioni, quindi rifiuta il run prima di qualunque accesso ai dati (AC-4).
+    - `messaggioDatabaseNonRaggiungibile(errore, stringaConnessione)`: mappa `ECONNREFUSED`, `ENOTFOUND`, `EHOSTUNREACH`, `ETIMEDOUT`, `EAI_AGAIN` su un messaggio che contiene host, porta e il comando `docker compose up -d`; restituisce `null` per ogni altro errore, che resta quindi visibile così com'è (AC-5).
+    - `garantisciDatabaseE2eEsistente(stringaConnessione)`: prova la connessione; su `3D000` crea il database dal database di manutenzione; su errore di rete rilancia con il messaggio di AC-5.
+    - `ripristinaSchemaPulitoDatabaseE2e(stringaConnessione)`: `DROP SCHEMA IF EXISTS public CASCADE` + `CREATE SCHEMA public`, cioè lo stato pulito **indipendente da qualsiasi residuo** (AC-2).
+    - `costruisciAmbienteE2e(ambiente, urlE2e)`: l'oggetto env passato ai processi figli, con `DATABASE_URL` **sempre** riscritto sull'URL e2e, `E2E_DATABASE_URL` e `E2E_TEST_MODE: "true"`. Estrarre questa costruzione dal `globalSetup` la rende verificabile a livello unit (AC-3).
+    - `assertE2eDatabaseHasNoApplicationData` viene **rimossa**: il suo compito (impedire di scrivere sul database sbagliato) passa alla guardia d'identità, mentre il suo effetto collaterale (bloccare un run per dati residui) è esattamente ciò che AC-2 elimina. `clearE2eApplicationData` resta e continua a servire il `globalTeardown`.
+  - **Sequenza di `tests/e2e/global-setup.ts`:** guardia d'identità → `garantisciDatabaseE2eEsistente` → `ripristinaSchemaPulitoDatabaseE2e` → `npm run db:migrate:deploy` → `npm run db:seed`, gli ultimi due con l'ambiente di `costruisciAmbienteE2e`. Dopo il reset dello schema le migrazioni ripartono da zero (8 migrazioni, frazioni di secondo), quindi anche uno stato di migrazione fallito o disallineato lasciato da un run interrotto viene sanato.
+  - **Guardia anche in `playwright.config.ts` (AC-4).** Il file di configurazione è il primo codice valutato da Playwright, prima di `globalSetup` e del `webServer`: subito dopo la lettura di `E2E_DATABASE_URL` chiama `assertDatabaseE2eDistintoDaDatabaseApplicativo(e2eDatabaseUrl, process.env.DATABASE_URL)`. Il controllo resta anche in `globalSetup`, che è il punto in cui avviene la distruzione: le due chiamate non si sostituiscono a vicenda.
+  - **Perché `DATABASE_URL` di sviluppo non viene mai raggiunto (AC-3).** Verificato in planning leggendo `node_modules/@next/env/dist/index.js`: `processEnv` copia dai file `.env*` **solo** le chiavi assenti dallo snapshot iniziale del processo (`if (typeof u[t] === "undefined" && typeof l[t] === "undefined")`). Poiché `execSync` avvia `prisma migrate deploy` e `prisma db seed` con `DATABASE_URL` già valorizzato sull'URL e2e, il `loadEnvConfig` di `prisma.config.ts` non può sovrascriverlo con il valore di `.env.local`. La guardia d'identità è la seconda linea di difesa: se le due stringhe puntassero allo stesso database, il run non partirebbe affatto.
+  - **CI invariata (fuori perimetro).** `.github/workflows/ci.yml` non viene toccato: continua a creare `coaching_planner_e2e` con il proprio step. Le due variabili CI puntano a database con nomi diversi (`coaching_planner_ci` e `coaching_planner_e2e`), quindi la guardia passa; il reset dello schema agisce su un database appena creato ed è un no-op semantico; `garantisciDatabaseE2eEsistente` trova il database già presente.
+
+  ### Decisioni Architetturali
+
+  La scelta di **azzerare per costruzione il database e2e a ogni run** supera la soglia ADR: cambia la semantica di fallimento dello strumento di verifica del progetto (da «fallisci se sporco» a «distruggi e ricostruisci»), introduce un'operazione distruttiva eseguita automaticamente su un database identificato da configurazione, ed è una politica trasversale che ogni futura spec con e2e deve rispettare. Alternative valutate: (a) mantenere il controllo di vuoto e lasciare la pulizia allo sviluppatore — scartata, è esattamente il problema della storia; (b) `TRUNCATE` di tutte le tabelle applicative — scartata perché non sana lo schema né una migrazione fallita a metà, cioè il residuo tipico di un run interrotto; (c) creare un database effimero per run (`coaching_planner_e2e_<pid>`) — scartata perché moltiplica i database orfani e rende opaco l'URL configurato; (d) un secondo container Postgres dedicato — esplicitamente fuori perimetro nella spec. Il compromesso accettato è il costo di 8 migrazioni per run e la dipendenza dalla proprietà dello schema `public` da parte dell'utente di connessione (vera sia in locale sia in CI). La mitigazione obbligatoria è la guardia d'identità, che rende impossibile puntare l'operazione distruttiva al database applicativo. La decisione viene registrata nella nuova pagina `decisions/reset-database-e2e-dedicato`.
+
+  ---
+
+  ## Baseline
+
+  Comandi eseguiti in fase di planning da `/Users/smarello/repo/coaching-planner`, prima di qualunque modifica.
+
+  | Controllo | Esito prima dell'implementazione | Conseguenza sul piano |
+  |---|---|---|
+  | `npm run lint` | Passa (exit 0). Un solo **warning pre-esistente**: `tests/e2e/demo__duplicazione-riga-su-piu-giorni.spec.ts:41 'MESE_ALTRO' is assigned a value but never used`. Il guardrail e2e stampa nove avvisi `chiave riservata non risolvibile staticamente` (helper generici di `support/date.ts` e `support/report-data.ts`) e chiude con `✅ Guardrail e2e anti-flakiness passed`. | I file toccati non devono aggiungere nuove diagnostiche. Attenzione al codice morto: rimuovendo `assertE2eDatabaseHasNoApplicationData` non devono restare import o funzioni non usate, che diventerebbero warning nuovi. |
+  | `npx tsc --noEmit` | Passa, exit 0, nessuna diagnostica. `tsconfig.json` include `**/*.ts`, quindi copre anche `tests/**` e `playwright.config.ts`. | È il controllo di tipo focalizzato per ogni task che tocca `.ts`; deve restare a zero errori. |
+  | `npm test` (vitest) | Passa: 40 file, 685 test, ~0,8 s. | Il nuovo file `tests/unit/e2e-database-safety.test.ts` si aggiunge senza toccare i 685 esistenti. |
+  | `npx playwright test tests/e2e/home-page.spec.ts --retries=0 --reporter=line` | Passa: 2 test in 4,3 s. Il log mostra la sequenza attuale: verifica di database vuoto → migrazioni → seed → test → pulizia finale. | È il ciclo completo di `globalSetup`/`globalTeardown` a costo basso: resta il controllo rapido dopo ogni modifica alla preparazione. |
+  | `archetipo wiki validate --profile bootstrap` | `data.ok: true`, 27 pagine, nessun finding. | La nuova pagina `decisions/reset-database-e2e-dedicato` e l'aggiornamento di `operations/development` devono lasciare la validazione a zero finding. |
+  | Suite e2e completa (`npx playwright test --retries=0`) | **Non eseguita in fase di planning** (durata elevata, ~60 file di spec). Nota: la README e2e fissa come gate di stabilità tre esecuzioni consecutive. | Nessun task può dichiarare «passa come da baseline» sulla suite completa senza averla eseguita: il gate finale (TASK-09) la esegue e stabilisce il confine. Un fallimento va classificato — regressione introdotta oppure flake pre-esistente — riproducendolo sul file singolo. |
+
+  **Prerequisiti d'ambiente (non sono fallimenti di codice).**
+
+  - PostgreSQL locale in ascolto su `localhost:5432`: container `coaching-planner-db` da `docker-compose.yml`, verificato `healthy` durante il planning. Comando: `docker compose up -d`.
+  - `E2E_DATABASE_URL` e `DATABASE_URL` valorizzate in `.env.local`; **non leggere né modificare i file `.env*` reali** (vincolo di progetto). Per gli scenari che richiedono valori diversi si passano variabili inline al comando (`E2E_DATABASE_URL=... npx playwright test ...`), che vincono sul file grazie alla semantica di `@next/env` descritta nella soluzione tecnica.
+  - Client Prisma generato: coperto da `postinstall`/`dev`/`build`, altrimenti `npm run db:generate`.
+  - Stato osservato durante il planning: il database `coaching_planner_e2e` **esiste già** (creato manualmente in passato, il volume `pgdata` è inizializzato da tempo) e il database di sviluppo `coaching_planner` ha lo schema applicato ma **zero righe** in `"Utente"`. Conseguenza pratica: la verifica di AC-3 non può limitarsi a «i conteggi non sono cambiati» — 0 → 0 è indistinguibile da una cancellazione. Serve una riga sentinella creata prima del run (vedi TASK-05).
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato iniziale / fixture | Livello di test | Oracolo osservabile | Task che produce l'evidenza |
+  |---|---|---|---|---|
+  | AC-1 | Container Postgres usa-e-getta (`postgres:17-alpine`, porta 55432, volume anonimo) avviato con la cartella `docker/postgres/initdb` montata su `/docker-entrypoint-initdb.d`, quindi con volume **non inizializzato** | integrazione a riga di comando su Docker reale | `docker exec <container> psql -U user -d postgres -lqt` elenca **sia** `coaching_planner` **sia** `coaching_planner_e2e`, senza che sia stato eseguito alcun `CREATE DATABASE` manuale | TASK-01 |
+  | AC-1 (volume già inizializzato) | Database e2e cancellato a mano (`DROP DATABASE coaching_planner_e2e`) sul container di sviluppo esistente | integrazione a riga di comando + suite Playwright | `npx playwright test tests/e2e/home-page.spec.ts --retries=0` completa verde e `psql -lqt` mostra di nuovo `coaching_planner_e2e`: la preparazione lo ha ricreato da sola | TASK-05 |
+  | AC-2 | Database e2e sporcato prima del run: riga `Cliente` estranea inserita via `psql` nel database e2e (simulazione di run interrotto) | integrazione a riga di comando + suite Playwright completa | `npx playwright test --retries=0` completa **verde** senza alcun intervento; il log di `globalSetup` riporta il ripristino dello stato pulito seguito da migrazioni e seed; la riga estranea non esiste più a fine setup | TASK-05 |
+  | AC-2 (contratto della funzione) | Client `pg` finto iniettato | unit (vitest) | `ripristinaSchemaPulitoDatabaseE2e` emette `DROP SCHEMA IF EXISTS public CASCADE` e `CREATE SCHEMA public`, in quest'ordine, e chiude la connessione anche in caso di errore | TASK-03 |
+  | AC-3 | Riga sentinella `US-059 Sentinella Dev` inserita nel database di **sviluppo** prima del run; snapshot dei conteggi di tutte le tabelle applicative | integrazione a riga di comando + suite Playwright completa | Dopo il run completo la sentinella è ancora presente con gli stessi valori e i conteggi per tabella del database di sviluppo sono identici allo snapshot iniziale | TASK-05 |
+  | AC-3 (contratto dell'ambiente figlio) | `costruisciAmbienteE2e({ DATABASE_URL: "<url sviluppo>", ... }, "<url e2e>")` | unit (vitest) | Il risultato ha `DATABASE_URL === "<url e2e>"` (il valore di sviluppo è sostituito, non conservato), `E2E_DATABASE_URL === "<url e2e>"` e `E2E_TEST_MODE === "true"` | TASK-03 |
+  | AC-4 | `E2E_DATABASE_URL` impostata **inline** allo stesso valore di `DATABASE_URL`; database di sviluppo con la riga sentinella e conteggi noti | integrazione a riga di comando | Il comando esce con codice diverso da 0 e stampa un messaggio che nomina il database coincidente e il rimedio; **nessun processo `webServer` viene avviato**; conteggi e sentinella del database di sviluppo invariati dopo il tentativo | TASK-05 |
+  | AC-4 (contratto della guardia) | Coppie di stringhe di connessione: identiche; equivalenti (`localhost` vs `127.0.0.1`, porta implicita vs `:5432`); realmente diverse (solo il nome database cambia) | unit (vitest) | `assertDatabaseE2eDistintoDaDatabaseApplicativo` lancia con messaggio contenente il nome del database per i primi due casi e **non** lancia per il terzo; nessuna connessione viene aperta (nessun mock di `pg` è necessario perché la funzione è sintattica) | TASK-03 |
+  | AC-5 | Container di sviluppo fermato con `docker stop coaching-planner-db` (volume intatto) | integrazione a riga di comando | `npx playwright test tests/e2e/home-page.spec.ts --retries=0` fallisce **subito** (prima dei test) con un messaggio che contiene host, porta e la stringa esatta `docker compose up -d` | TASK-05 |
+  | AC-5 (contratto della mappatura) | Errori sintetici con `code` `ECONNREFUSED`, `ENOTFOUND`, `ETIMEDOUT`, `EAI_AGAIN`, più un errore applicativo qualsiasi | unit (vitest) | `messaggioDatabaseNonRaggiungibile` restituisce un messaggio contenente `docker compose up -d`, host e porta per i codici di rete, e `null` per l'errore non di rete (che quindi non viene mascherato) | TASK-03 |
+  | AC-6 | Suite e2e invariata, `playwright.config.ts` con `fullyParallel: true` e nessun `workers` forzato | e2e browser (suite completa) | Due esecuzioni consecutive di `npx playwright test --retries=0` completano verdi; `git diff` non mostra modifiche ai file `*.spec.ts` né a `fullyParallel`/`workers`/`retries` | TASK-09 |
+
+  La mappa non usa proxy: gli oracoli di AC-1..AC-5 sono osservati su un PostgreSQL reale e sulla suite reale, e i casi unit verificano il **contratto delle funzioni responsabili**, non che siano state chiamate. Nessun test double copre il percorso di accettazione end-to-end.
+
+  ---
+
+  ## Strategia di Test
+
+  L'oggetto della spec **è** l'infrastruttura di test: il comportamento da provare non vive in una pagina, ma nella preparazione che gira prima dei test. La strategia usa quindi due livelli complementari, nessuno dei quali è un proxy dell'altro.
+
+  - **Unit (vitest, `tests/unit/e2e-database-safety.test.ts`).** Copre le funzioni deterministiche del seam: normalizzazione dell'identità del database, guardia di non-coincidenza, mappatura degli errori di rete, costruzione dell'ambiente dei processi figli e sequenza SQL del ripristino (con un client `pg` finto iniettato). Sono i punti dove un errore sarebbe silenzioso e dove un test è rapido e stabile. Il file segue il precedente già in repo per il codice non-applicativo (`tests/unit/siteground-connectivity-check.test.ts`, che testa uno script importandolo direttamente).
+  - **Integrazione a riga di comando su PostgreSQL reale (TASK-05).** Prova i quattro comportamenti che nessun mock può dimostrare: la creazione automatica del database all'inizializzazione del volume, il recupero da un database sporco, l'invarianza del database di sviluppo dopo un run completo e i due rifiuti espliciti (database coincidente, database irraggiungibile). Gli scenari sono eseguiti dall'implementatore con comandi esatti e con esiti verificabili; il loro esito va riportato nel task, perché coincide con lo script di dimostrazione della spec.
+  - **Regressione della suite esistente (TASK-09).** L'unica prova valida di AC-6 è la suite completa che passa senza modifiche ai file di spec né alla configurazione di parallelismo. Due esecuzioni consecutive con `--retries=0`, più l'esecuzione su database sporco di TASK-05, danno le tre esecuzioni consecutive richieste dal contratto e2e del progetto.
+  - **Vincoli di non-regressione da rispettare in ogni task:** `fullyParallel: true` invariato, nessun `workers: 1`, `retries` invariato, nessuna modifica ai file `tests/e2e/*.spec.ts`, nessun uso di `DATABASE_URL` nel layer di supporto e2e (`tests/e2e/support/prisma.ts` continua a leggere solo `E2E_DATABASE_URL`).
+  - **Non si tocca `globalTeardown`.** La pulizia finale con `clearE2eApplicationData` resta: rende gradevole lo stato del database fra un run e l'altro. La sua eventuale interruzione non è più un problema, perché il run successivo ripristina comunque lo stato pulito.
+
+  ### Deroga agli e2e browser
+
+  **Motivo:** nessun criterio di accettazione descrive un comportamento dell'applicazione nel browser. AC-1..AC-5 riguardano la preparazione dell'ambiente prima che i test partano — creazione del database, ripristino, rifiuti espliciti — e non sono osservabili da una pagina; aprire un browser per provarli sarebbe la definizione di prova per proxy. AC-6 è invece provato **eseguendo davvero** l'intera suite browser esistente, che resta il livello più alto di verifica di questa spec.
+  **Livello di evidenza usato al suo posto:** unit vitest deterministici sul seam di sicurezza (AC-2..AC-5, lato contratto) + scenari di integrazione a riga di comando su PostgreSQL e Docker reali (AC-1..AC-5, lato comportamento) + esecuzione completa della suite Playwright esistente (AC-2 e AC-6).
+
+  ### Video di dimostrazione
+
+  **Atteso:** no. La sezione «Dimostrazione» della spec si svolge interamente a riga di comando (`docker compose`, `npm run test:e2e`, ispezione del database): non esiste un percorso utente nel browser che Playwright possa filmare, quindi non va creato alcun file `demo__*.spec.ts`. La decisione finale su registrazione o rinuncia resta di `archetipo-review`; l'evidenza da presentare in accettazione è la trascrizione dei comandi e degli esiti di TASK-05.
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [operations/development, decisions/postgres-siteground, engineering/code-map]
+    update: [operations/development]
+    create: [decisions/reset-database-e2e-dedicato]
+  ```
+
+  `archetipo wiki --project-root /Users/smarello/repo/coaching-planner affected --file docker-compose.yml --file tests/e2e/global-setup.ts --file tests/e2e/e2e-database-safety.ts --file README.md --file .env.example --file tests/e2e/README.md --file .github/workflows/ci.yml` restituisce tre candidati. Decisione pagina per pagina:
+
+  - **`operations/development` → `update`.** La sua conoscenza cambia in più punti verificabili: «Docker Compose fornisce PostgreSQL 17 Alpine in locale con volume persistente» diventa «con volume persistente e creazione automatica del database e2e»; la riga di configurazione runtime su `E2E_DATABASE_URL` deve dire che il database viene creato e riportato allo stato pulito dalla suite e non deve più essere vuoto in partenza; la sezione «Test» afferma oggi che «il database E2E viene migrato, popolato e ripulito» e va estesa con il ripristino iniziale e con i due rifiuti espliciti; la sezione «Vincoli e cautele» guadagna il fatto che la coincidenza fra database e2e e database applicativo è ora impedita dal codice. Vanno aggiunte alle `sources` la cartella `docker/postgres/initdb/` e `tests/e2e/e2e-database-safety.ts`.
+  - **`decisions/reset-database-e2e-dedicato` → `create`.** Registra la decisione descritta in «Decisioni Architetturali»: reset distruttivo per costruzione del database e2e dedicato, subordinato a una guardia d'identità, con le alternative scartate e la verifica.
+  - **`decisions/postgres-siteground` → solo candidato.** Traccia `docker-compose.yml` e risulterà `evidence-changed`, ma le sue affermazioni restano vere: PostgreSQL come database, istanza locale equivalente, target SiteGround, «sviluppo ed E2E usano database separati» — che questa spec rafforza invece di contraddire. Riconciliazione esplicita in accettazione, senza task di documentazione.
+  - **`engineering/code-map` → solo candidato.** Compare per il boundary `tests`. La matrice capability → codice → dati → test non cambia: non nascono capability, modelli o rotte; cambia solo l'impianto di preparazione della verifica, già rappresentato dal boundary esistente.
+
+  ---
+
+  ## Assunzioni e Note
+
+  - Il nome `coaching_planner_e2e` resta il default in `docker-compose.yml`, `.env.example` e CI; la variabile di servizio `POSTGRES_E2E_DB` permette di cambiarlo senza modificare lo script di init.
+  - Il reset distruttivo richiede che l'utente di connessione possa fare `DROP SCHEMA public`. È vero in locale (`POSTGRES_USER=user` è superuser dell'istanza) e in CI (l'utente `ci` è owner del database creato dal workflow). Non è un requisito nuovo per ambienti gestiti, perché il database e2e è per definizione dedicato e locale alla pipeline.
+  - Se una sessione esterna tiene aperta una connessione sul database e2e (per esempio `npm run db:studio` puntato lì), il `DROP SCHEMA` può restare in attesa di lock. È un caso volutamente non gestito: l'errore di Postgres è già parlante e la spec non chiede timeouts né terminazione forzata delle sessioni.
+  - La preparazione **non avvia** il container Docker (fuori perimetro): quando l'istanza non risponde la suite si limita a fallire indicando `docker compose up -d`.
+
+  _Piano generato con ARchetipo Planning — 2026-08-06_
+tasks:
+  - id: TASK-01
+    title: Creazione automatica del database e2e all'inizializzazione del container Postgres
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Un container PostgreSQL avviato da `docker-compose.yml` su volume nuovo espone sia `coaching_planner` sia `coaching_planner_e2e`, senza alcun `CREATE DATABASE` manuale.
+
+      ## Read
+      - `docker-compose.yml` — servizio `postgres`: variabili `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, volume `pgdata`, healthcheck, commenti iniziali sull'uso.
+      - `.env.example` — riga `E2E_DATABASE_URL`, da cui deriva il nome atteso `coaching_planner_e2e`.
+
+      ## Change
+      - Nuovo file `docker/postgres/initdb/01-crea-database-e2e.sh`.
+      - `docker-compose.yml`: aggiungere la variabile d'ambiente `POSTGRES_E2E_DB` al servizio `postgres` e montare `./docker/postgres/initdb` su `/docker-entrypoint-initdb.d` in sola lettura.
+
+      Non-goal: non aggiungere un secondo servizio Postgres; non toccare il volume `pgdata` né il healthcheck; non modificare `.github/workflows/ci.yml`; non introdurre script di avvio del container nella suite.
+
+      ## Steps
+      1. Creare `docker/postgres/initdb/01-crea-database-e2e.sh` con contenuto:
+         ```sh
+         #!/bin/sh
+         # Eseguito dall'entrypoint di postgres SOLO alla prima inizializzazione del volume,
+         # dopo la creazione di POSTGRES_DB. Crea il database dedicato ai test end-to-end.
+         set -e
+
+         NOME_DATABASE_E2E="${POSTGRES_E2E_DB:-coaching_planner_e2e}"
+
+         psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
+             CREATE DATABASE "$NOME_DATABASE_E2E" OWNER "$POSTGRES_USER";
+         EOSQL
+
+         echo "Database e2e '$NOME_DATABASE_E2E' creato."
+         ```
+      2. In `docker-compose.yml`, sotto `environment` del servizio `postgres`, aggiungere `POSTGRES_E2E_DB: coaching_planner_e2e`.
+      3. Sempre nel servizio `postgres`, aggiungere alla lista `volumes` la riga `- ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro` (il volume nominato `pgdata` resta invariato).
+      4. Aggiornare il commento in testa a `docker-compose.yml` segnalando che gli script di init girano solo su volume nuovo e che per ottenerli su un volume esistente serve `docker compose down -v && docker compose up -d`.
+      5. Rendere eseguibile lo script (`chmod +x docker/postgres/initdb/01-crea-database-e2e.sh`) e verificare che git registri il bit (`git ls-files -s docker/postgres/initdb/01-crea-database-e2e.sh` deve mostrare `100755`). Nota: l'entrypoint esegue comunque i `.sh` non eseguibili tramite `source`, ma il bit esplicito evita ambiguità.
+
+      ## Verify
+      - Run: `docker compose config --quiet`
+      - Expect: exit 0, nessun output (compose valido).
+      - Run (verifica reale su volume nuovo, senza toccare il container di sviluppo né il suo volume):
+        ```bash
+        docker run --rm -d --name coaching-planner-verifica-us059 \
+          -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password \
+          -e POSTGRES_DB=coaching_planner -e POSTGRES_E2E_DB=coaching_planner_e2e \
+          -v "$PWD/docker/postgres/initdb:/docker-entrypoint-initdb.d:ro" \
+          -p 55432:5432 postgres:17-alpine
+        until docker exec coaching-planner-verifica-us059 pg_isready -U user -d coaching_planner >/dev/null 2>&1; do sleep 1; done
+        docker exec coaching-planner-verifica-us059 psql -U user -d postgres -lqt | cut -d '|' -f1
+        docker rm -f coaching-planner-verifica-us059
+        ```
+      - Expect: l'elenco contiene sia `coaching_planner` sia `coaching_planner_e2e` (AC-1). Il container di verifica viene rimosso; il container `coaching-planner-db` e il volume `pgdata` non sono mai toccati.
+
+      ## Done
+      - [ ] AC-1 — su un volume Postgres nuovo il database `coaching_planner_e2e` esiste subito dopo l'avvio, senza creazione manuale, come mostrato dall'elenco `psql -lqt` del comando di verifica.
+      - [ ] `docker compose config --quiet` esce a 0 e il montaggio è in sola lettura (`:ro`).
+      - [ ] Nessun secondo servizio Postgres e nessuna modifica al volume `pgdata` o al workflow CI.
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Seam di sicurezza e preparazione del database e2e in e2e-database-safety.ts
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      `tests/e2e/e2e-database-safety.ts` espone le funzioni che identificano il database, rifiutano la coincidenza con il database applicativo, traducono l'irraggiungibilità in un messaggio azionabile, garantiscono l'esistenza del database e2e, ne ripristinano lo schema pulito e costruiscono l'ambiente dei processi figli.
+
+      ## Read
+      - `tests/e2e/e2e-database-safety.ts` — intero file: `withDatabaseClient`, `listApplicationTables`, `requireE2eDatabaseUrl`, `assertE2eDatabaseHasNoApplicationData`, `clearE2eApplicationData`, convenzioni di quoting e stile.
+      - `tests/e2e/global-setup.ts` — come sono costruiti oggi `e2eEnvironment` e le chiamate `execSync` (l'ambiente va estratto qui, il cablaggio avviene in TASK-04).
+      - `tests/e2e/support/prisma.ts` — regola «il layer e2e legge solo `E2E_DATABASE_URL`», da non violare.
+
+      ## Change
+      - `tests/e2e/e2e-database-safety.ts`: aggiungere i tipi e le funzioni esportate elencate negli Steps; rimuovere `assertE2eDatabaseHasNoApplicationData`; mantenere invariate `requireE2eDatabaseUrl` e `clearE2eApplicationData`.
+
+      Non-goal: non modificare `global-setup.ts`, `global-teardown.ts` o `playwright.config.ts` (è TASK-04); non introdurre nuove dipendenze npm (`pg` è già in `devDependencies`); non aggiungere fallback su `DATABASE_URL` per la connessione dati e2e.
+
+      ## Steps
+      1. Aggiungere il tipo e la normalizzazione dell'identità:
+         ```ts
+         export type IdentitaDatabase = {
+           host: string;
+           porta: number;
+           nomeDatabase: string;
+         };
+
+         const HOST_LOCALI_EQUIVALENTI = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+         export function descriviIdentitaDatabase(stringaConnessione: string): IdentitaDatabase {
+           let url: URL;
+           try {
+             url = new URL(stringaConnessione);
+           } catch {
+             throw new Error(
+               `Stringa di connessione PostgreSQL non valida: impossibile interpretare "${stringaConnessione}".`,
+             );
+           }
+           const hostGrezzo = url.hostname.toLowerCase();
+           return {
+             host: HOST_LOCALI_EQUIVALENTI.has(hostGrezzo) ? "localhost" : hostGrezzo,
+             porta: url.port ? Number(url.port) : 5432,
+             nomeDatabase: decodeURIComponent(url.pathname.replace(/^\//, "")),
+           };
+         }
+         ```
+      2. Aggiungere il confronto e la guardia (funzioni **sintattiche**, nessuna connessione):
+         ```ts
+         export function sonoLoStessoDatabase(prima: string, seconda: string): boolean { ... }
+
+         export function assertDatabaseE2eDistintoDaDatabaseApplicativo(
+           urlDatabaseE2e: string,
+           urlDatabaseApplicativo: string | undefined,
+         ): void
+         ```
+         `sonoLoStessoDatabase` confronta host, porta e `nomeDatabase` delle due identità. La guardia non fa nulla se `urlDatabaseApplicativo` è assente o vuoto; altrimenti, se coincidono, lancia un `Error` il cui messaggio contiene: la frase «coincide con il database di sviluppo», `host:porta/nomeDatabase`, i nomi delle due variabili `E2E_DATABASE_URL` e `DATABASE_URL`, e il rimedio «configura un database dedicato, per esempio `coaching_planner_e2e`». Nessuna password deve comparire nel messaggio (usare solo i campi dell'identità, mai la stringa completa).
+      3. Aggiungere la mappatura degli errori di rete:
+         ```ts
+         const CODICI_ERRORE_CONNESSIONE = new Set([
+           "ECONNREFUSED", "ENOTFOUND", "EHOSTUNREACH", "ETIMEDOUT", "EAI_AGAIN",
+         ]);
+
+         export function messaggioDatabaseNonRaggiungibile(
+           errore: unknown,
+           stringaConnessione: string,
+         ): string | null
+         ```
+         Restituisce `null` quando l'errore non ha un `code` fra quelli elencati. Altrimenti restituisce un messaggio che contiene `host:porta`, la constatazione che il database locale non risponde e la stringa esatta `docker compose up -d`.
+      4. Aggiungere `garantisciDatabaseE2eEsistente(stringaConnessione: string): Promise<void>`:
+         - prova `new pg.Client({ connectionString }).connect()` e chiude subito;
+         - se l'errore ha `code === "3D000"` (database inesistente), calcola l'URL di manutenzione (`new URL(stringaConnessione)` con `pathname = "/postgres"`), si connette lì ed esegue `CREATE DATABASE "<nomeDatabase>"` usando `quoteIdentifier`; se il `CREATE` fallisce con `42P04` (già esistente, corsa fra processi) prosegue senza errore;
+         - se `messaggioDatabaseNonRaggiungibile(...)` restituisce un messaggio, lancia `new Error(messaggio, { cause: errore })`;
+         - qualunque altro errore viene rilanciato invariato.
+      5. Aggiungere `ripristinaSchemaPulitoDatabaseE2e(stringaConnessione: string): Promise<void>` che, dentro `withDatabaseClient`, esegue nell'ordine `DROP SCHEMA IF EXISTS public CASCADE` e `CREATE SCHEMA public`. Documentare con un commento che è l'operazione distruttiva della preparazione e che deve essere sempre preceduta dalla guardia d'identità. Se la connessione fallisce, tradurre l'errore con `messaggioDatabaseNonRaggiungibile` come al punto 4.
+      6. Aggiungere `costruisciAmbienteE2e(ambiente: NodeJS.ProcessEnv, urlDatabaseE2e: string): NodeJS.ProcessEnv` che restituisce `{ ...ambiente, DATABASE_URL: urlDatabaseE2e, E2E_DATABASE_URL: urlDatabaseE2e, E2E_TEST_MODE: "true" }`, con commento sul perché `DATABASE_URL` va **sovrascritto** e non ereditato.
+      7. Rimuovere `assertE2eDatabaseHasNoApplicationData` e, se `listApplicationTables` resta usata solo da `clearE2eApplicationData`, lasciarla dov'è senza modifiche. Verificare con `grep -rn "assertE2eDatabaseHasNoApplicationData" .` che non restino riferimenti fuori da `global-setup.ts` (che sarà aggiornato in TASK-04) e dalla documentazione (TASK-06).
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessuna diagnostica (baseline: zero).
+      - Run: `npx eslint tests/e2e/e2e-database-safety.ts`
+      - Expect: nessun errore e nessun warning su questo file (nessun import o simbolo non usato dopo la rimozione).
+      - Run: `grep -rn "assertE2eDatabaseHasNoApplicationData" tests src scripts`
+      - Expect: unico riferimento residuo in `tests/e2e/global-setup.ts`, che TASK-04 sostituisce.
+
+      ## Done
+      - [ ] AC-4 — `assertDatabaseE2eDistintoDaDatabaseApplicativo` esiste, non apre connessioni e lancia un errore che nomina il database coincidente e il rimedio.
+      - [ ] AC-5 — `messaggioDatabaseNonRaggiungibile` produce un messaggio contenente `docker compose up -d` per i codici di rete e `null` per gli altri errori.
+      - [ ] AC-2 — `ripristinaSchemaPulitoDatabaseE2e` esegue `DROP SCHEMA IF EXISTS public CASCADE` seguito da `CREATE SCHEMA public`.
+      - [ ] AC-1 — `garantisciDatabaseE2eEsistente` crea il database quando Postgres risponde `3D000`.
+      - [ ] AC-3 — `costruisciAmbienteE2e` restituisce sempre `DATABASE_URL` pari all'URL e2e.
+      - [ ] Nessuna password compare nei messaggi d'errore; type-check e lint del file puliti.
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Unit test del seam di sicurezza e preparazione del database e2e
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      `tests/unit/e2e-database-safety.test.ts` prova, senza database reale, che la guardia d'identità rifiuta i database coincidenti, che gli errori di rete diventano un messaggio azionabile, che il ripristino emette la sequenza SQL corretta e che l'ambiente dei processi figli punta sempre al database e2e.
+
+      ## Read
+      - `tests/unit/siteground-connectivity-check.test.ts` — precedente di test unitario su codice non applicativo: stile `describe`/`it` in italiano, import diretto del modulo sotto test, uso di `vi`.
+      - `tests/e2e/e2e-database-safety.ts` — firme prodotte da TASK-02.
+      - `vitest.config.ts` — `include: ["tests/unit/**/*.test.ts"]`, `environment: "node"`, alias `@`.
+
+      ## Change
+      - Nuovo file `tests/unit/e2e-database-safety.test.ts`.
+
+      Non-goal: non modificare i test esistenti; non connettersi a un database reale in vitest; non introdurre nuove dipendenze di test; non spostare il modulo sotto test fuori da `tests/e2e/`.
+
+      ## Steps
+      1. Importare le funzioni con un percorso relativo (`../e2e/e2e-database-safety` dal file di test) oppure con l'alias già usato in repo per file fuori da `src` (`@/../tests/e2e/e2e-database-safety`); scegliere la forma che il type-check accetta senza modifiche a `tsconfig.json` e restare coerenti nel file.
+      2. `describe("descriviIdentitaDatabase")`: verificare host in minuscolo, porta implicita risolta a `5432`, nome database estratto dal path, e che una stringa non parsabile lanci un errore con messaggio esplicito.
+      3. `describe("assertDatabaseE2eDistintoDaDatabaseApplicativo")` — oracolo di AC-4:
+         - due URL identici → `expect(() => ...).toThrow(/coincide con il database di sviluppo/)`, e il messaggio contiene `coaching_planner` ma **non** la password presente nell'URL;
+         - `postgresql://user:password@localhost:5432/coaching_planner` vs `postgresql://user:password@127.0.0.1/coaching_planner` (host equivalente, porta implicita) → lancia comunque;
+         - `.../coaching_planner` vs `.../coaching_planner_e2e` → non lancia;
+         - `urlDatabaseApplicativo` `undefined` o stringa vuota → non lancia.
+      4. `describe("messaggioDatabaseNonRaggiungibile")` — oracolo di AC-5: per ognuno di `ECONNREFUSED`, `ENOTFOUND`, `ETIMEDOUT`, `EAI_AGAIN` costruire `Object.assign(new Error("boom"), { code })` e verificare che il messaggio contenga `docker compose up -d`, `localhost` e `5432`; per `new Error("errore applicativo")` senza `code` verificare che il risultato sia `null`.
+      5. `describe("ripristinaSchemaPulitoDatabaseE2e")` — oracolo di AC-2 a livello di contratto: mockare il modulo `pg` con `vi.mock("pg", ...)` esponendo un `Client` finto che registra le query e i cicli `connect`/`end`. Asserire che le query eseguite, nell'ordine, corrispondano a `/DROP SCHEMA IF EXISTS public CASCADE/` e `/CREATE SCHEMA public/`, e che `end()` venga chiamato anche quando una query lancia.
+      6. `describe("costruisciAmbienteE2e")` — oracolo di AC-3: partendo da `{ DATABASE_URL: "postgresql://user:password@localhost:5432/coaching_planner", PATH: "/bin" }` e URL e2e `postgresql://user:password@localhost:5432/coaching_planner_e2e`, verificare che il risultato abbia `DATABASE_URL` pari all'URL **e2e** (quindi il valore di sviluppo è stato sostituito), `E2E_DATABASE_URL` pari allo stesso valore, `E2E_TEST_MODE === "true"` e che le altre chiavi dell'ambiente originale siano conservate.
+      7. Se `vi.mock("pg", ...)` interferisce con gli altri `describe` del file, isolare il blocco del punto 5 con `vi.resetModules()` e `await import(...)` dinamico dentro il test, così che le funzioni sintattiche restino testate sul modulo reale.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/e2e-database-safety.test.ts`
+      - Expect: tutti i test del nuovo file passano.
+      - Run: `npm test`
+      - Expect: 41 file passati, numero di test superiore ai 685 di baseline, zero fallimenti.
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-4 — esiste un test che fallisce se la guardia smette di rifiutare due URL che puntano allo stesso database, incluso il caso `localhost`/`127.0.0.1` con porta implicita.
+      - [ ] AC-5 — esiste un test che fallisce se il messaggio di database irraggiungibile perde il comando `docker compose up -d`.
+      - [ ] AC-2 — esiste un test che fallisce se il ripristino non emette `DROP SCHEMA IF EXISTS public CASCADE` seguito da `CREATE SCHEMA public`.
+      - [ ] AC-3 — esiste un test che fallisce se `costruisciAmbienteE2e` lascia passare il `DATABASE_URL` di sviluppo.
+      - [ ] Nessun test apre una connessione a un database reale.
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Preparazione autonoma in global-setup e rifiuto immediato in playwright.config
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      La suite e2e prepara da sola il proprio database — guardia, esistenza, ripristino, migrazioni, seed — e rifiuta di partire quando il database e2e coincide con quello applicativo o quando PostgreSQL non risponde.
+
+      ## Read
+      - `tests/e2e/global-setup.ts` — sequenza attuale: `requireE2eDatabaseUrl`, `assertE2eDatabaseHasNoApplicationData`, `execSync("npm run db:migrate:deploy")`, `execSync("npm run db:seed")`, blocco `try/catch` con log.
+      - `playwright.config.ts` — lettura di `E2E_DATABASE_URL`, costruzione di `e2eEnvironment`, `globalSetup`/`globalTeardown`, `fullyParallel`, `webServer`.
+      - `tests/e2e/e2e-database-safety.ts` — firme introdotte da TASK-02.
+
+      ## Change
+      - `tests/e2e/global-setup.ts`: nuova sequenza di preparazione.
+      - `playwright.config.ts`: chiamata della sola guardia d'identità e riuso di `costruisciAmbienteE2e` per l'ambiente del `webServer`.
+
+      Non-goal: non toccare `tests/e2e/global-teardown.ts`; non modificare `fullyParallel`, `retries`, `workers`, `projects`, `webServer.command` o `reuseExistingServer`; non modificare alcun file `tests/e2e/*.spec.ts`; non aggiungere avvio automatico del container Docker.
+
+      ## Steps
+      1. In `playwright.config.ts`, subito dopo il controllo di presenza di `e2eDatabaseUrl`, aggiungere `assertDatabaseE2eDistintoDaDatabaseApplicativo(e2eDatabaseUrl, process.env.DATABASE_URL)` importata da `./tests/e2e/e2e-database-safety`. È il punto più precoce dell'esecuzione (la configurazione è valutata prima di `globalSetup` e prima dell'avvio del `webServer`), quindi il rifiuto avviene senza che nessun processo tocchi dati.
+      2. Sempre in `playwright.config.ts`, sostituire la costruzione manuale di `e2eEnvironment` con `costruisciAmbienteE2e(process.env, e2eDatabaseUrl)`, aggiungendo poi `SESSION_SECRET: e2eSessionSecret` allo stesso oggetto. Il fallback della session secret e il resto della configurazione restano invariati.
+      3. In `tests/e2e/global-setup.ts` sostituire il corpo con questa sequenza, mantenendo lo stile dei log esistenti (una riga di annuncio e una di conferma per passo) e il `try/catch` finale:
+         1. `const e2eDatabaseUrl = requireE2eDatabaseUrl();`
+         2. `assertDatabaseE2eDistintoDaDatabaseApplicativo(e2eDatabaseUrl, process.env.DATABASE_URL);` — **prima** di qualsiasi connessione o comando.
+         3. `await garantisciDatabaseE2eEsistente(e2eDatabaseUrl);`
+         4. `await ripristinaSchemaPulitoDatabaseE2e(e2eDatabaseUrl);`
+         5. `execSync("npm run db:migrate:deploy", { cwd: process.cwd(), stdio: "inherit", env: ambienteE2e });`
+         6. `execSync("npm run db:seed", { ...stessa forma... });`
+         dove `ambienteE2e = costruisciAmbienteE2e(process.env, e2eDatabaseUrl)`.
+      4. Rimuovere l'import e l'uso di `assertE2eDatabaseHasNoApplicationData` e aggiornare il commento di intestazione del file: la preparazione non richiede più un database vuoto, lo rende vuoto; il seed resta baseline read-only/smoke e i test mutanti continuano a usare factory e risorse riservate.
+      5. Nel `catch`, ri-lanciare l'errore invariato dopo il log (comportamento attuale): i messaggi di AC-4 e AC-5 sono già formulati nelle funzioni del seam e non vanno riscritti né arricchiti qui.
+      6. Verificare con `git diff -- playwright.config.ts` che `fullyParallel: true`, `retries`, `projects` e `webServer` non risultino modificati.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npm run lint`
+      - Expect: exit 0, con il solo warning pre-esistente su `demo__duplicazione-riga-su-piu-giorni.spec.ts:41` e il guardrail e2e che chiude con `✅ Guardrail e2e anti-flakiness passed`.
+      - Run: `npx playwright test tests/e2e/home-page.spec.ts --retries=0 --reporter=line`
+      - Expect: 2 test passati (baseline: 2 passati); nel log di `globalSetup` compaiono il ripristino dello stato pulito, le migrazioni e il seed, e **non** compare più la verifica di database vuoto.
+
+      ## Done
+      - [ ] AC-2 — il `globalSetup` ripristina lo stato pulito prima di migrazioni e seed, senza alcun controllo che interrompa il run per dati residui.
+      - [ ] AC-4 — la guardia d'identità è chiamata sia in `playwright.config.ts` (prima di tutto) sia in `global-setup.ts` (prima dell'operazione distruttiva).
+      - [ ] AC-3 — migrazioni e seed ricevono l'ambiente di `costruisciAmbienteE2e`, con `DATABASE_URL` riscritto sull'URL e2e.
+      - [ ] AC-6 — `git diff` non mostra modifiche a `fullyParallel`, `retries`, `workers`, `projects`, `webServer` né ad alcun file `*.spec.ts`.
+      - [ ] `npx playwright test tests/e2e/home-page.spec.ts --retries=0` resta verde.
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Scenari di integrazione su PostgreSQL reale — database sporco, database dev intatto, rifiuti espliciti
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      I quattro comportamenti osservabili della storia sono provati su Docker e PostgreSQL reali: recupero da database e2e sporco, database di sviluppo invariato dopo un run completo, rifiuto quando i due database coincidono, rifiuto immediato quando l'istanza non risponde.
+
+      ## Read
+      - `docker-compose.yml` — nome container (`coaching-planner-db`), utente `user`, database `coaching_planner`.
+      - `.env.example` — valori di esempio `postgresql://user:password@localhost:5432/coaching_planner` e `.../coaching_planner_e2e`, da usare **come valori inline** negli scenari (non leggere né modificare `.env`, `.env.local` o altri file `.env*` reali).
+      - `tests/e2e/global-setup.ts` — sequenza prodotta da TASK-04, per riconoscere nei log il punto in cui ogni scenario si ferma o prosegue.
+
+      ## Change
+      - Nessuna modifica al codice. Il task produce **evidenza eseguita**: i comandi vanno lanciati e i loro esiti riportati testualmente nella nota di completamento del task (trascrizione dei messaggi chiave).
+
+      Non-goal: non creare file di test nuovi; non usare `docker compose down -v` (cancellerebbe il volume di sviluppo); non modificare il workflow CI; non lasciare la riga sentinella nel database di sviluppo a fine task.
+
+      ## Steps
+      1. **Preparazione comune.** Assicurarsi che il container sia su: `docker compose up -d` e attendere `healthy`. Salvare lo snapshot dei conteggi del database di sviluppo:
+         ```bash
+         docker exec coaching-planner-db psql -U user -d coaching_planner -c "SELECT relname, n_live_tup FROM pg_stat_user_tables ORDER BY relname;" > /tmp/us059-dev-prima.txt
+         docker exec coaching-planner-db psql -U user -d coaching_planner -c "INSERT INTO \"Cliente\" (id, \"ragioneSociale\", attivo, \"createdAt\", \"updatedAt\") VALUES ('us059-sentinella', 'US-059 Sentinella Dev', true, now(), now());"
+         ```
+      2. **Scenario AC-2 (database e2e sporco).** Sporcare il database e2e simulando un run interrotto e lanciare la suite **completa**:
+         ```bash
+         docker exec coaching-planner-db psql -U user -d coaching_planner_e2e -c "INSERT INTO \"Cliente\" (id, \"ragioneSociale\", attivo, \"createdAt\", \"updatedAt\") VALUES ('us059-residuo', 'Residuo Run Interrotto', true, now(), now());"
+         npx playwright test --retries=0 --reporter=line
+         ```
+         Attendere l'esito senza alcun intervento manuale. Annotare: la suite è verde e il log di `globalSetup` mostra ripristino → migrazioni → seed.
+      3. **Scenario AC-3 (database di sviluppo invariato).** Subito dopo il run del punto 2:
+         ```bash
+         docker exec coaching-planner-db psql -U user -d coaching_planner -c "SELECT id, \"ragioneSociale\" FROM \"Cliente\" WHERE id = 'us059-sentinella';"
+         docker exec coaching-planner-db psql -U user -d coaching_planner -c "SELECT relname, n_live_tup FROM pg_stat_user_tables ORDER BY relname;" > /tmp/us059-dev-dopo.txt
+         diff /tmp/us059-dev-prima.txt /tmp/us059-dev-dopo.txt
+         ```
+         La sentinella deve essere ancora presente; il `diff` deve mostrare solo la riga `Cliente` incrementata di uno rispetto allo snapshot iniziale (la sentinella inserita al punto 1), e nessun'altra differenza.
+      4. **Scenario AC-4 (database coincidente).** Con la sentinella ancora presente:
+         ```bash
+         E2E_DATABASE_URL="postgresql://user:password@localhost:5432/coaching_planner" \
+           npx playwright test tests/e2e/home-page.spec.ts --retries=0 --reporter=line; echo "EXIT=$?"
+         ```
+         Verificare: uscita diversa da 0; messaggio che nomina `coaching_planner` e il rimedio; **nessun** avvio del web server (nel log non compare l'output di `npm run dev`); rieseguire le query del punto 3 e verificare che sentinella e conteggi del database di sviluppo siano ancora invariati.
+      5. **Scenario AC-1 su volume già inizializzato.** Cancellare il database e2e e verificare che la suite lo ricrei da sola:
+         ```bash
+         docker exec coaching-planner-db psql -U user -d postgres -c "DROP DATABASE IF EXISTS coaching_planner_e2e;"
+         npx playwright test tests/e2e/home-page.spec.ts --retries=0 --reporter=line
+         docker exec coaching-planner-db psql -U user -d postgres -lqt | cut -d '|' -f1
+         ```
+         Il run deve essere verde e l'elenco deve contenere di nuovo `coaching_planner_e2e`.
+      6. **Scenario AC-5 (istanza non raggiungibile).**
+         ```bash
+         docker stop coaching-planner-db
+         npx playwright test tests/e2e/home-page.spec.ts --retries=0 --reporter=line; echo "EXIT=$?"
+         docker start coaching-planner-db
+         ```
+         Verificare che il fallimento sia immediato (prima dei test) e che il messaggio contenga `localhost`, `5432` e la stringa esatta `docker compose up -d`. **Non** usare `docker compose down -v`: il volume deve restare.
+      7. **Pulizia.** Rimuovere la sentinella dal database di sviluppo e i file temporanei:
+         ```bash
+         docker exec coaching-planner-db psql -U user -d coaching_planner -c "DELETE FROM \"Cliente\" WHERE id = 'us059-sentinella';"
+         rm -f /tmp/us059-dev-prima.txt /tmp/us059-dev-dopo.txt
+         ```
+
+      ## Verify
+      - Run: i comandi degli Steps 1-7, nell'ordine indicato, dalla radice del repository con il container `coaching-planner-db` avviato.
+      - Expect: scenario 2 verde senza intervento manuale (suite completa); scenario 3 con sentinella presente e `diff` limitato alla sola riga della sentinella; scenari 4 e 6 con uscita diversa da 0, messaggio atteso e database di sviluppo intatto; scenario 5 verde con database e2e ricreato.
+      - Run (controllo di chiusura): `docker ps --filter name=coaching-planner-db --format '{{.Status}}'`
+      - Expect: container di nuovo `Up ... (healthy)` dopo lo scenario 6.
+
+      ## Done
+      - [ ] AC-2 — trascritto l'esito del run completo su database e2e sporco: suite verde, nessun intervento manuale, ripristino visibile nel log.
+      - [ ] AC-3 — trascritti sentinella presente e `diff` dei conteggi del database di sviluppo limitato alla sentinella inserita nel passo 1.
+      - [ ] AC-1 — trascritto il run che ricrea da solo `coaching_planner_e2e` dopo il `DROP DATABASE`.
+      - [ ] AC-4 — trascritti messaggio di rifiuto, exit code diverso da 0, assenza di avvio del web server e database di sviluppo invariato dopo il tentativo.
+      - [ ] AC-5 — trascritti fallimento immediato a container fermo e messaggio contenente `docker compose up -d`.
+      - [ ] Sentinella rimossa e container di sviluppo di nuovo `healthy`.
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Documentazione operativa del nuovo contratto di preparazione e2e
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      `README.md`, `.env.example` e `tests/e2e/README.md` descrivono il contratto reale: il database e2e nasce con il container, la suite lo riporta allo stato pulito da sola e rifiuta esplicitamente il database applicativo e l'istanza spenta.
+
+      ## Read
+      - `README.md` — sezioni «Avvio Rapido», «Variabili d'Ambiente», «Test end-to-end e database dedicato», «Database → Avvio locale».
+      - `.env.example` — blocco di commento sopra `E2E_DATABASE_URL` («richiede un database separato, vuoto nelle tabelle applicative»).
+      - `tests/e2e/README.md` — sezione «Setup, seed e teardown», che cita `global-setup.ts` e la verifica di database vuoto.
+
+      ## Change
+      - `README.md`, `.env.example`, `tests/e2e/README.md`: solo prosa di documentazione.
+
+      Non-goal: non toccare i file `.env`, `.env.local` o altri `.env*` reali; non modificare le altre sezioni di `tests/e2e/README.md` (mesi riservati, scaglioni km, selettori, gate locale); non documentare comportamenti non implementati.
+
+      ## Steps
+      1. `README.md`, sezione «Test end-to-end e database dedicato»: sostituire il requisito «database dedicato e **vuoto** nelle tabelle applicative» con la sequenza reale — la suite verifica che `E2E_DATABASE_URL` non coincida con `DATABASE_URL`, crea il database se manca, ne ripristina lo stato pulito, applica migrazioni e seed, e ripulisce al teardown. Aggiungere i due messaggi di rifiuto attesi (database coincidente; istanza non raggiungibile con il rimedio `docker compose up -d`).
+      2. `README.md`, sezione «Database → Avvio locale»: spiegare che il container crea automaticamente sia `coaching_planner` sia `coaching_planner_e2e` alla **prima** inizializzazione del volume, e che su un volume già esistente il database e2e viene comunque creato al primo `npm run test:e2e`; `docker compose down -v` resta il reset totale, con l'avvertenza che cancella anche i dati di sviluppo.
+      3. `README.md`, «Avvio Rapido»: nessun passo manuale di creazione del database e2e va aggiunto; se il testo lasciasse intendere una preparazione manuale, correggerlo.
+      4. `.env.example`: riscrivere il commento sopra `E2E_DATABASE_URL` — deve puntare a un database **dedicato e diverso** da `DATABASE_URL`; non serve che sia vuoto, perché la suite lo azzera; se il database non esiste viene creato. Lasciare invariato il valore di esempio.
+      5. `tests/e2e/README.md`, sezione «Setup, seed e teardown»: aggiornare il primo punto elenco (oggi «verifica che `E2E_DATABASE_URL` punti a un database e2e dedicato e vuoto, applica le migrazioni e carica il seed») con la nuova sequenza, e aggiungere una riga sul fatto che ogni run parte da uno schema ricreato, quindi nessun test può contare su dati residui del run precedente. Mantenere invariati i punti su seed read-only, teardown e assenza di cleanup concorrente.
+      6. Rileggere i tre file per coerenza: non deve restare alcuna frase che chieda allo sviluppatore di svuotare o creare a mano il database e2e.
+
+      ## Verify
+      - Run: `grep -rn "vuoto" README.md .env.example tests/e2e/README.md`
+      - Expect: nessuna occorrenza che presenti un database e2e vuoto come **precondizione** a carico dello sviluppatore.
+      - Run: `grep -rn "docker compose up -d" README.md tests/e2e/README.md`
+      - Expect: il comando compare come rimedio documentato all'istanza non raggiungibile.
+      - Run: `npm run lint`
+      - Expect: exit 0, solo il warning pre-esistente (i file toccati sono markdown, il lint non cambia esito).
+
+      ## Done
+      - [ ] AC-1 — la documentazione afferma che il container crea automaticamente il database e2e e descrive il caso del volume già esistente.
+      - [ ] AC-2 — la documentazione afferma che la suite riporta da sola il database e2e allo stato pulito, senza intervento manuale.
+      - [ ] AC-4 e AC-5 — i due messaggi di rifiuto e il rimedio `docker compose up -d` sono documentati.
+      - [ ] Nessun file `.env*` reale è stato letto o modificato.
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Aggiornamento della pagina Wiki operations/development
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+      La pagina Wiki `operations/development` descrive la preparazione e2e realmente implementata: due database creati dal container, ripristino automatico dello stato pulito a ogni run e rifiuti espliciti al posto del requisito di database vuoto.
+
+      ## Read
+      - `docs/wiki/operations/development.md` — sezioni «Prerequisiti e stack operativo», «Comandi canonici», «Configurazione runtime», «Test», «CI», «Vincoli e cautele», e il blocco `sources` del frontmatter.
+      - `docs/wiki/index.md` — formato delle voci di catalogo.
+      - Il codice consegnato: `docker-compose.yml`, `docker/postgres/initdb/01-crea-database-e2e.sh`, `tests/e2e/e2e-database-safety.ts`, `tests/e2e/global-setup.ts`, `playwright.config.ts`.
+
+      ## Change
+      - `docs/wiki/operations/development.md`: contenuto e `sources`.
+
+      Non-goal: non modificare altre pagine Wiki (la nuova decisione è TASK-08); non riscrivere sezioni non toccate dalla spec (deploy, sessione, osservabilità); non approvare manualmente la pagina (`status` torna a `generated` e l'approvazione spetta all'accettazione).
+
+      ## Steps
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset operations/development` per riportare la pagina a `generated` prima di modificarla.
+      2. «Prerequisiti e stack operativo»: aggiungere che Docker Compose crea, alla prima inizializzazione del volume, sia il database di sviluppo sia quello dedicato agli e2e, tramite gli script di `docker/postgres/initdb/`.
+      3. «Configurazione runtime», voce `E2E_DATABASE_URL`: non è più richiesto un database vuoto e nemmeno esistente; deve essere **diverso** da `DATABASE_URL`, altrimenti la suite rifiuta di partire.
+      4. «Test»: sostituire «Il database E2E viene migrato, popolato e ripulito» con la sequenza completa — guardia d'identità, creazione se assente, ripristino dello schema pulito, migrazioni, seed, pulizia finale al teardown — citando `tests/e2e/e2e-database-safety.ts` come punto unico di questa logica e il rimando alla decisione `/decisions/reset-database-e2e-dedicato.md` (link relativo alla Wiki, coerente con lo stile della pagina).
+      5. «CI»: precisare che il workflow continua a creare da sé il database e2e e che la preparazione della suite è idempotente rispetto a questo passo.
+      6. «Vincoli e cautele»: il vincolo «Non usare il database applicativo per gli E2E» resta, ma va annotato che ora è imposto dal codice con un errore esplicito prima di qualunque scrittura; aggiungere che un'istanza locale spenta produce un fallimento immediato con il comando di avvio.
+      7. Frontmatter `sources`: aggiungere `docker/postgres/initdb/01-crea-database-e2e.sh` con `role: local-infrastructure` e `tests/e2e/e2e-database-safety.ts` con `role: e2e-configuration`. Lasciare intatte le voci esistenti.
+      8. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog` per riallineare `docs/wiki/index.md`.
+
+      ## Verify
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: envelope `kind: "validation_result"` con `data.ok: true` e nessun finding (baseline: `ok: true`, 27 pagine).
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner status`
+      - Expect: `operations/development` risulta in stato `generated` (in attesa di approvazione in accettazione), non `reviewed`.
+      - Run: `grep -n "reset-database-e2e-dedicato" docs/wiki/operations/development.md`
+      - Expect: almeno un riferimento alla pagina di decisione.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-4, AC-5 — le affermazioni della pagina corrispondono al comportamento consegnato: due database dal container, ripristino automatico, rifiuto su coincidenza, rifiuto su istanza irraggiungibile.
+      - [ ] `sources` include lo script di init Docker e `tests/e2e/e2e-database-safety.ts`.
+      - [ ] `archetipo wiki validate --profile bootstrap` resta a `ok: true` senza finding.
+      - [ ] La pagina è `generated`, non riapprovata manualmente.
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Nuova decisione Wiki decisions/reset-database-e2e-dedicato
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-07
+    body: |-
+      ## Objective
+      La Wiki registra come decisione architetturale il reset distruttivo per costruzione del database e2e dedicato, subordinato alla guardia d'identità verso il database applicativo, con alternative scartate e verifica.
+
+      ## Read
+      - `docs/wiki/decisions/postgres-siteground.md` — struttura di riferimento di una pagina `type: decision`: frontmatter (`type`, `title`, `description`, `status`, `decision_status`, `sources`) e i marcatori di sezione `<!-- archetipo:wiki section=context|decision|alternatives|consequences|verification -->`.
+      - Il piano di questa spec, sezione «Decisioni Architetturali», da cui derivano contesto, opzione scelta, alternative e conseguenze.
+      - Il codice consegnato: `tests/e2e/e2e-database-safety.ts`, `tests/e2e/global-setup.ts`, `playwright.config.ts`, `docker/postgres/initdb/01-crea-database-e2e.sh`, `tests/unit/e2e-database-safety.test.ts`.
+
+      ## Change
+      - Nuovo file `docs/wiki/decisions/reset-database-e2e-dedicato.md` (ID canonico della pagina: `decisions/reset-database-e2e-dedicato`).
+      - `docs/wiki/index.md` rigenerato dal comando di catalogo.
+
+      Non-goal: non impostare `status: reviewed` né compilare il blocco `review` (l'approvazione avviene in accettazione); non marcare altre decisioni come `superseded` — nessuna decisione esistente riguarda il ciclo di vita del database e2e (verificato in planning con `archetipo wiki search --type decision`, 14 pagine, nessuna in tema).
+
+      ## Steps
+      1. Creare la pagina con frontmatter: `type: decision`, `title: Reset per costruzione del database e2e dedicato`, `description` di una riga, `status: generated`, `decision_status: accepted`, e `sources` con: `tests/e2e/e2e-database-safety.ts` (`role: implementation`, symbol `assertDatabaseE2eDistintoDaDatabaseApplicativo, ripristinaSchemaPulitoDatabaseE2e, garantisciDatabaseE2eEsistente`), `tests/e2e/global-setup.ts` (`role: implementation`), `playwright.config.ts` (`role: implementation`), `docker/postgres/initdb/01-crea-database-e2e.sh` (`role: local-infrastructure`), `tests/unit/e2e-database-safety.test.ts` (`role: verification`).
+      2. Sezione `context`: la preparazione e2e assertiva richiedeva un database vuoto e la sua creazione manuale; un run interrotto lasciava residui che bloccavano i run successivi; il vero rischio da presidiare non è il database sporco ma il database **sbagliato**, perché la preparazione esegue seed distruttivi.
+      3. Sezione `decision`: a ogni run la suite azzera per costruzione il database indicato da `E2E_DATABASE_URL` (`DROP SCHEMA public CASCADE` + `CREATE SCHEMA public`, poi migrazioni e seed), creandolo se assente; l'operazione è ammessa **solo** dopo una guardia sintattica che rifiuta host/porta/nome coincidenti con `DATABASE_URL`, valutata sia nella configurazione Playwright sia nel global setup.
+      4. Sezione `alternatives`: (a) mantenere il controllo di database vuoto; (b) `TRUNCATE` delle sole tabelle applicative; (c) database effimero per run; (d) secondo container Postgres dedicato. Per ciascuna, il motivo dello scarto come nel piano — inclusa l'esclusione esplicita di (d) dal perimetro della spec.
+      5. Sezione `consequences`: ogni run paga le migrazioni da zero; nessun test può dipendere da dati residui del run precedente; l'utente di connessione deve poter fare `DROP SCHEMA public` (vero in locale e in CI); una connessione esterna aperta sul database e2e può mettere il reset in attesa di lock; la CI resta invariata e il suo passo di creazione diventa ridondante ma innocuo.
+      6. Sezione `verification`: unit test del seam (`tests/unit/e2e-database-safety.test.ts`), scenari di integrazione su PostgreSQL reale (database sporco, database di sviluppo invariato, rifiuto su coincidenza, rifiuto su istanza spenta) e suite Playwright completa verde con `fullyParallel: true`.
+      7. Aggiungere la sezione «Concetti correlati» con il collegamento a `/operations/development.md`, e da `operations/development` verificare che il rimando alla decisione (aggiunto in TASK-07) risolva.
+      8. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: `data.ok: true`, nessun finding, numero di pagine 28 (baseline: 27).
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner search reset-database-e2e-dedicato`
+      - Expect: la pagina è trovata con `type: decision`, `decision_status: accepted`, `status: generated`.
+      - Run: `grep -n "archetipo:wiki section=" docs/wiki/decisions/reset-database-e2e-dedicato.md`
+      - Expect: i cinque marcatori `context`, `decision`, `alternatives`, `consequences`, `verification`.
+
+      ## Done
+      - [ ] AC-2 e AC-4 — la decisione documenta il reset per costruzione e la guardia che lo rende sicuro, con le alternative scartate.
+      - [ ] La pagina esiste con ID `decisions/reset-database-e2e-dedicato`, tutti i marcatori di sezione e le `sources` elencate.
+      - [ ] `docs/wiki/index.md` elenca la nuova decisione dopo il catalogo.
+      - [ ] `archetipo wiki validate --profile bootstrap` a `ok: true` con 28 pagine.
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: Gate finale — lint, tipi, unit, suite e2e completa e stato dei task
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+    body: |-
+      ## Objective
+      L'incremento è verificato end-to-end con i controlli esatti del repository e la spec è pronta per la review solo dopo che ogni task risulta `DONE`.
+
+      ## Read
+      - La sezione «Baseline» del piano — è il confine con cui confrontare ogni esito.
+      - `tests/e2e/README.md`, sezione «Gate locale» — il contratto di stabilità e2e del progetto.
+
+      ## Change
+      - Nessuna modifica al codice. Se un controllo fallisce, la correzione appartiene al task che ha introdotto il problema; questo task non aggiunge codice nuovo.
+
+      Non-goal: non ridurre il parallelismo, non alzare `retries` e non serializzare la suite per far passare il gate.
+
+      ## Steps
+      1. Assicurarsi che il container `coaching-planner-db` sia avviato e `healthy` (`docker compose up -d`) e che TASK-05 abbia rimosso la riga sentinella dal database di sviluppo.
+      2. Eseguire in ordine i controlli statici e unitari: `npm run lint`, `npx tsc --noEmit`, `npm test`.
+      3. Eseguire la build: `npm run build` (il `tsconfig` include `tests/**`, quindi la build è anche il controllo di tipo integrato usato dalla CI).
+      4. Eseguire la suite e2e completa **due volte consecutive**: `npx playwright test --retries=0`. Insieme all'esecuzione su database sporco di TASK-05 fanno le tre esecuzioni consecutive richieste dalla sezione «Gate locale» di `tests/e2e/README.md`.
+      5. In caso di fallimento di un singolo file di spec, riprodurlo isolatamente (`npx playwright test <file> --retries=0`) e classificarlo: regressione introdotta dalla spec (va corretta) oppure flake pre-esistente indipendente dalla preparazione (va annotato con l'evidenza, senza modificare la configurazione di parallelismo).
+      6. Verificare l'invarianza della suite: `git diff --name-only` non deve elencare alcun file `tests/e2e/*.spec.ts`, e `git diff -- playwright.config.ts` non deve mostrare modifiche a `fullyParallel`, `retries`, `workers` o `projects`.
+      7. Eseguire `archetipo wiki validate --profile bootstrap` e confermare `ok: true` senza finding.
+      8. Marcare questo task come `DONE`, poi ricaricare la spec da `/Users/smarello/repo/coaching-planner` con `archetipo spec show US-059` e verificare che **nessun** task risulti ancora `TODO`. Solo a quel punto richiedere la review con `archetipo spec review US-059`.
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: exit 0, unicamente il warning pre-esistente `demo__duplicazione-riga-su-piu-giorni.spec.ts:41 'MESE_ALTRO' is assigned a value but never used`, e `✅ Guardrail e2e anti-flakiness passed`. Nessun warning nuovo sui file toccati.
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0, nessuna diagnostica (baseline: zero).
+      - Run: `npm test`
+      - Expect: 41 file passati, più di 685 test, zero fallimenti.
+      - Run: `npm run build`
+      - Expect: build completata senza errori di tipo.
+      - Run: `npx playwright test --retries=0` (due esecuzioni consecutive)
+      - Expect: entrambe verdi, senza modifiche a `fullyParallel: true` né a `workers`.
+      - Run: `archetipo wiki validate --profile bootstrap`
+      - Expect: `data.ok: true`, nessun finding, 28 pagine.
+      - Run: `archetipo spec show US-059` da `/Users/smarello/repo/coaching-planner`
+      - Expect: tutti i task in `DONE`, nessuno in `TODO`.
+
+      ## Done
+      - [ ] AC-6 — due esecuzioni consecutive della suite completa con `--retries=0` sono verdi, con `fullyParallel: true` invariato e nessun file di spec modificato.
+      - [ ] AC-1..AC-5 — le evidenze prodotte da TASK-03 e TASK-05 sono state rieseguite o riportate e risultano coerenti con il comportamento consegnato.
+      - [ ] `npm run lint`, `npx tsc --noEmit`, `npm test` e `npm run build` passano senza nuove diagnostiche rispetto alla baseline.
+      - [ ] `archetipo wiki validate --profile bootstrap` a `ok: true`.
+      - [ ] `archetipo spec show US-059` conferma che nessun task è rimasto `TODO` **prima** di eseguire `archetipo spec review US-059`.
+
+      ## Blockers
+      None.
+    ref: TASK-09

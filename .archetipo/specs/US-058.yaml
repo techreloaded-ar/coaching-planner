@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: HIGH
 points: 2
-status: TODO
+status: DONE
 scope: Growth
 body: |-
   #### US-058: Selettore di mese compatto sull'etichetta con navigazione immediata
@@ -37,3 +37,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-08-06T09:46:34Z"
+  - status: PLANNED
+    at: "2026-08-06T15:41:22Z"
+  - status: IN PROGRESS
+    at: "2026-08-06T15:42:16Z"
+  - status: REVIEW
+    at: "2026-08-06T16:18:24Z"
+  - status: DONE
+    at: "2026-08-06T16:27:21Z"

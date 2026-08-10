@@ -1,0 +1,609 @@
+schema: archetipo/plan/v2
+spec_code: US-057
+body: "# US-057: Duplicazione di una riga attività su più giorni scelti — Piano di implementazione\n\n**Generato da:** Team di Planning ARchetipo\n**Data:** 2026-08-06\n\n---\n\n## Spec\n\n**Epic:** EP-005 — Evoluzioni Post-MVP\n**Priorità:** HIGH | **Punti:** 3\n**Bloccata da:** -\n\n**Storia Utente**\nCome collaboratore, voglio duplicare una riga attività già salvata su più giorni che scelgo io, così da registrare in un solo passaggio lo stesso lavoro svolto su giorni diversi senza riaprire e ricompilare ogni giornata.\n\n**Criteri di Accettazione**\n\n- **AC-1** — Ogni riga già salvata nel dettaglio giornata espone un'azione di duplicazione che apre un selettore in cui il revisore aggiunge una o più date arbitrarie, anche non contigue e appartenenti a mesi diversi; alla conferma la pagina mostra un esito che indica su quanti giorni la riga è stata replicata.\n- **AC-2** — Ogni riga creata riporta gli stessi cliente, offerta, ore, nota e fatturabilità della riga di origine e la stessa coppia etichetta/importo di rimborso trasferta già congelata su di essa, senza rileggere il catalogo corrente delle voci di rimborso.\n- **AC-3** — Il giorno di origine non è fra le destinazioni selezionabili e la conferma resta non disponibile finché non è stata scelta almeno una data.\n- **AC-4** — Se l'offerta della riga di origine non è più attiva o non è più abilitata per il collaboratore corrente, la duplicazione è rifiutata con un messaggio di errore visibile e nessuna riga viene creata su nessuno dei giorni scelti.\n- **AC-5** — Dopo una duplicazione che ha coinvolto un giorno di un mese diverso da quello di provenienza, il calendario mostra le celle di quel mese valorizzate con le nuove righe senza che il revisore debba ricaricare la pagina.\n\n**Fuori Perimetro**\nNessuna modifica al form di inserimento e modifica riga, alle validazioni delle action esistenti o al riepilogo mensile. Nessuna multi-selezione di celle nel calendario e nessun blocco «ripeti su intervallo» con filtro dei giorni lavorativi. Nessun rilevamento di righe già presenti o duplicate sui giorni di destinazione: la duplicazione aggiunge righe, non le confronta. Nessuna duplicazione di più righe di origine in un unico passaggio.\n\n---\n\n## Soluzione Tecnica\n\nLa duplicazione è **un nuovo comando del dominio Attività**, non un ciclo di `creaRiga` guidato dal client. La differenza è sostanziale: un ciclo lato browser produrrebbe scritture parziali quando l'offerta non è più ammissibile (AC-4 chiede esplicitamente «nessuna riga su nessuno dei giorni scelti»), N round-trip e N invalidazioni. Una sola server action verifica una volta le condizioni di ammissibilità e scrive tutte le righe con una sola istruzione `createMany`, che è atomica per costruzione.\n\n- **Comando** — `duplicaRigaSuGiorni(rigaId, giorni: string[])` in `src/lib/actions/righe-attivita.ts`, con la stessa forma delle action esistenti a parametri espliciti (`eliminaRiga`, `rimuoviRimborsoTrasferta`), che restituisce `{ success, error?, giorniCreati? }`. La riga di origine viene caricata **una sola volta** estendendo la `select` dell'helper già esistente `caricaRigaDelCollaboratore`, che oggi legge `collaboratoreId, offertaId, clienteId` e passerà a leggere anche `data, ore, nota, fatturabile, rimborsoTrasfertaEtichetta, rimborsoTrasfertaImporto`. Gli altri tre chiamanti continuano a usarne solo due campi: la firma si allarga, il comportamento no.\n- **Ammissibilità** — la duplicazione **crea** righe, quindi vale la regola della creazione e non quella della modifica: `verificaOffertaCliente` e `verificaAbilitazioneOfferta` vengono rieseguite sempre, sulla coppia offerta/cliente della riga di origine. È la ragione per cui una riga storica resta modificabile ed eliminabile ma **non** duplicabile quando l'offerta è decaduta (AC-4).\n- **Fotografia del rimborso** — etichetta e importo vengono copiati dalla riga di origine, non rifotografati dal catalogo. `fotografaVoceRimborsoTrasferta` non viene invocata affatto: sulla riga sorgente il valore è già congelato, e rileggerlo dal catalogo corrente romperebbe proprio la garanzia di [Fotografia del rimborso trasferta sulla riga attività](/decisions/fotografia-rimborso-trasferta.md). Questo è l'oracolo osservabile di AC-2, e va verificato come tale (nessuna lettura di `voceRimborsoTrasferta`), non come semplice uguaglianza di due stringhe.\n- **Normalizzazione delle date** — la lista in ingresso viene ripulita lato server prima di scrivere: formato `YYYY-MM-DD` obbligatorio, deduplica, esclusione del giorno di origine, rifiuto della lista vuota. La UI applica le stesse regole per rendere l'errore impossibile da raggiungere (AC-3), ma il server non si fida della UI. Il giorno di origine è derivato con getter **UTC** da `RigaAttivita.data` (colonna `@db.Date`, che Prisma restituisce a mezzanotte UTC), coerentemente con la scrittura `Date.UTC(anno, mese-1, giorno, 12)` già usata da `creaRiga`.\n- **Selettore di date** — nuovo componente client `selettore-duplicazione.tsx` accanto al dettaglio giornata: un pannello modale (`role=\"dialog\"`, `aria-modal=\"true\"`) con un campo data, un pulsante «Aggiungi data», l'elenco rimovibile dei giorni scelti raggruppati per mese, il conteggio e la conferma. È il primo componente modale del codebase: resta deliberatamente minimale — nessuna libreria, nessun focus trap, chiusura con Esc, «Annulla» e click sullo sfondo.\n- **Invalidazione multi-giorno e multi-mese** — è il punto che rende vero AC-5. Oggi `invalidaDopoMutazione` in `isola-giornata.tsx` invalida esattamente **un** giorno e **un** mese, perché finora ogni mutazione toccava un giorno solo. Il contratto della callback si allarga a `(giornoVisualizzato, giorniAggiuntivi?)`: l'isola calcola l'insieme dei giorni toccati, ne deriva i token di mese distinti e invalida entrambe le cache in un colpo solo (`invalidate` accetta già varargs su tutte e tre le cache). La rilettura forzata resta sul solo giorno visualizzato; i mesi invalidati si ripopolano al primo ingresso, che è esattamente ciò che rende le celle valorizzate senza reload.\n- **Invalidazione server** — l'action fa `revalidatePath` su ciascun giorno di destinazione, oltre a `/attivita/riepilogo` e `/attivita`, mantenendo la simmetria con le quattro action esistenti. Le due mitigazioni (SSR/RSC e cache di scheda) restano complementari, come già documentato.\n\n### Decisioni Architetturali\n\n**Nessun nuovo ADR è richiesto.** La soluzione non introduce alternative che tocchino modello dati persistente, modello di sicurezza, confine di integrazione, topologia di deploy o una policy tecnica trasversale: aggiunge una quinta server action accanto alle quattro esistenti, riusando le stesse guardie (`richiediCollaboratoreOperativo`, `caricaRigaDelCollaboratore`, `verificaOffertaCliente`, `verificaAbilitazioneOfferta`) e la stessa forma di risultato. Lo schema Prisma non cambia e non serve alcuna migrazione.\n\nDue scelte locali sono comunque registrate qui perché il piano non deve lasciarle all'implementatore:\n\n1. **`createMany` invece di un ciclo di `create` in transazione esplicita.** Una sola istruzione è già atomica e non richiede `$transaction`; l'alternativa aggiungerebbe una transazione senza migliorare la garanzia. Conseguenza accettata: `createMany` non restituisce le righe create, ma al chiamante serve solo il conteggio.\n2. **Riverifica dell'abilitazione anche sulla riga storica.** L'alternativa — riusare la clemenza di `modificaRiga`, che a parità di offerta non ricontrolla — è scartata perché lì si aggiorna una riga già esistente, mentre qui se ne creano di nuove: è AC-4 a chiederlo, ed è coerente con `creaRiga`.\n\nDue decisioni già accettate vengono **estese**, non sostituite, e per questo compaiono in `wiki_impact.update`: la fotografia del rimborso guadagna il caso «propagazione di uno scatto già esistente», e la cache client dell'area attività guadagna il caso «una mutazione può toccare più giorni e più mesi».\n\n---\n\n## Baseline\n\nMisurata su `main` alla revisione `09dc45d`, dalla radice del progetto.\n\n| Verifica | Esito prima dell'implementazione | Conseguenza per il piano |\n|---|---|---|\n| `npm run lint` | **Verde.** ESLint pulito; il guardrail e2e passa emettendo 9 avvisi «chiave riservata non risolvibile staticamente» su `tests/e2e/support/date.ts` e `support/report-data.ts` — sono avvisi preesistenti sugli helper, non errori, e non fanno fallire il comando. | Ogni task che tocca e2e può promettere `Expect: verde`. Gli avvisi preesistenti non devono aumentare né essere «risolti»: sono strutturali agli helper. |\n| `npm test` (Vitest) | **Verde.** 40 file, 670 test. | I task unit possono promettere `Expect: verde`, con il conteggio atteso in crescita. |\n| `npx tsc --noEmit` | **Verde**, exit 0, nessuna diagnostica. | Nessun file toccato dal piano parte da uno stato degradato: qualunque nuova diagnostica introdotta è una regressione del task che l'ha prodotta. |\n| `npx playwright test` | **Non eseguita in planning.** Richiede prerequisiti d'ambiente, non è una verifica di codice. | Vedi i prerequisiti qui sotto: il task e2e li deve soddisfare prima di dichiarare un fallimento come difetto del codice. |\n\n### Prerequisiti d'ambiente (distinti dai fallimenti di codice)\n\nLa suite e2e non è eseguibile senza:\n\n- `E2E_DATABASE_URL` che punti a un database PostgreSQL **dedicato** (`global-setup.ts` rifiuta un database non e2e o non vuoto), oltre alle variabili già usate in CI (`SESSION_SECRET`, `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXT_PUBLIC_APP_URL`, `E2E_TEST_MODE=true`);\n- il client Prisma generato (`npm run db:generate`, eseguito comunque da `postinstall`, `dev` e `build`);\n- il browser Chromium di Playwright (`npx playwright install --with-deps chromium`).\n\n`global-setup.ts` applica migrazioni e seed da sé. Se uno di questi prerequisiti manca, il fallimento è d'ambiente e va risolto, non aggirato riducendo le asserzioni.\n\n### Vincoli permanenti sul lavoro e2e\n\nDalle regole di progetto (`AGENTS.md`, `tests/e2e/README.md`), che il guardrail di lint verifica staticamente:\n\n- `fullyParallel: true` resta; non si stabilizza un test con `workers: 1`, serializzazioni o retry aggiuntivi;\n- i test mutanti usano `tests/e2e/support/fixtures.ts` e le factory, mai entità seed (Giulia Conti, TechSolutions, DataFlow);\n- clienti e offerte si selezionano per label o value derivati dalla factory, mai con `selectOption({ index })`;\n- niente hard wait, niente selettori su classi Tailwind, niente XPath;\n- i giorni e i mesi usati vengono da `tests/e2e/support/date.ts` (`meseRiservato` / `dataNelMeseRiservato`).\n\n---\n\n## Mappa delle Evidenze di Accettazione\n\n| Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task che la produce |\n|---|---|---|---|---|\n| AC-1 | E2E: collaboratore, cliente, offerta attiva e abilitazione creati dalla factory; una riga sorgente nel giorno `dataNelMeseRiservato(\"US-057-DUPLICAZIONE\", 11)`. Unit: riga sorgente mockata. | E2E (browser) + unit | E2E: dopo aver aggiunto tre date non contigue di cui una in un altro mese e confermato, il banner `esito-duplicazione` contiene il testo «3 giorni»; aprendo ciascuno dei tre giorni compare una `activity-row` con la ragione sociale del cliente factory. Unit: `duplicaRigaSuGiorni` restituisce `{ success: true, giorniCreati: 3 }` e `createMany` riceve esattamente tre record con le tre date attese. | TASK-06 (E2E), TASK-02 (unit) |\n| AC-2 | Riga sorgente creata dalla factory con `rimborsoTrasfertaEtichetta: \"Trasferta US-057\"` e `rimborsoTrasfertaImporto: \"85.00\"`, nota e `fatturabile` espliciti. | E2E (browser) + unit | E2E: su ogni giorno di destinazione la card riga mostra ragione sociale, codice offerta, `6.0 h`, la nota, il badge `Fatt.` e la banda rimborso con `Trasferta US-057` e `€ 85.00`. Unit: il payload `createMany` riporta gli stessi `clienteId, offertaId, ore, nota, fatturabile, rimborsoTrasfertaEtichetta, rimborsoTrasfertaImporto` della sorgente **e** `mockVoceRimborsoTrasferta.findUnique` non è mai stato invocato — è l'assenza della lettura di catalogo, non l'uguaglianza dei valori, a provare la propagazione dello scatto. | TASK-06 (E2E), TASK-02 (unit) |\n| AC-3 | Selettore appena aperto sulla riga sorgente. | E2E (browser) + unit | E2E: con zero date scelte il pulsante `conferma-duplicazione` è `disabled`; scegliendo il giorno di origine compare `avviso-duplicazione` e il conteggio resta a zero con la conferma ancora `disabled`; aggiunta una data valida la conferma diventa abilitata. Unit: la action rifiuta lista vuota, lista contenente solo il giorno di origine e data malformata, in tutti e tre i casi senza invocare `createMany`. | TASK-06 (E2E), TASK-02 (unit) |\n| AC-4 | Seconda riga sorgente del medesimo collaboratore su un'offerta factory **senza** `AbilitazioneOfferta` (e caso gemello con `attiva: false` a livello unit), in un giorno riservato distinto. | E2E (browser) + unit | E2E: dopo la conferma compare `errore-duplicazione` con `role=\"alert\"`; aprendo il giorno di destinazione scelto il contatore «Righe registrate» resta `0` e non esiste alcuna `activity-row`. Unit: `createMany` non è mai invocato e `revalidatePath` non è mai invocato. | TASK-06 (E2E), TASK-02 (unit) |\n| AC-5 | Duplicazione già eseguita nello scenario AC-1, con un giorno in un secondo mese riservato. | E2E (browser) | Senza alcun `page.reload()`: dal dettaglio giornata si torna al calendario con «Torna al calendario», si raggiunge il mese di destinazione con il campo «Vai a un mese specifico» + «Vai», e la cella `cella-giorno` con `href` del giorno duplicato espone `data-con-attivita=\"true\"` e la `etichetta-cliente` con la ragione sociale del cliente factory. | TASK-06 |\n\nLa mappa è una mappa di accettazione, non un riepilogo dei task. Nessun doppio di test nasconde un oracolo: negli unit il solo confine mockato è Prisma/DAL, e l'oracolo di AC-2 è proprio una chiamata Prisma **assente**; negli e2e non è mockato nulla e le asserzioni sono sul DOM reale prodotto dal server.\n\n---\n\n## Strategia di Test\n\nDue livelli, con confini netti: gli unit provano il **contratto del comando** (cosa viene scritto, cosa non viene letto, cosa viene rifiutato), gli e2e provano il **percorso osservabile dell'utente** (cosa vede il revisore nel browser).\n\n- Gli unit vivono in `tests/unit/righe-attivita-actions.test.ts`, che già mocka `@/lib/db`, `@/lib/dal` e `next/cache` con `vi.hoisted`: il nuovo blocco `describe(\"duplicaRigaSuGiorni\")` riusa quelle strutture e aggiunge `createMany` al mock di `rigaAttivita`. Gli helper già presenti `aspettatiPercorsiInvalidati` e `aspettataNessunaInvalidazione` restano il contratto di invalidazione.\n- Non viene aggiunto alcun unit test sul wiring dell'invalidazione multi-mese in `isola-giornata.tsx`: le semantiche di `invalidate` con più chiavi sono già provate su `CacheDatiScheda` (`tests/unit/cache-dati-scheda.test.ts`), e ciò che questa spec aggiunge — che il **calendario del mese di destinazione** si valorizzi senza reload — è osservabile solo nel browser. È esattamente lo scenario AC-5.\n- Nessuna asserzione su totali globali del mese: i mesi riservati per hash bastano, e la chiave **non** va registrata in `SLOT_MESI_RISERVATI_ESCLUSIVI`. Ogni asserzione è ancorata a entità della factory (ragione sociale, codice offerta, nota), quindi righe estranee di altri worker nello stesso mese sono innocue.\n\n### Test E2E — Simulazione utente\n\n**Framework:** Playwright (`tests/e2e/`, `fullyParallel: true`)\n**Video demo:** atteso — la Dimostrazione della spec è filmabile end-to-end nel browser. La registrazione è compito di `archetipo-review`, non dell'implementazione.\n\n| Scenario | Flusso utente |\n|---|---|\n| Duplicazione su tre giorni, uno in un altro mese | Il collaboratore apre il giorno di origine, avvia «Duplica…» dalla riga con rimborso, aggiunge tre date non contigue (due nel mese riservato, una nel secondo mese riservato), conferma, legge l'esito con il numero di giorni e poi apre uno per uno i tre giorni verificando cliente, offerta, ore, nota, fatturabilità ed etichetta/importo del rimborso. |\n| Conferma non disponibile e giorno di origine escluso | Il collaboratore riapre il selettore, osserva la conferma non disponibile con la pista vuota, prova ad aggiungere il giorno di origine e legge l'avviso senza che il conteggio cambi, poi aggiunge una data valida e vede la conferma diventare disponibile. |\n| Offerta non più abilitata | Il collaboratore avvia la duplicazione da una riga storica su offerta non abilitata, sceglie un giorno, conferma, legge l'errore e poi apre quel giorno constatando che non è stata creata alcuna riga. |\n| Il mese di destinazione si accende senza reload | Dopo la duplicazione il collaboratore torna al calendario, salta al mese del giorno duplicato con il selettore di mese esistente e vede la cella valorizzata con la sua etichetta cliente, senza mai ricaricare la pagina. |\n\n---\n\n## Impatto Wiki\n\n```yaml\nwiki_impact:\n  read: [domains/attivita, decisions/fotografia-rimborso-trasferta, decisions/abilitazioni-offerte-esplicite, decisions/cache-client-calendario-collaboratore]\n  update: [domains/attivita, decisions/fotografia-rimborso-trasferta, decisions/cache-client-calendario-collaboratore]\n  create: []\n```\n\n`wiki affected` sui percorsi attesi (`src/lib/actions/righe-attivita.ts`, `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx`, `src/app/(front-office)/attivita/[data]/isola-giornata.tsx`, `tests/unit/righe-attivita-actions.test.ts`) restituisce sette candidati. Tre entrano nel contratto perché la loro **conoscenza** cambia:\n\n- `domains/attivita` — nuovo comando in ingresso, nuova UI di duplicazione, nuova regola di ammissibilità sulla riga storica, invalidazione estesa a più giorni e più mesi;\n- `decisions/fotografia-rimborso-trasferta` — nasce un secondo modo in cui uno scatto arriva su una riga: la propagazione da un'altra riga, senza rileggere il catalogo;\n- `decisions/cache-client-calendario-collaboratore` — il contratto di invalidazione dopo una mutazione smette di riguardare un solo giorno e un solo mese.\n\nQuattro restano **candidati co-citati** e non entrano nel contratto, perché le loro affermazioni restano vere: `architecture/context-map` (nessun confine fra capability si sposta), `engineering/code-map` (nessun nuovo boundary o capability), `overview` (scopo, attori e stack invariati) e `decisions/feedback-attesa-uniforme` (il nuovo pulsante usa `PulsanteAttesa` come tutti gli altri, il che conferma la decisione invece di cambiarla). Potranno risultare `evidence-changed` per co-citazione dei file toccati: vanno riconciliate esplicitamente in accettazione confrontandole con il diff, non riconfermate d'ufficio.\n\nNessun ID sotto `decisions/` viene creato: si veda la sezione «Decisioni Architetturali» per il motivo.\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-057/` — `index.html` (azione «Duplica…», selettore compilato, esito con il numero di giorni), `selettore-vuoto.html` (AC-3), `esito-errore.html` (AC-4) e `calendario-mese-diverso.html` (AC-5).\n\n_Piano generato con ARchetipo Planning — 2026-08-06_"
+tasks:
+  - id: TASK-01
+    title: Server action duplicaRigaSuGiorni con fotografia propagata e ammissibilità riverificata
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+
+      `duplicaRigaSuGiorni(rigaId, giorni)` crea in un'unica scrittura atomica una copia della riga di origine su ogni giorno di destinazione ammesso, oppure rifiuta senza scrivere nulla.
+
+      ## Read
+
+      - `src/lib/actions/righe-attivita.ts` — per intero. In particolare: `richiediCollaboratoreOperativo`, `caricaRigaDelCollaboratore` (oggi seleziona `collaboratoreId, offertaId, clienteId`), `verificaOffertaCliente`, `verificaAbilitazioneOfferta`, `fotografaVoceRimborsoTrasferta`, e il blocco finale di `creaRiga` che costruisce `data` con `Date.UTC(anno, mese - 1, giorno, 12)` e invalida i tre percorsi.
+      - `prisma/schema.prisma` — modello `RigaAttivita`: `data` è `DateTime @db.Date`, `ore` è `Decimal(4,2)`, `rimborsoTrasfertaImporto` è `Decimal(10,2)?`.
+      - `tests/unit/righe-attivita-actions.test.ts` — righe 1-140: i mock `vi.hoisted` di `@/lib/db`, `@/lib/dal` e `next/cache` e gli helper `aspettatiPercorsiInvalidati` / `aspettataNessunaInvalidazione`, che TASK-02 riuserà.
+
+      ## Change
+
+      Solo `src/lib/actions/righe-attivita.ts`.
+
+      1. Allargare la `select` di `caricaRigaDelCollaboratore` e il tipo del suo `riga` restituito, aggiungendo `data, ore, nota, fatturabile, rimborsoTrasfertaEtichetta, rimborsoTrasfertaImporto`. Non cambiare né la logica di proprietà né i messaggi d'errore: i tre chiamanti esistenti continuano a usare solo `offertaId` e `clienteId`.
+      2. Aggiungere la nuova server action esportata `duplicaRigaSuGiorni`.
+
+      Non-goal espliciti: nessuna modifica a `creaRiga`, `modificaRiga`, `eliminaRiga`, `rimuoviRimborsoTrasferta`; nessuna modifica allo schema Prisma e quindi nessuna migrazione; nessuna nuova query di catalogo delle voci di rimborso; nessun file UI in questo task.
+
+      ## Steps
+
+      1. In `caricaRigaDelCollaboratore` estendere la `select` ai sette campi elencati sopra e aggiornare il tipo di ritorno da `{ offertaId: string; clienteId: string }` a un tipo che li includa tutti (`data: Date`, `ore` e `rimborsoTrasfertaImporto` con i tipi restituiti da Prisma, `nota: string | null`, `fatturabile: boolean`, `rimborsoTrasfertaEtichetta: string | null`). Restituire l'oggetto senza `collaboratoreId`, come oggi.
+      2. Aggiungere un helper privato `giornoDellaRiga(data: Date): string` che formatta con getter **UTC** (`getUTCFullYear`, `getUTCMonth + 1`, `getUTCDate`, entrambi con `padStart(2, "0")`). Motivo: la colonna è `@db.Date` e Prisma la restituisce a mezzanotte UTC, mentre `creaRiga` scrive `Date.UTC(..., 12)`; i getter locali sposterebbero il giorno nei fusi a offset negativo. Non modificare i formattatori locali già presenti in `eliminaRiga` e `rimuoviRimborsoTrasferta`: sono fuori perimetro.
+      3. Aggiungere un helper privato `normalizzaGiorniDestinazione(giorni: string[] | undefined, giornoOrigine: string)` che restituisce `{ errore: ActionResult | null; giorni?: string[] }`:
+         - se l'input non è un array o è vuoto → errore `"Scegli almeno un giorno di destinazione"`;
+         - `trim()` di ogni voce; se una qualsiasi non corrisponde a `/^\d{4}-\d{2}-\d{2}$/` → errore `"Data non valida"`;
+         - deduplica con `Set`, poi rimuove `giornoOrigine`;
+         - se dopo la rimozione la lista è vuota → errore `"Scegli almeno un giorno di destinazione diverso da quello di origine"`;
+         - altrimenti restituisce la lista ordinata crescente.
+      4. Scrivere `duplicaRigaSuGiorni(rigaId: string, giorni: string[]): Promise<ActionResult & { giorniCreati?: number }>` nell'ordine seguente, che i test di TASK-02 assumono:
+         1. `richiediCollaboratoreOperativo()`; se restituisce un `ActionResult`, propagarlo.
+         2. `if (!rigaId) return { success: false, error: "ID riga mancante" }`.
+         3. `caricaRigaDelCollaboratore(rigaId, collaboratore.id)`; propagare l'errore; se `riga` è assente restituire `{ success: false, error: "Riga non trovata" }` (stesso restringimento di tipo già usato in `modificaRiga`).
+         4. `normalizzaGiorniDestinazione(giorni, giornoDellaRiga(riga.data))`; propagare l'errore.
+         5. `verificaOffertaCliente(riga.offertaId, riga.clienteId)`; propagare l'errore.
+         6. `verificaAbilitazioneOfferta(collaboratore.id, riga.offertaId)`; propagare l'errore.
+         7. `await db.rigaAttivita.createMany({ data: giorniNormalizzati.map((giorno) => ({ collaboratoreId: collaboratore.id, clienteId: riga.clienteId, offertaId: riga.offertaId, data: <Date.UTC dal token>, ore: riga.ore, nota: riga.nota, fatturabile: riga.fatturabile, rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta, rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto })) })`. La `Date` si costruisce come in `creaRiga`: `new Date(Date.UTC(anno, mese - 1, giorno, 12))`.
+         8. `revalidatePath` su `/attivita/${giorno}` per **ogni** giorno di destinazione, poi su `/attivita/riepilogo` e `/attivita`.
+         9. `return { success: true, giorniCreati: giorniNormalizzati.length }`.
+      5. Documentare con un commento sopra la action che il rimborso viene **propagato** dalla riga sorgente e mai rifotografato dal catalogo, e che l'ammissibilità è quella della creazione (non quella clemente di `modificaRiga`) perché qui si creano righe nuove.
+
+      ## Verify
+
+      - Esegui: `npx tsc --noEmit`
+      - Attendi: exit 0, nessuna diagnostica — la baseline era verde, quindi qualunque errore qui è introdotto da questo task.
+      - Esegui: `npm test`
+      - Attendi: verde, 670 test invariati. Questo task non aggiunge test: serve solo a provare che l'allargamento della `select` non ha rotto i test esistenti di `creaRiga`, `modificaRiga`, `eliminaRiga` e `rimuoviRimborsoTrasferta`.
+      - Esegui: `npm run lint`
+      - Attendi: verde, con i soli 9 avvisi preesistenti del guardrail e2e.
+
+      ## Done
+
+      - [ ] `duplicaRigaSuGiorni` è esportata da `src/lib/actions/righe-attivita.ts` e restituisce `giorniCreati` in caso di successo — evidenza per **AC-1**.
+      - [ ] Il payload di `createMany` copia `clienteId, offertaId, ore, nota, fatturabile, rimborsoTrasfertaEtichetta, rimborsoTrasfertaImporto` dalla riga sorgente e il file non contiene alcuna chiamata a `fotografaVoceRimborsoTrasferta` o a `db.voceRimborsoTrasferta` dentro la nuova action — evidenza per **AC-2**.
+      - [ ] Lista vuota, data malformata e lista composta dal solo giorno di origine escono prima di qualunque scrittura — evidenza server-side per **AC-3**.
+      - [ ] Offerta non attiva, offerta di un altro cliente e abilitazione assente escono prima di `createMany` e prima di ogni `revalidatePath` — evidenza per **AC-4**.
+      - [ ] `npx tsc --noEmit`, `npm test` e `npm run lint` restano verdi.
+
+      ## Blockers
+
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Unit test del comando di duplicazione — copia, rifiuti e assenza di letture di catalogo
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+
+      `tests/unit/righe-attivita-actions.test.ts` prova il contratto di `duplicaRigaSuGiorni`: cosa scrive, cosa **non** legge e in quali casi non scrive affatto.
+
+      ## Read
+
+      - `tests/unit/righe-attivita-actions.test.ts` — righe 1-140 per i mock `vi.hoisted` (`mockRigaAttivita`, `mockVoceRimborsoTrasferta`, `mockOfferta`, `mockAbilitazioneOfferta`, `mockRisolviProfiloCollaboratoreCorrente`, `mockRevalidatePath`), l'helper `creaFormData`, `collaboratoreMock()` e gli helper `aspettatiPercorsiInvalidati` / `aspettataNessunaInvalidazione`; poi i `describe` esistenti per lo stile delle asserzioni sui payload Prisma.
+      - `src/lib/actions/righe-attivita.ts` — `duplicaRigaSuGiorni` e `caricaRigaDelCollaboratore` come lasciati da TASK-01.
+
+      ## Change
+
+      Solo `tests/unit/righe-attivita-actions.test.ts`.
+
+      1. Aggiungere `createMany: vi.fn()` al `mockRigaAttivita` esistente in cima al file (non creare un secondo mock del db).
+      2. Aggiungere in fondo un `describe("duplicaRigaSuGiorni", ...)` con il proprio `beforeEach`.
+
+      Non-goal: nessun nuovo file di test, nessuna modifica ai `describe` esistenti oltre all'aggiunta di `createMany` al mock condiviso, nessun test sulla UI.
+
+      ## Steps
+
+      1. Aggiungere `createMany` al mock di `rigaAttivita`.
+      2. Nel `beforeEach` del nuovo `describe`: `vi.clearAllMocks()`; `mockRisolviProfiloCollaboratoreCorrente` risolve `{ stato: "ATTIVO", collaboratore: collaboratoreMock() }`; `mockRigaAttivita.findUnique` risolve la riga sorgente completa — `{ collaboratoreId: "collab-giulia", offertaId: "offerta-1", clienteId: "cliente-1", data: new Date(Date.UTC(2026, 2, 11, 12)), ore: "6.00", nota: "Coaching del team", fatturabile: true, rimborsoTrasfertaEtichetta: "Trasferta fuori provincia", rimborsoTrasfertaImporto: "85.00" }`; `mockOfferta.findUnique` risolve `{ clienteId: "cliente-1", attiva: true }`; `mockAbilitazioneOfferta.findUnique` risolve un'abilitazione presente; `mockRigaAttivita.createMany` risolve `{ count: 3 }`.
+      3. **Copia integrale (AC-2).** Duplicare su `["2026-03-17", "2026-03-24", "2026-04-07"]` e asserire che `mockRigaAttivita.createMany` è stato chiamato una sola volta con un array di tre record, ciascuno con `collaboratoreId: "collab-giulia"`, `clienteId: "cliente-1"`, `offertaId: "offerta-1"`, `ore: "6.00"`, `nota: "Coaching del team"`, `fatturabile: true`, `rimborsoTrasfertaEtichetta: "Trasferta fuori provincia"`, `rimborsoTrasfertaImporto: "85.00"` e `data` uguale a `new Date(Date.UTC(anno, mese - 1, giorno, 12))` del rispettivo token.
+      4. **Nessuna rilettura del catalogo (AC-2).** Nello stesso scenario asserire `expect(mockVoceRimborsoTrasferta.findUnique).not.toHaveBeenCalled()`. È l'oracolo che distingue la propagazione dello scatto da una rifotografia: senza di esso il test passerebbe anche se l'importo venisse riletto dal catalogo e per caso coincidesse.
+      5. **Conteggio ed esito (AC-1).** Asserire che il risultato è `{ success: true, giorniCreati: 3 }` e che `aspettatiPercorsiInvalidati` vale per **ciascuno** dei tre giorni, cioè che `mockRevalidatePath` è stato chiamato con `/attivita/2026-03-17`, `/attivita/2026-03-24`, `/attivita/2026-04-07`, `/attivita/riepilogo` e `/attivita`.
+      6. **Deduplica ed esclusione dell'origine (AC-3).** Duplicare su `["2026-03-17", "2026-03-17", "2026-03-11"]` (dove `2026-03-11` è il giorno della riga sorgente) e asserire `giorniCreati: 1` con un solo record in `createMany`, sul giorno `2026-03-17`.
+      7. **Rifiuti senza scrittura (AC-3).** Tre casi distinti — lista vuota `[]`, lista con la sola data di origine `["2026-03-11"]`, lista con una data malformata `["11/03/2026"]` — ciascuno con `success: false`, un `error` non vuoto, `expect(mockRigaAttivita.createMany).not.toHaveBeenCalled()` e `aspettataNessunaInvalidazione()`.
+      8. **Offerta non più ammissibile (AC-4).** Due casi: `mockOfferta.findUnique` risolve `{ clienteId: "cliente-1", attiva: false }`, e `mockAbilitazioneOfferta.findUnique` risolve `null`. In entrambi: `success: false` con l'errore atteso (`"L'offerta non è più attiva"` e `"Non sei abilitato a registrare attività su questa offerta"`), `createMany` mai invocato e `aspettataNessunaInvalidazione()`.
+      9. **Proprietà della riga.** `mockRigaAttivita.findUnique` risolve una riga con `collaboratoreId: "collab-altro"`: `success: false` con il messaggio esistente sulle attività di un altro collaboratore, `createMany` mai invocato.
+      10. **Profilo non operativo.** `mockRisolviProfiloCollaboratoreCorrente` risolve `{ stato: "ASSENTE" }`: `success: false`, `createMany` mai invocato, e nessuna lettura della riga.
+
+      ## Verify
+
+      - Esegui: `npx vitest run tests/unit/righe-attivita-actions.test.ts`
+      - Attendi: verde; il file passa dai 32 `it` attuali ad almeno 10 in più, tutti nel nuovo `describe`.
+      - Esegui: `npm test`
+      - Attendi: verde, 40 file, conteggio totale cresciuto dei soli test aggiunti — nessuna regressione sui 670 preesistenti.
+
+      ## Done
+
+      - [ ] Il payload di `createMany` è asserito campo per campo su tutti i record — evidenza per **AC-2**.
+      - [ ] `mockVoceRimborsoTrasferta.findUnique` è asserito **non chiamato** nello scenario di copia — evidenza per **AC-2**.
+      - [ ] Il risultato espone `giorniCreati` coerente con i giorni effettivamente scritti e ogni giorno di destinazione è invalidato — evidenza per **AC-1**.
+      - [ ] Lista vuota, sola data di origine e data malformata rifiutano senza scrivere né invalidare — evidenza server-side per **AC-3**.
+      - [ ] Offerta non attiva e abilitazione assente rifiutano senza scrivere né invalidare — evidenza per **AC-4**.
+      - [ ] `npm test` verde.
+
+      ## Blockers
+
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Invalidazione dopo mutazione estesa a più giorni e più mesi nell'isola giornata
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+
+      Una mutazione che tocca più giorni invalida nella cache di scheda **tutti** quei giorni e **tutti** i token di mese distinti che li contengono, non solo il giorno visualizzato e il suo mese.
+
+      ## Read
+
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx` — `invalidaDopoMutazione` (attualmente `async (giorno: string) => ...`, che fa `cacheCalendario?.invalidate(giorno.slice(0, 7))`, `cacheGiornate.invalidate(giorno)` e `await cacheGiornate.revalida(giorno)`), e il commento che ne spiega la complementarietà con `revalidatePath`.
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx` — la prop `onMutazioneCompletata: (giorno: string) => void | Promise<void>` e l'helper locale `invalidaDopoMutazione` che la avvolge in `startTransition`.
+      - `src/app/(front-office)/attivita/attivita-cache-provider.tsx` — le firme `invalidate(...token: string[])` di `ApiCacheCalendario` e `invalidate(...data: string[])` di `ApiCacheGiornate`: accettano già più chiavi, non serve toccarle.
+
+      ## Change
+
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx` — allargare `invalidaDopoMutazione`.
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx` — allargare il tipo della prop `onMutazioneCompletata` e l'helper locale che la invoca.
+
+      Non-goal: nessuna modifica alle classi di cache o al provider; nessuna modifica al comportamento dei percorsi a giorno singolo (creazione, modifica, eliminazione, rimozione rimborso devono continuare a invalidare esattamente ciò che invalidavano prima); nessun `router.refresh()` aggiuntivo.
+
+      ## Steps
+
+      1. In `isola-giornata.tsx` cambiare la firma in `async (giorno: string, giorniAggiuntivi?: readonly string[]) => { ... }`. Il primo parametro resta il giorno **visualizzato**, per la ragione già documentata nel commento esistente.
+      2. Dentro la callback calcolare `const giorniToccati = [...new Set([giorno, ...(giorniAggiuntivi ?? [])])];` e `const mesiToccati = [...new Set(giorniToccati.map((g) => g.slice(0, 7)))];`.
+      3. Sostituire `cacheCalendario?.invalidate(giorno.slice(0, 7))` con `cacheCalendario?.invalidate(...mesiToccati)` e `cacheGiornate.invalidate(giorno)` con `cacheGiornate.invalidate(...giorniToccati)`.
+      4. Lasciare invariata la rilettura forzata: `await cacheGiornate.revalida(giorno)` continua a riguardare il **solo** giorno visualizzato. I giorni di destinazione restano invalidati e verranno riletti al primo ingresso; forzarne la rilettura qui produrrebbe N richieste per dati che l'utente non sta guardando.
+      5. Aggiornare il commento JSDoc sopra la callback spiegando che i giorni aggiuntivi sono quelli toccati da una mutazione multi-giorno (duplicazione) e che è da qui che discende la valorizzazione delle celle di un altro mese senza reload.
+      6. Lasciare invariato il ramo senza provider (`if (!cacheGiornate) { router.refresh(); return; }`).
+      7. In `dettaglio-giornata.tsx` allargare il tipo della prop a `(giorno: string, giorniAggiuntivi?: readonly string[]) => void | Promise<void>` e l'helper locale a `useCallback((giorniAggiuntivi?: readonly string[]) => { startTransition(async () => { await onMutazioneCompletata(data, giorniAggiuntivi); }); }, [data, onMutazioneCompletata])`. Le quattro chiamate esistenti (submit, elimina, rimuovi rimborso) restano invocazioni senza argomenti e mantengono il comportamento attuale.
+
+      ## Verify
+
+      - Esegui: `npx tsc --noEmit`
+      - Attendi: exit 0. Il parametro opzionale non deve rendere necessario alcun cast nei chiamanti esistenti.
+      - Esegui: `npm test`
+      - Attendi: verde. `tests/unit/cache-dati-scheda.test.ts` e `tests/unit/calendario-cache-provider.test.ts` provano le semantiche di `invalidate` con più chiavi e devono restare verdi senza modifiche.
+      - Esegui: `npm run lint`
+      - Attendi: verde, con i soli 9 avvisi preesistenti.
+
+      ## Done
+
+      - [ ] `invalidaDopoMutazione` accetta giorni aggiuntivi e invalida l'insieme dei giorni e dei token di mese **distinti**, con un'unica chiamata varargs per cache — è la precondizione tecnica di **AC-5**.
+      - [ ] I percorsi a giorno singolo invalidano esattamente ciò che invalidavano prima: nessun test unit preesistente cambia.
+      - [ ] `npx tsc --noEmit`, `npm test` e `npm run lint` restano verdi.
+
+      ## Blockers
+
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Componente client del selettore di duplicazione su più giorni
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+
+      Un pannello modale permette di comporre l'elenco dei giorni di destinazione, tiene la conferma non disponibile finché l'elenco è vuoto, rifiuta il giorno di origine e mostra l'errore del server senza perdere le date già scelte.
+
+      ## Read
+
+      - `docs/mockups/US-057/index.html`, `selettore-vuoto.html` ed `esito-errore.html` con `docs/mockups/US-057/shared.css` — layout, gerarchia, testi e stati del selettore. Il mockup è il riferimento visivo: pannello con scheda della riga di origine, campo data + «Aggiungi data», pista dei giorni raggruppati per mese, conteggio, «Annulla» e conferma.
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx` — convenzioni Tailwind dell'area (raggi `rounded-[8px]`/`[11px]`, palette `rose`/`zinc`/`amber`/`red`, coppie `dark:`), l'uso di `PulsanteAttesa` e il blocco che rende la banda del rimborso fotografato.
+      - `src/components/pulsante-attesa.tsx` — la prop `attesaEsterna` e `etichettaAttesa`.
+      - `src/domain/calendario/index.ts` — `parseDataGiorno`, unica validazione ammessa per un token giorno lato client.
+      - `src/lib/attivita-contract.ts` — `RigaAttivitaClient`.
+      - `src/lib/actions/righe-attivita.ts` — firma e messaggi d'errore di `duplicaRigaSuGiorni` come lasciati da TASK-01.
+
+      ## Change
+
+      Nuovo file `src/app/(front-office)/attivita/[data]/selettore-duplicazione.tsx`, client component (`"use client"`).
+
+      Non-goal: nessuna libreria di dialog o di date; nessun focus trap; nessuna modifica al form di inserimento/modifica riga; nessuna modifica a `dettaglio-giornata.tsx` in questo task (è TASK-05); nessuna persistenza dell'elenco fra aperture.
+
+      ## Steps
+
+      1. Dichiarare le props:
+         ```ts
+         interface SelettoreDuplicazioneProps {
+           riga: RigaAttivitaClient;
+           giornoOrigine: string;
+           onChiudi: () => void;
+           onDuplicata: (giorniDestinazione: string[], giorniCreati: number) => void;
+         }
+         ```
+      2. Stato locale: `dataCandidata: string`, `giorniScelti: string[]`, `avviso: string | null`, `errore: string | null`, `inCorso: boolean`.
+      3. Render dell'involucro: un overlay a tutto schermo con `role="dialog"`, `aria-modal="true"`, `aria-labelledby` sull'id del titolo e `data-testid="selettore-duplicazione"`. Il click sullo sfondo chiude (`onChiudi`) solo se il bersaglio dell'evento è l'overlay stesso; un `useEffect` registra un listener `keydown` che chiude su `Escape` e lo rimuove allo smontaggio.
+      4. Scheda della riga di origine: giorno di origine in forma estesa, ragione sociale, `codice — descrizione` dell'offerta, ore, fatturabilità e, se `riga.rimborsoTrasfertaEtichetta != null`, l'etichetta con l'importo formattato `€ {parseFloat(importo).toFixed(2)}`. Serve a rendere visibile ciò che verrà copiato.
+      5. Campo di aggiunta: `<label htmlFor>` con testo «Aggiungi un giorno di destinazione», `<input type="date" data-testid="data-duplicazione">` controllato da `dataCandidata`, e un `<button type="button">Aggiungi data</button>`. Un testo di aiuto dichiara esplicitamente che il giorno di origine non è selezionabile e che si possono aggiungere giorni non consecutivi e di mesi diversi.
+      6. Handler `aggiungi()`:
+         - `parseDataGiorno(dataCandidata)` falso → `avviso` «Scegli una data valida.» e ritorno;
+         - `dataCandidata === giornoOrigine` → `avviso` «Il giorno di origine non è fra le destinazioni selezionabili.» e ritorno, **senza** modificare `giorniScelti`;
+         - già presente in `giorniScelti` → `avviso` «Questo giorno è già fra le destinazioni scelte.» e ritorno;
+         - altrimenti aggiunge, riordina crescente, azzera `dataCandidata` e `avviso`.
+         Collegare lo stesso handler al tasto Invio sul campo data (`onKeyDown` con `preventDefault`).
+      7. Pista dei giorni scelti: se `giorniScelti` è vuoto mostrare un blocco di stato vuoto con `data-testid="pista-duplicazione-vuota"`; altrimenti raggruppare per token di mese (`giorno.slice(0, 7)`), con l'etichetta estesa del mese e, per ogni giorno, un elemento `data-testid="giorno-scelto"` che porta il giorno e un pulsante di rimozione con `aria-label` contenente la data estesa. Un contatore `data-testid="conteggio-giorni-duplicazione"` mostra `1 giorno` / `N giorni`.
+      8. Avviso inline con `data-testid="avviso-duplicazione"` e `role="status"`, reso solo quando `avviso` è valorizzato. Errore con `data-testid="errore-duplicazione"` e `role="alert"`, reso solo quando `errore` è valorizzato.
+      9. Footer: «Annulla» (`onChiudi`, disabilitato mentre `inCorso`) e la conferma come `PulsanteAttesa` con `type="button"`, `data-testid="conferma-duplicazione"`, `attesaEsterna={inCorso}`, `etichettaAttesa="Duplicazione…"`, `disabled={giorniScelti.length === 0}` ed etichetta `Duplica` / `Duplica su N giorni`.
+      10. Handler `conferma()`: esce subito se `giorniScelti` è vuoto; azzera `errore`, imposta `inCorso`, chiama `await duplicaRigaSuGiorni(riga.id, giorniScelti)` dentro `try/finally` che riazzera `inCorso`. Su `success: false` imposta `errore` con `result.error ?? "Duplicazione non riuscita"` e **lascia il pannello aperto con le date invariate** (AC-4: il lavoro fatto non va perso). Su successo invoca `onDuplicata(giorniScelti, result.giorniCreati ?? giorniScelti.length)` e non chiude da sé: la chiusura è del chiamante.
+
+      ## Verify
+
+      - Esegui: `npx tsc --noEmit`
+      - Attendi: exit 0.
+      - Esegui: `npm run lint`
+      - Attendi: verde. Attenzione alla regola `react-hooks/set-state-in-effect` già rispettata altrove nell'area: nessun `setState` sincrono dentro un effetto.
+      - Esegui: `npm run build`
+      - Attendi: build completata senza errori — è la verifica che il nuovo client component non violi i confini server/client dell'App Router.
+
+      ## Done
+
+      - [ ] Il pannello espone `role="dialog"` e `aria-modal="true"` e si chiude con Esc, «Annulla» e click sullo sfondo.
+      - [ ] Con zero date scelte il pulsante `conferma-duplicazione` è `disabled` — evidenza per **AC-3**.
+      - [ ] Il tentativo di aggiungere `giornoOrigine` produce `avviso-duplicazione` e non incrementa il conteggio — evidenza per **AC-3**.
+      - [ ] Un rifiuto del server è reso in `errore-duplicazione` con `role="alert"` mantenendo le date scelte — evidenza per **AC-4**.
+      - [ ] Il componente accetta date non contigue e di mesi diversi e le raggruppa per mese — evidenza per **AC-1**.
+      - [ ] L'aspetto segue `docs/mockups/US-057/`; `npx tsc --noEmit`, `npm run lint` e `npm run build` restano verdi.
+
+      ## Blockers
+
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Azione "Duplica..." sulla riga e banner di esito nel dettaglio giornata
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-04
+    body: |-
+      ## Objective
+
+      Ogni riga salvata espone «Duplica…», apre il selettore, e alla conferma la pagina mostra su quanti giorni la riga è stata replicata invalidando tutti i giorni e i mesi coinvolti.
+
+      ## Read
+
+      - `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx` — il blocco «Pulsanti azione» dentro `righe.map(...)` (i tre `PulsanteAttesa` Modifica / Rimuovi rimborso / Elimina con `attesaEsterna={rigaInAttesaId === riga.id}`), l'helper locale `invalidaDopoMutazione` come lasciato da TASK-03, e la sezione intestazione/riepilogo dove va inserito il banner.
+      - `src/app/(front-office)/attivita/[data]/selettore-duplicazione.tsx` — props del componente creato in TASK-04.
+      - `docs/mockups/US-057/index.html` — posizione di «Duplica…» nella barra azioni e forma del banner di esito.
+
+      ## Change
+
+      Solo `src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx`.
+
+      Non-goal: nessuna modifica al form di inserimento/modifica; nessuna modifica agli altri tre pulsanti di riga; nessuna modifica ai KPI di riepilogo; nessuna duplicazione di più righe in un colpo solo.
+
+      ## Steps
+
+      1. Importare `SelettoreDuplicazione`.
+      2. Aggiungere due stati locali: `rigaDaDuplicare: RigaAttivitaClient | null` (inizialmente `null`) ed `esitoDuplicazione: { giorniCreati: number; giorni: string[] } | null`.
+      3. Nella barra azioni di ogni riga, fra «Modifica» e «Rimuovi rimborso», aggiungere un `PulsanteAttesa` con `type="button"`, `data-testid="duplica-riga"`, `attesaEsterna={rigaInAttesaId === riga.id}`, etichetta `Duplica…` e `onClick={() => { setEsitoDuplicazione(null); setRigaDaDuplicare(riga); }}`. Stile coerente con il mockup: bordo e testo `rose`, non il neutro di «Modifica».
+      4. Rendere il selettore in coda al componente, solo quando `rigaDaDuplicare` è valorizzato:
+         ```tsx
+         {rigaDaDuplicare && (
+           <SelettoreDuplicazione
+             riga={rigaDaDuplicare}
+             giornoOrigine={data}
+             onChiudi={() => setRigaDaDuplicare(null)}
+             onDuplicata={gestisciDuplicazione}
+           />
+         )}
+         ```
+      5. Scrivere `gestisciDuplicazione` come `useCallback((giorniDestinazione: string[], giorniCreati: number) => { setRigaDaDuplicare(null); setEsitoDuplicazione({ giorniCreati, giorni: giorniDestinazione }); invalidaDopoMutazione(giorniDestinazione); }, [invalidaDopoMutazione])`. È qui che i giorni di destinazione raggiungono l'isola: l'helper allargato in TASK-03 li inoltra come `giorniAggiuntivi`, e da lì discende l'invalidazione dei mesi diversi da quello di partenza.
+      6. Rendere il banner sopra l'elenco delle righe, subito dopo l'intestazione della giornata, quando `esitoDuplicazione` è valorizzato: contenitore con `data-testid="esito-duplicazione"` e `role="status"`, testo `Riga replicata su {n} giorno` / `giorni` (singolare per `n === 1`), l'elenco delle date in forma estesa riusando l'helper `dataEstesa` già presente nel file, e un pulsante di chiusura che azzera lo stato. Colori verdi coerenti con il mockup (`emerald`), con la coppia `dark:`.
+      7. Verificare che il remount al cambio giorno continui a valere: `isola-giornata.tsx` passa `key={giornoVisualizzato}`, quindi banner e selettore si azzerano da soli cambiando giorno. Non aggiungere alcun effetto per farlo.
+
+      ## Verify
+
+      - Esegui: `npx tsc --noEmit`
+      - Attendi: exit 0.
+      - Esegui: `npm run lint`
+      - Attendi: verde, con i soli 9 avvisi preesistenti.
+      - Esegui: `npm test`
+      - Attendi: verde, nessuna regressione.
+      - Esegui: `npm run build`
+      - Attendi: build completata senza errori.
+
+      ## Done
+
+      - [ ] Ogni riga salvata espone «Duplica…» (`data-testid="duplica-riga"`) che apre il selettore, e alla conferma compare `esito-duplicazione` con il numero di giorni replicati — evidenza per **AC-1**.
+      - [ ] Il selettore riceve `giornoOrigine={data}`, cioè il giorno **visualizzato** — evidenza per **AC-3**.
+      - [ ] `gestisciDuplicazione` inoltra i giorni di destinazione a `invalidaDopoMutazione`, che invalida anche i mesi diversi da quello di partenza — evidenza per **AC-5**.
+      - [ ] Il form di inserimento/modifica riga e gli altri tre pulsanti di riga sono invariati.
+      - [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` e `npm run build` restano verdi.
+
+      ## Blockers
+
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: E2E della duplicazione — copia integrale, guardie del selettore, rifiuto e mese acceso senza reload
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+      - TASK-02
+    body: |-
+      ## Objective
+
+      `tests/e2e/duplica-riga-su-giorni.spec.ts` prova nel browser i cinque criteri della spec su entità create dalle factory e giorni riservati, restando deterministico con `fullyParallel: true`.
+
+      ## Read
+
+      - `tests/e2e/README.md` — contratto completo della suite: seed read-only, factory per i test mutanti, mesi riservati, selettori, idratazione.
+      - `tests/e2e/support/fixtures.ts` — fixture `test` con `factory`, `collaboratore`, `clienteConOfferta`.
+      - `tests/e2e/support/factory.ts` — `createCollaboratore`, `createClienteConOfferta`, `createOfferta({ attiva })`, `createAbilitazioneOfferta`, `createRigaAttivita` (accetta `rimborsoTrasfertaEtichetta` e `rimborsoTrasfertaImporto`, quindi la riga sorgente nasce con lo scatto già congelato senza passare dal catalogo).
+      - `tests/e2e/support/date.ts` — `meseRiservato`, `dataNelMeseRiservato`, `mesePassatoRiservato`, `dataNelMesePassatoRiservato` e il commento su `SLOT_MESI_RISERVATI_ESCLUSIVI`.
+      - `tests/e2e/support/auth.ts` — `accediComeCollaboratore(page, email)`.
+      - `tests/e2e/giornata-cache-cambio-giorno.spec.ts` — attesa dell'idratazione dell'isola (`data-idratata`) prima di cliccare su handler client, e forma delle asserzioni sul dettaglio giornata.
+      - `tests/e2e/calendario-salto-mese.spec.ts` — uso del campo «Vai a un mese specifico» e del pulsante «Vai al mese selezionato», e asserzioni su `cella-giorno` / `etichetta-cliente`.
+      - `src/app/(front-office)/attivita/calendario-mensile.tsx` — le celle sono `<Link data-testid="cella-giorno" href="/attivita/{data}?mese={token}" data-con-attivita="true|false">`.
+
+      ## Change
+
+      Nuovo file `tests/e2e/duplica-riga-su-giorni.spec.ts`.
+
+      Non-goal: nessuna modifica a `tests/e2e/support/*` (gli helper esistenti bastano); nessuna registrazione in `SLOT_MESI_RISERVATI_ESCLUSIVI`, perché nessuna asserzione riguarda totali globali o vuoto di un mese; nessuno spec `demo__` (la registrazione video è di `archetipo-review`); nessun `page.reload()` negli scenari di AC-5.
+
+      ## Steps
+
+      1. Definire in cima le costanti dei giorni, tutte derivate dagli helper: `const MESE_ORIGINE = meseRiservato("US-057-DUPLICAZIONE")` con `GIORNO_ORIGINE = dataNelMeseRiservato("US-057-DUPLICAZIONE", 11)` e due destinazioni non contigue nello stesso mese (giorni 17 e 24); `const MESE_ALTRO = mesePassatoRiservato("US-057-DUPLICAZIONE")` con `GIORNO_ALTRO_MESE = dataNelMesePassatoRiservato("US-057-DUPLICAZIONE", 7)`; un `GIORNO_RIFIUTO = dataNelMeseRiservato("US-057-DUPLICAZIONE", 4)` per lo scenario AC-4.
+      2. Scrivere un helper locale che prepara lo scenario nominale: dalla `factory`, un `collaboratore`, un `clienteConOfferta` con offerta attiva, una `createAbilitazioneOfferta` fra i due, e una `createRigaAttivita` sul `GIORNO_ORIGINE` con `ore: "6.00"`, una `nota` che contiene il namespace del test, `fatturabile: true`, `rimborsoTrasfertaEtichetta: "Trasferta US-057"` e `rimborsoTrasfertaImporto: "85.00"`. Costruire la `Date` del giorno con `new Date(\`${GIORNO}T12:00:00.000Z\`)`, coerente con la scrittura UTC dell'applicazione.
+      3. In ogni test: `await accediComeCollaboratore(page, collaboratore.utente.email)`, poi `page.goto('/attivita/' + GIORNO_ORIGINE)` e attesa dell'idratazione dell'isola prima del primo click su un handler client (`expect(page.getByTestId('contenuto-giornata')).toHaveAttribute('data-idratata', 'true')`).
+      4. **Scenario AC-1 + AC-2 + AC-5.** Cliccare `duplica-riga` sulla card della riga sorgente (individuata per ragione sociale del cliente factory). Nel selettore aggiungere le tre destinazioni: per ciascuna `fill` del campo `data-duplicazione` con il token e click su «Aggiungi data»; asserire che `conteggio-giorni-duplicazione` arriva a «3 giorni». Confermare con `conferma-duplicazione`. Asserire che `esito-duplicazione` è visibile e contiene «3 giorni». Poi, per ognuno dei tre giorni, navigare con il selettore data del dettaglio (`selettore-giorno`) — non con `goto`, così resta provato anche il percorso client — e asserire su quella giornata: una `activity-row` con la ragione sociale del cliente factory, il codice offerta della factory, `6.0 h`, il testo della nota, il badge `Fatt.` e la banda rimborso con `Trasferta US-057` ed `€ 85.00`. Quindi, **senza reload**, tornare al calendario con il link «Torna al calendario», portarsi su `MESE_ALTRO` con il campo mese «Vai a un mese specifico» + «Vai», e asserire che il link `cella-giorno` con `href` che inizia per `/attivita/${GIORNO_ALTRO_MESE}` ha `data-con-attivita="true"` e mostra una `etichetta-cliente` con la ragione sociale del cliente factory.
+      5. **Scenario AC-3.** Aprire il selettore sulla riga sorgente e asserire, con pista vuota, che `conferma-duplicazione` è disabilitato. Provare ad aggiungere `GIORNO_ORIGINE`: asserire che `avviso-duplicazione` è visibile, che non esiste alcun `giorno-scelto` e che la conferma è ancora disabilitata. Aggiungere una data valida e asserire che la conferma diventa abilitata e che il conteggio dice «1 giorno».
+      6. **Scenario AC-4.** Creare, per lo stesso collaboratore, un secondo cliente con offerta attiva **senza** `createAbilitazioneOfferta`, e una `createRigaAttivita` sul `GIORNO_ORIGINE` su quella offerta. Aprire il selettore da quella riga, aggiungere `GIORNO_RIFIUTO`, confermare, e asserire che `errore-duplicazione` è visibile con `role="alert"` e che `esito-duplicazione` non esiste. Poi aprire `GIORNO_RIFIUTO` e asserire che non esiste alcuna `activity-row` con quella ragione sociale — è la prova che nessuna riga è stata creata sul giorno scelto.
+      7. Rispettare i vincoli del guardrail: nessuna email seed, nessun `waitForTimeout`, nessun `selectOption({ index })`, nessuna classe Tailwind come selettore, nessun XPath. Ogni attesa nasce da un'asserzione web-first.
+
+      ## Verify
+
+      - Esegui: `npx playwright test tests/e2e/duplica-riga-su-giorni.spec.ts --retries=0`
+      - Attendi: tutti gli scenari verdi. Se fallisce per prerequisiti d'ambiente (`E2E_DATABASE_URL`, Chromium, client Prisma), risolvi il prerequisito — vedi la sezione Baseline — invece di ridurre le asserzioni.
+      - Esegui: `npm run lint`
+      - Attendi: verde. Il guardrail anti-flakiness gira dentro `npm run lint` e deve continuare a emettere solo i 9 avvisi preesistenti, senza errori nuovi.
+      - Esegui: `npx playwright test --retries=0`
+      - Attendi: intera suite verde, `fullyParallel: true` invariato e nessun `workers: 1`.
+
+      ## Done
+
+      - [ ] Il banner di esito dichiara «3 giorni» dopo tre destinazioni non contigue di cui una in un altro mese — **AC-1**.
+      - [ ] Su ciascuno dei tre giorni la riga mostra cliente, offerta, `6.0 h`, nota, badge `Fatt.` ed etichetta/importo di rimborso identici a quelli della sorgente — **AC-2**.
+      - [ ] Conferma disabilitata a pista vuota e giorno di origine rifiutato con avviso senza entrare in pista — **AC-3**.
+      - [ ] Riga su offerta non abilitata: errore visibile e nessuna `activity-row` sul giorno scelto — **AC-4**.
+      - [ ] La cella del giorno duplicato nel secondo mese risulta valorizzata raggiungendola con i controlli dell'app, senza alcun `page.reload()` nello scenario — **AC-5**.
+      - [ ] Il file usa solo entità della factory e giorni riservati; `npm run lint` e l'intera suite Playwright restano verdi.
+
+      ## Blockers
+
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Aggiornamento della pagina Wiki domains/attivita con il comando di duplicazione
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+
+      `docs/wiki/domains/attivita.md` (ID canonico `domains/attivita`) descrive la duplicazione come quinto comando del dominio, con la sua regola di ammissibilità, la propagazione dello scatto di rimborso e l'invalidazione estesa a più giorni e più mesi.
+
+      ## Read
+
+      - `docs/wiki/domains/attivita.md` — frontmatter `sources` e blocco `review`; sezione `contracts` (il paragrafo che elenca `creaRiga`, `modificaRiga`, `eliminaRiga`, `rimuoviRimborsoTrasferta` e la regola di abilitazione differenziata fra creazione e modifica); punti 3, 4, 5 e 9 di «Flussi osservati»; tabella della sezione `code`; sezione `invariants`; sezione `verification`.
+      - Il codice come lasciato dai task precedenti: `src/lib/actions/righe-attivita.ts`, `src/app/(front-office)/attivita/[data]/selettore-duplicazione.tsx`, `dettaglio-giornata.tsx`, `isola-giornata.tsx`, `tests/unit/righe-attivita-actions.test.ts`, `tests/e2e/duplica-riga-su-giorni.spec.ts`.
+
+      ## Change
+
+      - `docs/wiki/domains/attivita.md` — frontmatter `sources` e blocco `review`, e le sezioni marcate `contracts`, `flows`, `code`, `invariants`, `verification`.
+      - `docs/wiki/index.md` e `docs/wiki/log.md` solo come **output** dei comandi `archetipo wiki reset` e `archetipo wiki catalog`, mai modificati a mano.
+
+      Non-goal: nessuna modifica ad altre pagine Wiki (hanno i loro task); nessuna modifica al codice; nessun marcatore `archetipo:wiki` rimosso o rinominato.
+
+      ## Steps
+
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset domains/attivita`, che riporta la pagina a `status: generated` rimuovendo il blocco `review`.
+      2. Nel frontmatter, aggiungere `duplicaRigaSuGiorni` al `symbol` della fonte `src/lib/actions/righe-attivita.ts` (ruolo `inbound-commands`) e aggiungere due nuove fonti: `src/app/(front-office)/attivita/[data]/selettore-duplicazione.tsx` con ruolo `inbound-ui`, e `tests/e2e/duplica-riga-su-giorni.spec.ts` con ruolo `verification`. Verificare che ogni percorso dichiarato esista davvero su disco.
+      3. Sezione `contracts`: aggiungere `duplicaRigaSuGiorni(rigaId, giorni)` all'elenco dei comandi, dichiarando che restituisce `{ success, error?, giorniCreati? }` e che, a differenza di `modificaRiga`, **riverifica sempre** coerenza offerta-cliente e abilitazione, perché crea righe nuove: una riga storica su offerta decaduta resta modificabile ed eliminabile ma non duplicabile.
+      4. Sezione `flows`: aggiungere un punto che descrive il flusso osservato — dalla card della riga si apre un pannello modale, si compongono uno o più giorni arbitrari (non contigui, anche di mesi diversi), il giorno di origine è escluso e la conferma è indisponibile a elenco vuoto; alla conferma una sola `createMany` scrive tutte le righe o nessuna, e la pagina dichiara su quanti giorni la riga è stata replicata. Dichiarare esplicitamente che etichetta e importo del rimborso vengono **copiati dalla riga sorgente** e che il catalogo delle voci non viene interrogato.
+      5. Sempre in `flows`, estendere il punto 9 (invalidazione dopo mutazione): una mutazione può ora toccare più giorni, quindi il dettaglio giornata invalida l'insieme dei giorni toccati e l'insieme dei **token di mese distinti**, mentre la rilettura forzata resta sul solo giorno visualizzato. È da qui che discende la valorizzazione delle celle di un mese diverso senza reload.
+      6. Sezione `code`: aggiungere `selettore-duplicazione.tsx` alla riga «Isola giornata» (o creare la voce più appropriata) e i due nuovi file di test all'elenco «Test».
+      7. Sezione `invariants`: annotare che la duplicazione non confronta le righe già presenti sui giorni di destinazione — aggiunge righe, non le deduplica — e che il giorno di origine è derivato con getter UTC dalla colonna `@db.Date`.
+      8. Sezione `verification`: descrivere fedelmente ciò che i test provano davvero — negli unit, il payload `createMany` campo per campo, l'**assenza** di qualunque lettura di `voceRimborsoTrasferta`, i rifiuti su lista vuota/solo origine/data malformata e su offerta non attiva o non abilitata, tutti senza scrittura né invalidazione; negli e2e, i quattro scenari di `tests/e2e/duplica-riga-su-giorni.spec.ts`. Non attribuire ai test garanzie che non asseriscono.
+      9. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog` per rigenerare la navigazione.
+
+      ## Verify
+
+      - Esegui: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Attendi: envelope `kind: "validation_result"` con `data.ok: true`. Le eventuali `warnings` vanno lette e risolte se banali; non sono bloccanti.
+      - Esegui: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner status`
+      - Attendi: `domains/attivita` risulta `generated`, pronta per la riconferma in accettazione — non va riportata a `reviewed` a mano.
+
+      ## Done
+
+      - [ ] La pagina `domains/attivita` descrive `duplicaRigaSuGiorni`, la sua regola di ammissibilità e la propagazione dello scatto di rimborso — conoscenza a supporto di **AC-2** e **AC-4**.
+      - [ ] Il punto sull'invalidazione dopo mutazione copre l'insieme di giorni e mesi toccati — conoscenza a supporto di **AC-5**.
+      - [ ] Tutti i marcatori `archetipo:wiki` preesistenti sono conservati e ogni percorso in `sources` esiste su disco.
+      - [ ] `archetipo wiki validate --profile bootstrap` restituisce `data.ok: true`.
+
+      ## Blockers
+
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Aggiornamento della decisione decisions/fotografia-rimborso-trasferta con la propagazione dello scatto
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+
+      `docs/wiki/decisions/fotografia-rimborso-trasferta.md` (ID canonico `decisions/fotografia-rimborso-trasferta`) registra il secondo modo in cui uno scatto arriva su una riga — la copia da un'altra riga — e perché rileggere il catalogo lo violerebbe.
+
+      ## Read
+
+      - `docs/wiki/decisions/fotografia-rimborso-trasferta.md` — frontmatter `sources` e blocco `review`, e le sezioni marcate `context`, `decision`, `alternatives`, `consequences`, `verification`. Oggi la pagina descrive un solo percorso di scrittura: `fotografaVoceRimborsoTrasferta` invocata da `creaRiga` e `modificaRiga`.
+      - `src/lib/actions/righe-attivita.ts` — `duplicaRigaSuGiorni` come lasciata da TASK-01: copia `rimborsoTrasfertaEtichetta` e `rimborsoTrasfertaImporto` dalla riga sorgente e non invoca `fotografaVoceRimborsoTrasferta`.
+      - `tests/unit/righe-attivita-actions.test.ts` — l'asserzione «`voceRimborsoTrasferta.findUnique` non chiamato» aggiunta da TASK-02.
+
+      ## Change
+
+      - `docs/wiki/decisions/fotografia-rimborso-trasferta.md` — frontmatter `sources` e blocco `review`, sezioni `decision`, `consequences`, `verification`.
+      - `docs/wiki/index.md` e `docs/wiki/log.md` solo come output dei comandi.
+
+      Non-goal: la decisione **non** cambia stato (`decision_status` resta `accepted`, non è superseded da nulla); nessuna nuova alternativa inventata; nessuna modifica al codice; nessuna modifica ad altre pagine Wiki.
+
+      ## Steps
+
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset decisions/fotografia-rimborso-trasferta`.
+      2. Nel frontmatter aggiungere alle `sources` la fonte `src/lib/actions/righe-attivita.ts` con ruolo `implementation` e `symbol: duplicaRigaSuGiorni`, e `tests/e2e/duplica-riga-su-giorni.spec.ts` con ruolo `verification`. Mantenere invariate le fonti esistenti.
+      3. Sezione `decision`: aggiungere un paragrafo che dichiara i **due** percorsi con cui la coppia etichetta/importo finisce su una riga — la fotografia dal catalogo al salvataggio (`fotografaVoceRimborsoTrasferta`) e la **propagazione** da una riga già fotografata (`duplicaRigaSuGiorni`) — e che nel secondo caso il catalogo non viene interrogato affatto: lo scatto viaggia da riga a riga, non da voce a riga.
+      4. Sezione `consequences`: annotare la conseguenza concreta — duplicare una riga il cui importo è stato configurato per errore propaga l'errore, e duplicare una riga la cui voce è stata nel frattempo eliminata o modificata continua a produrre l'importo storico. È il comportamento voluto: la fotografia è un dato contabile, e una copia della fotografia resta la stessa fotografia.
+      5. Sezione `verification`: registrare che la propagazione è provata da un oracolo **negativo** — negli unit `voceRimborsoTrasferta.findUnique` è asserito non chiamato durante la duplicazione — e che l'e2e verifica etichetta e importo identici su tutti i giorni di destinazione. Spiegare perché l'oracolo negativo è necessario: la sola uguaglianza dei valori passerebbe anche con una rilettura di catalogo che per caso coincide.
+      6. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+
+      - Esegui: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Attendi: `data.ok: true`.
+      - Esegui: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner status`
+      - Attendi: `decisions/fotografia-rimborso-trasferta` risulta `generated`, con `decision_status` ancora `accepted`.
+
+      ## Done
+
+      - [ ] La pagina distingue esplicitamente fotografia dal catalogo e propagazione da riga a riga — conoscenza a supporto di **AC-2**.
+      - [ ] La sezione `verification` cita l'oracolo negativo e ne spiega la necessità.
+      - [ ] `decision_status` resta `accepted` e tutti i marcatori `archetipo:wiki` sono conservati.
+      - [ ] `archetipo wiki validate --profile bootstrap` restituisce `data.ok: true`.
+
+      ## Blockers
+
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: Aggiornamento della decisione decisions/cache-client-calendario-collaboratore con l'invalidazione multi-giorno
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+
+      `docs/wiki/decisions/cache-client-calendario-collaboratore.md` (ID canonico `decisions/cache-client-calendario-collaboratore`) registra che il contratto di invalidazione dopo una mutazione non riguarda più un solo giorno e un solo mese.
+
+      ## Read
+
+      - `docs/wiki/decisions/cache-client-calendario-collaboratore.md` — frontmatter `sources` e blocco `review`, e le sezioni marcate `context`, `decision`, `alternatives`, `consequences`, `verification`, con particolare attenzione ai paragrafi che descrivono l'invalidazione dopo mutazione e la complementarietà con `revalidatePath`.
+      - `src/app/(front-office)/attivita/[data]/isola-giornata.tsx` — `invalidaDopoMutazione` come lasciata da TASK-03.
+      - `src/app/(front-office)/attivita/attivita-cache-provider.tsx` — le firme varargs `invalidate(...token)` / `invalidate(...data)` già esistenti, che questa estensione riusa senza modificarle.
+
+      ## Change
+
+      - `docs/wiki/decisions/cache-client-calendario-collaboratore.md` — frontmatter `sources` e blocco `review`, sezioni `decision`, `consequences`, `verification`.
+      - `docs/wiki/index.md` e `docs/wiki/log.md` solo come output dei comandi.
+
+      Non-goal: `decision_status` resta `accepted`; nessuna nuova decisione creata; nessuna modifica alle semantiche di TTL, LRU, guardia d'identità o prefetch, che questa spec non tocca.
+
+      ## Steps
+
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset decisions/cache-client-calendario-collaboratore`.
+      2. Nel frontmatter aggiungere `tests/e2e/duplica-riga-su-giorni.spec.ts` con ruolo `verification`; verificare che le fonti già dichiarate esistano ancora tutte.
+      3. Sezione `decision`: nel paragrafo sull'invalidazione dopo una mutazione, sostituire l'assunto implicito «una mutazione tocca un giorno» con il contratto attuale: il dettaglio giornata invalida l'**insieme** dei giorni toccati e l'**insieme dei token di mese distinti** che li contengono, con una sola chiamata varargs per cache; la rilettura forzata resta sul solo giorno visualizzato, perché forzare la rilettura di giorni che l'utente non sta guardando produrrebbe N richieste inutili.
+      4. Sezione `consequences`: annotare che i giorni e i mesi soltanto invalidati non vengono riletti subito ma al primo ingresso, ed è precisamente questo che rende valorizzate le celle di un mese diverso senza reload; e che, come già per il giorno singolo, l'invalidazione neutralizza anche le risposte già in volo.
+      5. Sezione `verification`: registrare che le semantiche di `invalidate` con più chiavi sono già coperte da `tests/unit/cache-dati-scheda.test.ts` senza modifiche, e che l'estensione ha una verifica **browser** dedicata — lo scenario di `tests/e2e/duplica-riga-su-giorni.spec.ts` che raggiunge il mese di destinazione con i controlli dell'app, senza alcun `page.reload()`, e osserva la cella valorizzata. Dichiarare che non esiste un unit test del wiring nell'isola, e perché: l'oracolo di quel comportamento è la cella del calendario, osservabile solo nel browser.
+      6. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+
+      - Esegui: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Attendi: `data.ok: true`.
+      - Esegui: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner status`
+      - Attendi: `decisions/cache-client-calendario-collaboratore` risulta `generated`, con `decision_status` ancora `accepted`.
+
+      ## Done
+
+      - [ ] Il contratto di invalidazione documentato copre l'insieme dei giorni e dei mesi toccati — conoscenza a supporto di **AC-5**.
+      - [ ] La sezione `verification` dichiara dove vive l'evidenza e perché non esiste un unit test del wiring.
+      - [ ] `decision_status` resta `accepted` e tutti i marcatori `archetipo:wiki` sono conservati.
+      - [ ] `archetipo wiki validate --profile bootstrap` restituisce `data.ok: true`.
+
+      ## Blockers
+
+      None.
+    ref: TASK-09
+  - id: TASK-10
+    title: Gate finale — verifiche complete e controllo dei task prima della richiesta di review
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+      - TASK-09
+    body: |-
+      ## Objective
+
+      L'intero incremento passa le stesse verifiche che eseguirebbe la CI, e la richiesta di review parte solo quando nessun task della spec è rimasto `TODO`.
+
+      ## Read
+
+      - La sezione **Baseline** di questo piano: `npm run lint`, `npm test` e `npx tsc --noEmit` erano tutti verdi, quindi qualunque fallimento qui è una regressione introdotta dall'incremento, mai un rosso preesistente da tollerare.
+      - `.github/workflows/ci.yml` — la sequenza che la pipeline eseguirà: `npm ci`, `prisma migrate deploy`, `prisma db seed`, `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e`. Questo gate la riproduce localmente nella stessa successione.
+      - `tests/e2e/README.md`, sezione «Gate locale».
+
+      ## Change
+
+      Nessuna modifica di codice attesa. Se una verifica fallisce, la correzione appartiene al task che ha introdotto la regressione: correggila lì e rilancia questo gate da capo, non aggirare l'asserzione.
+
+      ## Steps
+
+      1. Da `/Users/smarello/repo/coaching-planner` eseguire, nell'ordine, i comandi della sezione **Verify**.
+      2. Verificare che nessuna migrazione Prisma sia stata aggiunta o attesa: questa spec non tocca `prisma/schema.prisma`, quindi `npx prisma validate` deve passare e non deve esistere alcuna migrazione nuova non applicata.
+      3. Solo quando tutte le verifiche sono verdi, marcare **questo** task come `DONE`.
+      4. Poi ricaricare la spec con `archetipo spec show US-057` da `/Users/smarello/repo/coaching-planner` e confermare che **nessun** task risulta ancora `TODO`.
+      5. Solo a quel punto invocare `archetipo spec review US-057`. L'ordine è vincolante: verifiche, gate `DONE`, ricarica della spec, controllo che non resti nulla `TODO`, richiesta di review.
+
+      ## Verify
+
+      - Esegui: `npm run lint`
+      - Attendi: verde, con i **soli** 9 avvisi preesistenti del guardrail e2e su `tests/e2e/support/date.ts` e `support/report-data.ts`. Qualunque errore o avviso nuovo va corretto nel task d'origine.
+      - Esegui: `npx tsc --noEmit`
+      - Attendi: exit 0, nessuna diagnostica — la baseline era pulita.
+      - Esegui: `npm test`
+      - Attendi: verde; almeno i 670 test della baseline più quelli aggiunti da TASK-02, senza alcun fallimento.
+      - Esegui: `npx prisma validate`
+      - Attendi: schema valido, nessuna migrazione mancante.
+      - Esegui: `npm run build`
+      - Attendi: build Next completata senza errori.
+      - Esegui: `npx playwright test tests/e2e/duplica-riga-su-giorni.spec.ts --retries=0`
+      - Attendi: tutti gli scenari della spec verdi.
+      - Esegui: `npx playwright test --retries=0`
+      - Attendi: intera suite verde, con `fullyParallel: true` invariato e senza `workers: 1`. Come da `tests/e2e/README.md`, il gate di stabilità è **tre esecuzioni consecutive** verdi di questo comando.
+      - Esegui: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Attendi: `data.ok: true`.
+      - Esegui: `archetipo spec show US-057`
+      - Attendi: nessun task con stato `TODO`, incluso questo gate già marcato `DONE`.
+
+      ## Done
+
+      - [ ] `npm run lint`, `npx tsc --noEmit`, `npm test`, `npx prisma validate`, `npm run build` e l'intera suite Playwright sono verdi, senza alcuna diagnostica nuova sui file toccati rispetto alla baseline.
+      - [ ] Tre esecuzioni consecutive di `npx playwright test --retries=0` risultano verdi, senza riduzione del parallelismo né aumento dei retry.
+      - [ ] `archetipo wiki validate --profile bootstrap` restituisce `data.ok: true` per tutte e tre le pagine aggiornate.
+      - [ ] Gli oracoli di **AC-1**, **AC-2**, **AC-3**, **AC-4** e **AC-5** risultano verdi nelle esecuzioni sopra.
+      - [ ] `archetipo spec show US-057`, eseguito **dopo** aver marcato questo gate `DONE`, non riporta alcun task `TODO`; solo allora viene invocato `archetipo spec review US-057`.
+
+      ## Blockers
+
+      None.
+    ref: TASK-10
