@@ -1,0 +1,115 @@
+{
+  "baseline_sha": "157ea55367ec940b464d9ad2c64789b73535b463",
+  "effort": "medium",
+  "models": {
+    "sonnet": "sonnet",
+    "opus": "opus"
+  },
+  "committente": {
+    "model": "sonnet",
+    "effort": "low"
+  },
+  "max_review_iterations": 3,
+  "max_discovery_turns": 20,
+  "budget_usd_per_phase": {
+    "sonnet": 25,
+    "opus": 60
+  },
+  "configs": {
+    "C1": {
+      "label": "ARchetipo completo",
+      "wiki": true,
+      "pipeline": "completo"
+    },
+    "C2": {
+      "label": "Solo storie → diretto",
+      "wiki": true,
+      "pipeline": "storie-diretto"
+    },
+    "C3": {
+      "label": "Solo storie → diretto",
+      "wiki": false,
+      "pipeline": "storie-diretto"
+    },
+    "C4": {
+      "label": "Senza piano",
+      "wiki": true,
+      "pipeline": "senza-piano"
+    },
+    "C5": {
+      "label": "Senza piano",
+      "wiki": false,
+      "pipeline": "senza-piano"
+    }
+  },
+  "runs": [
+    {
+      "id": "sonnet-C1",
+      "model": "sonnet",
+      "config": "C1"
+    },
+    {
+      "id": "sonnet-C2",
+      "model": "sonnet",
+      "config": "C2"
+    },
+    {
+      "id": "sonnet-C3",
+      "model": "sonnet",
+      "config": "C3"
+    },
+    {
+      "id": "sonnet-C4",
+      "model": "sonnet",
+      "config": "C4"
+    },
+    {
+      "id": "sonnet-C5",
+      "model": "sonnet",
+      "config": "C5"
+    },
+    {
+      "id": "opus-C1",
+      "model": "opus",
+      "config": "C1"
+    },
+    {
+      "id": "opus-C2",
+      "model": "opus",
+      "config": "C2"
+    },
+    {
+      "id": "opus-C3",
+      "model": "opus",
+      "config": "C3"
+    },
+    {
+      "id": "opus-C4",
+      "model": "opus",
+      "config": "C4"
+    },
+    {
+      "id": "opus-C5",
+      "model": "opus",
+      "config": "C5"
+    }
+  ],
+  "rubrica": {
+    "chiusura": 12,
+    "blocco": 22,
+    "autorizzazioni": 12,
+    "concorrenza": 10,
+    "visibilita": 10,
+    "cache": 6,
+    "tracciabilita": 6,
+    "persistenza": 8,
+    "interfaccia": 6,
+    "regressioni": 8
+  },
+  "valutazione": {
+    "model": "opus",
+    "effort": "medium",
+    "budget_usd_adattatore": 15,
+    "budget_usd_giudice_wiki": 10
+  }
+}
