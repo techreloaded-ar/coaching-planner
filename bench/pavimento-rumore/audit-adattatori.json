@@ -19,5 +19,12 @@
       "browser.ts": "726e7f11838e8e28a8ef811a8aaa4b1e81d613855adc7bb83990fdcd7fa39fb9",
       "integrazione.ts": "cbc9f5a94b058e300ef4d85115d6438b54b0062275bd06f09698e6efdfa0016b"
     }
+  },
+  "R-DIR-sonnet-r5/1": {
+    "esito": "Audit log: NonImplementato soltanto V4, report non modificati e stato limitato alla pagina di gestione; storico reale e messaggio S1 include form e avviso. Nessuna correzione necessaria. Tre letture complete identiche a 88.2.",
+    "sha256": {
+      "browser.ts": "03af7e613a64d8cbc44df371f65058257d0c4663edd4bfc2fd03f0d86f7a5e26",
+      "integrazione.ts": "5344f3d46e54ad64aae38e63f3bddd0b47b4adb3e2cf4c152298d508ad06c68f"
+    }
   }
 }

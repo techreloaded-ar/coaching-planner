@@ -78,3 +78,7 @@ Il prompt della nuova sessione DIR Opus è stato verificato direttamente nel tra
 ## Aggiornamento 2026-10-22 00:00 Europe/Rome
 
 Prima nuova consegna valida R-DIR-opus-r1 completata: 18,5 min, 6,78 USD sviluppo, 87,8/100 × 3, nessuna violazione critica, mutation score 0,3233. Adapter audit senza correzioni necessarie (motivazione non implementata dal prodotto, letta come null). R-DIR-sonnet-r5 ora in corso. Costi consolidati 31,8748552 USD, residui 318,1251448. Audit dei tre adattatori primari validi registrato in `audit-adattatori.json` con hash, per distinguere le nuove generazioni dai file già controllati. La riga 87,8 con intervallo 79,8–87,8 nel log prima di RECOVERY riguarda la prova scartata; la nuova serie valida è 87,8 × 3.
+
+## Aggiornamento 2026-10-22 00:30 Europe/Rome
+
+R-DIR-sonnet-r5 verificata: 10,5 minuti, 1,83 USD sviluppo, 88,2/100 × 3, nessuna violazione critica; mutation 0,3752. Quattro consegne valide complete. Audit adattatore già effettuato, nessuna correzione. Ora in corso R-COM-opus-r5 / US-060-plan-1. Costo consolidato 34,3634222 USD, residuo 315,6365778 USD; nessuna nuova interruzione.
