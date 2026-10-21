@@ -250,3 +250,10 @@ e rivalutate a fine `valuta.py all`:
 - I piloti sono verificati: diretto coincide esattamente con prompt.txt; plan/implement hanno soltanto il normale wrapper slash-command della CLI; tutte le review coincidono con i prompt attesi. Restano validi.
 - Il banco ha sospeso l’orchestratore 61372 per impedire altri lanci. Lascia terminare solo il worker già attivo per conservarne il result e il costo; poi un recovery locale archivia le due prove e rilancia lo stesso comando.
 - Correzione: stdin=subprocess.DEVNULL per worker, adattatori, giudice Wiki e committente che ricevono il prompt come argomento; il giudice tecnico continua a ricevere il suo prompt previsto via input. Nuovo controllo del messaggio iniziale nel transcript principale, con riconoscimento della slash-command. Prompt scientifici, matrice, modelli e budget invariati. Dodici test del banco passati.
+
+
+## 2026-10-21 23:34 CEST · report 1 · ripresa dopo contaminazione stdin
+
+- Orchestratore precedente terminato dopo la conclusione della sessione già attiva, senza avviare altre fasi. Archiviate integralmente `R-DIR-opus-r1` e `R-DIR-sonnet-r5` sotto `_scartati/*--stdin--*`, inclusi stream, adattatore e valutazioni; i piloti Sonnet restano validi.
+- Costi consolidati al rilancio: 24.4208 USD, di cui prove scartate 10.1774 USD. I costi degli adattatori scartati sono conservati nella voce adattatori.
+- Rilanciato lo stesso `run.py all` con stdin nullo; nessun prompt, modello, rubrica o budget modificato.

@@ -68,3 +68,9 @@ Rivalutazione DIR completa e verificata: 90,7/100 × 3, tree hash conforme; tecn
 ## Interruzione stdin 2026-10-21 23:03 CEST
 
 **Contaminazione confermata**: nel lancio run.py all lo stdin ereditato ha accodato lo script heredoc ai prompt di R-DIR-opus-r1 e R-DIR-sonnet-r5. I piloti restano validi (audit dei transcript fatto). Parent 61372 in SIGSTOP, child 71893 lasciato terminare per conservare il costo. Recovery `/tmp/riprendi-rumore-stdin.py` PID 73498 attende con kqueue la fine del child, poi termina il parent sospeso, archivia integralmente entrambe le prove e rilancia run.py all con stdin DEVNULL. **Non rilanciare nulla finché il recovery è attivo.** Log recovery: `~/repo/coaching-planner-bench-runs/recovery-stdin.log`; il recovery aggiungerà qui il nuovo PID. Il punteggio 87,8 di DIR Opus è invalido e non va comunicato come risultato. Costi già sostenuti inclusi nel budget; nessuna modifica a prompt/matrice/modelli/rubrica. In seguito controllare la corretta ripresa e registrare il costo consolidato degli scarti.
+
+## Ripresa stdin 2026-10-21T23:34:24.166009+02:00
+
+Recovery conclusa. Le due prove contaminate sono archiviate; avviato nuovo run.py all PID 86336, stdin DEVNULL, log run-rumore.log. Costo consolidato 24.4208 USD; scarti sviluppo 10.1774 USD, più adattatore scartato conteggiato nella voce adattatori. La prima prova valida da eseguire resta R-DIR-opus-r1. Il parent sospeso 61372 è stato terminato.
+
+Il prompt della nuova sessione DIR Opus è stato verificato direttamente nel transcript principale: coincide esattamente con prompt.txt (548 caratteri). **In qualunque futuro lancio detached usare sempre stdin=subprocess.DEVNULL**, anche se le chiamate Claude nel banco lo impostano già. Scarti sviluppo 10,1774461 USD + adattatore scartato 0,697864 USD = 10,8753101 USD. Totale consolidato 24,4208394 USD; residuo 325,5791606 USD (sessione corrente non ancora consolidata).
