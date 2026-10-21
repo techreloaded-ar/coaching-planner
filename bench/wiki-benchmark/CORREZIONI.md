@@ -227,3 +227,10 @@ e rivalutate a fine `valuta.py all`:
 - `tecnica.py giudice` conserva ora il JSON e il costo di una lettura incompleta prima del nuovo tentativo. Criteri, prompt, pesi e budget del giudice invariati.
 - Il generatore del report 4 riconosce le nuove configurazioni DIR e COM; i confronti storici restano separati, mentre le mediane di coorte includeranno tutte le nuove consegne. La sua narrativa e la registrazione nell'indice saranno aggiornate solo sui dati finali.
 - Dieci test del banco passati, compresi SD pooled, bootstrap appaiato e potenza. La verifica visiva del report provvisorio è ancora da completare: browser integrato in timeout sul server locale (HTTP 200 da curl), Safari via CUA in timeout; apertura del file nel pannello Codex accodata.
+
+
+## 2026-10-21 21:16 CEST · report 1 · pilota R-DIR-sonnet-r1, adattatore S1
+
+- Prima consegna in 12,3 minuti, 2,02 USD; adattatore 0,66 USD. Tre letture iniziali identiche a 84,7/100. Audit: nessun NonImplementato; S1 fallisce perché il form viene sostituito dall’avviso `mese-chiuso`, visibile nello snapshot con zero righe salvate.
+- Applicato il criterio già registrato per i report precedenti: `messaggioErrore` accetta anche l’avviso; attesa `networkidle` dopo chiusura/riapertura per completare la server action. Nessun codice della consegna modificato.
+- Archiviate tutte e tre le letture e i log originali in `/Users/smarello/repo/coaching-planner-bench-runs/R-DIR-sonnet-r1/valutazione/scartate/adattatore-S1-20261021T2118`; da rifare in sequenza a macchina scarica dopo il pilota COM, già in corso. Le letture originali non entrano nel calcolo del rumore. C2/C3, V1 e U2 restano fallimenti da verificare sulla consegna, senza correggerla.
