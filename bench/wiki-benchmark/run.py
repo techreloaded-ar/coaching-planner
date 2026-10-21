@@ -27,7 +27,7 @@ from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent
 REPO = BENCH.parents[1]
-CFG = json.loads((BENCH / "matrice.json").read_text())
+CFG = json.loads((BENCH / os.environ.get("BENCH_MATRICE", "matrice.json")).read_text())  # es. matrice-wiki.json
 RICHIESTA = (BENCH / "richiesta.txt").read_text().strip()
 PROFILO_COMMITTENTE = (BENCH / "committente.md").read_text()
 RUNS = Path(os.environ.get("BENCH_RUNS", REPO.parent / "coaching-planner-bench-runs"))
@@ -159,8 +159,25 @@ def remove_wiki(repo):
     commit_if_dirty(repo, "bench: rimozione Wiki")
 
 
+def restore_wiki(repo):
+    """Riporta la Wiki della baseline in un clone che ne è privo (storie da un chiarimento senza Wiki)."""
+    shutil.copytree(prepare_baseline() / "docs" / "wiki", repo / "docs" / "wiki")
+    commit_if_dirty(repo, "bench: ripristino Wiki")
+
+
+def enable_wiki(repo):
+    """Dichiara la Wiki abilitata nel config: il progetto non ha la chiave e la CLI la riporta false, così alcuni
+    agenti saltano le operazioni Wiki anche quando docs/wiki esiste (osservato in sonnet-PW-1)."""
+    config = repo / ".archetipo" / "config.yaml"
+    if "enabled: true" not in config.read_text().split("wiki:")[-1][:40]:
+        config.write_text(config.read_text().rstrip("\n") + "\nwiki:\n    enabled: true\n")
+        commit_if_dirty(repo, "bench: wiki abilitata")
+
+
 def setup_clone(repo, name, wiki, migrate=True):
     """Skill, dipendenze, database e .env dedicati. Escluso dai tempi delle prove."""
+    if wiki:
+        enable_wiki(repo)
     # Le skill sono gitignored: copiate dall'installazione corrente, senza archetipo-wiki se la prova è senza Wiki.
     for skills in (".claude/skills", ".agents/skills"):
         shutil.rmtree(repo / skills, ignore_errors=True)
@@ -216,24 +233,43 @@ def run_claude(phase_dir, turn, prompt, model, cwd, resume=None):
         subprocess.run(cmd, cwd=cwd, stdout=out, stderr=err, text=True, check=False, env=agent_env())
     free_app_port()
 
-    init = result = None
-    for line in stream.read_text().splitlines():
-        if not line.strip():
-            continue
-        event = json.loads(line)
-        if event.get("type") == "system" and event.get("subtype") == "init":
-            init = event
-        elif event.get("type") == "result":
-            result = event
+    init, result = parse_stream(stream)
     if init is None or result is None:
         sys.exit(f"Fase {phase_dir.name}: stream senza init o result, vedi {stream}")
     foreign = [p["name"] for p in init.get("plugins", []) if p.get("path") != "builtin"]
     foreign += [s for s in init.get("skills", []) if CONTAMINAZIONI.search(s)]
     if foreign:
         sys.exit(f"Fase {phase_dir.name}: configurazione contaminata da {foreign}. Scartare la fase.")
-    if result.get("is_error") and "authenticate" in str(result.get("result", "")):
-        sys.exit(f"Fase {phase_dir.name}: autenticazione Claude fallita (claude auth login).")
+    if result.get("is_error"):
+        # Autenticazione, limite di sessione, errore API: la fase non va registrata come completata.
+        sys.exit(f"Fase {phase_dir.name}: sessione Claude in errore, rilanciare lo stesso comando quando risolto: "
+                 f"{str(result.get('result', ''))[:200]}")
     return result, init
+
+
+def parse_stream(stream):
+    """Primo init e result complessivo dello stream.
+
+    Se un task in background termina dopo la fine del turno, il CLI riapre la sessione nello stesso
+    processo e lo stream contiene più coppie init/result: costo, duration_api_ms e modelUsage sono
+    cumulativi nell'ultimo result, mentre duration_ms e num_turns vanno sommati.
+    """
+    init, results = None, []
+    for line in stream.read_text().splitlines():
+        if not line.strip():
+            continue
+        event = json.loads(line)
+        if event.get("type") == "system" and event.get("subtype") == "init":
+            init = init or event
+        elif event.get("type") == "result":
+            results.append(event)
+    if not results:
+        return init, None
+    result = dict(results[-1])
+    result["duration_ms"] = sum(r.get("duration_ms", 0) for r in results)
+    result["num_turns"] = sum(r.get("num_turns", 0) for r in results)
+    result["result_events"] = len(results)
+    return init, result
 
 
 def tokens_of(usage):
@@ -405,12 +441,13 @@ def ask_committente(dialog, log_dir):
     return result["result"].strip(), result.get("total_cost_usd", 0) or 0
 
 
-def discovery_id(model, wiki):
-    return f"D-{model}-{'wiki' if wiki else 'nowiki'}"
+def discovery_id(model, wiki, replica=None):
+    return f"D-{model}-{'wiki' if wiki else 'nowiki'}" + (f"-r{replica}" if replica else "")
 
 
-def discover(model, wiki):
-    run_dir = RUNS / discovery_id(model, wiki)
+def discover(model, wiki, replica=None):
+    """Chiarimento condiviso; `replica` > 1 ne esegue una copia indipendente (D-<modello>-<wiki>-r<N>)."""
+    run_dir = RUNS / discovery_id(model, wiki, replica)
     summary_path = run_dir / "discovery.json"
     if summary_path.exists():
         return json.loads(summary_path.read_text())
@@ -471,11 +508,17 @@ def run(run_id):
         sys.exit(f"Prova sconosciuta: {run_id}")
     config = CFG["configs"][spec["config"]]
     model, wiki, pipeline = spec["model"], config["wiki"], config["pipeline"]
-    discovery = discover(model, wiki)
+    # `storie_da_wiki` (opzionale) prende le storie dal chiarimento dell'altra variante: stesse storie, Wiki diversa.
+    storie_da_wiki = spec.get("storie_da_wiki", wiki)
+    discovery = discover(model, storie_da_wiki)
     run_dir = RUNS / run_id
     repo = run_dir / "repo"
     if not repo.exists():
         clone(RUNS / discovery["id"] / "repo", repo)
+        if storie_da_wiki and not wiki:
+            remove_wiki(repo)
+        elif wiki and not storie_da_wiki:
+            restore_wiki(repo)
         setup_clone(repo, run_id, wiki)
     print(f"▶ prova {run_id} · {config['label']} · Wiki {'sì' if wiki else 'no'}", flush=True)
     codes = discovery["codes"]
@@ -494,9 +537,12 @@ def run(run_id):
             rework = 0
             while True:
                 n = rework + 1
-                if pipeline == "completo":
+                if pipeline in ("completo", "piano"):
                     step(f"{code}-plan-{n}", f"/archetipo-plan {code}", "archetipo-plan")
-                    step(f"{code}-implement-{n}", f"/archetipo-implement {code}", "archetipo-implement")
+                    implement = step(f"{code}-implement-{n}", f"/archetipo-implement {code}", "archetipo-implement")
+                    if pipeline == "piano":  # piano e implementazione senza accettazione: la qualità la misura l'oracolo
+                        outcomes[code] = {"status": spec_status(repo, code), "rework_cycles": 0, "head": implement["head"]}
+                        break
                 else:
                     direct_id = f"{code}-diretto-{n}"
                     if not phase_done(run_dir, direct_id):
@@ -600,13 +646,15 @@ def main(argv):
     if command == "baseline":
         print(prepare_baseline())
     elif command == "discover":
-        discover(args[0], args[1] == "wiki")
+        discover(args[0], args[1] == "wiki", int(args[2]) if len(args) > 2 else None)
     elif command == "run":
         run(args[0])
     elif command == "all":
         for model in CFG["models"]:
             for wiki in (True, False):
                 discover(model, wiki)
+        for extra in CFG.get("chiarimenti_extra", []):
+            discover(extra["model"], extra["wiki"], extra["replica"])
         for r in CFG["runs"]:
             run(r["id"])
         status()

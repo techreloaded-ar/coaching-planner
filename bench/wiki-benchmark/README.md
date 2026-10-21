@@ -60,3 +60,22 @@ python3 bench/wiki-benchmark/report.py
 - Taratura: `valuta.py baseline` deve dare 8/100 (solo regressioni).
 - `report.py`: `report-dati.json` → narrativa Opus (`narrativa.json`, solo numeri dai dati) → `report.html` con lo stile del report RideAtlas.
 - Lancio completo autonomo: [PROMPT-lancio.md](PROMPT-lancio.md).
+
+## Esperimento sull'incidenza della Wiki a storie uguali
+
+`matrice-wiki.json` (selezionata con `BENCH_MATRICE=matrice-wiki.json`) riusa i chiarimenti della matrice principale e
+isola la Wiki nella fase di sviluppo: le storie vengono sempre da `D-<modello>-wiki`, cambia solo la Wiki disponibile.
+
+- `PW` / `PN`: pipeline `piano` (archetipo-plan → archetipo-implement per storia, senza accettazione) con e senza Wiki, 2 repliche.
+- `DN`: sviluppo diretto senza Wiki a storie uguali, da confrontare con `<modello>-C2` della matrice principale.
+- `storie_da_wiki: true` su una prova senza Wiki clona il chiarimento con Wiki e rimuove `docs/wiki` e la skill
+  (`storie_da_wiki: false` su una prova con Wiki ripristina la Wiki della baseline).
+- `chiarimenti_extra`: repliche indipendenti dei chiarimenti (`D-<modello>-<wiki>-r<N>`, anche `run.py discover sonnet wiki 2`).
+
+```bash
+BENCH_MATRICE=matrice-wiki.json python3 bench/wiki-benchmark/run.py all
+```
+
+```bash
+BENCH_MATRICE=matrice-wiki.json python3 bench/wiki-benchmark/valuta.py all
+```

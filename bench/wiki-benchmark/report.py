@@ -32,6 +32,7 @@ FLUSSI = {
     "completo": "archetipo-spec → archetipo-plan → archetipo-implement → archetipo-review",
     "storie-diretto": "archetipo-spec → sviluppo diretto",
     "senza-piano": "archetipo-spec → sviluppo diretto → archetipo-review",
+    "piano": "archetipo-spec → archetipo-plan → archetipo-implement",
 }
 CSS = (Path(__file__).parent / "report.css").read_text()
 

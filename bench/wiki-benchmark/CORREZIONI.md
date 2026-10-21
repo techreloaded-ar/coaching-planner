@@ -1,0 +1,147 @@
+# Correzioni al banco applicate durante la matrice
+
+## 2026-10-19 · opus-C2 / 01-diretto · più eventi `result` nello stesso stream
+
+- **Causa.** L'agente ha lanciato la suite e2e in background e ha chiuso il turno; quando la notifica di fine
+  task è arrivata, il CLI ha riaperto la sessione nello stesso processo `claude -p`, producendo una seconda
+  coppia `init`/`result` nello stream. `run_claude` teneva solo l'ultimo `result`, in cui costo, `duration_api_ms`
+  e `modelUsage` sono cumulativi ma `duration_ms` e `num_turns` no: la fase risultava 0.4 min e 3 turni a fronte
+  di 12.5 min reali (wall 13.8 min) e 94 turni.
+- **Modifica.** `run.py`: nuova `parse_stream()` che somma `duration_ms` e `num_turns` di tutti i `result` dello
+  stream, tiene l'ultimo per i valori cumulativi e registra `result_events`. Nessun prompt, modello o budget toccato.
+- **Dati.** `metrics.json` di `opus-C2/phases/01-diretto` ricalcolato dallo stream già salvato, senza rilanciare
+  l'agente. A fine matrice tutti gli stream sono stati ricontrollati (il processo in corso usava ancora il codice
+  precedente); vedi la nota in coda.
+
+## 2026-10-20 · valutazione sonnet-C1 · adattatore browser, `messaggioErrore` troppo stretto (S1)
+
+- **Causa.** L'adattatore generato cercava il testo del rifiuto solo dentro il form della nuova riga. La consegna,
+  dopo il rifiuto del salvataggio da scheda obsoleta, ricarica la giornata e sostituisce il form con l'avviso
+  `avviso-mese-chiuso` (stesso testo "Il mese è chiuso: le attività non sono modificabili"); lo snapshot
+  `error-context.md` di S1 mostra l'avviso visibile e zero righe scritte. Il controllo falliva per il locator,
+  non per la consegna.
+- **Modifica.** `sonnet-C1/valutazione/adattatore/browser.ts`: `messaggioErrore` cerca il testo in tutta la pagina.
+  Nessun'altra modifica all'adattatore; la consegna non è stata toccata.
+- **Rivalutazione.** `valuta.py sonnet-C1` dopo la fine di `valuta.py all` (porta 3000 condivisa).
+
+## 2026-10-20 · oracolo · P3 confrontava anche il campo di stato aggiunto al report
+
+- **Causa.** `oracolo/integrazione.test.ts`, controllo P3 ("chiudere non altera righe né report di fatturazione"):
+  il commento dichiara che un campo di stato aggiunto dalla consegna va ignorato, ma il confronto usava le chiavi
+  del report *prima* della chiusura. Una consegna che espone sempre `meseChiuso` nel report (sonnet-C3, US-062)
+  aveva la chiave già presente con `false`, poi `true`: il controllo falliva pur con importi identici.
+- **Modifica.** Il confronto usa solo i campi della baseline (`token`, `perCliente`, `totali`, da
+  `src/lib/report.ts` al commit baseline). Rubrica e pesi invariati. Il cambiamento può solo trasformare un
+  fallimento in successo, quindi le prove già valutate che avevano P3 superato (sonnet-C1, sonnet-C2) restano valide.
+- **Rivalutazione.** `valuta.py sonnet-C3` a fine `valuta.py all`; le prove successive ricevono la copia corretta
+  dell'oracolo al momento della loro valutazione (verificato sul file copiato in `valutazione/repo/__oracolo__/`).
+
+## 2026-10-20 · valutazione sonnet-C3 · adattatore browser, `messaggioErrore` (S1)
+
+- **Causa.** Stesso caso di sonnet-C1: l'adattatore cercava il box `errore-salvataggio-riga` nel form, ma la
+  consegna dopo il rifiuto ricarica la giornata e mostra l'avviso `avviso-mese-chiuso` ("Il mese è chiuso: non è
+  possibile modificare attività e rimborsi") al posto del form; nessuna riga scritta (snapshot `error-context.md`).
+- **Criterio applicato a tutte le prove.** L'avviso di mese chiuso che sostituisce il form dopo il rifiuto vale
+  come "errore chiaro, nessun falso successo"; un salvataggio silenziosamente ignorato o un falso successo no.
+- **Modifica.** `sonnet-C3/valutazione/adattatore/browser.ts`: `messaggioErrore` accetta anche `avviso-mese-chiuso`.
+
+## 2026-10-20 · valutazione sonnet-C4 · adattatore browser, `messaggioErrore` (S1)
+
+- **Causa.** Come sonnet-C1 e sonnet-C3: dopo il rifiuto la consegna mostra lo status `mese-chiuso`
+  ("Il mese è chiuso: le attività non sono modificabili") al posto del form; nessuna riga scritta.
+- **Modifica.** `sonnet-C4/valutazione/adattatore/browser.ts`: `messaggioErrore` accetta anche `mese-chiuso`.
+  Rivalutazione a fine `valuta.py all`.
+
+## 2026-10-20 · valutazione sonnet-C5 · adattatore browser, `messaggioErrore` (S1)
+
+- **Causa.** Come le prove precedenti: dopo il rifiuto la consegna mostra lo status `indicazione-mese-chiuso`
+  ("Mese chiuso — le attività e i rimborsi non sono modificabili.") al posto del form `#form-riga`.
+- **Modifica.** `sonnet-C5/valutazione/adattatore/browser.ts`: `messaggioErrore` accetta anche l'indicazione.
+  Rivalutazione a fine `valuta.py all`.
+
+## 2026-10-20 · valutazione opus-C3 · adattatore integrazione, `storico` dichiarato NonImplementato per intero
+
+- **Causa.** La consegna ha il solo modello `ChiusuraMese` (mese unico, `chiusoIl`, `chiusoDaUtenteId`) e la
+  riapertura cancella la riga: non esiste uno storico, ma autore e momento della chiusura in vigore sono
+  registrati (controllo T1). L'adattatore lanciava `NonImplementato` su tutto `storico`, facendo fallire anche
+  T1 e K2, che la consegna soddisfa.
+- **Modifica.** `opus-C3/valutazione/adattatore/integrazione.ts`: `storico` legge la riga `ChiusuraMese` così
+  com'è (un evento di chiusura se presente, nessuno altrimenti, motivazione `null`). Nessuna capacità aggiunta:
+  T2 (tre eventi con motivazione) continua a fallire perché le riaperture non sono registrate.
+- **Criterio.** Stesso delle altre prove: NonImplementato solo per ciò che la consegna non ha davvero; i dati
+  presenti si leggono senza reinterpretarli.
+
+## 2026-10-20 · valutazione opus-C3 · adattatore browser, `messaggioErrore` (S1)
+
+- Come le prove precedenti: lo status `avviso-mese-chiuso` ("Mese chiuso: le attività non sono più
+  modificabili") sostituisce il form dopo il rifiuto. `messaggioErrore` lo accetta. Rivalutazione a fine ciclo.
+
+## 2026-10-20 · valutazione opus-C5 · adattatore integrazione, `storico` dichiarato NonImplementato per intero
+
+- Stesso caso di opus-C3: `ChiusuraMese` (anno, mese, `chiusoIl`, `chiusoDaUtenteId`), riapertura che elimina la
+  riga, nessuna motivazione. `storico` ora legge la riga così com'è (un evento di chiusura o nessuno).
+  T2 continua a fallire legittimamente. Rivalutazione a fine ciclo.
+
+## 2026-10-20 · nota di chiusura della valutazione
+
+- `valuta.py all` è stato lanciato due volte: il primo lancio si è interrotto su sonnet-C2 per il limite di sessione
+  del CLI durante la generazione dell'adattatore (errore transitorio, 0.49 USD); il secondo ha completato le 10 prove
+  e ha rivalutato sonnet-C1 con l'adattatore corretto.
+- Rivalutate con `valuta.py <run-id>` dopo le correzioni degli adattatori: sonnet-C3, sonnet-C4, sonnet-C5, opus-C3,
+  opus-C5. Le altre prove (sonnet-C1 già rivalutata, sonnet-C2, opus-C1, opus-C2, opus-C4) non avevano errori del banco.
+- Il controllo P3 corretto è stato applicato a tutte le prove valutate dopo la correzione; per le precedenti
+  (sonnet-C1, sonnet-C2) P3 era già superato e la correzione non può cambiare un esito positivo.
+
+## 2026-10-20 · esperimento Wiki (matrice-wiki.json) · `wiki.enabled` assente nel config
+
+- **Causa.** `.archetipo/config.yaml` del progetto non ha la chiave `wiki.enabled`; `archetipo config show` la
+  riporta `false` anche quando `docs/wiki/` esiste. I comandi `archetipo wiki …` funzionano comunque, ma gli agenti
+  leggono il flag: in `sonnet-PW-1` plan e implement hanno fatto 0 operazioni Wiki ("Wiki: non abilitato, quindi
+  nessun impatto"), mentre in sonnet-C1 le stesse skill ne facevano 5–11. La cella "con Wiki" non era controllata.
+- **Modifica.** `run.py`, `setup_clone`: nei cloni con Wiki aggiunge `wiki: enabled: true` al config (commit
+  "bench: wiki abilitata"). Vale per chiarimenti e prove dell'esperimento.
+- **Dati.** `sonnet-PW-1` (US-060 completata, US-061 plan interrotto, ~4 USD) e i chiarimenti replicati con Wiki
+  (`D-*-wiki-r2/r3`) eseguiti col flag false sono stati spostati in `_scartati/*-wikidisabled` e rifatti.
+- **Nota per la matrice principale.** Tutte le prove della matrice principale hanno girato con il flag false:
+  la condizione "con Wiki" significava "pagine presenti, flag non dichiarato". Gli agenti hanno comunque usato la
+  Wiki nelle pipeline ARchetipo (C1: 74 e 119 operazioni) e nelle fasi `archetipo-wiki refresh`, ma in sonnet-C4 la
+  review ha saltato il gate Wiki proprio per il flag. Il report pubblicato lo riporta tra le osservazioni.
+
+## 2026-10-20 · esperimento Wiki · fasi vuote registrate come completate dopo il limite di sessione
+
+- **Causa.** `run_claude` interrompeva la matrice solo se il `result` in errore conteneva "authenticate". Al
+  limite di sessione del CLI ("You've hit your session limit · resets 1:20pm") il `result` ha `is_error: true` ma
+  la fase veniva comunque registrata (0 turni, 0 USD) e la matrice proseguiva: 14 fasi vuote da `opus-PW-1`
+  US-061-implement-1 fino a `opus-DN`.
+- **Modifica.** `run.py`: qualunque `result` con `is_error` termina il processo senza scrivere `metrics.json`.
+- **Dati.** Fasi vuote eliminate (le fasi valide di `opus-PW-1` restano), `run.json` delle prove coinvolte rimossi;
+  rilancio dello stesso comando dopo il reset del limite. Nessun costo perso.
+- **Addendum.** Anche `opus-PW-1` / US-061-plan-1 era in errore per il limite (interrotta a metà, 2.11 USD, piano
+  non salvato ma commit parziale); l'implement successivo ha rifiutato perché la spec era ancora TODO. Fasi US-061
+  rimosse, clone riportato al commit di US-060-implement-1, prova completata con un nuovo lancio di `run.py all`.
+  Costo perso: 2.11 USD (plan) più l'implement a vuoto (4 turni, metriche non conservate).
+
+## 2026-10-20 · esperimento Wiki · adattatori browser, `messaggioErrore` (S1)
+
+Stesso criterio della matrice principale: dopo il rifiuto del salvataggio da scheda obsoleta la consegna ricarica
+la giornata e mostra l'avviso di mese chiuso al posto del form; l'avviso vale come messaggio chiaro. Prove corrette
+e rivalutate a fine `valuta.py all`:
+- sonnet-PW-1: `messaggioErrore` accetta anche `mese-chiuso-avviso`.
+- sonnet-PW-2: `messaggioErrore` accetta anche lo status con il testo di mese chiuso.
+- opus-PW-1: `messaggioErrore` accetta anche lo status "Mese chiuso: le attività non sono più modificabili".
+- opus-PW-2: `messaggioErrore` accetta anche lo status "Mese chiuso: le attività non sono più modificabili".
+
+## 2026-10-20 · esperimento Wiki · sonnet-PW-1, U1 in timeout alla rivalutazione
+
+- Alla prima valutazione U1 ("riapertura dall'interfaccia") era superato; alla rivalutazione (stesso adattatore,
+  stessa consegna) è andato in timeout a 90 s in attesa del campo "Motivazione" nella pagina di riapertura, mentre
+  in parallelo giravano le sessioni del giudice delle scelte funzionali. Esito ambientale, non della consegna:
+  la prova viene rivalutata una terza volta a macchina scarica e si riportano entrambi gli esiti.
+- **Esito.** Terza e quarta valutazione di sonnet-PW-1: U1 ancora in timeout (nella terza anche un e2e della
+  baseline in timeout per carico macchina: Spotlight e app utente dopo il riavvio). In isolamento, dopo aver
+  riaperto il mese, U1 passa in 1,8 s: il prodotto è corretto. Causa: `chiudiMese` dell'adattatore tornava appena
+  visibile il badge "Chiuso" mentre la server action poteva essere ancora in volo, e il `goto` successivo trovava il
+  mese ancora aperto. Adattatore corretto con `waitForLoadState("networkidle")` dopo l'esito di chiusura e
+  riapertura; quinta valutazione. Esiti registrati: 84.7 (S1 adattatore), 88.7 (U1 timeout), 80.7 (U1 + e2e timeout),
+  88.7 (U1 timeout), poi il definitivo.
+- **Definitivo.** Quinta valutazione di sonnet-PW-1 con l'adattatore corretto: 90.7/100 (U1 e S1 superati).

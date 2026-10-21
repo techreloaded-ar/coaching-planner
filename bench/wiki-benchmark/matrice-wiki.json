@@ -1,0 +1,154 @@
+{
+  "baseline_sha": "157ea55367ec940b464d9ad2c64789b73535b463",
+  "effort": "medium",
+  "models": {
+    "sonnet": "sonnet",
+    "opus": "opus"
+  },
+  "committente": {
+    "model": "sonnet",
+    "effort": "low"
+  },
+  "max_review_iterations": 3,
+  "max_discovery_turns": 20,
+  "budget_usd_per_phase": {
+    "sonnet": 25,
+    "opus": 60
+  },
+  "rubrica": {
+    "chiusura": 12,
+    "blocco": 22,
+    "autorizzazioni": 12,
+    "concorrenza": 10,
+    "visibilita": 10,
+    "cache": 6,
+    "tracciabilita": 6,
+    "persistenza": 8,
+    "interfaccia": 6,
+    "regressioni": 8
+  },
+  "valutazione": {
+    "model": "opus",
+    "effort": "medium",
+    "budget_usd_adattatore": 15,
+    "budget_usd_giudice_wiki": 10
+  },
+  "descrizione": "Esperimento sull'incidenza della Wiki a storie uguali: le storie vengono sempre dal chiarimento con Wiki (D-<modello>-wiki, riusato dalla matrice principale); cambia solo la Wiki disponibile in plan/implement o nello sviluppo diretto. Chiarimenti replicati con e senza Wiki per la fase spec.",
+  "configs": {
+    "PW": {
+      "label": "Piano → implement",
+      "wiki": true,
+      "pipeline": "piano"
+    },
+    "PN": {
+      "label": "Piano → implement",
+      "wiki": false,
+      "pipeline": "piano"
+    },
+    "DN": {
+      "label": "Solo storie → diretto",
+      "wiki": false,
+      "pipeline": "storie-diretto"
+    }
+  },
+  "chiarimenti_extra": [
+    {
+      "model": "sonnet",
+      "wiki": true,
+      "replica": 2
+    },
+    {
+      "model": "sonnet",
+      "wiki": true,
+      "replica": 3
+    },
+    {
+      "model": "sonnet",
+      "wiki": false,
+      "replica": 2
+    },
+    {
+      "model": "sonnet",
+      "wiki": false,
+      "replica": 3
+    },
+    {
+      "model": "opus",
+      "wiki": true,
+      "replica": 2
+    },
+    {
+      "model": "opus",
+      "wiki": true,
+      "replica": 3
+    },
+    {
+      "model": "opus",
+      "wiki": false,
+      "replica": 2
+    },
+    {
+      "model": "opus",
+      "wiki": false,
+      "replica": 3
+    }
+  ],
+  "runs": [
+    {
+      "id": "sonnet-PW-1",
+      "model": "sonnet",
+      "config": "PW"
+    },
+    {
+      "id": "sonnet-PN-1",
+      "model": "sonnet",
+      "config": "PN",
+      "storie_da_wiki": true
+    },
+    {
+      "id": "sonnet-PW-2",
+      "model": "sonnet",
+      "config": "PW"
+    },
+    {
+      "id": "sonnet-PN-2",
+      "model": "sonnet",
+      "config": "PN",
+      "storie_da_wiki": true
+    },
+    {
+      "id": "sonnet-DN",
+      "model": "sonnet",
+      "config": "DN",
+      "storie_da_wiki": true
+    },
+    {
+      "id": "opus-PW-1",
+      "model": "opus",
+      "config": "PW"
+    },
+    {
+      "id": "opus-PN-1",
+      "model": "opus",
+      "config": "PN",
+      "storie_da_wiki": true
+    },
+    {
+      "id": "opus-PW-2",
+      "model": "opus",
+      "config": "PW"
+    },
+    {
+      "id": "opus-PN-2",
+      "model": "opus",
+      "config": "PN",
+      "storie_da_wiki": true
+    },
+    {
+      "id": "opus-DN",
+      "model": "opus",
+      "config": "DN",
+      "storie_da_wiki": true
+    }
+  ]
+}

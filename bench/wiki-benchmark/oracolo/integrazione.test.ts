@@ -433,9 +433,11 @@ describe("persistenza", () => {
 		await come(amministratore.utente);
 		expect(JSON.stringify([await righeDelMese(collaboratoreA, m), await righeDelMese(collaboratoreB, m)])).toBe(righePrima);
 		const reportDopo = await reportFatturazioneClientiMese(token);
-		// La consegna può aggiungere al report un campo di stato: si confrontano i soli campi originali.
-		const originale = JSON.parse(reportPrima) as Record<string, unknown>;
-		const confrontabile = Object.fromEntries(Object.keys(originale).map((k) => [k, (reportDopo as Record<string, unknown>)[k]]));
-		expect(JSON.stringify(confrontabile)).toBe(reportPrima);
+		// La consegna può aggiungere al report un campo di stato (anche già presente prima della chiusura):
+		// si confrontano i soli campi della baseline (`RisultatoReportFatturazione` in src/lib/report.ts).
+		const campiBaseline = ["token", "perCliente", "totali"] as const;
+		const soloBaseline = (r: unknown) =>
+			JSON.stringify(Object.fromEntries(campiBaseline.map((k) => [k, (r as Record<string, unknown>)[k]])));
+		expect(soloBaseline(reportDopo)).toBe(soloBaseline(JSON.parse(reportPrima)));
 	});
 });
