@@ -1,0 +1,2361 @@
+{
+  "aggiornato": "2026-10-21T20:56:13.930496+02:00",
+  "prove": [
+    {
+      "id": "R-DIR-opus-r1",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 1,
+      "secondo_adattatore": true,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-DIR-sonnet-r1",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 1,
+      "secondo_adattatore": true,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-sonnet-r1",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 1,
+      "secondo_adattatore": true,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-DIR-sonnet-r5",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 5,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-opus-r5",
+      "model": "opus",
+      "config": "COM",
+      "replica": 5,
+      "secondo_adattatore": true,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-sonnet-r3",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 3,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-opus-r4",
+      "model": "opus",
+      "config": "COM",
+      "replica": 4,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-DIR-sonnet-r3",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 3,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-sonnet-r2",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 2,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-sonnet-r4",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 4,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-DIR-opus-r2",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 2,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-opus-r1",
+      "model": "opus",
+      "config": "COM",
+      "replica": 1,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-DIR-opus-r5",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 5,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-DIR-opus-r3",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 3,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-DIR-sonnet-r2",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 2,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-opus-r2",
+      "model": "opus",
+      "config": "COM",
+      "replica": 2,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-DIR-sonnet-r4",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 4,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-opus-r3",
+      "model": "opus",
+      "config": "COM",
+      "replica": 3,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-COM-sonnet-r5",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 5,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 505839,
+        "input_uncached": 20,
+        "cache_read": 441130,
+        "cache_creation": 52494,
+        "output": 12195
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 101395,
+          "duration_api_ms": 240408,
+          "num_turns": 12,
+          "cost_usd": 0.376079,
+          "tokens": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "output": 12195,
+            "cache_creation": 52494
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "input_uncached": 20,
+              "total": 505839,
+              "cache_read": 441130,
+              "output": 12195,
+              "cache_creation": 52494,
+              "cost_usd": 0.376079
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success",
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 10,
+          "tokens_transcript": {
+            "input_uncached": 20,
+            "total": 505839,
+            "cache_read": 441130,
+            "cache_creation": 52494,
+            "output": 12195
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 2,
+              "total": 37857,
+              "cache_read": 24062,
+              "output": 318,
+              "cache_creation": 13475
+            },
+            "tokens_mixed_calls": {},
+            "count": 1,
+            "seconds": 0.087,
+            "result_bytes": 16814,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 3,
+          "committente_seconds": 24.9,
+          "committente_cost_usd": 0.0815796
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    },
+    {
+      "id": "R-DIR-opus-r4",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 4,
+      "secondo_adattatore": false,
+      "consegnata": false,
+      "tree_hash": null,
+      "qualita": null,
+      "valutazioni": [],
+      "intervallo": null,
+      "valutazioni_secondo_adattatore": [],
+      "minuti": null,
+      "usd": null,
+      "usd_sviluppo": null,
+      "token": null,
+      "token_dettaglio": {
+        "total": 675892,
+        "input_uncached": 26,
+        "cache_read": 609009,
+        "cache_creation": 56478,
+        "output": 10379
+      },
+      "righe_nette_src": null,
+      "righe_totali": null,
+      "usd_per_punto": null,
+      "controlli": {},
+      "fasi": [
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 98519,
+          "duration_api_ms": 147746,
+          "num_turns": 13,
+          "cost_usd": 0.7813098,
+          "tokens": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "output": 10379,
+            "cache_creation": 56478
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "input_uncached": 26,
+              "total": 675892,
+              "cache_read": 609009,
+              "output": 10379,
+              "cache_creation": 56478,
+              "cost_usd": 0.7813098
+            }
+          },
+          "result_subtypes": [
+            "success",
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "input_uncached": 26,
+            "total": 675892,
+            "cache_read": 609009,
+            "cache_creation": 56478,
+            "output": 10379
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "input_uncached": 4,
+              "total": 74796,
+              "cache_read": 57770,
+              "cache_creation": 16674,
+              "output": 348
+            },
+            "tokens_mixed_calls": {},
+            "count": 2,
+            "seconds": 0.189,
+            "result_bytes": 18045,
+            "by_tool": {
+              "Bash": 2
+            }
+          },
+          "phase": "01-spec",
+          "skill": "archetipo-spec",
+          "exchanges": 1,
+          "committente_seconds": 17.2,
+          "committente_cost_usd": 0.0217838
+        }
+      ],
+      "tecnica_presente": false,
+      "violazioni_critiche": []
+    }
+  ],
+  "celle": [
+    {
+      "model": "sonnet",
+      "config": "DIR",
+      "metriche": {
+        "qualita": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "minuti": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "usd": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "token": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "righe_nette_src": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "righe_totali": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "usd_per_punto": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        }
+      },
+      "controlli": {}
+    },
+    {
+      "model": "sonnet",
+      "config": "COM",
+      "metriche": {
+        "qualita": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "minuti": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "usd": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "token": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "righe_nette_src": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "righe_totali": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "usd_per_punto": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        }
+      },
+      "controlli": {}
+    },
+    {
+      "model": "opus",
+      "config": "DIR",
+      "metriche": {
+        "qualita": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "minuti": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "usd": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "token": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "righe_nette_src": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "righe_totali": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "usd_per_punto": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        }
+      },
+      "controlli": {}
+    },
+    {
+      "model": "opus",
+      "config": "COM",
+      "metriche": {
+        "qualita": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "minuti": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "usd": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "token": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "righe_nette_src": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "righe_totali": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        },
+        "usd_per_punto": {
+          "n": 0,
+          "mediana": null,
+          "min": null,
+          "max": null,
+          "sd": null
+        }
+      },
+      "controlli": {}
+    }
+  ],
+  "completo": false,
+  "sd_pooled": null,
+  "soglia_entro_il_rumore": null,
+  "potenza": {
+    "mde": null,
+    "repliche_per_effetto": null,
+    "nota": "SD non stimabile o nulla nel campione: nessuna stima affidabile della potenza."
+  },
+  "confronti": {},
+  "rumore_stesso_adattatore": [],
+  "rumore_due_adattatori": [],
+  "costi": {
+    "prove": 0.0,
+    "scartate": 0.0,
+    "turni_persi": 0.0,
+    "adattatori": 0.0,
+    "giudici_tecnici": 0.0,
+    "totale": 0.0
+  },
+  "prove_precedenti": [
+    {
+      "id": "sonnet-C1",
+      "qualita": 88.2,
+      "falliti": [
+        "C2",
+        "C3",
+        "U2",
+        "V1",
+        "V4"
+      ]
+    },
+    {
+      "id": "sonnet-C2",
+      "qualita": 88.2,
+      "falliti": [
+        "C2",
+        "C3",
+        "U2",
+        "V1",
+        "V4"
+      ]
+    },
+    {
+      "id": "sonnet-DN",
+      "qualita": 88.2,
+      "falliti": [
+        "C2",
+        "C3",
+        "U2",
+        "V1",
+        "V4"
+      ]
+    },
+    {
+      "id": "opus-C1",
+      "qualita": 87.8,
+      "falliti": [
+        "C2",
+        "C3",
+        "C5",
+        "T2",
+        "U2"
+      ]
+    },
+    {
+      "id": "opus-C2",
+      "qualita": 87.8,
+      "falliti": [
+        "C2",
+        "C3",
+        "C5",
+        "T2",
+        "U2"
+      ]
+    },
+    {
+      "id": "opus-DN",
+      "qualita": 87.8,
+      "falliti": [
+        "C2",
+        "C3",
+        "C5",
+        "T2",
+        "U2"
+      ]
+    }
+  ],
+  "seme_bootstrap": 2026102102,
+  "seme_matrice": 2026102101,
+  "ricampionamenti": 10000
+}

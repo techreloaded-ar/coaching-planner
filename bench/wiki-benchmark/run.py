@@ -156,7 +156,7 @@ def costi_esperimento():
     for cartella in cartelle:
         for fase in (cartella / "phases").glob("*"):
             sessioni = {}
-            for stream in fase.glob("stream-*.jsonl"):
+            for stream in sorted(fase.glob("stream-*.jsonl")):
                 _, risultato = parse_stream(stream)
                 if risultato:
                     sessioni[risultato.get("session_id", stream.name)] = risultato
@@ -339,10 +339,16 @@ def parse_stream(stream):
     cumulativi nell'ultimo result, mentre duration_ms e num_turns vanno sommati.
     """
     init, results = None, []
-    for line in stream.read_text().splitlines():
+    righe = stream.read_text().splitlines()
+    for indice, line in enumerate(righe):
         if not line.strip():
             continue
-        event = json.loads(line)
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            if indice == len(righe) - 1:
+                break  # status/costi possono leggere uno stream mentre il CLI ne scrive l'ultima riga
+            raise
         if event.get("type") == "system" and event.get("subtype") == "init":
             init = init or event
         elif event.get("type") == "result":

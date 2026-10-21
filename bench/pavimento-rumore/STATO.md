@@ -1,0 +1,48 @@
+# Report 1 · prosecuzione autonoma
+
+Richiesta autorizzata: eseguire `docs/benchmark/PROMPT-report-1.md` fino al report finale, riprendendo dopo i reset CLI, prove e valutazioni sequenziali, tetto 350 USD. Comunicare in italiano. Non leggere/modificare `.env` del progetto né correggere le consegne nei cloni. Non cambiare prompt, modelli, rubrica o matrice durante l'esperimento.
+
+## Stato
+
+- Branch `chore/test-models`; primo commit `888299f` (banco e matrice). Preesistevano modifiche a `run.py` pertinenti alla richiesta, incluse nel commit; due transcript non tracciati in `bench/wiki-benchmark/.claude/transcripts/` appartengono all'utente e vanno lasciati fuori.
+- Matrice congelata `bench/wiki-benchmark/matrice-rumore.json`, seme `2026102101`, quattro celle da cinque repliche. H1 invariata nel manifest, report «in corso».
+- Piloti avviati il 2026-10-21 alle 20:53 Europe/Rome, con:
+  `BENCH_MATRICE=matrice-rumore.json python3 -u bench/pavimento-rumore/esegui.py pilota`
+  log: `/Users/smarello/repo/coaching-planner-bench-runs/pilota-rumore.log`.
+  Ordine piloti: `R-DIR-sonnet-r1`, `R-COM-sonnet-r1`; ogni prova è seguita da tre valutazioni e misura tecnica. Il processo termina dopo `proiezione.json`.
+- Non avviare il resto finché non sono terminati i piloti e la proiezione non è stata comunicata in chat. Il prompt richiede di riportarla, non di chiedere approvazione.
+- 10 test del banco passati. Generatore del report 1 già pronto, pagina esplicitamente provvisoria. Nessuna inferenza finché mancano repliche. Prima di usare i dati per le conclusioni, verificare anche le voci del report e i calcoli.
+
+## Monitor e ripresa
+
+1. Controllare con `ps` i processi `esegui.py`, `wiki-benchmark/run.py`, `wiki-benchmark/valuta.py`, `claude -p`, `tecnica.py`. Non avviare un secondo processo finché il primo è vivo. Il log cresce per fasi, non continuamente: leggere lo stream senza output non significa blocco. Evitare polling ravvicinato.
+2. Leggere le nuove righe del log. Comunicare solo ogni nuova prova completata (riga `CONSEGNA VERIFICATA`), interruzione, proiezione o necessità di intervento. Restare silenziosi se nessuna novità.
+3. Ai result in errore fermare l'orchestrazione; annotare l'orario Europe/Rome, fase, testo del limite/reset e costo in `CORREZIONI.md` prima di riprendere. I result degli stream contengono il costo; `banco.costi_esperimento()` lo include anche se non c'è `metrics.json`. Non rilanciare prima dell'orario di reset se il motivo è un limite di sessione. Rilanciare poi lo stesso comando. `phase()` archivia il tentativo in `_scartati` e resetta il clone al commit salvato prima della fase.
+4. Comando costi:
+   `BENCH_MATRICE=matrice-rumore.json python3 bench/pavimento-rumore/esegui.py status`.
+   Il guardrail ferma a costo + adattatori residui ≥ 345 USD e prima di sessioni il cui massimo può superare 350. Stop per budget = riportare incompleto, non aggirare il tetto.
+5. Dopo i piloti leggere `bench/pavimento-rumore/proiezione.json` e comunicarne stima, costo effettivo e limitazioni. Avviare in background, con `subprocess.Popen(..., start_new_session=True)` e log aperto in append:
+   `BENCH_MATRICE=matrice-rumore.json python3 -u bench/wiki-benchmark/run.py all`
+   log richiesto `/Users/smarello/repo/coaching-planner-bench-runs/run-rumore.log`.
+   Il comando richiama `esegui.py valuta <id>` dopo ogni consegna: tre letture, poi `tecnica.py misura`. Le prove già complete saltano lo sviluppo e riusano le valutazioni. Nessuna fase `02-wiki-refresh` nella cella DIR.
+6. Quando `all` termina senza errori, lanciare in sequenza:
+   `BENCH_MATRICE=matrice-rumore.json python3 -u bench/pavimento-rumore/esegui.py finalizza`
+   in un log separato `finalizza-rumore.log`. Genera e valuta tre volte il secondo adattatore per le quattro prove designate, poi misura all, 40 letture dei giudici tecnici e punteggi. I costi dei nuovi giudici sono imputati al report 1, evitare doppio conteggio nel totale del manifest.
+
+## Verifiche ancora da eseguire sui dati
+
+- Per ogni adattatore leggere `adattatore.log` e i due file TS: controllare i `NonImplementato` contro il codice effettivo. Applicare solo correzioni dell'adattatore con criterio uniforme annotato (vedere CORREZIONI: avviso di mese chiuso al posto del form, storico già persistito, networkidle dopo chiusura/riapertura). Nessuna modifica alle consegne.
+- Se un adattatore va corretto dopo le letture, conservare le vecchie valutazioni e log sotto una cartella scartata, annotare la ragione, rimuovere la vista mediana e rifare TUTTE e tre le letture con l'adattatore corretto; le repliche devono usare lo stesso adattatore. Valutare a macchina scarica, senza altri processi AI/giudici in parallelo.
+- `valuta.py` usa `--replica 1|2|3`, `--adattatore 1|2`; le letture sono in `valutazione/evaluation-N.json`, seconda serie in `valutazione/adattatore-2/evaluation-N.json`. La vista `evaluation.json` serve a tecnica/report 4, mediana dopo tre letture.
+- Rigenerare `python3 bench/pavimento-rumore/report.py` per avere `bench/reports/pavimento-rumore/dati.json`. Le narrative vanno scritte a mano SOLO con numeri nei dati, senza deduzioni causali non sostenute.
+- Report 4: aggiunto supporto DIR/COM a etichette, colori e flussi; i confronti storici restano separati. `python3 bench/qualita-tecnica/report.py` dopo punteggi; rivedere TUTTA `bench/qualita-tecnica/narrativa.json` e le affermazioni numeriche che cambiano con le mediane di coorte e le nuove consegne. Aggiornare manifest report 4 risultato/esito se cambiano i numeri. Registrare rigenerazione nell'indice, senza addebitare due volte i nuovi giudici.
+- Generatore report 1: SD pooled su quattro celle; test t bilaterale di pari n, potenza con t non centrale (scipy 1.17.1 già disponibile); bootstrap appaiato k contro k, stratificato per modello nel confronto aggregato, seme `2026102102`; controllo per consegna deciso dalla maggioranza delle tre letture. Dati grezzi delle letture visibili.
+- Il browser integrato non ha raggiunto il server locale 8765 (`ERR_CONNECTION_TIMED_OUT`), benché `curl` dia HTTP 200. Safari via CUA è andato in timeout. Non affermare che la verifica visiva sia completata. `open_in_codex` del report HTML è stato accodato. Ritentare verifica nel browser disponibile alla fine, con filtri combinati e anchor dettagli.
+
+## Chiusura
+
+1. Verificare 20 consegne, 60 letture primarie e 12 secondarie, 20 misure tecniche nuove e due letture valide di giudice ciascuna; controllare precondizioni e tree hash.
+2. Scrivere narrativa report 1 e rivedere report 4 dai dati; sezione Limiti prima delle conclusioni. Test: `python3 -m unittest discover -s bench/pavimento-rumore/tests -v`; `python3 bench/pavimento-rumore/report.py --definitivo`; `git diff --check`.
+3. Manifest report 1: solo stato, costo, data, risultato ed esito H1; non riscrivere ipotesi. H1 = SD pooled, MDE e soglia 2 SD sotto la quale scrivere «entro il rumore».
+4. Registro in `bench/index.py`: rumore dell'oracolo entro le tre letture e tra i due adattatori; report 4 rigenerato. Rigenerare indice. Commit in italiano senza attribuzioni, includendo solo file pertinenti; non includere `__pycache__` o transcript dell'utente.
+5. Consegna: costo e residuo, scarti/motivi, H1 nella forma dell'indice, link assoluti a indice/report, interruzioni con orari. Disattivare l'automazione di prosecuzione quando il lavoro è finito o fermato per budget/necessità di decisione umana.

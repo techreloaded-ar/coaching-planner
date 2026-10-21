@@ -249,6 +249,8 @@ def valuta(nome, sorgente, head, tree_hash, base, adattatore_fisso=None, replica
         log(f"  {nome} adattatore {numero_adattatore} replica {replica}: già valutata")
         return precedente
     cartella_log = cartella if not replica else cartella_esiti / f"replica-{replica}"
+    if replica and cartella_log.exists() and any(cartella_log.iterdir()):
+        cartella_log.rename(cartella_esiti / f"replica-{replica}-tentativo-{time.time_ns()}")
     cartella_log.mkdir(parents=True, exist_ok=True)
     # Un tentativo interrotto non deve lasciare JSON utilizzabili dal tentativo successivo.
     for residuo in ("vitest-oracolo.json", "playwright-oracolo.json"):
@@ -268,6 +270,12 @@ def valuta(nome, sorgente, head, tree_hash, base, adattatore_fisso=None, replica
     risultato = {"prova": nome, "head": head, "tree_hash": tree_hash, "gate": gate_esiti,
                  "controlli": controlli, **punteggio(controlli, gate_esiti)}
     risultato.update(replica=replica, adattatore=numero_adattatore)
+    if replica:
+        attesi = {c['codice'] for c in json.loads((banco.BENCH.parent / 'common/controlli.json').read_text())['controlli']}
+        mancanti = attesi - risultato['controlli'].keys()
+        if mancanti:
+            banco.write_json(cartella_log / 'evaluation-incompleta.json', risultato)
+            sys.exit(f"{nome}: oracolo incompleto, controlli mancanti {sorted(mancanti)}; log conservati, nessuna replica valida registrata")
     banco.write_json(destinazione, risultato)
     if replica and numero_adattatore == 1:
         aggiorna_mediana(cartella)

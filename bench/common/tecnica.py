@@ -16,6 +16,7 @@ import re
 import statistics
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent.parent
@@ -374,6 +375,9 @@ def giudice(prova, letture=(1, 2)):
         if destinazione.exists() and leggi(destinazione).get("risposta"):
             print(f"{prova}: lettura {n} già presente")
             continue
+        if destinazione.exists():
+            # Anche una lettura interrotta può avere speso token: non sovrascriverne il costo.
+            destinazione.rename(out / f"giudice-{n}-tentativo-{time.time_ns()}.json")
         res = subprocess.run(["claude", "-p", "--model", MODELLO_GIUDICE, "--effort", EFFORT_GIUDICE, "--tools", "", "--setting-sources", "",
                               "--output-format", "json", "--json-schema", schema, "--max-budget-usd", str(BUDGET_GIUDICE_USD)],
                              input=prompt, capture_output=True, text=True, cwd=out, env=env, timeout=1800)

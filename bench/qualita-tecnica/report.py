@@ -27,12 +27,15 @@ CONTROLLI = json.loads((BENCH / "common" / "controlli.json").read_text())
 e = h.e
 
 ETICHETTE = {"C1": "ARchetipo completo", "C2": "Solo storie → diretto", "C3": "Solo storie → diretto, senza Wiki", "C4": "Senza piano",
-             "C5": "Senza piano, senza Wiki", "PW": "Piano → implement", "PN": "Piano → implement, senza Wiki", "DN": "Diretto, senza Wiki"}
+             "C5": "Senza piano, senza Wiki", "PW": "Piano → implement", "PN": "Piano → implement, senza Wiki", "DN": "Diretto, senza Wiki",
+             "DIR": "Diretto (report 1)", "COM": "ARchetipo completo (report 1)"}
 FLUSSI = {"C1": "archetipo-spec → archetipo-plan → archetipo-implement → archetipo-review", "C2": "archetipo-spec → sviluppo diretto → archetipo-wiki refresh",
           "C3": "archetipo-spec → sviluppo diretto", "C4": "archetipo-spec → sviluppo diretto → archetipo-wiki refresh → archetipo-review",
           "C5": "archetipo-spec → sviluppo diretto → archetipo-review", "PW": "archetipo-plan → archetipo-implement (storie fisse)",
-          "PN": "archetipo-plan → archetipo-implement (storie fisse, senza Wiki)", "DN": "sviluppo diretto (storie fisse, senza Wiki)"}
-COLORE_CELLA = {"C1": "#3c9c85", "C2": "#5aa9d6", "C3": "#9fcbe6", "C4": "#d49d32", "C5": "#e8c98a", "PW": "#8164c6", "PN": "#b7a6e0", "DN": "#8a9a9f"}
+          "PN": "archetipo-plan → archetipo-implement (storie fisse, senza Wiki)", "DN": "sviluppo diretto (storie fisse, senza Wiki)",
+          "DIR": "sviluppo diretto (storie fisse, Wiki abilitata)", "COM": "archetipo-plan → archetipo-implement → archetipo-review (storie fisse, Wiki abilitata)"}
+COLORE_CELLA = {"C1": "#3c9c85", "C2": "#5aa9d6", "C3": "#9fcbe6", "C4": "#d49d32", "C5": "#e8c98a", "PW": "#8164c6", "PN": "#b7a6e0", "DN": "#8a9a9f",
+                "DIR": "#3186b3", "COM": "#26745f"}
 AREE = [("dimensione", "Dimensione e focalizzazione", 20), ("complessita", "Complessità", 15), ("duplicazione", "Duplicazione", 10),
         ("mutation", "Mutation score", 25), ("copertura_percorsi", "Copertura dei percorsi", 5), ("convenzioni", "Convenzioni del repo", 15),
         ("tipi", "Tipi e sicurezza statica", 10)]
@@ -182,7 +185,7 @@ def tiles(d):
     t = cd["tecnico"]
     return '<div class="tiles">' + "".join([
         h.tile(f'{t["delta"]:+.1f}', f'Δ punteggio tecnico completo − diretto, entrambi i modelli (IC 95 % bootstrap {t["ic95"][0]:+.1f} … {t["ic95"][1]:+.1f}; n = {t["n"][0]} contro {t["n"][1]})'),
-        h.tile(f'{rpp:.0f}', 'righe aggiunte per punto funzionale, mediana delle 20 consegne (tutte le categorie, lockfile escluso)'),
+        h.tile(f'{rpp:.0f}', f'righe aggiunte per punto funzionale, mediana delle {len(d["consegne"])} consegne (tutte le categorie, lockfile escluso)'),
         h.tile(f'{fmt(ms.get("C1"), 0)} / {fmt(ms.get("C2"), 0)}', 'mutation score medio, Sonnet: ARchetipo completo / solo storie → diretto (test unit della consegna sui file src toccati)'),
         h.tile(f'{app:.0f} · {test:.0f} · {stato:.0f} %', 'quota delle righe aggiunte in codice applicativo e UI · test · Wiki e stato ARchetipo, su tutte le consegne'),
     ]) + "</div>"
@@ -355,7 +358,7 @@ def genera(d):
     corpo = "".join([
         f'<header><div class="tag">Coaching Planner · Analisi statica e mutation testing · {n} consegne archiviate</div>'
         '<h1>Il codice in più del percorso completo vale qualcosa?</h1>'
-        '<p>Nessun agente di sviluppo: le consegne sono quelle già archiviate dai report 0b e 0c (hash dell\'albero verificato). Per ciascuna: classificazione del diff, '
+        '<p>Nessun agente di sviluppo: le consegne sono quelle già archiviate dai report 0b, 0c e, quando disponibili, 1 (hash dell\'albero verificato). Per ciascuna: classificazione del diff, '
         'complessità (ESLint), duplicazione (jscpd), mutation testing (StrykerJS con il runner Vitest sui file src toccati), copertura dei percorsi e due voci di checklist '
         'lette da un giudice Opus in due letture, tipi (tsc e pattern). Punteggio tecnico secondo i <a href="../../index.html#criterio-tecnico">criteri comuni §2.2</a>.</p></header>',
         h.sezione("Cosa emerge", tiles(d) + t("cosa_emerge")),
