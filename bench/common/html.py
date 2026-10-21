@@ -33,6 +33,7 @@ CATEGORIE_DIFF = {
     "ui": ("Componenti UI", "#5aa9d6"),
     "wiki": ("docs/wiki", "#c96a5a"),
     "archetipo": (".archetipo (piani e stato)", "#d49d32"),
+    "mockup": ("Mockup (docs/mockups)", "#a98ad8"),
     "altro": ("Altro", "#8a9a9f"),
 }
 SKILL_FASE = {"archetipo-spec": "spec", "archetipo-plan": "plan", "archetipo-design": "design",

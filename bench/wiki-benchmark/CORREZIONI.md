@@ -145,3 +145,32 @@ e rivalutate a fine `valuta.py all`:
   riapertura; quinta valutazione. Esiti registrati: 84.7 (S1 adattatore), 88.7 (U1 timeout), 80.7 (U1 + e2e timeout),
   88.7 (U1 timeout), poi il definitivo.
 - **Definitivo.** Quinta valutazione di sonnet-PW-1 con l'adattatore corretto: 90.7/100 (U1 e S1 superati).
+
+## 2026-10-21 · report 4 (qualità tecnica) · copia valutata con un commit del banco dopo la consegna
+
+- **Causa.** In alcune prove (`opus-DN` e le altre con `storie_da_wiki`) `valuta.py` ha aggiunto alla copia
+  `valutazione/repo` il commit «bench: wiki abilitata» (solo `.archetipo/config.yaml`) dopo il commit della consegna:
+  l'albero di HEAD non coincide con `tree_hash` di `run.json` e `tecnica.py misura all` si fermava.
+- **Modifica.** `bench/common/tecnica.py`, `repo_di()`: cerca nella storia il commit con l'albero registrato in
+  `run.json`, lo usa come riferimento del diff e verifica che la differenza con HEAD stia fuori da `src/`, `tests/`
+  e `prisma/`. Gli strumenti (ESLint, jscpd, Stryker, tsc) leggono il working tree, identico alla consegna fuori da
+  `.archetipo/`. Nessuna consegna toccata. `misura all` e `giudice all` proseguono dopo l'errore di una prova.
+
+## 2026-10-21 · report 4 · giudice a checklist: diff ristretto dopo la prima lettura
+
+- **Causa.** La prima lettura del giudice Opus su `sonnet-C1` con il diff completo (src, tests, prisma: 108 kB) è
+  costata 1,34 USD; la stima per 20 consegne × 2 letture superava il budget di 40 USD.
+- **Modifica.** Il giudice legge il diff di `src/**/*.ts`, `tests/` e `prisma/schema.prisma`: componenti React
+  (`.tsx`) e migrazioni SQL esclusi, dichiarato nel prompt e nel report. Le tre domande (copertura dei percorsi,
+  factory e fixtures nei test e2e, blocco di dominio in una funzione condivisa chiamata dalle server action)
+  non riguardano i componenti. Stesso diff per tutte le consegne; la seconda lettura riusa il prompt in cache.
+- **Dati.** La lettura con il diff completo è conservata in `sonnet-C1/tecnica/giudice-1-scartato-diff-completo.json`
+  e conteggiata tra le prove scartate (1,34 USD).
+
+## 2026-10-21 · report 4 · tsc sulla baseline e categoria «mockup»
+
+- `tsc --noEmit` sulla copia valutata segnala 2 errori in `__oracolo__/` (file dell'oracolo copiati da `valuta.py`,
+  non della consegna): esclusi. La baseline è il repository principale (0 errori, sha registrato in
+  `_baseline/tsc-baseline.json`), non `git archive` della radice, che non ha il client Prisma generato (117 errori).
+- La classificazione del diff prevede la categoria «mockup» (`docs/mockups/`), assente dalla legenda §6.2: aggiunta
+  a `bench/common/html.py` con il colore di archetipo-design e dichiarata nell'indice.

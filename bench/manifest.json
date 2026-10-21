@@ -70,18 +70,18 @@
    "slug": "qualita-tecnica",
    "titolo": "Il codice in più del percorso completo vale qualcosa?",
    "domanda": "A parità di punteggio funzionale, le 2–3 volte più righe del percorso completo si traducono in qualità tecnica superiore?",
-   "disegno": "Nessun agente di sviluppo: analisi statica, mutation testing (StrykerJS) e giudice a checklist sulle 18 consegne archiviate (10 della matrice principale, 8 del report Wiki), poi le 20 del report 1",
-   "stato": "pianificato",
+   "disegno": "Nessun agente di sviluppo: analisi statica, mutation testing (StrykerJS) e giudice Opus a checklist (due letture) sulle 20 consegne archiviate (10 della matrice principale, 10 del report Wiki); da rigenerare con le 20 del report 1",
+   "stato": "fatto",
    "path": "reports/qualita-tecnica/report.html",
-   "costo_usd": null,
-   "data": null,
-   "risultato": null,
+   "costo_usd": 17.49,
+   "data": "2026-10-21",
+   "risultato": "Completo − diretto = −1,3 punti tecnici (IC −2,4 … −0,2): H4 non respinta; il codice in più è per tre quarti .archetipo, mockup e test che non alzano il mutation score (38,5 % contro 37,3 % per Sonnet); i punteggi tecnici stanno tutti tra 70,3 e 79,0.",
    "ipotesi": {
     "id": "H4",
     "testo": "Il codice in più del percorso completo non si traduce in qualità tecnica superiore (es. sonnet-C1 4 208 righe contro sonnet-C2 1 473, stesso 88,2 funzionale).",
     "metrica": "Differenza di punteggio tecnico (criteri §2.2) tra «completo» e «diretto» a storie uguali.",
     "soglia": "Se il completo supera il diretto di almeno 10 punti tecnici con intervallo bootstrap sopra zero, H4 è respinta e il costo di implement va riconsiderato; altrimenti il codice in più è zavorra da spiegare.",
-    "esito": null
+    "esito": "Δ tecnico completo − diretto a storie uguali: −1,3 su entrambi i modelli (IC bootstrap −2,4 … −0,2; Sonnet −0,9, Opus −1,8). Il completo non supera il diretto di 10 punti: H4 non respinta. Il codice in più è zavorra da spiegare (piani e stato .archetipo, mockup, test che non uccidono mutanti)."
    },
    "budget_usd": 40
   },

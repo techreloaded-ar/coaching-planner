@@ -128,6 +128,9 @@ def criteri():
         '<p class="muted">Le voci che richiedono lettura (copertura dei percorsi, due voci della checklist) le assegna un giudice Opus a checklist chiusa, senza strumenti, '
         'che legge il diff; il giudizio è ripetuto due volte e, se diverge, vale la mediana con nota. Tutto il resto è calcolato da script in '
         '<code>bench/common/tecnica.py</code> e deve essere riproducibile a partire dall\'archivio della consegna.</p>'
+        '<p class="muted"><strong>Registro, 2026-10-21 (report 4).</strong> Il mutation score sui file src toccati è dominato dai componenti React, privi di test unit in ogni consegna: '
+        'il report 4 riporta accanto, senza farlo entrare nel punteggio, lo score sui soli file <code>.ts</code>. Proposta per i report successivi: tenere il criterio così com\'è e '
+        'riportare sempre anche lo score sui soli <code>.ts</code>. L\'hard wait è letto alla lettera (nessun <code>waitForTimeout</code>), più severo del guardrail del repository.</p>'
 
         '<h3 id="criterio-scoperta">2.3 Qualità della scoperta (fase spec, 100 punti)</h3><ul>'
         '<li><strong>Profilo nascosto</strong> del committente con 11 temi: decisione precedente RF-15, chi, granularità, quali mesi, effetto su tutte le scritture, '
@@ -183,7 +186,8 @@ def stile():
         'I colori sono fissi per tutto il banco:</p>'
         f'<div class="scroll"><table style="max-width:900px"><thead><tr><th>Fase</th><th>Skill</th><th>Colore</th></tr></thead><tbody>{fasi}</tbody></table></div>'
         + h.legenda_fasi() +
-        '<p>Per il report 4 la stessa barra rappresenta la <strong>composizione del diff</strong> per categoria (stessa grafica, legenda dedicata, dichiarata nel report):</p>'
+        '<p>Per il report 4 la stessa barra rappresenta la <strong>composizione del diff</strong> per categoria (stessa grafica, legenda dedicata, dichiarata nel report). '
+        'La categoria «Mockup» (<code>docs/mockups/</code>, colore di archetipo-design) è stata aggiunta alle otto originali il 2026-10-21, prima di generare il report 4, perché la classificazione del diff la prevede.</p>'
         f'<div class="scroll"><table style="max-width:600px"><thead><tr><th>Categoria</th><th>Colore</th></tr></thead><tbody>{diff}</tbody></table></div>'
         + h.legenda_diff() +
         '<h3>Esempio di barra</h3>' + h.barra([("Chiarimento · archetipo-spec", h.FASI["spec"][2], 3.2), ("Piano · archetipo-plan", h.FASI["plan"][2], 6.1),
