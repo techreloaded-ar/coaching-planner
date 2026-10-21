@@ -1,0 +1,348 @@
+{
+ "aree": {
+  "chiusura": {
+   "titolo": "Chiusura e riapertura",
+   "punti": 12
+  },
+  "blocco": {
+   "titolo": "Blocco su tutti i percorsi di scrittura",
+   "punti": 22
+  },
+  "autorizzazioni": {
+   "titolo": "Autorizzazioni",
+   "punti": 12
+  },
+  "concorrenza": {
+   "titolo": "Concorrenza",
+   "punti": 10
+  },
+  "visibilita": {
+   "titolo": "Visibilità dello stato",
+   "punti": 10
+  },
+  "cache": {
+   "titolo": "Scheda con cache obsoleta",
+   "punti": 6
+  },
+  "tracciabilita": {
+   "titolo": "Tracciabilità",
+   "punti": 6
+  },
+  "persistenza": {
+   "titolo": "Persistenza e migrazione",
+   "punti": 8
+  },
+  "interfaccia": {
+   "titolo": "Interfaccia e flussi",
+   "punti": 6
+  },
+  "regressioni": {
+   "titolo": "Regressioni",
+   "punti": 8
+  }
+ },
+ "regressioni": "lint con guardrail e2e, Vitest, build, e2e preesistenti della baseline, nessun test rimosso o disattivato (gate CI, tutto o niente)",
+ "controlli": [
+  {
+   "codice": "C1",
+   "area": "chiusura",
+   "verifica": "l'amministratore chiude un mese concluso",
+   "livello": "integrazione",
+   "tema": "Chi",
+   "storie_sonnet": "Esplicito",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "C2",
+   "area": "chiusura",
+   "verifica": "il mese corrente non si può chiudere",
+   "livello": "integrazione",
+   "tema": "Quali mesi",
+   "storie_sonnet": "Non chiarito",
+   "storie_opus": "Non chiarito"
+  },
+  {
+   "codice": "C3",
+   "area": "chiusura",
+   "verifica": "un mese futuro non si può chiudere",
+   "livello": "integrazione",
+   "tema": "Quali mesi",
+   "storie_sonnet": "Non chiarito",
+   "storie_opus": "Non chiarito"
+  },
+  {
+   "codice": "C4",
+   "area": "chiusura",
+   "verifica": "l'amministratore riapre con motivazione",
+   "livello": "integrazione",
+   "tema": "Motivazione",
+   "storie_sonnet": "Esplicito",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "C5",
+   "area": "chiusura",
+   "verifica": "la riapertura senza motivazione è rifiutata",
+   "livello": "integrazione",
+   "tema": "Motivazione",
+   "storie_sonnet": "Esplicito",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "B1",
+   "area": "blocco",
+   "verifica": "creazione di una riga in un mese chiuso rifiutata",
+   "livello": "integrazione",
+   "tema": "Tutte le scritture",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "B2",
+   "area": "blocco",
+   "verifica": "modifica di una riga di un mese chiuso rifiutata",
+   "livello": "integrazione",
+   "tema": "Tutte le scritture",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "B3",
+   "area": "blocco",
+   "verifica": "eliminazione di una riga di un mese chiuso rifiutata",
+   "livello": "integrazione",
+   "tema": "Tutte le scritture",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "B4",
+   "area": "blocco",
+   "verifica": "rimozione del rimborso trasferta in un mese chiuso rifiutata",
+   "livello": "integrazione",
+   "tema": "Tutte le scritture",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "B5",
+   "area": "blocco",
+   "verifica": "duplicazione da un mese aperto verso un mese chiuso rifiutata",
+   "livello": "integrazione",
+   "tema": "Tutte le scritture",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "B6",
+   "area": "blocco",
+   "verifica": "spostare una riga di un mese aperto dentro un mese chiuso è rifiutato",
+   "livello": "integrazione",
+   "tema": "Tutte le scritture",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "B7",
+   "area": "blocco",
+   "verifica": "anche l'amministratore con profilo collaboratore è bloccato",
+   "livello": "integrazione",
+   "tema": "Tutte le scritture",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "B8",
+   "area": "blocco",
+   "verifica": "un mese aperto adiacente resta scrivibile",
+   "livello": "integrazione",
+   "tema": "Tutte le scritture",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "B9",
+   "area": "blocco",
+   "verifica": "dopo la riapertura le scritture tornano possibili",
+   "livello": "integrazione",
+   "tema": "Tutte le scritture",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "A1",
+   "area": "autorizzazioni",
+   "verifica": "un collaboratore non può chiudere un mese",
+   "livello": "integrazione",
+   "tema": "Chi",
+   "storie_sonnet": "Esplicito",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "A2",
+   "area": "autorizzazioni",
+   "verifica": "un collaboratore non può riaprire un mese chiuso",
+   "livello": "integrazione",
+   "tema": "Chi",
+   "storie_sonnet": "Esplicito",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "A3",
+   "area": "autorizzazioni",
+   "verifica": "senza sessione non si può chiudere né riaprire",
+   "livello": "integrazione",
+   "tema": "Chi",
+   "storie_sonnet": "Esplicito",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "K1",
+   "area": "concorrenza",
+   "verifica": "scritture contemporanee alla chiusura: nessun successo perso o fantasma, nessuna scrittura dopo la chiusura",
+   "livello": "integrazione",
+   "tema": "Concorrenza",
+   "storie_sonnet": "Non chiarito",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "K2",
+   "area": "concorrenza",
+   "verifica": "due chiusure contemporanee producono un solo evento di chiusura",
+   "livello": "integrazione",
+   "tema": "Concorrenza",
+   "storie_sonnet": "Non chiarito",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "V1",
+   "area": "visibilita",
+   "verifica": "il calendario del collaboratore mostra il mese chiuso",
+   "livello": "browser",
+   "tema": "Visibilità",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "V2",
+   "area": "visibilita",
+   "verifica": "il dettaglio giornata di un mese chiuso è in sola lettura",
+   "livello": "browser",
+   "tema": "Visibilità",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "V3",
+   "area": "visibilita",
+   "verifica": "in un mese aperto non c'è indicatore e le azioni restano disponibili",
+   "livello": "browser",
+   "tema": "Visibilità",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "V4",
+   "area": "visibilita",
+   "verifica": "il report indica che il mese è chiuso",
+   "livello": "browser",
+   "tema": "Visibilità",
+   "storie_sonnet": "Parziale",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "S1",
+   "area": "cache",
+   "verifica": "un salvataggio da una scheda aperta prima della chiusura è rifiutato con un errore chiaro",
+   "livello": "browser",
+   "tema": "Schede aperte",
+   "storie_sonnet": "Non chiarito",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "T1",
+   "area": "tracciabilita",
+   "verifica": "la chiusura registra autore e momento",
+   "livello": "integrazione",
+   "tema": "Storico",
+   "storie_sonnet": "Esplicito",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "T2",
+   "area": "tracciabilita",
+   "verifica": "chiudi, riapri, richiudi conserva tre eventi con la motivazione",
+   "livello": "integrazione",
+   "tema": "Motivazione",
+   "storie_sonnet": "Esplicito",
+   "storie_opus": "Parziale"
+  },
+  {
+   "codice": "P1",
+   "area": "persistenza",
+   "verifica": "migrazione Prisma nuova presente e applicabile con migrate deploy (gate)",
+   "livello": "gate",
+   "tema": "—",
+   "storie_sonnet": "—",
+   "storie_opus": "—"
+  },
+  {
+   "codice": "P2",
+   "area": "persistenza",
+   "verifica": "nessun drift tra schema e migrazioni (gate)",
+   "livello": "gate",
+   "tema": "—",
+   "storie_sonnet": "—",
+   "storie_opus": "—"
+  },
+  {
+   "codice": "P3",
+   "area": "persistenza",
+   "verifica": "chiudere non altera righe né report di fatturazione",
+   "livello": "integrazione",
+   "tema": "Dati invariati",
+   "storie_sonnet": "Esplicito",
+   "storie_opus": "Esplicito"
+  },
+  {
+   "codice": "U1",
+   "area": "interfaccia",
+   "verifica": "riapertura dall'interfaccia: il collaboratore torna a poter modificare",
+   "livello": "browser",
+   "tema": "—",
+   "storie_sonnet": "—",
+   "storie_opus": "—"
+  },
+  {
+   "codice": "U2",
+   "area": "interfaccia",
+   "verifica": "nessun overflow orizzontale a 390 px",
+   "livello": "browser",
+   "tema": "—",
+   "storie_sonnet": "—",
+   "storie_opus": "—"
+  },
+  {
+   "codice": "U3",
+   "area": "interfaccia",
+   "verifica": "nessuna eccezione JavaScript non gestita durante i flussi",
+   "livello": "browser",
+   "tema": "—",
+   "storie_sonnet": "—",
+   "storie_opus": "—"
+  }
+ ],
+ "temi_profilo": [
+  "decisione_rf15",
+  "chi",
+  "granularita",
+  "quali_mesi",
+  "effetto_scritture",
+  "riapertura_motivazione",
+  "storico",
+  "visibilita",
+  "concorrenza",
+  "schede_aperte",
+  "dati_invariati"
+ ]
+}
