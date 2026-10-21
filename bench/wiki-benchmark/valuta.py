@@ -12,6 +12,7 @@ con database dedicati. L'adattatore viene generato una volta da un agente fisso 
 in valutazione/adattatore/: le rivalutazioni lo riusano. Nessun esito torna agli agenti di sviluppo.
 """
 import json
+import argparse
 import re
 import shutil
 import subprocess
@@ -136,11 +137,14 @@ def copia_oracolo(repo, adattatore):
         shutil.copytree(adattatore, destinazione / "adattatore", dirs_exist_ok=True)
 
 
-def genera_adattatore(repo, cartella):
-    salvato = cartella / "adattatore"
+def genera_adattatore(repo, cartella, numero_adattatore=1):
+    salvato = cartella / ("adattatore" if numero_adattatore == 1 else f"adattatore-{numero_adattatore}")
     if (salvato / "integrazione.ts").exists() and (salvato / "browser.ts").exists():
         return salvato
     log("    ▶ generazione adattatore")
+    banco.riserva_lancio(VALUTAZIONE["budget_usd_adattatore"])
+    # La seconda sessione deve partire senza vedere il primo adattatore.
+    shutil.rmtree(repo / "__oracolo__", ignore_errors=True)
     (repo / "__oracolo__").mkdir(exist_ok=True)
     shutil.copy2(ORACOLO / "contratto.ts", repo / "__oracolo__" / "contratto.ts")
     comando = [
@@ -152,7 +156,19 @@ def genera_adattatore(repo, cartella):
     ]
     processo = subprocess.run(comando, cwd=repo, text=True, capture_output=True, env=banco.agent_env())
     banco.free_app_port()
-    (cartella / "adattatore.log").write_text(processo.stdout + processo.stderr)
+    cartella_adattatore = cartella if numero_adattatore == 1 else salvato
+    cartella_adattatore.mkdir(parents=True, exist_ok=True)
+    percorso_log = cartella_adattatore / "adattatore.log"
+    if percorso_log.exists():
+        percorso_log.rename(cartella_adattatore / f"adattatore-perso-{time.time_ns()}.log")
+    percorso_log.write_text(processo.stdout + processo.stderr)
+    (cartella_adattatore / "adattatore-prompt.txt").write_text(PROMPT_ADATTATORE)
+    try:
+        risultato_sessione = json.loads(processo.stdout)
+    except json.JSONDecodeError:
+        sys.exit(f"Adattatore senza result JSON, vedi {percorso_log}")
+    if processo.returncode or risultato_sessione.get("is_error"):
+        sys.exit(f"Sessione adattatore in errore: {str(risultato_sessione.get('result', ''))[:300]}; vedi {percorso_log}")
     # Qualunque modifica fuori dall'adattatore viene scartata: l'albero valutato resta quello consegnato.
     banco.git(repo, "checkout", "-q", "--", ".")
     banco.git(repo, "clean", "-fdq", "-e", "__oracolo__")
@@ -220,26 +236,54 @@ def punteggio(controlli, gate_esiti):
             "violazioni_critiche": critici}
 
 
-def valuta(nome, sorgente, head, tree_hash, base, adattatore_fisso=None):
+def valuta(nome, sorgente, head, tree_hash, base, adattatore_fisso=None, replica=None, numero_adattatore=1):
     cartella = banco.RUNS / nome / "valutazione" if nome != "baseline" else banco.RUNS / "_baseline" / "valutazione"
     cartella.mkdir(parents=True, exist_ok=True)
-    log(f"▶ valutazione {nome}")
+    cartella_esiti = cartella if numero_adattatore == 1 else cartella / f"adattatore-{numero_adattatore}"
+    cartella_esiti.mkdir(parents=True, exist_ok=True)
+    destinazione = cartella_esiti / (f"evaluation-{replica}.json" if replica else "evaluation.json")
+    if replica and destinazione.exists():
+        precedente = json.loads(destinazione.read_text())
+        if precedente.get("tree_hash") != tree_hash:
+            sys.exit(f"{destinazione}: albero diverso dalla consegna")
+        log(f"  {nome} adattatore {numero_adattatore} replica {replica}: già valutata")
+        return precedente
+    cartella_log = cartella if not replica else cartella_esiti / f"replica-{replica}"
+    cartella_log.mkdir(parents=True, exist_ok=True)
+    # Un tentativo interrotto non deve lasciare JSON utilizzabili dal tentativo successivo.
+    for residuo in ("vitest-oracolo.json", "playwright-oracolo.json"):
+        (cartella_log / residuo).unlink(missing_ok=True)
+    log(f"▶ valutazione {nome} · adattatore {numero_adattatore} · replica {replica or 'unica'}")
     repo, db = prepara_copia(nome, sorgente, head, tree_hash, cartella)
-    gate_esiti = gate(repo, db, base, cartella)
-    adattatore = adattatore_fisso or genera_adattatore(repo, cartella)
+    gate_esiti = gate(repo, db, base, cartella_log)
+    adattatore = adattatore_fisso or genera_adattatore(repo, cartella, numero_adattatore)
     copia_oracolo(repo, adattatore)
     env = {"DATABASE_URL": banco.PG_URL.format(db), "E2E_DATABASE_URL": banco.PG_URL.format(db)}
     esegui("oracolo-integrazione", ["npx", "vitest", "run", "--config", "__oracolo__/vitest.config.ts",
-                                    "--reporter=json", f"--outputFile={cartella / 'vitest-oracolo.json'}"],
-           repo, cartella, env=env)
+                                    "--reporter=json", f"--outputFile={cartella_log / 'vitest-oracolo.json'}"],
+           repo, cartella_log, env=env)
     esegui("oracolo-browser", ["npx", "playwright", "test", "--config", "__oracolo__/playwright.config.ts"],
-           repo, cartella, env={**env, "ORACOLO_PLAYWRIGHT_JSON": str(cartella / "playwright-oracolo.json")})
-    controlli = {**esiti_vitest(cartella / "vitest-oracolo.json"), **esiti_playwright(cartella / "playwright-oracolo.json")}
+           repo, cartella_log, env={**env, "ORACOLO_PLAYWRIGHT_JSON": str(cartella_log / "playwright-oracolo.json")})
+    controlli = {**esiti_vitest(cartella_log / "vitest-oracolo.json"), **esiti_playwright(cartella_log / "playwright-oracolo.json")}
     risultato = {"prova": nome, "head": head, "tree_hash": tree_hash, "gate": gate_esiti,
                  "controlli": controlli, **punteggio(controlli, gate_esiti)}
-    banco.write_json(cartella / "evaluation.json", risultato)
+    risultato.update(replica=replica, adattatore=numero_adattatore)
+    banco.write_json(destinazione, risultato)
+    if replica and numero_adattatore == 1:
+        aggiorna_mediana(cartella)
     log(f"  punteggio {risultato['totale']}/100 · critiche: {', '.join(risultato['violazioni_critiche']) or 'nessuna'}")
     return risultato
+
+
+def aggiorna_mediana(cartella):
+    """Vista compatibile con il report 4: mediana, solo dopo tutte e tre le letture."""
+    percorsi = [cartella / f"evaluation-{replica}.json" for replica in (1, 2, 3)]
+    if not all(percorso.exists() for percorso in percorsi):
+        return
+    letture = sorted((json.loads(percorso.read_text()) for percorso in percorsi), key=lambda lettura: lettura["totale"])
+    mediana = dict(letture[1])
+    mediana.update(aggregazione="mediana di tre valutazioni", intervallo=[letture[0]["totale"], letture[-1]["totale"]])
+    banco.write_json(cartella / "evaluation.json", mediana)
 
 
 # ── qualità della Wiki ───────────────────────────────────────────────────────
@@ -276,6 +320,12 @@ def valuta_wiki(run_id):
 
 
 def main(argv):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("obiettivi", nargs="+")
+    parser.add_argument("--replica", type=int, choices=(1, 2, 3))
+    parser.add_argument("--adattatore", type=int, choices=(1, 2), default=1)
+    opzioni = parser.parse_args(argv)
+    argv = opzioni.obiettivi
     if not argv:
         sys.exit(__doc__)
     if argv[0] == "wiki":
@@ -288,8 +338,9 @@ def main(argv):
         if argv[0] == "all" else argv
     for run_id in obiettivi:
         dati = json.loads((banco.RUNS / run_id / "run.json").read_text())
-        valuta(run_id, banco.RUNS / run_id / "repo", dati["head"], dati["tree_hash"], dati["discovery_head"])
-        if dati["wiki"]:
+        valuta(run_id, banco.RUNS / run_id / "repo", dati["head"], dati["tree_hash"], dati["discovery_head"],
+               replica=opzioni.replica, numero_adattatore=opzioni.adattatore)
+        if dati["wiki"] and not opzioni.replica:
             valuta_wiki(run_id)
 
 

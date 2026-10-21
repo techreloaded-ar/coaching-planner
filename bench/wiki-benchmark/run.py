@@ -14,6 +14,7 @@ Ogni fase è idempotente: se esiste phases/<fase>/metrics.json non viene riesegu
 quindi dopo un'interruzione basta rilanciare lo stesso comando.
 Le prove vivono in $BENCH_RUNS (default: ../coaching-planner-bench-runs accanto al repo).
 """
+import hashlib
 import json
 import os
 import re
@@ -24,6 +25,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 BENCH = Path(__file__).resolve().parent
 REPO = BENCH.parents[1]
@@ -40,6 +42,7 @@ APP_PORT = 3000  # fissa in playwright.config.ts: le prove sono sequenziali
 AGENT_SETTINGS = {"permissions": {"deny": [f"Read(/{REPO}/**)", f"Edit(/{REPO}/**)"]}}
 CONTAMINAZIONI = re.compile(r"ponytail|graphify", re.I)
 WIKI_PATTERN = re.compile(r"archetipo\b.*\bwiki\b|docs/wiki|archetipo-wiki")
+WIKI_NON_DISPONIBILE = re.compile(r"wiki[^.\n]{0,40}(non abilitat|disabilit|non attiv)|non abilitat[^.\n]{0,30}wiki|E_PRECONDITION|wiki\.enabled[^.\n]{0,20}false", re.I)
 
 PROMPT_DIRETTO = """Implementa in Coaching Planner {oggetto}. Leggi le storie con `archetipo spec show <codice>`.
 
@@ -123,6 +126,87 @@ def agent_env():
 
 def write_json(path, data):
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def precondizioni(repo):
+    """Fotografia del clone prima della fase, senza leggere segreti."""
+    def hash_cartella(cartella):
+        digest = hashlib.sha256()
+        for file in sorted(cartella.rglob("*")):
+            if file.is_file():
+                digest.update(str(file.relative_to(cartella)).encode())
+                digest.update(file.read_bytes())
+        return digest.hexdigest()
+
+    return {
+        "docs_wiki_presente": (repo / "docs/wiki/index.md").exists(),
+        "skill_archetipo_wiki": (repo / ".claude/skills/archetipo-wiki/SKILL.md").exists(),
+        "wiki_enabled": archetipo(repo, "config", "show")["wiki"]["enabled"],
+        "hash_skills": {directory: hash_cartella(repo / directory)
+                        for directory in (".claude/skills", ".agents/skills")},
+    }
+
+
+def costi_esperimento():
+    """Solo nuove spese della matrice corrente, compresi tentativi interrotti e scartati."""
+    cartelle = [RUNS / prova["id"] for prova in CFG["runs"]]
+    ids = [prova["id"] for prova in CFG["runs"]]
+    cartelle += [p for p in (RUNS / "_scartati").glob("*") if any(p.name.startswith(id_ + "--") for id_ in ids)]
+    voci = {"prove": 0.0, "scartate": 0.0, "turni_persi": 0.0, "adattatori": 0.0, "giudici_tecnici": 0.0}
+    for cartella in cartelle:
+        for fase in (cartella / "phases").glob("*"):
+            sessioni = {}
+            for stream in fase.glob("stream-*.jsonl"):
+                _, risultato = parse_stream(stream)
+                if risultato:
+                    sessioni[risultato.get("session_id", stream.name)] = risultato
+            costo = sum(r.get("total_cost_usd", 0) or 0 for r in sessioni.values())
+            categoria = ("scartate" if cartella.parent.name == "_scartati" else
+                         "prove" if (fase / "metrics.json").exists() else "turni_persi")
+            voci[categoria] += costo
+        for file in (cartella / "valutazione").glob("**/adattatore*.log"):
+            try:
+                voci["adattatori"] += json.loads(file.read_text()).get("total_cost_usd", 0) or 0
+            except json.JSONDecodeError:
+                pass
+        for file in (cartella / "tecnica").glob("giudice-*.json"):
+            voci["giudici_tecnici"] += json.loads(file.read_text()).get("cost_usd", 0) or 0
+    return {**voci, "totale": sum(voci.values())}
+
+
+def controlla_budget():
+    controllo = CFG.get("controllo_budget")
+    if not controllo:
+        return
+    costo = costi_esperimento()["totale"]
+    adattatori_mancanti = sum(
+        not (RUNS / prova["id"] / "valutazione" / directory / "browser.ts").exists()
+        for prova in CFG["runs"] for directory in
+        (["adattatore", "adattatore-2"] if prova.get("secondo_adattatore") else ["adattatore"]))
+    riserva = adattatori_mancanti * controllo["riserva_usd_adattatore"]
+    if costo + riserva >= controllo["stop_nuovi_lanci_usd"]:
+        sys.exit(f"STOP budget: registrati {costo:.2f} USD + riserva adattatori {riserva:.2f} USD")
+
+
+def riserva_lancio(costo_massimo):
+    """Non avvia una sessione che potrebbe superare il tetto prima del prossimo result."""
+    controlla_budget()
+    controllo = CFG.get("controllo_budget")
+    if controllo and costi_esperimento()["totale"] + costo_massimo > controllo["tetto_usd"]:
+        sys.exit(f"STOP budget: margine insufficiente per il massimo della sessione ({costo_massimo} USD)")
+
+
+def scarta_fase(run_dir, phase_dir, motivo):
+    """Conserva evidenze e costo prima della ripresa; la consegna non viene corretta."""
+    ora = datetime.now(ZoneInfo("Europe/Rome"))
+    destinazione = RUNS / "_scartati" / f"{run_dir.name}--{phase_dir.name}--{ora.strftime('%Y%m%dT%H%M%S%f')}"
+    (destinazione / "phases").mkdir(parents=True)
+    shutil.move(str(phase_dir), destinazione / "phases" / phase_dir.name)
+    write_json(destinazione / "scarto.json", {"motivo": motivo, "orario": ora.isoformat()})
+    with (BENCH / "CORREZIONI.md").open("a") as registro:
+        registro.write(f"\n\n## {ora.strftime('%Y-%m-%d %H:%M %Z')} · {run_dir.name} / {phase_dir.name}\n\n"
+                       f"- Interruzione/scarto: {motivo}. Evidenze e costo conservati in `{destinazione}`; "
+                       "nessuna metrica valida acquisita, ripresa dal commit precedente alla fase.\n")
 
 
 # ── preparazione dei cloni ───────────────────────────────────────────────────
@@ -269,6 +353,7 @@ def parse_stream(stream):
     result["duration_ms"] = sum(r.get("duration_ms", 0) for r in results)
     result["num_turns"] = sum(r.get("num_turns", 0) for r in results)
     result["result_events"] = len(results)
+    result["is_error"] = any(r.get("is_error") for r in results)
     return init, result
 
 
@@ -396,21 +481,48 @@ def phase(run_dir, phase_id, model, repo, prompt, skill, after=None):
     """Una fase = una sessione claude -p nuova e isolata, seguita da un commit del banco."""
     metrics_path = run_dir / "phases" / phase_id / "metrics.json"
     if metrics_path.exists():
-        return json.loads(metrics_path.read_text())
+        metrics = json.loads(metrics_path.read_text())
+        if metrics.get("is_error") or metrics.get("invalida"):
+            sys.exit(f"{metrics_path}: metriche invalide, scartare prima di riprendere")
+        return metrics
+    riserva_lancio(CFG["budget_usd_per_phase"][model])
     phase_dir = metrics_path.parent
+    tentativo = phase_dir / "tentativo.json"
+    if tentativo.exists():
+        precedente = json.loads(tentativo.read_text())
+        scarta_fase(run_dir, phase_dir, "tentativo interrotto, ripresa")
+        git(repo, "reset", "-q", "--hard", precedente["head_before"])
     shutil.rmtree(phase_dir, ignore_errors=True)
     phase_dir.mkdir(parents=True)
     git(repo, "reset", "-q", "--hard")  # ripresa dopo un'interruzione: si riparte dall'ultimo commit
     git(repo, "clean", "-fdq")
     (phase_dir / "prompt.txt").write_text(prompt)
     head_before = git(repo, "rev-parse", "HEAD")
+    pre = precondizioni(repo)
+    if CFG.get("precondizioni_wiki_obbligatorie") and not all(
+            pre[k] is True for k in ("docs_wiki_presente", "skill_archetipo_wiki", "wiki_enabled")):
+        sys.exit(f"{run_dir.name}/{phase_id}: precondizioni Wiki non soddisfatte: {pre}")
+    write_json(tentativo, {"head_before": head_before, "precondizioni": pre,
+                           "avvio": datetime.now(ZoneInfo("Europe/Rome")).isoformat()})
     started = time.time()
     print(f"  ▶ {run_dir.name} / {phase_id}", flush=True)
     result, init = run_claude(phase_dir, 0, prompt, model, repo)
     metrics = collect(phase_dir, [result], init)
+    testi = [str(result.get("result", ""))]
+    for transcript in (phase_dir / "transcript").glob("*.jsonl"):
+        for riga in transcript.read_text().splitlines():
+            evento = json.loads(riga)
+            if evento.get("type") == "assistant":
+                testi.extend(blocco.get("text", "") for blocco in evento.get("message", {}).get("content", [])
+                             if isinstance(blocco, dict) and blocco.get("type") == "text")
+    invalida = [m.group(0) for m in WIKI_NON_DISPONIBILE.finditer("\n".join(testi))]
+    if CFG.get("precondizioni_wiki_obbligatorie") and invalida:
+        scarta_fase(run_dir, phase_dir, f"Wiki dichiarata non disponibile: {invalida[:5]}")
+        git(repo, "reset", "-q", "--hard", head_before)
+        sys.exit(f"{run_dir.name}/{phase_id}: fase invalida scartata; rilanciare")
     commit_if_dirty(repo, f"bench: {phase_id}")
     metrics.update(phase=phase_id, skill=skill, wall_seconds=round(time.time() - started, 1),
-                   head_before=head_before, head=git(repo, "rev-parse", "HEAD"))
+                   head_before=head_before, head=git(repo, "rev-parse", "HEAD"), precondizioni=pre)
     if after:
         metrics.update(after())
     write_json(metrics_path, metrics)
@@ -506,6 +618,9 @@ def run(run_id):
     spec = next((r for r in CFG["runs"] if r["id"] == run_id), None)
     if spec is None:
         sys.exit(f"Prova sconosciuta: {run_id}")
+    if (RUNS / run_id / "run.json").exists():
+        print(f"  ✓ {run_id} già completata", flush=True)
+        return
     config = CFG["configs"][spec["config"]]
     model, wiki, pipeline = spec["model"], config["wiki"], config["pipeline"]
     # `storie_da_wiki` (opzionale) prende le storie dal chiarimento dell'altra variante: stesse storie, Wiki diversa.
@@ -528,9 +643,9 @@ def run(run_id):
     def step(phase_id, prompt, skill, after=None):
         return phase(run_dir, phase_id, model, repo, prompt, skill, after)
 
-    if pipeline == "storie-diretto":
+    if pipeline in ("storie-diretto", "diretto"):
         step("01-diretto", PROMPT_DIRETTO.format(oggetto="le user story " + ", ".join(codes)), "diretto")
-        if wiki:
+        if wiki and pipeline == "storie-diretto":
             step("02-wiki-refresh", PROMPT_WIKI_REFRESH.format(base=discovery["head"]), "archetipo-wiki")
     else:
         for code in codes:
@@ -649,6 +764,7 @@ def main(argv):
         discover(args[0], args[1] == "wiki", int(args[2]) if len(args) > 2 else None)
     elif command == "run":
         run(args[0])
+        dopo_consegna(args[0])
     elif command == "all":
         for model in CFG["models"]:
             for wiki in (True, False):
@@ -657,9 +773,16 @@ def main(argv):
             discover(extra["model"], extra["wiki"], extra["replica"])
         for r in CFG["runs"]:
             run(r["id"])
+            dopo_consegna(r["id"])
         status()
     else:
         sys.exit(__doc__)
+
+
+def dopo_consegna(run_id):
+    comando = CFG.get("dopo_consegna")
+    if comando:
+        subprocess.run([*comando, run_id], cwd=REPO, check=True, env=agent_env())
 
 
 if __name__ == "__main__":

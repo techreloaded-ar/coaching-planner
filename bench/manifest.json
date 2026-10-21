@@ -51,7 +51,7 @@
    "titolo": "Qual è il pavimento di rumore?",
    "domanda": "Quanto varia il punteggio funzionale tra repliche della stessa cella, e quale differenza è quindi interpretabile?",
    "disegno": "2 celle (diretto, completo) × 2 modelli × 5 repliche = 20 prove a storie fisse (US-060, US-061), ordine randomizzato; oracolo ripetuto 3 volte, secondo adattatore indipendente per una prova per cella",
-   "stato": "pianificato",
+   "stato": "in corso",
    "path": "reports/pavimento-rumore/report.html",
    "costo_usd": null,
    "data": null,

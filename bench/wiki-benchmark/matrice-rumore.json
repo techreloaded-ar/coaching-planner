@@ -1,0 +1,203 @@
+{
+  "baseline_sha": "157ea55367ec940b464d9ad2c64789b73535b463",
+  "effort": "medium",
+  "models": {
+    "sonnet": "sonnet",
+    "opus": "opus"
+  },
+  "committente": {
+    "model": "sonnet",
+    "effort": "low"
+  },
+  "max_review_iterations": 3,
+  "max_discovery_turns": 20,
+  "budget_usd_per_phase": {
+    "sonnet": 25,
+    "opus": 60
+  },
+  "configs": {
+    "DIR": {
+      "label": "Diretto",
+      "wiki": true,
+      "pipeline": "diretto"
+    },
+    "COM": {
+      "label": "ARchetipo completo",
+      "wiki": true,
+      "pipeline": "completo"
+    }
+  },
+  "runs": [
+    {
+      "id": "R-DIR-opus-r1",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 1,
+      "secondo_adattatore": true
+    },
+    {
+      "id": "R-DIR-sonnet-r1",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 1,
+      "secondo_adattatore": true
+    },
+    {
+      "id": "R-COM-sonnet-r1",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 1,
+      "secondo_adattatore": true
+    },
+    {
+      "id": "R-DIR-sonnet-r5",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 5,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-COM-opus-r5",
+      "model": "opus",
+      "config": "COM",
+      "replica": 5,
+      "secondo_adattatore": true
+    },
+    {
+      "id": "R-COM-sonnet-r3",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 3,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-COM-opus-r4",
+      "model": "opus",
+      "config": "COM",
+      "replica": 4,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-DIR-sonnet-r3",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 3,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-COM-sonnet-r2",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 2,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-COM-sonnet-r4",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 4,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-DIR-opus-r2",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 2,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-COM-opus-r1",
+      "model": "opus",
+      "config": "COM",
+      "replica": 1,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-DIR-opus-r5",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 5,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-DIR-opus-r3",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 3,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-DIR-sonnet-r2",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 2,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-COM-opus-r2",
+      "model": "opus",
+      "config": "COM",
+      "replica": 2,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-DIR-sonnet-r4",
+      "model": "sonnet",
+      "config": "DIR",
+      "replica": 4,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-COM-opus-r3",
+      "model": "opus",
+      "config": "COM",
+      "replica": 3,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-COM-sonnet-r5",
+      "model": "sonnet",
+      "config": "COM",
+      "replica": 5,
+      "secondo_adattatore": false
+    },
+    {
+      "id": "R-DIR-opus-r4",
+      "model": "opus",
+      "config": "DIR",
+      "replica": 4,
+      "secondo_adattatore": false
+    }
+  ],
+  "rubrica": {
+    "chiusura": 12,
+    "blocco": 22,
+    "autorizzazioni": 12,
+    "concorrenza": 10,
+    "visibilita": 10,
+    "cache": 6,
+    "tracciabilita": 6,
+    "persistenza": 8,
+    "interfaccia": 6,
+    "regressioni": 8
+  },
+  "valutazione": {
+    "model": "opus",
+    "effort": "medium",
+    "budget_usd_adattatore": 15,
+    "budget_usd_giudice_wiki": 10
+  },
+  "seme": 2026102101,
+  "precondizioni_wiki_obbligatorie": true,
+  "controllo_budget": {
+    "tetto_usd": 350,
+    "stop_nuovi_lanci_usd": 345,
+    "riserva_usd_adattatore": 0.8
+  },
+  "dopo_consegna": [
+    "python3",
+    "-u",
+    "bench/pavimento-rumore/esegui.py",
+    "valuta"
+  ]
+}
