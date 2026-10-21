@@ -264,21 +264,22 @@ def scatter(d):
     for v in range(int(y0), int(y1) + 1):
         if v % 5 == 0:
             griglia += f'<line x1="{ml}" y1="{sy(v):.1f}" x2="{W - mr}" y2="{sy(v):.1f}" stroke="#e5ebe8"/><text x="{ml - 6}" y="{sy(v) + 4:.1f}" font-size="11" text-anchor="end" fill="#61747c">{v}</text>'
-    punti = ""
+    punti, gruppi = "", {}
     for c in d["consegne"]:
-        forma = "circle" if c["model"] == "sonnet" else "rect"
-        x, y, col = sx(c["qualita_funzionale"]), sy(c["punteggio"]["totale"]), COLORE_CELLA[c["config"]]
-        titolo = f'{c["prova"]} · funzionale {c["qualita_funzionale"]} · tecnico {c["punteggio"]["totale"]}'
-        if forma == "circle":
-            punti += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="{col}" stroke="#183a40" stroke-width="1"><title>{e(titolo)}</title></circle>'
-        else:
-            punti += f'<rect x="{x - 6:.1f}" y="{y - 6:.1f}" width="12" height="12" fill="{col}" stroke="#183a40" stroke-width="1"><title>{e(titolo)}</title></rect>'
-        punti += f'<text x="{x + 9:.1f}" y="{y + 4:.1f}" font-size="10" fill="#22313a">{e(c["prova"])}</text>'
+        gruppi.setdefault((c["qualita_funzionale"], c["punteggio"]["totale"]), []).append(c)
+    for (fx, fy), lista in gruppi.items():
+        for k, c in enumerate(lista):  # punti coincidenti distanziati in orizzontale, tooltip con il nome
+            x, y, col = sx(fx) + (k - (len(lista) - 1) / 2) * 12, sy(fy), COLORE_CELLA[c["config"]]
+            titolo = f'{c["prova"]} · funzionale {c["qualita_funzionale"]} · tecnico {c["punteggio"]["totale"]}'
+            if c["model"] == "sonnet":
+                punti += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" fill="{col}" stroke="#183a40" stroke-width="1"><title>{e(titolo)}</title></circle>'
+            else:
+                punti += f'<rect x="{x - 5.5:.1f}" y="{y - 5.5:.1f}" width="11" height="11" fill="{col}" stroke="#183a40" stroke-width="1"><title>{e(titolo)}</title></rect>'
     legenda = "".join(f'<span><i style="background:{col}"></i>{e(ETICHETTE[k])} ({k})</span>' for k, col in COLORE_CELLA.items())
     return (f'<svg viewBox="0 0 {W} {H}" width="100%" style="max-width:{W}px;font-family:system-ui,sans-serif" role="img" aria-label="Qualità funzionale contro qualità tecnica">'
             f'{griglia}<text x="{(ml + W - mr) / 2:.0f}" y="{H - 6}" font-size="12" text-anchor="middle" fill="#486069">Qualità funzionale /100 (oracolo)</text>'
             f'<text transform="translate(14 {(mt + H - mb) / 2:.0f}) rotate(-90)" font-size="12" text-anchor="middle" fill="#486069">Qualità tecnica /100</text>{punti}</svg>'
-            f'<div class="legend">{legenda}<span>● Sonnet · ■ Opus</span></div>'
+            f'<div class="legend">{legenda}<span>● Sonnet · ■ Opus · punti coincidenti affiancati; il nome della consegna è nel tooltip</span></div>'
             f'<p class="muted">Correlazione di Pearson su {d["correlazioni"]["n"]} consegne: tecnico × funzionale r = {d["correlazioni"]["tecnico_funzionale"]}; '
             f'tecnico × righe nette src r = {d["correlazioni"]["tecnico_righe_src"]}; funzionale × righe nette src r = {d["correlazioni"]["funzionale_righe_src"]}; '
             f'mutation score × numero di test unit aggiunti r = {d["correlazioni"]["mutation_test_unit"]}; mutation score × righe nette src r = {d["correlazioni"]["mutation_righe_src"]}.</p>')
