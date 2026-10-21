@@ -13,6 +13,8 @@ Richiesta autorizzata: eseguire `docs/benchmark/PROMPT-report-1.md` fino al repo
 - Non avviare il resto finché non sono terminati i piloti e la proiezione non è stata comunicata in chat. Il prompt richiede di riportarla, non di chiedere approvazione.
 - 10 test del banco passati. Generatore del report 1 già pronto, pagina esplicitamente provvisoria. Nessuna inferenza finché mancano repliche. Prima di usare i dati per le conclusioni, verificare anche le voci del report e i calcoli.
 
+Automazione heartbeat attiva ogni 15 minuti: `completa-il-report-1-sul-pavimento-di-rumore`, collegata a questo thread. Usa `automation_update` per disattivarla a fine lavoro o stop per budget.
+
 ## Monitor e ripresa
 
 1. Controllare con `ps` i processi `esegui.py`, `wiki-benchmark/run.py`, `wiki-benchmark/valuta.py`, `claude -p`, `tecnica.py`. Non avviare un secondo processo finché il primo è vivo. Il log cresce per fasi, non continuamente: leggere lo stream senza output non significa blocco. Evitare polling ravvicinato.
