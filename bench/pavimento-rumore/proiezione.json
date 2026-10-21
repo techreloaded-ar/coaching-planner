@@ -1,0 +1,36 @@
+{
+  "piloti": {
+    "DIR": {
+      "minutes": 12.300083333333333,
+      "tokens_m": 7.699974,
+      "usd": 2.0178035999999997,
+      "wiki_calls": 0,
+      "wiki_tokens_m": 0.0,
+      "wiki_phase_minutes": 0.0
+    },
+    "COM": {
+      "minutes": 51.00651666666667,
+      "tokens_m": 27.201577,
+      "usd": 10.1946103,
+      "wiki_calls": 90,
+      "wiki_tokens_m": 7.280697,
+      "wiki_phase_minutes": 0.0
+    }
+  },
+  "costo_prove_stimato_usd": 288.9400531590909,
+  "adattatori_stimati_usd": 19.200000000000003,
+  "ore_sviluppo_stimate": 10.5511,
+  "ore_valutazione_stimate_intervallo": [
+    6,
+    8
+  ],
+  "costi_registrati": {
+    "prove": 12.212413900000003,
+    "scartate": 0.0,
+    "turni_persi": 0.0,
+    "adattatori": 1.3331154,
+    "giudici_tecnici": 0.0,
+    "totale": 13.545529300000004
+  },
+  "metodo": "Sonnet dai piloti; rapporto di costo Opus/Sonnet storico (DIR 9.2/2.2, COM 30.6/8.4); tempo Opus assunto uguale a Sonnet, esclusi reset CLI e misure tecniche."
+}

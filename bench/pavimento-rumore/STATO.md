@@ -52,3 +52,11 @@ Automazione heartbeat attiva ogni 15 minuti: `completa-il-report-1-sul-pavimento
 ## Aggiornamento 21:18 Europe/Rome
 
 `R-DIR-sonnet-r1` consegnata (12,3 min, 2,02 USD) e valutata tre volte a 84,7, ma audit ha trovato il noto errore adattatore S1. Letture e log iniziali sono archiviati e rimossi dalla serie valida; adattatore corretto con criterio uniforme. `rivalutazioni-pendenti.json` elenca la prova. **A pilota COM terminato e PRIMA di comunicare la proiezione/avviare il resto, eseguire tre nuove letture DIR**, con `BENCH_MATRICE=matrice-rumore.json python3 -u bench/pavimento-rumore/esegui.py valuta R-DIR-sonnet-r1`; poi aggiornare misure tecniche senza rifare i mutanti: `python3 bench/common/tecnica.py misura R-DIR-sonnet-r1 --rifai --senza-mutanti`. Rimuovere la voce pendente dopo verifica. Non farlo in parallelo al pilota COM (processi attuali: esegui.py pilota 77860, run.py 88828). Prima lettura tecnica è conservata nell’archivio.
+
+Osservazioni qualitative da riesaminare a fine esperimento: `bench/pavimento-rumore/osservazioni.json`. In COM Sonnet, la terza review di US-060 accetta dichiarando esplicitamente di non aver letto il workflow CI, in contrasto con AGENTS.md. Non cambiare il prompt o il codice per correggere il comportamento osservato; distinguere le dichiarazioni della review dai gate esterni realmente eseguiti.
+
+## Aggiornamento 22:15 Europe/Rome
+
+Pilota COM concluso: 51,0 minuti, 10,19 USD di sviluppo; tre letture identiche 88,2/100; mutation score 0,3495. Entrambi i processi pilota terminati. Avviata rivalutazione DIR corretta (PID 55565) in `~/repo/coaching-planner-bench-runs/rivalutazione-pilota-dir.log`. Alla fine aggiornare tecnica con `--rifai --senza-mutanti`, rimuovere la voce pendente e avviare `run.py all` (non duplicare processi).
+
+Proiezione comunicata in chat: prove 288,94 USD + adattatori 19,20 USD = 308,14 USD; con giudici tecnici stimati dal report 4 (~17,49 USD per 20 consegne) totale ~325,63 USD. Sono stime con rapporto storico Opus/Sonnet, non un nuovo budget. Tempo ~10,6 ore sviluppo + 6–8 ore valutazione, esclusi reset e misure tecniche. Costo consolidato attuale 13,55 USD; budget residuo 336,45 USD. Prima di lanciare il resto verificare l’esito effettivo delle nuove letture DIR.

@@ -1,0 +1,9 @@
+[
+  {
+    "id": "R-COM-sonnet-r1/US-060-review-3/CI",
+    "tipo": "aderenza alle istruzioni del processo",
+    "evidenza": "US-060-review-3/result.txt: «Non ho letto .github/workflows/ci.yml [...] verdetto would pass»",
+    "interpretazione": "La review autonoma ha accettato US-060 senza la lettura del workflow richiesta da AGENTS.md. Il banco non modifica prompt o consegna: annotare il limite e verificare i controlli esterni, senza trattare la dichiarazione della review come evidenza CI.",
+    "stato": "da includere nell’audit finale"
+  }
+]
