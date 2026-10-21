@@ -68,6 +68,25 @@ class BancoRumoreTest(unittest.TestCase):
                 with self.assertRaises(SystemExit):
                     oracolo.valuta('prova', None, 'head', 'altro albero', 'base', replica=1)
 
+    def test_rifiuta_stdin_accodato_al_prompt(self):
+        with tempfile.TemporaryDirectory() as cartella:
+            fase = Path(cartella)
+            (fase / 'transcript').mkdir()
+            transcript = fase / 'transcript/sessione.jsonl'
+            transcript.write_text(json.dumps({'type': 'user', 'message': {'content': 'prompt congelato\\nscript estraneo'}}))
+            with self.assertRaises(SystemExit):
+                banco.verifica_prompt_sessione(fase, 'prompt congelato', 'sessione')
+            transcript.write_text(json.dumps({'type': 'user', 'message': {'content': 'prompt congelato'}}))
+            banco.verifica_prompt_sessione(fase, 'prompt congelato', 'sessione')
+
+    def test_accetta_la_forma_cli_delle_slash_command(self):
+        with tempfile.TemporaryDirectory() as cartella:
+            fase = Path(cartella)
+            (fase / 'transcript').mkdir()
+            contenuto = '<command-message>archetipo-plan</command-message>\n<command-name>/archetipo-plan</command-name>\n<command-args>US-060</command-args>'
+            (fase / 'transcript/sessione.jsonl').write_text(json.dumps({'type': 'user', 'message': {'content': contenuto}}))
+            banco.verifica_prompt_sessione(fase, '/archetipo-plan US-060', 'sessione')
+
     def test_dominio_non_abilitato_non_invalida_la_wiki(self):
         self.assertIsNone(banco.WIKI_NON_DISPONIBILE.search('offerta non abilitata'))
         self.assertIsNotNone(banco.WIKI_NON_DISPONIBILE.search('Wiki non abilitata'))

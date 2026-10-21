@@ -314,7 +314,8 @@ def run_claude(phase_dir, turn, prompt, model, cwd, resume=None):
         cmd += ["--resume", resume]
     stream = phase_dir / f"stream-{turn:02d}.jsonl"
     with open(stream, "w") as out, open(phase_dir / "stderr.txt", "a") as err:
-        subprocess.run(cmd, cwd=cwd, stdout=out, stderr=err, text=True, check=False, env=agent_env())
+        subprocess.run(cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                       text=True, check=False, env=agent_env())
     free_app_port()
 
     init, result = parse_stream(stream)
@@ -514,6 +515,7 @@ def phase(run_dir, phase_id, model, repo, prompt, skill, after=None):
     print(f"  ▶ {run_dir.name} / {phase_id}", flush=True)
     result, init = run_claude(phase_dir, 0, prompt, model, repo)
     metrics = collect(phase_dir, [result], init)
+    verifica_prompt_sessione(phase_dir, prompt, result["session_id"])
     testi = [str(result.get("result", ""))]
     for transcript in (phase_dir / "transcript").glob("*.jsonl"):
         for riga in transcript.read_text().splitlines():
@@ -536,6 +538,26 @@ def phase(run_dir, phase_id, model, repo, prompt, skill, after=None):
     return metrics
 
 
+def verifica_prompt_sessione(phase_dir, prompt, session_id):
+    """Controlla il messaggio iniziale del solo worker principale, non dei subagenti."""
+    transcript = phase_dir / "transcript" / f"{session_id}.jsonl"
+    if not transcript.exists():
+        sys.exit(f"{phase_dir}: transcript principale mancante, impossibile verificare il prompt")
+    atteso = prompt
+    if prompt.startswith("/"):
+        nome, _, argomenti = prompt.partition(" ")
+        atteso = (f"<command-message>{nome[1:]}</command-message>\n"
+                  f"<command-name>{nome}</command-name>\n<command-args>{argomenti}</command-args>")
+    for riga in transcript.read_text().splitlines():
+        evento = json.loads(riga)
+        contenuto = evento.get("message", {}).get("content")
+        if evento.get("type") == "user" and isinstance(contenuto, str):
+            if contenuto != atteso:
+                sys.exit(f"{phase_dir}: prompt effettivo diverso da quello congelato; scartare la fase")
+            return
+    sys.exit(f"{phase_dir}: messaggio iniziale non trovato nel transcript")
+
+
 # ── committente simulato e chiarimento ───────────────────────────────────────
 
 def ask_committente(dialog, log_dir):
@@ -552,7 +574,7 @@ def ask_committente(dialog, log_dir):
         "--system-prompt", PROFILO_COMMITTENTE,
         "--tools", "", "--setting-sources", "project", "--strict-mcp-config",
         "--no-session-persistence", "--output-format", "json",
-    ], cwd=neutral, env=agent_env())
+    ], cwd=neutral, env=agent_env(), stdin=subprocess.DEVNULL)
     result = json.loads(out.stdout)
     with open(log_dir / "committente.jsonl", "a") as log:
         log.write(json.dumps(result, ensure_ascii=False) + "\n")

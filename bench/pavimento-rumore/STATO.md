@@ -64,3 +64,7 @@ Proiezione comunicata in chat: prove 288,94 USD + adattatori 19,20 USD = 308,14 
 ## Aggiornamento 22:30 Europe/Rome
 
 Rivalutazione DIR completa e verificata: 90,7/100 × 3, tree hash conforme; tecnica aggiornata senza ripetere mutanti (score 0,3695). Coda rivalutazioni vuota. Pilota COM: 88,2 × 3. Proiezione già comunicata nel heartbeat precedente. **Avviato run.py all, PID 61372, log run-rumore.log**, primo run nell’ordine congelato R-DIR-opus-r1. Nessuna sessione parallela. Il vecchio pilota-rumore.log non è più il log attivo.
+
+## Interruzione stdin 2026-10-21 23:03 CEST
+
+**Contaminazione confermata**: nel lancio run.py all lo stdin ereditato ha accodato lo script heredoc ai prompt di R-DIR-opus-r1 e R-DIR-sonnet-r5. I piloti restano validi (audit dei transcript fatto). Parent 61372 in SIGSTOP, child 71893 lasciato terminare per conservare il costo. Recovery `/tmp/riprendi-rumore-stdin.py` PID 73498 attende con kqueue la fine del child, poi termina il parent sospeso, archivia integralmente entrambe le prove e rilancia run.py all con stdin DEVNULL. **Non rilanciare nulla finché il recovery è attivo.** Log recovery: `~/repo/coaching-planner-bench-runs/recovery-stdin.log`; il recovery aggiungerà qui il nuovo PID. Il punteggio 87,8 di DIR Opus è invalido e non va comunicato come risultato. Costi già sostenuti inclusi nel budget; nessuna modifica a prompt/matrice/modelli/rubrica. In seguito controllare la corretta ripresa e registrare il costo consolidato degli scarti.

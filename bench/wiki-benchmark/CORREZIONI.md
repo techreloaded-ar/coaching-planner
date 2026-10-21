@@ -242,3 +242,11 @@ e rivalutate a fine `valuta.py all`:
 - Pilota COM: 51,0 minuti, 10,19 USD di sviluppo, tre letture a 88,2/100, nessuna violazione critica. Audit dell’adattatore: storico letto dalla persistenza, NonImplementato su V4 perché i report non mostrano lo stato; S1 usa già il messaggio sia nel form sia nel banner.
 - Proiezione comunicata prima del lancio restante: prove 288,94 USD, adattatori 19,20, giudici tecnici stimati circa 17,49: totale stimato 325,63 USD. Tempo 10,6 ore sviluppo + 6–8 ore valutazione, esclusi reset e misure tecniche; costo consolidato 13,55 USD.
 - Ripresa con `BENCH_MATRICE=matrice-rumore.json python3 -u bench/wiki-benchmark/run.py all`, log `~/repo/coaching-planner-bench-runs/run-rumore.log`; piloti riusati idempotentemente. Nessuna modifica al disegno congelato.
+
+
+## 2026-10-21 23:03 CEST · report 1 · contaminazione dello stdin nel lancio in background
+
+- Causa: il lancio Python tramite heredoc non chiudeva stdin dei processi figli. Claude CLI ha accodato al prompt anche 2 903 caratteri dello script di avvio (primo messaggio del transcript: 3 451 caratteri anziché 548). Confermato per `R-DIR-opus-r1` e `R-DIR-sonnet-r5`; entrambe sono invalide e vanno rifatte. La prima ha speso 7,17 USD di sviluppo più 0,70 USD di adattatore; la seconda è ancora in corso.
+- I piloti sono verificati: diretto coincide esattamente con prompt.txt; plan/implement hanno soltanto il normale wrapper slash-command della CLI; tutte le review coincidono con i prompt attesi. Restano validi.
+- Il banco ha sospeso l’orchestratore 61372 per impedire altri lanci. Lascia terminare solo il worker già attivo per conservarne il result e il costo; poi un recovery locale archivia le due prove e rilancia lo stesso comando.
+- Correzione: stdin=subprocess.DEVNULL per worker, adattatori, giudice Wiki e committente che ricevono il prompt come argomento; il giudice tecnico continua a ricevere il suo prompt previsto via input. Nuovo controllo del messaggio iniziale nel transcript principale, con riconoscimento della slash-command. Prompt scientifici, matrice, modelli e budget invariati. Dodici test del banco passati.

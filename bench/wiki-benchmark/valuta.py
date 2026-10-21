@@ -154,7 +154,8 @@ def genera_adattatore(repo, cartella, numero_adattatore=1):
         "--permission-mode", "bypassPermissions", "--settings", json.dumps(banco.AGENT_SETTINGS),
         "--max-budget-usd", str(VALUTAZIONE["budget_usd_adattatore"]),
     ]
-    processo = subprocess.run(comando, cwd=repo, text=True, capture_output=True, env=banco.agent_env())
+    processo = subprocess.run(comando, cwd=repo, stdin=subprocess.DEVNULL,
+                              text=True, capture_output=True, env=banco.agent_env())
     banco.free_app_port()
     cartella_adattatore = cartella if numero_adattatore == 1 else salvato
     cartella_adattatore.mkdir(parents=True, exist_ok=True)
@@ -314,7 +315,7 @@ def valuta_wiki(run_id):
         "--model", VALUTAZIONE["model"], "--effort", VALUTAZIONE["effort"], "--output-format", "json",
         "--setting-sources", "project,local", "--permission-mode", "bypassPermissions",
         "--settings", json.dumps(banco.AGENT_SETTINGS), "--max-budget-usd", str(VALUTAZIONE["budget_usd_giudice_wiki"]),
-    ], cwd=repo, text=True, capture_output=True, env=banco.agent_env())
+    ], cwd=repo, stdin=subprocess.DEVNULL, text=True, capture_output=True, env=banco.agent_env())
     risposta = json.loads(processo.stdout or "{}").get("result", "")
     (cartella / "giudice-wiki.md").write_text(risposta)
     giudizio = re.search(r"GIUDIZIO_WIKI\s+(\{.*\})", risposta)
