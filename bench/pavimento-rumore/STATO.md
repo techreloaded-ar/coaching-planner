@@ -60,3 +60,7 @@ Osservazioni qualitative da riesaminare a fine esperimento: `bench/pavimento-rum
 Pilota COM concluso: 51,0 minuti, 10,19 USD di sviluppo; tre letture identiche 88,2/100; mutation score 0,3495. Entrambi i processi pilota terminati. Avviata rivalutazione DIR corretta (PID 55565) in `~/repo/coaching-planner-bench-runs/rivalutazione-pilota-dir.log`. Alla fine aggiornare tecnica con `--rifai --senza-mutanti`, rimuovere la voce pendente e avviare `run.py all` (non duplicare processi).
 
 Proiezione comunicata in chat: prove 288,94 USD + adattatori 19,20 USD = 308,14 USD; con giudici tecnici stimati dal report 4 (~17,49 USD per 20 consegne) totale ~325,63 USD. Sono stime con rapporto storico Opus/Sonnet, non un nuovo budget. Tempo ~10,6 ore sviluppo + 6–8 ore valutazione, esclusi reset e misure tecniche. Costo consolidato attuale 13,55 USD; budget residuo 336,45 USD. Prima di lanciare il resto verificare l’esito effettivo delle nuove letture DIR.
+
+## Aggiornamento 22:30 Europe/Rome
+
+Rivalutazione DIR completa e verificata: 90,7/100 × 3, tree hash conforme; tecnica aggiornata senza ripetere mutanti (score 0,3695). Coda rivalutazioni vuota. Pilota COM: 88,2 × 3. Proiezione già comunicata nel heartbeat precedente. **Avviato run.py all, PID 61372, log run-rumore.log**, primo run nell’ordine congelato R-DIR-opus-r1. Nessuna sessione parallela. Il vecchio pilota-rumore.log non è più il log attivo.

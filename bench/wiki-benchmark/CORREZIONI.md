@@ -234,3 +234,11 @@ e rivalutate a fine `valuta.py all`:
 - Prima consegna in 12,3 minuti, 2,02 USD; adattatore 0,66 USD. Tre letture iniziali identiche a 84,7/100. Audit: nessun NonImplementato; S1 fallisce perché il form viene sostituito dall’avviso `mese-chiuso`, visibile nello snapshot con zero righe salvate.
 - Applicato il criterio già registrato per i report precedenti: `messaggioErrore` accetta anche l’avviso; attesa `networkidle` dopo chiusura/riapertura per completare la server action. Nessun codice della consegna modificato.
 - Archiviate tutte e tre le letture e i log originali in `/Users/smarello/repo/coaching-planner-bench-runs/R-DIR-sonnet-r1/valutazione/scartate/adattatore-S1-20261021T2118`; da rifare in sequenza a macchina scarica dopo il pilota COM, già in corso. Le letture originali non entrano nel calcolo del rumore. C2/C3, V1 e U2 restano fallimenti da verificare sulla consegna, senza correggerla.
+
+
+## 2026-10-21 22:31 CEST · report 1 · piloti verificati e matrice avviata
+
+- Rivalutazione completa del pilota DIR con adattatore corretto: 90,7/100 in tutte e tre le letture, nessuna violazione critica. Misura tecnica aggiornata conservando il mutation score 0,3695. Le letture a 84,7 rimangono archiviate e sono escluse dal rumore.
+- Pilota COM: 51,0 minuti, 10,19 USD di sviluppo, tre letture a 88,2/100, nessuna violazione critica. Audit dell’adattatore: storico letto dalla persistenza, NonImplementato su V4 perché i report non mostrano lo stato; S1 usa già il messaggio sia nel form sia nel banner.
+- Proiezione comunicata prima del lancio restante: prove 288,94 USD, adattatori 19,20, giudici tecnici stimati circa 17,49: totale stimato 325,63 USD. Tempo 10,6 ore sviluppo + 6–8 ore valutazione, esclusi reset e misure tecniche; costo consolidato 13,55 USD.
+- Ripresa con `BENCH_MATRICE=matrice-rumore.json python3 -u bench/wiki-benchmark/run.py all`, log `~/repo/coaching-planner-bench-runs/run-rumore.log`; piloti riusati idempotentemente. Nessuna modifica al disegno congelato.
