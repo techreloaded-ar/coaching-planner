@@ -74,3 +74,7 @@ Rivalutazione DIR completa e verificata: 90,7/100 × 3, tree hash conforme; tecn
 Recovery conclusa. Le due prove contaminate sono archiviate; avviato nuovo run.py all PID 86336, stdin DEVNULL, log run-rumore.log. Costo consolidato 24.4208 USD; scarti sviluppo 10.1774 USD, più adattatore scartato conteggiato nella voce adattatori. La prima prova valida da eseguire resta R-DIR-opus-r1. Il parent sospeso 61372 è stato terminato.
 
 Il prompt della nuova sessione DIR Opus è stato verificato direttamente nel transcript principale: coincide esattamente con prompt.txt (548 caratteri). **In qualunque futuro lancio detached usare sempre stdin=subprocess.DEVNULL**, anche se le chiamate Claude nel banco lo impostano già. Scarti sviluppo 10,1774461 USD + adattatore scartato 0,697864 USD = 10,8753101 USD. Totale consolidato 24,4208394 USD; residuo 325,5791606 USD (sessione corrente non ancora consolidata).
+
+## Aggiornamento 2026-10-22 00:00 Europe/Rome
+
+Prima nuova consegna valida R-DIR-opus-r1 completata: 18,5 min, 6,78 USD sviluppo, 87,8/100 × 3, nessuna violazione critica, mutation score 0,3233. Adapter audit senza correzioni necessarie (motivazione non implementata dal prodotto, letta come null). R-DIR-sonnet-r5 ora in corso. Costi consolidati 31,8748552 USD, residui 318,1251448. Audit dei tre adattatori primari validi registrato in `audit-adattatori.json` con hash, per distinguere le nuove generazioni dai file già controllati. La riga 87,8 con intervallo 79,8–87,8 nel log prima di RECOVERY riguarda la prova scartata; la nuova serie valida è 87,8 × 3.

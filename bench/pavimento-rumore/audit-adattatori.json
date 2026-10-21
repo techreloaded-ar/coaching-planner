@@ -1,0 +1,23 @@
+{
+  "R-DIR-sonnet-r1/1": {
+    "esito": "Corretto S1 secondo criterio comune; tre letture ripetute valide 90.7. Nessun NonImplementato.",
+    "sha256": {
+      "browser.ts": "cea392657dc49c3bbe4ae0f2d9434a8e813187d887aac30291a078e59b39ca32",
+      "integrazione.ts": "ddbdcfa922642585abc5b1f5536fe6c259b44f5a12d14b3c2bd72529ca197d51"
+    }
+  },
+  "R-COM-sonnet-r1/1": {
+    "esito": "NonImplementato V4 coerente: report senza stato; storico reale, S1 include form e banner. Tre letture 88.2.",
+    "sha256": {
+      "browser.ts": "b26ae1b48410277e63d11de4b56c1f0c2bf53db07859119a0bce8d005f654223",
+      "integrazione.ts": "a189efef37d5191ee14c2d75cfab8b3c85a11e39b22b60c466a136da0a037ffc"
+    }
+  },
+  "R-DIR-opus-r1/1": {
+    "esito": "Nessun NonImplementato; motivazione non gestita nella consegna: adattatore non la inventa, storico reale con motivazione null. Fallimenti C2,C3,C5,T2,U2; tre letture 87.8.",
+    "sha256": {
+      "browser.ts": "726e7f11838e8e28a8ef811a8aaa4b1e81d613855adc7bb83990fdcd7fa39fb9",
+      "integrazione.ts": "cbc9f5a94b058e300ef4d85115d6438b54b0062275bd06f09698e6efdfa0016b"
+    }
+  }
+}

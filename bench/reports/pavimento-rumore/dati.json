@@ -1,5 +1,5 @@
 {
-  "aggiornato": "2026-10-21T23:46:05.683676+02:00",
+  "aggiornato": "2026-10-22T00:01:14.050916+02:00",
   "prove": [
     {
       "id": "R-DIR-opus-r1",
@@ -7,27 +7,67 @@
       "config": "DIR",
       "replica": 1,
       "secondo_adattatore": true,
-      "consegnata": false,
-      "tree_hash": null,
-      "qualita": null,
-      "valutazioni": [],
-      "intervallo": null,
+      "consegnata": true,
+      "tree_hash": "90821e047ec7602fdae326ccb9657ae6611644c7",
+      "qualita": 87.8,
+      "valutazioni": [
+        87.8,
+        87.8,
+        87.8
+      ],
+      "intervallo": [
+        87.8,
+        87.8
+      ],
       "valutazioni_secondo_adattatore": [],
-      "minuti": null,
-      "usd": null,
-      "usd_sviluppo": null,
-      "token": null,
+      "minuti": 20.147683333333333,
+      "usd": 7.5626698,
+      "usd_sviluppo": 6.78136,
+      "token": 15.687195,
       "token_dettaglio": {
-        "total": 675892,
-        "input_uncached": 26,
-        "cache_read": 609009,
-        "cache_creation": 56478,
-        "output": 10379
+        "total": 15687195,
+        "input_uncached": 182,
+        "cache_read": 15264629,
+        "cache_creation": 328222,
+        "output": 94162
       },
-      "righe_nette_src": null,
-      "righe_totali": null,
-      "usd_per_punto": null,
-      "controlli": {},
+      "righe_nette_src": 798,
+      "righe_totali": 2538,
+      "usd_per_punto": 0.08613519134396355,
+      "controlli": {
+        "B7": true,
+        "T1": true,
+        "B8": true,
+        "V1": true,
+        "C3": false,
+        "B4": true,
+        "V4": true,
+        "C4": true,
+        "B9": true,
+        "T2": false,
+        "B6": true,
+        "K2": true,
+        "B5": true,
+        "U2": false,
+        "V3": true,
+        "K1": true,
+        "C5": false,
+        "A1": true,
+        "A2": true,
+        "B3": true,
+        "P1": true,
+        "C2": false,
+        "B2": true,
+        "C1": true,
+        "A3": true,
+        "S1": true,
+        "U3": true,
+        "U1": true,
+        "P2": true,
+        "B1": true,
+        "V2": true,
+        "P3": true
+      },
       "fasi": [
         {
           "model_resolved": "claude-opus-5-5",
@@ -97,9 +137,92 @@
           "exchanges": 1,
           "committente_seconds": 17.2,
           "committente_cost_usd": 0.0217838
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 1110342,
+          "duration_api_ms": 759630,
+          "num_turns": 87,
+          "cost_usd": 6.78136,
+          "tokens": {
+            "cache_creation": 271744,
+            "output": 83783,
+            "cache_read": 14655620,
+            "input_uncached": 156,
+            "total": 15011303
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 271744,
+              "output": 83783,
+              "cache_read": 14655620,
+              "input_uncached": 156,
+              "total": 15011303,
+              "cost_usd": 6.78136
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 78,
+          "tokens_transcript": {
+            "cache_creation": 271744,
+            "output": 83783,
+            "cache_read": 14655620,
+            "input_uncached": 156,
+            "total": 15011303
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 23412,
+              "output": 1473,
+              "cache_read": 101802,
+              "input_uncached": 4,
+              "total": 126691
+            },
+            "tokens_mixed_calls": {
+              "cache_creation": 4475,
+              "output": 452,
+              "cache_read": 37445,
+              "input_uncached": 2,
+              "total": 42374
+            },
+            "count": 3,
+            "seconds": 0.182,
+            "result_bytes": 40165,
+            "by_tool": {
+              "Bash": 3
+            }
+          },
+          "phase": "01-diretto",
+          "skill": "diretto",
+          "wall_seconds": 1111.3,
+          "head_before": "16404ded8ee15c3d45eadb314125996eb8f6ba68",
+          "head": "c965811352f78b32fc4170e6c983845428b4351d",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
         }
       ],
-      "tecnica_presente": false,
+      "tecnica_presente": true,
       "violazioni_critiche": []
     },
     {
@@ -136,38 +259,38 @@
       "righe_totali": 1570,
       "usd_per_punto": 0.02639341345093715,
       "controlli": {
+        "B7": true,
+        "T1": true,
+        "B8": true,
+        "V1": false,
+        "C3": false,
+        "B4": true,
         "V4": true,
-        "U1": true,
-        "B6": true,
-        "P3": true,
+        "C4": true,
         "B9": true,
         "T2": true,
-        "B3": true,
-        "B2": true,
-        "A1": true,
-        "C4": true,
-        "C3": false,
-        "A3": true,
-        "P2": true,
-        "S1": true,
-        "V3": true,
-        "V2": true,
-        "C2": false,
-        "U2": false,
-        "B1": true,
-        "B4": true,
-        "C5": true,
-        "B7": true,
-        "C1": true,
-        "B8": true,
-        "A2": true,
-        "K1": true,
+        "B6": true,
         "K2": true,
-        "T1": true,
-        "V1": false,
         "B5": true,
+        "U2": false,
+        "V3": true,
+        "K1": true,
+        "C5": true,
+        "A1": true,
+        "A2": true,
+        "B3": true,
+        "P1": true,
+        "C2": false,
+        "B2": true,
+        "C1": true,
+        "A3": true,
+        "S1": true,
         "U3": true,
-        "P1": true
+        "U1": true,
+        "P2": true,
+        "B1": true,
+        "V2": true,
+        "P3": true
       },
       "fasi": [
         {
@@ -348,38 +471,38 @@
       "righe_totali": 3312,
       "usd_per_punto": 0.11984908503401362,
       "controlli": {
+        "B7": true,
+        "T1": true,
+        "B8": true,
+        "V1": false,
+        "C3": false,
+        "B4": true,
         "V4": false,
-        "U1": true,
-        "B6": true,
-        "P3": true,
+        "C4": true,
         "B9": true,
         "T2": true,
-        "B3": true,
-        "B2": true,
-        "A1": true,
-        "C4": true,
-        "C3": false,
-        "A3": true,
-        "P2": true,
-        "S1": true,
-        "V3": true,
-        "V2": true,
-        "C2": false,
-        "U2": false,
-        "B1": true,
-        "B4": true,
-        "C5": true,
-        "B7": true,
-        "C1": true,
-        "B8": true,
-        "A2": true,
-        "K1": true,
+        "B6": true,
         "K2": true,
-        "T1": true,
-        "V1": false,
         "B5": true,
+        "U2": false,
+        "V3": true,
+        "K1": true,
+        "C5": true,
+        "A1": true,
+        "A2": true,
+        "B3": true,
+        "P1": true,
+        "C2": false,
+        "B2": true,
+        "C1": true,
+        "A3": true,
+        "S1": true,
         "U3": true,
-        "P1": true
+        "U1": true,
+        "P2": true,
+        "B1": true,
+        "V2": true,
+        "P3": true
       },
       "fasi": [
         {
@@ -3827,56 +3950,217 @@
       "config": "DIR",
       "metriche": {
         "qualita": {
-          "n": 0,
-          "mediana": null,
-          "min": null,
-          "max": null,
+          "n": 1,
+          "mediana": 87.8,
+          "min": 87.8,
+          "max": 87.8,
           "sd": null
         },
         "minuti": {
-          "n": 0,
-          "mediana": null,
-          "min": null,
-          "max": null,
+          "n": 1,
+          "mediana": 20.147683333333333,
+          "min": 20.147683333333333,
+          "max": 20.147683333333333,
           "sd": null
         },
         "usd": {
-          "n": 0,
-          "mediana": null,
-          "min": null,
-          "max": null,
+          "n": 1,
+          "mediana": 7.5626698,
+          "min": 7.5626698,
+          "max": 7.5626698,
           "sd": null
         },
         "token": {
-          "n": 0,
-          "mediana": null,
-          "min": null,
-          "max": null,
+          "n": 1,
+          "mediana": 15.687195,
+          "min": 15.687195,
+          "max": 15.687195,
           "sd": null
         },
         "righe_nette_src": {
-          "n": 0,
-          "mediana": null,
-          "min": null,
-          "max": null,
+          "n": 1,
+          "mediana": 798,
+          "min": 798,
+          "max": 798,
           "sd": null
         },
         "righe_totali": {
-          "n": 0,
-          "mediana": null,
-          "min": null,
-          "max": null,
+          "n": 1,
+          "mediana": 2538,
+          "min": 2538,
+          "max": 2538,
           "sd": null
         },
         "usd_per_punto": {
-          "n": 0,
-          "mediana": null,
-          "min": null,
-          "max": null,
+          "n": 1,
+          "mediana": 0.08613519134396355,
+          "min": 0.08613519134396355,
+          "max": 0.08613519134396355,
           "sd": null
         }
       },
-      "controlli": {}
+      "controlli": {
+        "A1": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "A2": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "A3": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "B1": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "B2": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "B3": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "B4": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "B5": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "B6": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "B7": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "B8": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "B9": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "C1": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "C2": {
+          "fallimenti": 1,
+          "consegne": 1,
+          "classe": "sempre"
+        },
+        "C3": {
+          "fallimenti": 1,
+          "consegne": 1,
+          "classe": "sempre"
+        },
+        "C4": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "C5": {
+          "fallimenti": 1,
+          "consegne": 1,
+          "classe": "sempre"
+        },
+        "K1": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "K2": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "P1": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "P2": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "P3": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "S1": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "T1": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "T2": {
+          "fallimenti": 1,
+          "consegne": 1,
+          "classe": "sempre"
+        },
+        "U1": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "U2": {
+          "fallimenti": 1,
+          "consegne": 1,
+          "classe": "sempre"
+        },
+        "U3": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "V1": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "V2": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "V3": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        },
+        "V4": {
+          "fallimenti": 0,
+          "consegne": 1,
+          "classe": "mai"
+        }
+      }
     },
     {
       "model": "opus",
@@ -3946,6 +4230,10 @@
   "confronti": {},
   "rumore_stesso_adattatore": [
     {
+      "prova": "R-DIR-opus-r1",
+      "range": 0.0
+    },
+    {
       "prova": "R-DIR-sonnet-r1",
       "range": 0.0
     },
@@ -3956,12 +4244,12 @@
   ],
   "rumore_due_adattatori": [],
   "costi": {
-    "prove": 12.212413900000003,
+    "prove": 18.9937739,
     "scartate": 10.177446099999997,
     "turni_persi": 0.0,
-    "adattatori": 2.0309793999999997,
+    "adattatori": 2.7036352,
     "giudici_tecnici": 0.0,
-    "totale": 24.4208394
+    "totale": 31.8748552
   },
   "prove_precedenti": [
     {
