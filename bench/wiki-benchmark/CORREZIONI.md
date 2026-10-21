@@ -174,3 +174,37 @@ e rivalutate a fine `valuta.py all`:
   `_baseline/tsc-baseline.json`), non `git archive` della radice, che non ha il client Prisma generato (117 errori).
 - La classificazione del diff prevede la categoria «mockup» (`docs/mockups/`), assente dalla legenda §6.2: aggiunta
   a `bench/common/html.py` con il colore di archetipo-design e dichiarata nell'indice.
+
+## 2026-10-21 · report 6 (fase spec) · pattern di invalidità troppo largo nel pilota
+
+- **Causa.** Il controllo che scarta una fase se dichiara una risorsa «non abilitata» cercava `non abilitat` ovunque nel
+  dialogo e nei transcript; «offerta non abilitata» e «cliente non abilitato» sono termini di dominio di Coaching Planner
+  (abilitazioni esplicite) e il pilota `S-V4-opus-r04` è stato marcato invalido per cinque citazioni di quel tipo.
+- **Modifica.** `bench/fase-spec/run.py`: il pattern richiede la vicinanza di «wiki» (o `E_PRECONDITION`,
+  `wiki.enabled … false`). Comando `convalida <id>` che ricontrolla i testi salvati e scrive `discovery.json` senza
+  rilanciare l'agente. Il pilota è stato convalidato (precondizioni tutte vere, 4 storie, 22 punti dal revisore avversario).
+- **Dati.** Nessun costo perso. Nei due piloti (`S-V4-opus-r04`, `S-V0-sonnet-r01`) la ripartizione dei minuti per fase
+  usa la prima euristica (subagente sottratto alla fase più lunga) perché i turni non avevano ancora le finestre temporali;
+  nelle altre 98 celle la revisione avversaria è sottratta al turno in cui il subagente è partito.
+- **Nota di disegno.** Il committente simulato è Opus effort low (la matrice principale usava Sonnet low); il clone non ha
+  database né migrazioni (il chiarimento non avvia l'app); due celle girano in parallelo con lock per cella.
+
+## 2026-10-21 · report 6 · limite di sessione del CLI alle 12:58 (reset 15:00)
+
+- **Fasi coinvolte.** `S-V1-opus-r07` (turno 1 in corso) e `S-V4-opus-r08` (turno 2 in corso): `result` in errore
+  («You've hit your session limit · resets 3pm»), orchestratore fermato come previsto, nessun `metrics.json` scritto.
+  Il giudice ha registrato tre letture vuote su `S-V2-sonnet-r02` (costo 0), rifatte al rilancio.
+- **Ripresa alle 15:02.** Stesso comando (`run.py all --paralleli 2`): le due celle ripartono dall'inizio sul clone
+  riportato alla baseline (`git reset --hard`); il costo dei turni persi è annotato nel report tra le voci scartate.
+
+## 2026-10-21 · report 6 · secondo limite di sessione del CLI alle 16:08 (reset 20:00)
+
+- **Fasi coinvolte.** `S-V4-opus-r05` (turno 2) e `S-V4-sonnet-r09` (turno 3), `result` in errore, nessun `metrics.json`.
+  Ripresa alle 20:13 con lo stesso comando; costo dei turni persi in `fase-spec/costi-persi.json`, riportato nel report.
+
+## 2026-10-21 · report 6 · stop per budget alle 20:31 a 98 celle su 100
+
+- Il controllo del budget (proiezione = costo registrato + giudice residuo + margine) ha fermato l'orchestratore a
+  119,86 USD: `S-V2-sonnet-r10` e `S-V3-sonnet-r10` erano in corso (0,63 USD persi) e non sono state rieseguite.
+  Totale registrato 121,54 USD contro un tetto di 120: lo sforamento viene dai 4,18 USD di turni persi nelle
+  interruzioni. Le due celle mancanti restano nella matrice e possono essere eseguite con `run.py cella <id>`.

@@ -90,18 +90,18 @@
    "slug": "fase-spec",
    "titolo": "Dove si gioca la qualità: la fase spec",
    "domanda": "Modifiche a basso costo di archetipo-spec alzano la copertura del profilo del committente più di qualsiasi skill a valle?",
-   "disegno": "5 varianti di archetipo-spec (V0 baseline, V1 checklist generica, V2 bozza completa, V3 ricerca conflitti, V4 reviewer avversario) × 2 modelli × 10 repliche = 100 chiarimenti; giudice §2.3 a due letture",
-   "stato": "pianificato",
+   "disegno": "5 varianti di archetipo-spec (V0 baseline, V1 checklist generica, V2 bozza completa, V3 ricerca conflitti, V4 reviewer avversario) × 2 modelli × 10 repliche = 98 chiarimenti eseguiti su 100 (2 fermati dal budget); committente simulato Opus; giudice §2.3 a due letture",
+   "stato": "fatto",
    "path": "reports/fase-spec/report.html",
-   "costo_usd": null,
-   "data": null,
-   "risultato": null,
+   "costo_usd": 121.54,
+   "data": "2026-10-21",
+   "risultato": "La checklist generica di scoperta (V1) alza la qualità della scoperta di +36,4 punti con Sonnet e +20,5 con Opus a costo 1,1–1,3×: adottabile su entrambi i modelli, H6 confermata. V4 ottiene lo stesso a costo doppio, V3 solleva RF-15 ma non alza la copertura, V2 aiuta solo Sonnet.",
    "ipotesi": {
     "id": "H6",
     "testo": "Il chiarimento spiega quasi tutta la varianza funzionale (C2 fallito in 10 prove su 10; concorrenza mai chiesta): modifiche a basso costo di archetipo-spec alzano la copertura del profilo più di qualsiasi skill a valle.",
     "metrica": "Qualità della scoperta (§2.3) per variante, mediana su 10 repliche, bootstrap contro V0.",
     "soglia": "Una variante è «adottabile» se supera la baseline di almeno 10 punti con intervallo bootstrap sopra zero su entrambi i modelli, senza aumentare il costo oltre 2×.",
-    "esito": null
+    "esito": "V1 supera V0 di 36,4 punti con Sonnet (IC bootstrap +27,3 … +36,4) e di 20,5 con Opus (IC +9,1 … +27,3), costo 1,27× e 1,10×: adottabile su entrambi i modelli, H6 confermata. V4: +40,9 e +20,5 ma costo 2,01× con Sonnet (adottabile solo con Opus). V2 adottabile solo con Sonnet (+18,2). V3 non adottabile (+13,6 e +2,2, intervalli con lo zero)."
    },
    "budget_usd": 120
   },

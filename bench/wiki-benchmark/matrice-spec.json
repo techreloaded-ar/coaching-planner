@@ -1,0 +1,649 @@
+{
+ "baseline_sha": "157ea55367ec940b464d9ad2c64789b73535b463",
+ "effort": "medium",
+ "models": {
+  "sonnet": "sonnet",
+  "opus": "opus"
+ },
+ "max_discovery_turns": 20,
+ "budget_usd_per_phase": {
+  "sonnet": 25,
+  "opus": 60
+ },
+ "committente": {
+  "model": "opus",
+  "effort": "low"
+ },
+ "descrizione": "Report 6, fase spec: 5 varianti della skill archetipo-spec × 2 modelli × 10 repliche = 100 chiarimenti, stessa richiesta iniziale, stesso profilo nascosto, committente simulato Opus in sessione separata, Wiki presente e wiki.enabled true. Le varianti sono copie della skill nel clone (bench/fase-spec/varianti/V*.md inserito in SKILL.md); V0 è la skill originale.",
+ "seme": 20261021,
+ "repliche": 10,
+ "varianti": {
+  "V0": {
+   "label": "Baseline",
+   "file": null,
+   "descrizione": "archetipo-spec così com'è"
+  },
+  "V1": {
+   "label": "Checklist generica di scoperta",
+   "file": "V1.md",
+   "descrizione": "checklist per funzionalità che cambiano lo stato di un'entità, ogni voce in un AC o in Fuori perimetro"
+  },
+  "V2": {
+   "label": "Bozza completa prima del salvataggio",
+   "file": "V2.md",
+   "descrizione": "bozza intera mostrata e ripresentata dopo ogni modifica; nessun salvataggio senza approvazione dell'ultima versione"
+  },
+  "V3": {
+   "label": "Ricerca dei conflitti obbligatoria",
+   "file": "V3.md",
+   "descrizione": "grep di PRD, decisions e references per termini e sigle RF- prima delle domande, esito riportato"
+  },
+  "V4": {
+   "label": "Reviewer avversario delle storie",
+   "file": "V4.md",
+   "descrizione": "subagent separato legge PRD, decisioni e bozza e produce temi non coperti e contraddizioni, riportati come domande"
+  }
+ },
+ "celle": [
+  {
+   "id": "S-V4-opus-r04",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 4
+  },
+  {
+   "id": "S-V2-sonnet-r03",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 3
+  },
+  {
+   "id": "S-V1-opus-r01",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 1
+  },
+  {
+   "id": "S-V1-opus-r09",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 9
+  },
+  {
+   "id": "S-V1-opus-r05",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 5
+  },
+  {
+   "id": "S-V2-sonnet-r04",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 4
+  },
+  {
+   "id": "S-V2-opus-r08",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 8
+  },
+  {
+   "id": "S-V0-opus-r03",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 3
+  },
+  {
+   "id": "S-V1-opus-r02",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 2
+  },
+  {
+   "id": "S-V0-sonnet-r04",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 4
+  },
+  {
+   "id": "S-V2-opus-r04",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 4
+  },
+  {
+   "id": "S-V3-sonnet-r07",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 7
+  },
+  {
+   "id": "S-V4-sonnet-r08",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 8
+  },
+  {
+   "id": "S-V1-sonnet-r01",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 1
+  },
+  {
+   "id": "S-V3-sonnet-r09",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 9
+  },
+  {
+   "id": "S-V4-opus-r03",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 3
+  },
+  {
+   "id": "S-V4-sonnet-r05",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 5
+  },
+  {
+   "id": "S-V3-opus-r01",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 1
+  },
+  {
+   "id": "S-V1-sonnet-r07",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 7
+  },
+  {
+   "id": "S-V4-sonnet-r06",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 6
+  },
+  {
+   "id": "S-V3-sonnet-r05",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 5
+  },
+  {
+   "id": "S-V4-sonnet-r10",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 10
+  },
+  {
+   "id": "S-V3-opus-r04",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 4
+  },
+  {
+   "id": "S-V4-opus-r06",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 6
+  },
+  {
+   "id": "S-V2-opus-r07",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 7
+  },
+  {
+   "id": "S-V4-opus-r09",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 9
+  },
+  {
+   "id": "S-V2-opus-r09",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 9
+  },
+  {
+   "id": "S-V3-sonnet-r08",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 8
+  },
+  {
+   "id": "S-V0-opus-r07",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 7
+  },
+  {
+   "id": "S-V0-sonnet-r09",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 9
+  },
+  {
+   "id": "S-V3-sonnet-r03",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 3
+  },
+  {
+   "id": "S-V0-sonnet-r05",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 5
+  },
+  {
+   "id": "S-V4-opus-r07",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 7
+  },
+  {
+   "id": "S-V2-opus-r05",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 5
+  },
+  {
+   "id": "S-V3-sonnet-r04",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 4
+  },
+  {
+   "id": "S-V0-opus-r01",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 1
+  },
+  {
+   "id": "S-V3-opus-r08",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 8
+  },
+  {
+   "id": "S-V2-sonnet-r05",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 5
+  },
+  {
+   "id": "S-V1-sonnet-r08",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 8
+  },
+  {
+   "id": "S-V1-sonnet-r05",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 5
+  },
+  {
+   "id": "S-V3-sonnet-r01",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 1
+  },
+  {
+   "id": "S-V2-sonnet-r02",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 2
+  },
+  {
+   "id": "S-V1-sonnet-r06",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 6
+  },
+  {
+   "id": "S-V2-sonnet-r06",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 6
+  },
+  {
+   "id": "S-V4-opus-r08",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 8
+  },
+  {
+   "id": "S-V1-opus-r07",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 7
+  },
+  {
+   "id": "S-V2-opus-r01",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 1
+  },
+  {
+   "id": "S-V0-sonnet-r06",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 6
+  },
+  {
+   "id": "S-V4-opus-r01",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 1
+  },
+  {
+   "id": "S-V4-opus-r10",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 10
+  },
+  {
+   "id": "S-V3-opus-r07",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 7
+  },
+  {
+   "id": "S-V0-sonnet-r10",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 10
+  },
+  {
+   "id": "S-V3-sonnet-r06",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 6
+  },
+  {
+   "id": "S-V3-opus-r03",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 3
+  },
+  {
+   "id": "S-V0-opus-r08",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 8
+  },
+  {
+   "id": "S-V1-sonnet-r04",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 4
+  },
+  {
+   "id": "S-V1-opus-r06",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 6
+  },
+  {
+   "id": "S-V1-opus-r08",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 8
+  },
+  {
+   "id": "S-V2-opus-r06",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 6
+  },
+  {
+   "id": "S-V4-sonnet-r07",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 7
+  },
+  {
+   "id": "S-V2-sonnet-r07",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 7
+  },
+  {
+   "id": "S-V2-sonnet-r08",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 8
+  },
+  {
+   "id": "S-V3-opus-r02",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 2
+  },
+  {
+   "id": "S-V1-sonnet-r02",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 2
+  },
+  {
+   "id": "S-V1-opus-r03",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 3
+  },
+  {
+   "id": "S-V4-sonnet-r04",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 4
+  },
+  {
+   "id": "S-V0-opus-r05",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 5
+  },
+  {
+   "id": "S-V4-opus-r02",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 2
+  },
+  {
+   "id": "S-V3-opus-r09",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 9
+  },
+  {
+   "id": "S-V0-opus-r10",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 10
+  },
+  {
+   "id": "S-V0-opus-r09",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 9
+  },
+  {
+   "id": "S-V1-sonnet-r03",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 3
+  },
+  {
+   "id": "S-V1-opus-r04",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 4
+  },
+  {
+   "id": "S-V1-opus-r10",
+   "variante": "V1",
+   "model": "opus",
+   "replica": 10
+  },
+  {
+   "id": "S-V0-opus-r04",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 4
+  },
+  {
+   "id": "S-V0-opus-r02",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 2
+  },
+  {
+   "id": "S-V2-opus-r03",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 3
+  },
+  {
+   "id": "S-V2-opus-r10",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 10
+  },
+  {
+   "id": "S-V0-opus-r06",
+   "variante": "V0",
+   "model": "opus",
+   "replica": 6
+  },
+  {
+   "id": "S-V0-sonnet-r08",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 8
+  },
+  {
+   "id": "S-V4-sonnet-r01",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 1
+  },
+  {
+   "id": "S-V3-opus-r06",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 6
+  },
+  {
+   "id": "S-V3-opus-r10",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 10
+  },
+  {
+   "id": "S-V0-sonnet-r07",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 7
+  },
+  {
+   "id": "S-V0-sonnet-r03",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 3
+  },
+  {
+   "id": "S-V1-sonnet-r09",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 9
+  },
+  {
+   "id": "S-V0-sonnet-r01",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 1
+  },
+  {
+   "id": "S-V4-sonnet-r09",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 9
+  },
+  {
+   "id": "S-V4-opus-r05",
+   "variante": "V4",
+   "model": "opus",
+   "replica": 5
+  },
+  {
+   "id": "S-V3-sonnet-r02",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 2
+  },
+  {
+   "id": "S-V1-sonnet-r10",
+   "variante": "V1",
+   "model": "sonnet",
+   "replica": 10
+  },
+  {
+   "id": "S-V4-sonnet-r03",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 3
+  },
+  {
+   "id": "S-V4-sonnet-r02",
+   "variante": "V4",
+   "model": "sonnet",
+   "replica": 2
+  },
+  {
+   "id": "S-V2-sonnet-r01",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 1
+  },
+  {
+   "id": "S-V2-opus-r02",
+   "variante": "V2",
+   "model": "opus",
+   "replica": 2
+  },
+  {
+   "id": "S-V2-sonnet-r09",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 9
+  },
+  {
+   "id": "S-V0-sonnet-r02",
+   "variante": "V0",
+   "model": "sonnet",
+   "replica": 2
+  },
+  {
+   "id": "S-V3-opus-r05",
+   "variante": "V3",
+   "model": "opus",
+   "replica": 5
+  },
+  {
+   "id": "S-V2-sonnet-r10",
+   "variante": "V2",
+   "model": "sonnet",
+   "replica": 10
+  },
+  {
+   "id": "S-V3-sonnet-r10",
+   "variante": "V3",
+   "model": "sonnet",
+   "replica": 10
+  }
+ ]
+}
