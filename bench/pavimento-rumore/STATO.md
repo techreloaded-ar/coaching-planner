@@ -98,3 +98,7 @@ R-COM-sonnet-r3 verificata: 49.7465 minuti, 10.9776234 USD sviluppo, 88,2/100 ×
 ## Aggiornamento 2026-10-22 06:24 Europe/Rome
 
 R-COM-opus-r4 verificata: 81.1445 min, 29.0385496 USD sviluppo, 87,8/100 × 3, nessuna violazione critica; mutation 0,3265. Sette consegne valide complete. Audit adattatore registrato, nessuna correzione. R-DIR-sonnet-r3 consegnata (9,9 min, 1,91 USD) ma ancora nelle letture, non ancora comunicata come verificata. Costo consolidato 113,7826327 USD, residuo 236,2173673 USD; orchestratore 86336 e caffeinate 42633 attivi.
+
+## Aggiornamento 2026-10-22 06:40 CEST
+
+R-DIR-sonnet-r3 completata ma audit trova S1 errato (88,2 / 82,2 / 82,2). Adattatore corretto col criterio del pilota, letture archiviate e rimosse dalla serie valida, rivalutazione in coda. `esegui.py` ora elabora la coda in modo idempotente dopo ogni consegna (e prima di finalizza), senza sovrapporre sessioni: la correzione sarà quindi valutata dopo R-COM-sonnet-r2. Non lanciare una seconda valutazione mentre r2 è attivo. Sette consegne già verificate valide, ottava da rivalutare. Il punteggio 82,2 è scartato, non un risultato definitivo. Costi consolidati 115,2632618 USD; residuo 234,7367382.

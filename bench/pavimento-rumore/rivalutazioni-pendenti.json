@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "prova": "R-DIR-sonnet-r3",
+    "motivo": "S1: messaggio nel form sostituito dall’avviso della giornata; applicato criterio uniforme e networkidle dopo chiusura/riapertura",
+    "archivio": "/Users/smarello/repo/coaching-planner-bench-runs/R-DIR-sonnet-r3/valutazione/scartate/adattatore-S1-20261022T064029"
+  }
+]

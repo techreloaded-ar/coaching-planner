@@ -21,7 +21,8 @@ import run as banco
 
 
 def comando(*argomenti):
-    subprocess.run([sys.executable, '-u', *map(str, argomenti)], cwd=banco.REPO, check=True)
+    subprocess.run([sys.executable, '-u', *map(str, argomenti)], cwd=banco.REPO,
+                   stdin=subprocess.DEVNULL, check=True)
 
 
 def valuta(prova, secondo=False):
@@ -53,7 +54,23 @@ def proiezione():
     print(json.dumps(risultato, ensure_ascii=False, indent=2), flush=True)
 
 
+def processa_rivalutazioni():
+    """Correzioni documentate dell'adattatore: ripetizioni solo fra due consegne, in sequenza."""
+    percorso = BENCH / 'pavimento-rumore/rivalutazioni-pendenti.json'
+    while percorso.exists():
+        pendenti = json.loads(percorso.read_text())
+        if not pendenti:
+            return
+        prova = pendenti[0]['prova']
+        print(f'RIVALUTAZIONE DOCUMENTATA {prova}: {pendenti[0]["motivo"]}', flush=True)
+        valuta(prova)
+        # Il sorgente non cambia: conserva i mutanti e aggiorna qualità e gate dalla nuova mediana.
+        comando(BENCH / 'common/tecnica.py', 'misura', prova, '--rifai', '--senza-mutanti')
+        banco.write_json(percorso, pendenti[1:])
+
+
 def finalizza():
+    processa_rivalutazioni()
     mancanti = [r['id'] for r in banco.CFG['runs'] if not (banco.RUNS / r['id'] / 'run.json').exists()]
     if mancanti:
         sys.exit(f'Consegne mancanti: {mancanti}')
@@ -81,6 +98,7 @@ def main():
         proiezione()
     elif azione == 'valuta':
         valuta(sys.argv[2])
+        processa_rivalutazioni()
     elif azione == 'finalizza':
         finalizza()
     elif azione == 'proiezione':

@@ -269,3 +269,10 @@ e rivalutate a fine `valuta.py all`:
 ## 2026-10-22 04:54 CEST · report 1 · esito delle valutazioni durante le pause Mac
 
 - R-COM-sonnet-r3: tutte e tre le letture danno 88,2/100, tutti i gate passano. I tempi wall e2e sono 2 806,8, 1 956,6 e 311,2 secondi a causa delle sospensioni: non sono prestazioni della consegna. Nessun timeout o esito da invalidare, nessuna rivalutazione aggiunta. caffeinate resta attivo fino alla fine dell’orchestratore.
+
+
+## 2026-10-22 06:40 CEST · report 1 · R-DIR-sonnet-r3, adattatore S1
+
+- Consegna in 9,9 minuti, 1,91 USD. Tre letture iniziali 88,2 / 82,2 / 82,2: la differenza è S1, locator limitato al form che dopo il rifiuto è sostituito dall’avviso di mese chiuso. Snapshot: status visibile, zero righe scritte.
+- Stesso criterio dei precedenti adattatori: ricerca del messaggio in tutta la pagina e networkidle dopo chiusura/riapertura. Nessun codice della consegna modificato. Tre letture, log e adattatore precedente conservati in `/Users/smarello/repo/coaching-planner-bench-runs/R-DIR-sonnet-r3/valutazione/scartate/adattatore-S1-20261022T064029`; non entrano nel calcolo del rumore.
+- Coda di rivalutazioni documentate elaborata sequenzialmente dall’hook dopo la consegna corrente, prima di avviare altri worker. Conservato il mutation score; aggiornare qualità e gate tecnici dalla nuova mediana.
