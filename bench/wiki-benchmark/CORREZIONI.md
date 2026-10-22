@@ -324,3 +324,10 @@ e rivalutate a fine `valuta.py all`:
 
 - Quattro secondi adattatori generati indipendentemente e auditati. DIR Sonnet r1: tre letture 84,7, errore S1 perché il messaggio è cercato solo nel form sostituito dal banner. Stessa correzione del primario: messaggio in pagina e networkidle dopo chiusura/riapertura. Nessuna consegna modificata.
 - Tutte e tre le letture, log e adattatore originale conservati in `/Users/smarello/repo/coaching-planner-bench-runs/R-DIR-sonnet-r1/valutazione/adattatore-2/scartate/adattatore-S1-20261022T204038` ed esclusi dal rumore. Rivalutazione secondaria pendente, da eseguire solo dopo fine finalizza PID 798. Gli altri tre secondi adattatori concordano col primario: 87,8 DIR Opus, 88,2 COM Sonnet, 87,8 COM Opus (tre letture ciascuno).
+
+
+## 2026-10-22 20:52:51 CEST · report 1 · limite sessione Claude
+
+- Fase: giudice tecnico R-DIR-opus-r4, lettura 2 (ultima delle 40). Risposta API 429 `usage_limit_reached`, reset dichiarato alle 21:10 Europe/Rome; tentativo 0 USD. Evidenza conservata in tecnica/giudice-2.json, da archiviare automaticamente prima della ripresa. Le altre 39 letture tecniche sono complete.
+- Alle 21:39, dopo il reset, ripreso lo stesso comando `BENCH_MATRICE=matrice-rumore.json python3 -u bench/pavimento-rumore/esegui.py finalizza`, PID 22977, caffeinate 22978, stdin DEVNULL, stesso log finalizza-rumore.log. Il comando ripete anche le tre letture del secondo adattatore DIR Sonnet r1 già corretto, poi riusa i 39 giudici validi e completa il mancante.
+- Costo registrato prima della ripresa 296,6215977 USD; residuo 53,3784023. Nessuna modifica a matrice, prompt, modelli, rubrica o budget.
