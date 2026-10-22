@@ -82,3 +82,7 @@ Prima nuova consegna valida R-DIR-opus-r1 completata: 18,5 min, 6,78 USD svilupp
 ## Aggiornamento 2026-10-22 00:30 Europe/Rome
 
 R-DIR-sonnet-r5 verificata: 10,5 minuti, 1,83 USD sviluppo, 88,2/100 × 3, nessuna violazione critica; mutation 0,3752. Quattro consegne valide complete. Audit adattatore già effettuato, nessuna correzione. Ora in corso R-COM-opus-r5 / US-060-plan-1. Costo consolidato 34,3634222 USD, residuo 315,6365778 USD; nessuna nuova interruzione.
+
+## Aggiornamento 2026-10-22 02:00 Europe/Rome
+
+R-COM-opus-r5 verificata: 91,95 minuti, 34,36 USD sviluppo, 87,8/100 × 3, nessuna violazione critica; mutation 0,3371. Cinque consegne valide complete. Audit adattatore registrato, nessuna correzione. Ora in corso R-COM-sonnet-r3 / US-060-plan-1. Costo consolidato 69,6600582 USD, residuo 280,3399418 USD. Nessuna nuova interruzione.
