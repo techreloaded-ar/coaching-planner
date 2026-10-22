@@ -103,5 +103,12 @@
       "browser.ts": "f3b65a16242a69c3fa69bffc97577e62a80f53c3cb54d2c5bc2785a2b0efac50",
       "integrazione.ts": "0153e668e160ccbad4833d0e6a680e02891bdd7a6750d9a8779ef604dc76c6a1"
     }
+  },
+  "R-COM-opus-r2/1": {
+    "esito": "Log e sorgenti letti: nessun NonImplementato; action e storico reali, stato derivato con funzione del prodotto, motivazione assente letta null. S1 usa errore-azione-giornata effettivo. Tre letture identiche 87.8, nessuna violazione critica; nessuna correzione necessaria.",
+    "sha256": {
+      "browser.ts": "f30c9ba173e597a90f3064072b8c661ae05527a30c9a0db5d39572a3a91be322",
+      "integrazione.ts": "9fc150205522deb7df67b3dea71c9a6bacbea4539edebee53185fd89a6a6e5c5"
+    }
   }
 }
