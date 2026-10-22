@@ -66,7 +66,9 @@ def processa_rivalutazioni():
         valuta(prova)
         # Il sorgente non cambia: conserva i mutanti e aggiorna qualità e gate dalla nuova mediana.
         comando(BENCH / 'common/tecnica.py', 'misura', prova, '--rifai', '--senza-mutanti')
-        banco.write_json(percorso, pendenti[1:])
+        # Il monitor può aver accodato altre correzioni mentre erano in corso i test.
+        aggiornati = json.loads(percorso.read_text())
+        banco.write_json(percorso, [voce for voce in aggiornati if voce != pendenti[0]])
 
 
 def finalizza():

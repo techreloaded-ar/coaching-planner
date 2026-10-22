@@ -102,3 +102,7 @@ R-COM-opus-r4 verificata: 81.1445 min, 29.0385496 USD sviluppo, 87,8/100 × 3, n
 ## Aggiornamento 2026-10-22 06:40 CEST
 
 R-DIR-sonnet-r3 completata ma audit trova S1 errato (88,2 / 82,2 / 82,2). Adattatore corretto col criterio del pilota, letture archiviate e rimosse dalla serie valida, rivalutazione in coda. `esegui.py` ora elabora la coda in modo idempotente dopo ogni consegna (e prima di finalizza), senza sovrapporre sessioni: la correzione sarà quindi valutata dopo R-COM-sonnet-r2. Non lanciare una seconda valutazione mentre r2 è attivo. Sette consegne già verificate valide, ottava da rivalutare. Il punteggio 82,2 è scartato, non un risultato definitivo. Costi consolidati 115,2632618 USD; residuo 234,7367382.
+
+## Aggiornamento 2026-10-22 07:26 CEST
+
+R-COM-sonnet-r2 consegnata (44.7871 min, 8.6533102 USD), tre letture iniziali 82,2 da scartare per S1, stesso errore form/banner. Corretto l’adattatore, letture archiviate, nuova serie ancora da fare. Il processo esegui.py 52569 sta già rivalutando DIR-r3 con la vecchia versione della gestione coda: helper `/tmp/accoda-rivalutazione-COM-r2.py` PID 59526 aspetta la sua uscita e poi accoda COM-r2 usando `rivalutazione-da-accodare.json` (che rimuove dopo averla accodata). **Controllare che l’helper abbia accodato la voce dopo l’uscita di 52569; non lanciare test in parallelo.** Il codice delle nuove invocazioni ora preserva eventuali nuove voci aggiunte durante i test. Sette consegne già valide, due da rivalutare. Costi consolidati 123,1126657 USD, residui 226,8873343.

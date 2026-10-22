@@ -29,6 +29,19 @@ class RivalutazioniTest(unittest.TestCase):
                 esegui.processa_rivalutazioni()
                 self.assertEqual(valuta.call_count, 1)
 
+    def test_non_perde_voci_accodate_durante_i_test(self):
+        with tempfile.TemporaryDirectory() as cartella:
+            percorso = self.prepara_coda(cartella)
+            def aggiungi(prova):
+                if prova == 'esempio':
+                    coda = json.loads(percorso.read_text())
+                    coda.append({'prova': 'seconda', 'motivo': 'altra correzione'})
+                    percorso.write_text(json.dumps(coda))
+            with patch.object(esegui, 'BENCH', Path(cartella)), patch.object(esegui, 'valuta', side_effect=aggiungi) as valuta, patch.object(esegui, 'comando'):
+                esegui.processa_rivalutazioni()
+                self.assertEqual([chiamata.args[0] for chiamata in valuta.call_args_list], ['esempio', 'seconda'])
+                self.assertEqual(json.loads(percorso.read_text()), [])
+
     def test_errore_non_perde_la_rivalutazione_pendente(self):
         with tempfile.TemporaryDirectory() as cartella:
             percorso = self.prepara_coda(cartella)

@@ -276,3 +276,9 @@ e rivalutate a fine `valuta.py all`:
 - Consegna in 9,9 minuti, 1,91 USD. Tre letture iniziali 88,2 / 82,2 / 82,2: la differenza è S1, locator limitato al form che dopo il rifiuto è sostituito dall’avviso di mese chiuso. Snapshot: status visibile, zero righe scritte.
 - Stesso criterio dei precedenti adattatori: ricerca del messaggio in tutta la pagina e networkidle dopo chiusura/riapertura. Nessun codice della consegna modificato. Tre letture, log e adattatore precedente conservati in `/Users/smarello/repo/coaching-planner-bench-runs/R-DIR-sonnet-r3/valutazione/scartate/adattatore-S1-20261022T064029`; non entrano nel calcolo del rumore.
 - Coda di rivalutazioni documentate elaborata sequenzialmente dall’hook dopo la consegna corrente, prima di avviare altri worker. Conservato il mutation score; aggiornare qualità e gate tecnici dalla nuova mediana.
+
+
+## 2026-10-22 07:26 CEST · report 1 · R-COM-sonnet-r2, adattatore S1
+
+- Tre letture iniziali 82,2/100: S1 cerca l’alert solo dentro il form, mentre lo snapshot mostra il banner di mese chiuso e zero righe scritte. Applicato lo stesso criterio di DIR-r1 e DIR-r3: include `mese-chiuso-banner` e attende networkidle dopo chiusura/riapertura. Nessuna consegna modificata.
+- Conservate le tre letture e i log in `/Users/smarello/repo/coaching-planner-bench-runs/R-COM-sonnet-r2/valutazione/scartate/adattatore-S1-20261022T072605`. Rivalutazione da eseguire in sequenza; l’hook attuale sta già rivalutando DIR-r3, perciò un helper attende la sua uscita prima di accodare COM-r2, evitando di perdere la nuova voce quando il vecchio processo scrive la coda. Le nuove invocazioni rileggono la coda prima di rimuovere una voce completata. Test di concorrenza della coda aggiunto: quindici test del banco passati.
