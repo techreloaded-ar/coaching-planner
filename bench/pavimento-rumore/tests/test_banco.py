@@ -58,6 +58,17 @@ class BancoRumoreTest(unittest.TestCase):
             (fase / 'metrics.json').unlink()
             self.assertEqual(banco.costi_esperimento()['turni_persi'], 3)
 
+    def test_log_adattatore_copiato_non_raddoppia_il_costo(self):
+        with tempfile.TemporaryDirectory() as cartella, patch.object(banco, 'RUNS', Path(cartella)):
+            valutazione = Path(cartella) / banco.CFG['runs'][0]['id'] / 'valutazione'
+            for nome in ['adattatore-2/adattatore.log', 'repo/__oracolo__/adattatore/adattatore.log']:
+                file = valutazione / nome
+                file.parent.mkdir(parents=True)
+                file.write_text(json.dumps({'session_id': 'secondo', 'total_cost_usd': .7}))
+            distinto = valutazione / 'adattatore-perso-1.log'
+            distinto.write_text(json.dumps({'session_id': 'interrotta', 'total_cost_usd': .2}))
+            self.assertAlmostEqual(banco.costi_esperimento()['adattatori'], .9)
+
     def test_replica_salvata_non_rilancia_gate_o_sessione(self):
         with tempfile.TemporaryDirectory() as cartella, patch.object(banco, 'RUNS', Path(cartella)):
             destinazione = Path(cartella) / 'prova/valutazione'

@@ -166,3 +166,13 @@ Finalizza PID 798 e caffeinate 806 attivi, ora giudici tecnici (oltre metà dell
 ## Aggiornamento 2026-10-22 21:39 Europe/Rome · ripresa dopo limite Claude
 
 Finalizza si è fermato alle 20:52:51 per API 429 usage_limit_reached, giudice DIR Opus r4 lettura 2 (ultima). Tentativo 0 USD, reset 21:10. Alle 21:39 ripreso **lo stesso comando finalizza**, PID 22977, caffeinate 22978, stesso log e stdin DEVNULL; nessun altro processo o listener 3000 al lancio. Ripete le tre letture secondarie corrette e poi il solo giudice mancante; gli altri 39 sono riusati. Al completamento svuotare rivalutazioni-secondarie-pendenti.json e aggiornare audit DIR Sonnet r1/2. Costo consolidato al rilancio 296,6215977 USD, residuo 53,3784023. Restano narrative/report/indice/browser e commit. Interruzione e reset documentati in CORREZIONI.
+
+## Aggiornamento finale dati · 2026-10-22 22:43 Europe/Rome
+
+**Tutto il lavoro scientifico e i report sono completi**: 20 consegne, 72 letture funzionali valide, 40 giudici tecnici, audit 24 adattatori, precondizioni 127 fasi, narrativa report 1 e report 4 riscritta dai dati, H1/H4 e indice aggiornati. Secondo adattatore DIR Sonnet r1 corretto: 90,7 × 3; code rivalutazioni vuote. Finalizza 22977 e caffeinate 22978 terminati. Verifica-finale.json raccoglie i controlli.
+
+Audit contabile corregge quattro copie degli stessi log: totale effettivo **293,9197681 USD**, residuo **56,0802319 USD**. Sedici test del banco passati; nessun modello, prompt, rubrica, matrice o budget cambiato. Report definitivo generato con --definitivo, report 4 su 40 consegne.
+
+**Unica attività residua: verifica visiva/interattiva nel browser.** Lo strumento Browser Use rifiuta l’accesso file:// per policy e vieta workaround. HTML/link/ID e sintassi JS verificati staticamente; non dichiarare verifica browser eseguita. Manifest report 1 resta «in corso» per questa sola verifica. Automazione da disattivare ora perché serve verifica manuale o indicazione dell’utente. Alla conferma della verifica: impostare report 1 «fatto», aggiornare nota/indice e commit, senza nuove sessioni Claude.
+
+Automazione `completa-il-report-1-sul-pavimento-di-rumore` eliminata con successo dopo la chiusura dei processi. Nessun nuovo lancio previsto; resta la verifica visiva dell’utente prima di marcare il report «fatto».

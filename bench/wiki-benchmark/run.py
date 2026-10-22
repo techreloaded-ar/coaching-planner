@@ -153,6 +153,7 @@ def costi_esperimento():
     ids = [prova["id"] for prova in CFG["runs"]]
     cartelle += [p for p in (RUNS / "_scartati").glob("*") if any(p.name.startswith(id_ + "--") for id_ in ids)]
     voci = {"prove": 0.0, "scartate": 0.0, "turni_persi": 0.0, "adattatori": 0.0, "giudici_tecnici": 0.0}
+    sessioni_adattatori = {}
     for cartella in cartelle:
         for fase in (cartella / "phases").glob("*"):
             sessioni = {}
@@ -166,11 +167,17 @@ def costi_esperimento():
             voci[categoria] += costo
         for file in (cartella / "valutazione").glob("**/adattatore*.log"):
             try:
-                voci["adattatori"] += json.loads(file.read_text()).get("total_cost_usd", 0) or 0
+                risultato = json.loads(file.read_text())
+                # Il secondo adattatore viene copiato nel clone di valutazione con il log:
+                # più file della stessa sessione non sono nuove spese.
+                sessione = risultato.get("session_id") or str(file)
+                sessioni_adattatori[sessione] = max(sessioni_adattatori.get(sessione, 0),
+                                                    risultato.get("total_cost_usd", 0) or 0)
             except json.JSONDecodeError:
                 pass
         for file in (cartella / "tecnica").glob("giudice-*.json"):
             voci["giudici_tecnici"] += json.loads(file.read_text()).get("cost_usd", 0) or 0
+    voci["adattatori"] = sum(sessioni_adattatori.values())
     return {**voci, "totale": sum(voci.values())}
 
 

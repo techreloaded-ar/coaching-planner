@@ -53,37 +53,39 @@
    "disegno": "2 celle (diretto, completo) × 2 modelli × 5 repliche = 20 prove a storie fisse (US-060, US-061), ordine randomizzato; oracolo ripetuto 3 volte, secondo adattatore indipendente per una prova per cella",
    "stato": "in corso",
    "path": "reports/pavimento-rumore/report.html",
-   "costo_usd": 296.6215977,
-   "data": null,
-   "risultato": null,
+   "costo_usd": 293.9197681,
+   "data": "2026-10-22",
+   "risultato": "SD pooled 0,775; soglia entro il rumore 1,550 punti; MDE 1,569. Completo−diretto −0,01 punti (IC −0,75…+0,72): nessun vantaggio funzionale osservato.",
    "ipotesi": {
     "id": "H1",
     "testo": "La varianza tra repliche della stessa cella è dello stesso ordine della differenza tra «diretto» e «completo», quindi gli scarti finora osservati sotto 5 punti non sono interpretabili.",
     "metrica": "Deviazione standard pooled tra repliche e differenza minima rilevabile con 5 repliche per cella (α 0,05, potenza 0,8). Secondaria: differenza appaiata completo−diretto con intervallo bootstrap.",
     "soglia": "Esito da registrare: il numero di punti sotto il quale, da qui in poi, una differenza si scrive «entro il rumore» (2 deviazioni pooled). Rumore dell'oracolo: differenza tra le tre valutazioni della stessa consegna e tra i due adattatori.",
-    "esito": null
+    "esito": "SD pooled 0,775 punti; MDE con 5 repliche, α 0,05 e potenza 0,8: 1,569 punti. Da qui in poi ogni differenza inferiore a 1,550 punti (2 SD pooled) si scrive «entro il rumore». Completo−diretto −0,01 (IC bootstrap −0,75…+0,72), entro il rumore. Il campione non sostiene una soglia generale di 5 punti. Rumore osservato: range zero nelle 3 letture di ciascuna consegna, differenza zero fra i 2 adattatori sulle 4 prove designate dopo audit."
    },
-   "budget_usd": 350
+   "budget_usd": 350,
+   "note": "Dati, narrative, audit, test e report definitivi completati. Rimane solo la verifica visiva nel browser: policy di accesso blocca URL file://. Automazione disattivata in attesa di verifica manuale o indicazioni dell’utente."
   },
   {
    "numero": 4,
    "slug": "qualita-tecnica",
    "titolo": "Il codice in più del percorso completo vale qualcosa?",
    "domanda": "A parità di punteggio funzionale, le 2–3 volte più righe del percorso completo si traducono in qualità tecnica superiore?",
-   "disegno": "Nessun agente di sviluppo: analisi statica, mutation testing (StrykerJS) e giudice Opus a checklist (due letture) sulle 20 consegne archiviate (10 della matrice principale, 10 del report Wiki); da rigenerare con le 20 del report 1",
+   "disegno": "Analisi statica, mutation testing e due letture Opus sulle 40 consegne archiviate: 20 storiche più 20 del report 1; confronti storici separati dalle nuove celle.",
    "stato": "fatto",
    "path": "reports/qualita-tecnica/report.html",
    "costo_usd": 17.49,
-   "data": "2026-10-21",
-   "risultato": "Completo − diretto = −1,3 punti tecnici (IC −2,4 … −0,2): H4 non respinta; il codice in più è per tre quarti .archetipo, mockup e test che non alzano il mutation score (38,5 % contro 37,3 % per Sonnet); i punteggi tecnici stanno tutti tra 70,3 e 79,0.",
+   "data": "2026-10-22",
+   "risultato": "Rigenerato su 40 consegne. Confronto storico completo−diretto −1,5 punti tecnici (IC −2,4…−0,6): H4 non respinta. Nuove mediane diretto/completo: Sonnet 77,6/75,8, Opus 74,3/73,7. Punteggi totali 68,2…79,3.",
    "ipotesi": {
     "id": "H4",
     "testo": "Il codice in più del percorso completo non si traduce in qualità tecnica superiore (es. sonnet-C1 4 208 righe contro sonnet-C2 1 473, stesso 88,2 funzionale).",
     "metrica": "Differenza di punteggio tecnico (criteri §2.2) tra «completo» e «diretto» a storie uguali.",
     "soglia": "Se il completo supera il diretto di almeno 10 punti tecnici con intervallo bootstrap sopra zero, H4 è respinta e il costo di implement va riconsiderato; altrimenti il codice in più è zavorra da spiegare.",
-    "esito": "Δ tecnico completo − diretto a storie uguali: −1,3 su entrambi i modelli (IC bootstrap −2,4 … −0,2; Sonnet −0,9, Opus −1,8). Il completo non supera il diretto di 10 punti: H4 non respinta. Il codice in più è zavorra da spiegare (piani e stato .archetipo, mockup, test che non uccidono mutanti)."
+    "esito": "Dopo ricalcolo delle mediane sulle 40 consegne: Δ tecnico storico completo−diretto −1,5 (IC bootstrap −2,4…−0,6; Sonnet −1,3, Opus −1,8). Non raggiunge il vantaggio di 10 punti con IC sopra zero: H4 non respinta. Le nuove celle restano separate dai confronti storici."
    },
-   "budget_usd": 40
+   "budget_usd": 40,
+   "note": "Rigenerato il 22 ottobre con le 20 consegne del report 1; relativi giudici addebitati al report 1, costo storico qui invariato."
   },
   {
    "numero": 6,

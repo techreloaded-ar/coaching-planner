@@ -217,6 +217,7 @@ def registro():
         f'<p>Ultimo aggiornamento: <strong>{e(MANIFEST["aggiornato"])}</strong>. Costo cumulato registrato dei report con costo noto ({len(fatti)}): '
         f'<strong>{usd(totale)} USD</strong>. Prove in <code>{e(MANIFEST["prove"])}</code>.</p>'
         '<ul><li>Correzioni al banco, prove scartate e anomalie: <a href="wiki-benchmark/CORREZIONI.md">bench/wiki-benchmark/CORREZIONI.md</a>.</li>'
+        '<li>Registro 2026-10-22, report 1: SD pooled 0,775; soglia «entro il rumore» 1,550 punti; MDE 1,569. Range delle tre letture zero su venti consegne; differenza fra adattatori zero sulle quattro prove designate dopo audit. Le serie con errori di adattamento sono archiviate ed escluse. Report 4 rigenerato su quaranta consegne, narrative e H4 aggiornate; giudici nuovi conteggiati solo nel report 1. Verifica browser file:// bloccata dalla policy; verifica visiva ancora da completare.</li>'
         '<li>Rigenerare questa pagina: <code>python3 bench/index.py</code> (legge <code>bench/manifest.json</code> e <code>bench/common/controlli.json</code>).</li>'
         '<li>Vincoli validi per tutti i report: sessioni agente isolate (<code>claude -p</code> nel clone, <code>--setting-sources project,local</code>, budget per fase 25 USD Sonnet e 60 USD Opus, '
         'scarto delle fasi con skill o plugin estranei); precondizioni verificate dal banco e registrate in <code>metrics.json</code> (presenza di <code>docs/wiki/</code>, skill <code>archetipo-wiki</code>, '

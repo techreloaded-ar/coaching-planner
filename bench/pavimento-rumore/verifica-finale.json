@@ -1,0 +1,18 @@
+{
+  "consegne": 20,
+  "letture_primarie": 60,
+  "letture_secondarie": 12,
+  "giudici_tecnici": 40,
+  "adattatori_auditati": 24,
+  "fasi_precondizioni": 127,
+  "tree_hash_letture": "tutti conformi",
+  "sha256_adattatori": "tutti conformi",
+  "browser": "non verificato: policy browser blocca URL file://",
+  "test_banco": "16 passati",
+  "report_definitivo": "generato, completo true",
+  "report4": "40 consegne, rigenerato",
+  "html": "link locali validi, ID univoci, 20 righe overview",
+  "costo_usd": 293.9197681,
+  "residuo_usd": 56.0802319,
+  "sintassi_script": "node --check: entrambi validi"
+}

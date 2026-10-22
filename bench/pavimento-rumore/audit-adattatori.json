@@ -147,7 +147,7 @@
     }
   },
   "R-DIR-sonnet-r1/2": {
-    "esito": "Secondo adattatore: S1 corretto con criterio comune (messaggio fuori dal form, networkidle); tre letture originali 84.7 archiviate ed escluse. Tre nuove letture pendenti dopo finalizza. Nessun NonImplementato.",
+    "esito": "Secondo adattatore: S1 corretto con criterio comune (messaggio fuori dal form, networkidle); tre letture originali 84.7 archiviate ed escluse. Tre nuove letture identiche 90.7, concordi col primario. Nessun NonImplementato.",
     "sha256": {
       "browser.ts": "97d7f5307fddf4511bdf13bf8ff2ed3255b22523d075fe86f661b5aaf426f339",
       "integrazione.ts": "8d2b985ff5c13a6c8cc17c4c2588e62ba251040ef0c97026e67e1614979e6dca"

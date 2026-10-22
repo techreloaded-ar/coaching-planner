@@ -96,7 +96,7 @@ def costo_giudici():
         d = json.loads(p.read_text())
         c = d.get("cost_usd") or 0
         totale += c
-        voci.append({"prova": p.parent.parent.name, "file": p.name, "usd": round(c, 3), "scartata": "scartat" in p.name})
+        voci.append({"prova": p.parent.parent.name, "file": p.name, "usd": round(c, 3), "scartata": "scartat" in p.name or "tentativo" in p.name})
     return {"voci": voci, "totale": round(totale, 2), "scartate": round(sum(v["usd"] for v in voci if v["scartata"]), 2)}
 
 
@@ -349,7 +349,7 @@ def tabella_costo(d):
                     for p, u in sorted(per_prova.items()))
     return (f'<div class="scroll"><table><thead><tr><th>Voce</th><th class="num">USD</th></tr></thead><tbody>{righe}'
             f'<tr><td><strong>Totale giudici</strong> (di cui letture scartate {costo["scartate"]:.2f})</td><td class="num"><strong>{costo["totale"]:.2f}</strong></td></tr>'
-            '<tr><td>Analisi statica e mutation testing (ESLint, jscpd, StrykerJS): nessun agente</td><td class="num">0.00</td></tr></tbody></table></div>')
+            '<tr><td>Analisi statica e mutation testing (ESLint, jscpd, StrykerJS): nessun agente</td><td class="num">0.00</td></tr></tbody></table></div><p>I giudici delle nuove venti consegne sono addebitati al report 1; il costo storico del report 4 nel manifest resta invariato, evitando il doppio conteggio nell’indice.</p>')
 
 
 def genera(d):
@@ -369,8 +369,8 @@ def genera(d):
         h.sezione("Metriche per consegna", tabella_metriche(d) + t("metriche")),
         h.sezione("Dettaglio per consegna", "".join(dettaglio(c, d) for c in d["consegne"])),
         h.sezione("Come è stata verificata la qualità",
-                  '<p>Criteri comuni dell\'indice: <a href="../../index.html#criterio-funzionale">§2.1 qualità funzionale</a> (punteggi dell\'oracolo già registrati nei report 0b e 0c, '
-                  'una valutazione per consegna) e <a href="../../index.html#criterio-tecnico">§2.2 qualità tecnica</a>, applicati per intero. Specifico di questo report:</p><ul>'
+                  '<p>Criteri comuni dell\'indice: <a href="../../index.html#criterio-funzionale">§2.1 qualità funzionale</a> (punteggi dell\'oracolo già registrati nei report 0b, 0c e 1, '
+                  'una valutazione per consegna; per il report 1 mediana di tre letture) e <a href="../../index.html#criterio-tecnico">§2.2 qualità tecnica</a>, applicati per intero. Specifico di questo report:</p><ul>'
                   '<li><strong>Strumenti</strong> in <code>bench/strumenti/</code>: jscpd, StrykerJS 10 con <code>@stryker-mutator/vitest-runner</code>; ESLint, TypeScript e Vitest sono quelli della consegna. '
                   'Script: <code>bench/common/tecnica.py</code> (misura, giudice, punteggi), <code>bench/common/funzioni.js</code> (range delle funzioni dall\'AST TypeScript).</li>'
                   '<li><strong>Complessità</strong>: regola ESLint <code>complexity</code> con <code>max: 0</code> per riportare ogni funzione dei file src toccati; una funzione è «nuova o modificata» se '
