@@ -40,5 +40,12 @@
       "browser.ts": "4180068a7b00a4c58769b3883ccffaf10ca8423e3883d68ea9ecc34487a6354b",
       "integrazione.ts": "15e6c0f58727883196b9e5eff6365f0a299c0ce37ffc6b4d779e9e1b9e4d1833"
     }
+  },
+  "R-COM-opus-r4/1": {
+    "esito": "Log letto: nessun NonImplementato, stato e storico dall’ultima operazione come nel prodotto, motivazione assente letta null; action redirect restituito senza inventare autorizzazioni. Tre letture 87.8; fallimenti C2,C3,C5,T2,U2. Nessuna correzione necessaria.",
+    "sha256": {
+      "browser.ts": "05a023eb7434c319bc3a5b8141eedf2b29eefdac57f2d22baf52c7d1c9fee2fc",
+      "integrazione.ts": "c706284678b225e5524fcf63fd0f980a1d8647f5b6d28267975638b9a5164eef"
+    }
   }
 }

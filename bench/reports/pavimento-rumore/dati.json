@@ -1,5 +1,5 @@
 {
-  "aggiornato": "2026-10-22T04:54:59.875292+02:00",
+  "aggiornato": "2026-10-22T06:24:58.510767+02:00",
   "prove": [
     {
       "id": "R-DIR-opus-r1",
@@ -35,38 +35,38 @@
       "righe_totali": 2538,
       "usd_per_punto": 0.08613519134396355,
       "controlli": {
-        "T1": true,
-        "C5": false,
-        "V2": true,
-        "P1": true,
-        "B4": true,
-        "U3": true,
-        "B3": true,
-        "B7": true,
-        "B9": true,
-        "V1": true,
-        "B1": true,
-        "B2": true,
-        "B5": true,
-        "V3": true,
-        "A3": true,
-        "C2": false,
-        "C3": false,
-        "U1": true,
-        "K2": true,
-        "B8": true,
-        "S1": true,
-        "K1": true,
-        "V4": true,
         "P2": true,
-        "A2": true,
-        "U2": false,
-        "A1": true,
-        "C1": true,
+        "B5": true,
+        "B1": true,
+        "V2": true,
+        "B8": true,
+        "U3": true,
+        "P1": true,
+        "A3": true,
+        "V1": true,
+        "S1": true,
         "T2": false,
+        "T1": true,
         "C4": true,
+        "C5": false,
+        "C2": false,
+        "B2": true,
+        "C3": false,
+        "V3": true,
+        "C1": true,
+        "B3": true,
+        "V4": true,
         "B6": true,
-        "P3": true
+        "B4": true,
+        "A2": true,
+        "B9": true,
+        "P3": true,
+        "K1": true,
+        "A1": true,
+        "U1": true,
+        "B7": true,
+        "U2": false,
+        "K2": true
       },
       "fasi": [
         {
@@ -259,38 +259,38 @@
       "righe_totali": 1570,
       "usd_per_punto": 0.02639341345093715,
       "controlli": {
-        "T1": true,
-        "C5": true,
-        "V2": true,
-        "P1": true,
-        "B4": true,
-        "U3": true,
-        "B3": true,
-        "B7": true,
-        "B9": true,
-        "V1": false,
-        "B1": true,
-        "B2": true,
-        "B5": true,
-        "V3": true,
-        "A3": true,
-        "C2": false,
-        "C3": false,
-        "U1": true,
-        "K2": true,
-        "B8": true,
-        "S1": true,
-        "K1": true,
-        "V4": true,
         "P2": true,
-        "A2": true,
-        "U2": false,
-        "A1": true,
-        "C1": true,
+        "B5": true,
+        "B1": true,
+        "V2": true,
+        "B8": true,
+        "U3": true,
+        "P1": true,
+        "A3": true,
+        "V1": false,
+        "S1": true,
         "T2": true,
+        "T1": true,
         "C4": true,
+        "C5": true,
+        "C2": false,
+        "B2": true,
+        "C3": false,
+        "V3": true,
+        "C1": true,
+        "B3": true,
+        "V4": true,
         "B6": true,
-        "P3": true
+        "B4": true,
+        "A2": true,
+        "B9": true,
+        "P3": true,
+        "K1": true,
+        "A1": true,
+        "U1": true,
+        "B7": true,
+        "U2": false,
+        "K2": true
       },
       "fasi": [
         {
@@ -471,38 +471,38 @@
       "righe_totali": 3312,
       "usd_per_punto": 0.11984908503401362,
       "controlli": {
-        "T1": true,
-        "C5": true,
-        "V2": true,
-        "P1": true,
-        "B4": true,
-        "U3": true,
-        "B3": true,
-        "B7": true,
-        "B9": true,
-        "V1": false,
-        "B1": true,
-        "B2": true,
-        "B5": true,
-        "V3": true,
-        "A3": true,
-        "C2": false,
-        "C3": false,
-        "U1": true,
-        "K2": true,
-        "B8": true,
-        "S1": true,
-        "K1": true,
-        "V4": false,
         "P2": true,
-        "A2": true,
-        "U2": false,
-        "A1": true,
-        "C1": true,
+        "B5": true,
+        "B1": true,
+        "V2": true,
+        "B8": true,
+        "U3": true,
+        "P1": true,
+        "A3": true,
+        "V1": false,
+        "S1": true,
         "T2": true,
+        "T1": true,
         "C4": true,
+        "C5": true,
+        "C2": false,
+        "B2": true,
+        "C3": false,
+        "V3": true,
+        "C1": true,
+        "B3": true,
+        "V4": false,
         "B6": true,
-        "P3": true
+        "B4": true,
+        "A2": true,
+        "B9": true,
+        "P3": true,
+        "K1": true,
+        "A1": true,
+        "U1": true,
+        "B7": true,
+        "U2": false,
+        "K2": true
       },
       "fasi": [
         {
@@ -1810,38 +1810,38 @@
       "righe_totali": 1484,
       "usd_per_punto": 0.02505918594104308,
       "controlli": {
-        "T1": true,
-        "C5": true,
-        "V2": true,
-        "P1": true,
-        "B4": true,
-        "U3": true,
-        "B3": true,
-        "B7": true,
-        "B9": true,
-        "V1": false,
-        "B1": true,
-        "B2": true,
-        "B5": true,
-        "V3": true,
-        "A3": true,
-        "C2": false,
-        "C3": false,
-        "U1": true,
-        "K2": true,
-        "B8": true,
-        "S1": true,
-        "K1": true,
-        "V4": false,
         "P2": true,
-        "A2": true,
-        "U2": false,
-        "A1": true,
-        "C1": true,
+        "B5": true,
+        "B1": true,
+        "V2": true,
+        "B8": true,
+        "U3": true,
+        "P1": true,
+        "A3": true,
+        "V1": false,
+        "S1": true,
         "T2": true,
+        "T1": true,
         "C4": true,
+        "C5": true,
+        "C2": false,
+        "B2": true,
+        "C3": false,
+        "V3": true,
+        "C1": true,
+        "B3": true,
+        "V4": false,
         "B6": true,
-        "P3": true
+        "B4": true,
+        "A2": true,
+        "B9": true,
+        "P3": true,
+        "K1": true,
+        "A1": true,
+        "U1": true,
+        "B7": true,
+        "U2": false,
+        "K2": true
       },
       "fasi": [
         {
@@ -2030,38 +2030,38 @@
       "righe_totali": 4817,
       "usd_per_punto": 0.4002412482915717,
       "controlli": {
-        "T1": true,
-        "C5": false,
-        "V2": true,
-        "P1": true,
-        "B4": true,
-        "U3": true,
-        "B3": true,
-        "B7": true,
-        "B9": true,
-        "V1": true,
-        "B1": true,
-        "B2": true,
-        "B5": true,
-        "V3": true,
-        "A3": true,
-        "C2": false,
-        "C3": false,
-        "U1": true,
-        "K2": true,
-        "B8": true,
-        "S1": true,
-        "K1": true,
-        "V4": true,
         "P2": true,
-        "A2": true,
-        "U2": false,
-        "A1": true,
-        "C1": true,
+        "B5": true,
+        "B1": true,
+        "V2": true,
+        "B8": true,
+        "U3": true,
+        "P1": true,
+        "A3": true,
+        "V1": true,
+        "S1": true,
         "T2": false,
+        "T1": true,
         "C4": true,
+        "C5": false,
+        "C2": false,
+        "B2": true,
+        "C3": false,
+        "V3": true,
+        "C1": true,
+        "B3": true,
+        "V4": true,
         "B6": true,
-        "P3": true
+        "B4": true,
+        "A2": true,
+        "B9": true,
+        "P3": true,
+        "K1": true,
+        "A1": true,
+        "U1": true,
+        "B7": true,
+        "U2": false,
+        "K2": true
       },
       "fasi": [
         {
@@ -3157,38 +3157,38 @@
       "righe_totali": 2670,
       "usd_per_punto": 0.12872678458049885,
       "controlli": {
-        "T1": true,
-        "C5": true,
-        "V2": true,
-        "P1": true,
-        "B4": true,
-        "U3": true,
-        "B3": true,
-        "B7": true,
-        "B9": true,
-        "V1": false,
-        "B1": true,
-        "B2": true,
-        "B5": true,
-        "V3": true,
-        "A3": true,
-        "C2": false,
-        "C3": false,
-        "U1": true,
-        "K2": true,
-        "B8": true,
-        "S1": true,
-        "K1": true,
-        "V4": false,
         "P2": true,
-        "A2": true,
-        "U2": false,
-        "A1": true,
-        "C1": true,
+        "B5": true,
+        "B1": true,
+        "V2": true,
+        "B8": true,
+        "U3": true,
+        "P1": true,
+        "A3": true,
+        "V1": false,
+        "S1": true,
         "T2": true,
+        "T1": true,
         "C4": true,
+        "C5": true,
+        "C2": false,
+        "B2": true,
+        "C3": false,
+        "V3": true,
+        "C1": true,
+        "B3": true,
+        "V4": false,
         "B6": true,
-        "P3": true
+        "B4": true,
+        "A2": true,
+        "B9": true,
+        "P3": true,
+        "K1": true,
+        "A1": true,
+        "U1": true,
+        "B7": true,
+        "U2": false,
+        "K2": true
       },
       "fasi": [
         {
@@ -4694,27 +4694,67 @@
       "config": "COM",
       "replica": 4,
       "secondo_adattatore": false,
-      "consegnata": false,
-      "tree_hash": null,
-      "qualita": null,
-      "valutazioni": [],
-      "intervallo": null,
+      "consegnata": true,
+      "tree_hash": "a3a9aacba22dbb426c145e2e9b62277543a48263",
+      "qualita": 87.8,
+      "valutazioni": [
+        87.8,
+        87.8,
+        87.8
+      ],
+      "intervallo": [
+        87.8,
+        87.8
+      ],
       "valutazioni_secondo_adattatore": [],
-      "minuti": null,
-      "usd": null,
-      "usd_sviluppo": null,
-      "token": null,
+      "minuti": 82.78643333333333,
+      "usd": 29.819859400000006,
+      "usd_sviluppo": 29.038549600000007,
+      "token": 50.424937,
       "token_dettaglio": {
-        "total": 675892,
-        "input_uncached": 26,
-        "cache_read": 609009,
-        "cache_creation": 56478,
-        "output": 10379
+        "total": 50424937,
+        "input_uncached": 910,
+        "cache_read": 48368892,
+        "cache_creation": 1677370,
+        "output": 377765
       },
-      "righe_nette_src": null,
-      "righe_totali": null,
-      "usd_per_punto": null,
-      "controlli": {},
+      "righe_nette_src": 939,
+      "righe_totali": 4064,
+      "usd_per_punto": 0.33963393394077457,
+      "controlli": {
+        "P2": true,
+        "B5": true,
+        "B1": true,
+        "V2": true,
+        "B8": true,
+        "U3": true,
+        "P1": true,
+        "A3": true,
+        "V1": true,
+        "S1": true,
+        "T2": false,
+        "T1": true,
+        "C4": true,
+        "C5": false,
+        "C2": false,
+        "B2": true,
+        "C3": false,
+        "V3": true,
+        "C1": true,
+        "B3": true,
+        "V4": true,
+        "B6": true,
+        "B4": true,
+        "A2": true,
+        "B9": true,
+        "P3": true,
+        "K1": true,
+        "A1": true,
+        "U1": true,
+        "B7": true,
+        "U2": false,
+        "K2": true
+      },
       "fasi": [
         {
           "model_resolved": "claude-opus-5-5",
@@ -4784,9 +4824,962 @@
           "exchanges": 1,
           "committente_seconds": 17.2,
           "committente_cost_usd": 0.0217838
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 621000,
+          "duration_api_ms": 617721,
+          "num_turns": 37,
+          "cost_usd": 3.3750716000000005,
+          "tokens": {
+            "cache_creation": 204078,
+            "output": 67495,
+            "cache_read": 2851448,
+            "input_uncached": 74,
+            "total": 3123095
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 204078,
+              "output": 67495,
+              "cache_read": 2851448,
+              "input_uncached": 74,
+              "total": 3123095,
+              "cost_usd": 3.3750716000000005
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 37,
+          "tokens_transcript": {
+            "cache_creation": 204078,
+            "output": 67495,
+            "cache_read": 2851448,
+            "input_uncached": 74,
+            "total": 3123095
+          },
+          "tokens_subagents": {
+            "cache_creation": 59346,
+            "output": 19469,
+            "cache_read": 411368,
+            "input_uncached": 24,
+            "total": 490207
+          },
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 24212,
+              "output": 2439,
+              "cache_read": 223304,
+              "input_uncached": 6,
+              "total": 249961
+            },
+            "tokens_mixed_calls": {
+              "cache_creation": 3793,
+              "output": 4946,
+              "cache_read": 97597,
+              "input_uncached": 2,
+              "total": 106338
+            },
+            "count": 4,
+            "seconds": 0.43599999999999994,
+            "result_bytes": 18768,
+            "by_tool": {
+              "Bash": 4
+            }
+          },
+          "phase": "US-060-plan-1",
+          "skill": "archetipo-plan",
+          "wall_seconds": 622.1,
+          "head_before": "99bbe1ce3fea56258ae8245ba6611f29ddffad33",
+          "head": "651e4c111beb76a6a8c92c6d584ef47dba6d983a",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 1027354,
+          "duration_api_ms": 790335,
+          "num_turns": 74,
+          "cost_usd": 6.1234940000000035,
+          "tokens": {
+            "cache_creation": 314238,
+            "output": 79577,
+            "cache_read": 11750230,
+            "input_uncached": 188,
+            "total": 12144233
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 314238,
+              "output": 79577,
+              "cache_read": 11750230,
+              "input_uncached": 188,
+              "total": 12144233,
+              "cost_usd": 6.1234940000000035
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 94,
+          "tokens_transcript": {
+            "cache_creation": 314238,
+            "output": 79577,
+            "cache_read": 11750230,
+            "input_uncached": 188,
+            "total": 12144233
+          },
+          "tokens_subagents": {
+            "cache_creation": 110916,
+            "output": 13826,
+            "cache_read": 1573783,
+            "input_uncached": 42,
+            "total": 1698567
+          },
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 35185,
+              "output": 14532,
+              "cache_read": 3922238,
+              "input_uncached": 42,
+              "total": 3971997
+            },
+            "tokens_mixed_calls": {},
+            "count": 22,
+            "seconds": 20.311,
+            "result_bytes": 51428,
+            "by_tool": {
+              "Bash": 21,
+              "Write": 1
+            }
+          },
+          "phase": "US-060-implement-1",
+          "skill": "archetipo-implement",
+          "wall_seconds": 1028.4,
+          "head_before": "651e4c111beb76a6a8c92c6d584ef47dba6d983a",
+          "head": "7cb55067c2386f7f15f8d491070f6138b212dd4e",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 214115,
+          "duration_api_ms": 167873,
+          "num_turns": 30,
+          "cost_usd": 1.4730732000000002,
+          "tokens": {
+            "cache_creation": 97018,
+            "output": 12877,
+            "cache_read": 2195786,
+            "input_uncached": 58,
+            "total": 2305739
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 97018,
+              "output": 12877,
+              "cache_read": 2195786,
+              "input_uncached": 58,
+              "total": 2305739,
+              "cost_usd": 1.4730732000000002
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 29,
+          "tokens_transcript": {
+            "cache_creation": 97018,
+            "output": 12877,
+            "cache_read": 2195786,
+            "input_uncached": 58,
+            "total": 2305739
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 26139,
+              "output": 4157,
+              "cache_read": 742931,
+              "input_uncached": 18,
+              "total": 773245
+            },
+            "tokens_mixed_calls": {},
+            "count": 9,
+            "seconds": 13.367999999999999,
+            "result_bytes": 50090,
+            "by_tool": {
+              "Bash": 9
+            }
+          },
+          "phase": "US-060-review-1",
+          "skill": "archetipo-review",
+          "wall_seconds": 215.1,
+          "head_before": "7cb55067c2386f7f15f8d491070f6138b212dd4e",
+          "head": "cf2702bbe31e1e2addd29212d66a38c9bd010ec3",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          },
+          "spec_status_after": "TODO"
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 96319,
+          "duration_api_ms": 93492,
+          "num_turns": 16,
+          "cost_usd": 0.7420306,
+          "tokens": {
+            "cache_creation": 50983,
+            "output": 10798,
+            "cache_read": 590513,
+            "input_uncached": 26,
+            "total": 652320
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 50983,
+              "output": 10798,
+              "cache_read": 590513,
+              "input_uncached": 26,
+              "total": 652320,
+              "cost_usd": 0.7420306
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "cache_creation": 50983,
+            "output": 10798,
+            "cache_read": 590513,
+            "input_uncached": 26,
+            "total": 652320
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 20536,
+              "output": 2108,
+              "cache_read": 259491,
+              "input_uncached": 12,
+              "total": 282147
+            },
+            "tokens_mixed_calls": {},
+            "count": 6,
+            "seconds": 1.9830000000000003,
+            "result_bytes": 34348,
+            "by_tool": {
+              "Bash": 6
+            }
+          },
+          "phase": "US-060-plan-2",
+          "skill": "archetipo-plan",
+          "wall_seconds": 97.3,
+          "head_before": "cf2702bbe31e1e2addd29212d66a38c9bd010ec3",
+          "head": "ae8e0f21f867d58a3ee50e6f257d85d1f1a0ec52",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 66580,
+          "duration_api_ms": 52597,
+          "num_turns": 13,
+          "cost_usd": 0.5569422,
+          "tokens": {
+            "cache_creation": 41208,
+            "output": 5743,
+            "cache_read": 561571,
+            "input_uncached": 26,
+            "total": 608548
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 41208,
+              "output": 5743,
+              "cache_read": 561571,
+              "input_uncached": 26,
+              "total": 608548,
+              "cost_usd": 0.5569422
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 13,
+          "tokens_transcript": {
+            "cache_creation": 41208,
+            "output": 5743,
+            "cache_read": 561571,
+            "input_uncached": 26,
+            "total": 608548
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 18388,
+              "output": 3722,
+              "cache_read": 310243,
+              "input_uncached": 14,
+              "total": 332367
+            },
+            "tokens_mixed_calls": {},
+            "count": 7,
+            "seconds": 12.183,
+            "result_bytes": 22794,
+            "by_tool": {
+              "Bash": 7
+            }
+          },
+          "phase": "US-060-implement-2",
+          "skill": "archetipo-implement",
+          "wall_seconds": 67.6,
+          "head_before": "ae8e0f21f867d58a3ee50e6f257d85d1f1a0ec52",
+          "head": "483c275fdeb051f4dfdb4c45e47667dd53e871d5",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 212976,
+          "duration_api_ms": 160697,
+          "num_turns": 27,
+          "cost_usd": 1.1813564000000003,
+          "tokens": {
+            "cache_creation": 78903,
+            "output": 11318,
+            "cache_read": 1617822,
+            "input_uncached": 52,
+            "total": 1708095
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 78903,
+              "output": 11318,
+              "cache_read": 1617822,
+              "input_uncached": 52,
+              "total": 1708095,
+              "cost_usd": 1.1813564000000003
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 26,
+          "tokens_transcript": {
+            "cache_creation": 78903,
+            "output": 11318,
+            "cache_read": 1617822,
+            "input_uncached": 52,
+            "total": 1708095
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 40282,
+              "output": 7488,
+              "cache_read": 1120913,
+              "input_uncached": 34,
+              "total": 1168717
+            },
+            "tokens_mixed_calls": {},
+            "count": 17,
+            "seconds": 51.571,
+            "result_bytes": 81227,
+            "by_tool": {
+              "Bash": 17
+            }
+          },
+          "phase": "US-060-review-2",
+          "skill": "archetipo-review",
+          "wall_seconds": 213.9,
+          "head_before": "483c275fdeb051f4dfdb4c45e47667dd53e871d5",
+          "head": "37a66409b9166286063dbd2a81d46a7fea3455f8",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          },
+          "spec_status_after": "DONE"
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 484897,
+          "duration_api_ms": 474366,
+          "num_turns": 42,
+          "cost_usd": 3.1663683999999996,
+          "tokens": {
+            "cache_creation": 181651,
+            "output": 49795,
+            "cache_read": 3585182,
+            "input_uncached": 56,
+            "total": 3816684
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 181651,
+              "output": 49795,
+              "cache_read": 3585182,
+              "input_uncached": 56,
+              "total": 3816684,
+              "cost_usd": 3.1663683999999996
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 28,
+          "tokens_transcript": {
+            "cache_creation": 181651,
+            "output": 49795,
+            "cache_read": 3585182,
+            "input_uncached": 56,
+            "total": 3816684
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 26507,
+              "output": 1376,
+              "cache_read": 401721,
+              "input_uncached": 8,
+              "total": 429612
+            },
+            "tokens_mixed_calls": {},
+            "count": 4,
+            "seconds": 3.915,
+            "result_bytes": 20206,
+            "by_tool": {
+              "Bash": 4
+            }
+          },
+          "phase": "US-061-plan-1",
+          "skill": "archetipo-plan",
+          "wall_seconds": 485.9,
+          "head_before": "37a66409b9166286063dbd2a81d46a7fea3455f8",
+          "head": "901c75208ec67566443a8f5328c6cc5ce8438341",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 1465739,
+          "duration_api_ms": 998593,
+          "num_turns": 107,
+          "cost_usd": 8.242254400000002,
+          "tokens": {
+            "cache_creation": 369477,
+            "output": 87437,
+            "cache_read": 19288937,
+            "input_uncached": 236,
+            "total": 19746087
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 369477,
+              "output": 87437,
+              "cache_read": 19288937,
+              "input_uncached": 236,
+              "total": 19746087,
+              "cost_usd": 8.242254400000002
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 118,
+          "tokens_transcript": {
+            "cache_creation": 369477,
+            "output": 87437,
+            "cache_read": 19288937,
+            "input_uncached": 236,
+            "total": 19746087
+          },
+          "tokens_subagents": {
+            "cache_creation": 107011,
+            "output": 8491,
+            "cache_read": 895671,
+            "input_uncached": 28,
+            "total": 1011201
+          },
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 47155,
+              "output": 13099,
+              "cache_read": 5547069,
+              "input_uncached": 48,
+              "total": 5607371
+            },
+            "tokens_mixed_calls": {},
+            "count": 24,
+            "seconds": 41.422000000000004,
+            "result_bytes": 85775,
+            "by_tool": {
+              "Bash": 24
+            }
+          },
+          "phase": "US-061-implement-1",
+          "skill": "archetipo-implement",
+          "wall_seconds": 1468.9,
+          "head_before": "901c75208ec67566443a8f5328c6cc5ce8438341",
+          "head": "8433cd53763409f0525a556d8c0765929ad97c75",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 222113,
+          "duration_api_ms": 159339,
+          "num_turns": 33,
+          "cost_usd": 1.6428594000000003,
+          "tokens": {
+            "cache_creation": 106628,
+            "output": 15695,
+            "cache_read": 2378437,
+            "input_uncached": 62,
+            "total": 2500822
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 106628,
+              "output": 15695,
+              "cache_read": 2378437,
+              "input_uncached": 62,
+              "total": 2500822,
+              "cost_usd": 1.6428594000000003
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 31,
+          "tokens_transcript": {
+            "cache_creation": 106628,
+            "output": 15695,
+            "cache_read": 2378437,
+            "input_uncached": 62,
+            "total": 2500822
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 29803,
+              "output": 3263,
+              "cache_read": 656676,
+              "input_uncached": 16,
+              "total": 689758
+            },
+            "tokens_mixed_calls": {},
+            "count": 8,
+            "seconds": 28.337,
+            "result_bytes": 62445,
+            "by_tool": {
+              "Bash": 8
+            }
+          },
+          "phase": "US-061-review-1",
+          "skill": "archetipo-review",
+          "wall_seconds": 223.1,
+          "head_before": "8433cd53763409f0525a556d8c0765929ad97c75",
+          "head": "49406f2dfc4205c0ad8e39b99226e2420cdf6b6a",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          },
+          "spec_status_after": "TODO"
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 147281,
+          "duration_api_ms": 126442,
+          "num_turns": 18,
+          "cost_usd": 0.8774289999999999,
+          "tokens": {
+            "cache_creation": 58404,
+            "output": 11485,
+            "cache_read": 901805,
+            "input_uncached": 34,
+            "total": 971728
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 58404,
+              "output": 11485,
+              "cache_read": 901805,
+              "input_uncached": 34,
+              "total": 971728,
+              "cost_usd": 0.8774289999999999
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 17,
+          "tokens_transcript": {
+            "cache_creation": 58404,
+            "output": 11485,
+            "cache_read": 901805,
+            "input_uncached": 34,
+            "total": 971728
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 17781,
+              "output": 1832,
+              "cache_read": 195139,
+              "input_uncached": 8,
+              "total": 214760
+            },
+            "tokens_mixed_calls": {},
+            "count": 4,
+            "seconds": 19.484,
+            "result_bytes": 34885,
+            "by_tool": {
+              "Bash": 4
+            }
+          },
+          "phase": "US-061-plan-2",
+          "skill": "archetipo-plan",
+          "wall_seconds": 148.1,
+          "head_before": "49406f2dfc4205c0ad8e39b99226e2420cdf6b6a",
+          "head": "269229f08cdf6d3f4e07e06e585cf88a5c350de4",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 140568,
+          "duration_api_ms": 110070,
+          "num_turns": 15,
+          "cost_usd": 0.6044248000000001,
+          "tokens": {
+            "cache_creation": 43192,
+            "output": 6395,
+            "cache_read": 654344,
+            "input_uncached": 30,
+            "total": 703961
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 43192,
+              "output": 6395,
+              "cache_read": 654344,
+              "input_uncached": 30,
+              "total": 703961,
+              "cost_usd": 0.6044248000000001
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 15,
+          "tokens_transcript": {
+            "cache_creation": 43192,
+            "output": 6395,
+            "cache_read": 654344,
+            "input_uncached": 30,
+            "total": 703961
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 12017,
+              "output": 3161,
+              "cache_read": 226145,
+              "input_uncached": 10,
+              "total": 241333
+            },
+            "tokens_mixed_calls": {},
+            "count": 5,
+            "seconds": 12.896999999999998,
+            "result_bytes": 15993,
+            "by_tool": {
+              "Bash": 5
+            }
+          },
+          "phase": "US-061-implement-2",
+          "skill": "archetipo-implement",
+          "wall_seconds": 141.5,
+          "head_before": "269229f08cdf6d3f4e07e06e585cf88a5c350de4",
+          "head": "0f7349d7292fdab490bf4b5c549698e690b79f26",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 169725,
+          "duration_api_ms": 97603,
+          "num_turns": 23,
+          "cost_usd": 1.0532456,
+          "tokens": {
+            "cache_creation": 75112,
+            "output": 8771,
+            "cache_read": 1383808,
+            "input_uncached": 42,
+            "total": 1467733
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 75112,
+              "output": 8771,
+              "cache_read": 1383808,
+              "input_uncached": 42,
+              "total": 1467733,
+              "cost_usd": 1.0532456
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 21,
+          "tokens_transcript": {
+            "cache_creation": 75112,
+            "output": 8771,
+            "cache_read": 1383808,
+            "input_uncached": 42,
+            "total": 1467733
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {
+              "cache_creation": 22592,
+              "output": 2876,
+              "cache_read": 504679,
+              "input_uncached": 14,
+              "total": 530161
+            },
+            "tokens_mixed_calls": {},
+            "count": 7,
+            "seconds": 36.001,
+            "result_bytes": 51232,
+            "by_tool": {
+              "Bash": 7
+            }
+          },
+          "phase": "US-061-review-2",
+          "skill": "archetipo-review",
+          "wall_seconds": 170.6,
+          "head_before": "0f7349d7292fdab490bf4b5c549698e690b79f26",
+          "head": "bda334d0a2d8ba86f7ed4ce35e989bc3bf0dac2f",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          },
+          "spec_status_after": "DONE"
         }
       ],
-      "tecnica_presente": false,
+      "tecnica_presente": true,
       "violazioni_critiche": []
     },
     {
@@ -4795,22 +5788,22 @@
       "config": "DIR",
       "replica": 3,
       "secondo_adattatore": false,
-      "consegnata": false,
-      "tree_hash": null,
+      "consegnata": true,
+      "tree_hash": "a5963ef414a170b4b85e6672065a3439ef17c991",
       "qualita": null,
       "valutazioni": [],
       "intervallo": null,
       "valutazioni_secondo_adattatore": [],
-      "minuti": null,
-      "usd": null,
-      "usd_sviluppo": null,
-      "token": null,
+      "minuti": 11.5456,
+      "usd": 2.2825515,
+      "usd_sviluppo": 1.9064725,
+      "token": 7.211563,
       "token_dettaglio": {
-        "total": 505839,
-        "input_uncached": 20,
-        "cache_read": 441130,
-        "cache_creation": 52494,
-        "output": 12195
+        "total": 7211563,
+        "input_uncached": 128,
+        "cache_read": 6914615,
+        "cache_creation": 229561,
+        "output": 67259
       },
       "righe_nette_src": null,
       "righe_totali": null,
@@ -4887,6 +5880,75 @@
           "exchanges": 3,
           "committente_seconds": 24.9,
           "committente_cost_usd": 0.0815796
+        },
+        {
+          "model_resolved": "claude-sonnet-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 591341,
+          "duration_api_ms": 423878,
+          "num_turns": 55,
+          "cost_usd": 1.9064725,
+          "tokens": {
+            "cache_creation": 177067,
+            "output": 55064,
+            "cache_read": 6473485,
+            "input_uncached": 108,
+            "total": 6705724
+          },
+          "model_usage": {
+            "claude-sonnet-5-5": {
+              "cache_creation": 177067,
+              "output": 55064,
+              "cache_read": 6473485,
+              "input_uncached": 108,
+              "total": 6705724,
+              "cost_usd": 1.9064725
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 54,
+          "tokens_transcript": {
+            "cache_creation": 177067,
+            "output": 55064,
+            "cache_read": 6473485,
+            "input_uncached": 108,
+            "total": 6705724
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {},
+            "tokens_mixed_calls": {},
+            "count": 0,
+            "seconds": 0.0,
+            "result_bytes": 0,
+            "by_tool": {}
+          },
+          "phase": "01-diretto",
+          "skill": "diretto",
+          "wall_seconds": 592.3,
+          "head_before": "704a61b9b0e8dff94765a1150dbcaafce10347b8",
+          "head": "b5a7cddffc70aaedaa6a0d66c597bba93ba88e5c",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
         }
       ],
       "tecnica_presente": false,
@@ -6128,25 +7190,25 @@
           "sd": 1.7677669529663689
         },
         "minuti": {
-          "n": 2,
-          "mediana": 13.085358333333334,
-          "min": 12.180716666666667,
+          "n": 3,
+          "mediana": 12.180716666666667,
+          "min": 11.5456,
           "max": 13.99,
-          "sd": 1.2793565140878005
+          "sd": 1.268330314531376
         },
         "usd": {
-          "n": 2,
-          "mediana": 2.3020514,
+          "n": 3,
+          "mediana": 2.2825515,
           "min": 2.2102201999999997,
           "max": 2.3938825999999995,
-          "sd": 0.129868928488996
+          "sd": 0.09251874401138026
         },
         "token": {
-          "n": 2,
-          "mediana": 7.642980999999999,
+          "n": 3,
+          "mediana": 7.211563,
           "min": 7.080149,
           "max": 8.205813,
-          "sd": 0.7959646477375735
+          "sd": 0.615483839862591
         },
         "righe_nette_src": {
           "n": 2,
@@ -6772,214 +7834,214 @@
       "config": "COM",
       "metriche": {
         "qualita": {
-          "n": 1,
+          "n": 2,
           "mediana": 87.8,
           "min": 87.8,
           "max": 87.8,
-          "sd": null
+          "sd": 0.0
         },
         "minuti": {
-          "n": 1,
-          "mediana": 93.59406666666666,
-          "min": 93.59406666666666,
+          "n": 2,
+          "mediana": 88.19024999999999,
+          "min": 82.78643333333333,
           "max": 93.59406666666666,
-          "sd": null
+          "sd": 7.6421508185777665
         },
         "usd": {
-          "n": 1,
-          "mediana": 35.141181599999996,
-          "min": 35.141181599999996,
+          "n": 2,
+          "mediana": 32.4805205,
+          "min": 29.819859400000006,
           "max": 35.141181599999996,
-          "sd": null
+          "sd": 3.7627430124985106
         },
         "token": {
-          "n": 1,
-          "mediana": 47.953662,
+          "n": 2,
+          "mediana": 49.189299500000004,
           "min": 47.953662,
-          "max": 47.953662,
-          "sd": null
+          "max": 50.424937,
+          "sd": 1.7474553106767843
         },
         "righe_nette_src": {
-          "n": 1,
-          "mediana": 1075,
-          "min": 1075,
+          "n": 2,
+          "mediana": 1007.0,
+          "min": 939,
           "max": 1075,
-          "sd": null
+          "sd": 96.16652224137046
         },
         "righe_totali": {
-          "n": 1,
-          "mediana": 4817,
-          "min": 4817,
+          "n": 2,
+          "mediana": 4440.5,
+          "min": 4064,
           "max": 4817,
-          "sd": null
+          "sd": 532.4514062334703
         },
         "usd_per_punto": {
-          "n": 1,
-          "mediana": 0.4002412482915717,
-          "min": 0.4002412482915717,
+          "n": 2,
+          "mediana": 0.36993759111617314,
+          "min": 0.33963393394077457,
           "max": 0.4002412482915717,
-          "sd": null
+          "sd": 0.04285584296695341
         }
       },
       "controlli": {
         "A1": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "A2": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "A3": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "B1": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "B2": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "B3": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "B4": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "B5": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "B6": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "B7": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "B8": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "B9": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "C1": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "C2": {
-          "fallimenti": 1,
-          "consegne": 1,
+          "fallimenti": 2,
+          "consegne": 2,
           "classe": "sempre"
         },
         "C3": {
-          "fallimenti": 1,
-          "consegne": 1,
+          "fallimenti": 2,
+          "consegne": 2,
           "classe": "sempre"
         },
         "C4": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "C5": {
-          "fallimenti": 1,
-          "consegne": 1,
+          "fallimenti": 2,
+          "consegne": 2,
           "classe": "sempre"
         },
         "K1": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "K2": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "P1": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "P2": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "P3": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "S1": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "T1": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "T2": {
-          "fallimenti": 1,
-          "consegne": 1,
+          "fallimenti": 2,
+          "consegne": 2,
           "classe": "sempre"
         },
         "U1": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "U2": {
-          "fallimenti": 1,
-          "consegne": 1,
+          "fallimenti": 2,
+          "consegne": 2,
           "classe": "sempre"
         },
         "U3": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "V1": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "V2": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "V3": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         },
         "V4": {
           "fallimenti": 0,
-          "consegne": 1,
+          "consegne": 2,
           "classe": "mai"
         }
       }
@@ -7018,16 +8080,20 @@
     {
       "prova": "R-COM-sonnet-r3",
       "range": 0.0
+    },
+    {
+      "prova": "R-COM-opus-r4",
+      "range": 0.0
     }
   ],
   "rumore_due_adattatori": [],
   "costi": {
-    "prove": 69.5404819,
+    "prove": 97.11043240000004,
     "scartate": 10.177446099999997,
     "turni_persi": 0.0,
-    "adattatori": 5.073258,
+    "adattatori": 6.4947542,
     "giudici_tecnici": 0.0,
-    "totale": 84.791186
+    "totale": 113.78263270000004
   },
   "prove_precedenti": [
     {

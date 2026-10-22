@@ -94,3 +94,7 @@ R-COM-sonnet-r3 è ancora nella valutazione (replica 1). Mac in Idle Sleep/DarkW
 ## Aggiornamento 2026-10-22 04:54 Europe/Rome
 
 R-COM-sonnet-r3 verificata: 49.7465 minuti, 10.9776234 USD sviluppo, 88,2/100 × 3, nessuna violazione critica; mutation 0,3393. Sei consegne valide complete. Tutti i gate passati: le pause Mac hanno alterato soltanto wall time e2e (2806,8 / 1956,6 / 311,2 secondi), senza timeout né fallimenti da scartare, quindi le tre letture restano valide. Audit adattatore già letto e registrato, nessuna correzione. Ora R-COM-opus-r4 / US-060-implement-1; caffeinate 42633 ancora attivo per orchestratore 86336. Totale consolidato 84,791186 USD (include plan iniziale di opus-r4), residuo 265,208814 USD.
+
+## Aggiornamento 2026-10-22 06:24 Europe/Rome
+
+R-COM-opus-r4 verificata: 81.1445 min, 29.0385496 USD sviluppo, 87,8/100 × 3, nessuna violazione critica; mutation 0,3265. Sette consegne valide complete. Audit adattatore registrato, nessuna correzione. R-DIR-sonnet-r3 consegnata (9,9 min, 1,91 USD) ma ancora nelle letture, non ancora comunicata come verificata. Costo consolidato 113,7826327 USD, residuo 236,2173673 USD; orchestratore 86336 e caffeinate 42633 attivi.
