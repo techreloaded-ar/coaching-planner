@@ -306,3 +306,10 @@ e rivalutate a fine `valuta.py all`:
 ## 2026-10-22 12:26 CEST · report 1 · esito rivalutazione COM Opus r1
 
 - Tre nuove letture identiche a 87,8 con adattatore S1 corretto; gate passati, nessuna violazione critica. Tecnica aggiornata senza ripetere i mutanti (0,3169). Coda completata prima di DIR Opus r3; originali 87,8/81,8/81,8 conservate ed escluse dal rumore.
+
+
+## 2026-10-22 14:30 CEST · report 1 · R-DIR-sonnet-r2, adattatore S1
+
+- Consegna in 10,0570 minuti e 1,6309366 USD. Tre letture iniziali 82,2. S1 attende aria-busy sul pulsante del form che scompare dopo il rifiuto. Snapshot: avviso «Il mese è chiuso: le attività non sono modificabili», zero righe scritte.
+- Correzione uniforme: networkidle al posto dell’attesa sul pulsante, messaggio accetta `avviso-mese-chiuso`, networkidle dopo chiusura/riapertura. Nessuna modifica alla consegna. V1 e V4 restano mancanze del prodotto, senza correggerle.
+- Tutte le letture, log, adattatore precedente e tecnica conservati in `/Users/smarello/repo/coaching-planner-bench-runs/R-DIR-sonnet-r2/valutazione/scartate/adattatore-S1-20261022T143118`; esclusi dal rumore. Rivalutazione accodata dopo COM Opus r2 attualmente in corso, mantenendo mutation 0,3791.

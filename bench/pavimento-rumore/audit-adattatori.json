@@ -96,5 +96,12 @@
       "browser.ts": "3915b3dc81d12b7c05a7d01aea34af4ffe8abe0d43ba8f980f2c2f2bfce63479",
       "integrazione.ts": "0e9be9f0b4282077f35d0ffa3af70c3f5cc1cd2a8a927b3e21775f1fc9f9787f"
     }
+  },
+  "R-DIR-sonnet-r2/1": {
+    "esito": "S1 corretto con criterio uniforme: networkidle e avviso fuori dal form. Tre letture originali 82.2 archiviate, nuove letture in coda. V4 NonImplementato coerente: report senza stato; V1 indicatore assente nel calendario. Storico reale.",
+    "sha256": {
+      "browser.ts": "f3b65a16242a69c3fa69bffc97577e62a80f53c3cb54d2c5bc2785a2b0efac50",
+      "integrazione.ts": "0153e668e160ccbad4833d0e6a680e02891bdd7a6750d9a8779ef604dc76c6a1"
+    }
   }
 }

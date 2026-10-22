@@ -134,3 +134,7 @@ R-DIR-opus-r5 verificata: 21,2701 min, 8,2348834 USD sviluppo, 87,8 × 3, mutati
 ## Aggiornamento 2026-10-22 13:23 Europe/Rome
 
 R-DIR-opus-r3 verificata: 21,1199 min, 7,7200214 USD sviluppo, 87,8 × 3, mutation 0,3161. Audit adattatore senza correzioni; nessuna violazione critica. **Quattordici consegne valide complete su venti**. Ora R-DIR-sonnet-r2 / 01-diretto; orchestratore 86336 e caffeinate 42633 attivi. Costi consolidati 186,1773867 USD, residui 163,8226133; nessuna nuova interruzione.
+
+## Aggiornamento 2026-10-22 14:30 Europe/Rome
+
+R-DIR-sonnet-r2 consegnata (10,0570 min, 1,6309366 USD), ma tre letture 82,2 archiviate per errore S1 dell’adattatore. Correzione uniforme documentata e rivalutazione accodata dopo COM Opus r2, attualmente in US-061-implement-1. **Quattordici consegne valide, una da rivalutare**. Orchestratore 86336 e caffeinate 42633 attivi. Costi consolidati 203,7749219 USD, residui 146,2250781; nessuna nuova interruzione.
