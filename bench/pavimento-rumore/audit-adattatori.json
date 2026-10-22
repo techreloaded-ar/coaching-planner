@@ -117,5 +117,12 @@
       "browser.ts": "cd788b0d9c663603d10de64507a4552a2b913436cf945c397eeb834303d3428b",
       "integrazione.ts": "ff8f2117a61ac686814c3d4394c821016cf647d29adf34935b5e0a77cfc8d21d"
     }
+  },
+  "R-COM-opus-r3/1": {
+    "esito": "Log e sorgenti letti: nessun NonImplementato; action e storico reali, stato derivato con funzione del prodotto, motivazione assente letta null. S1 usa errore-salvataggio-riga oppure errore-azione-riga. Tre letture identiche 87.8, nessuna violazione critica; nessuna correzione necessaria.",
+    "sha256": {
+      "browser.ts": "28481c83de771ee1a1c504577b10ee31d3a854f188336b2e82a0a172f235c6a8",
+      "integrazione.ts": "f0e0f0c7702d2f7565de2088d121e577471c3e8d31f616852e8d87e77ca3ed5b"
+    }
   }
 }
