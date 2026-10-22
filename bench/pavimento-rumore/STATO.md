@@ -110,3 +110,7 @@ R-COM-sonnet-r2 consegnata (44.7871 min, 8.6533102 USD), tre letture iniziali 82
 ## Aggiornamento 2026-10-22 07:39 Europe/Rome
 
 R-DIR-sonnet-r3 rivalutata correttamente: 88,2/100 × 3, nessuna violazione critica, tecnica aggiornata mantenendo mutation 0,3751. Otto consegne valide complete. Helper COM-r2 terminato e coda verificata: contiene soltanto R-COM-sonnet-r2, che sarà rivalutata dopo la consegna ora in corso R-COM-sonnet-r4. `rivalutazione-da-accodare.json` è stato rimosso dall’helper. Costi consolidati 124,6524231 USD, residui 225,3475769.
+
+## Aggiornamento 2026-10-22 08:40 CEST
+
+R-COM-sonnet-r4 consegnata (56.8109 min, 8.5437672 USD), ma tre letture 82,6 scartate: S1 attende un pulsante rimosso; U1 attende un esito locale rimosso dal refresh invece della riga diventata Aperto. Correzioni solo all’adattatore, stessa regola dei precedenti casi; dettagli e archivio in CORREZIONI. Nuova serie accodata mentre l’hook attuale rivaluta COM-r2. La gestione coda ora rilegge il file e preserva la voce aggiunta durante i test. Verificare entrambi gli esiti al prossimo monitor. Otto consegne valide, COM-r2 e COM-r4 da rivalutare, costo consolidato 132,3337215 USD, residuo 217,6662785.

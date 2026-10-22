@@ -3,5 +3,10 @@
     "prova": "R-COM-sonnet-r2",
     "motivo": "S1: avviso mese-chiuso-banner dopo rifiuto sostituisce il form; criterio uniforme e networkidle",
     "archivio": "/Users/smarello/repo/coaching-planner-bench-runs/R-COM-sonnet-r2/valutazione/scartate/adattatore-S1-20261022T072605"
+  },
+  {
+    "prova": "R-COM-sonnet-r4",
+    "motivo": "S1: form sparisce dopo rifiuto; U1: esito locale sparisce dopo refresh, attendere stato Aperto della riga come nei test della consegna; networkidle",
+    "archivio": "/Users/smarello/repo/coaching-planner-bench-runs/R-COM-sonnet-r4/valutazione/scartate/adattatore-S1-U1-20261022T084037"
   }
 ]

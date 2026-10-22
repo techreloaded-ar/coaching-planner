@@ -282,3 +282,10 @@ e rivalutate a fine `valuta.py all`:
 
 - Tre letture iniziali 82,2/100: S1 cerca l’alert solo dentro il form, mentre lo snapshot mostra il banner di mese chiuso e zero righe scritte. Applicato lo stesso criterio di DIR-r1 e DIR-r3: include `mese-chiuso-banner` e attende networkidle dopo chiusura/riapertura. Nessuna consegna modificata.
 - Conservate le tre letture e i log in `/Users/smarello/repo/coaching-planner-bench-runs/R-COM-sonnet-r2/valutazione/scartate/adattatore-S1-20261022T072605`. Rivalutazione da eseguire in sequenza; l’hook attuale sta già rivalutando DIR-r3, perciò un helper attende la sua uscita prima di accodare COM-r2, evitando di perdere la nuova voce quando il vecchio processo scrive la coda. Le nuove invocazioni rileggono la coda prima di rimuovere una voce completata. Test di concorrenza della coda aggiunto: quindici test del banco passati.
+
+
+## 2026-10-22 08:40 CEST · report 1 · R-COM-sonnet-r4, adattatore S1 e U1
+
+- Tre letture iniziali 82,6. S1: il locator attende aria-busy=false sul pulsante del form, che viene rimosso e sostituito dall’avviso dopo il rifiuto (snapshot: avviso visibile, zero righe). Correzione uniforme: attendere fine richieste e accettare l’avviso al posto del form.
+- U1: il form di riapertura e il suo esito locale sono renderizzati soltanto finché il mese è chiuso (`page.tsx`, condizione statoMese.chiuso). La riapertura aggiorna la riga ad Aperto e rimuove il form, quindi attendere il suo esito locale non misura l’operazione. Adattatore ora attende `rigaMese` con testo Aperto, esattamente come il test della consegna `chiusura-mese-riapertura.spec.ts:135`, poi networkidle. Nessuna logica aggiunta al prodotto.
+- Letture, log e adattatore precedenti conservati in `/Users/smarello/repo/coaching-planner-bench-runs/R-COM-sonnet-r4/valutazione/scartate/adattatore-S1-U1-20261022T084037`; nuova serie accodata dietro COM-r2 attualmente in rivalutazione, in sequenza.
