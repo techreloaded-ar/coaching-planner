@@ -106,3 +106,7 @@ R-DIR-sonnet-r3 completata ma audit trova S1 errato (88,2 / 82,2 / 82,2). Adatta
 ## Aggiornamento 2026-10-22 07:26 CEST
 
 R-COM-sonnet-r2 consegnata (44.7871 min, 8.6533102 USD), tre letture iniziali 82,2 da scartare per S1, stesso errore form/banner. Corretto l’adattatore, letture archiviate, nuova serie ancora da fare. Il processo esegui.py 52569 sta già rivalutando DIR-r3 con la vecchia versione della gestione coda: helper `/tmp/accoda-rivalutazione-COM-r2.py` PID 59526 aspetta la sua uscita e poi accoda COM-r2 usando `rivalutazione-da-accodare.json` (che rimuove dopo averla accodata). **Controllare che l’helper abbia accodato la voce dopo l’uscita di 52569; non lanciare test in parallelo.** Il codice delle nuove invocazioni ora preserva eventuali nuove voci aggiunte durante i test. Sette consegne già valide, due da rivalutare. Costi consolidati 123,1126657 USD, residui 226,8873343.
+
+## Aggiornamento 2026-10-22 07:39 Europe/Rome
+
+R-DIR-sonnet-r3 rivalutata correttamente: 88,2/100 × 3, nessuna violazione critica, tecnica aggiornata mantenendo mutation 0,3751. Otto consegne valide complete. Helper COM-r2 terminato e coda verificata: contiene soltanto R-COM-sonnet-r2, che sarà rivalutata dopo la consegna ora in corso R-COM-sonnet-r4. `rivalutazione-da-accodare.json` è stato rimosso dall’helper. Costi consolidati 124,6524231 USD, residui 225,3475769.
