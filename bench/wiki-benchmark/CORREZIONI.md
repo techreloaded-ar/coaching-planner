@@ -318,3 +318,9 @@ e rivalutate a fine `valuta.py all`:
 ## 2026-10-22 16:27 CEST · report 1 · esito rivalutazione DIR Sonnet r2
 
 - Tre nuove letture identiche a 88,2 dopo correzione S1; gate passati, nessuna violazione critica. Tecnica aggiornata conservando mutation 0,3791. Originali 82,2 × 3 archiviate ed escluse dal rumore. Coda completata prima di DIR Sonnet r4.
+
+
+## 2026-10-22 20:39 CEST · report 1 · secondo adattatore DIR Sonnet r1, S1
+
+- Quattro secondi adattatori generati indipendentemente e auditati. DIR Sonnet r1: tre letture 84,7, errore S1 perché il messaggio è cercato solo nel form sostituito dal banner. Stessa correzione del primario: messaggio in pagina e networkidle dopo chiusura/riapertura. Nessuna consegna modificata.
+- Tutte e tre le letture, log e adattatore originale conservati in `/Users/smarello/repo/coaching-planner-bench-runs/R-DIR-sonnet-r1/valutazione/adattatore-2/scartate/adattatore-S1-20261022T204038` ed esclusi dal rumore. Rivalutazione secondaria pendente, da eseguire solo dopo fine finalizza PID 798. Gli altri tre secondi adattatori concordano col primario: 87,8 DIR Opus, 88,2 COM Sonnet, 87,8 COM Opus (tre letture ciascuno).

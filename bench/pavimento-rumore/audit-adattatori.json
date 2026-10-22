@@ -138,5 +138,33 @@
       "browser.ts": "adfc7aacb71b0178415210e3f0ebf1ea57a8d191eeba49e7fcd40c180d208894",
       "integrazione.ts": "082e19df6969be26f95ad437f61fd176988bbb0b97d4d86d8687e156b9273822"
     }
+  },
+  "R-DIR-opus-r1/2": {
+    "esito": "Secondo adattatore indipendente: log e sorgenti letti, action e storico reali. Nessuna correzione necessaria, tre letture concordi con il primario. Nessun NonImplementato; motivazione assente letta null.",
+    "sha256": {
+      "browser.ts": "10567b9f98f0cc4573e1b9f83251f75698d8db9c7123e56de664ed9fce5bd847",
+      "integrazione.ts": "16debc5b0aa08422b36d35bfc4116f6d8a5074bffdcd2ee2465f3691c41d0a40"
+    }
+  },
+  "R-DIR-sonnet-r1/2": {
+    "esito": "Secondo adattatore: S1 corretto con criterio comune (messaggio fuori dal form, networkidle); tre letture originali 84.7 archiviate ed escluse. Tre nuove letture pendenti dopo finalizza. Nessun NonImplementato.",
+    "sha256": {
+      "browser.ts": "97d7f5307fddf4511bdf13bf8ff2ed3255b22523d075fe86f661b5aaf426f339",
+      "integrazione.ts": "8d2b985ff5c13a6c8cc17c4c2588e62ba251040ef0c97026e67e1614979e6dca"
+    }
+  },
+  "R-COM-sonnet-r1/2": {
+    "esito": "Secondo adattatore indipendente: log e sorgenti letti, action e storico reali. Nessuna correzione necessaria, tre letture concordi con il primario. NonImplementato V4 coerente: report senza stato.",
+    "sha256": {
+      "browser.ts": "946a37a14bca16cb4c8962903dfa4315989b2ca930b45d6e1caa347c0db3cd5c",
+      "integrazione.ts": "4415d5ca5bb016a4ab6c473f46fd88db6acf463a1ca2f65222793430a989225b"
+    }
+  },
+  "R-COM-opus-r5/2": {
+    "esito": "Secondo adattatore indipendente: log e sorgenti letti, action e storico reali. Nessuna correzione necessaria, tre letture concordi con il primario. Nessun NonImplementato; motivazione assente letta null.",
+    "sha256": {
+      "browser.ts": "aaccbd7b42569279a06c7e32b2b20eb6cf7e15a0beed88c684e22fe891595417",
+      "integrazione.ts": "0d487321372dee38cbeae48d107b17b0b8077c8bf868b4c26f4eff3f131b9a9a"
+    }
   }
 }
