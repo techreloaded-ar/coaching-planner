@@ -313,3 +313,8 @@ e rivalutate a fine `valuta.py all`:
 - Consegna in 10,0570 minuti e 1,6309366 USD. Tre letture iniziali 82,2. S1 attende aria-busy sul pulsante del form che scompare dopo il rifiuto. Snapshot: avviso «Il mese è chiuso: le attività non sono modificabili», zero righe scritte.
 - Correzione uniforme: networkidle al posto dell’attesa sul pulsante, messaggio accetta `avviso-mese-chiuso`, networkidle dopo chiusura/riapertura. Nessuna modifica alla consegna. V1 e V4 restano mancanze del prodotto, senza correggerle.
 - Tutte le letture, log, adattatore precedente e tecnica conservati in `/Users/smarello/repo/coaching-planner-bench-runs/R-DIR-sonnet-r2/valutazione/scartate/adattatore-S1-20261022T143118`; esclusi dal rumore. Rivalutazione accodata dopo COM Opus r2 attualmente in corso, mantenendo mutation 0,3791.
+
+
+## 2026-10-22 16:27 CEST · report 1 · esito rivalutazione DIR Sonnet r2
+
+- Tre nuove letture identiche a 88,2 dopo correzione S1; gate passati, nessuna violazione critica. Tecnica aggiornata conservando mutation 0,3791. Originali 82,2 × 3 archiviate ed escluse dal rumore. Coda completata prima di DIR Sonnet r4.

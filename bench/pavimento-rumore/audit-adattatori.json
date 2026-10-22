@@ -98,7 +98,7 @@
     }
   },
   "R-DIR-sonnet-r2/1": {
-    "esito": "S1 corretto con criterio uniforme: networkidle e avviso fuori dal form. Tre letture originali 82.2 archiviate, nuove letture in coda. V4 NonImplementato coerente: report senza stato; V1 indicatore assente nel calendario. Storico reale.",
+    "esito": "S1 corretto con criterio uniforme: networkidle e avviso fuori dal form. Tre letture originali 82.2 archiviate ed escluse; tre nuove letture identiche 88.2, nessuna violazione critica. V4 NonImplementato coerente: report senza stato; V1 indicatore assente nel calendario. Storico reale.",
     "sha256": {
       "browser.ts": "f3b65a16242a69c3fa69bffc97577e62a80f53c3cb54d2c5bc2785a2b0efac50",
       "integrazione.ts": "0153e668e160ccbad4833d0e6a680e02891bdd7a6750d9a8779ef604dc76c6a1"
@@ -109,6 +109,13 @@
     "sha256": {
       "browser.ts": "f30c9ba173e597a90f3064072b8c661ae05527a30c9a0db5d39572a3a91be322",
       "integrazione.ts": "9fc150205522deb7df67b3dea71c9a6bacbea4539edebee53185fd89a6a6e5c5"
+    }
+  },
+  "R-DIR-sonnet-r4/1": {
+    "esito": "Log e sorgenti letti: NonImplementato V4 coerente (report senza stato), V1 indicatore assente nel calendario, action e storico reali. S1 comprende già avviso-mese-chiuso. Tre letture identiche 88.2, nessuna violazione critica. Nessuna correzione necessaria.",
+    "sha256": {
+      "browser.ts": "cd788b0d9c663603d10de64507a4552a2b913436cf945c397eeb834303d3428b",
+      "integrazione.ts": "ff8f2117a61ac686814c3d4394c821016cf647d29adf34935b5e0a77cfc8d21d"
     }
   }
 }
