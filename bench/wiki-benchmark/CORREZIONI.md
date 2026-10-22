@@ -264,3 +264,8 @@ e rivalutate a fine `valuta.py all`:
 - `pmset -g log` conferma Idle Sleep dalle 02:47:31, successive finestre DarkWake e nuova sospensione 03:12:59–03:28:26 e 03:29:03–03:42:46. Il gate e2e della replica 1 di R-COM-sonnet-r3, iniziato alle 03:12:33, ha attraversato tali pause. Il wall time è quindi ambientale; non attribuirlo alla consegna.
 - Attivato `caffeinate -i -s -w 86336` (PID 42633) soltanto per la durata dell’orchestratore, senza modificare impostazioni persistenti o tenere acceso il display. A ogni eventuale rilancio dell’orchestratore rinnovare l’assertion per il nuovo PID.
 - Verificare gli esiti del gate a fine replica, conservare i log e rivalutare le letture colpite da timeout di sospensione; non correggere il codice della consegna.
+
+
+## 2026-10-22 04:54 CEST · report 1 · esito delle valutazioni durante le pause Mac
+
+- R-COM-sonnet-r3: tutte e tre le letture danno 88,2/100, tutti i gate passano. I tempi wall e2e sono 2 806,8, 1 956,6 e 311,2 secondi a causa delle sospensioni: non sono prestazioni della consegna. Nessun timeout o esito da invalidare, nessuna rivalutazione aggiunta. caffeinate resta attivo fino alla fine dell’orchestratore.

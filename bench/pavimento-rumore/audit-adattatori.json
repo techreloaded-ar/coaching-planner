@@ -33,5 +33,12 @@
       "browser.ts": "abb2f81eaaf98571024623bcc597085fbcfe198c7b7498b4f97e1009ba6c9d36",
       "integrazione.ts": "27ed393effe07e3e45bbbdb90d8a76dc7784d4db4ed4c34d30e91b2de67ed436"
     }
+  },
+  "R-COM-sonnet-r3/1": {
+    "esito": "Log letto: NonImplementato solo V4 (report senza stato), storico reale con motivazione, S1 accetta form e banner. Tre letture 88.2, gate tutti passati anche durante le pause Mac; nessun timeout da scartare.",
+    "sha256": {
+      "browser.ts": "4180068a7b00a4c58769b3883ccffaf10ca8423e3883d68ea9ecc34487a6354b",
+      "integrazione.ts": "15e6c0f58727883196b9e5eff6365f0a299c0ce37ffc6b4d779e9e1b9e4d1833"
+    }
   }
 }

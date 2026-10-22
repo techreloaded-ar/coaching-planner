@@ -90,3 +90,7 @@ R-COM-opus-r5 verificata: 91,95 minuti, 34,36 USD sviluppo, 87,8/100 × 3, nessu
 ## Aggiornamento sospensione Mac 2026-10-22 04:38 CEST
 
 R-COM-sonnet-r3 è ancora nella valutazione (replica 1). Mac in Idle Sleep/DarkWake: confermati intervalli 03:12:59–03:28:26 e 03:29:03–03:42:46 dal log pmset, gate e2e iniziato 03:12:33. Avviato caffeinate -i -s -w 86336 PID 42633, valido finché vive l’orchestratore. **Rinnovare caffeinate a ogni rilancio con nuovo PID.** Verificare se la lettura 1 ha timeout ambientali; archiviare le evidenze e pianificare la rivalutazione delle letture colpite in sequenza, senza altre sessioni. Non trattare il wall time e2e durante sonno come prestazione della consegna.
+
+## Aggiornamento 2026-10-22 04:54 Europe/Rome
+
+R-COM-sonnet-r3 verificata: 49.7465 minuti, 10.9776234 USD sviluppo, 88,2/100 × 3, nessuna violazione critica; mutation 0,3393. Sei consegne valide complete. Tutti i gate passati: le pause Mac hanno alterato soltanto wall time e2e (2806,8 / 1956,6 / 311,2 secondi), senza timeout né fallimenti da scartare, quindi le tre letture restano valide. Audit adattatore già letto e registrato, nessuna correzione. Ora R-COM-opus-r4 / US-060-implement-1; caffeinate 42633 ancora attivo per orchestratore 86336. Totale consolidato 84,791186 USD (include plan iniziale di opus-r4), residuo 265,208814 USD.
