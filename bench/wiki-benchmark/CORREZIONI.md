@@ -301,3 +301,8 @@ e rivalutate a fine `valuta.py all`:
 - Consegna conclusa in 88,7320 minuti e 27,445537 USD. Tre letture originali 87,8 / 81,8 / 81,8: S1 cerca il messaggio dentro `#form-riga`, mentre lo snapshot mostra il medesimo messaggio nell’avviso `avviso-mese-chiuso` e zero righe scritte.
 - Applicato il criterio comune: aggiunto il locator dell’avviso e networkidle dopo chiusura/riapertura. Nessuna modifica al prodotto. Conservati adattatore originale, tutte e tre le letture, log e snapshot tecnico in `/Users/smarello/repo/coaching-planner-bench-runs/R-COM-opus-r1/valutazione/scartate/adattatore-S1-20261022T112536`. Letture escluse dalla stima del rumore.
 - Rivalutazione accodata dopo R-DIR-opus-r5 già avviata; non avviare sessioni concorrenti. Conservare il mutation score 0,3169 e aggiornare tecnica dopo le nuove letture. Costi consolidati 168,7305933 USD, residuo 181,2694067. Nessun limite Claude o stop budget.
+
+
+## 2026-10-22 12:26 CEST · report 1 · esito rivalutazione COM Opus r1
+
+- Tre nuove letture identiche a 87,8 con adattatore S1 corretto; gate passati, nessuna violazione critica. Tecnica aggiornata senza ripetere i mutanti (0,3169). Coda completata prima di DIR Opus r3; originali 87,8/81,8/81,8 conservate ed escluse dal rumore.

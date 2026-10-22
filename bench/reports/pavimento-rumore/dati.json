@@ -1,5 +1,5 @@
 {
-  "aggiornato": "2026-10-22T11:26:05.219958+02:00",
+  "aggiornato": "2026-10-22T12:26:42.043960+02:00",
   "prove": [
     {
       "id": "R-DIR-opus-r1",
@@ -35,38 +35,38 @@
       "righe_totali": 2538,
       "usd_per_punto": 0.08613519134396355,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": false,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": true,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": false,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": false,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": false,
-        "K1": true,
-        "V4": true,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": true,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": true
       },
       "fasi": [
         {
@@ -259,38 +259,38 @@
       "righe_totali": 1570,
       "usd_per_punto": 0.02639341345093715,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": true,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": true,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": true,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": true,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": true,
-        "K1": true,
-        "V4": true,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": false,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": false
       },
       "fasi": [
         {
@@ -471,38 +471,38 @@
       "righe_totali": 3312,
       "usd_per_punto": 0.11984908503401362,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": true,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": false,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": true,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": true,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": true,
-        "K1": true,
-        "V4": false,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": false,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": false
       },
       "fasi": [
         {
@@ -1810,38 +1810,38 @@
       "righe_totali": 1484,
       "usd_per_punto": 0.02505918594104308,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": true,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": false,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": true,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": true,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": true,
-        "K1": true,
-        "V4": false,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": false,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": false
       },
       "fasi": [
         {
@@ -2030,38 +2030,38 @@
       "righe_totali": 4817,
       "usd_per_punto": 0.4002412482915717,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": false,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": true,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": false,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": false,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": false,
-        "K1": true,
-        "V4": true,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": true,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": true
       },
       "fasi": [
         {
@@ -3157,38 +3157,38 @@
       "righe_totali": 2670,
       "usd_per_punto": 0.12872678458049885,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": true,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": false,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": true,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": true,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": true,
-        "K1": true,
-        "V4": false,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": false,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": false
       },
       "fasi": [
         {
@@ -4722,38 +4722,38 @@
       "righe_totali": 4064,
       "usd_per_punto": 0.33963393394077457,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": false,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": true,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": false,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": false,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": false,
-        "K1": true,
-        "V4": true,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": true,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": true
       },
       "fasi": [
         {
@@ -5816,38 +5816,38 @@
       "righe_totali": 1555,
       "usd_per_punto": 0.02587926870748299,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": true,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": false,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": true,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": true,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": true,
-        "K1": true,
-        "V4": false,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": false,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": false
       },
       "fasi": [
         {
@@ -6028,38 +6028,38 @@
       "righe_totali": 3166,
       "usd_per_punto": 0.10237402721088436,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": true,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": false,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": true,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": true,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": true,
-        "K1": true,
-        "V4": false,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": false,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": false
       },
       "fasi": [
         {
@@ -6886,38 +6886,38 @@
       "righe_totali": 2675,
       "usd_per_punto": 0.09845304856512142,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": true,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": false,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": true,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": true,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": true,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": true,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": true,
-        "K1": true,
-        "V4": false,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": false,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": false
       },
       "fasi": [
         {
@@ -7749,38 +7749,38 @@
       "righe_totali": 2400,
       "usd_per_punto": 0.09401000455580864,
       "controlli": {
-        "A3": true,
-        "B1": true,
+        "V3": true,
+        "C5": false,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": true,
+        "U1": true,
+        "V2": true,
         "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": false,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
         "S1": true,
         "P3": true,
-        "C3": false,
-        "A2": true,
-        "C2": false,
         "P1": true,
-        "B9": true,
-        "U2": false,
-        "T2": false,
-        "T1": true,
-        "B4": true,
+        "C1": true,
         "P2": true,
         "K2": true,
-        "C5": false,
-        "K1": true,
-        "V4": true,
-        "B5": true,
         "A1": true,
-        "B8": true,
-        "V3": true,
-        "B6": true,
-        "B2": true,
+        "K1": true,
         "B7": true,
-        "U3": true,
-        "U1": true,
-        "V1": true,
         "C4": true,
-        "C1": true,
-        "V2": true
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": true
       },
       "fasi": [
         {
@@ -7947,9 +7947,16 @@
       "secondo_adattatore": false,
       "consegnata": true,
       "tree_hash": "2aba84d2a1f3ce307f59ba49039f6802c2ec1eb5",
-      "qualita": null,
-      "valutazioni": [],
-      "intervallo": null,
+      "qualita": 87.8,
+      "valutazioni": [
+        87.8,
+        87.8,
+        87.8
+      ],
+      "intervallo": [
+        87.8,
+        87.8
+      ],
       "valutazioni_secondo_adattatore": [],
       "minuti": 90.37395,
       "usd": 28.226846800000004,
@@ -7964,8 +7971,41 @@
       },
       "righe_nette_src": 979,
       "righe_totali": 4788,
-      "usd_per_punto": null,
-      "controlli": {},
+      "usd_per_punto": 0.3214902824601367,
+      "controlli": {
+        "V3": true,
+        "C5": false,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": true,
+        "U1": true,
+        "V2": true,
+        "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": false,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
+        "S1": true,
+        "P3": true,
+        "P1": true,
+        "C1": true,
+        "P2": true,
+        "K2": true,
+        "A1": true,
+        "K1": true,
+        "B7": true,
+        "C4": true,
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": true
+      },
       "fasi": [
         {
           "model_resolved": "claude-opus-5-5",
@@ -8789,27 +8829,67 @@
       "config": "DIR",
       "replica": 5,
       "secondo_adattatore": false,
-      "consegnata": false,
-      "tree_hash": null,
-      "qualita": null,
-      "valutazioni": [],
-      "intervallo": null,
+      "consegnata": true,
+      "tree_hash": "5f32bf6149751c1d4f812f893d8dc649907a72da",
+      "qualita": 87.8,
+      "valutazioni": [
+        87.8,
+        87.8,
+        87.8
+      ],
+      "intervallo": [
+        87.8,
+        87.8
+      ],
       "valutazioni_secondo_adattatore": [],
-      "minuti": null,
-      "usd": null,
-      "usd_sviluppo": null,
-      "token": null,
+      "minuti": 22.912116666666666,
+      "usd": 9.016193200000002,
+      "usd_sviluppo": 8.234883400000001,
+      "token": 20.878045,
       "token_dettaglio": {
-        "total": 675892,
-        "input_uncached": 26,
-        "cache_read": 609009,
-        "cache_creation": 56478,
-        "output": 10379
+        "total": 20878045,
+        "input_uncached": 220,
+        "cache_read": 20421806,
+        "cache_creation": 349119,
+        "output": 106900
       },
-      "righe_nette_src": null,
-      "righe_totali": null,
-      "usd_per_punto": null,
-      "controlli": {},
+      "righe_nette_src": 844,
+      "righe_totali": 3050,
+      "usd_per_punto": 0.1026901275626424,
+      "controlli": {
+        "V3": true,
+        "C5": false,
+        "A2": true,
+        "B4": true,
+        "T1": true,
+        "V4": true,
+        "U1": true,
+        "V2": true,
+        "B3": true,
+        "B8": true,
+        "B5": true,
+        "T2": false,
+        "U2": false,
+        "B6": true,
+        "A3": true,
+        "C2": false,
+        "C3": false,
+        "B2": true,
+        "S1": true,
+        "P3": true,
+        "P1": true,
+        "C1": true,
+        "P2": true,
+        "K2": true,
+        "A1": true,
+        "K1": true,
+        "B7": true,
+        "C4": true,
+        "B9": true,
+        "U3": true,
+        "B1": true,
+        "V1": true
+      },
       "fasi": [
         {
           "model_resolved": "claude-opus-5-5",
@@ -8879,9 +8959,86 @@
           "exchanges": 1,
           "committente_seconds": 17.2,
           "committente_cost_usd": 0.0217838
+        },
+        {
+          "model_resolved": "claude-opus-5-5",
+          "skills_available": [
+            "archetipo-autopilot",
+            "archetipo-design",
+            "archetipo-implement",
+            "archetipo-inception",
+            "archetipo-plan",
+            "archetipo-review",
+            "archetipo-spec",
+            "archetipo-wiki"
+          ],
+          "duration_ms": 1276208,
+          "duration_api_ms": 885139,
+          "num_turns": 110,
+          "cost_usd": 8.234883400000001,
+          "tokens": {
+            "cache_creation": 292641,
+            "output": 96521,
+            "cache_read": 19812797,
+            "input_uncached": 194,
+            "total": 20202153
+          },
+          "model_usage": {
+            "claude-opus-5-5": {
+              "cache_creation": 292641,
+              "output": 96521,
+              "cache_read": 19812797,
+              "input_uncached": 194,
+              "total": 20202153,
+              "cost_usd": 8.234883400000001
+            }
+          },
+          "result_subtypes": [
+            "success"
+          ],
+          "is_error": false,
+          "model_calls": 97,
+          "tokens_transcript": {
+            "cache_creation": 292641,
+            "output": 96521,
+            "cache_read": 19812797,
+            "input_uncached": 194,
+            "total": 20202153
+          },
+          "tokens_subagents": {},
+          "wiki": {
+            "tokens_wiki_only_calls": {},
+            "tokens_mixed_calls": {
+              "cache_creation": 5663,
+              "output": 404,
+              "cache_read": 27994,
+              "input_uncached": 2,
+              "total": 34063
+            },
+            "count": 1,
+            "seconds": 0.058,
+            "result_bytes": 12789,
+            "by_tool": {
+              "Bash": 1
+            }
+          },
+          "phase": "01-diretto",
+          "skill": "diretto",
+          "wall_seconds": 2250.0,
+          "head_before": "5c171833596d926654e9c4897890cb3cbd743cf9",
+          "head": "542d8f99543dc5209109562ebbf30fcefd7ae3fd",
+          "precondizioni": {
+            "docs_wiki_presente": true,
+            "skill_archetipo_wiki": true,
+            "wiki_enabled": true,
+            "hash_skills": {
+              ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+              ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+            }
+          }
         }
       ],
-      "tecnica_presente": false,
+      "tecnica_presente": true,
       "violazioni_critiche": []
     },
     {
@@ -10038,214 +10195,214 @@
       "config": "DIR",
       "metriche": {
         "qualita": {
-          "n": 2,
+          "n": 3,
           "mediana": 87.8,
           "min": 87.8,
           "max": 87.8,
           "sd": 0.0
         },
         "minuti": {
-          "n": 2,
-          "mediana": 24.85301666666667,
+          "n": 3,
+          "mediana": 22.912116666666666,
           "min": 20.147683333333333,
           "max": 29.55835,
-          "sd": 6.654346215486204
+          "sd": 4.836926646240474
         },
         "usd": {
-          "n": 2,
-          "mediana": 7.9083741,
+          "n": 3,
+          "mediana": 8.2540784,
           "min": 7.5626698,
-          "max": 8.2540784,
-          "sd": 0.4888997096306965
+          "max": 9.016193200000002,
+          "sd": 0.7270482669535047
         },
         "token": {
-          "n": 2,
-          "mediana": 17.5616055,
+          "n": 3,
+          "mediana": 19.436016,
           "min": 15.687195,
-          "max": 19.436016,
-          "sd": 2.650816750554534
+          "max": 20.878045,
+          "sd": 2.6794909419944557
         },
         "righe_nette_src": {
-          "n": 2,
-          "mediana": 784.5,
+          "n": 3,
+          "mediana": 798,
           "min": 771,
-          "max": 798,
-          "sd": 19.091883092036785
+          "max": 844,
+          "sd": 36.90979996333404
         },
         "righe_totali": {
-          "n": 2,
-          "mediana": 2469.0,
+          "n": 3,
+          "mediana": 2538,
           "min": 2400,
-          "max": 2538,
-          "sd": 97.58073580374356
+          "max": 3050,
+          "sd": 342.4636233723712
         },
         "usd_per_punto": {
-          "n": 2,
-          "mediana": 0.09007259794988609,
+          "n": 3,
+          "mediana": 0.09401000455580864,
           "min": 0.08613519134396355,
-          "max": 0.09401000455580864,
-          "sd": 0.005568333822673081
+          "max": 0.1026901275626424,
+          "sd": 0.00828073196985769
         }
       },
       "controlli": {
         "A1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "A2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "A3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B4": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B5": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B6": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B7": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B8": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B9": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "C1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "C2": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "C3": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "C4": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "C5": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "K1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "K2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "P1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "P2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "P3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "S1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "T1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "T2": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "U1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "U2": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "U3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "V1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "V2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "V3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "V4": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         }
       }
@@ -10255,7 +10412,7 @@
       "config": "COM",
       "metriche": {
         "qualita": {
-          "n": 2,
+          "n": 3,
           "mediana": 87.8,
           "min": 87.8,
           "max": 87.8,
@@ -10297,172 +10454,172 @@
           "sd": 426.6196588688024
         },
         "usd_per_punto": {
-          "n": 2,
-          "mediana": 0.36993759111617314,
-          "min": 0.33963393394077457,
+          "n": 3,
+          "mediana": 0.33963393394077457,
+          "min": 0.3214902824601367,
           "max": 0.4002412482915717,
-          "sd": 0.04285584296695341
+          "sd": 0.04123944968362824
         }
       },
       "controlli": {
         "A1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "A2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "A3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B4": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B5": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B6": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B7": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B8": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "B9": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "C1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "C2": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "C3": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "C4": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "C5": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "K1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "K2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "P1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "P2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "P3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "S1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "T1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "T2": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "U1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "U2": {
-          "fallimenti": 2,
-          "consegne": 2,
+          "fallimenti": 3,
+          "consegne": 3,
           "classe": "sempre"
         },
         "U3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "V1": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "V2": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "V3": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         },
         "V4": {
           "fallimenti": 0,
-          "consegne": 2,
+          "consegne": 3,
           "classe": "mai"
         }
       }
@@ -10521,16 +10678,24 @@
     {
       "prova": "R-DIR-opus-r2",
       "range": 0.0
+    },
+    {
+      "prova": "R-COM-opus-r1",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-opus-r5",
+      "range": 0.0
     }
   ],
   "rumore_due_adattatori": [],
   "costi": {
-    "prove": 149.22581540000002,
+    "prove": 157.46069880000002,
     "scartate": 10.177446099999997,
     "turni_persi": 0.0,
-    "adattatori": 9.3273318,
+    "adattatori": 10.100318399999999,
     "giudici_tecnici": 0.0,
-    "totale": 168.7305933
+    "totale": 177.7384633
   },
   "prove_precedenti": [
     {

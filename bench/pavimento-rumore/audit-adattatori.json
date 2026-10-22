@@ -77,10 +77,17 @@
     }
   },
   "R-COM-opus-r1/1": {
-    "esito": "S1 corretto con criterio uniforme: avviso fuori dal form e networkidle. Tre letture originali 87.8/81.8/81.8 archiviate, nuove letture in coda. Nessun NonImplementato; motivazione non supportata letta null, storico reale.",
+    "esito": "S1 corretto con criterio uniforme: avviso fuori dal form e networkidle. Tre letture originali 87.8/81.8/81.8 archiviate ed escluse; tre nuove letture identiche 87.8, nessuna violazione critica. Nessun NonImplementato; motivazione non supportata letta null, storico reale.",
     "sha256": {
       "browser.ts": "ba758bd8100c46535ad6b08952204650dd90934d0a0fda292f504a3c0a65f4ec",
       "integrazione.ts": "4685a1e38a6ad19797f44993aa7283a91d9bf732568ff28bd98b38668b016cb1"
+    }
+  },
+  "R-DIR-opus-r5/1": {
+    "esito": "Log e sorgenti letti: nessun NonImplementato, action e storico reali, motivazione assente letta null; S1 usa errore-azione-riga effettivo. Tre letture identiche 87.8, nessuna violazione critica. Nessuna correzione necessaria.",
+    "sha256": {
+      "browser.ts": "d7ec38dee7f55cdbb2b5451cfa917d4572396de16a98121115adec22845f2b10",
+      "integrazione.ts": "978ffa20f058c89278320a4ad5268fef33435814b08453e75e05f4362268af3c"
     }
   }
 }
