@@ -124,5 +124,19 @@
       "browser.ts": "28481c83de771ee1a1c504577b10ee31d3a854f188336b2e82a0a172f235c6a8",
       "integrazione.ts": "f0e0f0c7702d2f7565de2088d121e577471c3e8d31f616852e8d87e77ca3ed5b"
     }
+  },
+  "R-COM-sonnet-r5/1": {
+    "esito": "Log e sorgenti letti: NonImplementato V4 coerente (report senza stato), V1 indicatore assente nel calendario, action e storico reali. S1 comprende il messaggio in tutta la pagina. Tre letture identiche 88.2, nessuna violazione critica; nessuna correzione necessaria.",
+    "sha256": {
+      "browser.ts": "2f831f68a70c1489f14874791e0829e97411ff474884c296ee644d57462678d7",
+      "integrazione.ts": "5112c704cba66bb10916a720e83f19218cc3a08949f4e4913bfc38124ee8809b"
+    }
+  },
+  "R-DIR-opus-r4/1": {
+    "esito": "Log e sorgenti letti: nessun NonImplementato, action e storico reali ordinati per progressivo come nel prodotto; motivazione assente letta null. Tre letture identiche 87.8, nessuna violazione critica; nessuna correzione necessaria.",
+    "sha256": {
+      "browser.ts": "adfc7aacb71b0178415210e3f0ebf1ea57a8d191eeba49e7fcd40c180d208894",
+      "integrazione.ts": "082e19df6969be26f95ad437f61fd176988bbb0b97d4d86d8687e156b9273822"
+    }
   }
 }
