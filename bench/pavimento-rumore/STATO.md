@@ -130,3 +130,7 @@ R-COM-opus-r1 consegnata: 88,7320 minuti, 27,445537 USD sviluppo, mutation 0,316
 ## Aggiornamento 2026-10-22 12:26 Europe/Rome
 
 R-DIR-opus-r5 verificata: 21,2701 min, 8,2348834 USD sviluppo, 87,8 × 3, mutation 0,3349; audit adattatore senza correzioni. R-COM-opus-r1 rivalutata con S1 corretto: 87,8 × 3, tecnica aggiornata mantenendo mutation 0,3169. Nessuna violazione critica; coda rivalutazioni vuota. **Tredici consegne valide complete su venti**. Ora R-DIR-opus-r3 / 01-diretto, orchestratore 86336 e caffeinate 42633 attivi. Costi consolidati 177,7384633 USD, residui 172,2615367. Nessuna nuova interruzione.
+
+## Aggiornamento 2026-10-22 13:23 Europe/Rome
+
+R-DIR-opus-r3 verificata: 21,1199 min, 7,7200214 USD sviluppo, 87,8 × 3, mutation 0,3161. Audit adattatore senza correzioni; nessuna violazione critica. **Quattordici consegne valide complete su venti**. Ora R-DIR-sonnet-r2 / 01-diretto; orchestratore 86336 e caffeinate 42633 attivi. Costi consolidati 186,1773867 USD, residui 163,8226133; nessuna nuova interruzione.

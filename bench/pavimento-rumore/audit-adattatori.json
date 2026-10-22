@@ -89,5 +89,12 @@
       "browser.ts": "d7ec38dee7f55cdbb2b5451cfa917d4572396de16a98121115adec22845f2b10",
       "integrazione.ts": "978ffa20f058c89278320a4ad5268fef33435814b08453e75e05f4362268af3c"
     }
+  },
+  "R-DIR-opus-r3/1": {
+    "esito": "Log e sorgenti letti: nessun NonImplementato; action e storico reali, motivazione assente letta null. S1 usa errore-azione-riga effettivo. Tre letture identiche 87.8, nessuna violazione critica. Nessuna correzione necessaria.",
+    "sha256": {
+      "browser.ts": "3915b3dc81d12b7c05a7d01aea34af4ffe8abe0d43ba8f980f2c2f2bfce63479",
+      "integrazione.ts": "0e9be9f0b4282077f35d0ffa3af70c3f5cc1cd2a8a927b3e21775f1fc9f9787f"
+    }
   }
 }
