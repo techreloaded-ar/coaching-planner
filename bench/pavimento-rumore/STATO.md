@@ -86,3 +86,7 @@ R-DIR-sonnet-r5 verificata: 10,5 minuti, 1,83 USD sviluppo, 88,2/100 × 3, nessu
 ## Aggiornamento 2026-10-22 02:00 Europe/Rome
 
 R-COM-opus-r5 verificata: 91,95 minuti, 34,36 USD sviluppo, 87,8/100 × 3, nessuna violazione critica; mutation 0,3371. Cinque consegne valide complete. Audit adattatore registrato, nessuna correzione. Ora in corso R-COM-sonnet-r3 / US-060-plan-1. Costo consolidato 69,6600582 USD, residuo 280,3399418 USD. Nessuna nuova interruzione.
+
+## Aggiornamento sospensione Mac 2026-10-22 04:38 CEST
+
+R-COM-sonnet-r3 è ancora nella valutazione (replica 1). Mac in Idle Sleep/DarkWake: confermati intervalli 03:12:59–03:28:26 e 03:29:03–03:42:46 dal log pmset, gate e2e iniziato 03:12:33. Avviato caffeinate -i -s -w 86336 PID 42633, valido finché vive l’orchestratore. **Rinnovare caffeinate a ogni rilancio con nuovo PID.** Verificare se la lettura 1 ha timeout ambientali; archiviare le evidenze e pianificare la rivalutazione delle letture colpite in sequenza, senza altre sessioni. Non trattare il wall time e2e durante sonno come prestazione della consegna.

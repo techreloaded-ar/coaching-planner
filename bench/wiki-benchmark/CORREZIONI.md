@@ -257,3 +257,10 @@ e rivalutate a fine `valuta.py all`:
 - Orchestratore precedente terminato dopo la conclusione della sessione già attiva, senza avviare altre fasi. Archiviate integralmente `R-DIR-opus-r1` e `R-DIR-sonnet-r5` sotto `_scartati/*--stdin--*`, inclusi stream, adattatore e valutazioni; i piloti Sonnet restano validi.
 - Costi consolidati al rilancio: 24.4208 USD, di cui prove scartate 10.1774 USD. I costi degli adattatori scartati sono conservati nella voce adattatori.
 - Rilanciato lo stesso `run.py all` con stdin nullo; nessun prompt, modello, rubrica o budget modificato.
+
+
+## 2026-10-22 04:38 CEST · report 1 · pause di sospensione del Mac
+
+- `pmset -g log` conferma Idle Sleep dalle 02:47:31, successive finestre DarkWake e nuova sospensione 03:12:59–03:28:26 e 03:29:03–03:42:46. Il gate e2e della replica 1 di R-COM-sonnet-r3, iniziato alle 03:12:33, ha attraversato tali pause. Il wall time è quindi ambientale; non attribuirlo alla consegna.
+- Attivato `caffeinate -i -s -w 86336` (PID 42633) soltanto per la durata dell’orchestratore, senza modificare impostazioni persistenti o tenere acceso il display. A ogni eventuale rilancio dell’orchestratore rinnovare l’assertion per il nuovo PID.
+- Verificare gli esiti del gate a fine replica, conservare i log e rivalutare le letture colpite da timeout di sospensione; non correggere il codice della consegna.
