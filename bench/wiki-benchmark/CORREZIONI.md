@@ -289,3 +289,8 @@ e rivalutate a fine `valuta.py all`:
 - Tre letture iniziali 82,6. S1: il locator attende aria-busy=false sul pulsante del form, che viene rimosso e sostituito dall’avviso dopo il rifiuto (snapshot: avviso visibile, zero righe). Correzione uniforme: attendere fine richieste e accettare l’avviso al posto del form.
 - U1: il form di riapertura e il suo esito locale sono renderizzati soltanto finché il mese è chiuso (`page.tsx`, condizione statoMese.chiuso). La riapertura aggiorna la riga ad Aperto e rimuove il form, quindi attendere il suo esito locale non misura l’operazione. Adattatore ora attende `rigaMese` con testo Aperto, esattamente come il test della consegna `chiusura-mese-riapertura.spec.ts:135`, poi networkidle. Nessuna logica aggiunta al prodotto.
 - Letture, log e adattatore precedenti conservati in `/Users/smarello/repo/coaching-planner-bench-runs/R-COM-sonnet-r4/valutazione/scartate/adattatore-S1-U1-20261022T084037`; nuova serie accodata dietro COM-r2 attualmente in rivalutazione, in sequenza.
+
+
+## 2026-10-22 08:54 CEST · report 1 · esito delle rivalutazioni COM Sonnet
+
+- R-COM-sonnet-r2: tre nuove letture a 88,2 (S1 corretto). R-COM-sonnet-r4: tre nuove letture a 90,6 (S1 e U1 corretti). Gate tutti superati, nessuna violazione critica. Letture precedenti conservate ed escluse dalla stima del rumore; misure tecniche aggiornate senza ripetere i mutanti. Coda completata prima di avviare DIR Opus r2.

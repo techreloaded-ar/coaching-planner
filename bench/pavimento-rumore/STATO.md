@@ -114,3 +114,7 @@ R-DIR-sonnet-r3 rivalutata correttamente: 88,2/100 × 3, nessuna violazione crit
 ## Aggiornamento 2026-10-22 08:40 CEST
 
 R-COM-sonnet-r4 consegnata (56.8109 min, 8.5437672 USD), ma tre letture 82,6 scartate: S1 attende un pulsante rimosso; U1 attende un esito locale rimosso dal refresh invece della riga diventata Aperto. Correzioni solo all’adattatore, stessa regola dei precedenti casi; dettagli e archivio in CORREZIONI. Nuova serie accodata mentre l’hook attuale rivaluta COM-r2. La gestione coda ora rilegge il file e preserva la voce aggiunta durante i test. Verificare entrambi gli esiti al prossimo monitor. Otto consegne valide, COM-r2 e COM-r4 da rivalutare, costo consolidato 132,3337215 USD, residuo 217,6662785.
+
+## Aggiornamento 2026-10-22 08:54 Europe/Rome
+
+Rivalutazioni concluse: R-COM-sonnet-r2 88,2 × 3; R-COM-sonnet-r4 90,6 × 3. Nessuna violazione critica, tecnica aggiornata conservando i mutanti. Coda rivalutazioni vuota, audit e hash aggiornati. **Dieci consegne valide complete su venti**. Ora R-DIR-opus-r2 in corso. Costi consolidati 132,3337215 USD; residui 217,6662785. Nessuna nuova interruzione.

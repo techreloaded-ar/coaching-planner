@@ -56,10 +56,17 @@
     }
   },
   "R-COM-sonnet-r2/1": {
-    "esito": "S1 corretto con criterio uniforme: alert form oppure mese-chiuso-banner, networkidle. Originali 82.2 × 3 archiviate; rivalutazione pendente. V4 NonImplementato coerente con report senza stato, storico reale.",
+    "esito": "S1 corretto: alert form oppure banner; networkidle. Originali 82.2 × 3 archiviate. Tre nuove letture 88.2 identiche, nessuna violazione critica; V4 NonImplementato coerente, storico reale.",
     "sha256": {
       "browser.ts": "0251254168be54f20069a39f5984e6d05ead006dfc0640ec7d83fb25686b9239",
       "integrazione.ts": "adb06105065f0806c7d8c27cd25f1abb8c3bc7c10640e24f6961596b57479570"
+    }
+  },
+  "R-COM-sonnet-r4/1": {
+    "esito": "S1 corretto: il form può sparire, avviso accettato; U1 attende la riga Aperto come i test della consegna, esito locale rimosso. Originali 82.6 × 3 archiviate. Tre nuove letture 90.6 identiche, nessuna violazione critica; V4 NonImplementato coerente, storico reale.",
+    "sha256": {
+      "browser.ts": "a99ff5dcb15df59c2d438a72b3ab530540d1241f7009e579a6e19bbc0b22fa0a",
+      "integrazione.ts": "43b6167c61910d42694125855174587499447f60f4d513920f783c53160394bd"
     }
   }
 }
