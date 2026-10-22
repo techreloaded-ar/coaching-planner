@@ -75,5 +75,12 @@
       "browser.ts": "1ac6bdd2a0c1ac77196ced5be189afac62a04abc4c0f9ca62ad0d7babe15784a",
       "integrazione.ts": "d33bdce5af38ed721b7c7b14b0ec3c5cfedbedda4c2db981817bd5a4ea7937e9"
     }
+  },
+  "R-COM-opus-r1/1": {
+    "esito": "S1 corretto con criterio uniforme: avviso fuori dal form e networkidle. Tre letture originali 87.8/81.8/81.8 archiviate, nuove letture in coda. Nessun NonImplementato; motivazione non supportata letta null, storico reale.",
+    "sha256": {
+      "browser.ts": "ba758bd8100c46535ad6b08952204650dd90934d0a0fda292f504a3c0a65f4ec",
+      "integrazione.ts": "4685a1e38a6ad19797f44993aa7283a91d9bf732568ff28bd98b38668b016cb1"
+    }
   }
 }

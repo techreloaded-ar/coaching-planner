@@ -1,1 +1,6 @@
-[]
+[
+  {
+    "prova": "R-COM-opus-r1",
+    "motivo": "S1: form sostituito dall’avviso-mese-chiuso; includere avviso e attendere networkidle, stesso criterio comune."
+  }
+]
