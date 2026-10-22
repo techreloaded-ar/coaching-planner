@@ -68,5 +68,12 @@
       "browser.ts": "a99ff5dcb15df59c2d438a72b3ab530540d1241f7009e579a6e19bbc0b22fa0a",
       "integrazione.ts": "43b6167c61910d42694125855174587499447f60f4d513920f783c53160394bd"
     }
+  },
+  "R-DIR-opus-r2/1": {
+    "esito": "Log e sorgenti letti: nessun NonImplementato; server action e storico reali, motivazione assente dal prodotto e letta null. Messaggio S1 usa errore-azione-riga effettivo. Nessuna correzione necessaria; Tre letture identiche 87.8, nessuna violazione critica.",
+    "sha256": {
+      "browser.ts": "1ac6bdd2a0c1ac77196ced5be189afac62a04abc4c0f9ca62ad0d7babe15784a",
+      "integrazione.ts": "d33bdce5af38ed721b7c7b14b0ec3c5cfedbedda4c2db981817bd5a4ea7937e9"
+    }
   }
 }
