@@ -22,6 +22,8 @@ export const PERCORSO_CALLBACK_CALENDARIO = "/api/calendario-google/callback";
 
 const PREFISSO_TOKEN_E2E = "e2e:";
 
+const TIMEOUT_CALENDARIO_MS = 10000;
+
 /** Token di test di un calendario collegato senza eventi. */
 export const REFRESH_TOKEN_E2E_SENZA_EVENTI = `${PREFISSO_TOKEN_E2E}{"eventi":[]}`;
 
@@ -126,6 +128,7 @@ export async function eventiAttornoAlGiorno(
   const risposta = await fetch(url, {
     headers: { Authorization: `Bearer ${tokens.accessToken()}` },
     cache: "no-store",
+    signal: AbortSignal.timeout(TIMEOUT_CALENDARIO_MS),
   });
 
   if (!risposta.ok) {

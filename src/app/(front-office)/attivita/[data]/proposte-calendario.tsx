@@ -117,6 +117,8 @@ export function SezioneProposteCalendario({
         impostaErrore(proposta.eventoId, null);
         onPropostaGestita(proposta.eventoId);
         onRigaCreata();
+      } catch {
+        impostaErrore(proposta.eventoId, "Conferma non riuscita, riprova");
       } finally {
         setInAttesaId(null);
       }
@@ -135,6 +137,8 @@ export function SezioneProposteCalendario({
         }
         impostaErrore(proposta.eventoId, null);
         onPropostaGestita(proposta.eventoId);
+      } catch {
+        impostaErrore(proposta.eventoId, "Rifiuto non riuscito, riprova");
       } finally {
         setInAttesaId(null);
       }
@@ -168,8 +172,12 @@ export function SezioneProposteCalendario({
           role="alert"
           className="rounded-[11px] border border-amber-200 bg-amber-50 px-4 py-3 text-[12.5px] text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
         >
-          Impossibile leggere il calendario, prova a ricollegarlo. Puoi comunque
-          inserire le ore a mano.
+          Impossibile leggere il calendario, prova a{" "}
+          {/* Navigazione documentale verso il consenso Google, non una rotta client. */}
+          <a href="/api/calendario-google/collega" className="font-semibold underline">
+            ricollegarlo
+          </a>
+          . Puoi comunque inserire le ore a mano.
         </p>
       )}
 

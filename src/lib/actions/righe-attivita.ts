@@ -340,13 +340,22 @@ export async function creaRiga(
   });
 
   if (eventoCalendarioId) {
-    await db.$transaction([
-      creazioneRiga,
-      db.eventoCalendarioGestito.createMany({
-        data: [{ collaboratoreId: collaboratore.id, eventoCalendarioId }],
-        skipDuplicates: true,
-      }),
-    ]);
+    // Senza skipDuplicates: una seconda conferma dello stesso evento (per
+    // esempio da un'altra scheda) viola l'unicità e annulla la transazione,
+    // così non nasce una riga duplicata.
+    try {
+      await db.$transaction([
+        creazioneRiga,
+        db.eventoCalendarioGestito.create({
+          data: { collaboratoreId: collaboratore.id, eventoCalendarioId },
+        }),
+      ]);
+    } catch (errore) {
+      if ((errore as { code?: string })?.code === "P2002") {
+        return { success: false, error: "Questo impegno del calendario è già stato registrato" };
+      }
+      throw errore;
+    }
   } else {
     await creazioneRiga;
   }

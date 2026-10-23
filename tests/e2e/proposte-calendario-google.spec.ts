@@ -203,6 +203,10 @@ test.describe("US-002/US-003 Proposte dagli impegni del calendario", () => {
 				hasText: "Impossibile leggere il calendario, prova a ricollegarlo",
 			}),
 		).toBeVisible();
+		await expect(page.getByRole("link", { name: "ricollegarlo" })).toHaveAttribute(
+			"href",
+			"/api/calendario-google/collega",
+		);
 		await expect(page.getByRole("heading", { name: "Nuova riga attività" })).toBeVisible();
 		await expect(page.getByRole("button", { name: "Aggiungi riga" })).toBeVisible();
 	});

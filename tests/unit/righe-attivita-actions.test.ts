@@ -30,7 +30,7 @@ const mockAbilitazioneOfferta = vi.hoisted(() => ({
 }));
 
 const mockEventoCalendarioGestito = vi.hoisted(() => ({
-  createMany: vi.fn(),
+  create: vi.fn(),
 }));
 
 const mockTransaction = vi.hoisted(() => vi.fn());
@@ -189,7 +189,7 @@ describe("creaRiga", () => {
       collaboratore: collaboratoreMock(),
     });
     mockRigaAttivita.create.mockReturnValue("operazione-crea-riga");
-    mockEventoCalendarioGestito.createMany.mockReturnValue("operazione-evento-gestito");
+    mockEventoCalendarioGestito.create.mockReturnValue("operazione-evento-gestito");
     mockTransaction.mockResolvedValue([]);
 
     const result = await creaRiga(
@@ -213,9 +213,8 @@ describe("creaRiga", () => {
       fatturabile: true,
       rimborsoTrasfertaEtichetta: null,
     });
-    expect(mockEventoCalendarioGestito.createMany).toHaveBeenCalledWith({
-      data: [{ collaboratoreId: "collab-giulia", eventoCalendarioId: "evento-google-1" }],
-      skipDuplicates: true,
+    expect(mockEventoCalendarioGestito.create).toHaveBeenCalledWith({
+      data: { collaboratoreId: "collab-giulia", eventoCalendarioId: "evento-google-1" },
     });
     expect(mockTransaction).toHaveBeenCalledWith([
       "operazione-crea-riga",
@@ -243,7 +242,31 @@ describe("creaRiga", () => {
 
     expect(result.success).toBe(false);
     expect(mockTransaction).not.toHaveBeenCalled();
-    expect(mockEventoCalendarioGestito.createMany).not.toHaveBeenCalled();
+    expect(mockEventoCalendarioGestito.create).not.toHaveBeenCalled();
+  });
+
+  it("rifiuta la seconda conferma dello stesso evento senza creare una riga duplicata (US-004 AC-5)", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockTransaction.mockRejectedValue(Object.assign(new Error("Unique"), { code: "P2002" }));
+
+    const result = await creaRiga(
+      creaFormData({
+        clienteId: "cliente-1",
+        offertaId: "offerta-1",
+        ore: "1",
+        data: "2026-07-01",
+        eventoCalendarioId: "evento-google-1",
+      })
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: "Questo impegno del calendario è già stato registrato",
+    });
+    aspettataNessunaInvalidazione();
   });
 
   it("fotografa etichetta e importo della voce selezionata (AC-4)", async () => {
