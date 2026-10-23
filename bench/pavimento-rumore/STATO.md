@@ -1,5 +1,7 @@
 # Report 1 · prosecuzione autonoma
 
+**Stato finale: concluso il 23 ottobre 2026.** Verifica visiva/interattiva confermata dall’utente: «Verificato: tutto leggibile e filtri funzionanti». Manifest `fatto`; indice aggiornato. I checkpoint seguenti conservano la cronologia e le attività allora pendenti.
+
 Richiesta autorizzata: eseguire `docs/benchmark/PROMPT-report-1.md` fino al report finale, riprendendo dopo i reset CLI, prove e valutazioni sequenziali, tetto 350 USD. Comunicare in italiano. Non leggere/modificare `.env` del progetto né correggere le consegne nei cloni. Non cambiare prompt, modelli, rubrica o matrice durante l'esperimento.
 
 ## Stato
@@ -176,3 +178,17 @@ Audit contabile corregge quattro copie degli stessi log: totale effettivo **293,
 **Unica attività residua: verifica visiva/interattiva nel browser.** Lo strumento Browser Use rifiuta l’accesso file:// per policy e vieta workaround. HTML/link/ID e sintassi JS verificati staticamente; non dichiarare verifica browser eseguita. Manifest report 1 resta «in corso» per questa sola verifica. Automazione da disattivare ora perché serve verifica manuale o indicazione dell’utente. Alla conferma della verifica: impostare report 1 «fatto», aggiornare nota/indice e commit, senza nuove sessioni Claude.
 
 Automazione `completa-il-report-1-sul-pavimento-di-rumore` eliminata con successo dopo la chiusura dei processi. Nessun nuovo lancio previsto; resta la verifica visiva dell’utente prima di marcare il report «fatto».
+
+
+## Tentativo di chiusura · 23 ottobre 2026
+
+Su richiesta dell’utente, ripetuta l’apertura diretta del report locale con il browser disponibile: la policy rifiuta file:// e vieta esplicitamente workaround o superfici alternative. Nessun aggiramento effettuato. Richiesta all’utente la verifica visiva di tabelle/barre, finestra stretta e filtri Modello/Cella. Stato ancora in corso finché la conferma non arriva.
+
+Controlli statici ripetuti senza browser: 20 righe, quattro celle da cinque, ID univoci, link e ancore locali validi, node --check passato e filtro composto collegato a entrambi i select. SHA256 dati.json invariato: 1b5c0a0b86c73fdae12439190e5fe0275a808e4cbdcea08d16e1e2188446e87c. Evidenze in verifica-finale.json e nella cartella esterna pavimento-rumore-qa. Nessuna prova del benchmark o nuova sessione Claude avviata.
+
+
+## Chiusura confermata · 23 ottobre 2026
+
+L’utente conferma la verifica richiesta: «Verificato: tutto leggibile e filtri funzionanti». Verifica registrata come umana; nessuna verifica browser automatica dichiarata e nessun aggiramento della policy. Tutte le attività residue sono concluse. Manifest portato a fatto, indice rigenerato con link attivo al report e nota di chiusura aggiornata.
+
+Dati sperimentali e report HTML preservati, con hash registrati in verifica-finale.json. Le code restano vuote; nessuna nuova prova, valutazione o sessione Claude. Costo invariato 293,9197681 USD.

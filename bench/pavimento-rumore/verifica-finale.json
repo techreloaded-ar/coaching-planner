@@ -7,12 +7,49 @@
   "fasi_precondizioni": 127,
   "tree_hash_letture": "tutti conformi",
   "sha256_adattatori": "tutti conformi",
-  "browser": "non verificato: policy browser blocca URL file://",
+  "browser": "Verifica visiva/interattiva confermata dall’utente il 23 ottobre 2026; nessuna verifica browser automatica dichiarata.",
   "test_banco": "16 passati",
   "report_definitivo": "generato, completo true",
   "report4": "40 consegne, rigenerato",
   "html": "link locali validi, ID univoci, 20 righe overview",
   "costo_usd": 293.9197681,
   "residuo_usd": 56.0802319,
-  "sintassi_script": "node --check: entrambi validi"
+  "sintassi_script": "node --check: entrambi validi",
+  "verifica_statica_chiusura": {
+    "data": "2026-10-23T11:39:46.484699+00:00",
+    "tipo": "controlli statici, nessuna esecuzione browser",
+    "righe_overview": 20,
+    "celle": 4,
+    "repliche_per_cella": 5,
+    "id_univoci": true,
+    "link_locali_e_ancore": "validi",
+    "sintassi_javascript": "node --check passato",
+    "listener_filtri": "un unico filtro composto richiamato da entrambi i select",
+    "dati_sperimentali_sha256": "1b5c0a0b86c73fdae12439190e5fe0275a808e4cbdcea08d16e1e2188446e87c",
+    "dati_sperimentali_cambiati": false,
+    "browser": "apertura file:// rifiutata dalla policy; nessun tentativo di aggiramento; in attesa della verifica visiva utente"
+  },
+  "browser_blocco_2026_10_23": {
+    "strumento": "mcp__cua_repl.createBrowserTab",
+    "azione": "apertura diretta del report locale file://",
+    "esito": "rifiutato dalla policy: protocolli ammessi http e https; vietati workaround, esecuzione indiretta e superfici alternative",
+    "seguito": "Nessun aggiramento; verifica visiva eseguita dall’utente e confermata in chat."
+  },
+  "verifica_visiva_utente": {
+    "data_registrazione": "2026-10-23T13:52:39.872023+02:00",
+    "risposta": "Verificato: tutto leggibile e filtri funzionanti",
+    "ambito": "Leggibilità del report e funzionamento dei filtri Modello/Cella",
+    "esito": "confermato",
+    "origine": "Risposta umana alla richiesta di verifica in questa chat"
+  },
+  "chiusura": {
+    "stato": "fatto",
+    "data": "2026-10-23T13:52:39.872023+02:00",
+    "nuove_prove": 0,
+    "costo_aggiuntivo_benchmark_usd": 0,
+    "sha256_artefatti": {
+      "bench/reports/pavimento-rumore/dati.json": "1b5c0a0b86c73fdae12439190e5fe0275a808e4cbdcea08d16e1e2188446e87c",
+      "bench/reports/pavimento-rumore/report.html": "ade251f2e4c397369ce98aa0fdf8a6e94076f09e92613d5f3c0c550a2217f717"
+    }
+  }
 }

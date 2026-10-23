@@ -484,3 +484,10 @@ Audit finale positivo: 52 fasi valide, 8 valutazioni, 24 storie con requisiti in
 Diagnosi dei chiarimenti: il committente simulato approva l’esclusione dell’elenco T1 e accetta la proposta mensile T3, restringendo il profilo nascosto. È un limite anche della sua fedeltà al profilo. Storie, giudizi e pesi restano congelati; evidenze in diagnosi-chiarimenti.json. Le difformità delle review (Wiki, CI impact assessment e demo) sono conservate come risultati di processo, senza ripetizioni per renderle conformi. Il completo termina 10 storie DONE e 2 REVIEW.
 
 QA finale indice/report a 1440 e 390: nessun errore JS o overflow, filtri report 8→4→2. L’indice ha un override locale overflow-wrap per l’hash lungo della baseline; nessuna modifica ai criteri. Whitespace del codice/documenti verificato escludendo le patch archiviate e non bloccando sulla riga vuota finale del helper oracolo congelato; log integrale ed eccezioni conservati, nessun byte degli oracoli riformattato dopo i risultati.
+
+
+## 23 ottobre 2026 · Chiusura report 1 dopo verifica umana
+
+L’utente conferma: «Verificato: tutto leggibile e filtri funzionanti». Registrata la verifica visiva/interattiva come umana in pavimento-rumore/verifica-finale.json, mantenendo il precedente rifiuto della policy browser come evidenza storica. Nessuna verifica automatica dichiarata e nessun workaround. Report 1 portato da in corso a fatto nel manifest; indice rigenerato e nota di attesa sostituita con l’esito di chiusura.
+
+Dati e report HTML invariati, hash conservati nella ricevuta. Controlli statici conclusi; nessuna nuova prova o sessione Claude. Costo invariato 293,9197681 USD.

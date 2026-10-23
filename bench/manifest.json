@@ -51,10 +51,10 @@
    "titolo": "Qual è il pavimento di rumore?",
    "domanda": "Quanto varia il punteggio funzionale tra repliche della stessa cella, e quale differenza è quindi interpretabile?",
    "disegno": "2 celle (diretto, completo) × 2 modelli × 5 repliche = 20 prove a storie fisse (US-060, US-061), ordine randomizzato; oracolo ripetuto 3 volte, secondo adattatore indipendente per una prova per cella",
-   "stato": "in corso",
+   "stato": "fatto",
    "path": "reports/pavimento-rumore/report.html",
    "costo_usd": 293.9197681,
-   "data": "2026-10-22",
+   "data": "2026-10-23",
    "risultato": "SD pooled 0,775; soglia entro il rumore 1,550 punti; MDE 1,569. Completo−diretto −0,01 punti (IC −0,75…+0,72): nessun vantaggio funzionale osservato.",
    "ipotesi": {
     "id": "H1",
@@ -64,7 +64,7 @@
     "esito": "SD pooled 0,775 punti; MDE con 5 repliche, α 0,05 e potenza 0,8: 1,569 punti. Da qui in poi ogni differenza inferiore a 1,550 punti (2 SD pooled) si scrive «entro il rumore». Completo−diretto −0,01 (IC bootstrap −0,75…+0,72), entro il rumore. Il campione non sostiene una soglia generale di 5 punti. Rumore osservato: range zero nelle 3 letture di ciascuna consegna, differenza zero fra i 2 adattatori sulle 4 prove designate dopo audit."
    },
    "budget_usd": 350,
-   "note": "Dati, narrative, audit, test e report definitivi completati. Rimane solo la verifica visiva nel browser: policy di accesso blocca URL file://. Automazione disattivata in attesa di verifica manuale o indicazioni dell’utente."
+   "note": "Dati, narrative, audit, test e report definitivi completati. Verifica visiva di leggibilità e filtri confermata dall’utente il 23 ottobre 2026; chiusura senza nuove prove o costi del benchmark."
   },
   {
    "numero": 4,
