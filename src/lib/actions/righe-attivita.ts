@@ -262,6 +262,9 @@ function normalizzaGiorniDestinazione(
  *
  * Campi attesi nel FormData:
  * - clienteId, offertaId, ore, nota, fatturabile, data (YYYY-MM-DD)
+ * - eventoCalendarioId? quando la riga nasce da una proposta del calendario:
+ *   l'evento viene segnato come gestito nella stessa transazione, così non
+ *   viene più proposto
  */
 export async function creaRiga(
   formData: FormData
@@ -280,6 +283,8 @@ export async function creaRiga(
   const voceRimborsoTrasfertaIdRaw = formData.get("voceRimborsoTrasfertaId") as
     | string
     | null;
+  const eventoCalendarioId =
+    (formData.get("eventoCalendarioId") as string | null)?.trim() || null;
 
   // Validazione campi obbligatori
   if (!clienteId || !offertaId || !oreRaw || !dataStr) {
@@ -320,7 +325,7 @@ export async function creaRiga(
   // Parsing fatturabile
   const fatturabile = fatturabileRaw === "on" || fatturabileRaw === "true";
 
-  await db.rigaAttivita.create({
+  const creazioneRiga = db.rigaAttivita.create({
     data: {
       collaboratoreId: collaboratore.id,
       clienteId,
@@ -333,6 +338,18 @@ export async function creaRiga(
       rimborsoTrasfertaImporto: fotografiaRimborso.importo ?? null,
     },
   });
+
+  if (eventoCalendarioId) {
+    await db.$transaction([
+      creazioneRiga,
+      db.eventoCalendarioGestito.createMany({
+        data: [{ collaboratoreId: collaboratore.id, eventoCalendarioId }],
+        skipDuplicates: true,
+      }),
+    ]);
+  } else {
+    await creazioneRiga;
+  }
 
   revalidatePath(`/attivita/${dataStr}`);
   revalidatePath("/attivita/riepilogo");

@@ -29,12 +29,20 @@ const mockAbilitazioneOfferta = vi.hoisted(() => ({
   findUnique: vi.fn(),
 }));
 
+const mockEventoCalendarioGestito = vi.hoisted(() => ({
+  createMany: vi.fn(),
+}));
+
+const mockTransaction = vi.hoisted(() => vi.fn());
+
 vi.mock("@/lib/db", () => ({
   db: {
     rigaAttivita: mockRigaAttivita,
     voceRimborsoTrasferta: mockVoceRimborsoTrasferta,
     offerta: mockOfferta,
     abilitazioneOfferta: mockAbilitazioneOfferta,
+    eventoCalendarioGestito: mockEventoCalendarioGestito,
+    $transaction: mockTransaction,
   },
 }));
 
@@ -173,6 +181,69 @@ describe("creaRiga", () => {
     expect(chiamata.data.rimborsoTrasfertaImporto).toBeNull();
 
     aspettatiPercorsiInvalidati("2026-07-01");
+  });
+
+  it("da una proposta del calendario crea la riga e marca l'evento gestito nella stessa transazione (US-004 AC-1, AC-5)", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.create.mockReturnValue("operazione-crea-riga");
+    mockEventoCalendarioGestito.createMany.mockReturnValue("operazione-evento-gestito");
+    mockTransaction.mockResolvedValue([]);
+
+    const result = await creaRiga(
+      creaFormData({
+        clienteId: "cliente-1",
+        offertaId: "offerta-1",
+        ore: "1.5",
+        nota: "Kickoff Acme",
+        data: "2026-07-01",
+        fatturabile: "on",
+        voceRimborsoTrasfertaId: "",
+        eventoCalendarioId: "evento-google-1",
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockRigaAttivita.create.mock.calls[0][0].data).toMatchObject({
+      collaboratoreId: "collab-giulia",
+      ore: 1.5,
+      nota: "Kickoff Acme",
+      fatturabile: true,
+      rimborsoTrasfertaEtichetta: null,
+    });
+    expect(mockEventoCalendarioGestito.createMany).toHaveBeenCalledWith({
+      data: [{ collaboratoreId: "collab-giulia", eventoCalendarioId: "evento-google-1" }],
+      skipDuplicates: true,
+    });
+    expect(mockTransaction).toHaveBeenCalledWith([
+      "operazione-crea-riga",
+      "operazione-evento-gestito",
+    ]);
+    aspettatiPercorsiInvalidati("2026-07-01");
+  });
+
+  it("da una proposta su offerta non abilitata non crea la riga né marca l'evento (US-004 AC-1)", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockAbilitazioneOfferta.findUnique.mockResolvedValue(null);
+
+    const result = await creaRiga(
+      creaFormData({
+        clienteId: "cliente-1",
+        offertaId: "offerta-1",
+        ore: "1",
+        data: "2026-07-01",
+        eventoCalendarioId: "evento-google-1",
+      })
+    );
+
+    expect(result.success).toBe(false);
+    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(mockEventoCalendarioGestito.createMany).not.toHaveBeenCalled();
   });
 
   it("fotografa etichetta e importo della voce selezionata (AC-4)", async () => {

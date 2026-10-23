@@ -9,8 +9,10 @@ import {
 } from "@/lib/actions/righe-attivita";
 import { PulsanteAttesa } from "@/components";
 import { SelettoreDuplicazione } from "./selettore-duplicazione";
+import { SezioneProposteCalendario, useProposteCalendario } from "./proposte-calendario";
 import type {
   RigaAttivitaClient,
+  PropostaCalendarioClient,
   ClienteSelect,
   VoceRimborsoTrasfertaSelezionabile,
 } from "@/lib/attivita-contract";
@@ -34,6 +36,8 @@ interface DettaglioGiornataProps {
   clienti: ClienteSelect[];
   /** Voci di rimborso trasferta selezionabili nel form */
   vociRimborso: VoceRimborsoTrasfertaSelezionabile[];
+  /** Il collaboratore ha collegato il calendario Google: mostra le proposte */
+  calendarioCollegato?: boolean;
   /**
    * Notifica all'isola che una riga della giornata è stata creata, modificata
    * o eliminata, così le cache della scheda possano rileggere il dato.
@@ -168,6 +172,7 @@ export default function DettaglioGiornata({
   righe,
   clienti,
   vociRimborso,
+  calendarioCollegato = false,
   onMutazioneCompletata,
 }: DettaglioGiornataProps) {
   const [isPending, startTransition] = useTransition();
@@ -213,6 +218,12 @@ export default function DettaglioGiornata({
 
   // Modalità modifica
   const [modificaId, setModificaId] = useState<string | null>(null);
+
+  // Proposte dal calendario e proposta aperta nel form ("Modifica" su una
+  // proposta): al salvataggio la riga creata marca l'evento come gestito.
+  const proposteCalendario = useProposteCalendario(data, calendarioCollegato);
+  const rimuoviProposta = proposteCalendario.rimuovi;
+  const [eventoDaProposta, setEventoDaProposta] = useState<string | null>(null);
 
   // Riga per cui è aperto il selettore di duplicazione: `null` = pannello chiuso.
   const [rigaDaDuplicare, setRigaDaDuplicare] =
@@ -406,6 +417,7 @@ export default function DettaglioGiornata({
             return;
           }
         } else {
+          if (eventoDaProposta) fd.append("eventoCalendarioId", eventoDaProposta);
           const result = await creaRiga(fd);
           if (!result.success) {
             setErroreSubmit(result.error ?? "Errore nella creazione");
@@ -418,8 +430,12 @@ export default function DettaglioGiornata({
 
       // Aggiorna i dati server e invalida il mese nella cache del calendario
       invalidaDopoMutazione();
+      if (!modificaId && eventoDaProposta) {
+        rimuoviProposta(eventoDaProposta);
+      }
 
       // Reset form
+      setEventoDaProposta(null);
       setClienteId("");
       setOffertaId("");
       setOre("");
@@ -433,13 +449,14 @@ export default function DettaglioGiornata({
       setClienteCambiatoDuranteModifica(false);
       setClienteRigaInModifica(null);
     },
-    [clienteId, offertaId, ore, nota, fatturabile, selezioneRimborso, data, modificaId, invalidaDopoMutazione]
+    [clienteId, offertaId, ore, nota, fatturabile, selezioneRimborso, data, modificaId, invalidaDopoMutazione, eventoDaProposta, rimuoviProposta]
   );
 
   // ── Modifica riga ──────────────────────────────────────────
 
   const handleModifica = useCallback(
     async (riga: RigaAttivitaClient) => {
+      setEventoDaProposta(null);
       setModificaId(riga.id);
       setClienteId(riga.cliente.id);
       setClienteRigaInModifica({
@@ -513,9 +530,61 @@ export default function DettaglioGiornata({
     [letturaOfferteCliente]
   );
 
+  // ── Modifica di una proposta dal calendario ────────────────
+  //
+  // Apre il form in modalità "nuova riga" precompilato con la proposta: ore,
+  // nota (titolo dell'evento), fatturabile e, se associati, cliente e offerta.
+
+  const handleModificaProposta = useCallback(
+    async (proposta: PropostaCalendarioClient) => {
+      setModificaId(null);
+      setEventoDaProposta(proposta.eventoId);
+      setClienteId(proposta.cliente?.id ?? "");
+      setClienteRigaInModifica(null);
+      setClienteCambiatoDuranteModifica(false);
+      setOffertaId("");
+      setOfferte([]);
+      setOre(proposta.ore.toString().replace(".", ","));
+      setNota(proposta.titolo);
+      setFatturabile(true);
+      setSelezioneRimborso("");
+      setErroreOre(null);
+      setErroreSubmit(null);
+      setErroreOfferte(null);
+
+      document.getElementById("form-riga")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      if (!proposta.cliente) return;
+
+      setOfferteLoading(true);
+      try {
+        const offerteCaricate = await leggiOffertePerCliente(
+          proposta.cliente.id,
+          letturaOfferteCliente
+        );
+        setOfferte(offerteCaricate);
+        if (proposta.offerta && offerteCaricate.some((o) => o.id === proposta.offerta!.id)) {
+          setOffertaId(proposta.offerta.id);
+        }
+      } catch (causa) {
+        if (causa instanceof ErroreSessioneAttivita) return;
+        setErroreOfferte(
+          "Non è stato possibile caricare le offerte di questo cliente."
+        );
+      } finally {
+        setOfferteLoading(false);
+      }
+    },
+    [letturaOfferteCliente]
+  );
+
   // ── Annulla modifica ───────────────────────────────────────
 
   const handleAnnulla = useCallback(() => {
+    setEventoDaProposta(null);
     setModificaId(null);
     setClienteId("");
     setOffertaId("");
@@ -698,6 +767,18 @@ export default function DettaglioGiornata({
         </div>
       </div>
 
+      {/* ── Proposte dal calendario Google ── */}
+      <SezioneProposteCalendario
+        data={data}
+        stato={proposteCalendario.stato}
+        proposte={proposteCalendario.proposte.filter(
+          (p) => p.eventoId !== eventoDaProposta
+        )}
+        onPropostaGestita={rimuoviProposta}
+        onRigaCreata={invalidaDopoMutazione}
+        onModifica={handleModificaProposta}
+      />
+
       {/* ── Lista righe registrate ── */}
       <section className="mb-8">
         <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.07em] text-zinc-400 dark:text-zinc-500">
@@ -879,7 +960,11 @@ export default function DettaglioGiornata({
         className="rounded-[11px] border border-zinc-200 bg-white p-[18px_20px_22px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
       >
         <h2 className="mb-[15px] text-[13px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">
-          {modificaId ? "Modifica riga" : "Nuova riga attività"}
+          {modificaId
+            ? "Modifica riga"
+            : eventoDaProposta
+              ? "Nuova riga dalla proposta del calendario"
+              : "Nuova riga attività"}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-[15px]">
@@ -1129,7 +1214,7 @@ export default function DettaglioGiornata({
               {modificaId ? "Salva modifiche" : "Aggiungi riga"}
             </PulsanteAttesa>
 
-            {modificaId && (
+            {(modificaId || eventoDaProposta) && (
               <button
                 type="button"
                 onClick={handleAnnulla}

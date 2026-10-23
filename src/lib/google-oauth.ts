@@ -4,7 +4,7 @@ import { Google, generateCodeVerifier, generateState } from "arctic";
 
 // ── Configurazione ──────────────────────────────────────────────
 
-function clientId(): string {
+export function clientId(): string {
   const id = process.env.GOOGLE_CLIENT_ID;
   if (!id || id === "tuo-client-id.apps.googleusercontent.com") {
     throw new Error(
@@ -14,7 +14,7 @@ function clientId(): string {
   return id;
 }
 
-function clientSecret(): string {
+export function clientSecret(): string {
   const secret = process.env.GOOGLE_CLIENT_SECRET;
   if (!secret || secret === "tuo-client-secret") {
     throw new Error(
