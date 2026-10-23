@@ -1,0 +1,22 @@
+{
+  "task": "T1",
+  "head_riferimento": "92d2c031ead6c19051368e3784ac7bbd3f5f564c",
+  "exit_code_atteso_nonzero_se_regressioni": 1,
+  "test_unit_baseline_totali": 727,
+  "test_unit_baseline_falliti": 2,
+  "suite_unit_baseline_fallite": 4,
+  "casi_falliti": [
+    {
+      "file": "tests/unit/clienti-dal-actions.test.ts",
+      "test": "Server Actions clienti creaCliente con dati validi crea il record e redirige"
+    },
+    {
+      "file": "tests/unit/clienti-dal-actions.test.ts",
+      "test": "Server Actions clienti aggiornaCliente aggiorna il record esistente e redirige"
+    }
+  ],
+  "file_falliti": [
+    "tests/unit/clienti-dal-actions.test.ts"
+  ],
+  "metodo": "Unit test originali della baseline eseguiti contro codice del riferimento, in clone e Postgres dedicati. Non è un oracolo funzionale e non determina punteggi."
+}

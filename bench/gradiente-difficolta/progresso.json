@@ -1,0 +1,55 @@
+{
+  "protocollo": "ridotto-8",
+  "inizio": 1792741294.6964,
+  "stato": "concluso",
+  "completate": [
+    {
+      "id": "G-T3-COM-sonnet-r2",
+      "task": "T3",
+      "punteggio": 90.4
+    },
+    {
+      "id": "G-T3-DIR-sonnet-r2",
+      "task": "T3",
+      "punteggio": 90.4
+    },
+    {
+      "id": "G-T3-COM-sonnet-r1",
+      "task": "T3",
+      "punteggio": 90.4
+    },
+    {
+      "id": "G-T3-DIR-sonnet-r1",
+      "task": "T3",
+      "punteggio": 90.4
+    },
+    {
+      "id": "G-T1-DIR-sonnet-r2",
+      "task": "T1",
+      "punteggio": 95.5
+    },
+    {
+      "id": "G-T1-DIR-sonnet-r1",
+      "task": "T1",
+      "punteggio": 95.5
+    },
+    {
+      "id": "G-T1-COM-sonnet-r2",
+      "task": "T1",
+      "punteggio": 95.5
+    },
+    {
+      "id": "G-T1-COM-sonnet-r1",
+      "task": "T1",
+      "punteggio": 95.5
+    }
+  ],
+  "prova_corrente": null,
+  "fase": "concluso",
+  "costo_usd": 92.8518091,
+  "residuo_usd": 28.267743699999997,
+  "fine": 1792753427.269558,
+  "fine_report": 1792753808.303457,
+  "letture_browser_sostituite": 2,
+  "audit_ok": true
+}

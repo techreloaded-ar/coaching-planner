@@ -1,0 +1,496 @@
+{
+  "protocollo": "ridotto-8",
+  "completate": 8,
+  "fasi": [
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-060-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 2.1098228
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-060-implement-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.22963770000000003
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-060-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 1.0946531000000002
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-060-plan-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.258973
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-060-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.3505971000000001
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-060-review-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.293652
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-061-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.8176928999999996
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-061-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.7202120000000001
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-061-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.3454214
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-062-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 2.0371949999999996
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-062-implement-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.2523768
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-062-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 1.2019753000000004
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-062-plan-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.2818815
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-062-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.2626714
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-062-review-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.373777
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-063-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.688354
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-063-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.7681982
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-063-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.30360480000000006
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r2",
+      "fase": "01-diretto",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 2.623878400000002
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-060-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 3.9897853000000008
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-060-implement-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.3293916
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-060-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 1.6664963000000002
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-060-plan-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.3594488
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-060-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.29230920000000005
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-060-review-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.3201671
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-061-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 1.0172998000000002
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-061-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.764332
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-061-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.3402357
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-062-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 2.4669101999999996
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-062-implement-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.4176094000000001
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-062-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 1.1817627
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-062-plan-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.31095860000000003
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-062-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.4159758
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-062-review-2",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.30973340000000005
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-063-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.8378642999999999
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-063-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.8145773
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-063-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.3368119
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r1",
+      "fase": "01-diretto",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 2.6065399999999994
+    },
+    {
+      "prova": "G-T1-DIR-sonnet-r2",
+      "fase": "01-diretto",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.617291
+    },
+    {
+      "prova": "G-T1-DIR-sonnet-r1",
+      "fase": "01-diretto",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.6420421
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "fase": "US-060-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.7908773
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "fase": "US-060-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.6688151000000001
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "fase": "US-060-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.2295577
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "fase": "US-061-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.5305956000000001
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "fase": "US-061-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.5766936
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "fase": "US-061-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.3431162
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "fase": "US-060-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.6744814000000001
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "fase": "US-060-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.6623624
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "fase": "US-060-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.45990780000000003
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "fase": "US-061-implement-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.7094782000000001
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "fase": "US-061-plan-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.49470439999999993
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "fase": "US-061-review-1",
+      "ok": true,
+      "problemi": [],
+      "modello": "claude-sonnet-5-5",
+      "costo_usd": 0.37945480000000004
+    }
+  ],
+  "prove": [
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "consegnata": true,
+      "valutata": true,
+      "tecnica": true,
+      "ok": true,
+      "problemi": []
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r2",
+      "consegnata": true,
+      "valutata": true,
+      "tecnica": true,
+      "ok": true,
+      "problemi": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "consegnata": true,
+      "valutata": true,
+      "tecnica": true,
+      "ok": true,
+      "problemi": []
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r1",
+      "consegnata": true,
+      "valutata": true,
+      "tecnica": true,
+      "ok": true,
+      "problemi": []
+    },
+    {
+      "prova": "G-T1-DIR-sonnet-r2",
+      "consegnata": true,
+      "valutata": true,
+      "tecnica": true,
+      "ok": true,
+      "problemi": []
+    },
+    {
+      "prova": "G-T1-DIR-sonnet-r1",
+      "consegnata": true,
+      "valutata": true,
+      "tecnica": true,
+      "ok": true,
+      "problemi": []
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "consegnata": true,
+      "valutata": true,
+      "tecnica": true,
+      "ok": true,
+      "problemi": []
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "consegnata": true,
+      "valutata": true,
+      "tecnica": true,
+      "ok": true,
+      "problemi": []
+    }
+  ],
+  "richieste_con_riferimenti_originale": [],
+  "modelli_sviluppo_risolti": [
+    "claude-sonnet-5-5"
+  ],
+  "costo_usd": 92.8518091,
+  "residuo_usd": 28.267743699999997,
+  "sessioni_costo_non_attestato": {},
+  "ok": true
+}

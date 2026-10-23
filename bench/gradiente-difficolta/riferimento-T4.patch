@@ -1,0 +1,402 @@
+diff --git a/src/domain/consuntivi/index.ts b/src/domain/consuntivi/index.ts
+index e0ae7f9..d080d44 100644
+--- a/src/domain/consuntivi/index.ts
++++ b/src/domain/consuntivi/index.ts
+@@ -160,22 +160,16 @@ export function calcolaRiepilogoMese(
+     aggregati.set(riga.offertaId, voce);
+   }
+ 
+-  const giornateTotali = righe.reduce(
+-    (totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0,
+-  );
+-  const giornateFatturabili = righe.filter((riga) => riga.fatturabile).reduce(
+-    (totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0,
+-  );
++  // Le ore si sommano prima di convertire: nessun arrotondamento per riga,
++  // così le frazioni di giornata restano coerenti con il report fatturazione.
++  const giornateTotali = oreTotali / ORE_PER_GIORNATA;
++  const giornateFatturabili = oreFatturabili / ORE_PER_GIORNATA;
+   const imponibileManodopera = giornateFatturabili * tariffaNumerica;
+ 
+   const perOfferta = Array.from(aggregati.values()).map((voce) => ({
+     ...voce,
+-    giornateTotali: righe.filter((riga) => riga.offertaId === voce.offertaId).reduce(
+-      (totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0,
+-    ),
+-    giornateFatturabili: righe.filter((riga) => riga.offertaId === voce.offertaId && riga.fatturabile).reduce(
+-      (totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0,
+-    ),
++    giornateTotali: voce.oreTotali / ORE_PER_GIORNATA,
++    giornateFatturabili: voce.oreFatturabili / ORE_PER_GIORNATA,
+     rimborsiTrasferta: formattaImporto(voce.rimborsiTrasferta),
+   }));
+ 
+@@ -642,9 +636,9 @@ export function calcolaAvanzamentoOfferte(
+ 
+   const perOfferta: VoceAvanzamentoOfferta[] = offerte.map((offerta) => {
+     const accumulatoreOfferta = accumulatori.get(offerta.offertaId);
+-    const giornateErogate = righe
+-      .filter((riga) => riga.offertaId === offerta.offertaId && riga.fatturabile)
+-      .reduce((totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0);
++    // Somma delle ore fatturabili convertita una sola volta, senza troncare le singole righe.
++    const oreErogate = accumulatoreOfferta?.oreErogateTotali ?? 0;
++    const giornateErogate = oreErogate / ORE_PER_GIORNATA;
+     const giornatePreviste = offerta.giorniPrevisti;
+     const residuo = giornatePreviste - giornateErogate;
+ 
+diff --git a/tests/e2e/giornate-frazionarie-coerenti.spec.ts b/tests/e2e/giornate-frazionarie-coerenti.spec.ts
+new file mode 100644
+index 0000000..aa007b7
+--- /dev/null
++++ b/tests/e2e/giornate-frazionarie-coerenti.spec.ts
+@@ -0,0 +1,145 @@
++import { randomUUID } from "node:crypto";
++
++import type { Locator, Page } from "@playwright/test";
++
++import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
++import { dataNelMese, mesePassatoRiservato } from "./support/date";
++import { test, expect } from "./support/fixtures";
++import { apriPaginaOfferte } from "./support/offerte";
++
++// Regressione: due righe fatturabili da 3 ore nello stesso mese valgono
++// 0,75 giornate (non 0,74). Il riepilogo mensile e l'avanzamento offerte
++// devono mantenere le frazioni come il report fatturazione.
++const meseRiepilogo = mesePassatoRiservato("T4-GIORNATE-FRAZIONARIE");
++const TARIFFA_COLLABORATORE = "400.00";
++const TARIFFA_OFFERTA = "640.00";
++
++function dataDb(meseToken: string, giorno: number): Date {
++	return new Date(`${dataNelMese(meseToken, giorno)}T00:00:00.000Z`);
++}
++
++function testoLetterale(valore: string): RegExp {
++	return new RegExp(valore.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
++}
++
++function indicatore(region: Locator, etichetta: string): Locator {
++	return region.getByText(etichetta, { exact: true }).locator("..");
++}
++
++async function apriRiepilogo(page: Page, meseToken: string): Promise<void> {
++	await page.goto(`/attivita/riepilogo?mese=${meseToken}`);
++	await expect(page.getByTestId("summary-importo-fattura")).toBeVisible();
++}
++
++test.describe("Giornate frazionarie coerenti tra riepilogo, avanzamento e report", () => {
++	test("due righe da 3 ore: il riepilogo mostra 0,75 giornate e 300 EUR, non 0,74 e 296", async ({
++		page,
++		factory,
++	}) => {
++		const seed = randomUUID().slice(0, 8);
++		const ada = await factory.createCollaboratore({
++			nome: "Ada",
++			cognome: `Esempio ${seed}`,
++			tariffaGiornaliera: TARIFFA_COLLABORATORE,
++		});
++		const { cliente, offerta } = await factory.createClienteConOfferta(
++			{ ragioneSociale: `E2E Giornate Frazionarie ${seed}` },
++			{ codice: `FRAZ-${seed}`.toUpperCase(), tariffaGiornaliera: TARIFFA_OFFERTA },
++		);
++
++		for (const giorno of [12, 19]) {
++			await factory.createRigaAttivita({
++				collaboratore: ada,
++				cliente,
++				offerta,
++				data: dataDb(meseRiepilogo, giorno),
++				ore: "3.00",
++				fatturabile: true,
++				nota: `Ada ${seed} giorno ${giorno}`,
++			});
++		}
++
++		await accediComeCollaboratore(page, ada.utente.email);
++		await apriRiepilogo(page, meseRiepilogo);
++
++		await expect(page.getByTestId("summary-ore-fatturabili-value")).toHaveText("6");
++		await expect(page.getByTestId("summary-giornate-fatturabili")).toContainText("0,75");
++		await expect(page.getByTestId("summary-importo-fattura-value")).toHaveText(/300,00/);
++		await expect(page.getByTestId("summary-importo-fattura")).toContainText("0.75 g");
++
++		const rigaOfferta = page
++			.getByTestId("summary-table")
++			.getByRole("row", { name: testoLetterale(offerta.codice) });
++		await expect(rigaOfferta).toContainText("0,75");
++	});
++
++	test("una riga da 8 ore resta una giornata intera (caso senza sintomo)", async ({
++		page,
++		factory,
++	}) => {
++		const seed = randomUUID().slice(0, 8);
++		const marco = await factory.createCollaboratore({
++			nome: "Marco",
++			cognome: `Esempio ${seed}`,
++			tariffaGiornaliera: TARIFFA_COLLABORATORE,
++		});
++		const { cliente, offerta } = await factory.createClienteConOfferta(
++			{ ragioneSociale: `E2E Giornata Intera ${seed}` },
++			{ codice: `INTERA-${seed}`.toUpperCase(), tariffaGiornaliera: TARIFFA_OFFERTA },
++		);
++		await factory.createRigaAttivita({
++			collaboratore: marco,
++			cliente,
++			offerta,
++			data: dataDb(meseRiepilogo, 12),
++			ore: "8.00",
++			fatturabile: true,
++		});
++
++		await accediComeCollaboratore(page, marco.utente.email);
++		await apriRiepilogo(page, meseRiepilogo);
++
++		await expect(page.getByTestId("summary-giornate-fatturabili")).toContainText("1,00");
++		await expect(page.getByTestId("summary-importo-fattura-value")).toHaveText(/400,00/);
++	});
++
++	test("l'avanzamento offerta conta 0,75 giornate erogate per due righe da 3 ore", async ({
++		page,
++		factory,
++	}) => {
++		const seed = randomUUID().slice(0, 8);
++		const codice = `E2E-FRAZ-AVZ-${seed}`.toUpperCase();
++		const ada = await factory.createCollaboratore({
++			nome: "Ada",
++			cognome: `Esempio ${seed}`,
++			tariffaGiornaliera: TARIFFA_COLLABORATORE,
++		});
++		const { cliente, offerta } = await factory.createClienteConOfferta(
++			{ ragioneSociale: `E2E Avanzamento Frazionario ${seed}` },
++			{ codice, giorniPrevisti: 10, tariffaGiornaliera: TARIFFA_OFFERTA },
++		);
++		for (const giorno of [12, 19]) {
++			await factory.createRigaAttivita({
++				collaboratore: ada,
++				cliente,
++				offerta,
++				data: dataDb(meseRiepilogo, giorno),
++				ore: "3.00",
++				fatturabile: true,
++			});
++		}
++
++		await accediAlBackOfficeComeAdmin(page);
++		await apriPaginaOfferte(page);
++
++		const riga = page.getByRole("row", { name: testoLetterale(codice) });
++		await expect(riga).toBeVisible();
++		await riga.getByRole("button", { name: `Dettaglio avanzamento ${codice}` }).click();
++
++		const dettaglio = page.getByRole("region", { name: `Dettaglio avanzamento ${codice}` });
++		await expect(dettaglio).toBeVisible();
++		// 0,75 gg mostrati con un decimale → "0,8"; troncando per riga sarebbe 0,74 → "0,7"
++		await expect(indicatore(dettaglio, "Erogate")).toContainText(/0,8\s*gg/);
++		await expect(dettaglio.getByText("8%", { exact: true })).toBeVisible();
++	});
++});
+diff --git a/tests/unit/giornate-frazionarie-coerenti.test.ts b/tests/unit/giornate-frazionarie-coerenti.test.ts
+new file mode 100644
+index 0000000..9c4ec29
+--- /dev/null
++++ b/tests/unit/giornate-frazionarie-coerenti.test.ts
+@@ -0,0 +1,199 @@
++import { describe, it, expect } from "vitest";
++import {
++  calcolaAvanzamentoOfferte,
++  calcolaReportFatturazioneClienti,
++  calcolaRiepilogoMese,
++  type OffertaAvanzamento,
++  type RigaAvanzamento,
++  type RigaReportFatturazione,
++  type RigaRiepilogo,
++} from "@/domain/consuntivi";
++
++// Regressione: le giornate (8 ore) vanno calcolate sommando prima le ore e
++// convertendo poi, senza troncare le frazioni di ogni singola riga. Riepilogo
++// mensile e avanzamento offerte devono restare coerenti con il report
++// fatturazione per le stesse ore (le tariffe possono differire).
++
++const TARIFFA_COLLABORATORE_ADA = 400;
++const TARIFFA_OFFERTA = 640;
++
++function rigaRiepilogo(modifiche: Partial<RigaRiepilogo> = {}): RigaRiepilogo {
++  return {
++    offertaId: "offerta-ada",
++    offertaCodice: "OFF-ADA",
++    offertaDescrizione: "Consulenza",
++    clienteRagioneSociale: "Cliente Esempio",
++    ore: 3,
++    fatturabile: true,
++    rimborsoTrasfertaImporto: null,
++    ...modifiche,
++  };
++}
++
++function rigaReport(modifiche: Partial<RigaReportFatturazione> = {}): RigaReportFatturazione {
++  return {
++    clienteId: "cliente-esempio",
++    clienteRagioneSociale: "Cliente Esempio",
++    offertaId: "offerta-ada",
++    offertaCodice: "OFF-ADA",
++    offertaDescrizione: "Consulenza",
++    tariffaOffertaGiornaliera: TARIFFA_OFFERTA,
++    collaboratoreId: "ada-esempio",
++    collaboratoreNome: "Ada Esempio",
++    ore: 3,
++    fatturabile: true,
++    rimborsoTrasfertaImporto: null,
++    ...modifiche,
++  };
++}
++
++function rigaAvanzamento(modifiche: Partial<RigaAvanzamento> = {}): RigaAvanzamento {
++  return {
++    offertaId: "offerta-ada",
++    collaboratoreId: "ada-esempio",
++    collaboratoreNome: "Ada Esempio",
++    ore: 3,
++    fatturabile: true,
++    mese: "2026-03",
++    ...modifiche,
++  };
++}
++
++const offertaAda: OffertaAvanzamento = {
++  offertaId: "offerta-ada",
++  offertaCodice: "OFF-ADA",
++  offertaDescrizione: "Consulenza",
++  clienteId: "cliente-esempio",
++  clienteRagioneSociale: "Cliente Esempio",
++  giorniPrevisti: 10,
++};
++
++describe("calcolaRiepilogoMese — frazioni di giornata", () => {
++  it("due righe fatturabili da 3 ore danno 0,75 giornate e 300 EUR a tariffa 400 (non 0,74 e 296)", () => {
++    // Ada Esempio, marzo 2026: righe del 12 e del 19
++    const riepilogo = calcolaRiepilogoMese(
++      [rigaRiepilogo(), rigaRiepilogo()],
++      TARIFFA_COLLABORATORE_ADA,
++    );
++
++    expect(riepilogo.totali.oreFatturabili).toBe(6);
++    expect(riepilogo.totali.giornateFatturabili).toBe(0.75);
++    expect(riepilogo.totali.giornateTotali).toBe(0.75);
++    expect(riepilogo.breakdown.giornateFatturabili).toBe("0.75");
++    expect(riepilogo.breakdown.imponibileManodopera).toBe("300.00");
++    expect(riepilogo.importoFattura).toBe("300.00");
++    expect(riepilogo.perOfferta).toHaveLength(1);
++    expect(riepilogo.perOfferta[0].giornateTotali).toBe(0.75);
++    expect(riepilogo.perOfferta[0].giornateFatturabili).toBe(0.75);
++  });
++
++  it("una riga da 8 ore resta una giornata intera (caso Marco Esempio)", () => {
++    const riepilogo = calcolaRiepilogoMese([rigaRiepilogo({ ore: 8 })], 400);
++
++    expect(riepilogo.totali.giornateFatturabili).toBe(1);
++    expect(riepilogo.breakdown.imponibileManodopera).toBe("400.00");
++  });
++
++  it("mantiene le frazioni per offerta e preserva righe non fatturabili e rimborsi", () => {
++    const riepilogo = calcolaRiepilogoMese(
++      [
++        rigaRiepilogo({ ore: 1 }),
++        rigaRiepilogo({ ore: 1, rimborsoTrasfertaImporto: "25.50" }),
++        rigaRiepilogo({ ore: 1, fatturabile: false }),
++        rigaRiepilogo({ offertaId: "offerta-b", offertaCodice: "OFF-B", ore: 0.5 }),
++        rigaRiepilogo({ offertaId: "offerta-b", offertaCodice: "OFF-B", ore: 0.5 }),
++      ],
++      TARIFFA_COLLABORATORE_ADA,
++    );
++
++    // 1 + 1 + 0,5 + 0,5 = 3 ore fatturabili → 0,375 giornate; 4 ore totali → 0,5
++    expect(riepilogo.totali.oreFatturabili).toBe(3);
++    expect(riepilogo.totali.giornateFatturabili).toBe(0.375);
++    expect(riepilogo.totali.giornateTotali).toBe(0.5);
++    expect(riepilogo.breakdown.imponibileManodopera).toBe("150.00");
++    expect(riepilogo.totali.totaleRimborsi).toBe("25.50");
++    expect(riepilogo.importoFattura).toBe("175.50");
++
++    const offertaA = riepilogo.perOfferta.find((voce) => voce.offertaId === "offerta-ada");
++    const offertaB = riepilogo.perOfferta.find((voce) => voce.offertaId === "offerta-b");
++    expect(offertaA?.giornateTotali).toBe(0.375);
++    expect(offertaA?.giornateFatturabili).toBe(0.25);
++    expect(offertaA?.rimborsiTrasferta).toBe("25.50");
++    expect(offertaB?.giornateTotali).toBe(0.125);
++    expect(offertaB?.giornateFatturabili).toBe(0.125);
++  });
++
++  it("giornate coerenti con il report fatturazione sulle stesse ore, con importi a tariffe diverse", () => {
++    const riepilogo = calcolaRiepilogoMese(
++      [rigaRiepilogo(), rigaRiepilogo()],
++      TARIFFA_COLLABORATORE_ADA,
++    );
++    const report = calcolaReportFatturazioneClienti([rigaReport(), rigaReport()]);
++    const voceOffertaReport = report.perCliente[0].perOfferta[0];
++
++    expect(voceOffertaReport.giornateFatturabili).toBe(riepilogo.totali.giornateFatturabili);
++    expect(voceOffertaReport.imponibile).toBe("480.00");
++    expect(riepilogo.breakdown.imponibileManodopera).toBe("300.00");
++  });
++});
++
++describe("calcolaAvanzamentoOfferte — frazioni di giornata", () => {
++  it("il totale erogato dell'offerta somma le ore prima di convertire (0,75, non 0,74)", () => {
++    const { perOfferta, totali } = calcolaAvanzamentoOfferte(
++      [offertaAda],
++      [rigaAvanzamento(), rigaAvanzamento()],
++    );
++
++    expect(perOfferta[0].giornateErogate).toBe(0.75);
++    expect(perOfferta[0].residuo).toBe(9.25);
++    expect(perOfferta[0].matriceMensile.totaleGiornate).toBe(0.75);
++    expect(perOfferta[0].perCollaboratore[0].giornateErogate).toBe(0.75);
++    expect(totali.giornateErogateTotali).toBe(0.75);
++  });
++
++  it("su più mesi (incluso ottobre, mese del cambio ora) il totale coincide con la somma della matrice", () => {
++    const { perOfferta } = calcolaAvanzamentoOfferte(
++      [offertaAda],
++      [
++        rigaAvanzamento({ mese: "2026-03" }),
++        rigaAvanzamento({ mese: "2026-03" }),
++        rigaAvanzamento({ mese: "2026-10" }),
++        rigaAvanzamento({ mese: "2026-10" }),
++        rigaAvanzamento({ mese: "2026-10", fatturabile: false }),
++      ],
++    );
++
++    const voce = perOfferta[0];
++    expect(voce.matriceMensile.totaliPerMese).toEqual({ "2026-03": 0.75, "2026-10": 0.75 });
++    expect(voce.giornateErogate).toBe(1.5);
++    expect(voce.matriceMensile.totaleGiornate).toBe(1.5);
++  });
++
++  it("l'erogato coincide con le giornate del report fatturazione per le stesse righe", () => {
++    const { perOfferta } = calcolaAvanzamentoOfferte(
++      [offertaAda],
++      [rigaAvanzamento(), rigaAvanzamento(), rigaAvanzamento({ ore: 1, fatturabile: false })],
++    );
++    const report = calcolaReportFatturazioneClienti([
++      rigaReport(),
++      rigaReport(),
++      rigaReport({ ore: 1, fatturabile: false }),
++    ]);
++
++    expect(perOfferta[0].giornateErogate).toBe(
++      report.perCliente[0].perOfferta[0].giornateFatturabili,
++    );
++  });
++
++  it("lo stato dipende dall'erogato non troncato: 4 righe da 5 ore su 2,5 giornate previste è ESAURITA", () => {
++    // Troncando per riga: 4 × 0,62 = 2,48 → IN_ALLERTA con residuo 0,02
++    const { perOfferta } = calcolaAvanzamentoOfferte(
++      [{ ...offertaAda, giorniPrevisti: 2.5 }],
++      Array.from({ length: 4 }, () => rigaAvanzamento({ ore: 5 })),
++    );
++
++    expect(perOfferta[0].giornateErogate).toBe(2.5);
++    expect(perOfferta[0].residuo).toBe(0);
++    expect(perOfferta[0].stato).toBe("ESAURITA");
++  });
++});

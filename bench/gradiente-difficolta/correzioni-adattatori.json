@@ -1,0 +1,34 @@
+[
+  {
+    "prova": "G-T3-COM-sonnet-r2",
+    "tipo": "errore adattatore browser",
+    "criterio_uniforme": "Attendere un esito nuovo nel form o nella lista. Un alert globale già presente non dimostra conclusione del submit; controllare tutti gli adattatori, anche se il test passa. Nessun cambio a server action, assert, fixture, pesi o codice della consegna.",
+    "evidenza": "Trace S3: il race include l’alert globale; SQL letto prima del completamento, snapshot finale mostra 435,00 € — da gennaio 2027.",
+    "prima_sha256": "20624a28a19a1e10af7f03a640461361095cb8914e8252a5d5b503174bebf8b9",
+    "dopo_sha256": "b676cc2dca901a21e1f3125bbf4cf297a9490ac91651bcc5fccd440bb8890a8e",
+    "stato": "corretta",
+    "valutazioni_osservate": 1,
+    "codice_consegna_cambiato": false,
+    "fine": 1792753407.6102662,
+    "ricevuta": "browser-corretto/punteggio-grezzo.json",
+    "punteggio_invalido": 88.8,
+    "punteggio_corretto": 90.4,
+    "archivio_invalido": "browser-invalido/"
+  },
+  {
+    "prova": "G-T3-DIR-sonnet-r1",
+    "tipo": "errore adattatore browser",
+    "criterio_uniforme": "Attendere un esito nuovo nel form o nella lista. Un alert globale già presente non dimostra conclusione del submit; controllare tutti gli adattatori, anche se il test passa. Nessun cambio a server action, assert, fixture, pesi o codice della consegna.",
+    "evidenza": "Trace S1/S2: attendiEsito risolve sul role=alert __next-route-announcer__ già presente (S2 a 2050,7 ms), seguito da assert SQL a 2055 ms prima del redirect. Stesso errore di attesa globale già diagnosticato su COM r2. Il race S3 è limitato alla sezione Tariffe e non intercetta questo alert globale.",
+    "prima_sha256": "443abe7b63fdaafb4dd1e9d5511e9996af97ff1855900b0abcf2154ab691647e",
+    "dopo_sha256": "224e08e0bb0833333dc2dbd80ab8525c0773d8bbcfca4541931518f6d34c8e29",
+    "stato": "corretta",
+    "valutazioni_osservate": 1,
+    "codice_consegna_cambiato": false,
+    "fine": 1792753427.269539,
+    "ricevuta": "browser-corretto/punteggio-grezzo.json",
+    "punteggio_invalido": 87.2,
+    "punteggio_corretto": 90.4,
+    "archivio_invalido": "browser-invalido/"
+  }
+]

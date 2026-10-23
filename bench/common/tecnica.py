@@ -24,8 +24,8 @@ sys.path[0] = str(BENCH)  # evita che bench/common ombreggi il modulo stdlib htm
 REPO = BENCH.parent
 RUNS = Path(os.environ.get("BENCH_RUNS", REPO.parent / "coaching-planner-bench-runs"))
 STRUMENTI = BENCH / "strumenti" / "node_modules"
-CONTROLLI = json.loads((BENCH / "common" / "controlli.json").read_text())
-CODICI_PERCORSI = [c["codice"] for c in CONTROLLI["controlli"] if c["livello"] != "gate" and not c["codice"].startswith("U")]
+CONTROLLI = json.loads(Path(os.environ.get("BENCH_CONTROLLI", BENCH / "common" / "controlli.json")).read_text())
+CODICI_PERCORSI = [c["codice"] for c in CONTROLLI["controlli"] if c["livello"] not in ("gate", "giudice") and not c["codice"].startswith("U")]
 ESCLUSI = ("docs/wiki/", ".archetipo/", "package-lock.json")
 SOGLIA_COMPLESSITA, SOGLIA_COMPLESSITA_MASSIMA = 10, 20
 MODELLO_GIUDICE, EFFORT_GIUDICE, BUDGET_GIUDICE_USD = "opus", "medium", 5
@@ -240,6 +240,7 @@ def convenzioni_script(repo, root, righe, valutazione):
         # test.setTimeout(...) di Playwright è un limite di tempo, non un'attesa: contano waitForTimeout e setTimeout non preceduti da un punto.
         "hard_wait": {"applicabile": bool(e2e), "violazioni": re.findall(r"((?:waitForTimeout|(?<![.\w])setTimeout)\([^)]*\))", testo)[:5]},
         "migrazione_senza_drift": bool(gate.get("P1", {}).get("ok")) and bool(gate.get("P2", {}).get("ok")),
+        "migrazione_applicabile": gate.get("migrazione_applicabile", True),
         "test_e2e_aggiunti": e2e,
         "test_unit_aggiunti": [r["path"] for r in righe if r["categoria"] == "test_unit" and r["ins"] > 0],
     }
@@ -270,7 +271,7 @@ def repo_di(prova):
         extra = git(repo, "diff", "--name-only", CONSEGNA, "HEAD").split()
         if any(f.startswith(("src/", "tests/", "prisma/")) for f in extra):
             raise SystemExit(f"{prova}: la copia valutata differisce dalla consegna in {extra}")
-    root = git(repo, "rev-list", "--max-parents=0", "HEAD").strip()
+    root = info.get("baseline_tecnica") or git(repo, "rev-list", "--max-parents=0", "HEAD").strip()
     return cartella, info, repo, root
 
 
@@ -291,6 +292,7 @@ def misura(prova, con_mutanti=True):
         "tree_hash": info["tree_hash"], "root": root, "commit_consegna": git(repo, "rev-parse", CONSEGNA).strip(),
         "righe_per_categoria": per_categoria, "file": righe,
         "righe_nette_src": sum(r["ins"] - r["del"] for r in righe if e_src_applicativo(r["path"])),
+        "righe_modificate_src": sum(r["ins"] + r["del"] for r in righe if e_src_applicativo(r["path"])),
         "righe_aggiunte_src": sum(r["ins"] for r in righe if e_src_applicativo(r["path"])),
         "righe_aggiunte_totali": sum(r["ins"] for r in righe if not r["path"].startswith(ESCLUSI)),
         "file_src": files_src,
@@ -342,7 +344,7 @@ SCHEMA_GIUDICE = {
 
 def prompt_giudice(prova, diff):
     controlli = "\n".join(f"- {c['codice']}: {c['verifica']}" for c in CONTROLLI["controlli"] if c["codice"] in CODICI_PERCORSI)
-    return f"""Sei un revisore di codice che applica una checklist chiusa. Leggi il diff della consegna «{prova}» di Coaching Planner (Next.js, Prisma, Vitest, Playwright), rispetto alla baseline del repository. La funzionalità richiesta è la chiusura del mese consuntivato: l'amministratore chiude un mese, le righe di attività di quel mese non sono più modificabili, il mese può essere riaperto.
+    return f"""Sei un revisore di codice che applica una checklist chiusa. Leggi il diff della consegna «{prova}» di Coaching Planner (Next.js, Prisma, Vitest, Playwright), rispetto alla baseline del repository. {CONTROLLI.get('funzionalita', "La funzionalità richiesta è la chiusura del mese consuntivato: l'amministratore chiude un mese, le righe di attività di quel mese non sono più modificabili, il mese può essere riaperto.")}
 
 Per contenere la lettura, il diff esclude i componenti React (file .tsx) e le migrazioni SQL: contiene i file .ts di src/ (server action, dominio, lib), i test in tests/ e prisma/schema.prisma.
 
@@ -353,7 +355,7 @@ Rispondi SOLO con il JSON richiesto. Non proporre modifiche, non valutare la qua
 
 2. FACTORY E FIXTURES. Se il diff aggiunge test e2e: usano le factory e le fixtures di tests/e2e/support (fixtures.ts, date.ts, reserved-resources.ts) per creare collaboratori, clienti, offerte, mesi riservati, invece di mutare le entità del seed (Giulia Conti, TechSolutions, DataFlow, scaglioni seed)? Rispondi «si» se tutti i test e2e aggiunti lo fanno, «no» se almeno uno muta entità seed o inventa dati fissi senza factory, «non applicabile» se il diff non aggiunge test e2e. Cita il file e la riga come evidenza.
 
-3. BLOCCO DI DOMINIO CONDIVISO. Il blocco del mese chiuso è realizzato in una funzione condivisa (una sola, o una famiglia in un solo modulo) chiamata da ogni server action che scrive righe di attività (creazione, modifica, eliminazione, rimozione rimborso, duplicazione, spostamento) e dall'area attività dell'amministratore? Rispondi «si» solo se tutte le scritture passano dalla stessa funzione; «no» se il controllo è ripetuto inline in più punti o manca in qualche percorso di scrittura visibile nel diff. Cita la funzione e i chiamanti come evidenza.
+3. BLOCCO DI DOMINIO CONDIVISO. {CONTROLLI.get('invariante_condivisa', "Il blocco del mese chiuso è realizzato in una funzione condivisa (una sola, o una famiglia in un solo modulo) chiamata da ogni server action che scrive righe di attività (creazione, modifica, eliminazione, rimozione rimborso, duplicazione, spostamento) e dall'area attività dell'amministratore?")} Rispondi «si» solo se tutte le scritture passano dalla stessa funzione; «no» se il controllo è ripetuto inline in più punti o manca in qualche percorso di scrittura visibile nel diff. Cita la funzione e i chiamanti come evidenza.
 
 Diff:
 ```diff
@@ -416,9 +418,19 @@ def letture_giudice(cartella):
     return [leggi(cartella / "tecnica" / f"giudice-{n}.json", {}).get("risposta") for n in (1, 2)]
 
 
-def punteggio(d, mediana_coorte, giudizi):
+def righe_modificate_src(dati):
+    return dati["righe_modificate_src"] if "righe_modificate_src" in dati else sum(r["ins"] + r["del"] for r in dati["file"] if e_src_applicativo(r["path"]))
+
+
+def punteggio(d, mediana_coorte, giudizi, mediana_coorte_modificate=None):
     note = []
-    dimensione = lineare(d["righe_nette_src"], mediana_coorte, 2 * mediana_coorte, 20) if mediana_coorte else 20
+    metrica_dimensione = "righe_nette_src"
+    valore_dimensione, mediana_dimensione = d["righe_nette_src"], mediana_coorte
+    if mediana_coorte <= 0 and mediana_coorte_modificate is not None:
+        metrica_dimensione = "righe_modificate_src"
+        valore_dimensione, mediana_dimensione = righe_modificate_src(d), mediana_coorte_modificate
+        note.append("Dimensione su aggiunte+eliminate: mediana netta della coorte non positiva (criterio comune).")
+    dimensione = lineare(valore_dimensione, mediana_dimensione, 2 * mediana_dimensione, 20) if mediana_dimensione else 20
     c = d["complessita"]
     n_funzioni = len(c.get("funzioni", []))
     quota_oltre = c.get("oltre_soglia", 0) / n_funzioni if n_funzioni else 0
@@ -439,7 +451,7 @@ def punteggio(d, mediana_coorte, giudizi):
     voci = {"lint_e_guardrail": (True, 1.0 if cs["lint_e_guardrail"] else 0.0),
             "select_option_index": (cs["select_option_index"]["applicabile"], 0.0 if cs["select_option_index"]["violazioni"] else 1.0),
             "hard_wait": (cs["hard_wait"]["applicabile"], 0.0 if cs["hard_wait"]["violazioni"] else 1.0),
-            "migrazione_senza_drift": (True, 1.0 if cs["migrazione_senza_drift"] else 0.0)}
+            "migrazione_senza_drift": (cs.get("migrazione_applicabile", True), 1.0 if cs["migrazione_senza_drift"] else 0.0)}
     for voce in ("factory_fixtures", "blocco_condiviso"):
         valori = [g[voce]["valore"] for g in validi]
         if not valori or all(v == "non applicabile" for v in valori):
@@ -457,7 +469,7 @@ def punteggio(d, mediana_coorte, giudizi):
     aree = {"dimensione": round(dimensione, 2), "complessita": round(complessita_punti, 2), "duplicazione": round(duplicazione_punti, 2),
             "mutation": round(mutation_punti, 2), "copertura_percorsi": round(5 * copertura_quota, 2),
             "convenzioni": round(convenzioni_punti, 2), "tipi": round(tipi_punti, 2)}
-    return {"aree": aree, "totale": round(sum(aree.values()), 1), "mediana_coorte_righe": mediana_coorte, "quota_oltre_soglia": round(quota_oltre, 3),
+    return {"aree": aree, "totale": round(sum(aree.values()), 1), "mediana_coorte_righe": mediana_coorte, "dimensione_metrica": metrica_dimensione, "dimensione_valore": valore_dimensione, "dimensione_mediana_coorte": mediana_dimensione, "quota_oltre_soglia": round(quota_oltre, 3),
             "copertura_quota": round(copertura_quota, 3), "copertura_per_lettura": quote, "convenzioni_voci": {k: {"applicabile": a, "punti": p} for k, (a, p) in voci.items()},
             "tipi_voci_violate": violate, "note": note}
 
@@ -471,10 +483,11 @@ def punteggi():
     for d in consegne.values():
         coorti.setdefault(d["discovery"], []).append(d["righe_nette_src"])
     mediane = {k: statistics.median(v) for k, v in coorti.items()}
+    mediane_modificate = {coorte: statistics.median(righe_modificate_src(d) for d in consegne.values() if d["discovery"] == coorte) for coorte in coorti}
     riepilogo = []
     for prova, d in consegne.items():
         giudizi = letture_giudice(RUNS / prova)
-        d["punteggio"] = punteggio(d, mediane[d["discovery"]], giudizi)
+        d["punteggio"] = punteggio(d, mediane[d["discovery"]], giudizi, mediane_modificate[d["discovery"]])
         d["giudizi"] = giudizi
         scrivi(RUNS / prova / "tecnica.json", d)
         riepilogo.append({k: d[k] for k in ("prova", "model", "config", "discovery", "codes", "righe_nette_src", "righe_aggiunte_totali", "righe_per_categoria",

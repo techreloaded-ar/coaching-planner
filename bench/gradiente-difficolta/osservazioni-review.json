@@ -1,0 +1,145 @@
+[
+  {
+    "prova": "G-T3-COM-sonnet-r2",
+    "task": "T3",
+    "fase": "US-060-review-1",
+    "problema": "Tre WIKI_CORE_PAGE_UNANCHORED preesistenti nella baseline bloccano acceptance",
+    "evidenza": "diagnosi-wiki-baseline.json, validazione bootstrap su baseline T3",
+    "tipo": "Wiki",
+    "verifica_oracolo": "Il gate di acceptance Wiki è esterno ai controlli funzionali; nessuna conferma funzionale attribuita a questo rework.",
+    "file_rework": [
+      ".archetipo/plans/US-060-plan.yaml",
+      ".archetipo/specs/US-060.yaml",
+      "docs/wiki/architecture/context-map.md",
+      "docs/wiki/index.md",
+      "docs/wiki/log.md",
+      "docs/wiki/operations/development.md",
+      "docs/wiki/overview.md"
+    ],
+    "codice_applicativo_cambiato": false,
+    "esito_successiva_review": "LEFT_IN_REVIEW: engineering/code-map"
+  },
+  {
+    "prova": "G-T3-COM-sonnet-r2",
+    "task": "T3",
+    "fase": "US-062-review-1",
+    "problema": "engineering/code-map omette TariffaOfferta tra i dati posseduti da Offerte",
+    "evidenza": "Result della review valida e diff del successivo implement-2; la review valida dichiara inoltre di non avere svolto il CI impact assessment statico richiesto da AGENTS.md.",
+    "tipo": "Wiki",
+    "file_rework": [
+      ".archetipo/plans/US-062-plan.yaml",
+      ".archetipo/specs/US-062.yaml",
+      "docs/wiki/engineering/code-map.md",
+      "docs/wiki/index.md",
+      "docs/wiki/log.md"
+    ],
+    "codice_applicativo_cambiato": false,
+    "esito_successiva_review": "ACCEPTED",
+    "verifica_oracolo": "Non è un controllo funzionale: nessun merito funzionale attribuito alla review."
+  },
+  {
+    "prova": "G-T3-COM-sonnet-r2",
+    "task": "T3",
+    "fase": "US-062-review-2",
+    "problema": "Accettazione senza lettura di .github/workflows/ci.yml nel trace della review; la prima review valida ammetteva di non avere fatto il CI impact assessment.",
+    "evidenza": "Ispezione dei tool call delle sei review valide: nessun riferimento al file in US-060-review-1/2 e US-062-review-1/2; lettura parziale in US-061 e dei run/name in US-063. Il gate CI esterno successivo passa, ma non sostituisce il metodo richiesto alla review.",
+    "tipo": "Processo review",
+    "verifica_oracolo": "Il gate CI esterno passa; non dimostra che la review abbia effettuato la valutazione statica richiesta."
+  },
+  {
+    "prova": "G-T3-COM-sonnet-r1",
+    "task": "T3",
+    "fase": "US-060-review-1",
+    "tipo": "Wiki e demo",
+    "problema": "Tre WIKI_CORE_PAGE_UNANCHORED della baseline e assenza del test demo__ richiesto per una storia filmabile",
+    "evidenza": "Result review-1 e diff di implement-2; la review riconosce tutti gli AC soddisfatti prima del rework.",
+    "file_rework": [
+      ".archetipo/plans/US-060-plan.yaml",
+      ".archetipo/specs/US-060.yaml",
+      "docs/wiki/architecture/context-map.md",
+      "docs/wiki/operations/development.md",
+      "docs/wiki/overview.md",
+      "tests/e2e/demo__tariffa-collaboratore-con-decorrenza.spec.ts"
+    ],
+    "codice_applicativo_cambiato": false,
+    "test_cambiati": true,
+    "verifica_oracolo": "Il gate esterno passa; fail funzionali soltanto C1/C2/U2 legati alle decorrenze mensili. Nessun merito funzionale attribuito al rework Wiki/demo.",
+    "esito_successiva_review": "ACCEPTED"
+  },
+  {
+    "prova": "G-T3-COM-sonnet-r1",
+    "task": "T3",
+    "fase": "US-062-review-1",
+    "tipo": "Wiki",
+    "problema": "engineering/code-map non descrive TariffaOfferta e gli usi del modulo tariffe in Offerte e Fatturazione clienti",
+    "evidenza": "Result review-1 e diff di implement-2; AC soddisfatti, 804 unit e 24 e2e passati prima del rework.",
+    "file_rework": [
+      ".archetipo/plans/US-062-plan.yaml",
+      ".archetipo/specs/US-062.yaml",
+      "docs/wiki/engineering/code-map.md",
+      "docs/wiki/index.md",
+      "docs/wiki/log.md"
+    ],
+    "codice_applicativo_cambiato": false,
+    "test_cambiati": false,
+    "verifica_oracolo": "Correzione documentale: nessun merito funzionale attribuito a questo rework.",
+    "esito_successiva_review": "ACCEPTED"
+  },
+  {
+    "prova": "G-T1-COM-sonnet-r2",
+    "task": "T1",
+    "fase": "US-060-review-1",
+    "tipo": "Wiki e processo",
+    "problema": "Tre errori Wiki bootstrap preesistenti lasciano US-060 in REVIEW senza rework; comportamento diverso dal rework richiesto dai revisori T3.",
+    "evidenza": "Il result identifica i medesimi tre WIKI_CORE_PAGE_UNANCHORED sul commit di planning e li considera fuori perimetro. Non esegue e2e né demo, e non transiziona lo stato. Tutti gli AC sono giudicati corretti per lettura del codice.",
+    "codice_applicativo_cambiato": false,
+    "verifica_oracolo": "La valutazione esterna della consegna resta separata: il blocco Wiki non prova un difetto funzionale."
+  },
+  {
+    "prova": "G-T1-COM-sonnet-r2",
+    "task": "T1",
+    "fase": "US-061-review-1",
+    "tipo": "Processo review",
+    "problema": "US-061 accettata senza CI impact assessment né demo; riconferma Wiki tramite solo grep, dichiarata incompleta dallo stesso worker.",
+    "evidenza": "Il result ammette di non avere letto .github/workflows/ci.yml, non avere effettuato la valutazione statica richiesta da AGENTS.md e non avere letto le pagine affected per intero. Considera non bloccanti i tre errori Wiki della baseline, mentre la review precedente li aveva considerati bloccanti. Dopo approve/reconfirm la validazione passa.",
+    "codice_applicativo_cambiato": false,
+    "verifica_oracolo": "Il gate esterno successivo è distinto: un suo pass non sana le omissioni del processo di acceptance."
+  },
+  {
+    "prova": "G-T1-COM-sonnet-r1",
+    "task": "T1",
+    "fase": "US-060-review-1",
+    "tipo": "Review e Wiki",
+    "problema": "Nessun difetto funzionale rilevato; tre errori Wiki bootstrap preesistenti considerati non bloccanti.",
+    "evidenza": "AC-1…12 verificati, 761 unit e 11 e2e dichiarati passati, demo registrata, CI impact assessment would pass esplicitato per passo. Approve/reconfirm portano la validazione Wiki a ok senza rework. A parità di errori iniziali, la replica T1 r2 aveva invece lasciato US-060 in REVIEW.",
+    "codice_applicativo_cambiato": false,
+    "verifica_oracolo": "La valutazione esterna finale resta separata; nessun difetto applicativo corretto tramite rework di questa review."
+  },
+  {
+    "prova": "G-T1-COM-sonnet-r1",
+    "task": "T1",
+    "fase": "US-061-review-1",
+    "tipo": "Demo durante acceptance",
+    "problema": "Nessun difetto funzionale rilevato; demo mancante aggiunta ed eseguita durante la review.",
+    "evidenza": "Il result dichiara AC-1…6 soddisfatti, 27 unit e 8 e2e passati. La review crea e committa demo__referente-nella-scheda-report-fatturazione.spec.ts, registra il video e approva/riconferma la Wiki. Non richiede un ciclo di rework.",
+    "codice_applicativo_cambiato": false,
+    "file_review": [
+      ".archetipo/backlog.yaml",
+      ".archetipo/specs/US-061.yaml",
+      "docs/wiki/architecture/context-map.md",
+      "docs/wiki/decisions/calcoli-puri.md",
+      "docs/wiki/decisions/giornata-otto-ore.md",
+      "docs/wiki/decisions/importi-decimali.md",
+      "docs/wiki/decisions/tariffa-unica-collaboratore.md",
+      "docs/wiki/domains/attivita.md",
+      "docs/wiki/domains/fatturazione-clienti.md",
+      "docs/wiki/domains/offerte.md",
+      "docs/wiki/engineering/code-map.md",
+      "docs/wiki/index.md",
+      "docs/wiki/log.md",
+      "docs/wiki/overview.md",
+      "tests/e2e/demo__referente-nella-scheda-report-fatturazione.spec.ts"
+    ],
+    "verifica_oracolo": "Il gate esterno e i controlli finali restano separati; nessun merito funzionale attribuito alla sola aggiunta del demo."
+  }
+]

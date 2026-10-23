@@ -50,7 +50,7 @@ def tabella_report():
     for r in sorted(MANIFEST["report"], key=ordine):
         link = f'<a href="{e(r["path"])}">{e(r["titolo"])}</a>' if r.get("path") and r["stato"] == "fatto" else e(r["titolo"])
         nota = f'<small>{e(r["note"])}</small>' if r.get("note") else ""
-        budget = f'<small>budget ≤ {r["budget_usd"]} USD</small>' if r.get("budget_usd") else ""
+        budget = f'<small>budget ≤ {usd(r["budget_usd"])} USD</small>' if r.get("budget_usd") else ""
         righe.append(
             f'<tr><td class="num">{e(r["numero"])}</td><td>{link}{nota}</td><td>{e(r["domanda"])}</td><td>{e(r["disegno"])}</td>'
             f'<td class="{classe_stato(r["stato"])}"><strong>{e(r["stato"])}</strong></td>'
@@ -132,6 +132,16 @@ def criteri():
         'il report 4 riporta accanto, senza farlo entrare nel punteggio, lo score sui soli file <code>.ts</code>. Proposta per i report successivi: tenere il criterio così com\'è e '
         'riportare sempre anche lo score sui soli <code>.ts</code>. L\'hard wait è letto alla lettera (nessun <code>waitForTimeout</code>), più severo del guardrail del repository.</p>'
 
+        '<p class="muted"><strong>Proposta registrata e applicata, 2026-10-22 (report 3).</strong> Il giudice tecnico riceve descrizione e controlli del compito corrente; '
+        'la coorte resta l’insieme delle consegne delle stesse storie. Il diff parte dalla baseline effettiva del compito (in T4 include già il difetto e le rimozioni). '
+        'Migrazione e blocco di dominio entrano nella checklist solo quando applicabili: una lettura senza modifica di schema non richiede una migrazione nuova, '
+        'un difetto di calcolo senza transizioni di stato non richiede un blocco delle scritture. I controlli affidati a giudici sul riepilogo finale non sono percorsi eseguibili '
+        'da coprire con unit o e2e. Pesi e formule non cambiano; i valori predefiniti conservano il comportamento dei report precedenti. '
+        'Emendamento preregistrato il 23 ottobre, prima delle prove: quando la mediana delle righe nette della coorte è non positiva, il riferimento al suo doppio non definisce un intervallo ordinato. '
+        'Solo in quel caso la dimensione usa le righe aggiunte più eliminate in src/, rispetto alla mediana della stessa misura nella coorte; peso 20 e formula lineare invariati. '
+        'La regola vale per qualsiasi coorte, anche storica; le 40 consegne già archiviate hanno coorti con mediana netta positiva e mantengono gli stessi punteggi. '
+        'Il report dichiara per ogni compito quale misura è stata usata.</p>'
+
         '<h3 id="criterio-scoperta">2.3 Qualità della scoperta (fase spec, 100 punti)</h3><ul>'
         '<li><strong>Profilo nascosto</strong> del committente con 11 temi: decisione precedente RF-15, chi, granularità, quali mesi, effetto su tutte le scritture, '
         'riapertura con motivazione, storico, visibilità, concorrenza, schede aperte, dati invariati. Il committente simulato risponde solo a ciò che gli viene chiesto e, '
@@ -202,10 +212,12 @@ def ipotesi():
             continue
         esito = (f'<p><strong>Esito:</strong> {e(ip["esito"])}</p>' if ip.get("esito")
                  else '<p class="muted">Esito: non ancora disponibile (report ' + e(r["stato"]) + ').</p>')
+        emendamento = (f'<p class="callout"><strong>Emendamento autorizzato prima delle prove.</strong> {e(ip["disegno_ridotto"])} '
+                       f'{e(ip.get("metrica_ridotta", ""))}</p>' if ip.get('disegno_ridotto') else '')
         blocchi.append(
             f'<h3>{e(ip["id"])} · Report {e(r["numero"])} · {e(r["titolo"])}</h3>'
             f'<p><strong>Ipotesi.</strong> {e(ip["testo"])}</p><p><strong>Metrica di decisione.</strong> {e(ip["metrica"])}</p>'
-            f'<p><strong>Soglia.</strong> {e(ip["soglia"])}</p>{esito}')
+            f'<p><strong>Soglia.</strong> {e(ip["soglia"])}</p>{emendamento}{esito}')
     return ('<p class="callout">Scritte prima dell\'esecuzione. Quando il report è fatto, accanto alla soglia compare l\'esito, nella stessa forma.</p>'
             + "".join(blocchi))
 
@@ -218,6 +230,8 @@ def registro():
         f'<strong>{usd(totale)} USD</strong>. Prove in <code>{e(MANIFEST["prove"])}</code>.</p>'
         '<ul><li>Correzioni al banco, prove scartate e anomalie: <a href="wiki-benchmark/CORREZIONI.md">bench/wiki-benchmark/CORREZIONI.md</a>.</li>'
         '<li>Registro 2026-10-22, report 1: SD pooled 0,775; soglia «entro il rumore» 1,550 punti; MDE 1,569. Range delle tre letture zero su venti consegne; differenza fra adattatori zero sulle quattro prove designate dopo audit. Le serie con errori di adattamento sono archiviate ed escluse. Report 4 rigenerato su quaranta consegne, narrative e H4 aggiornate; giudici nuovi conteggiati solo nel report 1. Verifica browser file:// bloccata dalla policy; verifica visiva ancora da completare.</li>'
+        '<li>Registro 2026-10-22, report 3: H3 preregistrata; baseline main 157ea55367ec940b464d9ad2c64789b73535b463; quattro compiti, variante spec baseline V0 (emendamento 23 ottobre prima dei chiarimenti: V1 era adottabile, non adottata), SD pooled 0,774919 e soglia 1,549839 dal solo compito chiusura mese. Preparazione entro 120 USD e report entro 750 USD; le 40 prove richiedono conferma umana dopo gli indicatori misurati. Artefatti e costi in bench/gradiente-difficolta/.</li>'
+        '<li>Emendamento 2026-10-23, report 3, approvato prima delle prove: 8 prove Sonnet su T1/T3, 2 repliche diretto/completo; una lettura funzionale, metriche tecniche automatiche senza score /100, un rework. Tetto aggiuntivo 80 USD, totale 121,1195528 USD. Disegno originale conservato; H3 integrale non verificabile con il set ridotto.</li>'
         '<li>Rigenerare questa pagina: <code>python3 bench/index.py</code> (legge <code>bench/manifest.json</code> e <code>bench/common/controlli.json</code>).</li>'
         '<li>Vincoli validi per tutti i report: sessioni agente isolate (<code>claude -p</code> nel clone, <code>--setting-sources project,local</code>, budget per fase 25 USD Sonnet e 60 USD Opus, '
         'scarto delle fasi con skill o plugin estranei); precondizioni verificate dal banco e registrate in <code>metrics.json</code> (presenza di <code>docs/wiki/</code>, skill <code>archetipo-wiki</code>, '
@@ -229,8 +243,8 @@ def genera():
     corpo = (
         f'<header><div class="tag">Coaching Planner · Banco di prova ARchetipo · {len(MANIFEST["report"])} report</div>'
         f'<h1>{e(MANIFEST["titolo"])}</h1><p>{e(MANIFEST["domanda_guida"])}</p>'
-        '<p>Richiesta iniziale di tutte le prove: «Quando ho mandato le fatture di un mese vorrei poterlo chiudere, così nessuno mi cambia più le ore sotto i piedi.» '
-        'Modelli: Sonnet e Opus, effort medium.</p></header>'
+        '<p>I report sulla chiusura del mese partono da: «Quando ho mandato le fatture di un mese vorrei poterlo chiudere, così nessuno mi cambia più le ore sotto i piedi.» Il report 3 esegue il set ridotto T1/T3 con Sonnet, dopo aver preparato quattro compiti di difficoltà diversa. '
+        'Modelli nei diversi studi: Sonnet e Opus, effort medium.</p></header>'
         + h.sezione("Cosa stiamo verificando", cosa_verifichiamo())
         + h.sezione("Report", tabella_report(), "report")
         + h.sezione("Criteri di valutazione comuni", criteri(), "criteri")
@@ -238,7 +252,9 @@ def genera():
         + h.sezione("Ipotesi pre-registrate", ipotesi(), "ipotesi")
         + h.sezione("Stato e registro", registro(), "registro"))
     footer = f'Generato da bench/index.py da bench/manifest.json · aggiornato il {e(MANIFEST["aggiornato"])}'
-    (BENCH / "index.html").write_text(h.pagina(MANIFEST["titolo"], corpo, footer))
+    documento = h.pagina(MANIFEST["titolo"], corpo, footer)
+    documento = documento.replace('</head>', '<style>p,li,h3,footer,code{overflow-wrap:anywhere}</style></head>')
+    (BENCH / "index.html").write_text(documento)
     print(BENCH / "index.html")
 
 

@@ -1,0 +1,2981 @@
+{
+  "main": {
+    "baseline": "a1e14cc7e468679d55bdd0e9a37c049c5c310b14",
+    "file_test": {
+      "tests/unit/abilitazioni-dal-actions.test.ts": [
+        {
+          "file": "src/lib/abilitazioni.ts",
+          "funzione": "elencaOfferteAbilitate",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/abilitazioni.ts",
+          "funzione": "elencaOfferteAbilitabili",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-actions.ts",
+          "funzione": "abilitaCollaboratoreSuOfferte",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-actions.ts",
+          "funzione": "revocaAbilitazioneCollaboratore",
+          "chiamate": 2
+        }
+      ],
+      "tests/unit/attivita-calendario-route.test.ts": [
+        {
+          "file": "src/app/api/attivita/calendario/route.ts",
+          "funzione": "GET",
+          "chiamate": 14
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "ErroreAutorizzazione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/db.ts",
+          "funzione": "createPrismaClient",
+          "chiamate": 1
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseTokenMese",
+          "chiamate": 12
+        },
+        {
+          "file": "src/lib/risposta-dati-privati.ts",
+          "funzione": "rispostaDatiPrivati",
+          "chiamate": 14
+        }
+      ],
+      "tests/unit/attivita-giornata-routes.test.ts": [
+        {
+          "file": "src/app/api/attivita/giornata/route.ts",
+          "funzione": "GET",
+          "chiamate": 16
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "ErroreAutorizzazione",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/db.ts",
+          "funzione": "createPrismaClient",
+          "chiamate": 1
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseDataGiorno",
+          "chiamate": 14
+        },
+        {
+          "file": "src/lib/risposta-dati-privati.ts",
+          "funzione": "rispostaDatiPrivati",
+          "chiamate": 36
+        },
+        {
+          "file": "src/app/api/attivita/contesto-inserimento/route.ts",
+          "funzione": "GET",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/api/attivita/offerte-cliente/route.ts",
+          "funzione": "GET",
+          "chiamate": 13
+        }
+      ],
+      "tests/unit/attivita.test.ts": [
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "formattaDataISO",
+          "chiamate": 33
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "aggregaSintesiPerGiorno",
+          "chiamate": 22
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "intervalloMese",
+          "chiamate": 8
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "attivitaDelMese",
+          "chiamate": 16
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "datiCalendarioMesePerCollaboratoreAutorizzato",
+          "chiamate": 9
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "righeDelGiornoPerCollaboratoreAutorizzato",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "serializzaRigaAttivita",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "contestoInserimentoPerCollaboratoreAutorizzato",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "clientiAttiviPerSelezione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "leggiClientiAttiviPerSelezione",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "offerteAbilitatePerCliente",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "leggiVociRimborsoTrasfertaPerSelezione",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "ErroreAutorizzazione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseTokenMese",
+          "chiamate": 25
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseDataGiorno",
+          "chiamate": 7
+        }
+      ],
+      "tests/unit/auth-helpers.test.ts": [],
+      "tests/unit/avanzamento-offerte.test.ts": [
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "calcolaAvanzamentoOfferte",
+          "chiamate": 23
+        }
+      ],
+      "tests/unit/backfill-abilitazioni-iniziali.test.ts": [
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/bootstrap-amministratore-iniziale.test.ts": [
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/cache-dati-scheda.test.ts": [
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "GuardiaIdentitaScheda",
+          "chiamate": 14
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "registra",
+          "chiamate": 28
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "identitaRegistrata",
+          "chiamate": 9
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "reset",
+          "chiamate": 18
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "verifica",
+          "chiamate": 99
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "ErroreIdentitaSchedaCambiata",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "CacheDatiScheda",
+          "chiamate": 28
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "identitaInCache",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "chiaviInCache",
+          "chiamate": 13
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "caricamentiInVolo",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "seed",
+          "chiamate": 24
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "invalidate",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "clear",
+          "chiamate": 18
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "read",
+          "chiamate": 162
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "load",
+          "chiamate": 81
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "revalida",
+          "chiamate": 78
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "scrivi",
+          "chiamate": 99
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "notifica",
+          "chiamate": 96
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "CacheCalendarioMesi",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "chiaveDi",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "tokenInCache",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "ErroreSessioneAttivita",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "creaContenitoreCacheAttivita",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "notificaSessioneNonPiuValida",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "caricatore",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "caricatore",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "svuotaTutteLeCache",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "abbandonaSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "leggiDaEndpoint",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "leggiMeseDaEndpoint",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "leggiGiornataDaEndpoint",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "CacheGiornateAttivita",
+          "chiamate": 11
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "chiaveDi",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "giorniInCache",
+          "chiamate": 6
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "CacheContestoInserimento",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "caricatore",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "chiaveDi",
+          "chiamate": 11
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "read",
+          "chiamate": 16
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "load",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "revalida",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "invalidate",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "haContesto",
+          "chiamate": 4
+        }
+      ],
+      "tests/unit/calendario-cache-provider.test.ts": [
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "CacheCalendarioMesi",
+          "chiamate": 20
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "chiaveDi",
+          "chiamate": 15
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "tokenInCache",
+          "chiamate": 6
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "GuardiaIdentitaScheda",
+          "chiamate": 20
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "registra",
+          "chiamate": 20
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "identitaRegistrata",
+          "chiamate": 5
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "reset",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "verifica",
+          "chiamate": 59
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "ErroreIdentitaSchedaCambiata",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "CacheDatiScheda",
+          "chiamate": 20
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "identitaInCache",
+          "chiamate": 5
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "chiaviInCache",
+          "chiamate": 6
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "caricamentiInVolo",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "seed",
+          "chiamate": 15
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "invalidate",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "clear",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "read",
+          "chiamate": 105
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "load",
+          "chiamate": 51
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "revalida",
+          "chiamate": 50
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "prefetch",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "subscribe",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "scrivi",
+          "chiamate": 59
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "notifica",
+          "chiamate": 63
+        }
+      ],
+      "tests/unit/calendario.test.ts": [
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "etichettaMeseBreve",
+          "chiamate": 18
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "isoWeekday",
+          "chiamate": 26
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "tokenMeseCorrente",
+          "chiamate": 2
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseTokenMese",
+          "chiamate": 56
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "formattaTokenMese",
+          "chiamate": 18
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "etichettaMese",
+          "chiamate": 18
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "mesePrecedente",
+          "chiamate": 6
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "meseSuccessivo",
+          "chiamate": 6
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "costruisciGrigliaMese",
+          "chiamate": 14
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseDataGiorno",
+          "chiamate": 17
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "formattaDataGiorno",
+          "chiamate": 8
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "giornoSpostatoDi",
+          "chiamate": 9
+        }
+      ],
+      "tests/unit/cambia-stato-utente.test.ts": [
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts",
+          "funzione": "isPrismaSerializationError",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts",
+          "funzione": "eseguiConRetrySerializzazione",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts",
+          "funzione": "cambiaStatoUtenteAction",
+          "chiamate": 8
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts",
+          "funzione": "__vite_ssr_import_4__.db.$transaction.isolationLevel",
+          "chiamate": 7
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        },
+        {
+          "file": "src/domain/anagrafiche/protezione-amministratore.ts",
+          "funzione": "violaProtezioneUltimoAmministratore",
+          "chiamate": 5
+        }
+      ],
+      "tests/unit/clienti-dal-actions.test.ts": [
+        {
+          "file": "src/lib/clienti.ts",
+          "funzione": "elencaClienti",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/clienti.ts",
+          "funzione": "clientePerId",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/clienti.ts",
+          "funzione": "elencaClientiSelezionabili",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "datiDaForm",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 8
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "creaCliente",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "aggiornaCliente",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "cambiaStatoCliente",
+          "chiamate": 3
+        }
+      ],
+      "tests/unit/collaboratori-dal-actions.test.ts": [
+        {
+          "file": "src/lib/collaboratori.ts",
+          "funzione": "elencaCollaboratori",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/collaboratori.ts",
+          "funzione": "collaboratorePerId",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/collaboratori.ts",
+          "funzione": "elencaCollaboratoriSelezionabili",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/collaboratori.ts",
+          "funzione": "storicoAttivitaCollaboratore",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/actions.ts",
+          "funzione": "datiDaForm",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/actions.ts",
+          "funzione": "aggiornaCollaboratore",
+          "chiamate": 4
+        }
+      ],
+      "tests/unit/dal-guards.test.ts": [
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "_risolviSessione",
+          "chiamate": 26
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "ErroreAutorizzazione",
+          "chiamate": 13
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "richiediSessioneApi",
+          "chiamate": 26
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "richiediRuoloApi",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "risolviProfiloCollaboratoreCorrente",
+          "chiamate": 11
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "richiediCollaboratoreCorrente",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "verificaAccessoDatiCollaboratore",
+          "chiamate": 5
+        }
+      ],
+      "tests/unit/e2e-database-safety.test.ts": [],
+      "tests/unit/elenca-offerte-con-avanzamento.test.ts": [
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "gruppoOrdinamento",
+          "chiamate": 22
+        },
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "costruisciVociElencoOfferte",
+          "chiamate": 18
+        },
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "elencaOfferteConAvanzamento",
+          "chiamate": 16
+        },
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "elencaOffertePerClienteConAvanzamento",
+          "chiamate": 4
+        },
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "calcolaAvanzamentoOfferte",
+          "chiamate": 18
+        }
+      ],
+      "tests/unit/gestione-offerte-actions.test.ts": [
+        {
+          "file": "src/app/(back-office)/offerte/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(back-office)/offerte/actions.ts",
+          "funzione": "isPrismaForeignKeyConstraintError",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/offerte/actions.ts",
+          "funzione": "cambiaStatoOfferta",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(back-office)/offerte/actions.ts",
+          "funzione": "eliminaOfferta",
+          "chiamate": 6
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/google-callback.test.ts": [
+        {
+          "file": "src/app/api/auth/google/callback/route.ts",
+          "funzione": "baseUrl",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/api/auth/google/callback/route.ts",
+          "funzione": "GET",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/api/auth/google/callback/route.ts",
+          "funzione": "redirectWithError",
+          "chiamate": 2
+        }
+      ],
+      "tests/unit/ingaggi-offerta-dal-actions.test.ts": [
+        {
+          "file": "src/lib/abilitazioni.ts",
+          "funzione": "elencaCollaboratoriIngaggiati",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/abilitazioni.ts",
+          "funzione": "elencaCollaboratoriIngaggiabili",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts",
+          "funzione": "ingaggiaCollaboratoriSuOfferta",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts",
+          "funzione": "revocaIngaggioCollaboratore",
+          "chiamate": 4
+        }
+      ],
+      "tests/unit/offerte-dal-actions.test.ts": [
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "offertaPerId",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "datiDaForm",
+          "chiamate": 9
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 11
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "erroreCodiceDuplicato",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "isPrismaUniqueConstraintError",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "creaOfferta",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "aggiornaOfferta",
+          "chiamate": 4
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/policy-rotte.test.ts": [
+        {
+          "file": "src/lib/policy-rotte.ts",
+          "funzione": "politicaAccessoPerRotta",
+          "chiamate": 9
+        },
+        {
+          "file": "src/lib/policy-rotte.ts",
+          "funzione": "matchPrefisso",
+          "chiamate": 12
+        }
+      ],
+      "tests/unit/protezione-amministratore.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/protezione-amministratore.ts",
+          "funzione": "violaProtezioneUltimoAmministratore",
+          "chiamate": 8
+        }
+      ],
+      "tests/unit/proxy.test.ts": [
+        {
+          "file": "src/proxy.ts",
+          "funzione": "proxy",
+          "chiamate": 11
+        },
+        {
+          "file": "src/proxy.ts",
+          "funzione": "classificaRichiesta",
+          "chiamate": 11
+        },
+        {
+          "file": "src/proxy.ts",
+          "funzione": "applicaRinnovo",
+          "chiamate": 5
+        },
+        {
+          "file": "src/proxy.ts",
+          "funzione": "pulisciCookie",
+          "chiamate": 2
+        },
+        {
+          "file": "src/proxy.ts",
+          "funzione": "redirectAllaRadice",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "validaSessionSecret",
+          "chiamate": 14
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "chiaveSessioneSegreta",
+          "chiamate": 14
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "calcolaScadenzaSessione",
+          "chiamate": 11
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "dataScadenzaSessione",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "opzioniBaseCookieSessione",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "opzioniCookieSessione",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "opzioniEliminazioneCookieSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "creaTokenSessione",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessione",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessione",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaERinnovaTokenSessione",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "creaPayloadSessione",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessioneConChiave",
+          "chiamate": 11
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessioneConChiave",
+          "chiamate": 8
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadPerFirma",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadSessioneFirmata",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "risolviNow",
+          "chiamate": 19
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isStringaNonVuota",
+          "chiamate": 54
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isRuolo",
+          "chiamate": 18
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isTimestampUnix",
+          "chiamate": 24
+        }
+      ],
+      "tests/unit/report-fatturazione-clienti.test.ts": [
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "calcolaReportFatturazioneClienti",
+          "chiamate": 23
+        }
+      ],
+      "tests/unit/riepilogo-mese.test.ts": [
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "formattaImporto",
+          "chiamate": 50
+        },
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "calcolaRiepilogoMese",
+          "chiamate": 7
+        }
+      ],
+      "tests/unit/righe-attivita-actions.test.ts": [
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "messaggioProfiloNonDisponibile",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "richiediCollaboratoreOperativo",
+          "chiamate": 45
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "caricaRigaDelCollaboratore",
+          "chiamate": 28
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "verificaOffertaCliente",
+          "chiamate": 20
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "verificaAbilitazioneOfferta",
+          "chiamate": 16
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "fotografaVoceRimborsoTrasferta",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "giornoDellaRiga",
+          "chiamate": 9
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "normalizzaGiorniDestinazione",
+          "chiamate": 9
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "creaRiga",
+          "chiamate": 13
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "modificaRiga",
+          "chiamate": 12
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "eliminaRiga",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "rimuoviRimborsoTrasferta",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "duplicaRigaSuGiorni",
+          "chiamate": 11
+        },
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "validaOre",
+          "chiamate": 11
+        }
+      ],
+      "tests/unit/rinnova-token.test.ts": [
+        {
+          "file": "src/lib/rinnova-token.ts",
+          "funzione": "rinnovaToken",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaERinnovaTokenSessione",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessioneConChiave",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessioneConChiave",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadSessioneFirmata",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "risolviNow",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isStringaNonVuota",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isRuolo",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isTimestampUnix",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "validaSessionSecret",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "chiaveSessioneSegreta",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "calcolaScadenzaSessione",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/session-config.test.ts": [
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "ErroreSessionSecretNonValida",
+          "chiamate": 11
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "validaSessionSecret",
+          "chiamate": 13
+        },
+        {
+          "file": "src/instrumentation.ts",
+          "funzione": "register",
+          "chiamate": 2
+        }
+      ],
+      "tests/unit/session.test.ts": [
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "validaSessionSecret",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "chiaveSessioneSegreta",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "calcolaScadenzaSessione",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "creaTokenSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessione",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaERinnovaTokenSessione",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "creaPayloadSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessioneConChiave",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessioneConChiave",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadPerFirma",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadSessioneFirmata",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "risolviNow",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isStringaNonVuota",
+          "chiamate": 22
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isRuolo",
+          "chiamate": 8
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isTimestampUnix",
+          "chiamate": 11
+        }
+      ],
+      "tests/unit/siteground-connectivity-check.test.ts": [],
+      "tests/unit/smoke.test.ts": [],
+      "tests/unit/storico-attivita-mensile.test.ts": [
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "raggruppaAttivitaPerMese",
+          "chiamate": 6
+        }
+      ],
+      "tests/unit/utenti-actions.test.ts": [
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "datiCensimentoDaForm",
+          "chiamate": 9
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "datiModificaDaForm",
+          "chiamate": 13
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 25
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "isPrismaUniqueConstraintError",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "isPrismaSerializationError",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "eseguiConRetrySerializzazione",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "erroreEmailDuplicata",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "erroreVincoloUnicoAggiornamento",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "creaUtente",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "aggiornaUtente",
+          "chiamate": 15
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "__vite_ssr_import_6__.db.$transaction.isolationLevel",
+          "chiamate": 10
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        },
+        {
+          "file": "src/domain/anagrafiche/protezione-amministratore.ts",
+          "funzione": "violaProtezioneUltimoAmministratore",
+          "chiamate": 2
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-utente.ts",
+          "funzione": "validaCensimentoUtente",
+          "chiamate": 9
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-utente.ts",
+          "funzione": "validaModificaUtente",
+          "chiamate": 12
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 9
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoPartitaIva",
+          "chiamate": 6
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoTariffaGiornaliera",
+          "chiamate": 6
+        }
+      ],
+      "tests/unit/valida-cliente.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-cliente.ts",
+          "funzione": "validaCliente",
+          "chiamate": 42
+        }
+      ],
+      "tests/unit/valida-collaboratore.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 27
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoPartitaIva",
+          "chiamate": 24
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoTariffaGiornaliera",
+          "chiamate": 24
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCollaboratore",
+          "chiamate": 24
+        }
+      ],
+      "tests/unit/valida-offerta.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-offerta.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 17
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-offerta.ts",
+          "funzione": "validaOfferta",
+          "chiamate": 15
+        }
+      ],
+      "tests/unit/valida-ore.test.ts": [
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "validaOre",
+          "chiamate": 16
+        }
+      ],
+      "tests/unit/valida-utente.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-utente.ts",
+          "funzione": "validaCensimentoUtente",
+          "chiamate": 22
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-utente.ts",
+          "funzione": "validaModificaUtente",
+          "chiamate": 10
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 21
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoPartitaIva",
+          "chiamate": 23
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoTariffaGiornaliera",
+          "chiamate": 23
+        }
+      ],
+      "tests/unit/valida-voce-rimborso.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-voce-rimborso.ts",
+          "funzione": "validaVoceRimborso",
+          "chiamate": 11
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-offerta.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 10
+        }
+      ],
+      "tests/unit/voci-rimborso-dal-actions.test.ts": [
+        {
+          "file": "src/lib/voci-rimborso.ts",
+          "funzione": "elencaVociRimborso",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/voci-rimborso.ts",
+          "funzione": "vocePerId",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "datiDaForm",
+          "chiamate": 5
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 9
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "creaVoceRimborso",
+          "chiamate": 5
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "aggiornaVoceRimborso",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "eliminaVoceRimborso",
+          "chiamate": 2
+        }
+      ]
+    },
+    "metodo": "Profiler.startPreciseCoverage Node, ogni file Vitest in un processo separato, conteggio chiamate > 0; codice baseline invariato"
+  },
+  "T4": {
+    "baseline": "77d144c7ef50a12753378bcea695b6ea40add62a",
+    "file_test": {
+      "tests/unit/abilitazioni-dal-actions.test.ts": [
+        {
+          "file": "src/lib/abilitazioni.ts",
+          "funzione": "elencaOfferteAbilitate",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/abilitazioni.ts",
+          "funzione": "elencaOfferteAbilitabili",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-actions.ts",
+          "funzione": "abilitaCollaboratoreSuOfferte",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-actions.ts",
+          "funzione": "revocaAbilitazioneCollaboratore",
+          "chiamate": 2
+        }
+      ],
+      "tests/unit/attivita-calendario-route.test.ts": [
+        {
+          "file": "src/app/api/attivita/calendario/route.ts",
+          "funzione": "GET",
+          "chiamate": 14
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "ErroreAutorizzazione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/db.ts",
+          "funzione": "createPrismaClient",
+          "chiamate": 1
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseTokenMese",
+          "chiamate": 12
+        },
+        {
+          "file": "src/lib/risposta-dati-privati.ts",
+          "funzione": "rispostaDatiPrivati",
+          "chiamate": 14
+        }
+      ],
+      "tests/unit/attivita-giornata-routes.test.ts": [
+        {
+          "file": "src/app/api/attivita/giornata/route.ts",
+          "funzione": "GET",
+          "chiamate": 16
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "ErroreAutorizzazione",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/db.ts",
+          "funzione": "createPrismaClient",
+          "chiamate": 1
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseDataGiorno",
+          "chiamate": 14
+        },
+        {
+          "file": "src/lib/risposta-dati-privati.ts",
+          "funzione": "rispostaDatiPrivati",
+          "chiamate": 36
+        },
+        {
+          "file": "src/app/api/attivita/contesto-inserimento/route.ts",
+          "funzione": "GET",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/api/attivita/offerte-cliente/route.ts",
+          "funzione": "GET",
+          "chiamate": 13
+        }
+      ],
+      "tests/unit/attivita.test.ts": [
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "formattaDataISO",
+          "chiamate": 33
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "aggregaSintesiPerGiorno",
+          "chiamate": 22
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "intervalloMese",
+          "chiamate": 8
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "attivitaDelMese",
+          "chiamate": 16
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "datiCalendarioMesePerCollaboratoreAutorizzato",
+          "chiamate": 9
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "righeDelGiornoPerCollaboratoreAutorizzato",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "serializzaRigaAttivita",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "contestoInserimentoPerCollaboratoreAutorizzato",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "clientiAttiviPerSelezione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "leggiClientiAttiviPerSelezione",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "offerteAbilitatePerCliente",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/attivita.ts",
+          "funzione": "leggiVociRimborsoTrasfertaPerSelezione",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "ErroreAutorizzazione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseTokenMese",
+          "chiamate": 25
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseDataGiorno",
+          "chiamate": 7
+        }
+      ],
+      "tests/unit/auth-helpers.test.ts": [],
+      "tests/unit/backfill-abilitazioni-iniziali.test.ts": [
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/bootstrap-amministratore-iniziale.test.ts": [
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/cache-dati-scheda.test.ts": [
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "GuardiaIdentitaScheda",
+          "chiamate": 14
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "registra",
+          "chiamate": 28
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "identitaRegistrata",
+          "chiamate": 9
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "reset",
+          "chiamate": 18
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "verifica",
+          "chiamate": 99
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "ErroreIdentitaSchedaCambiata",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "CacheDatiScheda",
+          "chiamate": 28
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "identitaInCache",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "chiaviInCache",
+          "chiamate": 13
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "caricamentiInVolo",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "seed",
+          "chiamate": 24
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "invalidate",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "clear",
+          "chiamate": 18
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "read",
+          "chiamate": 162
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "load",
+          "chiamate": 81
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "revalida",
+          "chiamate": 78
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "scrivi",
+          "chiamate": 99
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "notifica",
+          "chiamate": 96
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "CacheCalendarioMesi",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "chiaveDi",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "tokenInCache",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "ErroreSessioneAttivita",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "creaContenitoreCacheAttivita",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "notificaSessioneNonPiuValida",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "caricatore",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "caricatore",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "svuotaTutteLeCache",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "abbandonaSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "leggiDaEndpoint",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "leggiMeseDaEndpoint",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/attivita-cache-provider.tsx",
+          "funzione": "leggiGiornataDaEndpoint",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "CacheGiornateAttivita",
+          "chiamate": 11
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "chiaveDi",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "giorniInCache",
+          "chiamate": 6
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "CacheContestoInserimento",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "caricatore",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "chiaveDi",
+          "chiamate": 11
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "read",
+          "chiamate": 16
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "load",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "revalida",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "invalidate",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/giornata-cache.ts",
+          "funzione": "haContesto",
+          "chiamate": 4
+        }
+      ],
+      "tests/unit/calendario-cache-provider.test.ts": [
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "CacheCalendarioMesi",
+          "chiamate": 20
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "chiaveDi",
+          "chiamate": 15
+        },
+        {
+          "file": "src/app/(front-office)/attivita/calendario-cache.ts",
+          "funzione": "tokenInCache",
+          "chiamate": 6
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "GuardiaIdentitaScheda",
+          "chiamate": 20
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "registra",
+          "chiamate": 20
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "identitaRegistrata",
+          "chiamate": 5
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "reset",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "verifica",
+          "chiamate": 59
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "ErroreIdentitaSchedaCambiata",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "CacheDatiScheda",
+          "chiamate": 20
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "identitaInCache",
+          "chiamate": 5
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "chiaviInCache",
+          "chiamate": 6
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "caricamentiInVolo",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "seed",
+          "chiamate": 15
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "invalidate",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "clear",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "read",
+          "chiamate": 105
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "load",
+          "chiamate": 51
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "revalida",
+          "chiamate": 50
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "prefetch",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "subscribe",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "scrivi",
+          "chiamate": 59
+        },
+        {
+          "file": "src/app/(front-office)/attivita/cache-dati-scheda.ts",
+          "funzione": "notifica",
+          "chiamate": 63
+        }
+      ],
+      "tests/unit/calendario.test.ts": [
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "etichettaMeseBreve",
+          "chiamate": 18
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "isoWeekday",
+          "chiamate": 26
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "tokenMeseCorrente",
+          "chiamate": 2
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseTokenMese",
+          "chiamate": 56
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "formattaTokenMese",
+          "chiamate": 18
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "etichettaMese",
+          "chiamate": 18
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "mesePrecedente",
+          "chiamate": 6
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "meseSuccessivo",
+          "chiamate": 6
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "costruisciGrigliaMese",
+          "chiamate": 14
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "parseDataGiorno",
+          "chiamate": 17
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "formattaDataGiorno",
+          "chiamate": 8
+        },
+        {
+          "file": "src/domain/calendario/index.ts",
+          "funzione": "giornoSpostatoDi",
+          "chiamate": 9
+        }
+      ],
+      "tests/unit/cambia-stato-utente.test.ts": [
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts",
+          "funzione": "isPrismaSerializationError",
+          "chiamate": 1
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts",
+          "funzione": "eseguiConRetrySerializzazione",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts",
+          "funzione": "cambiaStatoUtenteAction",
+          "chiamate": 8
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts",
+          "funzione": "__vite_ssr_import_4__.db.$transaction.isolationLevel",
+          "chiamate": 7
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        },
+        {
+          "file": "src/domain/anagrafiche/protezione-amministratore.ts",
+          "funzione": "violaProtezioneUltimoAmministratore",
+          "chiamate": 5
+        }
+      ],
+      "tests/unit/clienti-dal-actions.test.ts": [
+        {
+          "file": "src/lib/clienti.ts",
+          "funzione": "elencaClienti",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/clienti.ts",
+          "funzione": "clientePerId",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/clienti.ts",
+          "funzione": "elencaClientiSelezionabili",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "datiDaForm",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 8
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "creaCliente",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "aggiornaCliente",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+          "funzione": "cambiaStatoCliente",
+          "chiamate": 3
+        }
+      ],
+      "tests/unit/collaboratori-dal-actions.test.ts": [
+        {
+          "file": "src/lib/collaboratori.ts",
+          "funzione": "elencaCollaboratori",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/collaboratori.ts",
+          "funzione": "collaboratorePerId",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/collaboratori.ts",
+          "funzione": "elencaCollaboratoriSelezionabili",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/collaboratori.ts",
+          "funzione": "storicoAttivitaCollaboratore",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/actions.ts",
+          "funzione": "datiDaForm",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/collaboratori/actions.ts",
+          "funzione": "aggiornaCollaboratore",
+          "chiamate": 4
+        }
+      ],
+      "tests/unit/dal-guards.test.ts": [
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "_risolviSessione",
+          "chiamate": 26
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "ErroreAutorizzazione",
+          "chiamate": 13
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "richiediSessioneApi",
+          "chiamate": 26
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "richiediRuoloApi",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "risolviProfiloCollaboratoreCorrente",
+          "chiamate": 11
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "richiediCollaboratoreCorrente",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/dal.ts",
+          "funzione": "verificaAccessoDatiCollaboratore",
+          "chiamate": 5
+        }
+      ],
+      "tests/unit/e2e-database-safety.test.ts": [],
+      "tests/unit/elenca-offerte-con-avanzamento.test.ts": [
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "gruppoOrdinamento",
+          "chiamate": 22
+        },
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "costruisciVociElencoOfferte",
+          "chiamate": 18
+        },
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "elencaOfferteConAvanzamento",
+          "chiamate": 16
+        },
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "elencaOffertePerClienteConAvanzamento",
+          "chiamate": 4
+        },
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "calcolaAvanzamentoOfferte",
+          "chiamate": 18
+        }
+      ],
+      "tests/unit/gestione-offerte-actions.test.ts": [
+        {
+          "file": "src/app/(back-office)/offerte/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(back-office)/offerte/actions.ts",
+          "funzione": "isPrismaForeignKeyConstraintError",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/offerte/actions.ts",
+          "funzione": "cambiaStatoOfferta",
+          "chiamate": 4
+        },
+        {
+          "file": "src/app/(back-office)/offerte/actions.ts",
+          "funzione": "eliminaOfferta",
+          "chiamate": 6
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/google-callback.test.ts": [
+        {
+          "file": "src/app/api/auth/google/callback/route.ts",
+          "funzione": "baseUrl",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/api/auth/google/callback/route.ts",
+          "funzione": "GET",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/api/auth/google/callback/route.ts",
+          "funzione": "redirectWithError",
+          "chiamate": 2
+        }
+      ],
+      "tests/unit/ingaggi-offerta-dal-actions.test.ts": [
+        {
+          "file": "src/lib/abilitazioni.ts",
+          "funzione": "elencaCollaboratoriIngaggiati",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/abilitazioni.ts",
+          "funzione": "elencaCollaboratoriIngaggiabili",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts",
+          "funzione": "ingaggiaCollaboratoriSuOfferta",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts",
+          "funzione": "revocaIngaggioCollaboratore",
+          "chiamate": 4
+        }
+      ],
+      "tests/unit/offerte-dal-actions.test.ts": [
+        {
+          "file": "src/lib/offerte.ts",
+          "funzione": "offertaPerId",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "datiDaForm",
+          "chiamate": 9
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 11
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "erroreCodiceDuplicato",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "isPrismaUniqueConstraintError",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "creaOfferta",
+          "chiamate": 7
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+          "funzione": "aggiornaOfferta",
+          "chiamate": 4
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/policy-rotte.test.ts": [
+        {
+          "file": "src/lib/policy-rotte.ts",
+          "funzione": "politicaAccessoPerRotta",
+          "chiamate": 9
+        },
+        {
+          "file": "src/lib/policy-rotte.ts",
+          "funzione": "matchPrefisso",
+          "chiamate": 12
+        }
+      ],
+      "tests/unit/protezione-amministratore.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/protezione-amministratore.ts",
+          "funzione": "violaProtezioneUltimoAmministratore",
+          "chiamate": 8
+        }
+      ],
+      "tests/unit/proxy.test.ts": [
+        {
+          "file": "src/proxy.ts",
+          "funzione": "proxy",
+          "chiamate": 11
+        },
+        {
+          "file": "src/proxy.ts",
+          "funzione": "classificaRichiesta",
+          "chiamate": 11
+        },
+        {
+          "file": "src/proxy.ts",
+          "funzione": "applicaRinnovo",
+          "chiamate": 5
+        },
+        {
+          "file": "src/proxy.ts",
+          "funzione": "pulisciCookie",
+          "chiamate": 2
+        },
+        {
+          "file": "src/proxy.ts",
+          "funzione": "redirectAllaRadice",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "validaSessionSecret",
+          "chiamate": 14
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "chiaveSessioneSegreta",
+          "chiamate": 14
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "calcolaScadenzaSessione",
+          "chiamate": 11
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "dataScadenzaSessione",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "opzioniBaseCookieSessione",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "opzioniCookieSessione",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "opzioniEliminazioneCookieSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "creaTokenSessione",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessione",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessione",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaERinnovaTokenSessione",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "creaPayloadSessione",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessioneConChiave",
+          "chiamate": 11
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessioneConChiave",
+          "chiamate": 8
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadPerFirma",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadSessioneFirmata",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "risolviNow",
+          "chiamate": 19
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isStringaNonVuota",
+          "chiamate": 54
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isRuolo",
+          "chiamate": 18
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isTimestampUnix",
+          "chiamate": 24
+        }
+      ],
+      "tests/unit/report-fatturazione-clienti.test.ts": [
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "calcolaReportFatturazioneClienti",
+          "chiamate": 23
+        }
+      ],
+      "tests/unit/righe-attivita-actions.test.ts": [
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "messaggioProfiloNonDisponibile",
+          "chiamate": 6
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "richiediCollaboratoreOperativo",
+          "chiamate": 45
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "caricaRigaDelCollaboratore",
+          "chiamate": 28
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "verificaOffertaCliente",
+          "chiamate": 20
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "verificaAbilitazioneOfferta",
+          "chiamate": 16
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "fotografaVoceRimborsoTrasferta",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "giornoDellaRiga",
+          "chiamate": 9
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "normalizzaGiorniDestinazione",
+          "chiamate": 9
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "creaRiga",
+          "chiamate": 13
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "modificaRiga",
+          "chiamate": 12
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "eliminaRiga",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "rimuoviRimborsoTrasferta",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/actions/righe-attivita.ts",
+          "funzione": "duplicaRigaSuGiorni",
+          "chiamate": 11
+        },
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "validaOre",
+          "chiamate": 11
+        }
+      ],
+      "tests/unit/rinnova-token.test.ts": [
+        {
+          "file": "src/lib/rinnova-token.ts",
+          "funzione": "rinnovaToken",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaERinnovaTokenSessione",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessioneConChiave",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessioneConChiave",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadSessioneFirmata",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "risolviNow",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isStringaNonVuota",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isRuolo",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isTimestampUnix",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "validaSessionSecret",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "chiaveSessioneSegreta",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "calcolaScadenzaSessione",
+          "chiamate": 1
+        }
+      ],
+      "tests/unit/session-config.test.ts": [
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "ErroreSessionSecretNonValida",
+          "chiamate": 11
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "validaSessionSecret",
+          "chiamate": 13
+        },
+        {
+          "file": "src/instrumentation.ts",
+          "funzione": "register",
+          "chiamate": 2
+        }
+      ],
+      "tests/unit/session.test.ts": [
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "validaSessionSecret",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "chiaveSessioneSegreta",
+          "chiamate": 7
+        },
+        {
+          "file": "src/lib/session-config.ts",
+          "funzione": "calcolaScadenzaSessione",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "creaTokenSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessione",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaERinnovaTokenSessione",
+          "chiamate": 1
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "creaPayloadSessione",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "firmaTokenSessioneConChiave",
+          "chiamate": 3
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "verificaTokenSessioneConChiave",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadPerFirma",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "validaPayloadSessioneFirmata",
+          "chiamate": 4
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "risolviNow",
+          "chiamate": 5
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isStringaNonVuota",
+          "chiamate": 22
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isRuolo",
+          "chiamate": 8
+        },
+        {
+          "file": "src/lib/session-token.ts",
+          "funzione": "isTimestampUnix",
+          "chiamate": 11
+        }
+      ],
+      "tests/unit/siteground-connectivity-check.test.ts": [],
+      "tests/unit/smoke.test.ts": [],
+      "tests/unit/storico-attivita-mensile.test.ts": [
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "raggruppaAttivitaPerMese",
+          "chiamate": 6
+        }
+      ],
+      "tests/unit/utenti-actions.test.ts": [
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "datiCensimentoDaForm",
+          "chiamate": 9
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "datiModificaDaForm",
+          "chiamate": 13
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 25
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "isPrismaUniqueConstraintError",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "isPrismaSerializationError",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "eseguiConRetrySerializzazione",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "erroreEmailDuplicata",
+          "chiamate": 3
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "erroreVincoloUnicoAggiornamento",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "creaUtente",
+          "chiamate": 10
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "aggiornaUtente",
+          "chiamate": 15
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+          "funzione": "__vite_ssr_import_6__.db.$transaction.isolationLevel",
+          "chiamate": 10
+        },
+        {
+          "file": "src/generated/prisma/internal/class.ts",
+          "funzione": "getPrismaClientClass",
+          "chiamate": 1
+        },
+        {
+          "file": "src/domain/anagrafiche/protezione-amministratore.ts",
+          "funzione": "violaProtezioneUltimoAmministratore",
+          "chiamate": 2
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-utente.ts",
+          "funzione": "validaCensimentoUtente",
+          "chiamate": 9
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-utente.ts",
+          "funzione": "validaModificaUtente",
+          "chiamate": 12
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 9
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoPartitaIva",
+          "chiamate": 6
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoTariffaGiornaliera",
+          "chiamate": 6
+        }
+      ],
+      "tests/unit/valida-cliente.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-cliente.ts",
+          "funzione": "validaCliente",
+          "chiamate": 42
+        }
+      ],
+      "tests/unit/valida-collaboratore.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 27
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoPartitaIva",
+          "chiamate": 24
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoTariffaGiornaliera",
+          "chiamate": 24
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCollaboratore",
+          "chiamate": 24
+        }
+      ],
+      "tests/unit/valida-offerta.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-offerta.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 17
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-offerta.ts",
+          "funzione": "validaOfferta",
+          "chiamate": 15
+        }
+      ],
+      "tests/unit/valida-ore.test.ts": [
+        {
+          "file": "src/domain/consuntivi/index.ts",
+          "funzione": "validaOre",
+          "chiamate": 16
+        }
+      ],
+      "tests/unit/valida-utente.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-utente.ts",
+          "funzione": "validaCensimentoUtente",
+          "chiamate": 22
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-utente.ts",
+          "funzione": "validaModificaUtente",
+          "chiamate": 10
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 21
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoPartitaIva",
+          "chiamate": 23
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+          "funzione": "validaCampoTariffaGiornaliera",
+          "chiamate": 23
+        }
+      ],
+      "tests/unit/valida-voce-rimborso.test.ts": [
+        {
+          "file": "src/domain/anagrafiche/valida-voce-rimborso.ts",
+          "funzione": "validaVoceRimborso",
+          "chiamate": 11
+        },
+        {
+          "file": "src/domain/anagrafiche/valida-offerta.ts",
+          "funzione": "normalizzaTariffaGiornaliera",
+          "chiamate": 10
+        }
+      ],
+      "tests/unit/voci-rimborso-dal-actions.test.ts": [
+        {
+          "file": "src/lib/voci-rimborso.ts",
+          "funzione": "elencaVociRimborso",
+          "chiamate": 2
+        },
+        {
+          "file": "src/lib/voci-rimborso.ts",
+          "funzione": "vocePerId",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "datiDaForm",
+          "chiamate": 5
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "guardiaAmministratore",
+          "chiamate": 9
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "creaVoceRimborso",
+          "chiamate": 5
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "aggiornaVoceRimborso",
+          "chiamate": 2
+        },
+        {
+          "file": "src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts",
+          "funzione": "eliminaVoceRimborso",
+          "chiamate": 2
+        }
+      ]
+    },
+    "metodo": "Profiler.startPreciseCoverage Node, ogni file Vitest in un processo separato, conteggio chiamate > 0; codice baseline invariato"
+  }
+}

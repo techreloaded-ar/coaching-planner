@@ -1,0 +1,17 @@
+{
+  "sd_pooled": 0.7749193506423736,
+  "effetto_due_sd": 1.5498387012847472,
+  "metodo": "Stesso test t bilaterale non centrale del report 1, condizionato alla SD osservata; potenza della media come indicatore, non potenza esatta della mediana/bootstrap.",
+  "modelli": {
+    "sonnet": {
+      "repliche_per_cella": 3,
+      "potenza_per_due_sd": 0.46264081189130696,
+      "mde_potenza_80": 2.379693840943111
+    },
+    "opus": {
+      "repliche_per_cella": 2,
+      "potenza_per_due_sd": 0.21830707484678252,
+      "mde_potenza_80": 4.380998231025106
+    }
+  }
+}

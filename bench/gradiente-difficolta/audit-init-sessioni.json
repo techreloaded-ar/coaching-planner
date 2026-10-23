@@ -1,0 +1,182 @@
+[
+  {
+    "stream": "chiarimenti/T2/phases/01-spec/stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T2/phases/01-spec/committente-stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T2/phases/01-spec/committente-stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T2/phases/01-spec/stream-02.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T2/phases/01-spec/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T3/phases/01-spec/stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T3/phases/01-spec/committente-stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T3/phases/01-spec/committente-stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T3/phases/01-spec/stream-02.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T3/phases/01-spec/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T4/phases/01-spec/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T1/phases/01-spec/stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T1/phases/01-spec/committente-stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T1/phases/01-spec/committente-stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T1/phases/01-spec/stream-02.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "chiarimenti/T1/phases/01-spec/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "giudici-scoperta/T2/stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "giudici-scoperta/T2/stream-02.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "giudici-scoperta/T3/stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "giudici-scoperta/T3/stream-02.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "giudici-scoperta/T4/stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "giudici-scoperta/T4/stream-02.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "giudici-scoperta/T1/stream-01.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "giudici-scoperta/T1/stream-02.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "_scartati/G-ref-T3-init-builtin/stream-riconciliazione.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "_scartati/G-ref-T3-init-builtin/stream-00.jsonl",
+    "foreign": [],
+    "result": null
+  },
+  {
+    "stream": "riferimenti/T2/phases/01-riferimento/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "riferimenti/T3/phases/01-riferimento/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "riferimenti/T4/phases/01-riferimento/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "riferimenti/T1/phases/02-facoltativita/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "riferimenti/T1/phases/01-riferimento/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "preparazione/adattatori-riferimento/T2/phases/01-adattatore/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "preparazione/adattatori-riferimento/T3/phases/01-adattatore/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "preparazione/adattatori-riferimento/T4/phases/01-adattatore/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "preparazione/adattatori-riferimento/T1/phases/01-adattatore/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  },
+  {
+    "stream": "preparazione/oracoli/phases/01-oracoli/stream-00.jsonl",
+    "foreign": [],
+    "result": "success"
+  }
+]

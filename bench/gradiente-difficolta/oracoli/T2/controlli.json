@@ -1,0 +1,211 @@
+{
+  "aree": {
+    "ricavi": 18,
+    "costi": 18,
+    "margini": 14,
+    "periodo": 10,
+    "autorizzazioni": 12,
+    "visibilita": 12,
+    "persistenza": 8,
+    "regressioni": 8
+  },
+  "controlli": [
+    {
+      "codice": "R1",
+      "area": "ricavi",
+      "livello": "integrazione",
+      "tema": "Ricavi",
+      "verifica": "8 ore fatturabili × tariffa offerta 640 = 640",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "R2",
+      "area": "ricavi",
+      "livello": "integrazione",
+      "tema": "Ricavi",
+      "verifica": "4 ore fatturabili × tariffa offerta 640 = 320",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "R3",
+      "area": "ricavi",
+      "livello": "integrazione",
+      "tema": "Ricavi",
+      "verifica": "riga non fatturabile non genera ricavo",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "R4",
+      "area": "ricavi",
+      "livello": "integrazione",
+      "tema": "Rimborsi",
+      "verifica": "rimborsi trasferta esclusi dai ricavi",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "C1",
+      "area": "costi",
+      "livello": "integrazione",
+      "tema": "Costi",
+      "verifica": "8 ore × tariffa collaboratore 400 = 400",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "C2",
+      "area": "costi",
+      "livello": "integrazione",
+      "tema": "Non fatturabili",
+      "verifica": "4 ore non fatturabili generano costo 200",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "C3",
+      "area": "costi",
+      "livello": "integrazione",
+      "tema": "Rimborsi",
+      "verifica": "rimborsi esclusi dai costi",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "C4",
+      "area": "costi",
+      "livello": "integrazione",
+      "tema": "Costi",
+      "verifica": "due collaboratori con tariffe differenti sono distinti",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "M1",
+      "area": "margini",
+      "livello": "integrazione",
+      "tema": "Margine",
+      "verifica": "ricavo 640 e costo 400 producono margine 240 e 37,5 %",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "M2",
+      "area": "margini",
+      "livello": "integrazione",
+      "tema": "Margine",
+      "verifica": "ricavo zero e costo positivo producono perdita, percentuale non infinita",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "M3",
+      "area": "margini",
+      "livello": "integrazione",
+      "tema": "Aggregazioni",
+      "verifica": "totali cliente, offerta e collaboratore riconciliano",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "D1",
+      "area": "periodo",
+      "livello": "integrazione",
+      "tema": "Periodo",
+      "verifica": "mese iniziale e finale inclusi, mesi adiacenti esclusi",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "D2",
+      "area": "periodo",
+      "livello": "integrazione",
+      "tema": "Periodo",
+      "verifica": "periodo a cavallo anno corretto",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "D3",
+      "area": "periodo",
+      "livello": "integrazione",
+      "tema": "Periodo",
+      "verifica": "periodo invertito rifiutato",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "A1",
+      "area": "autorizzazioni",
+      "livello": "integrazione",
+      "tema": "Ruoli",
+      "verifica": "collaboratore non accede al report",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "A2",
+      "area": "autorizzazioni",
+      "livello": "integrazione",
+      "tema": "Ruoli",
+      "verifica": "cliente non accede al report",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "A3",
+      "area": "autorizzazioni",
+      "livello": "integrazione",
+      "tema": "Ruoli",
+      "verifica": "anonimo non accede al report",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "S1",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Dettaglio",
+      "verifica": "report mostra cliente, offerte e collaboratori con importi",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "S2",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Navigazione",
+      "verifica": "report raggiungibile dal back-office amministratore",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "S3",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Periodo",
+      "verifica": "filtro mese iniziale e finale modifica il risultato",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "U1",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Responsive",
+      "verifica": "report fruibile a 390 px senza overflow pagina",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "U2",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Responsive",
+      "verifica": "report fruibile a 1440 px senza errori JavaScript",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "P1",
+      "area": "persistenza",
+      "livello": "integrazione",
+      "tema": "Nessuna scrittura",
+      "verifica": "lettura report non muta database né schema",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "P2",
+      "area": "persistenza",
+      "livello": "integrazione",
+      "tema": "Coerenza",
+      "verifica": "ricavi uguali alla manodopera fatturazione sullo stesso periodo",
+      "nelle_storie": "Esplicito"
+    }
+  ],
+  "critici": [
+    "A1: dati di un collaboratore visibili a un altro"
+  ],
+  "funzionalita": "Report marginalità in sola lettura, con costi delle righe non fatturabili.",
+  "invariante_condivisa": "Questo compito non introduce transizioni di stato con blocco delle scritture: rispondi «non applicabile» a questa voce, citando il perimetro."
+}

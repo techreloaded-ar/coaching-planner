@@ -1,0 +1,945 @@
+[
+  {
+    "task": "T1",
+    "moduli_toccati": [
+      "prisma",
+      "prisma/migrations/20261023090000_aggiungi_referente_cliente",
+      "src/app/(back-office)",
+      "src/domain/anagrafiche",
+      "src/domain/consuntivi",
+      "src/lib",
+      "tests/e2e",
+      "tests/e2e/support",
+      "tests/unit"
+    ],
+    "numero_moduli": 9,
+    "funzioni_esistenti_modificate": [
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/[id]/page.tsx",
+        "funzione": "DettaglioClientePage"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/[id]/page.tsx",
+        "funzione": "Dato"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+        "funzione": "datiDaForm"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+        "funzione": "creaCliente"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+        "funzione": "aggiornaCliente"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/cliente-form.tsx",
+        "funzione": "ClienteForm"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/clienti-tabella.tsx",
+        "funzione": "ClientiTabella"
+      },
+      {
+        "file": "src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx",
+        "funzione": "ReportFatturazioneClienti"
+      },
+      {
+        "file": "src/domain/anagrafiche/valida-cliente.ts",
+        "funzione": "validaCliente"
+      },
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "calcolaReportFatturazioneClienti"
+      },
+      {
+        "file": "src/lib/report.ts",
+        "funzione": "reportFatturazioneClientiMese"
+      },
+      {
+        "file": "tests/e2e/support/factory.ts",
+        "funzione": "createCliente"
+      }
+    ],
+    "numero_call_site": 11,
+    "nuove_funzioni": [
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+        "funzione": "normalizzaSpazi"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/actions.ts",
+        "funzione": "campiPersistiti"
+      },
+      {
+        "file": "src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx",
+        "funzione": "ReferenteIntestazione"
+      },
+      {
+        "file": "src/domain/anagrafiche/referente-cliente.ts",
+        "funzione": "referenteDelCliente"
+      },
+      {
+        "file": "src/domain/anagrafiche/referente-cliente.ts",
+        "funzione": "hrefTelefono"
+      },
+      {
+        "file": "src/domain/anagrafiche/valida-cliente.ts",
+        "funzione": "telefonoValido"
+      },
+      {
+        "file": "tests/e2e/referente-cliente.spec.ts",
+        "funzione": "suffissoUnivoco"
+      },
+      {
+        "file": "tests/e2e/referente-cliente.spec.ts",
+        "funzione": "rigaCliente"
+      },
+      {
+        "file": "tests/e2e/referente-cliente.spec.ts",
+        "funzione": "sezioneReferente"
+      },
+      {
+        "file": "tests/unit/report-fatturazione-referente.test.ts",
+        "funzione": "rigaDb"
+      }
+    ],
+    "migrazione": "additiva",
+    "concorrenza_richiesta": false,
+    "test_unit_baseline_che_falliscono": 2,
+    "test_unit_baseline_totali": 727,
+    "test_esistenti_modificati": [
+      "tests/e2e/support/factory.ts",
+      "tests/unit/clienti-dal-actions.test.ts",
+      "tests/unit/report-fatturazione-clienti.test.ts",
+      "tests/unit/valida-cliente.test.ts"
+    ],
+    "wiki_disponibile": [
+      "docs/wiki/architecture/context-map.md",
+      "docs/wiki/decisions/calcoli-puri.md",
+      "docs/wiki/decisions/giornata-otto-ore.md",
+      "docs/wiki/decisions/importi-decimali.md",
+      "docs/wiki/decisions/tariffa-unica-collaboratore.md",
+      "docs/wiki/domains/attivita.md",
+      "docs/wiki/domains/clienti.md",
+      "docs/wiki/domains/collaboratori.md",
+      "docs/wiki/domains/fatturazione-clienti.md",
+      "docs/wiki/domains/offerte.md",
+      "docs/wiki/engineering/code-map.md",
+      "docs/wiki/overview.md"
+    ],
+    "test_unit_disponibili": [
+      "tests/unit/clienti-dal-actions.test.ts",
+      "tests/unit/report-fatturazione-clienti.test.ts",
+      "tests/unit/valida-cliente.test.ts"
+    ],
+    "informazione_nascosta": "posizione indicata dalle storie",
+    "diff_numstat": "6\t0\tprisma/migrations/20261023090000_aggiungi_referente_cliente/migration.sql\n4\t0\tprisma/schema.prisma\n61\t2\tsrc/app/(back-office)/anagrafiche/clienti/[id]/page.tsx\n33\t20\tsrc/app/(back-office)/anagrafiche/clienti/actions.ts\n49\t2\tsrc/app/(back-office)/anagrafiche/clienti/cliente-form.tsx\n28\t3\tsrc/app/(back-office)/anagrafiche/clienti/clienti-tabella.tsx\n62\t0\tsrc/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx\n45\t0\tsrc/domain/anagrafiche/referente-cliente.ts\n42\t0\tsrc/domain/anagrafiche/valida-cliente.ts\n11\t0\tsrc/domain/consuntivi/index.ts\n2\t0\tsrc/lib/report.ts\n310\t0\ttests/e2e/referente-cliente.spec.ts\n9\t2\ttests/e2e/support/factory.ts\n116\t0\ttests/unit/clienti-dal-actions.test.ts\n71\t0\ttests/unit/referente-cliente.test.ts\n54\t0\ttests/unit/report-fatturazione-clienti.test.ts\n117\t0\ttests/unit/report-fatturazione-referente.test.ts\n90\t0\ttests/unit/valida-cliente.test.ts",
+    "baseline": "a1e14cc7e468679d55bdd0e9a37c049c5c310b14",
+    "head": "92d2c031ead6c19051368e3784ac7bbd3f5f564c"
+  },
+  {
+    "task": "T2",
+    "moduli_toccati": [
+      "src/app/(back-office)",
+      "src/domain/marginalita",
+      "src/lib",
+      "tests/e2e",
+      "tests/unit"
+    ],
+    "numero_moduli": 5,
+    "funzioni_esistenti_modificate": [],
+    "numero_call_site": 0,
+    "nuove_funzioni": [
+      {
+        "file": "src/app/(back-office)/report/marginalita/page.tsx",
+        "funzione": "primoValore"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/page.tsx",
+        "funzione": "ReportMarginalitaPage"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/report-marginalita.tsx",
+        "funzione": "formattaPercentuale"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/report-marginalita.tsx",
+        "funzione": "classeMargine"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/report-marginalita.tsx",
+        "funzione": "etichettaPeriodo"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/report-marginalita.tsx",
+        "funzione": "IntestazioniImporti"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/report-marginalita.tsx",
+        "funzione": "CelleImporti"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/report-marginalita.tsx",
+        "funzione": "TabellaCollaboratori"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/report-marginalita.tsx",
+        "funzione": "Indicatore"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/report-marginalita.tsx",
+        "funzione": "SchedaCliente"
+      },
+      {
+        "file": "src/app/(back-office)/report/marginalita/report-marginalita.tsx",
+        "funzione": "ReportMarginalita"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "validaPeriodoMarginalita"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "inCentesimi"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "inCentesimiDiOra"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "formattaCentesimi"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "giornateDaCentesimiDiOra"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "costoInCentesimi"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "nuovoAccumulatore"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "sommaIn"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "importiDa"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "confrontaCollaboratori"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "voceCollaboratore"
+      },
+      {
+        "file": "src/domain/marginalita/index.ts",
+        "funzione": "calcolaReportMarginalita"
+      },
+      {
+        "file": "src/lib/report.ts",
+        "funzione": "reportMarginalitaVuoto"
+      },
+      {
+        "file": "src/lib/report.ts",
+        "funzione": "reportMarginalitaPeriodo"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "euro"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "giornate"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "percentuale"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "centesimiDaEuro"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "suffissoDa"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "dataRiservata"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "creaDatasetMarginalita"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "rigaTabella"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "verificaCelle"
+      },
+      {
+        "file": "tests/e2e/report-marginalita.spec.ts",
+        "funzione": "verificaAnalisiCliente"
+      },
+      {
+        "file": "tests/unit/report-marginalita-dal.test.ts",
+        "funzione": "decimale"
+      },
+      {
+        "file": "tests/unit/report-marginalita-dal.test.ts",
+        "funzione": "rigaPrisma"
+      },
+      {
+        "file": "tests/unit/report-marginalita.test.ts",
+        "funzione": "riga"
+      },
+      {
+        "file": "tests/unit/report-marginalita.test.ts",
+        "funzione": "centesimi"
+      },
+      {
+        "file": "tests/unit/report-marginalita.test.ts",
+        "funzione": "sommaCentesimi"
+      }
+    ],
+    "migrazione": "nessuna",
+    "concorrenza_richiesta": false,
+    "test_unit_baseline_che_falliscono": 0,
+    "test_unit_baseline_totali": 727,
+    "test_esistenti_modificati": [
+      "tests/unit/policy-rotte.test.ts"
+    ],
+    "wiki_disponibile": [
+      "docs/wiki/architecture/context-map.md",
+      "docs/wiki/domains/clienti.md",
+      "docs/wiki/domains/fatturazione-clienti.md",
+      "docs/wiki/engineering/code-map.md",
+      "docs/wiki/overview.md"
+    ],
+    "test_unit_disponibili": [],
+    "informazione_nascosta": "posizione indicata dalle storie",
+    "diff_numstat": "3\t1\tdocs/PRD.md\n7\t0\tsrc/app/(back-office)/console-sidebar.tsx\n58\t0\tsrc/app/(back-office)/report/marginalita/page.tsx\n463\t0\tsrc/app/(back-office)/report/marginalita/report-marginalita.tsx\n464\t0\tsrc/domain/marginalita/index.ts\n110\t0\tsrc/lib/report.ts\n363\t0\ttests/e2e/report-marginalita.spec.ts\n1\t0\ttests/unit/policy-rotte.test.ts\n138\t0\ttests/unit/report-marginalita-dal.test.ts\n327\t0\ttests/unit/report-marginalita.test.ts",
+    "baseline": "5eb723c0e9f92f89e92164f41d350fb11b81a8f2",
+    "head": "591a4719fd4fbfbb81bb11e9711bcbeddec4dacc"
+  },
+  {
+    "task": "T3",
+    "moduli_toccati": [
+      "prisma",
+      "prisma/migrations/20261022090000_tariffe_con_validita_nel_tempo",
+      "src/app/(back-office)",
+      "src/app/(front-office)",
+      "src/domain/anagrafiche",
+      "src/domain/consuntivi",
+      "src/domain/tariffe",
+      "src/lib",
+      "tests/e2e",
+      "tests/e2e/support",
+      "tests/unit"
+    ],
+    "numero_moduli": 11,
+    "funzioni_esistenti_modificate": [
+      {
+        "file": "prisma/seed.ts",
+        "funzione": "main"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/[offertaId]/page.tsx",
+        "funzione": "ModificaOffertaPage"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+        "funzione": "datiDaForm"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+        "funzione": "creaOfferta"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+        "funzione": "aggiornaOfferta"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/offerta-form.tsx",
+        "funzione": "OffertaForm"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/offerta-form.tsx",
+        "funzione": "Campo"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/collaboratori/[id]/modifica/page.tsx",
+        "funzione": "ModificaCollaboratorePage"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx",
+        "funzione": "DettaglioCollaboratorePage"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/collaboratori/actions.ts",
+        "funzione": "datiDaForm"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/collaboratori/actions.ts",
+        "funzione": "aggiornaCollaboratore"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/collaboratori/collaboratore-form.tsx",
+        "funzione": "CollaboratoreForm"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/collaboratori/page.tsx",
+        "funzione": "CollaboratoriPage"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+        "funzione": "creaUtente"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/utenti/actions.ts",
+        "funzione": "aggiornaUtente"
+      },
+      {
+        "file": "src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx",
+        "funzione": "CollaboratoriOffertaPage"
+      },
+      {
+        "file": "src/app/(back-office)/offerte/[offertaId]/page.tsx",
+        "funzione": "ModificaOffertaDaOffertePage"
+      },
+      {
+        "file": "src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx",
+        "funzione": "DettaglioAvanzamentoOfferta"
+      },
+      {
+        "file": "src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx",
+        "funzione": "ReportFatturazioneClienti"
+      },
+      {
+        "file": "src/app/(front-office)/attivita/riepilogo/riepilogo-mese.tsx",
+        "funzione": "RiepilogoMese"
+      },
+      {
+        "file": "src/domain/anagrafiche/valida-collaboratore.ts",
+        "funzione": "validaCollaboratore"
+      },
+      {
+        "file": "src/domain/anagrafiche/valida-offerta.ts",
+        "funzione": "validaOfferta"
+      },
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "calcolaRiepilogoMese"
+      },
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "calcolaReportFatturazioneClienti"
+      },
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "calcolaAvanzamentoOfferte"
+      },
+      {
+        "file": "src/lib/attivita.ts",
+        "funzione": "creaRiepilogoVuoto"
+      },
+      {
+        "file": "src/lib/attivita.ts",
+        "funzione": "riepilogoMese"
+      },
+      {
+        "file": "src/lib/collaboratori.ts",
+        "funzione": "elencaCollaboratori"
+      },
+      {
+        "file": "src/lib/collaboratori.ts",
+        "funzione": "collaboratorePerId"
+      },
+      {
+        "file": "src/lib/offerte.ts",
+        "funzione": "offertaPerId"
+      },
+      {
+        "file": "src/lib/offerte.ts",
+        "funzione": "costruisciVociElencoOfferte"
+      },
+      {
+        "file": "src/lib/offerte.ts",
+        "funzione": "elencaOfferteConAvanzamento"
+      },
+      {
+        "file": "src/lib/offerte.ts",
+        "funzione": "elencaOffertePerClienteConAvanzamento"
+      },
+      {
+        "file": "src/lib/report.ts",
+        "funzione": "reportFatturazioneClientiMese"
+      },
+      {
+        "file": "tests/e2e/support/factory.ts",
+        "funzione": "createCollaboratore"
+      },
+      {
+        "file": "tests/e2e/support/factory.ts",
+        "funzione": "createOfferta"
+      },
+      {
+        "file": "tests/unit/attivita-calendario-route.test.ts",
+        "funzione": "profiloAttivo"
+      },
+      {
+        "file": "tests/unit/attivita-giornata-routes.test.ts",
+        "funzione": "profiloAttivo"
+      },
+      {
+        "file": "tests/unit/attivita.test.ts",
+        "funzione": "rigaFittizia"
+      },
+      {
+        "file": "tests/unit/attivita.test.ts",
+        "funzione": "rigaConContesto"
+      },
+      {
+        "file": "tests/unit/avanzamento-offerte.test.ts",
+        "funzione": "riga"
+      },
+      {
+        "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+        "funzione": "offertaConCliente"
+      },
+      {
+        "file": "tests/unit/riepilogo-mese.test.ts",
+        "funzione": "riga"
+      },
+      {
+        "file": "tests/unit/righe-attivita-actions.test.ts",
+        "funzione": "collaboratoreMock"
+      },
+      {
+        "file": "tests/unit/valida-collaboratore.test.ts",
+        "funzione": "baseInput"
+      }
+    ],
+    "numero_call_site": 33,
+    "nuove_funzioni": [
+      {
+        "file": "prisma/seed.ts",
+        "funzione": "tariffaDallOrigine"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/actions.ts",
+        "funzione": "riferimentoDaForm"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/actions.ts",
+        "funzione": "datiValiditaDaForm"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/actions.ts",
+        "funzione": "rivalidaSezioniConImporti"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/actions.ts",
+        "funzione": "statoDaEsito"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/actions.ts",
+        "funzione": "inserisciValiditaTariffaAction"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/actions.ts",
+        "funzione": "correggiUltimaValiditaTariffaAction"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/actions.ts",
+        "funzione": "eliminaUltimaValiditaTariffaAction"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "etichettaDal"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "etichettaAl"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "importoPerInput"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "StoricoTariffe"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "CampiRiferimento"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "EsitoForm"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "FormNuovaTariffa"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "valore"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "FormCorrezioneUltimaTariffa"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "FormEliminazioneUltimaTariffa"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx",
+        "funzione": "Campo"
+      },
+      {
+        "file": "src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts",
+        "funzione": "datiModificaDaForm"
+      },
+      {
+        "file": "src/app/(front-office)/attivita/riepilogo/riepilogo-mese.tsx",
+        "funzione": "composizioneCompenso"
+      },
+      {
+        "file": "src/domain/anagrafiche/valida-offerta.ts",
+        "funzione": "validaModificaOfferta"
+      },
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "tariffaNumerica"
+      },
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "aggiungi"
+      },
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "imponibile"
+      },
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "tariffeApplicate"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "eDataIsoValida"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "giornoPrecedente"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "formattaDataValidita"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "ordinaValidita"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "tariffaVigenteAl"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "periodiValidita"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "versioneStorico"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "validaCampoValidaDal"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "validaNuovaValidita"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "validaCorrezioneUltimaValidita"
+      },
+      {
+        "file": "src/domain/tariffe/index.ts",
+        "funzione": "validaEliminazioneUltimaValidita"
+      },
+      {
+        "file": "src/lib/collaboratori.ts",
+        "funzione": "conTariffaVigente"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "dataIsoDaColonnaDate"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "colonnaDateDaIso"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "dataOdiernaIso"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "importoNormalizzato"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "validitaDaRigheDb"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "tariffaVigenteDaStoricoDb"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "validitaOrigineDaCreare"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "leggiRigheStorico"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "versioneDaRigheDb"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "storicoTariffe"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "modificaStoricoSottoLock"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "normalizzaDati"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "inserisciValiditaTariffa"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "correggiUltimaValiditaTariffa"
+      },
+      {
+        "file": "src/lib/tariffe.ts",
+        "funzione": "eliminaUltimaValiditaTariffa"
+      },
+      {
+        "file": "tests/e2e/support/factory.ts",
+        "funzione": "createTariffaOfferta"
+      },
+      {
+        "file": "tests/e2e/support/factory.ts",
+        "funzione": "createTariffaCollaboratore"
+      },
+      {
+        "file": "tests/e2e/tariffe-validita-nel-tempo.spec.ts",
+        "funzione": "formattaEuro"
+      },
+      {
+        "file": "tests/e2e/tariffe-validita-nel-tempo.spec.ts",
+        "funzione": "dataColonna"
+      },
+      {
+        "file": "tests/e2e/tariffe-validita-nel-tempo.spec.ts",
+        "funzione": "tabellaStorico"
+      },
+      {
+        "file": "tests/e2e/tariffe-validita-nel-tempo.spec.ts",
+        "funzione": "righeStorico"
+      },
+      {
+        "file": "tests/e2e/tariffe-validita-nel-tempo.spec.ts",
+        "funzione": "inserisciNuovaTariffa"
+      },
+      {
+        "file": "tests/unit/collaboratori-dal-actions.test.ts",
+        "funzione": "storicoTariffeDb"
+      },
+      {
+        "file": "tests/unit/report-fatturazione-dal.test.ts",
+        "funzione": "rigaDb"
+      },
+      {
+        "file": "tests/unit/riepilogo-mese-dal.test.ts",
+        "funzione": "rigaDb"
+      },
+      {
+        "file": "tests/unit/riepilogo-mese-dal.test.ts",
+        "funzione": "tariffaDb"
+      },
+      {
+        "file": "tests/unit/tariffe-dal-actions.test.ts",
+        "funzione": "delegato"
+      },
+      {
+        "file": "tests/unit/tariffe-dal-actions.test.ts",
+        "funzione": "transazione"
+      },
+      {
+        "file": "tests/unit/tariffe-dal-actions.test.ts",
+        "funzione": "dataColonna"
+      },
+      {
+        "file": "tests/unit/tariffe-dal-actions.test.ts",
+        "funzione": "preparaStorico"
+      },
+      {
+        "file": "tests/unit/tariffe-dal-actions.test.ts",
+        "funzione": "storicoSalvato"
+      },
+      {
+        "file": "tests/unit/tariffe-dal-actions.test.ts",
+        "funzione": "formData"
+      },
+      {
+        "file": "tests/unit/tariffe-dominio.test.ts",
+        "funzione": "validita"
+      }
+    ],
+    "migrazione": "con backfill",
+    "concorrenza_richiesta": true,
+    "test_unit_baseline_che_falliscono": 45,
+    "test_unit_baseline_totali": 727,
+    "test_esistenti_modificati": [
+      "tests/e2e/anagrafica-collaboratori.spec.ts",
+      "tests/e2e/anagrafica-offerte.spec.ts",
+      "tests/e2e/demo__anagrafica-collaboratori.spec.ts",
+      "tests/e2e/gestione-offerte.spec.ts",
+      "tests/e2e/support/factory.ts",
+      "tests/e2e/support/report-data.ts",
+      "tests/unit/attivita-calendario-route.test.ts",
+      "tests/unit/attivita-giornata-routes.test.ts",
+      "tests/unit/attivita.test.ts",
+      "tests/unit/avanzamento-offerte.test.ts",
+      "tests/unit/collaboratori-dal-actions.test.ts",
+      "tests/unit/dal-guards.test.ts",
+      "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "tests/unit/offerte-dal-actions.test.ts",
+      "tests/unit/report-fatturazione-clienti.test.ts",
+      "tests/unit/riepilogo-mese.test.ts",
+      "tests/unit/righe-attivita-actions.test.ts",
+      "tests/unit/utenti-actions.test.ts",
+      "tests/unit/valida-collaboratore.test.ts",
+      "tests/unit/valida-offerta.test.ts"
+    ],
+    "wiki_disponibile": [
+      "docs/wiki/architecture/context-map.md",
+      "docs/wiki/decisions/cache-client-calendario-collaboratore.md",
+      "docs/wiki/decisions/calcoli-puri.md",
+      "docs/wiki/decisions/cognome-anagrafica-utente.md",
+      "docs/wiki/decisions/giornata-otto-ore.md",
+      "docs/wiki/decisions/importi-decimali.md",
+      "docs/wiki/decisions/ruoli-combinabili-profilo-derivato.md",
+      "docs/wiki/decisions/tariffa-unica-collaboratore.md",
+      "docs/wiki/domains/attivita.md",
+      "docs/wiki/domains/clienti.md",
+      "docs/wiki/domains/collaboratori.md",
+      "docs/wiki/domains/fatturazione-clienti.md",
+      "docs/wiki/domains/identita-accesso.md",
+      "docs/wiki/domains/offerte.md",
+      "docs/wiki/engineering/code-map.md",
+      "docs/wiki/overview.md"
+    ],
+    "test_unit_disponibili": [
+      "tests/unit/avanzamento-offerte.test.ts",
+      "tests/unit/collaboratori-dal-actions.test.ts",
+      "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "tests/unit/offerte-dal-actions.test.ts",
+      "tests/unit/report-fatturazione-clienti.test.ts",
+      "tests/unit/riepilogo-mese.test.ts",
+      "tests/unit/utenti-actions.test.ts",
+      "tests/unit/valida-collaboratore.test.ts",
+      "tests/unit/valida-offerta.test.ts"
+    ],
+    "informazione_nascosta": "posizione indicata dalle storie",
+    "diff_numstat": "95\t0\tprisma/migrations/20261022090000_tariffe_con_validita_nel_tempo/migration.sql\n35\t2\tprisma/schema.prisma\n20\t9\tprisma/seed.ts\n146\t0\tsrc/app/(back-office)/anagrafiche/_storico-tariffe/actions.ts\n435\t0\tsrc/app/(back-office)/anagrafiche/_storico-tariffe/storico-tariffe.tsx\n21\t14\tsrc/app/(back-office)/anagrafiche/clienti/[id]/offerte/[offertaId]/page.tsx\n18\t15\tsrc/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts\n31\t12\tsrc/app/(back-office)/anagrafiche/clienti/[id]/offerte/offerta-form.tsx\n13\t6\tsrc/app/(back-office)/anagrafiche/collaboratori/[id]/modifica/page.tsx\n1\t1\tsrc/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx\n6\t15\tsrc/app/(back-office)/anagrafiche/collaboratori/actions.ts\n6\t10\tsrc/app/(back-office)/anagrafiche/collaboratori/collaboratore-form.tsx\n2\t1\tsrc/app/(back-office)/anagrafiche/collaboratori/collaboratori-tabella.tsx\n1\t1\tsrc/app/(back-office)/anagrafiche/collaboratori/page.tsx\n3\t2\tsrc/app/(back-office)/anagrafiche/utenti/actions.ts\n1\t1\tsrc/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx\n22\t15\tsrc/app/(back-office)/offerte/[offertaId]/page.tsx\n14\t0\tsrc/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx\n19\t1\tsrc/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx\n25\t2\tsrc/app/(front-office)/attivita/riepilogo/riepilogo-mese.tsx\n6\t8\tsrc/domain/anagrafiche/valida-collaboratore.ts\n36\t15\tsrc/domain/anagrafiche/valida-offerta.ts\n122\t14\tsrc/domain/consuntivi/index.ts\n286\t0\tsrc/domain/tariffe/index.ts\n41\t14\tsrc/lib/attivita.ts\n44\t6\tsrc/lib/collaboratori.ts\n71\t12\tsrc/lib/offerte.ts\n15\t4\tsrc/lib/report.ts\n386\t0\tsrc/lib/tariffe.ts\n15\t7\ttests/e2e/anagrafica-collaboratori.spec.ts\n10\t1\ttests/e2e/anagrafica-offerte.spec.ts\n13\t4\ttests/e2e/demo__anagrafica-collaboratori.spec.ts\n7\t2\ttests/e2e/gestione-offerte.spec.ts\n99\t13\ttests/e2e/support/factory.ts\n6\t3\ttests/e2e/support/report-data.ts\n286\t0\ttests/e2e/tariffe-validita-nel-tempo.spec.ts\n0\t1\ttests/unit/attivita-calendario-route.test.ts\n0\t1\ttests/unit/attivita-giornata-routes.test.ts\n0\t18\ttests/unit/attivita.test.ts\n40\t0\ttests/unit/avanzamento-offerte.test.ts\n43\t22\ttests/unit/collaboratori-dal-actions.test.ts\n0\t2\ttests/unit/dal-guards.test.ts\n107\t5\ttests/unit/elenca-offerte-con-avanzamento.test.ts\n57\t13\ttests/unit/offerte-dal-actions.test.ts\n77\t0\ttests/unit/report-fatturazione-clienti.test.ts\n109\t0\ttests/unit/report-fatturazione-dal.test.ts\n121\t0\ttests/unit/riepilogo-mese-dal.test.ts\n72\t3\ttests/unit/riepilogo-mese.test.ts\n0\t1\ttests/unit/righe-attivita-actions.test.ts\n562\t0\ttests/unit/tariffe-dal-actions.test.ts\n301\t0\ttests/unit/tariffe-dominio.test.ts\n21\t3\ttests/unit/utenti-actions.test.ts\n31\t39\ttests/unit/valida-collaboratore.test.ts\n22\t0\ttests/unit/valida-offerta.test.ts",
+    "baseline": "86a9667e4ba7c80abc72f8ec1972f31b1a14cfa4",
+    "head": "71bd9b995c4bd864721f7379163cb1bab14ba27d"
+  },
+  {
+    "task": "T4",
+    "moduli_toccati": [
+      "src/domain/consuntivi",
+      "tests/e2e",
+      "tests/unit"
+    ],
+    "numero_moduli": 3,
+    "funzioni_esistenti_modificate": [
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "calcolaRiepilogoMese"
+      },
+      {
+        "file": "src/domain/consuntivi/index.ts",
+        "funzione": "calcolaAvanzamentoOfferte"
+      }
+    ],
+    "numero_call_site": 2,
+    "nuove_funzioni": [
+      {
+        "file": "tests/e2e/giornate-frazionarie-coerenti.spec.ts",
+        "funzione": "dataDb"
+      },
+      {
+        "file": "tests/e2e/giornate-frazionarie-coerenti.spec.ts",
+        "funzione": "testoLetterale"
+      },
+      {
+        "file": "tests/e2e/giornate-frazionarie-coerenti.spec.ts",
+        "funzione": "indicatore"
+      },
+      {
+        "file": "tests/e2e/giornate-frazionarie-coerenti.spec.ts",
+        "funzione": "apriRiepilogo"
+      },
+      {
+        "file": "tests/unit/giornate-frazionarie-coerenti.test.ts",
+        "funzione": "rigaRiepilogo"
+      },
+      {
+        "file": "tests/unit/giornate-frazionarie-coerenti.test.ts",
+        "funzione": "rigaReport"
+      },
+      {
+        "file": "tests/unit/giornate-frazionarie-coerenti.test.ts",
+        "funzione": "rigaAvanzamento"
+      }
+    ],
+    "migrazione": "nessuna",
+    "concorrenza_richiesta": false,
+    "test_unit_baseline_che_falliscono": 0,
+    "test_unit_baseline_totali": 698,
+    "test_esistenti_modificati": [],
+    "wiki_disponibile": [],
+    "test_unit_disponibili": [
+      "tests/unit/elenca-offerte-con-avanzamento.test.ts"
+    ],
+    "informazione_nascosta": "posizione da scoprire",
+    "diff_numstat": "9\t15\tsrc/domain/consuntivi/index.ts\n145\t0\ttests/e2e/giornate-frazionarie-coerenti.spec.ts\n199\t0\ttests/unit/giornate-frazionarie-coerenti.test.ts",
+    "baseline": "77d144c7ef50a12753378bcea695b6ea40add62a",
+    "head": "cda5e2bbcd82fcf28b7cc12b2554b9f0c878647a"
+  }
+]

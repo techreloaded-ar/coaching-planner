@@ -1,0 +1,108 @@
+{
+  "sd_pooled": 0.7749193506423736,
+  "soglia_entro_il_rumore": 1.5498387012847472,
+  "rumore_stesso_adattatore": [
+    {
+      "prova": "R-DIR-opus-r1",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-sonnet-r1",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-sonnet-r1",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-sonnet-r5",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-opus-r5",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-sonnet-r3",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-opus-r4",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-sonnet-r3",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-sonnet-r2",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-sonnet-r4",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-opus-r2",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-opus-r1",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-opus-r5",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-opus-r3",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-sonnet-r2",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-opus-r2",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-sonnet-r4",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-opus-r3",
+      "range": 0.0
+    },
+    {
+      "prova": "R-COM-sonnet-r5",
+      "range": 0.0
+    },
+    {
+      "prova": "R-DIR-opus-r4",
+      "range": 0.0
+    }
+  ],
+  "rumore_due_adattatori": [
+    {
+      "prova": "R-DIR-opus-r1",
+      "delta": 0.0,
+      "range_secondo": 0.0
+    },
+    {
+      "prova": "R-DIR-sonnet-r1",
+      "delta": 0.0,
+      "range_secondo": 0.0
+    },
+    {
+      "prova": "R-COM-sonnet-r1",
+      "delta": 0.0,
+      "range_secondo": 0.0
+    },
+    {
+      "prova": "R-COM-opus-r5",
+      "delta": 0.0,
+      "range_secondo": 0.0
+    }
+  ]
+}

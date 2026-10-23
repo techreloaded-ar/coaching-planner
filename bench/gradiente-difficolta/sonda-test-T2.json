@@ -1,0 +1,11 @@
+{
+  "task": "T2",
+  "head_riferimento": "591a4719fd4fbfbb81bb11e9711bcbeddec4dacc",
+  "exit_code_atteso_nonzero_se_regressioni": 0,
+  "test_unit_baseline_totali": 727,
+  "test_unit_baseline_falliti": 0,
+  "suite_unit_baseline_fallite": 0,
+  "casi_falliti": [],
+  "file_falliti": [],
+  "metodo": "Unit test originali della baseline eseguiti contro codice del riferimento, in clone e Postgres dedicati. Non è un oracolo funzionale e non determina punteggi."
+}

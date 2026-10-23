@@ -1,0 +1,115 @@
+{
+  "baseline_sha": "157ea55367ec940b464d9ad2c64789b73535b463",
+  "seme": 2026102203,
+  "ordine_compiti": [
+    "T3",
+    "T1"
+  ],
+  "effort": "medium",
+  "models": {
+    "sonnet": "sonnet",
+    "opus": "opus"
+  },
+  "budget_usd_per_phase": {
+    "sonnet": 25,
+    "opus": 60
+  },
+  "budget_usd": 121.1195528,
+  "budget_preparazione_usd": 120,
+  "variante_spec": "V0",
+  "pavimento_rumore": {
+    "sd_pooled": 0.7749193506423736,
+    "soglia_due_sd": 1.5498387012847472,
+    "fonte": "bench/reports/pavimento-rumore/dati.json",
+    "limite": "un solo compito: chiusura mese"
+  },
+  "conferma_40_prove": false,
+  "max_rework_per_storia": 1,
+  "runs": [
+    {
+      "id": "G-T3-COM-sonnet-r2",
+      "task": "T3",
+      "config": "COM",
+      "model": "sonnet",
+      "replica": 2
+    },
+    {
+      "id": "G-T3-DIR-sonnet-r2",
+      "task": "T3",
+      "config": "DIR",
+      "model": "sonnet",
+      "replica": 2
+    },
+    {
+      "id": "G-T3-COM-sonnet-r1",
+      "task": "T3",
+      "config": "COM",
+      "model": "sonnet",
+      "replica": 1
+    },
+    {
+      "id": "G-T3-DIR-sonnet-r1",
+      "task": "T3",
+      "config": "DIR",
+      "model": "sonnet",
+      "replica": 1
+    },
+    {
+      "id": "G-T1-DIR-sonnet-r2",
+      "task": "T1",
+      "config": "DIR",
+      "model": "sonnet",
+      "replica": 2
+    },
+    {
+      "id": "G-T1-DIR-sonnet-r1",
+      "task": "T1",
+      "config": "DIR",
+      "model": "sonnet",
+      "replica": 1
+    },
+    {
+      "id": "G-T1-COM-sonnet-r2",
+      "task": "T1",
+      "config": "COM",
+      "model": "sonnet",
+      "replica": 2
+    },
+    {
+      "id": "G-T1-COM-sonnet-r1",
+      "task": "T1",
+      "config": "COM",
+      "model": "sonnet",
+      "replica": 1
+    }
+  ],
+  "motivazione_variante_spec": "Report 6: V1 adottabile, nessuna adozione registrata; skill installata baseline. Fallback V0 richiesto dal prompt.",
+  "hash_skills_base": {
+    ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+    ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+  },
+  "ambiente": {
+    "server_timezone": "UTC",
+    "browser_oracolo_timezone": "Europe/Rome",
+    "browser_oracolo_locale": "it-IT",
+    "motivazione": "Server nello stesso fuso della CI; fuso browser esplicito per i casi cambio ora. Decisione prima di ogni prova sperimentale."
+  },
+  "protocollo": "ridotto-8",
+  "conferma_8_prove": true,
+  "budget_aggiuntivo_usd": 80,
+  "costo_al_cambio_scope_usd": 41.119552799999994,
+  "letture_oracolo": 1,
+  "tecnica": "metriche automatiche, nessun punteggio tecnico /100, nessun mutation testing o giudice tecnico",
+  "repliche_per_cella": 2,
+  "compiti_esclusi": [
+    "T2",
+    "T4"
+  ],
+  "modelli_sviluppo": [
+    "sonnet"
+  ],
+  "conferma_umana": {
+    "data": "2026-10-23T08:28:16.580284+02:00",
+    "messaggio": "ok, direi di proseguire con il set ridotto, quello composto da solo 8 prove"
+  }
+}

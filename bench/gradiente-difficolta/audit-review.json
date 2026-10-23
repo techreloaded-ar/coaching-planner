@@ -1,0 +1,132 @@
+{
+  "ambito": "Tool call degli stream principali delle review valide; una lettura non dimostra da sola una valutazione statica completa. Nessuna review viene ripetuta per correggerne il metodo.",
+  "review": [
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-060-review-1",
+      "verdetto": "CHANGES_REQUESTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-060-review-2",
+      "verdetto": "LEFT_IN_REVIEW",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-061-review-1",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [
+        {
+          "tool": "Bash",
+          "input": {
+            "command": "ls docs/test-results/US-061/*; git status --short; grep -n \"e2e\\|test:e2e\" package.json | head -5; grep -n \"playwright\\|e2e\" .github/workflows/ci.yml | head"
+          }
+        }
+      ],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-062-review-1",
+      "verdetto": "CHANGES_REQUESTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-062-review-2",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "fase": "US-063-review-1",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [
+        {
+          "tool": "Bash",
+          "input": {
+            "command": "cat .github/workflows/ci.yml | grep -E \"run:|name:\" ; (npm run lint 2>&1 | tail -8; npx tsc --noEmit 2>&1 | tail -5; npx vitest run 2>&1 | tail -8)",
+            "timeout": 600000
+          }
+        }
+      ],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-060-review-1",
+      "verdetto": "CHANGES_REQUESTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-060-review-2",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-061-review-1",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-062-review-1",
+      "verdetto": "CHANGES_REQUESTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-062-review-2",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "fase": "US-063-review-1",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "fase": "US-060-review-1",
+      "verdetto": "LEFT_IN_REVIEW",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "fase": "US-061-review-1",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "fase": "US-060-review-1",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "fase": "US-061-review-1",
+      "verdetto": "ACCEPTED",
+      "letture_workflow_ci_osservate": [],
+      "comandi_github_osservati": []
+    }
+  ]
+}

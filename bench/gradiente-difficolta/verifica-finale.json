@@ -1,0 +1,88 @@
+{
+  "data": "2026-10-23T11:13:44.786578+00:00",
+  "protocollo": "ridotto-8",
+  "valutazioni_valide": 8,
+  "fasi_valide": 52,
+  "storie_requisiti_invariati": 24,
+  "audit_integrita_ok": true,
+  "sessioni_costo_non_attestato": {},
+  "totale_usd": 92.8518091,
+  "aggiuntivi_usd": 51.732256299999996,
+  "test_banco_passati": 20,
+  "test_storici_passati": 16,
+  "lint_root": "Passato dopo le modifiche e2e; warning preesistenti, nessun errore.",
+  "py_compile": "passato",
+  "diff_check": {
+    "esito": "passato per codice e documenti, esclusi i contenuti delle patch archiviate; blank-at-eof non bloccante",
+    "comando": [
+      "git",
+      "-c",
+      "core.whitespace=-blank-at-eof",
+      "diff",
+      "--cached",
+      "--check",
+      "--",
+      ".",
+      ":(exclude)bench/gradiente-difficolta/*.patch"
+    ],
+    "eccezioni_integrali": [
+      "bench/gradiente-difficolta/correzione-date-concorrenza.patch",
+      "bench/gradiente-difficolta/difetto-T4.patch",
+      "bench/gradiente-difficolta/oracoli/shared/date-oracolo.ts",
+      "bench/gradiente-difficolta/riferimento-T1.patch",
+      "bench/gradiente-difficolta/riferimento-T2.patch",
+      "bench/gradiente-difficolta/riferimento-T3.patch",
+      "bench/gradiente-difficolta/riferimento-T4.patch"
+    ],
+    "log_integrale": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/qa/diff-check-integrale.log",
+    "motivo": "Le patch contengono marker/context con spazi e tab originali; date-oracolo.ts ha una riga vuota finale. Conservati byte e hash congelati, nessuna riformattazione post hoc degli oracoli."
+  },
+  "qa": [
+    {
+      "file": "index.html",
+      "width": 1440,
+      "filters": null,
+      "overflow": 0,
+      "errors": []
+    },
+    {
+      "file": "index.html",
+      "width": 390,
+      "filters": null,
+      "overflow": 0,
+      "errors": []
+    },
+    {
+      "file": "reports/gradiente-difficolta/report.html",
+      "width": 1440,
+      "filters": {
+        "all": 8,
+        "task": 4,
+        "arm": 2
+      },
+      "overflow": 0,
+      "errors": []
+    },
+    {
+      "file": "reports/gradiente-difficolta/report.html",
+      "width": 390,
+      "filters": {
+        "all": 8,
+        "task": 4,
+        "arm": 2
+      },
+      "overflow": 0,
+      "errors": []
+    }
+  ],
+  "evidenze_visive": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/qa",
+  "sha256": {
+    "bench/index.html": "eb5bb336d7abe742bf7744615cb7101709e5bf6823c3d0fad9addeb4afec15e8",
+    "bench/reports/gradiente-difficolta/report.html": "22f32d3f845efabd9b08fcfea884d4d780ded91df1024e642b0a3638e9351220",
+    "bench/reports/gradiente-difficolta/dati.json": "921592e1e061912f436b17c174f4ca56c0911dbe3106f99650f11216904b34f6",
+    "bench/gradiente-difficolta/audit-ridotto.json": "4895b0a92866c36c667ce3c9e4eb7e25bd35ee880fbfb88bc6828a1dea25211b",
+    "bench/gradiente-difficolta/audit-storie.json": "0cab91e0db15bde617fadf58d9c2ea5dc642d6fdb725ad7964f6440399dfa800",
+    "bench/gradiente-difficolta/audit-adattatori.json": "9f76d6a38ecb452a69c08efb02179af4021810adba20d6ac74d28175e96e4da1"
+  },
+  "nota": "L’audit positivo attesta integrità e contabilità; non sana i limiti del committente simulato o le omissioni delle review. H3 integrale non verificabile. Non sono state eseguite altre consegne."
+}

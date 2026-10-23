@@ -1,0 +1,1547 @@
+{
+  "ok": true,
+  "esperimenti_avviati": 0,
+  "hash_oracoli": "87e28a4880de1daec6a50c5e8efb91daa065345ef3222d55fbefa68cedc0a898",
+  "evidenze": {
+    "T1": {
+      "riferimento": {
+        "repo": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T1/repo",
+        "baseline": "a1e14cc7e468679d55bdd0e9a37c049c5c310b14",
+        "head": "92d2c031ead6c19051368e3784ac7bbd3f5f564c",
+        "tree": "4f685a61b46d53f54c622177e8e95495301c0bed",
+        "correzione": "Facoltatività indipendente dei tre campi; gate e2e di stabilità completato"
+      },
+      "taratura": {
+        "task": "T1",
+        "baseline": "main",
+        "passi": {
+          "build": 0,
+          "installa": 0,
+          "typecheck": 0,
+          "integrazione": 1,
+          "browser": 1
+        },
+        "controlli": {
+          "R1": {
+            "area": "referente",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[referente] R1 creazione cliente con referente completo e lettura dei tre valori",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at creaComeAmministratore (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:79:14\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "R2": {
+            "area": "referente",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[referente] R2 cliente senza referente resta valido",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at creaComeAmministratore (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:88:14\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "R3": {
+            "area": "referente",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[referente] R3 nome, email e telefono salvabili separatamente",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at creaComeAmministratore (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:96:20\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "R4": {
+            "area": "referente",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[referente] R4 modifica referente esistente persiste",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at clienteConReferente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:113:14\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "R5": {
+            "area": "referente",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[referente] R5 rimozione dei tre campi ripristina assenza referente",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at clienteConReferente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:124:14\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "V1": {
+            "area": "validazione",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[validazione] V1 email malformata rifiutata senza scrittura",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at clienteConReferente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:138:14\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "V2": {
+            "area": "validazione",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[validazione] V2 telefono malformato rifiutato senza scrittura",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at clienteConReferente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:150:14\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "V3": {
+            "area": "validazione",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[validazione] V3 nome composto solo da spazi trattato come assente",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at creaComeAmministratore (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:162:14\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "V4": {
+            "area": "validazione",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[validazione] V4 email con plus e sottodominio accettata",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at creaComeAmministratore (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:53:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:171:14\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "A1": {
+            "area": "autorizzazioni",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[autorizzazioni] A1 collaboratore non modifica referente",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at clienteConReferente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:8)\n    at tentativoDa (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:182:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:194:3\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "A2": {
+            "area": "autorizzazioni",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[autorizzazioni] A2 utente anonimo non modifica referente",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at clienteConReferente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:8)\n    at tentativoDa (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:182:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:198:3\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "A3": {
+            "area": "autorizzazioni",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[autorizzazioni] A3 cliente non modifica referente",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:31\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at clienteConReferente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:62:8)\n    at tentativoDa (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:182:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:202:3\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "P3": {
+            "area": "persistenza",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[persistenza] P3 report fatturazione invariato prima/dopo inserimento referente",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:224:34\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "P4": {
+            "area": "persistenza",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[persistenza] P4 anagrafica cliente esistente senza referente leggibile",
+            "errore": "NonImplementato: baseline: referente del cliente assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/adattatore/integrazione.ts:7:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/__oracolo__/integrazione.test.ts:238:34\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T1/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "S1": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S1 referente completo nel dettaglio cliente",
+            "errore": "NonImplementato: baseline: referente del cliente assente"
+          },
+          "S2": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S2 referente visibile in elenco clienti",
+            "errore": "NonImplementato: baseline: referente del cliente assente"
+          },
+          "S3": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S3 referente nell'intestazione cliente del report fatturazione",
+            "errore": "NonImplementato: baseline: referente del cliente assente"
+          },
+          "S4": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S4 amministratore modifica il referente tramite form",
+            "errore": "NonImplementato: baseline: referente del cliente assente"
+          },
+          "U1": {
+            "area": "interfaccia",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[interfaccia] U1 form e dettaglio fruibili a 390 px senza overflow",
+            "errore": "NonImplementato: baseline: referente del cliente assente"
+          },
+          "U2": {
+            "area": "interfaccia",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[interfaccia] U2 report fruibile a 1440 px senza errori JavaScript",
+            "errore": "NonImplementato: baseline: referente del cliente assente"
+          },
+          "U3": {
+            "area": "interfaccia",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[interfaccia] U3 errore email chiaro nel form",
+            "errore": "NonImplementato: baseline: referente del cliente assente"
+          },
+          "U4": {
+            "area": "interfaccia",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[interfaccia] U4 nessun controllo modifica referente per non amministratore",
+            "errore": "NonImplementato: baseline: referente del cliente assente"
+          }
+        },
+        "codici_attesi": [
+          "A1",
+          "A2",
+          "A3",
+          "P3",
+          "P4",
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5",
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "U1",
+          "U2",
+          "U3",
+          "U4",
+          "V1",
+          "V2",
+          "V3",
+          "V4"
+        ],
+        "fallimenti_attesi": [
+          "A1",
+          "A2",
+          "A3",
+          "P3",
+          "P4",
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5",
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "U1",
+          "U2",
+          "U3",
+          "U4",
+          "V1",
+          "V2",
+          "V3",
+          "V4"
+        ],
+        "fallimenti_osservati": [
+          "A1",
+          "A2",
+          "A3",
+          "P3",
+          "P4",
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5",
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "U1",
+          "U2",
+          "U3",
+          "U4",
+          "V1",
+          "V2",
+          "V3",
+          "V4"
+        ],
+        "mancanti": [],
+        "ok": true
+      },
+      "adattatore": {
+        "task": "T1",
+        "taratura_statica": true,
+        "source_tree": "4f685a61b46d53f54c622177e8e95495301c0bed",
+        "source_head": "92d2c031ead6c19051368e3784ac7bbd3f5f564c",
+        "adattatore": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T1/adattatore",
+        "typecheck_ok": true,
+        "eseguito": false
+      },
+      "chiarimento": {
+        "codes": [
+          "US-060",
+          "US-061"
+        ],
+        "head": "b43d4d637f2be23fa34eedffeb7510bfb8fff219",
+        "copertura": {
+          "temi": {
+            "campi_facoltativi": 2,
+            "nome": 2,
+            "email": 2,
+            "telefono": 2,
+            "dettaglio": 2,
+            "elenco": 1,
+            "fatturazione": 2,
+            "ruoli": 0,
+            "modifica": 2,
+            "calcoli": 2,
+            "compatibilita": 2
+          },
+          "punteggio": 86.36363636363636,
+          "accordo": 0.9090909090909091,
+          "controlli": {
+            "R1": 2,
+            "R2": 2,
+            "R3": 2,
+            "R4": 2,
+            "R5": 2,
+            "V1": 2,
+            "V2": 2,
+            "V3": 2,
+            "V4": 1,
+            "A1": 0,
+            "A2": 0,
+            "A3": 0,
+            "S1": 2,
+            "S2": 1,
+            "S3": 2,
+            "S4": 2,
+            "P1": 1,
+            "P2": 0,
+            "P3": 2,
+            "P4": 2,
+            "U1": 0,
+            "U2": 0,
+            "U3": 2,
+            "U4": 0
+          }
+        }
+      }
+    },
+    "T2": {
+      "riferimento": {
+        "repo": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T2/repo",
+        "baseline": "5eb723c0e9f92f89e92164f41d350fb11b81a8f2",
+        "head": "591a4719fd4fbfbb81bb11e9711bcbeddec4dacc",
+        "tree": "47893fa3e6c15e1bd99d09b3cc703d5600c7941f"
+      },
+      "taratura": {
+        "task": "T2",
+        "baseline": "main",
+        "passi": {
+          "build": 0,
+          "installa": 0,
+          "typecheck": 0,
+          "integrazione": 1,
+          "browser": 1
+        },
+        "controlli": {
+          "R1": {
+            "area": "ricavi",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[ricavi] R1 8 ore fatturabili × tariffa offerta 640 = 640",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:88:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "R2": {
+            "area": "ricavi",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[ricavi] R2 4 ore fatturabili × tariffa offerta 640 = 320",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:97:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "R3": {
+            "area": "ricavi",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[ricavi] R3 riga non fatturabile non genera ricavo",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:105:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "R4": {
+            "area": "ricavi",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[ricavi] R4 rimborsi trasferta esclusi dai ricavi",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:114:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "C1": {
+            "area": "costi",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[costi] C1 8 ore × tariffa collaboratore 400 = 400",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:125:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "C2": {
+            "area": "costi",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[costi] C2 4 ore non fatturabili generano costo 200",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:134:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "C3": {
+            "area": "costi",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[costi] C3 rimborsi esclusi dai costi",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:144:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "C4": {
+            "area": "costi",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[costi] C4 due collaboratori con tariffe differenti sono distinti",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:154:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "M1": {
+            "area": "margini",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[margini] M1 ricavo 640 e costo 400 producono margine 240 e 37,5 %",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:171:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "M2": {
+            "area": "margini",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[margini] M2 ricavo zero e costo positivo producono perdita, percentuale non infinita",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:183:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "M3": {
+            "area": "margini",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[margini] M3 totali cliente, offerta e collaboratore riconciliano",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:204:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "D1": {
+            "area": "periodo",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[periodo] D1 mese iniziale e finale inclusi, mesi adiacenti esclusi",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:247:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "D2": {
+            "area": "periodo",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[periodo] D2 periodo a cavallo anno corretto",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:260:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "D3": {
+            "area": "periodo",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[periodo] D3 periodo invertito rifiutato",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:271:46\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:271:23\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "A1": {
+            "area": "autorizzazioni",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[autorizzazioni] A1 collaboratore non accede al report",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:287:46\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at accessoNegato (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:287:23)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:297:3\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "A2": {
+            "area": "autorizzazioni",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[autorizzazioni] A2 cliente non accede al report",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:287:46\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at accessoNegato (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:287:23)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:301:3\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "A3": {
+            "area": "autorizzazioni",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[autorizzazioni] A3 anonimo non accede al report",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:287:46\n    at tenta (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/shared/integrazione.ts:55:16)\n    at accessoNegato (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:287:23)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:305:3\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "P1": {
+            "area": "persistenza",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[persistenza] P1 lettura report non muta database né schema",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at report (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:60:33)\n    at voceCliente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:66:16)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:318:16\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "P2": {
+            "area": "persistenza",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[persistenza] P2 ricavi uguali alla manodopera fatturazione sullo stesso periodo",
+            "errore": "NonImplementato: baseline: report di marginalità assente\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/adattatore/integrazione.ts:6:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/__oracolo__/integrazione.test.ts:339:40\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T2/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "S1": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S1 report mostra cliente, offerte e collaboratori con importi",
+            "errore": "NonImplementato: baseline: report di marginalità assente"
+          },
+          "S2": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S2 report raggiungibile dal back-office amministratore",
+            "errore": "NonImplementato: baseline: report di marginalità assente"
+          },
+          "S3": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S3 filtro mese iniziale e finale modifica il risultato",
+            "errore": "NonImplementato: baseline: report di marginalità assente"
+          },
+          "U1": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] U1 report fruibile a 390 px senza overflow pagina",
+            "errore": "NonImplementato: baseline: report di marginalità assente"
+          },
+          "U2": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] U2 report fruibile a 1440 px senza errori JavaScript",
+            "errore": "NonImplementato: baseline: report di marginalità assente"
+          }
+        },
+        "codici_attesi": [
+          "A1",
+          "A2",
+          "A3",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "D1",
+          "D2",
+          "D3",
+          "M1",
+          "M2",
+          "M3",
+          "P1",
+          "P2",
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "S1",
+          "S2",
+          "S3",
+          "U1",
+          "U2"
+        ],
+        "fallimenti_attesi": [
+          "A1",
+          "A2",
+          "A3",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "D1",
+          "D2",
+          "D3",
+          "M1",
+          "M2",
+          "M3",
+          "P1",
+          "P2",
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "S1",
+          "S2",
+          "S3",
+          "U1",
+          "U2"
+        ],
+        "fallimenti_osservati": [
+          "A1",
+          "A2",
+          "A3",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "D1",
+          "D2",
+          "D3",
+          "M1",
+          "M2",
+          "M3",
+          "P1",
+          "P2",
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "S1",
+          "S2",
+          "S3",
+          "U1",
+          "U2"
+        ],
+        "mancanti": [],
+        "ok": true
+      },
+      "adattatore": {
+        "task": "T2",
+        "taratura_statica": true,
+        "source_tree": "47893fa3e6c15e1bd99d09b3cc703d5600c7941f",
+        "source_head": "591a4719fd4fbfbb81bb11e9711bcbeddec4dacc",
+        "adattatore": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T2/adattatore",
+        "typecheck_ok": true,
+        "eseguito": false
+      },
+      "chiarimento": {
+        "codes": [
+          "US-060",
+          "US-061",
+          "US-062"
+        ],
+        "head": "30ba57eeb26d7b241988b411800d0cf28840762f",
+        "copertura": {
+          "temi": {
+            "decisione_prd": 0,
+            "ricavi": 2,
+            "costi": 2,
+            "non_fatturabili": 2,
+            "trasferte": 2,
+            "margini": 2,
+            "periodo": 2,
+            "dettaglio": 2,
+            "conversione": 1,
+            "ruoli_scritture": 1,
+            "coerenza": 2
+          },
+          "punteggio": 81.81818181818183,
+          "accordo": 0.9090909090909091,
+          "controlli": {
+            "R1": 2,
+            "R2": 1,
+            "R3": 2,
+            "R4": 2,
+            "C1": 2,
+            "C2": 2,
+            "C3": 2,
+            "C4": 2,
+            "M1": 2,
+            "M2": 2,
+            "M3": 2,
+            "D1": 2,
+            "D2": 0,
+            "D3": 2,
+            "A1": 2,
+            "A2": 2,
+            "A3": 1,
+            "S1": 2,
+            "S2": 2,
+            "S3": 2,
+            "U1": 0,
+            "U2": 0,
+            "P1": 0,
+            "P2": 2
+          }
+        }
+      }
+    },
+    "T3": {
+      "riferimento": {
+        "repo": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T3/repo",
+        "baseline": "86a9667e4ba7c80abc72f8ec1972f31b1a14cfa4",
+        "head": "71bd9b995c4bd864721f7379163cb1bab14ba27d",
+        "tree": "c780fa5eae9a9557c62d4c8c89fbe6982e679a9a"
+      },
+      "taratura": {
+        "task": "T3",
+        "baseline": "main",
+        "passi": {
+          "build": 0,
+          "installa": 0,
+          "typecheck": 0,
+          "integrazione": 1,
+          "browser": 1
+        },
+        "controlli": {
+          "V1": {
+            "area": "validita",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[validita] V1 nuova tariffa offerta futura inseribile anticipatamente",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at offertaCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:39:43)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:99:13\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "V2": {
+            "area": "validita",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[validita] V2 nuova tariffa collaboratore futura inseribile anticipatamente",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:109:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "V3": {
+            "area": "validita",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[validita] V3 ultima tariffa correggibile senza mutare validità anteriori",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at offertaCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:39:43)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:119:13\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "V4": {
+            "area": "validita",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[validita] V4 seconda tariffa stessa decorrenza rifiutata",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:132:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "V5": {
+            "area": "validita",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[validita] V5 nessun buco tra validità consecutive, precedente aperta fino a successiva",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at offertaCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:39:43)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:142:13\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "C1": {
+            "area": "calcoli",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[calcoli] C1 riepilogo personale applica tariffa alla data riga",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:158:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "C2": {
+            "area": "calcoli",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[calcoli] C2 report cliente applica tariffa offerta alla data riga",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:173:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "C3": {
+            "area": "calcoli",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[calcoli] C3 avanzamento offerte mantiene importi e giornate corretti",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:189:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "C4": {
+            "area": "calcoli",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[calcoli] C4 giorno precedente e giorno di decorrenza usano tariffe diverse",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:216:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "C5": {
+            "area": "calcoli",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[calcoli] C5 riga retrodatata usa tariffa storica anche inserita oggi",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:235:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "C6": {
+            "area": "calcoli",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[calcoli] C6 tariffa futura non cambia il mese corrente o passato",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:262:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "N1": {
+            "area": "concorrenza",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[concorrenza] N1 due inserimenti concorrenti stessa offerta non sovrappongono validità",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at offertaCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:39:43)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:324:13\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "N2": {
+            "area": "concorrenza",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[concorrenza] N2 due inserimenti concorrenti stesso collaboratore non sovrappongono validità",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:329:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "A1": {
+            "area": "autorizzazioni",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[autorizzazioni] A1 non amministratore non inserisce/corregge tariffe",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at collaboratoreCon (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:34:14)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/integrazione.test.ts:338:19\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          },
+          "S1": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S1 form offerta esistente continua a creare/modificare offerte",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti"
+          },
+          "S2": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S2 form collaboratore esistente continua a funzionare",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti"
+          },
+          "S3": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] S3 amministratore pianifica tariffa futura tramite UI",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti"
+          },
+          "U1": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] U1 gestione tariffe a 390 px senza overflow pagina",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti"
+          },
+          "U2": {
+            "area": "visibilita",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[visibilita] U2 report a 1440 px senza errori JavaScript",
+            "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti"
+          }
+        },
+        "codici_attesi": [
+          "A1",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "N1",
+          "N2",
+          "S1",
+          "S2",
+          "S3",
+          "U1",
+          "U2",
+          "V1",
+          "V2",
+          "V3",
+          "V4",
+          "V5"
+        ],
+        "fallimenti_attesi": [
+          "A1",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "N1",
+          "N2",
+          "S1",
+          "S2",
+          "S3",
+          "U1",
+          "U2",
+          "V1",
+          "V2",
+          "V3",
+          "V4",
+          "V5"
+        ],
+        "fallimenti_osservati": [
+          "A1",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "N1",
+          "N2",
+          "S1",
+          "S2",
+          "S3",
+          "U1",
+          "U2",
+          "V1",
+          "V2",
+          "V3",
+          "V4",
+          "V5"
+        ],
+        "mancanti": [],
+        "ok": true
+      },
+      "adattatore": {
+        "task": "T3",
+        "taratura_statica": true,
+        "source_tree": "c780fa5eae9a9557c62d4c8c89fbe6982e679a9a",
+        "source_head": "71bd9b995c4bd864721f7379163cb1bab14ba27d",
+        "adattatore": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T3/adattatore",
+        "typecheck_ok": true,
+        "eseguito": false
+      },
+      "chiarimento": {
+        "codes": [
+          "US-060",
+          "US-061",
+          "US-062",
+          "US-063"
+        ],
+        "head": "c03d75133d49f95ad78c02d8b8ede706896da0d0",
+        "copertura": {
+          "temi": {
+            "offerte": 2,
+            "collaboratori": 2,
+            "data_riga": 2,
+            "calcoli": 1,
+            "future": 2,
+            "correzione": 2,
+            "sovrapposizioni": 2,
+            "buchi": 2,
+            "concorrenza": 0,
+            "migrazione": 2,
+            "compatibilita_ruoli": 1
+          },
+          "punteggio": 81.81818181818183,
+          "accordo": 1.0,
+          "controlli": {
+            "V1": 2,
+            "V2": 2,
+            "V3": 2,
+            "V4": 2,
+            "V5": 2,
+            "C1": 2,
+            "C2": 2,
+            "C3": 1,
+            "C4": 2,
+            "C5": 1,
+            "C6": 2,
+            "M1": 2,
+            "M2": 2,
+            "M3": 0,
+            "N1": 0,
+            "N2": 0,
+            "A1": 1,
+            "P1": 1,
+            "P2": 0,
+            "S1": 1,
+            "S2": 1,
+            "S3": 2,
+            "U1": 0,
+            "U2": 0
+          }
+        }
+      }
+    },
+    "T4": {
+      "riferimento": {
+        "repo": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T4/repo",
+        "baseline": "77d144c7ef50a12753378bcea695b6ea40add62a",
+        "head": "cda5e2bbcd82fcf28b7cc12b2554b9f0c878647a",
+        "tree": "0cc794edb504b8883aa3e9e2fc189876ff77723d"
+      },
+      "taratura": {
+        "task": "T4",
+        "baseline": "difettosa",
+        "passi": {
+          "build": 0,
+          "installa": 0,
+          "typecheck": 0,
+          "integrazione": 1,
+          "browser": 1
+        },
+        "controlli": {
+          "S1": {
+            "area": "sintomo",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[sintomo] S1 3+3 ore fatturabili producono 0,75 giornate e imponibile 300 a tariffa 400",
+            "errore": "AssertionError: expected 0.74 to be close to 0.75, received difference is 0.010000000000000009, but expected 5e-10\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/__oracolo__/integrazione.test.ts:87:33\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "S2": {
+            "area": "sintomo",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[sintomo] S2 0,25+0,25 ore mantengono precisione senza troncamento per riga",
+            "errore": "AssertionError: expected 0.06 to be close to 0.0625, received difference is 0.0025000000000000022, but expected 5e-10\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/__oracolo__/integrazione.test.ts:100:33\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "S3": {
+            "area": "sintomo",
+            "ok": true,
+            "origine": "integrazione",
+            "titolo": "[sintomo] S3 8 ore intere conservano 1 giornata",
+            "errore": ""
+          },
+          "S4": {
+            "area": "sintomo",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[sintomo] S4 righe non fatturabili aumentano giornate totali, non imponibile",
+            "errore": "AssertionError: expected 0.74 to be close to 0.75, received difference is 0.010000000000000009, but expected 5e-10\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/__oracolo__/integrazione.test.ts:124:28\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "S5": {
+            "area": "sintomo",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[sintomo] S5 rimborsi aggiunti invariati anche per righe non fatturabili",
+            "errore": "AssertionError: expected 148 to be close to 150, received difference is 2, but expected 5e-10\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/__oracolo__/integrazione.test.ts:138:34\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "S6": {
+            "area": "sintomo",
+            "ok": true,
+            "origine": "integrazione",
+            "titolo": "[sintomo] S6 mese senza righe restituisce zero ore, zero giornate e zero importo",
+            "errore": ""
+          },
+          "F1": {
+            "area": "famiglia",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[famiglia] F1 avanzamento offerte: 3+3 ore = 0,75 giornate",
+            "errore": "AssertionError: expected 0.74 to be close to 0.75, received difference is 0.010000000000000009, but expected 5e-10\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/__oracolo__/integrazione.test.ts:167:29\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "F2": {
+            "area": "famiglia",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[famiglia] F2 avanzamento offerte: residuo e percentuale coerenti",
+            "errore": "AssertionError: expected 0.74 to be close to 0.75, received difference is 0.010000000000000009, but expected 5e-10\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/__oracolo__/integrazione.test.ts:180:29\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "F3": {
+            "area": "famiglia",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[famiglia] F3 matrice mensile e totali avanzamento riconciliano",
+            "errore": "AssertionError: expected 1.17 to be close to 1.1875, received difference is 0.01750000000000007, but expected 5e-10\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/__oracolo__/integrazione.test.ts:202:34\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "F4": {
+            "area": "famiglia",
+            "ok": false,
+            "origine": "integrazione",
+            "titolo": "[famiglia] F4 più offerte e collaboratori non perdono frazioni",
+            "errore": "AssertionError: expected 0.74 to be close to 0.75, received difference is 0.010000000000000009, but expected 5e-10\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/__oracolo__/integrazione.test.ts:219:59\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T4/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          },
+          "C1": {
+            "area": "causa",
+            "ok": true,
+            "origine": "integrazione",
+            "titolo": "[causa] C1 report fatturazione corretto conserva importi prima/dopo fix",
+            "errore": ""
+          },
+          "C2": {
+            "area": "causa",
+            "ok": true,
+            "origine": "integrazione",
+            "titolo": "[causa] C2 ore attività e date non riscritte per allineare i report",
+            "errore": ""
+          },
+          "C3": {
+            "area": "causa",
+            "ok": true,
+            "origine": "integrazione",
+            "titolo": "[causa] C3 righe nelle date di cambio ora restano nello stesso mese",
+            "errore": ""
+          },
+          "P1": {
+            "area": "persistenza",
+            "ok": true,
+            "origine": "integrazione",
+            "titolo": "[persistenza] P1 nessuna migrazione o modifica delle righe attività richiesta dal fix",
+            "errore": ""
+          },
+          "U1": {
+            "area": "interfaccia",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[interfaccia] U1 riepilogo mostra importi corretti per il caso 3+3 ore",
+            "errore": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('summary-importo-fattura-value')\nExpected pattern: \u001b[32m/(^|[^\\d,.])300,00(?!\\d)/\u001b[39m\nReceived string:  \u001b[31m\"€ 296,00\"\u001b[39m\nTimeout: 15000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 15000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('summary-importo-fattura-value')\u001b[22m\n\u001b[2m    34 × locator resolved to <div data-testid=\"summary-importo-fattura-value\" class=\"text-[38px] font-bold tabular-nums tracking-tight\">€ 296,00</div>\u001b[22m\n\u001b[2m       - unexpected value \"€ 296,00\"\u001b[22m\n"
+          },
+          "U2": {
+            "area": "interfaccia",
+            "ok": false,
+            "origine": "browser",
+            "titolo": "[interfaccia] U2 avanzamento mostra l'erogato corretto nel caso 3+3 ore",
+            "errore": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByTestId('contenitore-tabella-offerte').getByRole('row').filter({ hasText: 'E2E-E2E-ORACOLO-BROWSER-SPEC-TS-BROWSER-SPEC-TS-INTE-003-01067375556' }).first()\nExpected pattern: \u001b[32m/(^|[^\\d,])(0,75|0,8)(?!\\d)/\u001b[39m\nReceived string:  \u001b[31m\"E2E-E2E-ORACOLO-BROWSER-SPEC-TS-BROWSER-SPEC-TS-INTE-003-01067375556Offerta e2e E2e Oracolo Browser Spec Ts Browser Spec Ts Inte 003 01067375556ECE2E Cliente E2e Oracolo Browser Spec Ts Browser Spec Ts Inte 002 03893092212640,00 €0,7/10ggCollaboratoriModificaElimina\"\u001b[39m\nTimeout: 15000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" with timeout 15000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('contenitore-tabella-offerte').getByRole('row').filter({ hasText: 'E2E-E2E-ORACOLO-BROWSER-SPEC-TS-BROWSER-SPEC-TS-INTE-003-01067375556' }).first()\u001b[22m\n\u001b[2m    33 × locator resolved to <tr class=\"cursor-pointer border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 \">…</tr>\u001b[22m\n\u001b[2m       - unexpected value \"E2E-E2E-ORACOLO-BROWSER-SPEC-TS-BROWSER-SPEC-TS-INTE-003-01067375556Offerta e2e E2e Oracolo Browser Spec Ts Browser Spec Ts Inte 003 01067375556ECE2E Cliente E2e Oracolo Browser Spec Ts Browser Spec Ts Inte 002 03893092212640,00 €0,7/10ggCollaboratoriModificaElimina\"\u001b[22m\n"
+          },
+          "U3": {
+            "area": "interfaccia",
+            "ok": true,
+            "origine": "browser",
+            "titolo": "[interfaccia] U3 report fatturazione resta invariato",
+            "errore": ""
+          },
+          "U4": {
+            "area": "interfaccia",
+            "ok": true,
+            "origine": "browser",
+            "titolo": "[interfaccia] U4 riepilogo e avanzamento fruibili a 390 px",
+            "errore": ""
+          },
+          "U5": {
+            "area": "interfaccia",
+            "ok": true,
+            "origine": "browser",
+            "titolo": "[interfaccia] U5 pagine a 1440 px senza errori JavaScript",
+            "errore": ""
+          },
+          "U6": {
+            "area": "interfaccia",
+            "ok": true,
+            "origine": "browser",
+            "titolo": "[interfaccia] U6 isolamento collaboratori preservato",
+            "errore": ""
+          }
+        },
+        "codici_attesi": [
+          "C1",
+          "C2",
+          "C3",
+          "F1",
+          "F2",
+          "F3",
+          "F4",
+          "P1",
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S5",
+          "S6",
+          "U1",
+          "U2",
+          "U3",
+          "U4",
+          "U5",
+          "U6"
+        ],
+        "fallimenti_attesi": [
+          "F1",
+          "F2",
+          "F3",
+          "F4",
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "U1",
+          "U2"
+        ],
+        "fallimenti_osservati": [
+          "F1",
+          "F2",
+          "F3",
+          "F4",
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "U1",
+          "U2"
+        ],
+        "mancanti": [],
+        "ok": true
+      },
+      "adattatore": {
+        "task": "T4",
+        "taratura_statica": true,
+        "source_tree": "0cc794edb504b8883aa3e9e2fc189876ff77723d",
+        "source_head": "cda5e2bbcd82fcf28b7cc12b2554b9f0c878647a",
+        "adattatore": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T4/adattatore",
+        "typecheck_ok": true,
+        "eseguito": false
+      },
+      "chiarimento": {
+        "codes": [
+          "US-060"
+        ],
+        "head": "976455ea937aae606a81c4c725b8036a44334b59",
+        "copertura": {
+          "temi": {
+            "sintomi": 2,
+            "riproduzione": 2,
+            "conversione": 2,
+            "frazioni": 1,
+            "riepilogo": 2,
+            "avanzamento": 2,
+            "fatturazione": 1,
+            "dati": 0,
+            "non_fatturabili_rimborsi": 1,
+            "date": 0,
+            "regressione_spiegazione": 1
+          },
+          "punteggio": 63.63636363636363,
+          "accordo": 0.8181818181818182,
+          "controlli": {
+            "S1": 1,
+            "S2": 1,
+            "S3": 2,
+            "S4": 2,
+            "S5": 0,
+            "S6": 0,
+            "F1": 1,
+            "F2": 1,
+            "F3": 0,
+            "F4": 1,
+            "C1": 1,
+            "C2": 0,
+            "C3": 0,
+            "G1": 2,
+            "G2": 1,
+            "D1": 0,
+            "D2": 1,
+            "P1": 0,
+            "U1": 1,
+            "U2": 1,
+            "U3": 1,
+            "U4": 0,
+            "U5": 0,
+            "U6": 0,
+            "C4": 1
+          }
+        }
+      }
+    }
+  },
+  "T4_baseline_sana": {
+    "task": "T4",
+    "baseline": "main",
+    "passi": {
+      "build": 0,
+      "installa": 0,
+      "typecheck": 0,
+      "integrazione": 0,
+      "browser": 0
+    },
+    "controlli": {
+      "S1": {
+        "area": "sintomo",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[sintomo] S1 3+3 ore fatturabili producono 0,75 giornate e imponibile 300 a tariffa 400",
+        "errore": ""
+      },
+      "S2": {
+        "area": "sintomo",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[sintomo] S2 0,25+0,25 ore mantengono precisione senza troncamento per riga",
+        "errore": ""
+      },
+      "S3": {
+        "area": "sintomo",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[sintomo] S3 8 ore intere conservano 1 giornata",
+        "errore": ""
+      },
+      "S4": {
+        "area": "sintomo",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[sintomo] S4 righe non fatturabili aumentano giornate totali, non imponibile",
+        "errore": ""
+      },
+      "S5": {
+        "area": "sintomo",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[sintomo] S5 rimborsi aggiunti invariati anche per righe non fatturabili",
+        "errore": ""
+      },
+      "S6": {
+        "area": "sintomo",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[sintomo] S6 mese senza righe restituisce zero ore, zero giornate e zero importo",
+        "errore": ""
+      },
+      "F1": {
+        "area": "famiglia",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[famiglia] F1 avanzamento offerte: 3+3 ore = 0,75 giornate",
+        "errore": ""
+      },
+      "F2": {
+        "area": "famiglia",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[famiglia] F2 avanzamento offerte: residuo e percentuale coerenti",
+        "errore": ""
+      },
+      "F3": {
+        "area": "famiglia",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[famiglia] F3 matrice mensile e totali avanzamento riconciliano",
+        "errore": ""
+      },
+      "F4": {
+        "area": "famiglia",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[famiglia] F4 più offerte e collaboratori non perdono frazioni",
+        "errore": ""
+      },
+      "C1": {
+        "area": "causa",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[causa] C1 report fatturazione corretto conserva importi prima/dopo fix",
+        "errore": ""
+      },
+      "C2": {
+        "area": "causa",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[causa] C2 ore attività e date non riscritte per allineare i report",
+        "errore": ""
+      },
+      "C3": {
+        "area": "causa",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[causa] C3 righe nelle date di cambio ora restano nello stesso mese",
+        "errore": ""
+      },
+      "P1": {
+        "area": "persistenza",
+        "ok": true,
+        "origine": "integrazione",
+        "titolo": "[persistenza] P1 nessuna migrazione o modifica delle righe attività richiesta dal fix",
+        "errore": ""
+      },
+      "U1": {
+        "area": "interfaccia",
+        "ok": true,
+        "origine": "browser",
+        "titolo": "[interfaccia] U1 riepilogo mostra importi corretti per il caso 3+3 ore",
+        "errore": ""
+      },
+      "U2": {
+        "area": "interfaccia",
+        "ok": true,
+        "origine": "browser",
+        "titolo": "[interfaccia] U2 avanzamento mostra l'erogato corretto nel caso 3+3 ore",
+        "errore": ""
+      },
+      "U3": {
+        "area": "interfaccia",
+        "ok": true,
+        "origine": "browser",
+        "titolo": "[interfaccia] U3 report fatturazione resta invariato",
+        "errore": ""
+      },
+      "U4": {
+        "area": "interfaccia",
+        "ok": true,
+        "origine": "browser",
+        "titolo": "[interfaccia] U4 riepilogo e avanzamento fruibili a 390 px",
+        "errore": ""
+      },
+      "U5": {
+        "area": "interfaccia",
+        "ok": true,
+        "origine": "browser",
+        "titolo": "[interfaccia] U5 pagine a 1440 px senza errori JavaScript",
+        "errore": ""
+      },
+      "U6": {
+        "area": "interfaccia",
+        "ok": true,
+        "origine": "browser",
+        "titolo": "[interfaccia] U6 isolamento collaboratori preservato",
+        "errore": ""
+      }
+    },
+    "codici_attesi": [
+      "C1",
+      "C2",
+      "C3",
+      "F1",
+      "F2",
+      "F3",
+      "F4",
+      "P1",
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6",
+      "U1",
+      "U2",
+      "U3",
+      "U4",
+      "U5",
+      "U6"
+    ],
+    "fallimenti_attesi": [],
+    "fallimenti_osservati": [],
+    "mancanti": [],
+    "ok": true
+  },
+  "gate_regressione_sintetico": {
+    "ok": true,
+    "riferimenti_usati": false,
+    "controlli": {
+      "negativo": {
+        "controllo": "T4-gate-test-regressione",
+        "esito": "ok",
+        "motivo": "la consegna non aggiunge né modifica test Vitest",
+        "G1": {
+          "ok": false,
+          "casi": []
+        },
+        "G2": {
+          "ok": false,
+          "solo_riepilogo": [],
+          "solo_avanzamento": []
+        },
+        "file_test_considerati": [],
+        "file_e2e_non_considerati": [],
+        "difetto_localizzato": {},
+        "varianti": {},
+        "informativo": {}
+      },
+      "positivo": {
+        "controllo": "T4-gate-test-regressione",
+        "esito": "ok",
+        "motivo": null,
+        "G1": {
+          "ok": true,
+          "casi": [
+            "tests/unit/taratura-gate.test.ts > taratura indipendente avanzamento 3+3",
+            "tests/unit/taratura-gate.test.ts > taratura indipendente riepilogo 3+3"
+          ]
+        },
+        "G2": {
+          "ok": true,
+          "solo_riepilogo": [
+            "tests/unit/taratura-gate.test.ts > taratura indipendente riepilogo 3+3"
+          ],
+          "solo_avanzamento": [
+            "tests/unit/taratura-gate.test.ts > taratura indipendente avanzamento 3+3"
+          ]
+        },
+        "file_test_considerati": [
+          "tests/unit/taratura-gate.test.ts"
+        ],
+        "file_e2e_non_considerati": [],
+        "difetto_localizzato": {
+          "calcolaRiepilogoMese": 4,
+          "calcolaAvanzamentoOfferte": 1
+        },
+        "varianti": {
+          "consegna": {
+            "passati": [
+              "tests/unit/taratura-gate.test.ts > taratura indipendente avanzamento 3+3",
+              "tests/unit/taratura-gate.test.ts > taratura indipendente riepilogo 3+3"
+            ],
+            "falliti": [],
+            "errori_file": []
+          },
+          "difettosa": {
+            "passati": [],
+            "falliti": [
+              "tests/unit/taratura-gate.test.ts > taratura indipendente avanzamento 3+3",
+              "tests/unit/taratura-gate.test.ts > taratura indipendente riepilogo 3+3"
+            ],
+            "errori_file": []
+          },
+          "neutralizzata": {
+            "passati": [
+              "tests/unit/taratura-gate.test.ts > taratura indipendente avanzamento 3+3",
+              "tests/unit/taratura-gate.test.ts > taratura indipendente riepilogo 3+3"
+            ],
+            "falliti": [],
+            "errori_file": []
+          },
+          "solo-riepilogo": {
+            "passati": [
+              "tests/unit/taratura-gate.test.ts > taratura indipendente avanzamento 3+3"
+            ],
+            "falliti": [
+              "tests/unit/taratura-gate.test.ts > taratura indipendente riepilogo 3+3"
+            ],
+            "errori_file": []
+          },
+          "solo-avanzamento": {
+            "passati": [
+              "tests/unit/taratura-gate.test.ts > taratura indipendente riepilogo 3+3"
+            ],
+            "falliti": [
+              "tests/unit/taratura-gate.test.ts > taratura indipendente avanzamento 3+3"
+            ],
+            "errori_file": []
+          }
+        },
+        "informativo": {
+          "falliscono_sulla_difettosa_per_qualsiasi_motivo": [
+            "tests/unit/taratura-gate.test.ts > taratura indipendente avanzamento 3+3",
+            "tests/unit/taratura-gate.test.ts > taratura indipendente riepilogo 3+3"
+          ]
+        }
+      }
+    }
+  },
+  "migrazione_baseline": {
+    "T1": {
+      "controllo": "gate-migrazione",
+      "compito": "T1",
+      "esito": "ok",
+      "motivo": null,
+      "P1": {
+        "ok": false,
+        "deploy_ok": true,
+        "migrazioni_nuove": [],
+        "additiva": {
+          "ok": true,
+          "colonne_mancanti": {},
+          "tabelle_con_dati_alterati": []
+        }
+      },
+      "P2": {
+        "ok": false,
+        "drift_ok": true
+      },
+      "controlli": {}
+    },
+    "T3": {
+      "controllo": "gate-migrazione",
+      "compito": "T3",
+      "esito": "ok",
+      "motivo": null,
+      "P1": {
+        "ok": false,
+        "deploy_ok": true,
+        "migrazioni_nuove": [],
+        "additiva": null
+      },
+      "P2": {
+        "ok": false,
+        "drift_ok": true
+      },
+      "controlli": {
+        "M1": {
+          "area": "migrazione",
+          "ok": false,
+          "titolo": "[migrazione] M1 tariffe attuali convertite in validità iniziale aperta",
+          "errore": "NonImplementato: baseline: tariffe con validità nel tempo assenti\n    at Object.assente (/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/adattatore/dati.ts:6:8)\n    at /Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/__oracolo__/migrazione/migrazione.test.ts:63:32\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/taratura/T3/repo/node_modules/@vitest/runner/dist/chunk-artif"
+        },
+        "M2": {
+          "area": "migrazione",
+          "ok": true,
+          "titolo": "[migrazione] M2 report di tutti i mesi popolati invariati prima/dopo migrate deploy",
+          "errore": ""
+        },
+        "M3": {
+          "area": "migrazione",
+          "ok": true,
+          "titolo": "[migrazione] M3 righe attività invariate byte per byte prima/dopo migrazione",
+          "errore": ""
+        }
+      }
+    }
+  },
+  "limiti": [
+    "I riferimenti servono per indicatori e taratura statica: nessun adattatore eseguito sui riferimenti.",
+    "Nessun punteggio delle 40 consegne è ancora disponibile.",
+    "Stabilità dei gate UTC T3 non dimostrata: due tentativi falliti e conservati, anche su percorsi preesistenti."
+  ],
+  "costi": {
+    "sessioni_costo_non_attestato": {},
+    "totale_usd": 41.119552799999994,
+    "preparazione_usd": 35.8712028,
+    "residuo_preparazione_usd": 84.12879720000001,
+    "residuo_report_usd": 708.8804472
+  }
+}

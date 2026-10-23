@@ -1,0 +1,7 @@
+{
+  "consegne_storiche_ricontrollate": 40,
+  "differenze": [],
+  "regola_mediana_non_positiva": "righe aggiunte+eliminate, formula invariata",
+  "verifica_fallback": "20 punti alla mediana, 0 al suo doppio",
+  "metodo": "Ricalcolo in memoria, nessuna riscrittura degli archivi."
+}

@@ -340,3 +340,147 @@ e rivalutate a fine `valuta.py all`:
 - Spesa effettiva 293,9197681 USD: sviluppo valido 247,250378; sviluppo scartato 10,1774461; adattatori 18,1926802; giudici tecnici 18,2992638; turni persi 0. Residuo 56,0802319 USD. Scarti sviluppo + adattatore della prova contaminata 10,8753101 USD, inclusi nel totale. Sette serie di tre letture funzionali archiviate per errori di adattamento (21 letture uniche, escluse le copie nel clone), poi ripetute interamente.
 - SD pooled 0,7749193506; soglia 2 SD 1,5498387013; MDE 1,5687772183; Δ completo−diretto −0,01 (IC −0,75…+0,72). Range ripetizioni e differenze tra adattatori tutti zero dopo audit. Report 4 rigenerato su 40 consegne, narrative/H4 ricalcolate; costi dei nuovi giudici assegnati solo al report 1.
 - Verifica HTML statica: link locali validi, ID univoci, overview 20/40 righe, script JavaScript sintatticamente validi. La verifica visiva/interattiva resta bloccata: Browser Use ha rifiutato l’URL file:// per policy di protocollo e vieta workaround. Nessuna verifica browser dichiarata. Report 1 lasciato «in corso» nel manifest con unica attività residua esplicita; automazione da disattivare in attesa della verifica manuale o indicazioni dell’utente.
+
+
+## 2026-10-22 · Report 3 · preflight isolamento
+
+Il nuovo controllo init ha classificato per errore come estranee le skill builtin di Claude Code 2.1.303. Tentativo T3-riferimento fermato subito dopo init, senza result e senza metriche valide; stream conservato in `gradiente-difficolta/_scartati/G-ref-T3-init-builtin`. Costo non ancora attestabile dal result (nessun result disponibile), da riconciliare con transcript/usage prima della chiusura contabile. Aggiunta whitelist esplicita dei builtin osservati; plugin non builtin e skill diverse da ARchetipo o dalla whitelist continuano a invalidare la fase. Nessuna consegna sperimentale avviata o modificata.
+
+
+## 2026-10-22 · Report 3 · applicabilità del criterio tecnico
+
+Proposta preregistrata nell’indice prima di qualsiasi valutazione: passare al giudice tecnico descrizione, checklist e invariante del compito corrente; leggere il diff dalla baseline effettiva del compito. Escludere dalla copertura dei percorsi i controlli di diagnosi sul riepilogo finale (giudice, non comportamento eseguibile). Valutare migrazione e blocco di stato soltanto quando applicabili, come già previsto dalla formula «voci rispettate / voci applicabili». Nessuna modifica a pesi o formule.
+
+Applicazione: parametri opzionali in `bench/common/tecnica.py`, con default storici invariati; criteri e giudizi storici restano validi. In T4, eventuale mediana delle righe nette non positiva sarà dichiarata come limite senza sostituire il punteggio.
+
+
+## 2026-10-22 · Report 3 · lint dello strumento AST
+
+`npm run lint` nel repository del banco rilevava tre errori preesistenti no-require-imports in `bench/common/funzioni.js`. Convertiti gli import a ESM e mantenuto il caricamento del TypeScript della consegna con createRequire. Verifica sul dominio Consuntivi: output JSON valido, 25 funzioni, presenti i tre calcoli attesi. Nessuna modifica ai cloni o alle consegne. Node segnala soltanto la rilevazione automatica del formato ESM per il file .js, senza effetti sull’output JSON.
+
+
+## 2026-10-23 · Report 3 · emendamento della variante spec prima dei chiarimenti
+
+La prima preregistrazione indicava V1. Rilettura della narrativa completa del report 6 e della skill installata: V1 risulta «adottabile», non adottata; non esiste una registrazione di adozione e la skill non contiene la checklist V1. Applicato il fallback baseline V0 previsto esplicitamente dal prompt §4.1. Aggiornati matrice, manifest, indice, protocollo e runner. Nessun chiarimento e nessuna prova sperimentale erano stati avviati: nessun risultato escluso e nessun costo aggiuntivo. Riferimenti e autore degli oracoli lavorano senza skill ARchetipo e restano invariati.
+
+
+## 2026-10-23 · Report 3 · riconciliazione dello scarto init
+
+La sessione 102b7319-dd88-48ef-bb41-d09fd93619cf è stata chiusa con un messaggio senza strumenti, solo per ottenere il result cumulativo. Costo attestato di tentativo scartato e riconciliazione: 0,0834738 USD, incluso nella preparazione e nel totale; nessun codice applicativo toccato. Non restano sessioni senza costo attestato al termine della riconciliazione.
+
+Le skill sono state congelate in uno snapshot esterno ai cloni; i due hash coincidono con quelli registrati prima del primo riferimento T3. Tutti i cloni successivi useranno questa stessa copia, evitando aggiornamenti accidentali della skill durante il report. L’audit del riferimento T3 non ha rilevato accessi al repository originale, plugin estranei o dichiarazioni di Wiki non disponibile.
+
+
+## 2026-10-23 · Report 3 · setup clone T1
+
+La prima clonazione Git del riferimento T1 è terminata con exit 128 prima di qualsiasi sessione modello. Il controller si è fermato. Verificato il source baseline e il suo commit; la ripetizione isolata dello stesso comando Git è terminata con exit 0. Completati configurazione del clone e setup prima della fase. Nessun costo modello o risultato sperimentale; non è stato eseguito un retry automatico di una fase. Il setup ora completa esplicitamente anche un clone presente ma ancora senza dipendenze.
+
+
+## 2026-10-23 · Report 3 · ambiente sintetico dei processi test
+
+Il riferimento T3 ha rilevato che Vitest con NODE_ENV=test non carica `.env.local`: due file unit della baseline falliscono senza DATABASE_URL, ma passano con la variabile valorizzata come in CI. Il setup usa `.env.local` per rispettare il divieto di accesso a `.env`. I worker successivi ricevono esplicitamente lo stesso ambiente sintetico dedicato; le 40 prove e le valutazioni useranno tutte questa regola. T3 ha già verificato 793 unit con l’ambiente corretto; nessun cambiamento del suo codice né del punteggio. Il riferimento T1 era già avviato: la sua verifica userà lo stesso ambiente esplicito.
+
+
+## 2026-10-23 · Report 3 · completamento del riferimento T1
+
+La prima soluzione T1 (2,6290746 USD) ha aggiunto un vincolo non nel profilo: email o telefono rendevano obbligatorio il nome referente. È prevista una fase Opus nuova e isolata per rimuoverlo e verificare i tre campi facoltativi indipendenti. Il primo autore ha inoltre eseguito un solo giro e2e; la fase di correzione deve completare i tre richiesti. Non si tratta di una consegna sperimentale e non si modifica alcuna storia. Il primo riferimento e la prima sonda unit restano nella storia Git e negli artefatti; la tabella degli indicatori userà soltanto la versione finale. Le sonde sono ora indicizzate per hash del riferimento per evitare riuso di misure obsolete.
+
+
+## 2026-10-23 · Report 3 · precisione UI del controllo T4 U2
+
+La UI baseline dell’avanzamento espone le giornate con un solo decimale: 0,75 viene mostrato come 0,8 gg (8%). Prima della costruzione degli oracoli e di qualunque prova, chiarito U2 perché accetti il valore corretto con quella precisione oppure con precisione maggiore, invece di richiedere una modifica del formatter estranea al difetto. F1 continua a richiedere esattamente 0,75 nel calcolo; nessun peso, requisito o formula cambiato. La correzione sarà identica per tutte le consegne.
+
+
+## 2026-10-23 · Report 3 · fuso del server fissato prima delle prove
+
+I riferimenti hanno evidenziato che le query mensili della baseline dipendono dal fuso del server. Il banco fissa ora TZ=UTC per tutti i processi applicativi e test, come nell’ambiente CI; i browser degli oracoli useranno Europe/Rome e it-IT per i casi di cambio ora. Nessuna delle 40 prove e nessun chiarimento erano stati avviati. Non vengono modificati i calcoli delle consegne né i criteri; le verifiche finali dei riferimenti useranno questo ambiente. Limite dichiarato: il confronto non misura robustezza del server in altri fusi; il report 1 non fissava esplicitamente questa variabile.
+
+
+## 2026-10-23 · Report 3 · dimensione tecnica con mediana netta non positiva
+
+Proposta e preregistrazione nell’indice prima delle prove: nei bug fix la mediana delle righe nette può essere negativa; il suo doppio è minore, quindi l’intervallo della normalizzazione non è ordinato. Solo per coorti con mediana netta ≤ 0 si usano righe aggiunte + eliminate src e la loro mediana; restano peso 20 e formula mediana/2×mediana. Regola generale, anche per coorti storiche; sulle 40 consegne precedenti la mediana netta delle coorti è positiva. La misura usata viene registrata nei punteggi. Nessun risultato delle 40 prove era disponibile al momento della scelta.
+
+
+## 2026-10-23 · Report 3 · isolamento delle sonde per hash
+
+La sonda della seconda versione T1 ha incontrato P2003 nel seed perché riusava il database della prima sonda. Il processo si è fermato prima di misurare test. Il namespace del database ora include l’hash del riferimento, come già quello degli artefatti: niente riuso di stato tra versioni. La sonda viene rifatta solo per la versione finale, in database nuovo; nessun costo modello, nessuna consegna o storia modificata.
+
+
+## 2026-10-23 · Report 3 · isolamento delle fasi e delle celle
+
+Prima delle prove, aggiunto snapshot Postgres dei due database dedicati prima di ogni fase. Un result in errore, contaminazione init o dichiarazione di Wiki non disponibile ferma la fase, conserva stream/costo/patch e ripristina codice e database; nessun retry automatico. La cella diretto viene controllata per invocazioni di Skill ARchetipo e cambi di stato delle storie, vietati dal suo prompt. La fase spec non può modificare src/, prisma/ o tests/: eventuale codice anticipato invalida il chiarimento e non passa a nessuna cella. È applicazione dei vincoli già fissati, non un filtro basato sui punteggi.
+
+
+## 2026-10-23 · Report 3 · conflitto preesistente nel gate utenti
+
+Nel secondo giro aggiuntivo UTC del riferimento T3 è fallito gestione-utenti, caso riattivazione utente, su codice invariato dalla baseline. La trace mostra un POST HTTP 500. Ripetizioni diagnostiche, tutte fullyParallel e retries=0: T3 5/6 e 8/8; baseline 8/8 e 23/24. Il server della baseline registra DriverAdapterError TransactionWriteConflict (conflitto di serializzazione). Evidenze in `diagnosi-ci.json`, log e trace conservati; nessun caso rimosso, nessun worker ridotto, nessun retry aumentato e nessun codice applicativo modificato. È un limite preesistente da dichiarare nell’analisi dei gate e degli intervalli delle tre valutazioni. Dopo la diagnosi si esegue una nuova verifica completa conservando separatamente il primo tentativo fallito.
+
+
+### Report 3 · taratura oracoli prima delle 40 prove (23 ottobre 2026)
+
+L’autore Opus indipendente ha prodotto i quattro oracoli dal profilo e dalle checklist già fissate, senza accesso ai riferimenti (10,6649808 USD). Verifica statica: 24/24/24/25 controlli coperti. I controlli runtime vengono tarati soltanto sulle baseline, mai sui riferimenti: capacità mancanti con adattatore nullo per T1–T3; per T4 dieci fallimenti attesi sulla baseline difettosa e venti pass sulla baseline sana. Migrazione baseline con dati: T1 P1/P2 falsi perché manca una nuova migrazione; T3 M1 falso perché manca la storia, M2/M3 veri perché gli importi e le righe sono invariati. Questo non assegna punteggi a consegne sperimentali.
+
+Prima delle prove, il banco distingue le violazioni critiche osservate dai controlli critici non verificati. Un `NonImplementato`, un errore infrastrutturale o l’assenza di risultato non dimostrano esposizione dei dati o variazione di un importo passato. T2 A1 emette un marcatore solo quando il collaboratore vede effettivamente i dati della fixture di un altro; T3 M2 lo emette quando un importo numerico differisce di almeno mezzo centesimo. I controlli ordinari continuano a fallire se manca la capacità. Checklist, pesi e profili invariati.
+
+Il gate CI usa `CI=true` e i retry già dichiarati dal progetto, senza override; gli oracoli browser conservano `retries:0`. L’autore aveva imposto zero retry anche al gate: correzione prima delle prove per rispettare la CI effettiva, già dichiarata nella diagnosi della flakiness. Nessun worker ridotto e nessuna modifica ai test applicativi.
+
+Il controllo positivo sintetico del gate T4 ha scoperto che i percorsi macOS `/var` e `/private/var` rendevano diverse le chiavi dei medesimi casi nei worktree temporanei. Ora entrambi i percorsi vengono risolti prima del confronto. Conservato `positivo-prima-correzione-percorsi/`. La prima ripresa della fixture di taratura riusava inoltre il suo HEAD positivo per il controllo negativo: tentativo conservato in `negativo-fixture-ripresa-errata/`; il controllo negativo usa ora esplicitamente la baseline difettosa. Nessuna consegna o riferimento corretto dal banco.
+
+Il secondo tentativo di verifica UTC del riferimento T3 passa lint/unit/build e la prima suite e2e, ma fallisce la seconda sul test preesistente di scadenza sessione (`sessione-proxy`). Conservati tutti i log e trace. Non si continua a ripetere fino al verde. Le tre suite iniziali del riferimento erano passate nel fuso locale; la stabilità dei gate UTC resta un limite dichiarato, oltre alla flakiness `TransactionWriteConflict` riprodotta sulla baseline.
+
+
+### Report 3 · misura diretta dei test disponibili
+
+Prima delle 40 prove il conteggio testuale dei file unit disponibili è stato sostituito con chiamate osservate alle funzioni toccate. Il commento italiano «Dato l’utente» in `auth-helpers.test.ts` corrispondeva al nome del componente `Dato` e produceva un falso positivo. Il profiler Node esegue ogni file Vitest separatamente sulle copie delle due baseline, senza nuove dipendenze né modifiche applicative. T1 passa da 4 a 3 file unit; T3 da 11 a 9; T2 resta 0 e T4 resta 1. La Wiki conserva il conteggio di citazioni testuali. Le sonde dei test baseline sui riferimenti e il numero di file test modificati restano separati e invariati. Dati in `copertura-unit-baseline.json`.
+
+Il ripristino di una fase sperimentale invalida ora reinstalla anche le dipendenze dal lockfile ripristinato (`npm ci`, incluso `prisma generate`): evita di riusare node_modules o un client Prisma generato dal tentativo scartato. Nessuna fase sperimentale è ancora partita.
+
+
+## 23 ottobre 2026 · Report 3 ridotto su richiesta umana
+
+Prima di qualsiasi consegna sperimentale, l’utente approva 8 prove Sonnet T1/T3 (2 repliche diretto/completo), budget aggiuntivo massimo 80 USD, totale 121,1195528 USD inclusi 41,1195528 già spesi. Una lettura funzionale per consegna, tecnico automatico senza mutation o doppio giudice, un solo rework. Matrice originale conservata non autorizzata; matrice ridotta con messaggio e timestamp di conferma. Dettagli in `bench/gradiente-difficolta/PROTOCOLLO-RIDOTTO.md`. H3 integrale non verificabile: nessuna sostituzione post hoc delle soglie.
+
+
+### Set ridotto · baseline Wiki validata durante la prima review
+
+La review US-060 di G-T3-COM-sonnet-r2 richiede rework per tre `WIKI_CORE_PAGE_UNANCHORED`. Il banco ha verificato separatamente la baseline congelata: `wiki validate --profile bootstrap` restituisce gli stessi errori su overview, architecture/context-map e operations/development. Evidenza conservata in `diagnosi-wiki-baseline.json`. Nessuna baseline o consegna corretta dal banco: l’eventuale riparazione è lavoro del percorso completo e resta nel suo costo. Questo limite può confondere l’attribuzione dell’overhead alla difficoltà della funzionalità.
+
+
+### Set ridotto · isolamento della concorrenza prima della prima valutazione
+
+Revisione statica di N1/N2: le decorrenze a multipli di 30 giorni includevano giorni diversi dal primo del mese. Su una gestione mensile il rifiuto della data maschererebbe il controllo di concorrenza. Il test ora usa sei primi del mese consecutivi e due primi del mese distinti successivi. Validi sia per implementazioni giornaliere sia mensili; le asserzioni su catena e cardinalità, i pesi e i controlli C1/C2/C4 sulla tariffa alla data della riga restano invariati. Applicazione uniforme alle quattro consegne T3, prima di qualsiasi valutazione (zero evaluation.json presenti). Patch e calibrazione precedente conservate; hash aggiornato con motivazione. Nessuna modifica al codice delle consegne o feedback agli agenti.
+
+
+## 2026-10-23T09:34:50.025251+02:00 · Report 3 · fase scartata
+
+Wiki dichiarata non disponibile nonostante precondizioni valide. Artefatti, patch e costo conservati in `/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/_scartati/G-T3-COM-sonnet-r2--US-062-review-1--1792740881417874000`. Ripristinati codice e database dal punto precedente alla fase; nessun retry automatico.
+
+
+## 2026-10-23T09:41:34.532009+02:00 · Report 3 · falso positivo Wiki e ripresa
+
+La fase `G-T3-COM-sonnet-r2/US-062-review-1` è stata scartata perché il vecchio pattern ha associato «Wiki» a «worktree è disabilitato» nella medesima frase. La Wiki era disponibile, usata e validata: non era una dichiarazione di indisponibilità. Corretto il classificatore del solo report 3 per richiedere un riferimento alla risorsa; aggiunto test con la frase reale. Conservati patch, stream, costo 0,4095319 USD e ripristino del tentativo. Ripetizione esplicita della sola fase da sessione nuova, dopo diagnosi; nessuna modifica manuale alla consegna. Le fasi valide non sono ripetute.
+
+Corretto anche il resume del runner: lo stato storico dopo una review si registra nelle metriche; per le prime review si ricostruisce dal verdetto salvato nel result, anziché leggere lo stato attuale del clone già avanzato. Nessuna modifica ai risultati né ai prompt. Verifica effettiva: 20 test del banco passati.
+
+
+## Report 3 · Attesa browser dell’adattatore, dopo la prima lettura
+
+La prima lettura S3 di G-T3-COM-sonnet-r2 è invalida: il Promise.race dell’adattatore poteva completarsi sull’alert generico già presente in Next. La pagina finale del trace contiene la tariffa 435,00 corretta, mentre il controllo SQL precedente vede ancora nessuna validità futura. Corretto solo il locator di attesa dell’adattatore: si attende la nuova riga. Nessuna modifica a codice, assert, fixture o pesi. Conservati l’adattatore originale e la ricevuta iniziale; la sola lettura browser verrà sostituita su DB fresco, mantenendo integra l’integrazione e i gate già validi. Il risultato iniziale non concorre al report finale.
+
+Criterio uniforme applicato prima di leggere le valutazioni successive: esaminare tutti gli adattatori e invalidare attese su alert globali già presenti anche se un test fosse passato. Correzione meccanica del banco, nessun retry per ottenere il verde e nessuna nuova chiamata a modelli. Registrazione in correzioni-adattatori.json.
+
+
+### Report 3 · medesimo errore di attesa nel diretto T3 r1
+
+L’audit uniforme degli adattatori, inclusi i controlli passati, trova lo stesso race sull’alert globale in `attendiEsito` di G-T3-DIR-sonnet-r1. Il trace S2 mostra la risoluzione sul `__next-route-announcer__` a 2050,7 ms, seguita dall’assert SQL a 2055 ms prima della conclusione del submit. Corretta soltanto l’attesa dei tre form esistenti sul redirect già previsto; il race della sezione Tariffe è limitato al form e non intercetta l’alert globale. Lettura browser invalidata e da sostituire a driver fermo su DB nuovo, con precedente conservata. Stesso criterio di COM r2, nessun intervento sulla consegna. I due adattatori T1 diretti non hanno questo errore: S2 mostra la riga cliente corretta senza referente, coerente con l’esclusione dell’elenco nelle storie; non si corregge quel risultato.
+
+
+## 23 ottobre 2026 · Chiusura del report 3 ridotto
+
+Concluse e valutate tutte le 8 consegne autorizzate. Le due letture browser invalide sono state sostituite ciascuna una sola volta a driver fermo, su DB nuovi e senza modelli: T3 COM r2 da 88,8 invalido a 90,4 valido; T3 DIR r1 da 87,2 invalido a 90,4 valido. Entrambi i tentativi iniziali restano conservati in browser-invalido; gate e integrazione validi riusati. Audit uniforme di tutti gli 8 adattatori (anche controlli passati), hash degli adattatori installati coincidenti, nessun codice consegnato corretto dal banco. Nessuna nuova lettura per ottenere un punteggio migliore.
+
+Audit finale positivo: 52 fasi valide, 8 valutazioni, 24 storie con requisiti invariati, costi integralmente attestati. Tutte le consegne T1 ottengono 95,5 e tutte le T3 90,4; Δ zero in entrambi, entro il rumore storico. Costo totale 92,8518091 USD; incremento 51,7322563 su 80 massimi. Wall clock prima fase→ultima valutazione valida 4,5742 ore. H3 integrale non verificabile nel disegno ridotto; nessuna equivalenza inferita.
+
+Diagnosi dei chiarimenti: il committente simulato approva l’esclusione dell’elenco T1 e accetta la proposta mensile T3, restringendo il profilo nascosto. È un limite anche della sua fedeltà al profilo. Storie, giudizi e pesi restano congelati; evidenze in diagnosi-chiarimenti.json. Le difformità delle review (Wiki, CI impact assessment e demo) sono conservate come risultati di processo, senza ripetizioni per renderle conformi. Il completo termina 10 storie DONE e 2 REVIEW.
+
+QA finale indice/report a 1440 e 390: nessun errore JS o overflow, filtri report 8→4→2. L’indice ha un override locale overflow-wrap per l’hash lungo della baseline; nessuna modifica ai criteri. Whitespace del codice/documenti verificato escludendo le patch archiviate e non bloccando sulla riga vuota finale del helper oracolo congelato; log integrale ed eccezioni conservati, nessun byte degli oracoli riformattato dopo i risultati.

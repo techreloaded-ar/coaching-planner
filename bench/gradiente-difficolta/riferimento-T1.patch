@@ -1,0 +1,1510 @@
+diff --git a/prisma/migrations/20261023090000_aggiungi_referente_cliente/migration.sql b/prisma/migrations/20261023090000_aggiungi_referente_cliente/migration.sql
+new file mode 100644
+index 0000000..356f810
+--- /dev/null
++++ b/prisma/migrations/20261023090000_aggiungi_referente_cliente/migration.sql
+@@ -0,0 +1,6 @@
++-- AlterTable: referente del cliente (nome, email, telefono), tutti facoltativi.
++-- Migrazione additiva: i clienti esistenti restano validi con referente NULL,
++-- quindi non serve alcun backfill.
++ALTER TABLE "Cliente" ADD COLUMN "referenteNome" TEXT,
++ADD COLUMN "referenteEmail" TEXT,
++ADD COLUMN "referenteTelefono" TEXT;
+diff --git a/prisma/schema.prisma b/prisma/schema.prisma
+index e3f0681..fd3fd4a 100644
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@ -103,6 +103,10 @@ model Cliente {
+   provincia         String?
+   pec               String?
+   codiceDestinatario String?
++  // Referente: persona di contatto presso il cliente (facoltativa)
++  referenteNome     String?
++  referenteEmail    String?
++  referenteTelefono String?
+   attivo            Boolean  @default(true)
+   createdAt         DateTime @default(now())
+   updatedAt         DateTime @updatedAt
+diff --git a/src/app/(back-office)/anagrafiche/clienti/[id]/page.tsx b/src/app/(back-office)/anagrafiche/clienti/[id]/page.tsx
+index 04e888a..ad0a3c7 100644
+--- a/src/app/(back-office)/anagrafiche/clienti/[id]/page.tsx
++++ b/src/app/(back-office)/anagrafiche/clienti/[id]/page.tsx
+@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
+ import { richiediRuolo } from "@/lib/dal";
+ import { clientePerId } from "@/lib/clienti";
+ import { elencaOffertePerClienteConAvanzamento } from "@/lib/offerte";
++import {
++  hrefTelefono,
++  referenteDelCliente,
++} from "@/domain/anagrafiche/referente-cliente";
+ import OfferteClienteTabella from "./offerte-cliente-tabella";
+ 
+ interface DettaglioClientePageProps {
+@@ -25,6 +29,7 @@ export default async function DettaglioClientePage({
+ 
+   const offerte = await elencaOffertePerClienteConAvanzamento(cliente.id);
+   const { esito } = await searchParams;
++  const referente = referenteDelCliente(cliente);
+ 
+   const sede = [
+     cliente.indirizzo,
+@@ -126,6 +131,43 @@ export default async function DettaglioClientePage({
+         </div>
+       </section>
+ 
++      <section
++        aria-labelledby="titolo-referente-cliente"
++        className="mb-[22px] rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
++      >
++        <div className="border-b border-zinc-200 px-[18px] py-[15px] dark:border-zinc-800">
++          <h2
++            id="titolo-referente-cliente"
++            className="inline-flex items-center gap-[9px] text-[15px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100"
++          >
++            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] text-indigo-500" strokeWidth={2}>
++              <circle cx="12" cy="8" r="3.6" />
++              <path d="M5 20a7 7 0 0 1 14 0" />
++            </svg>
++            Referente
++          </h2>
++        </div>
++        {referente ? (
++          <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-x-[22px] gap-y-[14px] px-[22px] py-5">
++            <Dato label="Nome" valore={referente.nome} />
++            <Dato
++              label="Email"
++              valore={referente.email}
++              href={referente.email ? `mailto:${referente.email}` : undefined}
++            />
++            <Dato
++              label="Telefono"
++              valore={referente.telefono}
++              href={referente.telefono ? hrefTelefono(referente.telefono) : undefined}
++            />
++          </div>
++        ) : (
++          <p className="m-0 px-[22px] py-5 text-[13px] font-medium text-zinc-400 dark:text-zinc-500">
++            Nessun referente indicato. Puoi aggiungerlo da &laquo;Modifica dati cliente&raquo;.
++          </p>
++        )}
++      </section>
++
+       <section className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+         <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-[18px] py-[15px] dark:border-zinc-800">
+           <span className="inline-flex items-center gap-[9px] text-[15px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+@@ -174,7 +216,15 @@ export default async function DettaglioClientePage({
+   );
+ }
+ 
+-function Dato({ label, valore }: { label: string; valore?: string | null }) {
++function Dato({
++  label,
++  valore,
++  href,
++}: {
++  label: string;
++  valore?: string | null;
++  href?: string;
++}) {
+   return (
+     <div className="min-w-0 leading-[1.35]">
+       <div className="mb-[3px] text-[10.5px] font-bold uppercase tracking-[.07em] text-zinc-400 dark:text-zinc-500">
+@@ -188,7 +238,16 @@ function Dato({ label, valore }: { label: string; valore?: string | null }) {
+         }`}
+         title={valore ?? ""}
+       >
+-        {valore || "Non indicato"}
++        {valore && href ? (
++          <a
++            href={href}
++            className="text-indigo-600 no-underline hover:underline dark:text-indigo-400"
++          >
++            {valore}
++          </a>
++        ) : (
++          valore || "Non indicato"
++        )}
+       </div>
+     </div>
+   );
+diff --git a/src/app/(back-office)/anagrafiche/clienti/actions.ts b/src/app/(back-office)/anagrafiche/clienti/actions.ts
+index 7e8dd94..558f9a8 100644
+--- a/src/app/(back-office)/anagrafiche/clienti/actions.ts
++++ b/src/app/(back-office)/anagrafiche/clienti/actions.ts
+@@ -36,6 +36,37 @@ function datiDaForm(formData: FormData): DatiClienteInput {
+     pec: (formData.get("pec") as string)?.trim() || "",
+     codiceDestinatario:
+       (formData.get("codiceDestinatario") as string)?.trim().toUpperCase() || "",
++    referenteNome: normalizzaSpazi(formData.get("referenteNome")),
++    referenteEmail: (formData.get("referenteEmail") as string)?.trim() || "",
++    referenteTelefono: normalizzaSpazi(formData.get("referenteTelefono")),
++  };
++}
++
++/**
++ * Rimuove gli spazi esterni e comprime quelli interni ripetuti.
++ */
++function normalizzaSpazi(valore: FormDataEntryValue | null): string {
++  return typeof valore === "string" ? valore.trim().replace(/\s+/g, " ") : "";
++}
++
++/**
++ * Campi del cliente da persistere, comuni a creazione e aggiornamento.
++ * I campi facoltativi vuoti vengono salvati come null.
++ */
++function campiPersistiti(dati: DatiClienteInput) {
++  return {
++    ragioneSociale: dati.ragioneSociale.trim(),
++    partitaIva: dati.partitaIva.trim(),
++    codiceFiscale: dati.codiceFiscale || null,
++    indirizzo: dati.indirizzo || null,
++    citta: dati.citta || null,
++    cap: dati.cap || null,
++    provincia: dati.provincia || null,
++    pec: dati.pec || null,
++    codiceDestinatario: dati.codiceDestinatario || null,
++    referenteNome: dati.referenteNome || null,
++    referenteEmail: dati.referenteEmail || null,
++    referenteTelefono: dati.referenteTelefono || null,
+   };
+ }
+ 
+@@ -69,15 +100,7 @@ export async function creaCliente(
+ 
+   await db.cliente.create({
+     data: {
+-      ragioneSociale: dati.ragioneSociale.trim(),
+-      partitaIva: dati.partitaIva.trim(),
+-      codiceFiscale: dati.codiceFiscale || null,
+-      indirizzo: dati.indirizzo || null,
+-      citta: dati.citta || null,
+-      cap: dati.cap || null,
+-      provincia: dati.provincia || null,
+-      pec: dati.pec || null,
+-      codiceDestinatario: dati.codiceDestinatario || null,
++      ...campiPersistiti(dati),
+       attivo: true,
+     },
+   });
+@@ -111,17 +134,7 @@ export async function aggiornaCliente(
+ 
+   await db.cliente.update({
+     where: { id },
+-    data: {
+-      ragioneSociale: dati.ragioneSociale.trim(),
+-      partitaIva: dati.partitaIva.trim(),
+-      codiceFiscale: dati.codiceFiscale || null,
+-      indirizzo: dati.indirizzo || null,
+-      citta: dati.citta || null,
+-      cap: dati.cap || null,
+-      provincia: dati.provincia || null,
+-      pec: dati.pec || null,
+-      codiceDestinatario: dati.codiceDestinatario || null,
+-    },
++    data: campiPersistiti(dati),
+   });
+ 
+   revalidatePath("/anagrafiche/clienti");
+diff --git a/src/app/(back-office)/anagrafiche/clienti/cliente-form.tsx b/src/app/(back-office)/anagrafiche/clienti/cliente-form.tsx
+index fd229f8..36c8eb2 100644
+--- a/src/app/(back-office)/anagrafiche/clienti/cliente-form.tsx
++++ b/src/app/(back-office)/anagrafiche/clienti/cliente-form.tsx
+@@ -24,6 +24,9 @@ interface ClienteFormProps {
+     provincia: string | null;
+     pec: string | null;
+     codiceDestinatario: string | null;
++    referenteNome: string | null;
++    referenteEmail: string | null;
++    referenteTelefono: string | null;
+     attivo: boolean;
+   };
+ }
+@@ -73,7 +76,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
+           {inModifica ? "Modifica cliente" : "Nuovo cliente"}
+         </h1>
+         <p className="mt-[6px] max-w-[560px] text-[13px] text-zinc-400 dark:text-zinc-500">
+-          Ragione sociale e dati di fatturazione: i campi obbligatori sono validati prima del salvataggio.
++          Ragione sociale, dati di fatturazione e referente: i campi sono validati prima del salvataggio.
+         </p>
+       </div>
+ 
+@@ -218,6 +221,50 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
+               facoltativo
+               uppercase
+             />
++
++            {/* ── Referente ── */}
++            <div className="col-span-2 mt-2 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
++              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px] text-indigo-500" strokeWidth={2}>
++                <circle cx="12" cy="8" r="3.6" /><path d="M5 20a7 7 0 0 1 14 0" />
++              </svg>
++              Referente
++            </div>
++
++            <Campo
++              label="Nome referente"
++              name="referenteNome"
++              placeholder="Es. Marta Bianchi"
++              maxLength={120}
++              autoComplete="off"
++              defaultValue={valoreIniziale("referenteNome", cliente?.referenteNome ?? "")}
++              errore={stato.errori.referenteNome}
++              facoltativo
++              fullWidth
++            />
++
++            <Campo
++              label="Email referente"
++              name="referenteEmail"
++              type="email"
++              inputMode="email"
++              placeholder="nome.cognome@azienda.it"
++              autoComplete="off"
++              defaultValue={valoreIniziale("referenteEmail", cliente?.referenteEmail ?? "")}
++              errore={stato.errori.referenteEmail}
++              facoltativo
++            />
++
++            <Campo
++              label="Telefono referente"
++              name="referenteTelefono"
++              type="tel"
++              inputMode="tel"
++              placeholder="Es. +39 02 1234567"
++              autoComplete="off"
++              defaultValue={valoreIniziale("referenteTelefono", cliente?.referenteTelefono ?? "")}
++              errore={stato.errori.referenteTelefono}
++              facoltativo
++            />
+           </div>
+         </div>
+ 
+@@ -269,7 +316,7 @@ interface CampoProps {
+   name: string;
+   placeholder?: string;
+   type?: string;
+-  inputMode?: "numeric" | "text" | "email";
++  inputMode?: "numeric" | "text" | "email" | "tel";
+   maxLength?: number;
+   autoComplete?: string;
+   defaultValue?: string;
+diff --git a/src/app/(back-office)/anagrafiche/clienti/clienti-tabella.tsx b/src/app/(back-office)/anagrafiche/clienti/clienti-tabella.tsx
+index c28c7fb..0875452 100644
+--- a/src/app/(back-office)/anagrafiche/clienti/clienti-tabella.tsx
++++ b/src/app/(back-office)/anagrafiche/clienti/clienti-tabella.tsx
+@@ -3,6 +3,7 @@
+ import { useState } from "react";
+ import type { Cliente } from "@/generated/prisma/client";
+ import { PulsanteAttesa } from "@/components";
++import { referenteDelCliente } from "@/domain/anagrafiche/referente-cliente";
+ import { cambiaStatoAction } from "./cambia-stato-action";
+ 
+ // ── Props ──────────────────────────────────────────────────────
+@@ -22,7 +23,8 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
+       !filtroLower ||
+       c.ragioneSociale.toLowerCase().includes(filtroLower) ||
+       (c.partitaIva ?? "").includes(filtroLower) ||
+-      (c.citta ?? "").toLowerCase().includes(filtroLower)
++      (c.citta ?? "").toLowerCase().includes(filtroLower) ||
++      (c.referenteNome ?? "").toLowerCase().includes(filtroLower)
+   );
+ 
+   const attivi = clienti.filter((c) => c.attivo).length;
+@@ -39,7 +41,7 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
+             </svg>
+             <input
+               type="search"
+-              placeholder="Cerca per ragione sociale, P.IVA o città…"
++              placeholder="Cerca per ragione sociale, P.IVA, città o referente…"
+               value={filtro}
+               onChange={(e) => setFiltro(e.target.value)}
+               className="w-full border-0 bg-transparent font-[inherit] text-[13.5px] text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
+@@ -64,6 +66,9 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
+               <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                 Città
+               </th>
++              <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
++                Referente
++              </th>
+               <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                 Stato
+               </th>
+@@ -75,7 +80,7 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
+           <tbody>
+             {clientiFiltrati.length === 0 ? (
+               <tr>
+-                <td colSpan={5} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
++                <td colSpan={6} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
+                   Nessun cliente corrisponde alla ricerca.
+                 </td>
+               </tr>
+@@ -90,6 +95,10 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
+                   .join("")
+                   .toUpperCase()
+                   .slice(0, 2);
++                const referente = referenteDelCliente(cliente);
++                const recapitiReferente = referente
++                  ? [referente.email, referente.telefono].filter(Boolean).join(" · ")
++                  : "";
+ 
+                 return (
+                   <tr
+@@ -132,6 +141,22 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
+                     </td>
+                     <td className="px-4 py-[13px] align-middle tabular-nums">{cliente.partitaIva ?? "—"}</td>
+                     <td className="px-4 py-[13px] align-middle">{sede || "—"}</td>
++                    <td className="px-4 py-[13px] align-middle">
++                      {referente ? (
++                        <div className="min-w-0 leading-[1.3]">
++                          {referente.nome && (
++                            <span className="block font-semibold">{referente.nome}</span>
++                          )}
++                          {recapitiReferente && (
++                            <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
++                              {recapitiReferente}
++                            </span>
++                          )}
++                        </div>
++                      ) : (
++                        "—"
++                      )}
++                    </td>
+                     <td className="px-4 py-[13px] align-middle">
+                       {cliente.attivo ? (
+                         <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+diff --git a/src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx b/src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx
+index 4a91dc3..0aa31d8 100644
+--- a/src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx
++++ b/src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx
+@@ -4,6 +4,7 @@ import { useState } from "react";
+ import Link from "next/link";
+ import type { RisultatoReportFatturazione } from "@/lib/report";
+ import type { VoceClienteReport } from "@/domain/consuntivi";
++import { hrefTelefono } from "@/domain/anagrafiche/referente-cliente";
+ import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
+ 
+ // ── Formattatori ────────────────────────────────────────────────
+@@ -229,6 +230,11 @@ export default function ReportFatturazioneClienti({
+                     </div>
+                   </button>
+ 
++                  {/* Referente del cliente: fuori dal bottone, perché i
++                      recapiti sono link e non possono stare in un elemento
++                      interattivo. */}
++                  <ReferenteIntestazione cliente={cliente} />
++
+                   {/* Tabella dettaglio per offerta */}
+                   <div className="overflow-x-auto">
+                     <table className="w-full border-collapse text-[13.5px]">
+@@ -487,3 +493,59 @@ export default function ReportFatturazioneClienti({
+     </div>
+   );
+ }
++
++// ── Referente nell'intestazione del cliente ─────────────────────
++
++function ReferenteIntestazione({ cliente }: { cliente: VoceClienteReport }) {
++  const referente = cliente.clienteReferente;
++
++  return (
++    <div
++      data-testid={`report-client-${cliente.clienteId}-referente`}
++      className="flex flex-wrap items-center gap-x-[14px] gap-y-1 border-b border-zinc-200 bg-zinc-50 px-5 pb-3 text-[12.5px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400"
++    >
++      <span className="inline-flex items-center gap-[6px] text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
++        <svg
++          viewBox="0 0 24 24"
++          fill="none"
++          stroke="currentColor"
++          strokeWidth={2}
++          className="h-[13px] w-[13px]"
++        >
++          <circle cx="12" cy="8" r="3.6" />
++          <path d="M5 20a7 7 0 0 1 14 0" />
++        </svg>
++        Referente
++      </span>
++      {referente ? (
++        <>
++          {referente.nome && (
++            <span className="font-semibold text-zinc-800 dark:text-zinc-100">
++              {referente.nome}
++            </span>
++          )}
++          {referente.email && (
++            <a
++              href={`mailto:${referente.email}`}
++              className="text-indigo-600 no-underline hover:underline dark:text-indigo-400"
++            >
++              {referente.email}
++            </a>
++          )}
++          {referente.telefono && (
++            <a
++              href={hrefTelefono(referente.telefono)}
++              className="tabular-nums text-indigo-600 no-underline hover:underline dark:text-indigo-400"
++            >
++              {referente.telefono}
++            </a>
++          )}
++        </>
++      ) : (
++        <span className="italic text-zinc-400 dark:text-zinc-500">
++          Non indicato
++        </span>
++      )}
++    </div>
++  );
++}
+diff --git a/src/domain/anagrafiche/referente-cliente.ts b/src/domain/anagrafiche/referente-cliente.ts
+new file mode 100644
+index 0000000..0d994f4
+--- /dev/null
++++ b/src/domain/anagrafiche/referente-cliente.ts
+@@ -0,0 +1,45 @@
++// Referente del cliente: persona di contatto presso il cliente (ADR-006)
++// Nessuna dipendenza da framework — funzioni pure.
++
++/** Referente del cliente pronto per la visualizzazione (serializzabile). */
++export interface ReferenteCliente {
++  nome: string | null;
++  email: string | null;
++  telefono: string | null;
++}
++
++/** Campi referente così come persistiti su `Cliente` (tutti facoltativi). */
++export interface CampiReferenteCliente {
++  referenteNome: string | null;
++  referenteEmail: string | null;
++  referenteTelefono: string | null;
++}
++
++/**
++ * Ricava il referente dai campi del cliente.
++ *
++ * Nome, email e telefono sono indipendenti: basta uno di essi per avere un
++ * referente. Restituisce `null` quando sono tutti assenti, come per i clienti
++ * creati prima dell'introduzione del referente, che restano validi.
++ */
++export function referenteDelCliente(
++  cliente: CampiReferenteCliente,
++): ReferenteCliente | null {
++  const nome = cliente.referenteNome?.trim() || null;
++  const email = cliente.referenteEmail?.trim() || null;
++  const telefono = cliente.referenteTelefono?.trim() || null;
++
++  if (nome === null && email === null && telefono === null) {
++    return null;
++  }
++
++  return { nome, email, telefono };
++}
++
++/**
++ * Costruisce l'href `tel:` di un numero, mantenendo solo "+" iniziale e cifre.
++ */
++export function hrefTelefono(telefono: string): string {
++  const prefissoInternazionale = telefono.trim().startsWith("+") ? "+" : "";
++  return `tel:${prefissoInternazionale}${telefono.replace(/\D/g, "")}`;
++}
+diff --git a/src/domain/anagrafiche/valida-cliente.ts b/src/domain/anagrafiche/valida-cliente.ts
+index d7cc0e7..3795eca 100644
+--- a/src/domain/anagrafiche/valida-cliente.ts
++++ b/src/domain/anagrafiche/valida-cliente.ts
+@@ -12,6 +12,9 @@ export interface DatiClienteInput {
+   provincia?: string;
+   pec?: string;
+   codiceDestinatario?: string;
++  referenteNome?: string;
++  referenteEmail?: string;
++  referenteTelefono?: string;
+ }
+ 
+ /** Mappa campo → messaggio di errore. Vuoto se la validazione passa. */
+@@ -26,6 +29,11 @@ const RE_CIFRE_5 = /^\d{5}$/;
+ const RE_ALFANUM_16 = /^[A-Z0-9]{16}$/;
+ const RE_LETTERE_2 = /^[A-Za-z]{2}$/;
+ const RE_ALFANUM_7 = /^[A-Za-z0-9]{7}$/;
++/** Telefono: "+" iniziale facoltativo, poi cifre e separatori comuni */
++const RE_TELEFONO = /^\+?[0-9(][0-9 ./()-]*$/;
++const MIN_CIFRE_TELEFONO = 6;
++const MAX_CIFRE_TELEFONO = 15;
++const MAX_LUNGHEZZA_NOME_REFERENTE = 120;
+ const RE_EMAIL =
+   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+ 
+@@ -89,5 +97,39 @@ export function validaCliente(dati: DatiClienteInput): ErroriValidazione {
+     }
+   }
+ 
++  // --- Referente (nome, email e telefono facoltativi e indipendenti) ---
++
++  const referenteNome = dati.referenteNome?.trim() ?? "";
++  const referenteEmail = dati.referenteEmail?.trim() ?? "";
++  const referenteTelefono = dati.referenteTelefono?.trim() ?? "";
++
++  if (referenteNome.length > MAX_LUNGHEZZA_NOME_REFERENTE) {
++    errori.referenteNome = `Il nome del referente può contenere al massimo ${MAX_LUNGHEZZA_NOME_REFERENTE} caratteri`;
++  }
++
++  if (referenteEmail !== "" && !RE_EMAIL.test(referenteEmail)) {
++    errori.referenteEmail = "Inserisci un indirizzo email valido";
++  }
++
++  if (referenteTelefono !== "" && !telefonoValido(referenteTelefono)) {
++    errori.referenteTelefono =
++      "Inserisci un numero di telefono valido (es. +39 02 1234567)";
++  }
++
+   return errori;
+ }
++
++/**
++ * Un telefono è valido se usa solo cifre e separatori comuni (spazi, punti,
++ * trattini, barre, parentesi), con "+" facoltativo in testa, e contiene da
++ * 6 a 15 cifre (limite E.164).
++ */
++function telefonoValido(telefono: string): boolean {
++  if (!RE_TELEFONO.test(telefono)) {
++    return false;
++  }
++  const numeroCifre = telefono.replace(/\D/g, "").length;
++  return (
++    numeroCifre >= MIN_CIFRE_TELEFONO && numeroCifre <= MAX_CIFRE_TELEFONO
++  );
++}
+diff --git a/src/domain/consuntivi/index.ts b/src/domain/consuntivi/index.ts
+index 32d3262..7294a47 100644
+--- a/src/domain/consuntivi/index.ts
++++ b/src/domain/consuntivi/index.ts
+@@ -2,6 +2,7 @@
+ // Conversioni, rimborsi, totali saranno implementati nelle spec successive.
+ 
+ import { ORE_PER_GIORNATA } from "../types";
++import type { ReferenteCliente } from "../anagrafiche/referente-cliente";
+ 
+ export { ORE_PER_GIORNATA };
+ 
+@@ -199,6 +200,11 @@ export function calcolaRiepilogoMese(
+ export interface RigaReportFatturazione {
+   clienteId: string;
+   clienteRagioneSociale: string;
++  /**
++   * Referente del cliente, solo informativo: non partecipa ai calcoli.
++   * Assente o null per i clienti senza referente.
++   */
++  clienteReferente?: ReferenteCliente | null;
+   offertaId: string;
+   offertaCodice: string;
+   offertaDescrizione: string;
+@@ -238,6 +244,8 @@ export interface VoceOffertaReport {
+ export interface VoceClienteReport {
+   clienteId: string;
+   clienteRagioneSociale: string;
++  /** Referente del cliente mostrato nell'intestazione, null se non indicato */
++  clienteReferente: ReferenteCliente | null;
+   perOfferta: VoceOffertaReport[];
+   rimborsiTrasferta: string;
+   imponibileManodopera: string;
+@@ -285,6 +293,7 @@ export function calcolaReportFatturazioneClienti(
+   interface AccumulatoreCliente {
+     clienteId: string;
+     clienteRagioneSociale: string;
++    clienteReferente: ReferenteCliente | null;
+     offerte: Map<string, AccumulatoreOfferta>;
+     rimborsiTrasferta: number;
+   }
+@@ -297,6 +306,7 @@ export function calcolaReportFatturazioneClienti(
+       cliente = {
+         clienteId: riga.clienteId,
+         clienteRagioneSociale: riga.clienteRagioneSociale,
++        clienteReferente: riga.clienteReferente ?? null,
+         offerte: new Map(),
+         rimborsiTrasferta: 0,
+       };
+@@ -455,6 +465,7 @@ export function calcolaReportFatturazioneClienti(
+     perCliente.push({
+       clienteId: cliente.clienteId,
+       clienteRagioneSociale: cliente.clienteRagioneSociale,
++      clienteReferente: cliente.clienteReferente,
+       perOfferta,
+       rimborsiTrasferta: rimborsiCliente.toFixed(2),
+       imponibileManodopera: imponibileManodoperaCliente.toFixed(2),
+diff --git a/src/lib/report.ts b/src/lib/report.ts
+index e72da90..9810efd 100644
+--- a/src/lib/report.ts
++++ b/src/lib/report.ts
+@@ -14,6 +14,7 @@ import {
+   type RigaReportFatturazione,
+   type ReportFatturazioneClienti,
+ } from "@/domain/consuntivi";
++import { referenteDelCliente } from "@/domain/anagrafiche/referente-cliente";
+ 
+ // ── Tipi ────────────────────────────────────────────────────────
+ 
+@@ -92,6 +93,7 @@ export async function reportFatturazioneClientiMese(
+     (riga: RigaAttivitaConContesto) => ({
+       clienteId: riga.clienteId,
+       clienteRagioneSociale: riga.cliente.ragioneSociale,
++      clienteReferente: referenteDelCliente(riga.cliente),
+       offertaId: riga.offertaId,
+       offertaCodice: riga.offerta.codice,
+       offertaDescrizione: riga.offerta.descrizione,
+diff --git a/tests/e2e/referente-cliente.spec.ts b/tests/e2e/referente-cliente.spec.ts
+new file mode 100644
+index 0000000..f12d2d3
+--- /dev/null
++++ b/tests/e2e/referente-cliente.spec.ts
+@@ -0,0 +1,310 @@
++import { randomUUID } from "node:crypto";
++
++import type { Page } from "@playwright/test";
++
++import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
++import { dataNelMesePassatoRiservato, mesePassatoRiservato } from "./support/date";
++import { test, expect } from "./support/fixtures";
++
++/**
++ * Test e2e — Referente del cliente.
++ *
++ * Il referente (nome, email, telefono) è facoltativo, validato quando
++ * presente, modificabile solo dall'amministratore e visibile in elenco,
++ * dettaglio cliente e intestazione del cliente nel report Fatturazione
++ * Clienti. Gli scenari mutanti creano clienti propri tramite factory o form,
++ * senza toccare TechSolutions/DataFlow.
++ */
++
++const CODICE_SPEC_REPORT_REFERENTE = "REFERENTE-CLIENTE-REPORT-FATTURAZIONE";
++
++const formattatoreEuro = new Intl.NumberFormat("it-IT", {
++	style: "currency",
++	currency: "EUR",
++});
++
++function suffissoUnivoco(): string {
++	return randomUUID().slice(0, 8);
++}
++
++function rigaCliente(page: Page, ragioneSociale: string) {
++	return page
++		.getByRole("table", { name: "Elenco clienti" })
++		.getByRole("row")
++		.filter({ hasText: ragioneSociale });
++}
++
++function sezioneReferente(page: Page) {
++	return page.getByRole("region", { name: "Referente", exact: true });
++}
++
++test.describe("Referente del cliente — amministratore", () => {
++	test.beforeEach(async ({ page }) => {
++		await accediComeAdmin(page);
++	});
++
++	test("crea un cliente con referente visibile in elenco e dettaglio", async ({
++		page,
++	}) => {
++		const suffisso = suffissoUnivoco();
++		const ragioneSociale = `E2E Referente Nuovo ${suffisso}`;
++		const nomeReferente = `Marta Referente ${suffisso}`;
++		const emailReferente = `marta.${suffisso}@referente.e2e.invalid`;
++		const telefonoReferente = "+39 02 1234567";
++
++		await page.goto("/anagrafiche/clienti/nuovo");
++		await expect(page.getByRole("heading", { name: "Nuovo cliente" })).toBeVisible();
++
++		await page.getByLabel(/^Ragione sociale/).fill(ragioneSociale);
++		await page.getByLabel(/^Partita IVA/).fill("12345678901");
++		await page.getByLabel(/^Nome referente/).fill(nomeReferente);
++		await page.getByLabel(/^Email referente/).fill(emailReferente);
++		await page.getByLabel(/^Telefono referente/).fill(telefonoReferente);
++		await page.getByRole("button", { name: "Crea cliente" }).click();
++
++		await page.waitForURL("**/anagrafiche/clienti?esito=creato");
++		const riga = rigaCliente(page, ragioneSociale);
++		await expect(riga).toHaveCount(1);
++		await expect(riga.getByText(nomeReferente, { exact: true })).toBeVisible();
++		await expect(
++			riga.getByText(`${emailReferente} · ${telefonoReferente}`, { exact: true }),
++		).toBeVisible();
++
++		await riga.getByRole("link", { name: new RegExp(ragioneSociale) }).click();
++		await page.waitForURL(/\/anagrafiche\/clienti\/[^/]+$/);
++		await expect(
++			page.getByRole("heading", { name: new RegExp(ragioneSociale) }),
++		).toBeVisible();
++
++		const sezione = sezioneReferente(page);
++		await expect(sezione.getByText(nomeReferente, { exact: true })).toBeVisible();
++		await expect(
++			sezione.getByRole("link", { name: emailReferente, exact: true }),
++		).toHaveAttribute("href", `mailto:${emailReferente}`);
++		await expect(
++			sezione.getByRole("link", { name: telefonoReferente, exact: true }),
++		).toHaveAttribute("href", "tel:+39021234567");
++	});
++
++	test("valida i campi referente quando presenti senza salvare", async ({
++		page,
++	}) => {
++		const ragioneSociale = `E2E Referente Invalido ${suffissoUnivoco()}`;
++
++		await page.goto("/anagrafiche/clienti/nuovo");
++		await page.getByLabel(/^Ragione sociale/).fill(ragioneSociale);
++		await page.getByLabel(/^Partita IVA/).fill("12345678901");
++		await page.getByLabel(/^Email referente/).fill("non-una-email");
++		await page.getByLabel(/^Telefono referente/).fill("abc");
++		await page.getByRole("button", { name: "Crea cliente" }).click();
++
++		await expect(page.getByText(/Controlla i campi evidenziati/)).toBeVisible();
++		await expect(page.getByText("Inserisci un indirizzo email valido")).toBeVisible();
++		// Il nome del referente resta facoltativo anche in presenza di recapiti
++		await expect(page.getByText(/nome del referente/)).toHaveCount(0);
++		await expect(
++			page.getByText("Inserisci un numero di telefono valido (es. +39 02 1234567)"),
++		).toBeVisible();
++		await expect(page).toHaveURL(/\/anagrafiche\/clienti\/nuovo/);
++		// I valori inviati restano nel form per la correzione
++		await expect(page.getByLabel(/^Email referente/)).toHaveValue("non-una-email");
++
++		await page.goto("/anagrafiche/clienti");
++		await expect(rigaCliente(page, ragioneSociale)).toHaveCount(0);
++	});
++
++	test("crea un cliente con la sola email del referente, senza nome", async ({
++		page,
++	}) => {
++		const suffisso = suffissoUnivoco();
++		const ragioneSociale = `E2E Referente Solo Email ${suffisso}`;
++		const emailReferente = `ufficio.${suffisso}@referente.e2e.invalid`;
++
++		await page.goto("/anagrafiche/clienti/nuovo");
++		await page.getByLabel(/^Ragione sociale/).fill(ragioneSociale);
++		await page.getByLabel(/^Partita IVA/).fill("12345678901");
++		await page.getByLabel(/^Email referente/).fill(emailReferente);
++		await page.getByRole("button", { name: "Crea cliente" }).click();
++
++		await page.waitForURL("**/anagrafiche/clienti?esito=creato");
++		const riga = rigaCliente(page, ragioneSociale);
++		await expect(riga).toHaveCount(1);
++		await expect(riga.getByText(emailReferente, { exact: true })).toBeVisible();
++
++		await riga.getByRole("link", { name: new RegExp(ragioneSociale) }).click();
++		await page.waitForURL(/\/anagrafiche\/clienti\/[^/]+$/);
++		const sezione = sezioneReferente(page);
++		await expect(
++			sezione.getByRole("link", { name: emailReferente, exact: true }),
++		).toHaveAttribute("href", `mailto:${emailReferente}`);
++		await expect(sezione.getByText(/Nessun referente indicato/)).toHaveCount(0);
++	});
++
++	test("salva il solo telefono del referente su un cliente esistente", async ({
++		page,
++		factory,
++	}) => {
++		const cliente = await factory.createCliente({
++			ragioneSociale: `E2E Referente Solo Telefono ${suffissoUnivoco()}`,
++		});
++
++		await page.goto(`/anagrafiche/clienti/${cliente.id}/modifica`);
++		await expect(page.getByRole("heading", { name: "Modifica cliente" })).toBeVisible();
++		await page.getByLabel(/^Telefono referente/).fill("02 9876543");
++		await page.getByRole("button", { name: "Salva modifiche" }).click();
++
++		await page.waitForURL("**/anagrafiche/clienti?esito=salvato");
++		await expect(
++			rigaCliente(page, cliente.ragioneSociale).getByText("02 9876543", { exact: true }),
++		).toBeVisible();
++
++		await page.goto(`/anagrafiche/clienti/${cliente.id}`);
++		await expect(
++			sezioneReferente(page).getByRole("link", { name: "02 9876543", exact: true }),
++		).toHaveAttribute("href", "tel:029876543");
++	});
++
++	test("cliente esistente senza referente: aggiunta e rimozione del referente", async ({
++		page,
++		factory,
++	}) => {
++		const suffisso = suffissoUnivoco();
++		const cliente = await factory.createCliente({
++			ragioneSociale: `E2E Referente Esistente ${suffisso}`,
++		});
++		const nomeReferente = `Luca Contatto ${suffisso}`;
++
++		await page.goto(`/anagrafiche/clienti/${cliente.id}`);
++		await expect(
++			sezioneReferente(page).getByText(/Nessun referente indicato/),
++		).toBeVisible();
++
++		await page.goto(`/anagrafiche/clienti/${cliente.id}/modifica`);
++		await expect(page.getByRole("heading", { name: "Modifica cliente" })).toBeVisible();
++		await page.getByLabel(/^Nome referente/).fill(nomeReferente);
++		await page.getByLabel(/^Telefono referente/).fill("011 765 4321");
++		await page.getByRole("button", { name: "Salva modifiche" }).click();
++
++		await page.waitForURL("**/anagrafiche/clienti?esito=salvato");
++		const riga = rigaCliente(page, cliente.ragioneSociale);
++		await expect(riga.getByText(nomeReferente, { exact: true })).toBeVisible();
++		await expect(riga.getByText("011 765 4321", { exact: true })).toBeVisible();
++
++		await page.goto(`/anagrafiche/clienti/${cliente.id}/modifica`);
++		await expect(page.getByLabel(/^Nome referente/)).toHaveValue(nomeReferente);
++		await page.getByLabel(/^Nome referente/).fill("");
++		await page.getByLabel(/^Telefono referente/).fill("");
++		await page.getByRole("button", { name: "Salva modifiche" }).click();
++
++		await page.waitForURL("**/anagrafiche/clienti?esito=salvato");
++		await expect(rigaCliente(page, cliente.ragioneSociale).getByText(nomeReferente)).toHaveCount(0);
++
++		await page.goto(`/anagrafiche/clienti/${cliente.id}`);
++		await expect(
++			sezioneReferente(page).getByText(/Nessun referente indicato/),
++		).toBeVisible();
++	});
++
++	test("il report fatturazione mostra il referente nell'intestazione senza alterare gli importi", async ({
++		page,
++		factory,
++		collaboratore,
++	}) => {
++		const suffisso = suffissoUnivoco();
++		const mese = mesePassatoRiservato(CODICE_SPEC_REPORT_REFERENTE);
++		const data = new Date(
++			`${dataNelMesePassatoRiservato(CODICE_SPEC_REPORT_REFERENTE, 9)}T00:00:00.000Z`,
++		);
++
++		const clienteConReferente = await factory.createCliente({
++			ragioneSociale: `E2E Referente Report ${suffisso}`,
++			referenteNome: `Paola Report ${suffisso}`,
++			referenteEmail: `paola.${suffisso}@referente.e2e.invalid`,
++			referenteTelefono: "+39 333 1234567",
++		});
++		const clienteSenzaReferente = await factory.createCliente({
++			ragioneSociale: `E2E Senza Referente Report ${suffisso}`,
++		});
++		const clienteSoloTelefono = await factory.createCliente({
++			ragioneSociale: `E2E Solo Telefono Report ${suffisso}`,
++			referenteTelefono: "011 7654321",
++		});
++
++		for (const cliente of [clienteConReferente, clienteSenzaReferente, clienteSoloTelefono]) {
++			const offerta = await factory.createOfferta({
++				cliente,
++				codice: `REF-${cliente.id.slice(0, 8)}`,
++				tariffaGiornaliera: "500.00",
++			});
++			await factory.createRigaAttivita({
++				collaboratore,
++				cliente,
++				offerta,
++				data,
++				ore: "8.00",
++				fatturabile: true,
++			});
++		}
++
++		await page.goto(`/report/fatturazione-clienti?mese=${mese}`);
++		await page.waitForURL(`**/report/fatturazione-clienti?mese=${mese}`);
++
++		const referenteConDati = page.getByTestId(
++			`report-client-${clienteConReferente.id}-referente`,
++		);
++		await expect(
++			referenteConDati.getByText(`Paola Report ${suffisso}`, { exact: true }),
++		).toBeVisible();
++		await expect(
++			referenteConDati.getByRole("link", {
++				name: `paola.${suffisso}@referente.e2e.invalid`,
++				exact: true,
++			}),
++		).toBeVisible();
++		await expect(
++			referenteConDati.getByRole("link", { name: "+39 333 1234567", exact: true }),
++		).toHaveAttribute("href", "tel:+393331234567");
++
++		await expect(
++			page
++				.getByTestId(`report-client-${clienteSenzaReferente.id}-referente`)
++				.getByText("Non indicato", { exact: true }),
++		).toBeVisible();
++
++		const referenteSoloTelefono = page.getByTestId(
++			`report-client-${clienteSoloTelefono.id}-referente`,
++		);
++		await expect(
++			referenteSoloTelefono.getByRole("link", { name: "011 7654321", exact: true }),
++		).toHaveAttribute("href", "tel:0117654321");
++		await expect(referenteSoloTelefono.getByText("Non indicato")).toHaveCount(0);
++
++		// Il referente è solo informativo: 1 giornata × 500 € per ogni cliente
++		for (const cliente of [clienteConReferente, clienteSenzaReferente, clienteSoloTelefono]) {
++			await expect(
++				page.getByTestId(`report-client-${cliente.id}-totale`),
++			).toHaveText(formattatoreEuro.format(500));
++		}
++	});
++});
++
++test.describe("Referente del cliente — collaboratore", () => {
++	test("non può aprire la modifica del cliente né vederne il referente", async ({
++		page,
++		factory,
++		collaboratore,
++	}) => {
++		const suffisso = suffissoUnivoco();
++		const cliente = await factory.createCliente({
++			ragioneSociale: `E2E Referente Riservato ${suffisso}`,
++			referenteNome: `Referente Riservato ${suffisso}`,
++		});
++
++		await accediComeCollaboratore(page, collaboratore.utente.email);
++
++		await page.goto(`/anagrafiche/clienti/${cliente.id}/modifica`);
++		await page.waitForURL("**/attivita**");
++		await expect(page.getByLabel(/^Nome referente/)).toHaveCount(0);
++		await expect(page.getByText(`Referente Riservato ${suffisso}`)).toHaveCount(0);
++	});
++});
+diff --git a/tests/e2e/support/factory.ts b/tests/e2e/support/factory.ts
+index 56cdedf..f5139e9 100644
+--- a/tests/e2e/support/factory.ts
++++ b/tests/e2e/support/factory.ts
+@@ -50,6 +50,9 @@ export type CreateClienteOptions = {
+ 	provincia?: string | null;
+ 	pec?: string | null;
+ 	codiceDestinatario?: string | null;
++	referenteNome?: string | null;
++	referenteEmail?: string | null;
++	referenteTelefono?: string | null;
+ 	attivo?: boolean;
+ };
+ 
+@@ -205,8 +208,8 @@ export class E2eDataFactory {
+ 
+ 		return insertReturning<Cliente>(
+ 			this.prisma,
+-			`INSERT INTO "Cliente" ("id", "ragioneSociale", "partitaIva", "codiceFiscale", "indirizzo", "citta", "cap", "provincia", "pec", "codiceDestinatario", "attivo", "createdAt", "updatedAt")
+-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
++			`INSERT INTO "Cliente" ("id", "ragioneSociale", "partitaIva", "codiceFiscale", "indirizzo", "citta", "cap", "provincia", "pec", "codiceDestinatario", "referenteNome", "referenteEmail", "referenteTelefono", "attivo", "createdAt", "updatedAt")
++			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15)
+ 			 RETURNING *`,
+ 			[
+ 				randomUUID(),
+@@ -222,6 +225,10 @@ export class E2eDataFactory {
+ 				options.pec ?? `${token}@pec.e2e.invalid`,
+ 				options.codiceDestinatario ??
+ 					`E${this.numericCode(`cliente-sdi-${token}`).slice(0, 6)}`,
++				// Di default nessun referente, come i clienti esistenti
++				options.referenteNome ?? null,
++				options.referenteEmail ?? null,
++				options.referenteTelefono ?? null,
+ 				options.attivo ?? true,
+ 				now,
+ 			],
+diff --git a/tests/unit/clienti-dal-actions.test.ts b/tests/unit/clienti-dal-actions.test.ts
+index 837cc41..bb376b1 100644
+--- a/tests/unit/clienti-dal-actions.test.ts
++++ b/tests/unit/clienti-dal-actions.test.ts
+@@ -331,6 +331,9 @@ describe("Server Actions clienti", () => {
+           provincia: "MI",
+           pec: "test@pec.it",
+           codiceDestinatario: "ABC1234",
++          referenteNome: null,
++          referenteEmail: null,
++          referenteTelefono: null,
+           attivo: true,
+         },
+       });
+@@ -372,11 +375,123 @@ describe("Server Actions clienti", () => {
+           provincia: "RM",
+           pec: null,
+           codiceDestinatario: null,
++          referenteNome: null,
++          referenteEmail: null,
++          referenteTelefono: null,
+         },
+       });
+       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/clienti");
+       expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/clienti?esito=salvato");
+     });
++
++    it("salva il referente normalizzato e lo passa alla validazione", async () => {
++      mockValidaCliente.mockReturnValue({});
++
++      const formData = new FormData();
++      formData.set("id", "cliente-1");
++      formData.set("ragioneSociale", "Test SRL");
++      formData.set("partitaIva", "12345678901");
++      formData.set("referenteNome", "  Marta   Bianchi ");
++      formData.set("referenteEmail", " marta.bianchi@cliente.it ");
++      formData.set("referenteTelefono", " +39  02   1234567 ");
++
++      await aggiornaCliente(statoIniziale(), formData);
++
++      expect(mockValidaCliente).toHaveBeenCalledWith(
++        expect.objectContaining({
++          referenteNome: "Marta Bianchi",
++          referenteEmail: "marta.bianchi@cliente.it",
++          referenteTelefono: "+39 02 1234567",
++        })
++      );
++      expect(mockCliente.update).toHaveBeenCalledWith({
++        where: { id: "cliente-1" },
++        data: expect.objectContaining({
++          referenteNome: "Marta Bianchi",
++          referenteEmail: "marta.bianchi@cliente.it",
++          referenteTelefono: "+39 02 1234567",
++        }),
++      });
++    });
++
++    it("svuotare il referente lo azzera a null senza toccare lo stato attivo", async () => {
++      mockValidaCliente.mockReturnValue({});
++
++      const formData = new FormData();
++      formData.set("id", "cliente-1");
++      formData.set("ragioneSociale", "Test SRL");
++      formData.set("partitaIva", "12345678901");
++      formData.set("referenteNome", "   ");
++      formData.set("referenteEmail", "");
++      formData.set("referenteTelefono", "");
++
++      await aggiornaCliente(statoIniziale(), formData);
++
++      const { data } = mockCliente.update.mock.calls[0][0];
++      expect(data.referenteNome).toBeNull();
++      expect(data.referenteEmail).toBeNull();
++      expect(data.referenteTelefono).toBeNull();
++      expect(data).not.toHaveProperty("attivo");
++    });
++
++    it("salva la sola email del referente, lasciando nome e telefono a null", async () => {
++      mockValidaCliente.mockReturnValue({});
++
++      const formData = new FormData();
++      formData.set("id", "cliente-1");
++      formData.set("ragioneSociale", "Test SRL");
++      formData.set("partitaIva", "12345678901");
++      formData.set("referenteNome", "");
++      formData.set("referenteEmail", " marta@cliente.it ");
++      formData.set("referenteTelefono", "");
++
++      const result = await aggiornaCliente(statoIniziale(), formData);
++
++      expect(result).toBeUndefined();
++      const { data } = mockCliente.update.mock.calls[0][0];
++      expect(data.referenteNome).toBeNull();
++      expect(data.referenteEmail).toBe("marta@cliente.it");
++      expect(data.referenteTelefono).toBeNull();
++      expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/clienti?esito=salvato");
++    });
++
++    it("salva il solo telefono del referente, lasciando nome ed email a null", async () => {
++      mockValidaCliente.mockReturnValue({});
++
++      const formData = new FormData();
++      formData.set("id", "cliente-1");
++      formData.set("ragioneSociale", "Test SRL");
++      formData.set("partitaIva", "12345678901");
++      formData.set("referenteTelefono", " 02   1234567 ");
++
++      const result = await aggiornaCliente(statoIniziale(), formData);
++
++      expect(result).toBeUndefined();
++      const { data } = mockCliente.update.mock.calls[0][0];
++      expect(data.referenteNome).toBeNull();
++      expect(data.referenteEmail).toBeNull();
++      expect(data.referenteTelefono).toBe("02 1234567");
++      expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/clienti?esito=salvato");
++    });
++
++    it("con referente non valido restituisce gli errori senza aggiornare", async () => {
++      mockValidaCliente.mockReturnValue({
++        referenteEmail: "Inserisci un indirizzo email valido",
++      });
++
++      const formData = new FormData();
++      formData.set("id", "cliente-1");
++      formData.set("ragioneSociale", "Test SRL");
++      formData.set("partitaIva", "12345678901");
++      formData.set("referenteNome", "Marta Bianchi");
++      formData.set("referenteEmail", "non-valida");
++
++      const result = await aggiornaCliente(statoIniziale(), formData);
++
++      expect(result.errori.referenteEmail).toBe("Inserisci un indirizzo email valido");
++      expect(mockCliente.update).not.toHaveBeenCalled();
++      expect(mockRedirect).not.toHaveBeenCalled();
++    });
+   });
+ 
+   // ── 9-10. cambiaStatoCliente ─────────────────────────────────
+@@ -437,6 +552,7 @@ describe("Server Actions clienti", () => {
+ 
+       const formData = new FormData();
+       formData.set("id", "cliente-1");
++      formData.set("referenteNome", "Tentativo non autorizzato");
+ 
+       await expect(
+         aggiornaCliente(statoIniziale(), formData)
+diff --git a/tests/unit/referente-cliente.test.ts b/tests/unit/referente-cliente.test.ts
+new file mode 100644
+index 0000000..ea7baa5
+--- /dev/null
++++ b/tests/unit/referente-cliente.test.ts
+@@ -0,0 +1,71 @@
++import { describe, it, expect } from "vitest";
++import {
++  hrefTelefono,
++  referenteDelCliente,
++} from "@/domain/anagrafiche/referente-cliente";
++
++describe("referenteDelCliente", () => {
++  it("restituisce null per un cliente senza referente", () => {
++    expect(
++      referenteDelCliente({
++        referenteNome: null,
++        referenteEmail: null,
++        referenteTelefono: null,
++      })
++    ).toBeNull();
++  });
++
++  it("restituisce null se tutti i campi sono vuoti o di soli spazi", () => {
++    expect(
++      referenteDelCliente({
++        referenteNome: "   ",
++        referenteEmail: "",
++        referenteTelefono: " ",
++      })
++    ).toBeNull();
++  });
++
++  it("restituisce il referente con la sola email, senza nome", () => {
++    expect(
++      referenteDelCliente({
++        referenteNome: "   ",
++        referenteEmail: "marta@cliente.it",
++        referenteTelefono: null,
++      })
++    ).toEqual({ nome: null, email: "marta@cliente.it", telefono: null });
++  });
++
++  it("restituisce il referente con il solo telefono, senza nome", () => {
++    expect(
++      referenteDelCliente({
++        referenteNome: null,
++        referenteEmail: null,
++        referenteTelefono: " 02 1234567 ",
++      })
++    ).toEqual({ nome: null, email: null, telefono: "02 1234567" });
++  });
++
++  it("restituisce nome e recapiti normalizzati", () => {
++    expect(
++      referenteDelCliente({
++        referenteNome: " Marta Bianchi ",
++        referenteEmail: "marta@cliente.it",
++        referenteTelefono: "",
++      })
++    ).toEqual({
++      nome: "Marta Bianchi",
++      email: "marta@cliente.it",
++      telefono: null,
++    });
++  });
++});
++
++describe("hrefTelefono", () => {
++  it("mantiene il prefisso internazionale e le sole cifre", () => {
++    expect(hrefTelefono("+39 02 1234567")).toBe("tel:+39021234567");
++  });
++
++  it("rimuove separatori e parentesi da un numero nazionale", () => {
++    expect(hrefTelefono("(011) 765.43-21")).toBe("tel:0117654321");
++  });
++});
+diff --git a/tests/unit/report-fatturazione-clienti.test.ts b/tests/unit/report-fatturazione-clienti.test.ts
+index 66d7652..acd0f6c 100644
+--- a/tests/unit/report-fatturazione-clienti.test.ts
++++ b/tests/unit/report-fatturazione-clienti.test.ts
+@@ -507,3 +507,57 @@ describe("calcolaReportFatturazioneClienti", () => {
+     });
+   });
+ });
++
++// ═══════════════════════════════════════════════════════════════
++// Referente del cliente nel report
++// ═══════════════════════════════════════════════════════════════
++
++describe("calcolaReportFatturazioneClienti — referente del cliente", () => {
++  const referente = {
++    nome: "Marta Bianchi",
++    email: "marta@cliente.it",
++    telefono: "+39 02 1234567",
++  };
++
++  it("riporta il referente del cliente nella voce cliente", () => {
++    const report = calcolaReportFatturazioneClienti([
++      riga({ clienteReferente: referente }),
++    ]);
++
++    expect(report.perCliente[0].clienteReferente).toEqual(referente);
++  });
++
++  it("usa null per i clienti senza referente (campo assente o null)", () => {
++    const report = calcolaReportFatturazioneClienti([
++      riga({ clienteId: "cliente-a", clienteRagioneSociale: "Alfa" }),
++      riga({
++        clienteId: "cliente-b",
++        clienteRagioneSociale: "Beta",
++        clienteReferente: null,
++      }),
++    ]);
++
++    expect(report.perCliente.map((c) => c.clienteReferente)).toEqual([null, null]);
++  });
++
++  it("non altera importi e totali", () => {
++    const righe = [
++      riga({ ore: 8, tariffaOffertaGiornaliera: 500, rimborsoTrasfertaImporto: "35.00" }),
++      riga({ ore: 4, tariffaOffertaGiornaliera: 500 }),
++    ];
++
++    const senzaReferente = calcolaReportFatturazioneClienti(righe);
++    const conReferente = calcolaReportFatturazioneClienti(
++      righe.map((r) => ({ ...r, clienteReferente: referente })),
++    );
++
++    expect(conReferente.totali).toEqual(senzaReferente.totali);
++    expect(conReferente.totali.importoTotale).toBe("785.00");
++    const { clienteReferente, ...restoConReferente } = conReferente.perCliente[0];
++    const { clienteReferente: nessuno, ...restoSenzaReferente } =
++      senzaReferente.perCliente[0];
++    expect(clienteReferente).toEqual(referente);
++    expect(nessuno).toBeNull();
++    expect(restoConReferente).toEqual(restoSenzaReferente);
++  });
++});
+diff --git a/tests/unit/report-fatturazione-referente.test.ts b/tests/unit/report-fatturazione-referente.test.ts
+new file mode 100644
+index 0000000..5c57775
+--- /dev/null
++++ b/tests/unit/report-fatturazione-referente.test.ts
+@@ -0,0 +1,117 @@
++import { describe, it, expect, vi, beforeEach } from "vitest";
++
++// ── Mock di Prisma e del DAL ─────────────────────────────────────
++
++const { mockRigaAttivita } = vi.hoisted(() => ({
++  mockRigaAttivita: { findMany: vi.fn() },
++}));
++
++vi.mock("@/lib/db", () => ({
++  db: { rigaAttivita: mockRigaAttivita },
++}));
++
++const { mockRichiediRuoloApi } = vi.hoisted(() => ({
++  mockRichiediRuoloApi: vi.fn(),
++}));
++
++vi.mock("@/lib/dal", () => ({
++  richiediRuoloApi: mockRichiediRuoloApi,
++}));
++
++import { reportFatturazioneClientiMese } from "@/lib/report";
++
++// ── Builder di supporto ─────────────────────────────────────────
++
++function rigaDb(cliente: {
++  id: string;
++  ragioneSociale: string;
++  referenteNome: string | null;
++  referenteEmail: string | null;
++  referenteTelefono: string | null;
++}) {
++  return {
++    id: `riga-${cliente.id}`,
++    collaboratoreId: "collab-1",
++    clienteId: cliente.id,
++    offertaId: `off-${cliente.id}`,
++    data: new Date(2026, 4, 12),
++    ore: { toString: () => "8", valueOf: () => 8 },
++    nota: null,
++    fatturabile: true,
++    rimborsoTrasfertaEtichetta: null,
++    rimborsoTrasfertaImporto: null,
++    offerta: {
++      id: `off-${cliente.id}`,
++      codice: `OFF-${cliente.id}`,
++      descrizione: "Consulenza",
++      tariffaGiornaliera: { toString: () => "500.00" },
++    },
++    cliente: { attivo: true, ...cliente },
++    collaboratore: { nome: "Ada", cognome: "Lovelace" },
++  };
++}
++
++describe("reportFatturazioneClientiMese — referente del cliente", () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++    mockRichiediRuoloApi.mockResolvedValue(undefined);
++  });
++
++  it("espone il referente nell'intestazione cliente, anche parziale, e null se assente", async () => {
++    mockRigaAttivita.findMany.mockResolvedValue([
++      rigaDb({
++        id: "a",
++        ragioneSociale: "Alfa SPA",
++        referenteNome: "Marta Bianchi",
++        referenteEmail: "marta@alfa.it",
++        referenteTelefono: null,
++      }),
++      rigaDb({
++        id: "b",
++        ragioneSociale: "Beta SRL",
++        referenteNome: null,
++        referenteEmail: null,
++        referenteTelefono: null,
++      }),
++      rigaDb({
++        id: "c",
++        ragioneSociale: "Gamma SNC",
++        referenteNome: null,
++        referenteEmail: "ufficio@gamma.it",
++        referenteTelefono: null,
++      }),
++      rigaDb({
++        id: "d",
++        ragioneSociale: "Omega SAS",
++        referenteNome: "",
++        referenteEmail: null,
++        referenteTelefono: "02 1234567",
++      }),
++    ]);
++
++    const report = await reportFatturazioneClientiMese("2026-05");
++
++    expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
++    expect(report.perCliente.map((c) => c.clienteReferente)).toEqual([
++      { nome: "Marta Bianchi", email: "marta@alfa.it", telefono: null },
++      null,
++      { nome: null, email: "ufficio@gamma.it", telefono: null },
++      { nome: null, email: null, telefono: "02 1234567" },
++    ]);
++    expect(report.perCliente.map((c) => c.importoTotale)).toEqual([
++      "500.00",
++      "500.00",
++      "500.00",
++      "500.00",
++    ]);
++  });
++
++  it("non legge dati se l'utente non è amministratore", async () => {
++    mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
++
++    await expect(reportFatturazioneClientiMese("2026-05")).rejects.toThrow(
++      "Accesso negato",
++    );
++    expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
++  });
++});
+diff --git a/tests/unit/valida-cliente.test.ts b/tests/unit/valida-cliente.test.ts
+index aae31eb..2824e81 100644
+--- a/tests/unit/valida-cliente.test.ts
++++ b/tests/unit/valida-cliente.test.ts
+@@ -306,3 +306,93 @@ describe("validaCliente — casi edge", () => {
+     expect(errori.pec).toBe("Inserisci un indirizzo PEC valido");
+   });
+ });
++
++// ── Referente del cliente ──────────────────────────────────────
++
++describe("validaCliente — referente", () => {
++  it("un cliente senza referente resta valido", () => {
++    expect(validaCliente(baseInput())).toEqual({});
++    expect(
++      validaCliente(
++        baseInput({ referenteNome: "", referenteEmail: "  ", referenteTelefono: "" })
++      )
++    ).toEqual({});
++  });
++
++  it("accetta un referente completo", () => {
++    const errori = validaCliente(
++      baseInput({
++        referenteNome: "Marta Bianchi",
++        referenteEmail: "marta.bianchi@cliente.it",
++        referenteTelefono: "+39 02 1234567",
++      })
++    );
++    expect(errori).toEqual({});
++  });
++
++  it("accetta il solo nome del referente", () => {
++    expect(validaCliente(baseInput({ referenteNome: "Marta Bianchi" }))).toEqual({});
++  });
++
++  it("accetta la sola email del referente, senza nome", () => {
++    expect(validaCliente(baseInput({ referenteEmail: "marta@cliente.it" }))).toEqual({});
++  });
++
++  it("accetta il solo telefono del referente, senza nome", () => {
++    expect(validaCliente(baseInput({ referenteTelefono: "021234567" }))).toEqual({});
++  });
++
++  it("valida la sola email presente senza segnalare il nome mancante", () => {
++    const errori = validaCliente(baseInput({ referenteEmail: "non-valida" }));
++    expect(errori).toEqual({ referenteEmail: "Inserisci un indirizzo email valido" });
++  });
++
++  it("valida il solo telefono presente senza segnalare il nome mancante", () => {
++    const errori = validaCliente(baseInput({ referenteTelefono: "abc" }));
++    expect(errori).toEqual({
++      referenteTelefono: "Inserisci un numero di telefono valido (es. +39 02 1234567)",
++    });
++  });
++
++  it("rifiuta un nome referente oltre 120 caratteri", () => {
++    const errori = validaCliente(baseInput({ referenteNome: "a".repeat(121) }));
++    expect(errori.referenteNome).toBe(
++      "Il nome del referente può contenere al massimo 120 caratteri"
++    );
++    expect(
++      validaCliente(baseInput({ referenteNome: "a".repeat(120) })).referenteNome
++    ).toBeUndefined();
++  });
++
++  it.each(["marta", "marta@", "@cliente.it", "marta bianchi@cliente.it"])(
++    "rifiuta l'email non valida %s",
++    (email) => {
++      const errori = validaCliente(
++        baseInput({ referenteNome: "Marta", referenteEmail: email })
++      );
++      expect(errori.referenteEmail).toBe("Inserisci un indirizzo email valido");
++    }
++  );
++
++  it.each(["+39 02 1234567", "02-1234567", "(011) 765.4321", "3331234567", "+44 20 7946 0958"])(
++    "accetta il telefono %s",
++    (telefono) => {
++      const errori = validaCliente(
++        baseInput({ referenteNome: "Marta", referenteTelefono: telefono })
++      );
++      expect(errori.referenteTelefono).toBeUndefined();
++    }
++  );
++
++  it.each(["abc", "12345", "+39 02 abc", "02 1234567 int. 3", "1234567890123456", "++39021234567"])(
++    "rifiuta il telefono %s",
++    (telefono) => {
++      const errori = validaCliente(
++        baseInput({ referenteNome: "Marta", referenteTelefono: telefono })
++      );
++      expect(errori.referenteTelefono).toBe(
++        "Inserisci un numero di telefono valido (es. +39 02 1234567)"
++      );
++    }
++  );
++});

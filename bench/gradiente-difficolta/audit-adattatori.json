@@ -1,0 +1,100 @@
+[
+  {
+    "prova": "G-T3-COM-sonnet-r2",
+    "criterio": "attesa di esito nuovo, nessun alert globale già presente",
+    "esito": "Attesa globale errata corretta meccanicamente; lettura browser sostituita una volta su DB nuovo, precedente conservata. Nessuna correzione applicativa.",
+    "sha256": {
+      "browser.ts": "b676cc2dca901a21e1f3125bbf4cf297a9490ac91651bcc5fccd440bb8890a8e",
+      "dati.ts": "b3ba334dbc3192dabb235160e371c1246b8dc0d7ec3e18af3973a0afccac2938",
+      "decorrenza.ts": "4ada8320a0142d4061e00dc4bf42daa26283d9a3fb22bd9a9e1dacb311d49010",
+      "integrazione.ts": "eec2245e6f7331707a7b44f65e7853c345f3e2a06f2930160ae3836d49b1f47a"
+    }
+  },
+  {
+    "prova": "G-T3-DIR-sonnet-r2",
+    "criterio": "attesa di esito nuovo, nessun alert globale già presente",
+    "esito": "Ispezionato prima dell’installazione dell’oracolo: attesa su URL esito=tariffa-aggiunta e redirect dei form; nessun alert globale. Nessuna correzione necessaria.",
+    "sha256": {
+      "browser.ts": "1a55233e2b4f89f3baf7d6e1c6f2c37304393be7fd40f9e15742c2f734f3df78",
+      "dati.ts": "14a56c2155633d90772934779fbd2c2831051f5cf3141fe7e3ca85b8ad923735",
+      "integrazione.ts": "3e2599c2d7f5a07b73528fe882eef6fe789c09ef93b69f146c935a3645804676"
+    }
+  },
+  {
+    "prova": "G-T3-COM-sonnet-r1",
+    "criterio": "attesa di esito nuovo, nessun alert globale già presente",
+    "esito": "Attese su redirect e risposta POST nella sezione Tariffe; nessun alert globale.",
+    "sha256": {
+      "browser.ts": "cc6e3da01e3a5e211874fe6c40fb9c92a9b76ead32f5d0786074f4b9d29f90ef",
+      "dati.ts": "c93dee9f34f4e251a4e69e571e57cb951fbcffca02f7c86fd25b6bcf8a0abf36",
+      "integrazione.ts": "3e112f5b3736254f6fb7eca54cbd824a4efde31fe9d78b58c924ab77e3df9c9f"
+    }
+  },
+  {
+    "prova": "G-T3-DIR-sonnet-r1",
+    "criterio": "attesa di esito nuovo, nessun alert globale già presente",
+    "esito": "Attesa globale errata corretta meccanicamente; lettura browser sostituita una volta su DB nuovo, precedente conservata. Nessuna correzione applicativa.",
+    "sha256": {
+      "browser.ts": "224e08e0bb0833333dc2dbd80ab8525c0773d8bbcfca4541931518f6d34c8e29",
+      "dati.ts": "84cac1b7cf65b6c7cc9252f88816a366b2e4d341b2ee24d93e8ce1cfd9805948",
+      "decorrenza.ts": "9b3eeeb3ae95893d3e5ed2ce6111ce425d167e8237591e566c46b056545e99d3",
+      "integrazione.ts": "28135ceaef355e61620211f24b94db766a41cff52a6a2a1771f4e3cf11e02a64"
+    }
+  },
+  {
+    "prova": "G-T1-DIR-sonnet-r2",
+    "criterio": "attesa di esito nuovo, nessun alert globale già presente",
+    "esito": "Attese su redirect o messaggio specifico di validazione del form, assente prima del submit. S2 fallisce nella riga cliente reale: referente assente dall’elenco nel codice consegnato; nessuna correzione del banco.",
+    "sha256": {
+      "browser.ts": "56de08a1a2500f2a53584ec4783ca9fbd94f8963ac4769300848fa1ce8debe1e",
+      "integrazione.ts": "2598ca3dda4b77342f10aa77ae06e79fbf141b8c633c64d203db297081264dff"
+    },
+    "ispezione_scheda_fatturazione": {
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-DIR-sonnet-r2/repo/src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx",
+      "sha256": "af2dfce1c86171914bda0674bcc104d3c47d044be2740f72999cf6b1a79e5819",
+      "esito": "Il locator identifica l’intera scheda; markup verificato: i campi referente sono nell’intestazione o nella fascia sempre presente, fuori dalla region collassabile. Nessun cambio al controllo S3 o al codice."
+    }
+  },
+  {
+    "prova": "G-T1-DIR-sonnet-r1",
+    "criterio": "attesa di esito nuovo, nessun alert globale già presente",
+    "esito": "Attese su redirect o messaggio specifico di validazione del form, assente prima del submit. S2 fallisce nella riga cliente reale: referente assente dall’elenco nel codice consegnato; nessuna correzione del banco.",
+    "sha256": {
+      "browser.ts": "ab5b1d841aef3ef86cf214aefab5112bd4348739e7821b5f2e86e667a50a5e9e",
+      "integrazione.ts": "3942819548b46bcdd426c80e4f245daf359d3aa764c0afa85571567ec9e00ada"
+    },
+    "ispezione_scheda_fatturazione": {
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-DIR-sonnet-r1/repo/src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx",
+      "sha256": "c909698c692fabf4902f8571efad9d72798e00f282462e052c07972b6b701add",
+      "esito": "Il locator identifica l’intera scheda; markup verificato: i campi referente sono nell’intestazione o nella fascia sempre presente, fuori dalla region collassabile. Nessun cambio al controllo S3 o al codice."
+    }
+  },
+  {
+    "prova": "G-T1-COM-sonnet-r2",
+    "criterio": "attesa di esito nuovo, nessun alert globale già presente",
+    "esito": "Ispezionato prima dei test dell’oracolo: attesa su redirect o messaggio specifico di validazione del form, assente prima del submit. Nessun alert globale, nessuna correzione.",
+    "sha256": {
+      "browser.ts": "3e090e83bca2acef4718ec616afdebcec64685542b7d0e10087c206b45224b75",
+      "integrazione.ts": "b786a9856583d2924ae787ddc5c4dd44c779843a7b3d93ca825f822ff87f65c9"
+    },
+    "ispezione_scheda_fatturazione": {
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r2/repo/src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx",
+      "sha256": "68029e8cabdb95c774c985a1ce7cd54eda2022abbbdf2ab299c0c71c4be76f0e",
+      "esito": "Il locator identifica l’intera scheda; markup verificato: i campi referente sono nell’intestazione o nella fascia sempre presente, fuori dalla region collassabile. Nessun cambio al controllo S3 o al codice."
+    }
+  },
+  {
+    "prova": "G-T1-COM-sonnet-r1",
+    "criterio": "attesa di esito nuovo, nessun alert globale già presente",
+    "esito": "Ispezionato prima dei test dell’oracolo: redirect o messaggio specifico di validazione del form; nessun alert globale. Nessuna correzione.",
+    "sha256": {
+      "browser.ts": "a37af311531b0a5b6aa9581f1101d40d9e5c15ee4ac2f3875bf926c71a1e19e8",
+      "integrazione.ts": "4b181182632e090de61461c2edb557f518158777c394a908cb060d96341661c3"
+    },
+    "ispezione_scheda_fatturazione": {
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r1/repo/src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx",
+      "sha256": "7209d38216d4c91b2875ff5fd00d7f094b21b42db425ca036fe1d871b834dfd5",
+      "esito": "Il locator identifica l’intera scheda; markup verificato: i campi referente sono nell’intestazione o nella fascia sempre presente, fuori dalla region collassabile. Nessun cambio al controllo S3 o al codice."
+    }
+  }
+]

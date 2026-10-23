@@ -1,0 +1,45 @@
+{
+  "task": "T2",
+  "head": "591a4719fd4fbfbb81bb11e9711bcbeddec4dacc",
+  "tree": "47893fa3e6c15e1bd99d09b3cc703d5600c7941f",
+  "timezone": "UTC",
+  "passi": {
+    "lint": {
+      "ok": true,
+      "exit": 0,
+      "secondi": 3.4,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T2/gate-finale/591a4719fd4f/lint.log"
+    },
+    "unit": {
+      "ok": true,
+      "exit": 0,
+      "secondi": 1.2,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T2/gate-finale/591a4719fd4f/unit.log"
+    },
+    "build": {
+      "ok": true,
+      "exit": 0,
+      "secondi": 5.7,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T2/gate-finale/591a4719fd4f/build.log"
+    },
+    "e2e-1": {
+      "ok": true,
+      "exit": 0,
+      "secondi": 57.0,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T2/gate-finale/591a4719fd4f/e2e-1.log"
+    },
+    "e2e-2": {
+      "ok": true,
+      "exit": 0,
+      "secondi": 51.6,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T2/gate-finale/591a4719fd4f/e2e-2.log"
+    },
+    "e2e-3": {
+      "ok": true,
+      "exit": 0,
+      "secondi": 51.5,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T2/gate-finale/591a4719fd4f/e2e-3.log"
+    }
+  },
+  "ok": true
+}

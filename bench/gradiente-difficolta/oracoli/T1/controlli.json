@@ -1,0 +1,207 @@
+{
+  "aree": {
+    "referente": 30,
+    "validazione": 16,
+    "autorizzazioni": 12,
+    "visibilita": 18,
+    "persistenza": 8,
+    "interfaccia": 8,
+    "regressioni": 8
+  },
+  "controlli": [
+    {
+      "codice": "R1",
+      "area": "referente",
+      "livello": "integrazione",
+      "tema": "Campi facoltativi",
+      "verifica": "creazione cliente con referente completo e lettura dei tre valori",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "R2",
+      "area": "referente",
+      "livello": "integrazione",
+      "tema": "Campi facoltativi",
+      "verifica": "cliente senza referente resta valido",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "R3",
+      "area": "referente",
+      "livello": "integrazione",
+      "tema": "Campi facoltativi",
+      "verifica": "nome, email e telefono salvabili separatamente",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "R4",
+      "area": "referente",
+      "livello": "integrazione",
+      "tema": "Modifica",
+      "verifica": "modifica referente esistente persiste",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "R5",
+      "area": "referente",
+      "livello": "integrazione",
+      "tema": "Modifica",
+      "verifica": "rimozione dei tre campi ripristina assenza referente",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "V1",
+      "area": "validazione",
+      "livello": "integrazione",
+      "tema": "Email",
+      "verifica": "email malformata rifiutata senza scrittura",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "V2",
+      "area": "validazione",
+      "livello": "integrazione",
+      "tema": "Telefono",
+      "verifica": "telefono malformato rifiutato senza scrittura",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "V3",
+      "area": "validazione",
+      "livello": "integrazione",
+      "tema": "Nome",
+      "verifica": "nome composto solo da spazi trattato come assente",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "V4",
+      "area": "validazione",
+      "livello": "integrazione",
+      "tema": "Email",
+      "verifica": "email con plus e sottodominio accettata",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "A1",
+      "area": "autorizzazioni",
+      "livello": "integrazione",
+      "tema": "Ruoli",
+      "verifica": "collaboratore non modifica referente",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "A2",
+      "area": "autorizzazioni",
+      "livello": "integrazione",
+      "tema": "Ruoli",
+      "verifica": "utente anonimo non modifica referente",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "A3",
+      "area": "autorizzazioni",
+      "livello": "integrazione",
+      "tema": "Ruoli",
+      "verifica": "cliente non modifica referente",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "S1",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Dettaglio",
+      "verifica": "referente completo nel dettaglio cliente",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "S2",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Elenco",
+      "verifica": "referente visibile in elenco clienti",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "S3",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Report",
+      "verifica": "referente nell’intestazione cliente del report fatturazione",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "S4",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Modifica",
+      "verifica": "amministratore modifica il referente tramite form",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "P1",
+      "area": "persistenza",
+      "livello": "gate",
+      "tema": "Migrazione",
+      "verifica": "migrazione additiva applicabile su dati preesistenti",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "P2",
+      "area": "persistenza",
+      "livello": "gate",
+      "tema": "Migrazione",
+      "verifica": "nessun drift schema/migrazioni",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "P3",
+      "area": "persistenza",
+      "livello": "integrazione",
+      "tema": "Dati invariati",
+      "verifica": "report fatturazione invariato prima/dopo inserimento referente",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "P4",
+      "area": "persistenza",
+      "livello": "integrazione",
+      "tema": "Compatibilità",
+      "verifica": "anagrafica cliente esistente senza referente leggibile",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "U1",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Responsive",
+      "verifica": "form e dettaglio fruibili a 390 px senza overflow",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "U2",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Responsive",
+      "verifica": "report fruibile a 1440 px senza errori JavaScript",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "U3",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Validazione",
+      "verifica": "errore email chiaro nel form",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "U4",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Ruoli",
+      "verifica": "nessun controllo modifica referente per non amministratore",
+      "nelle_storie": "Non chiarito"
+    }
+  ],
+  "funzionalita": "Referente facoltativo del cliente con validazione, visualizzazione e autorizzazioni.",
+  "invariante_condivisa": "Questo compito non introduce transizioni di stato con blocco delle scritture: rispondi «non applicabile» a questa voce, citando il perimetro."
+}

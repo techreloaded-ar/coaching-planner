@@ -1,0 +1,72 @@
+[
+  {
+    "task": "T1",
+    "fase": "01-riferimento",
+    "completo": true,
+    "ok": true,
+    "problemi": [],
+    "richieste_con_riferimenti_originale": [],
+    "costo_usd": 2.629074599999999,
+    "model_resolved": "claude-opus-5-5",
+    "skills_hash": {
+      ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+      ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+    }
+  },
+  {
+    "task": "T1",
+    "fase": "02-facoltativita",
+    "completo": true,
+    "ok": true,
+    "problemi": [],
+    "richieste_con_riferimenti_originale": [],
+    "costo_usd": 0.9240425999999999,
+    "model_resolved": "claude-opus-5-5",
+    "skills_hash": {
+      ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+      ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+    }
+  },
+  {
+    "task": "T2",
+    "fase": "01-riferimento",
+    "completo": true,
+    "ok": true,
+    "problemi": [],
+    "richieste_con_riferimenti_originale": [],
+    "costo_usd": 3.5163537999999996,
+    "model_resolved": "claude-opus-5-5",
+    "skills_hash": {
+      ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+      ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+    }
+  },
+  {
+    "task": "T3",
+    "fase": "01-riferimento",
+    "completo": true,
+    "ok": true,
+    "problemi": [],
+    "richieste_con_riferimenti_originale": [],
+    "costo_usd": 13.551093,
+    "model_resolved": "claude-opus-5-5",
+    "skills_hash": {
+      ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+      ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+    }
+  },
+  {
+    "task": "T4",
+    "fase": "01-riferimento",
+    "completo": true,
+    "ok": true,
+    "problemi": [],
+    "richieste_con_riferimenti_originale": [],
+    "costo_usd": 1.1674566000000002,
+    "model_resolved": "claude-opus-5-5",
+    "skills_hash": {
+      ".claude/skills": "1d2fb4ce09aa6696fcd9fd8a8ca14dfaac662a323ce6954737d758b125960c80",
+      ".agents/skills": "5fca052a299bac279e59b58817b28ea68ed81f908a4c092a3f902121cab9146d"
+    }
+  }
+]

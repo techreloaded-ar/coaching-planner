@@ -1,0 +1,33 @@
+{
+  "limite": "Il confronto resta fra percorsi a storie uguali; i tetti rispetto al profilo dipendono anche dalla fedeltà del committente simulato, non soltanto dalla skill di chiarimento. Nessuna nuova fase o correzione post hoc.",
+  "osservazioni": [
+    {
+      "task": "T1",
+      "divergenza": "Il profilo richiede visibilità in elenco; la bozza la esclude esplicitamente. Il committente approva senza segnalare il contrasto.",
+      "risposta": "Ok, le due spec vanno bene così.",
+      "controlli_coinvolti": [
+        "S2"
+      ],
+      "dialogo": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T1/phases/01-spec/dialogo.md",
+      "sha256": "3aec775606a2a3207a30b63517ea6fc4101b3fb0f618b4f9441d0e1b2691c622",
+      "storie_cambiate": false,
+      "giudizi_copertura_cambiati": false,
+      "pesi_cambiati": false
+    },
+    {
+      "task": "T3",
+      "divergenza": "Il profilo richiede tariffa alla data della riga; il team propone il primo giorno di un mese e il committente accetta. La bozza esclude differenze nel mese ed è approvata.",
+      "risposta": "Va bene la vostra proposta: la tariffa vale dal primo giorno di un mese a mia scelta.",
+      "controlli_coinvolti": [
+        "C1",
+        "C2",
+        "U2"
+      ],
+      "dialogo": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T3/phases/01-spec/dialogo.md",
+      "sha256": "6eb75e23cd16371f254ec828e56ee2e880d1b8b7a94f7328573d615bc3422c11",
+      "storie_cambiate": false,
+      "giudizi_copertura_cambiati": false,
+      "pesi_cambiati": false
+    }
+  ]
+}

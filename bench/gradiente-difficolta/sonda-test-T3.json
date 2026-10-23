@@ -1,0 +1,200 @@
+{
+  "task": "T3",
+  "exit_code_atteso_nonzero_se_regressioni": 1,
+  "test_unit_baseline_totali": 727,
+  "test_unit_baseline_falliti": 45,
+  "suite_unit_baseline_fallite": 24,
+  "casi_falliti": [
+    {
+      "file": "tests/unit/avanzamento-offerte.test.ts",
+      "test": "calcolaAvanzamentoOfferte restituisce un report vuoto con totali a zero quando non ci sono offerte né righe"
+    },
+    {
+      "file": "tests/unit/avanzamento-offerte.test.ts",
+      "test": "calcolaAvanzamentoOfferte calcola i totali di portafoglio come somma di previste/erogate/residuo tra le offerte"
+    },
+    {
+      "file": "tests/unit/collaboratori-dal-actions.test.ts",
+      "test": "DAL collaboratori elencaCollaboratori restituisce tutti i collaboratori (attivi e disattivati) con email utente, ordinati per cognome"
+    },
+    {
+      "file": "tests/unit/collaboratori-dal-actions.test.ts",
+      "test": "DAL collaboratori collaboratorePerId restituisce un collaboratore per ID con email utente"
+    },
+    {
+      "file": "tests/unit/collaboratori-dal-actions.test.ts",
+      "test": "DAL collaboratori collaboratorePerId restituisce null quando il collaboratore non esiste"
+    },
+    {
+      "file": "tests/unit/collaboratori-dal-actions.test.ts",
+      "test": "Server Actions collaboratori aggiornaCollaboratore con dati validi aggiorna Collaboratore e Utente in transazione, poi redirige"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento richiede il ruolo AMMINISTRATORE prima di leggere i dati"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento calcola erogate/residuo/stato coerenti con calcolaAvanzamentoOfferte per un'offerta con righe fatturabili"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento esclude dall'erogato le righe non fatturabili"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento ripartisce 32 ore fatturabili di due collaboratori su 10 giorni previsti con percentuale 0.4 e dati esatti"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento ripartisce solo le ore fatturabili tra i collaboratori"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento restituisce avanzamento zero e nessun collaboratore senza attività"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento per un'offerta senza righe attività riporta erogate 0, residuo = giorni previsti e stato IN_CORSO"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento conta tutte le righe attività dell'offerta, incluse le non fatturabili"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento riporta numeroRigheAttivita 0 per un'offerta senza righe attività"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento conta le righe separatamente per ciascuna offerta"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento serializza la tariffa giornaliera come stringa e propaga il flag attiva"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento ordina attive critiche prima, poi attive regolari, non attive in coda, con tie-break per ragione sociale poi codice"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento deriva il token mese (YYYY-MM) da RigaAttivita.data in UTC e ordina i mesi crescenti (AC-1)"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento costruisce una matrice mensile serializzabile con giornate per mese e totali quadrati (AC-2)"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOfferteConAvanzamento espone una matrice mensile vuota per un'offerta senza righe attività"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOffertePerClienteConAvanzamento filtra offerte e attività per cliente e restituisce l'avanzamento calcolato"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOffertePerClienteConAvanzamento ordina le offerte del cliente per codice crescente"
+    },
+    {
+      "file": "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+      "test": "elencaOffertePerClienteConAvanzamento restituisce percentuale zero, ripartizione vuota e residuo previsto senza attività"
+    },
+    {
+      "file": "tests/unit/offerte-dal-actions.test.ts",
+      "test": "DAL offerte restituisce un'offerta per id con il cliente incluso"
+    },
+    {
+      "file": "tests/unit/offerte-dal-actions.test.ts",
+      "test": "Server Actions offerte crea l'offerta e rivalida i path"
+    },
+    {
+      "file": "tests/unit/offerte-dal-actions.test.ts",
+      "test": "Server Actions offerte aggiorna l'offerta e rivalida i path"
+    },
+    {
+      "file": "tests/unit/offerte-dal-actions.test.ts",
+      "test": "Server Actions offerte traduce il P2002 anche in aggiornamento"
+    },
+    {
+      "file": "tests/unit/offerte-dal-actions.test.ts",
+      "test": "Server Actions offerte con origine=offerte l'aggiornamento rivalida /offerte e vi redirige"
+    },
+    {
+      "file": "tests/unit/offerte-dal-actions.test.ts",
+      "test": "Server Actions offerte senza origine la creazione redirige al dettaglio cliente e non rivalida /offerte"
+    },
+    {
+      "file": "tests/unit/offerte-dal-actions.test.ts",
+      "test": "Server Actions offerte senza origine l'aggiornamento redirige al dettaglio cliente e non rivalida /offerte"
+    },
+    {
+      "file": "tests/unit/riepilogo-mese.test.ts",
+      "test": "calcolaRiepilogoMese restituisce un riepilogo vuoto per un mese senza righe"
+    },
+    {
+      "file": "tests/unit/riepilogo-mese.test.ts",
+      "test": "calcolaRiepilogoMese aggrega più righe sulla stessa offerta e calcola l'importo fattura"
+    },
+    {
+      "file": "tests/unit/riepilogo-mese.test.ts",
+      "test": "calcolaRiepilogoMese esclude le righe non fatturabili dall'importo ma le include nei totali ore"
+    },
+    {
+      "file": "tests/unit/riepilogo-mese.test.ts",
+      "test": "calcolaRiepilogoMese somma i rimborsi fotografati e ignora le righe senza rimborso"
+    },
+    {
+      "file": "tests/unit/riepilogo-mese.test.ts",
+      "test": "calcolaRiepilogoMese formatta gli importi come stringhe con due decimali"
+    },
+    {
+      "file": "tests/unit/utenti-actions.test.ts",
+      "test": "Server Actions utenti creaUtente con entrambi i ruoli crea utente amministratore e profilo collaboratore nella stessa transazione"
+    },
+    {
+      "file": "tests/unit/utenti-actions.test.ts",
+      "test": "Server Actions utenti creaUtente con solo il ruolo collaboratore crea utente collaboratore e relativo profilo"
+    },
+    {
+      "file": "tests/unit/utenti-actions.test.ts",
+      "test": "Server Actions utenti aggiornaUtente AC-1: crea il profilo collaboratore per un utente che non lo aveva"
+    },
+    {
+      "file": "tests/unit/valida-collaboratore.test.ts",
+      "test": "validaCollaboratore — campi obbligatori tariffaGiornaliera restituisce errore se la tariffa giornaliera è vuota"
+    },
+    {
+      "file": "tests/unit/valida-collaboratore.test.ts",
+      "test": "validaCollaboratore — campi obbligatori tariffaGiornaliera restituisce errore se la tariffa giornaliera è composta solo da spazi"
+    },
+    {
+      "file": "tests/unit/valida-collaboratore.test.ts",
+      "test": "validaCollaboratore — tariffa giornaliera rifiuta zero"
+    },
+    {
+      "file": "tests/unit/valida-collaboratore.test.ts",
+      "test": "validaCollaboratore — tariffa giornaliera rifiuta un importo negativo"
+    },
+    {
+      "file": "tests/unit/valida-collaboratore.test.ts",
+      "test": "validaCollaboratore — tariffa giornaliera rifiuta un valore testuale"
+    },
+    {
+      "file": "tests/unit/valida-collaboratore.test.ts",
+      "test": "validaCollaboratore — tariffa giornaliera rifiuta più di due cifre decimali"
+    }
+  ],
+  "file_falliti": [
+    "tests/unit/avanzamento-offerte.test.ts",
+    "tests/unit/collaboratori-dal-actions.test.ts",
+    "tests/unit/elenca-offerte-con-avanzamento.test.ts",
+    "tests/unit/offerte-dal-actions.test.ts",
+    "tests/unit/riepilogo-mese.test.ts",
+    "tests/unit/utenti-actions.test.ts",
+    "tests/unit/valida-collaboratore.test.ts"
+  ],
+  "metodo": "Unit test originali della baseline eseguiti contro codice del riferimento, in clone e Postgres dedicati. Non è un oracolo funzionale e non determina punteggi.",
+  "head_riferimento": "71bd9b995c4bd864721f7379163cb1bab14ba27d"
+}

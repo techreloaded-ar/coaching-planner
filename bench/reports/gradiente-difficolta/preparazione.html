@@ -1,0 +1,541 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Report 3 · Preparazione</title><style>:root{font-family:system-ui,sans-serif;color:#22313a;background:#f4f6f4;line-height:1.5}*{box-sizing:border-box}body{margin:0}main{max-width:1420px;margin:auto;padding:28px}header{background:#183a40;color:#fff;padding:32px;border-radius:18px}h1{font-size:clamp(27px,4vw,46px);line-height:1.12;margin:10px 0}header p{max-width:900px;color:#e1edef}.tag{letter-spacing:.08em;text-transform:uppercase;font-size:13px}section{margin:26px 0;padding:26px;background:white;border-radius:14px;box-shadow:0 2px 12px #16342c08}h2{font-size:25px;margin:0 0 15px}h3{font-size:18px}p{max-width:1100px}a{color:#165e86}table{border-collapse:collapse;width:100%;font-size:14px}th{text-align:left;color:#486069;border-bottom:2px solid #d8e1df}td,th{padding:13px 10px;vertical-align:top;border-bottom:1px solid #e5ebe8}.num{font-variant-numeric:tabular-nums;text-align:right}small{display:block;font-size:11px;color:#61747c;margin-top:4px}.scroll{overflow:auto}.bar{display:flex;min-width:180px;height:22px;border-radius:4px;overflow:hidden}.phase-caption{font-size:11px;line-height:1.45;margin-top:8px;min-width:255px;max-width:340px;overflow-wrap:anywhere}.phase-caption div{margin:5px 0}.phase-caption i{display:inline-block;width:8px;height:8px;margin-right:5px}.skill-flow{font-size:11px;line-height:1.6;min-width:185px;max-width:230px;overflow-wrap:anywhere}.legend{display:flex;gap:15px;flex-wrap:wrap;font-size:12px;margin-top:16px}.legend i{display:inline-block;width:11px;height:11px;margin-right:5px}select{font:inherit;margin:0 8px 15px;padding:6px;border-radius:6px;border:1px solid #c0ceca}details{background:white;border:1px solid #dbe4e0;border-radius:10px;margin:12px 0;scroll-margin:20px}summary{cursor:pointer;padding:17px;font-weight:650}.inside{padding:0 20px 20px;overflow-wrap:anywhere}.inside table{font-size:12px}.resource-table{min-width:900px;overflow-wrap:normal}.resource-table .num{white-space:nowrap}.resource-table small{white-space:normal}.inside li{font-size:13px;margin:9px 0}.gallery{display:flex;gap:12px;overflow:auto}.gallery img{width:260px;border:1px solid #dae0dd;border-radius:6px}li{margin-bottom:14px}.comparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.comparison figure{margin:0}.comparison img{width:100%;max-height:700px;object-fit:contain;object-position:top;background:#f4f6f4;border:1px solid #dae0dd}.comparison figcaption{font-size:12px;color:#61747c}.muted{color:#596e75}.callout{border-left:4px solid #d49d32;padding-left:16px}footer{padding:20px 0;font-size:12px;color:#627871}@media(max-width:650px){.comparison{grid-template-columns:1fr}main{padding:12px}section{padding:17px}header{padding:22px}td,th{padding:8px}h2{font-size:21px}}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}.tile{background:#f4f6f4;border-radius:10px;padding:16px}.tile b{font-size:28px;display:block}
+.status-fatto{color:#3c9c85}.status-corso{color:#d49d32}.status-pianificato{color:#8a9a9f}
+</style></head><body><main><header><div class="tag">Coaching Planner · Gradiente di difficoltà · Preparazione</div><h1>L’harness serve quando il compito è difficile?</h1><p>Protocollo preregistrato. Questa pagina mostra gli artefatti di preparazione; le 40 prove richiedono conferma umana e non hanno ancora risultati.</p></header><section><h2>Ipotesi e soglie</h2><p><strong>Ipotesi</strong> Il vantaggio di plan → implement → review sul diretto, a storie uguali, cresce con la difficoltà del compito: nullo sui compiti locali, misurabile su quelli trasversali e con migrazione di dati.</p><p><strong>Metrica</strong> Per compito e modello: Δ delle mediane completo−diretto sul funzionale e sul tecnico, bootstrap appaiato 95 %, 10 000 ricampionamenti. SD pooled report 1 = 0,775, 2 SD = 1,550 punti, misurata solo sulla chiusura mese.</p><p><strong>Soglie</strong> Prima leggere il controllo di manipolazione: Sonnet diretto deve decrescere da T1 a T4 di almeno 2 SD pooled (1,550); altrimenti H3 non verificabile e conclusioni solo per compito. Confermata: su T3 e T4 Δ funzionale ≥ 1,550 con IC sopra zero per almeno un modello, su T1 entro il rumore; harness adattivo. Respinta: Δ entro il rumore su tutti i compiti per entrambi i modelli; plan e implement non giustificati alle difficoltà provate, valore della review aperto. Ambigua: vantaggio solo tecnico, solo un modello o non monotono; riportare senza forzare. Secondarie: USD/punto, rework, problemi intercettati dalla review, dimensione diff rispetto al riferimento, tecnico.</p><p>Baseline main: <code>157ea55367ec940b464d9ad2c64789b73535b463</code>. Variante spec baseline V0 (nessuna adozione di V1 registrata). Server TZ=UTC come in CI; browser Europe/Rome e it-IT. Criteri: <a href="../../index.html#criteri">§2 dell’indice</a>. SD pooled 0.774919; soglia 2 SD 1.549839, misurate soltanto sulla chiusura mese.</p></section><section><h2>Indicatori di difficoltà</h2><p>Indicatori misurati dai quattro riferimenti completati, secondo le definizioni del protocollo.</p><div class="scroll"><table><thead><tr><th>Compito</th><th>Moduli</th><th>Call site</th><th>Migrazione</th><th>Concorrenza</th><th>File test modificati; unit baseline che falliscono</th><th>Pagine Wiki</th><th>File unit disponibili</th><th>Informazione</th></tr></thead><tbody><tr><td>T1</td><td>9</td><td>11</td><td>additiva</td><td>no</td><td>4 file; 2 unit</td><td>12</td><td>3</td><td>posizione indicata dalle storie</td></tr><tr><td>T2</td><td>5</td><td>0</td><td>nessuna</td><td>no</td><td>1 file; 0 unit</td><td>5</td><td>0</td><td>posizione indicata dalle storie</td></tr><tr><td>T3</td><td>11</td><td>33</td><td>con backfill</td><td>sì</td><td>20 file; 45 unit</td><td>16</td><td>9</td><td>posizione indicata dalle storie</td></tr><tr><td>T4</td><td>3</td><td>2</td><td>nessuna</td><td>no</td><td>0 file; 0 unit</td><td>0</td><td>1</td><td>posizione da scoprire</td></tr></tbody></table></div><p>Difficoltà attesa T1 &lt; T2 &lt; T3; T4 è di natura diversa. Il controllo di manipolazione dovrà verificare l’ordinamento sui risultati. T1 tocca più directory di T2: gli indicatori descrivono queste soluzioni, senza imporre il gradiente atteso. Le pagine Wiki sono contate per citazioni testuali; i file unit sono contati tramite chiamate osservate alle funzioni toccate, con il profiler Node sulla baseline.</p></section><section><h2>Verifiche e limiti della preparazione</h2><p>Preparazione attestata: sì. Oracoli indipendenti: 24/24/24/25 controlli; verifiche runtime solo sulle baseline. Adattatori dei riferimenti: solo collegamenti e typecheck, nessuna esecuzione. T4: dieci fallimenti attesi sulla baseline difettosa, venti pass sulla baseline sana; gate di regressione provato con controllo positivo e negativo sintetici.</p><p>Limite: il riferimento T3 aveva tre suite e2e verdi nel fuso locale; i due tentativi aggiuntivi UTC hanno mostrato errori intermittenti su percorsi preesistenti. Tutti i log e trace sono conservati. Nessun test applicativo modificato per ottenere il verde.</p><p>Ulteriori limiti preregistrati: una funzionalità per livello; un solo chiarimento condiviso per compito; T4 è una manipolazione di documentazione e test, non un caso legacy reale; riferimenti e adattatori scritti da Opus con possibile bias; due repliche Opus danno una potenza indicativa del 22 % per rilevare 2 SD, senza aumento delle repliche.</p></section><section><h2>Chiarimenti condivisi</h2><p>Un solo chiarimento Opus per compito, committente Opus separato, variante V0. Storie identiche fra tutte le celle del compito; nessuna correzione dal profilo. Il numero di storie varia fra compiti (T1: 2, T2: 3, T3: 4, T4: 1), con effetto sul numero di fasi del percorso completo e quindi sul costo.</p><h3>T1</h3><p>Storie: US-060, US-061. Copertura del profilo: 86.4/100. Accordo fra letture: 90.9 %.</p><details><summary>Storie approvate e congelate</summary><pre># US-060 · Referente del cliente con email e telefono nell&#x27;anagrafica
+
+#### US-060: Referente del cliente con email e telefono nell&#x27;anagrafica
+
+**Epic:** EP-005 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+**Bloccata da:** -
+
+**Storia Utente**
+Come amministratore,
+voglio registrare per ogni cliente la persona con cui mi interfaccio, con nome, email e telefono, e ritrovarla aprendo il dettaglio del cliente,
+così da sapere subito chi contattare e come senza cercare il recapito altrove.
+
+**Dimostrazione**
+Partendo da un cliente creato da factory senza referente, il revisore apre il dettaglio del cliente e osserva la sezione «Referente» con la dicitura «Nessun referente». Il revisore apre «Modifica», compila Nome referente «Marta Bianchi», Email referente «marta.bianchi@example.com» e Telefono referente «+39 02 1234567 int. 204», salva e osserva nel dettaglio i tre valori nella sezione «Referente». Il revisore riapre la modifica, sostituisce l&#x27;email con «marta.bianchi@» e il telefono con «abc», salva e osserva un messaggio di errore sotto ciascuno dei due campi, mentre gli altri valori digitati restano nel form. Infine svuota tutti e tre i campi del referente, salva e osserva di nuovo «Nessun referente» nel dettaglio, con i dati fiscali del cliente invariati.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — I form di creazione e di modifica del cliente mostrano tre campi facoltativi: «Nome referente», «Email referente» e «Telefono referente».
+- [ ] AC-2 — Un cliente può essere salvato con i tre campi vuoti, oppure con uno qualsiasi dei tre compilato da solo (anche solo email o solo telefono).
+- [ ] AC-3 — I clienti già presenti prima di questa modifica, incluso il seed, restano consultabili e modificabili senza dover inserire alcun dato del referente.
+- [ ] AC-4 — Un&#x27;email referente non nel formato `nome@dominio.estensione` (es. «marta.bianchi@», «marta.example.com») impedisce il salvataggio e mostra il messaggio «Email referente non valida» sotto il campo.
+- [ ] AC-5 — Un telefono referente è accettato quando, ignorando spazi, punti, trattini, barre e parentesi e un eventuale interno finale introdotto da «int.», «interno» o «ext.» seguito da cifre, resta un «+» iniziale facoltativo seguito da 6 a 15 cifre (es. «+39 02 1234567 int. 204», «(02) 123-4567», «333 1234567»).
+- [ ] AC-6 — Un telefono referente che non rispetta AC-5 (es. «abc», «123», «02 12a4567») impedisce il salvataggio e mostra il messaggio «Telefono referente non valido» sotto il campo.
+- [ ] AC-7 — Quando il salvataggio è rifiutato per email o telefono non validi, tutti i valori digitati nel form, inclusi quelli errati, restano visibili per la correzione.
+- [ ] AC-8 — Spazi iniziali e finali nei tre campi vengono rimossi al salvataggio; un campo che contiene solo spazi è trattato come vuoto.
+- [ ] AC-9 — Il dettaglio del cliente mostra una sezione «Referente» con i soli valori presenti fra nome, email e telefono.
+- [ ] AC-10 — Il dettaglio di un cliente con i tre campi del referente vuoti mostra nella sezione «Referente» la dicitura «Nessun referente».
+- [ ] AC-11 — Svuotando i tre campi in modifica e salvando, il referente viene rimosso e il dettaglio torna a mostrare «Nessun referente», mentre ragione sociale, dati fiscali e stato attivo del cliente restano invariati.
+- [ ] AC-12 — Modificando solo i dati fiscali di un cliente con referente, nome, email e telefono del referente restano invariati.
+
+**Fuori Perimetro**
+Più referenti per lo stesso cliente o ruoli distinti (operativo/amministrativo). Visualizzazione del referente nell&#x27;elenco clienti, nel report Fatturazione Clienti (coperta da US-061) o in altre pagine. Link cliccabili `mailto:`/`tel:`, invio di email o verifica dell&#x27;esistenza reale dell&#x27;indirizzo o del numero. Unicità del referente fra clienti diversi.
+
+**Decisioni confermate**
+La regola di plausibilità del telefono (AC-5), con i relativi esempi validi e non validi, e i messaggi «Email referente non valida» e «Telefono referente non valido» sono stati confermati dall&#x27;utente.
+
+**Contesto Wiki:** domains/clienti
+
+---
+
+# US-061 · Referente del cliente nell&#x27;intestazione della scheda del report Fatturazione Clienti
+
+#### US-061: Referente del cliente nell&#x27;intestazione della scheda del report Fatturazione Clienti
+
+**Epic:** EP-005 | **Priorità:** MEDIUM | **Punti:** 2 | **Stato:** TODO
+**Bloccata da:** US-060
+
+**Storia Utente**
+Come amministratore,
+voglio vedere il referente del cliente con email e telefono direttamente nell&#x27;intestazione della sua scheda nel report Fatturazione Clienti,
+così da sapere a chi rivolgermi per la fattura mentre controllo gli importi del mese, senza aprire l&#x27;anagrafica.
+
+**Dimostrazione**
+Partendo da un mese riservato con due clienti creati da factory, entrambi con ore fatturabili nel mese, il primo con referente «Marta Bianchi», «marta.bianchi@example.com», «+39 02 1234567» e il secondo senza referente, il revisore apre il report Fatturazione Clienti su quel mese. Senza espandere alcuna scheda, osserva nell&#x27;intestazione della scheda del primo cliente nome, email e telefono del referente e in quella del secondo la dicitura «Nessun referente». Il revisore espande e richiude il dettaglio collaboratori del primo cliente e osserva che il referente resta visibile nell&#x27;intestazione e che gli importi mostrati sono invariati.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — Nel report Fatturazione Clienti l&#x27;intestazione di ogni scheda cliente mostra nome, email e telefono del referente registrato nell&#x27;anagrafica del cliente, visibili senza espandere la scheda.
+- [ ] AC-2 — Quando il referente ha solo alcuni dei tre valori (es. solo email), l&#x27;intestazione mostra soltanto quelli presenti, senza segnaposto per i valori mancanti.
+- [ ] AC-3 — L&#x27;intestazione della scheda di un cliente senza alcun dato del referente mostra la dicitura «Nessun referente».
+- [ ] AC-4 — Espandere o richiudere il dettaglio collaboratori di una scheda non nasconde né sposta il referente fuori dall&#x27;intestazione.
+- [ ] AC-5 — Imponibile manodopera, rimborsi trasferta, importo totale e totali complessivi del report restano identici a quelli mostrati prima di questa modifica per gli stessi dati.
+- [ ] AC-6 — Il referente mostrato è quello attualmente salvato nell&#x27;anagrafica: dopo averlo modificato, ricaricando il report sullo stesso mese l&#x27;intestazione mostra i nuovi valori.
+
+**Fuori Perimetro**
+Fotografia storica del referente per mese: il report mostra sempre il referente corrente. Inclusione del referente in esportazioni (US-018) o in altri report. Link cliccabili `mailto:`/`tel:`. Modifica del referente dal report.
+
+**Contesto Wiki:** domains/fatturazione-clienti, domains/clienti</pre></details><h3>T2</h3><p>Storie: US-060, US-061, US-062. Copertura del profilo: 81.8/100. Accordo fra letture: 90.9 %.</p><details><summary>Storie approvate e congelate</summary><pre># US-060 · Report Marginalità per cliente su un intervallo di mesi
+
+#### US-060: Report Marginalità per cliente su un intervallo di mesi
+
+**Epic:** EP-005 | **Priorità:** MEDIUM | **Punti:** 5 | **Stato:** TODO
+**Bloccata da:** -
+
+**Storia Utente**
+Come Stefano, amministratore,
+voglio scegliere un mese iniziale e un mese finale e vedere per ogni cliente ricavi, costi dei collaboratori, margine assoluto e margine percentuale del periodo,
+così da capire su quali clienti l&#x27;azienda guadagna davvero.
+
+**Regole di calcolo**
+- Ricavo: giornate fatturabili (ore fatturabili / 8) moltiplicate per la tariffa giornaliera dell&#x27;offerta; coincide con l&#x27;imponibile manodopera del report Fatturazione clienti.
+- Costo: giornate lavorate (ore fatturabili + ore non fatturabili, / 8) moltiplicate per la tariffa giornaliera del collaboratore che le ha registrate. Le ore non fatturabili sono costo senza ricavo.
+- Margine: ricavo meno costo.
+- Margine percentuale: margine diviso ricavo per 100, arrotondato a un decimale (es. 33,3%). Con ricavo 0,00 € il margine percentuale mostra &quot;n.d.&quot;. Per la riga di totale si calcola sul margine totale diviso i ricavi totali, non come media delle percentuali.
+- I rimborsi trasferta sono esclusi sia dai ricavi sia dai costi.
+- Si usano le tariffe correnti di offerta e collaboratore, come negli altri report.
+
+**Dimostrazione**
+Si parte da un cliente &quot;Alfa&quot; creato dalla factory, con offerta &quot;ALFA-01&quot; a 800 €/giorno, e da un collaboratore &quot;Marco&quot; a 400 €/giorno, che ha registrato su ALFA-01: a gennaio 16 ore fatturabili, a febbraio 8 ore non fatturabili, a marzo 8 ore fatturabili con un rimborso trasferta di 50 €. L&#x27;amministratore apre &quot;Marginalità&quot; dal menu del back office e seleziona da gennaio a marzo: la riga &quot;Alfa&quot; mostra ricavi 2.400,00 €, costi 1.600,00 €, margine 800,00 € e margine percentuale 33,3%; la riga di totale mostra gli stessi valori. Poi seleziona da febbraio a febbraio: la riga &quot;Alfa&quot; mostra ricavi 0,00 €, costi 400,00 € e margine -400,00 €, evidenziato come negativo, e margine percentuale &quot;n.d.&quot;. Poi seleziona da marzo a gennaio: compare il messaggio &quot;Il mese finale non può precedere il mese iniziale&quot; e nessuna tabella viene mostrata. Infine seleziona da aprile ad aprile, un mese senza attività: compare il messaggio &quot;Nessuna attività nel periodo selezionato&quot;.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — Il menu del back office mostra la voce &quot;Marginalità&quot;, che apre il report con i selettori &quot;Dal mese&quot; e &quot;Al mese&quot;; alla prima apertura entrambi valgono il mese corrente.
+- [ ] AC-2 — Per ogni cliente con almeno un&#x27;ora registrata nei mesi selezionati, estremi inclusi, il report mostra una riga con ricavi, costi e margine calcolati secondo le regole di calcolo.
+- [ ] AC-3 — Accanto al margine assoluto, ogni riga cliente mostra il margine percentuale calcolato secondo le regole di calcolo.
+- [ ] AC-4 — Un cliente con ricavi 0,00 € mostra &quot;n.d.&quot; come margine percentuale.
+- [ ] AC-5 — Le ore non fatturabili aumentano i costi del cliente e lasciano invariati i ricavi.
+- [ ] AC-6 — Un rimborso trasferta registrato su una riga non cambia né i ricavi, né i costi, né il margine del cliente.
+- [ ] AC-7 — Un cliente che nel periodo ha solo ore non fatturabili compare con ricavi 0,00 € e margine negativo.
+- [ ] AC-8 — Una riga con margine negativo è evidenziata con un indicatore visivo e testuale (segno meno e colore) diverso da quello delle righe con margine positivo o nullo.
+- [ ] AC-9 — Una riga di totale mostra la somma dei ricavi, dei costi e dei margini di tutti i clienti mostrati.
+- [ ] AC-10 — La riga di totale mostra il margine percentuale calcolato come margine totale diviso ricavi totali.
+- [ ] AC-11 — Selezionando un solo mese, i ricavi di ogni cliente coincidono con l&#x27;imponibile manodopera mostrato per quel cliente e quel mese nel report Fatturazione clienti.
+- [ ] AC-12 — Se il mese finale precede il mese iniziale, il report mostra il messaggio &quot;Il mese finale non può precedere il mese iniziale&quot; e nessuna tabella.
+- [ ] AC-13 — Se nel periodo non ci sono ore registrate, il report mostra il messaggio &quot;Nessuna attività nel periodo selezionato&quot;.
+- [ ] AC-14 — Il periodo selezionato resta nell&#x27;URL: ricaricando la pagina, i selettori e i valori mostrati restano quelli del periodo scelto.
+- [ ] AC-15 — Un utente senza ruolo amministratore non vede la voce &quot;Marginalità&quot;; se apre direttamente l&#x27;indirizzo del report, non vede nessun dato economico.
+
+**Fuori ambito**
+Dettaglio per offerta (US-061) e per collaboratore (US-062); intervalli di date liberi o infrasettimanali; storicizzazione delle tariffe; override della tariffa per offerta (US-020); esportazione Excel/PDF (US-018); qualsiasi modifica al report Fatturazione clienti e al riepilogo mensile del collaboratore, che continuano a escludere le ore non fatturabili dall&#x27;imponibile.
+
+**Contesto Wiki**
+domains/fatturazione-clienti, domains/attivita, domains/offerte, domains/collaboratori, decisions/tariffa-unica-collaboratore, decisions/giornata-otto-ore, decisions/importi-decimali, decisions/fotografia-rimborso-trasferta
+
+**Note**
+Sostituisce US-017, che sarà chiusa dall&#x27;utente. Decisioni confermate dall&#x27;utente il 2026-10-22: rimborsi esclusi dal margine, ore non fatturabili come costo senza ricavo, periodo per mesi interi, margine percentuale accanto al margine assoluto a ogni livello.
+
+---
+
+# US-061 · Dettaglio per offerta nel report Marginalità
+
+#### US-061: Dettaglio per offerta nel report Marginalità
+
+**Epic:** EP-005 | **Priorità:** MEDIUM | **Punti:** 3 | **Stato:** TODO
+**Bloccata da:** US-060
+
+**Storia Utente**
+Come Stefano, amministratore,
+voglio espandere un cliente nel report Marginalità e vedere ricavi, costi, margine assoluto e margine percentuale di ciascuna sua offerta nel periodo,
+così da capire quali offerte reggono il margine del cliente e quali lo erodono.
+
+**Dimostrazione**
+Si parte da un cliente &quot;Beta&quot; creato dalla factory, con offerta &quot;BETA-01&quot; a 800 €/giorno e offerta &quot;BETA-02&quot; a 500 €/giorno, e da un collaboratore a 600 €/giorno che a gennaio ha registrato 8 ore fatturabili su BETA-01 e 8 ore fatturabili su BETA-02. L&#x27;amministratore apre &quot;Marginalità&quot;, seleziona da gennaio a gennaio ed espande la riga &quot;Beta&quot;: vede BETA-01 con ricavi 800,00 €, costi 600,00 € e margine 200,00 € e margine percentuale 25,0%, e BETA-02 con ricavi 500,00 €, costi 600,00 € e margine -100,00 €, evidenziato come negativo, e margine percentuale -20,0%. La riga del cliente mostra margine 100,00 € e margine percentuale 7,7%. Poi cambia il periodo da febbraio a febbraio: il dettaglio espanso non è più visibile e la riga &quot;Beta&quot; non compare.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — Ogni riga cliente del report Marginalità ha un controllo di espansione; espandendolo compare una riga per ogni offerta del cliente con ore registrate nel periodo.
+- [ ] AC-2 — Ogni riga offerta mostra codice e descrizione dell&#x27;offerta, ricavi, costi e margine del periodo, calcolati con le stesse regole di US-060.
+- [ ] AC-3 — Accanto al margine assoluto, ogni riga offerta mostra il margine percentuale (margine diviso ricavi per 100, un decimale); con ricavi 0,00 € mostra &quot;n.d.&quot;.
+- [ ] AC-4 — La somma di ricavi, costi e margini delle offerte di un cliente coincide al centesimo con i valori mostrati nella riga del cliente.
+- [ ] AC-5 — Una riga offerta con margine negativo è evidenziata con lo stesso indicatore usato per i clienti con margine negativo.
+- [ ] AC-6 — Le offerte di un cliente espanso sono ordinate per margine crescente, quindi la meno redditizia compare per prima.
+- [ ] AC-7 — Espandere un cliente chiude il dettaglio di un altro cliente già espanso.
+- [ ] AC-8 — Cambiando il periodo selezionato, nessun cliente resta espanso.
+
+**Fuori ambito**
+Dettaglio per collaboratore (US-062); offerte senza ore nel periodo; confronto tra giornate previste e giornate erogate (già presente nella pagina Offerte); ordinamenti configurabili dall&#x27;utente.
+
+**Contesto Wiki**
+domains/fatturazione-clienti, domains/offerte, decisions/importi-decimali
+
+---
+
+# US-062 · Costo dei collaboratori per offerta nel report Marginalità
+
+#### US-062: Costo dei collaboratori per offerta nel report Marginalità
+
+**Epic:** EP-005 | **Priorità:** MEDIUM | **Punti:** 3 | **Stato:** TODO
+**Bloccata da:** US-061
+
+**Storia Utente**
+Come Stefano, amministratore,
+voglio vedere, per ogni offerta del report Marginalità, quali collaboratori ci hanno lavorato nel periodo e quanto mi è costato ciascuno, separando le ore fatturabili da quelle non fatturabili,
+così da capire chi assorbe il margine e quanto lavoro pago senza incassarlo.
+
+**Dimostrazione**
+Si parte da un cliente &quot;Gamma&quot; creato dalla factory, con offerta &quot;GAMMA-01&quot; a 800 €/giorno, e da due collaboratori della factory: &quot;Marco&quot; a 400 €/giorno, con 16 ore fatturabili e 8 ore non fatturabili a gennaio su GAMMA-01, e &quot;Laura&quot; a 300 €/giorno, con 8 ore fatturabili a gennaio su GAMMA-01. L&#x27;amministratore apre &quot;Marginalità&quot;, seleziona da gennaio a gennaio, espande &quot;Gamma&quot; e apre il dettaglio collaboratori di GAMMA-01. Vede Marco con 16 ore fatturabili, 8 ore non fatturabili, costo 1.200,00 € di cui 400,00 € su ore non fatturabili, e Laura con 8 ore fatturabili, 0 ore non fatturabili e costo 300,00 €. La riga GAMMA-01 mostra costi 1.500,00 €, ricavi 2.400,00 €, margine 900,00 € e margine percentuale 37,5%.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — Ogni riga offerta del report Marginalità ha un controllo che mostra l&#x27;elenco dei collaboratori con ore registrate su quell&#x27;offerta nel periodo.
+- [ ] AC-2 — Per ogni collaboratore l&#x27;elenco mostra nome e cognome, ore fatturabili, ore non fatturabili e costo totale (ore totali / 8 per la sua tariffa giornaliera).
+- [ ] AC-3 — Per ogni collaboratore l&#x27;elenco mostra la quota del costo dovuta alle ore non fatturabili, etichettata come &quot;costo senza ricavo&quot;.
+- [ ] AC-4 — Un collaboratore che sull&#x27;offerta ha solo ore non fatturabili compare con 0 ore fatturabili e un costo interamente &quot;costo senza ricavo&quot;.
+- [ ] AC-5 — La somma dei costi dei collaboratori di un&#x27;offerta coincide al centesimo con i costi mostrati nella riga dell&#x27;offerta.
+- [ ] AC-6 — I collaboratori sono ordinati per costo decrescente; a parità di costo, per cognome e nome.
+- [ ] AC-7 — Un collaboratore disattivato che ha ore nel periodo compare comunque nell&#x27;elenco con il suo costo.
+
+**Fuori ambito**
+Ricavo o margine attribuito al singolo collaboratore; rimborsi trasferta del collaboratore; vista del margine aggregata per collaboratore su tutte le offerte; modifica delle tariffe dal report.
+
+**Contesto Wiki**
+domains/collaboratori, domains/attivita, decisions/tariffa-unica-collaboratore, decisions/giornata-otto-ore</pre></details><h3>T3</h3><p>Storie: US-060, US-061, US-062, US-063. Copertura del profilo: 81.8/100. Accordo fra letture: 100.0 %.</p><details><summary>Storie approvate e congelate</summary><pre># US-060 · Nuova tariffa del collaboratore con decorrenza mensile
+
+#### US-060: Nuova tariffa del collaboratore con decorrenza mensile
+
+**Epic:** EP-006 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
+**Bloccata da:** -
+
+**Storia Utente**
+Come amministratore,
+voglio inserire in anticipo la nuova tariffa giornaliera di un collaboratore indicando il mese da cui vale,
+così che i riepiloghi dei mesi passati restino calcolati con la tariffa di allora.
+
+**Dimostrazione**
+Partendo da un collaboratore creato da factory con tariffa 300,00 € e una riga attività fatturabile di 8 ore in dicembre 2026 e una in gennaio 2027 (mesi riservati), l&#x27;amministratore apre il dettaglio del collaboratore e aggiunge la tariffa 350,00 € con decorrenza &quot;gennaio 2027&quot;: la sezione &quot;Tariffe&quot; mostra &quot;300,00 € — dall&#x27;inizio&quot; e &quot;350,00 € — da gennaio 2027&quot;. Accedendo come quel collaboratore, il riepilogo di dicembre 2026 mostra &quot;1 g × 300,00 €&quot; e quello di gennaio 2027 mostra &quot;1 g × 350,00 €&quot;. L&#x27;amministratore tenta poi di aggiungere una tariffa con decorrenza &quot;dicembre 2026&quot; e vede il messaggio &quot;La decorrenza deve essere successiva a gennaio 2027&quot;; l&#x27;elenco tariffe resta invariato.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — Il dettaglio del collaboratore mostra una sezione &quot;Tariffe&quot; con tutte le tariffe ordinate per decorrenza, ciascuna con importo e decorrenza (&quot;dall&#x27;inizio&quot; oppure &quot;da {mese anno}&quot;), e un&#x27;etichetta &quot;In vigore&quot; sulla tariffa valida oggi
+- [ ] AC-2 — Dopo la migrazione, ogni collaboratore esistente ha esattamente una tariffa con decorrenza &quot;dall&#x27;inizio&quot; pari alla tariffa precedente, e i riepiloghi mensili già esistenti mostrano gli stessi importi di prima
+- [ ] AC-3 — L&#x27;amministratore aggiunge una tariffa indicando importo e mese/anno di decorrenza; la tariffa vale dal primo giorno di quel mese fino al mese precedente la decorrenza della tariffa successiva
+- [ ] AC-4 — Una decorrenza uguale o precedente a quella dell&#x27;ultima tariffa viene rifiutata con il messaggio &quot;La decorrenza deve essere successiva a {mese anno dell&#x27;ultima tariffa}&quot; e nessuna tariffa viene aggiunta
+- [ ] AC-5 — Una decorrenza in un mese già passato è accettata se successiva all&#x27;ultima tariffa, e i riepiloghi dei mesi da quella decorrenza in poi usano il nuovo importo
+- [ ] AC-6 — Un importo mancante, non positivo o con più di due decimali viene rifiutato con lo stesso messaggio già usato oggi per la tariffa giornaliera, e nessuna tariffa viene aggiunta
+- [ ] AC-7 — Il riepilogo mensile del collaboratore calcola l&#x27;importo fattura con la tariffa in vigore nel mese visualizzato e la mostra come &quot;Tariffa giorno&quot;
+- [ ] AC-8 — Il form di modifica del collaboratore mostra la tariffa in vigore oggi in sola lettura; salvare il form non modifica alcuna tariffa
+- [ ] AC-9 — L&#x27;elenco collaboratori e il dettaglio mostrano come tariffa corrente quella in vigore oggi, anche quando esiste una tariffa con decorrenza futura
+- [ ] AC-10 — Creando un utente con ruolo Collaboratore (o aggiungendo il ruolo a un utente senza profilo), la tariffa inserita diventa l&#x27;unica tariffa del profilo con decorrenza &quot;dall&#x27;inizio&quot;
+
+**Fuori Ambito**
+Correzione o eliminazione di tariffe (US-061); tariffe dell&#x27;offerta (US-062); override della tariffa collaboratore per offerta (US-020); tariffe diverse all&#x27;interno dello stesso mese; congelamento definitivo dei mesi chiusi.
+
+## Wiki context
+- decisions/tariffa-unica-collaboratore
+- domains/collaboratori
+- domains/attivita
+
+---
+
+# US-061 · Correzione dell&#x27;ultima tariffa del collaboratore
+
+#### US-061: Correzione dell&#x27;ultima tariffa del collaboratore
+
+**Epic:** EP-006 | **Priorità:** MEDIUM | **Punti:** 2 | **Stato:** TODO
+**Bloccata da:** US-060
+
+**Storia Utente**
+Come amministratore,
+voglio correggere l&#x27;ultima tariffa inserita per un collaboratore,
+così da rimediare a un errore di digitazione senza toccare le tariffe precedenti.
+
+**Dimostrazione**
+Partendo da un collaboratore creato da factory con tariffe &quot;300,00 € — dall&#x27;inizio&quot;, &quot;350,00 € — da gennaio 2027&quot; e &quot;400,00 € — da marzo 2027&quot; e una riga fatturabile di 8 ore in dicembre 2026, gennaio 2027 e marzo 2027, l&#x27;amministratore usa &quot;Correggi&quot; sull&#x27;ultima tariffa e la porta a 410,00 €: il riepilogo di marzo 2027 mostra &quot;1 g × 410,00 €&quot;, mentre gennaio 2027 resta &quot;1 g × 350,00 €&quot; e dicembre 2026 resta &quot;1 g × 300,00 €&quot;. Le righe delle due tariffe precedenti non mostrano l&#x27;azione &quot;Correggi&quot;. L&#x27;amministratore prova poi a correggere la decorrenza dell&#x27;ultima tariffa a &quot;gennaio 2027&quot;: compare il messaggio &quot;La decorrenza deve essere successiva a gennaio 2027&quot; e la tariffa resta &quot;410,00 € — da marzo 2027&quot;.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — Nella sezione &quot;Tariffe&quot; solo la tariffa con la decorrenza più recente mostra l&#x27;azione &quot;Correggi&quot;
+- [ ] AC-2 — La correzione permette di modificare importo e mese di decorrenza; per una tariffa &quot;dall&#x27;inizio&quot; è modificabile solo l&#x27;importo
+- [ ] AC-3 — Dopo la correzione, i riepiloghi mensili dei mesi coperti dalla tariffa corretta usano il nuovo valore
+- [ ] AC-4 — Dopo la correzione, i riepiloghi mensili dei mesi coperti dalle tariffe precedenti mostrano gli stessi importi di prima
+- [ ] AC-5 — Una decorrenza corretta uguale o precedente a quella della tariffa precedente viene rifiutata con il messaggio &quot;La decorrenza deve essere successiva a {mese anno della tariffa precedente}&quot; e la tariffa resta invariata
+- [ ] AC-6 — Un importo corretto non valido viene rifiutato con la stessa regola di US-060 e la tariffa resta invariata
+
+**Fuori Ambito**
+Eliminazione di una tariffa; correzione di tariffe diverse dall&#x27;ultima; registro di audit delle correzioni.
+
+## Wiki context
+- decisions/tariffa-unica-collaboratore
+- domains/collaboratori
+- domains/attivita
+
+---
+
+# US-062 · Nuova tariffa dell&#x27;offerta con decorrenza mensile
+
+#### US-062: Nuova tariffa dell&#x27;offerta con decorrenza mensile
+
+**Epic:** EP-006 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
+**Bloccata da:** -
+
+**Storia Utente**
+Come amministratore,
+voglio inserire in anticipo la nuova tariffa giornaliera di un&#x27;offerta che prosegue nel nuovo anno, indicando il mese da cui vale,
+così che il report Fatturazione Clienti dei mesi passati resti calcolato con la tariffa di allora.
+
+**Dimostrazione**
+Partendo da un&#x27;offerta creata da factory con tariffa 500,00 € e una riga attività fatturabile di 8 ore in un mese riservato M e una nel mese successivo M+1, l&#x27;amministratore apre la modifica dell&#x27;offerta dalla pagina Offerte e aggiunge la tariffa 550,00 € con decorrenza M+1: la sezione &quot;Tariffe&quot; mostra &quot;500,00 € — dall&#x27;inizio&quot; e &quot;550,00 € — da {M+1}&quot;. Il report Fatturazione Clienti mostra per quell&#x27;offerta un imponibile di 500,00 € nel mese M e di 550,00 € nel mese M+1. L&#x27;amministratore tenta poi di aggiungere una tariffa con decorrenza M e vede il messaggio &quot;La decorrenza deve essere successiva a {M+1}&quot;; l&#x27;elenco tariffe resta invariato.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — La pagina di modifica dell&#x27;offerta, raggiunta sia dalla pagina Offerte sia dal dettaglio cliente, mostra una sezione &quot;Tariffe&quot; con tutte le tariffe ordinate per decorrenza, ciascuna con importo e decorrenza (&quot;dall&#x27;inizio&quot; oppure &quot;da {mese anno}&quot;), e un&#x27;etichetta &quot;In vigore&quot; sulla tariffa valida oggi
+- [ ] AC-2 — Dopo la migrazione, ogni offerta esistente ha esattamente una tariffa con decorrenza &quot;dall&#x27;inizio&quot; pari alla tariffa precedente, e il report Fatturazione Clienti mostra per ogni mese gli stessi importi di prima
+- [ ] AC-3 — L&#x27;amministratore aggiunge una tariffa indicando importo e mese/anno di decorrenza; la tariffa vale dal primo giorno di quel mese fino al mese precedente la decorrenza della tariffa successiva
+- [ ] AC-4 — Una decorrenza uguale o precedente a quella dell&#x27;ultima tariffa viene rifiutata con il messaggio &quot;La decorrenza deve essere successiva a {mese anno dell&#x27;ultima tariffa}&quot; e nessuna tariffa viene aggiunta
+- [ ] AC-5 — Una decorrenza in un mese già passato è accettata se successiva all&#x27;ultima tariffa, e il report dei mesi da quella decorrenza in poi usa il nuovo importo
+- [ ] AC-6 — Un importo mancante, non positivo o con più di due decimali viene rifiutato con lo stesso messaggio già usato oggi per la tariffa dell&#x27;offerta, e nessuna tariffa viene aggiunta
+- [ ] AC-7 — Il report Fatturazione Clienti calcola l&#x27;imponibile di ogni offerta, incluso il dettaglio per collaboratore, con la tariffa dell&#x27;offerta in vigore nel mese del report, e mostra quella tariffa
+- [ ] AC-8 — Il form di modifica dell&#x27;offerta mostra la tariffa in vigore oggi in sola lettura; salvare il form non modifica alcuna tariffa
+- [ ] AC-9 — La pagina Offerte e l&#x27;elenco offerte del cliente mostrano la tariffa in vigore oggi, anche quando esiste una tariffa con decorrenza futura
+- [ ] AC-10 — Creando una nuova offerta, la tariffa inserita diventa l&#x27;unica tariffa dell&#x27;offerta con decorrenza &quot;dall&#x27;inizio&quot;
+
+**Fuori Ambito**
+Correzione o eliminazione di tariffe (US-063); tariffa per cliente invece che per offerta; avanzamento offerte (ragiona in giornate e non cambia); tariffe diverse all&#x27;interno dello stesso mese.
+
+## Wiki context
+- domains/offerte
+- domains/fatturazione-clienti
+
+---
+
+# US-063 · Correzione dell&#x27;ultima tariffa dell&#x27;offerta
+
+#### US-063: Correzione dell&#x27;ultima tariffa dell&#x27;offerta
+
+**Epic:** EP-006 | **Priorità:** MEDIUM | **Punti:** 2 | **Stato:** TODO
+**Bloccata da:** US-062
+
+**Storia Utente**
+Come amministratore,
+voglio correggere l&#x27;ultima tariffa inserita per un&#x27;offerta,
+così da rimediare a un errore di digitazione senza toccare le tariffe precedenti.
+
+**Dimostrazione**
+Partendo da un&#x27;offerta creata da factory con tariffe &quot;500,00 € — dall&#x27;inizio&quot;, &quot;550,00 € — da M+1&quot; e &quot;600,00 € — da M+2&quot; (mesi riservati) e una riga fatturabile di 8 ore nei mesi M, M+1 e M+2, l&#x27;amministratore usa &quot;Correggi&quot; sull&#x27;ultima tariffa e la porta a 610,00 €: il report Fatturazione Clienti mostra per quell&#x27;offerta un imponibile di 610,00 € in M+2, mentre M+1 resta 550,00 € e M resta 500,00 €. Le righe delle due tariffe precedenti non mostrano l&#x27;azione &quot;Correggi&quot;. L&#x27;amministratore prova poi a correggere la decorrenza dell&#x27;ultima tariffa a M+1: compare il messaggio &quot;La decorrenza deve essere successiva a {M+1}&quot; e la tariffa resta &quot;610,00 € — da {M+2}&quot;.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — Nella sezione &quot;Tariffe&quot; dell&#x27;offerta solo la tariffa con la decorrenza più recente mostra l&#x27;azione &quot;Correggi&quot;
+- [ ] AC-2 — La correzione permette di modificare importo e mese di decorrenza; per una tariffa &quot;dall&#x27;inizio&quot; è modificabile solo l&#x27;importo
+- [ ] AC-3 — Dopo la correzione, il report Fatturazione Clienti dei mesi coperti dalla tariffa corretta usa il nuovo valore
+- [ ] AC-4 — Dopo la correzione, il report dei mesi coperti dalle tariffe precedenti mostra gli stessi importi di prima
+- [ ] AC-5 — Una decorrenza corretta uguale o precedente a quella della tariffa precedente viene rifiutata con il messaggio &quot;La decorrenza deve essere successiva a {mese anno della tariffa precedente}&quot; e la tariffa resta invariata
+- [ ] AC-6 — Un importo corretto non valido viene rifiutato con la stessa regola di US-062 e la tariffa resta invariata
+
+**Fuori Ambito**
+Eliminazione di una tariffa; correzione di tariffe diverse dall&#x27;ultima; registro di audit delle correzioni.
+
+## Wiki context
+- domains/offerte
+- domains/fatturazione-clienti</pre></details><h3>T4</h3><p>Storie: US-060. Copertura del profilo: 63.6/100. Accordo fra letture: 81.8 %.</p><details><summary>Storie approvate e congelate</summary><pre># US-060 · Giornate e importo del riepilogo mensile allineati al report Fatturazione Clienti
+
+#### US-060: Giornate e importo del riepilogo mensile allineati al report Fatturazione Clienti
+
+**Epic:** EP-003 | **Priorità:** HIGH | **Punti:** 2 | **Stato:** TODO
+**Bloccata da:** -
+**Tipo:** Difetto
+
+**Storia Utente**
+Come Stefano, amministratore,
+voglio che le giornate mostrate nel riepilogo mensile di ogni collaboratore coincidano con quelle del report Fatturazione Clienti per lo stesso mese,
+così da poter verificare la fattura del collaboratore contro quanto fatturato al cliente senza riconciliazioni manuali.
+
+**Sintomi segnalati dal committente**
+- Da alcuni mesi, per alcuni collaboratori, il totale delle giornate fatturabili del riepilogo mensile (pagina Riepilogo dell&#x27;area attività) è più basso di quello che risulta nel report Fatturazione Clienti per lo stesso collaboratore e lo stesso mese.
+- Di conseguenza anche l&#x27;imponibile manodopera e l&#x27;importo fattura del riepilogo risultano più bassi del dovuto.
+- Il problema non riguarda tutti: per altri collaboratori, nello stesso mese, i due valori coincidono.
+- Le ore mostrate nelle due viste coincidono; la discrepanza compare solo su giornate e importi.
+
+**Passi di riproduzione (dal committente)**
+1. Prendere un collaboratore con tariffa giornaliera 400,00 €, abilitato a un&#x27;offerta fatturabile di un cliente.
+2. In un mese senza altre attività per quel collaboratore, registrare 8 righe fatturabili da 1 ora ciascuna su 8 giorni diversi, tutte sulla stessa offerta.
+3. Come collaboratore, aprire il riepilogo di quel mese: oggi mostra 8 ore ma 0,96 giornate fatturabili e un imponibile manodopera di € 384,00.
+4. Come amministratore, aprire il report Fatturazione Clienti dello stesso mese ed espandere l&#x27;offerta: per lo stesso collaboratore mostra 8 ore e 1,00 giornate.
+5. Caso di controllo: un secondo collaboratore che nello stesso mese registra 2 righe da 4 ore vede 1,00 giornate in entrambe le viste.
+
+**Comportamento atteso**
+Per lo stesso collaboratore e lo stesso mese, il riepilogo mensile e il report Fatturazione Clienti mostrano lo stesso numero di giornate, pari al totale delle ore del mese diviso 8, indipendentemente da come le ore sono distribuite fra le righe; l&#x27;imponibile manodopera del riepilogo è quelle giornate moltiplicate per la tariffa del collaboratore.
+
+**Dimostrazione**
+Partendo da un collaboratore creato da factory con tariffa 400,00 €, abilitato a un&#x27;offerta creata da factory, e da un mese riservato senza altre attività, il revisore registra 8 righe fatturabili da 1 ora su 8 giorni distinti dello stesso mese. Aprendo il riepilogo di quel mese osserva 8 ore, 1,00 giornate fatturabili e imponibile manodopera € 400,00; aprendo il report Fatturazione Clienti dello stesso mese osserva 1,00 giornate per quel collaboratore sull&#x27;offerta. Il revisore aggiunge poi una nona riga non fatturabile da 3 ore e osserva nel riepilogo 11 ore totali, 1,38 giornate totali, mentre giornate fatturabili (1,00) e imponibile (€ 400,00) restano invariati.
+
+**Criteri di Accettazione**
+- [ ] AC-1 — Con 8 righe fatturabili da 1 ora nello stesso mese e sulla stessa offerta, il riepilogo mensile mostra 1,00 giornate fatturabili nei totali.
+- [ ] AC-2 — Nello stesso scenario, la riga dell&#x27;offerta nel riepilogo mensile mostra 1,00 giornate totali e 1,00 giornate fatturabili.
+- [ ] AC-3 — Nello stesso scenario, con tariffa del collaboratore 400,00 €, il riepilogo mostra imponibile manodopera € 400,00 e il dettaglio &quot;1.00 g × € 400,00&quot;.
+- [ ] AC-4 — Per ogni collaboratore e mese, le giornate fatturabili del riepilogo coincidono con le giornate dello stesso collaboratore sulla stessa offerta nel report Fatturazione Clienti dello stesso mese.
+- [ ] AC-5 — Aggiungendo una riga non fatturabile da 3 ore allo scenario di AC-1, il riepilogo mostra 11 ore e 1,38 giornate totali, mentre giornate fatturabili e imponibile manodopera restano 1,00 e € 400,00.
+- [ ] AC-6 — Per un collaboratore che registra 2 righe fatturabili da 4 ore nel mese, il riepilogo continua a mostrare 1,00 giornate fatturabili e imponibile pari a una giornata di tariffa (regressione).
+- [ ] AC-7 — Nella pagina Offerte, il dettaglio avanzamento dell&#x27;offerta usata in AC-1 mostra 1,00 giornate erogate e un residuo pari ai giorni previsti meno 1,00.
+- [ ] AC-8 — Un test automatico riproduce lo scenario di AC-1 e fallisce se le giornate fatturabili del riepilogo differiscono da quelle del report Fatturazione Clienti.
+
+**Fuori Scope**
+- Correzione retroattiva di fatture già emesse dai collaboratori nei mesi passati: la spec garantisce solo che riepilogo e report mostrino valori coerenti ricalcolati sui dati correnti.
+- Differenze di importo dovute a tariffe diverse (tariffa del collaboratore nel riepilogo, tariffa dell&#x27;offerta nel report): sono attese e non fanno parte del difetto.
+- Modifiche al formato di visualizzazione di ore, giornate e importi.
+- Esportazione dei report e analisi di marginalità (US-017, US-018).
+
+**Assunzioni**
+- Il confronto di riferimento è sulle giornate, non sugli importi, perché riepilogo e report applicano per definizione tariffe diverse.
+- La conversione resta quella fissa di 1 giornata = 8 ore già prevista da US-014 e US-015.
+
+## Wiki context
+- `overview`
+- Lacuna: l&#x27;indice della Wiki elenca `domains/attivita`, `domains/fatturazione-clienti`, `domains/offerte`, `decisions/giornata-otto-ore` e `references/prd`, ma i file non sono presenti nel repository; il contesto di dominio è stato ricavato dalle spec US-014, US-015 e US-037 del backlog.</pre></details></section><section><h2>I quattro oracoli</h2><h3>T1</h3><details><summary>Profilo nascosto completo (non accessibile ai worker sperimentali)</summary><pre># Profilo nascosto T1 · locale · «Referente del cliente»
+
+Richiesta iniziale del committente: «Per ogni cliente vorrei segnarmi chi è la persona con cui parlo, con email e telefono, e vederla quando apro il cliente e nel report di fatturazione.»
+
+Perimetro atteso dal profilo nascosto (da scrivere per esteso prima delle prove, nascosto agli agenti): campi referente su `Cliente` (nome, email, telefono) facoltativi ma con validazione quando presenti; visibili in dettaglio cliente, in elenco e nell&#x27;intestazione del cliente nel report Fatturazione Clienti; modificabili solo dall&#x27;amministratore; nessun impatto sui calcoli; clienti esistenti senza referente restano validi; migrazione additiva.
+
+## Regole del committente simulato
+
+Rispondi solo alle domande poste. Non offrire spontaneamente temi non chiesti. Approva la bozza se coerente; segnala solo contraddizioni esplicite. Non rivelare il profilo né il banco.
+</pre></details><div class="scroll"><table><thead><tr><th>Codice</th><th>Area (peso)</th><th>Livello</th><th>Tema</th><th>Controllo</th><th>Nelle storie</th></tr></thead><tbody><tr><td>R1</td><td>referente (30)</td><td>integrazione</td><td>Campi facoltativi</td><td>creazione cliente con referente completo e lettura dei tre valori</td><td>Esplicito</td></tr><tr><td>R2</td><td>referente (30)</td><td>integrazione</td><td>Campi facoltativi</td><td>cliente senza referente resta valido</td><td>Esplicito</td></tr><tr><td>R3</td><td>referente (30)</td><td>integrazione</td><td>Campi facoltativi</td><td>nome, email e telefono salvabili separatamente</td><td>Esplicito</td></tr><tr><td>R4</td><td>referente (30)</td><td>integrazione</td><td>Modifica</td><td>modifica referente esistente persiste</td><td>Esplicito</td></tr><tr><td>R5</td><td>referente (30)</td><td>integrazione</td><td>Modifica</td><td>rimozione dei tre campi ripristina assenza referente</td><td>Esplicito</td></tr><tr><td>V1</td><td>validazione (16)</td><td>integrazione</td><td>Email</td><td>email malformata rifiutata senza scrittura</td><td>Esplicito</td></tr><tr><td>V2</td><td>validazione (16)</td><td>integrazione</td><td>Telefono</td><td>telefono malformato rifiutato senza scrittura</td><td>Esplicito</td></tr><tr><td>V3</td><td>validazione (16)</td><td>integrazione</td><td>Nome</td><td>nome composto solo da spazi trattato come assente</td><td>Esplicito</td></tr><tr><td>V4</td><td>validazione (16)</td><td>integrazione</td><td>Email</td><td>email con plus e sottodominio accettata</td><td>Parziale</td></tr><tr><td>A1</td><td>autorizzazioni (12)</td><td>integrazione</td><td>Ruoli</td><td>collaboratore non modifica referente</td><td>Non chiarito</td></tr><tr><td>A2</td><td>autorizzazioni (12)</td><td>integrazione</td><td>Ruoli</td><td>utente anonimo non modifica referente</td><td>Non chiarito</td></tr><tr><td>A3</td><td>autorizzazioni (12)</td><td>integrazione</td><td>Ruoli</td><td>cliente non modifica referente</td><td>Non chiarito</td></tr><tr><td>S1</td><td>visibilita (18)</td><td>browser</td><td>Dettaglio</td><td>referente completo nel dettaglio cliente</td><td>Esplicito</td></tr><tr><td>S2</td><td>visibilita (18)</td><td>browser</td><td>Elenco</td><td>referente visibile in elenco clienti</td><td>Parziale</td></tr><tr><td>S3</td><td>visibilita (18)</td><td>browser</td><td>Report</td><td>referente nell’intestazione cliente del report fatturazione</td><td>Esplicito</td></tr><tr><td>S4</td><td>visibilita (18)</td><td>browser</td><td>Modifica</td><td>amministratore modifica il referente tramite form</td><td>Esplicito</td></tr><tr><td>P1</td><td>persistenza (8)</td><td>gate</td><td>Migrazione</td><td>migrazione additiva applicabile su dati preesistenti</td><td>Parziale</td></tr><tr><td>P2</td><td>persistenza (8)</td><td>gate</td><td>Migrazione</td><td>nessun drift schema/migrazioni</td><td>Non chiarito</td></tr><tr><td>P3</td><td>persistenza (8)</td><td>integrazione</td><td>Dati invariati</td><td>report fatturazione invariato prima/dopo inserimento referente</td><td>Esplicito</td></tr><tr><td>P4</td><td>persistenza (8)</td><td>integrazione</td><td>Compatibilità</td><td>anagrafica cliente esistente senza referente leggibile</td><td>Esplicito</td></tr><tr><td>U1</td><td>interfaccia (8)</td><td>browser</td><td>Responsive</td><td>form e dettaglio fruibili a 390 px senza overflow</td><td>Non chiarito</td></tr><tr><td>U2</td><td>interfaccia (8)</td><td>browser</td><td>Responsive</td><td>report fruibile a 1440 px senza errori JavaScript</td><td>Non chiarito</td></tr><tr><td>U3</td><td>interfaccia (8)</td><td>browser</td><td>Validazione</td><td>errore email chiaro nel form</td><td>Esplicito</td></tr><tr><td>U4</td><td>interfaccia (8)</td><td>browser</td><td>Ruoli</td><td>nessun controllo modifica referente per non amministratore</td><td>Non chiarito</td></tr></tbody></table></div><p>Regressioni: 8 punti, gate CI tutto-o-niente.</p><h3>T2</h3><details><summary>Profilo nascosto completo (non accessibile ai worker sperimentali)</summary><pre># Profilo nascosto T2 · trasversale, sola lettura · «Analisi della marginalità»
+
+Richiesta iniziale: «Voglio vedere, per un periodo che scelgo io, quanto incasso da ogni cliente e offerta e quanto mi costano i collaboratori che ci hanno lavorato, con il margine.»
+
+Nota: il PRD registra la marginalità come «posticipata dopo il rilascio iniziale» (riga 154): è una decisione documentata che il chiarimento deve far emergere, come RF-15 nei report precedenti. Il profilo nascosto stabilisce che il committente conferma di volerla ora.
+
+Perimetro atteso dal profilo: ricavi = giornate fatturabili × tariffa offerta; costi = giornate × tariffa del collaboratore, **comprese le righe non fatturabili** (sono costo senza ricavo: tema che il chiarimento deve scoprire); rimborsi trasferta esclusi da entrambi i lati perché passanti; margine assoluto e percentuale; periodo da mese a mese; per cliente, con dettaglio per offerta e per collaboratore; conversione 1 giornata = 8 ore; solo amministratore; nessuna scrittura; coerenza con gli importi del report Fatturazione Clienti sullo stesso periodo; nessun cambio di schema.
+
+## Regole del committente simulato
+
+Rispondi solo alle domande poste. Non offrire spontaneamente temi non chiesti. Approva la bozza se coerente; segnala solo contraddizioni esplicite. Non rivelare il profilo né il banco.
+</pre></details><div class="scroll"><table><thead><tr><th>Codice</th><th>Area (peso)</th><th>Livello</th><th>Tema</th><th>Controllo</th><th>Nelle storie</th></tr></thead><tbody><tr><td>R1</td><td>ricavi (18)</td><td>integrazione</td><td>Ricavi</td><td>8 ore fatturabili × tariffa offerta 640 = 640</td><td>Esplicito</td></tr><tr><td>R2</td><td>ricavi (18)</td><td>integrazione</td><td>Ricavi</td><td>4 ore fatturabili × tariffa offerta 640 = 320</td><td>Parziale</td></tr><tr><td>R3</td><td>ricavi (18)</td><td>integrazione</td><td>Ricavi</td><td>riga non fatturabile non genera ricavo</td><td>Esplicito</td></tr><tr><td>R4</td><td>ricavi (18)</td><td>integrazione</td><td>Rimborsi</td><td>rimborsi trasferta esclusi dai ricavi</td><td>Esplicito</td></tr><tr><td>C1</td><td>costi (18)</td><td>integrazione</td><td>Costi</td><td>8 ore × tariffa collaboratore 400 = 400</td><td>Esplicito</td></tr><tr><td>C2</td><td>costi (18)</td><td>integrazione</td><td>Non fatturabili</td><td>4 ore non fatturabili generano costo 200</td><td>Esplicito</td></tr><tr><td>C3</td><td>costi (18)</td><td>integrazione</td><td>Rimborsi</td><td>rimborsi esclusi dai costi</td><td>Esplicito</td></tr><tr><td>C4</td><td>costi (18)</td><td>integrazione</td><td>Costi</td><td>due collaboratori con tariffe differenti sono distinti</td><td>Esplicito</td></tr><tr><td>M1</td><td>margini (14)</td><td>integrazione</td><td>Margine</td><td>ricavo 640 e costo 400 producono margine 240 e 37,5 %</td><td>Esplicito</td></tr><tr><td>M2</td><td>margini (14)</td><td>integrazione</td><td>Margine</td><td>ricavo zero e costo positivo producono perdita, percentuale non infinita</td><td>Esplicito</td></tr><tr><td>M3</td><td>margini (14)</td><td>integrazione</td><td>Aggregazioni</td><td>totali cliente, offerta e collaboratore riconciliano</td><td>Esplicito</td></tr><tr><td>D1</td><td>periodo (10)</td><td>integrazione</td><td>Periodo</td><td>mese iniziale e finale inclusi, mesi adiacenti esclusi</td><td>Esplicito</td></tr><tr><td>D2</td><td>periodo (10)</td><td>integrazione</td><td>Periodo</td><td>periodo a cavallo anno corretto</td><td>Non chiarito</td></tr><tr><td>D3</td><td>periodo (10)</td><td>integrazione</td><td>Periodo</td><td>periodo invertito rifiutato</td><td>Esplicito</td></tr><tr><td>A1</td><td>autorizzazioni (12)</td><td>integrazione</td><td>Ruoli</td><td>collaboratore non accede al report</td><td>Esplicito</td></tr><tr><td>A2</td><td>autorizzazioni (12)</td><td>integrazione</td><td>Ruoli</td><td>cliente non accede al report</td><td>Esplicito</td></tr><tr><td>A3</td><td>autorizzazioni (12)</td><td>integrazione</td><td>Ruoli</td><td>anonimo non accede al report</td><td>Parziale</td></tr><tr><td>S1</td><td>visibilita (12)</td><td>browser</td><td>Dettaglio</td><td>report mostra cliente, offerte e collaboratori con importi</td><td>Esplicito</td></tr><tr><td>S2</td><td>visibilita (12)</td><td>browser</td><td>Navigazione</td><td>report raggiungibile dal back-office amministratore</td><td>Esplicito</td></tr><tr><td>S3</td><td>visibilita (12)</td><td>browser</td><td>Periodo</td><td>filtro mese iniziale e finale modifica il risultato</td><td>Esplicito</td></tr><tr><td>U1</td><td>visibilita (12)</td><td>browser</td><td>Responsive</td><td>report fruibile a 390 px senza overflow pagina</td><td>Non chiarito</td></tr><tr><td>U2</td><td>visibilita (12)</td><td>browser</td><td>Responsive</td><td>report fruibile a 1440 px senza errori JavaScript</td><td>Non chiarito</td></tr><tr><td>P1</td><td>persistenza (8)</td><td>integrazione</td><td>Nessuna scrittura</td><td>lettura report non muta database né schema</td><td>Non chiarito</td></tr><tr><td>P2</td><td>persistenza (8)</td><td>integrazione</td><td>Coerenza</td><td>ricavi uguali alla manodopera fatturazione sullo stesso periodo</td><td>Esplicito</td></tr></tbody></table></div><p>Regressioni: 8 punti, gate CI tutto-o-niente.</p><h3>T3</h3><details><summary>Profilo nascosto completo (non accessibile ai worker sperimentali)</summary><pre># Profilo nascosto T3 · migrazione con dati esistenti e concorrenza · «Tariffe con validità nel tempo»
+
+Richiesta iniziale: «Le tariffe cambiano a inizio anno, sia quelle che faccio ai clienti sia quelle dei collaboratori. Vorrei inserire la tariffa nuova in anticipo e che i conti dei mesi vecchi restino quelli vecchi.»
+
+Perimetro atteso dal profilo: tariffe giornaliere di `Offerta` e `Collaboratore` storicizzate con data di inizio validità; ogni calcolo (riepilogo mese, report Fatturazione Clienti, avanzamento offerte, e la marginalità se presente nella baseline) usa la tariffa vigente alla **data della riga**, non quella corrente; migrazione che converte le tariffe attuali in una validità aperta senza alterare nessun importo già calcolabile (i report di tutti i mesi passati devono restituire gli stessi numeri prima e dopo); back-office per inserire tariffe future, correggere l&#x27;ultima, vietare sovrapposizioni e buchi; due inserimenti concorrenti sulla stessa entità non producono due validità sovrapposte; i form esistenti continuano a funzionare; le righe attività non cambiano; solo amministratore.
+
+## Regole del committente simulato
+
+Rispondi solo alle domande poste. Non offrire spontaneamente temi non chiesti. Approva la bozza se coerente; segnala solo contraddizioni esplicite. Non rivelare il profilo né il banco.
+</pre></details><div class="scroll"><table><thead><tr><th>Codice</th><th>Area (peso)</th><th>Livello</th><th>Tema</th><th>Controllo</th><th>Nelle storie</th></tr></thead><tbody><tr><td>V1</td><td>validita (18)</td><td>integrazione</td><td>Validità</td><td>nuova tariffa offerta futura inseribile anticipatamente</td><td>Esplicito</td></tr><tr><td>V2</td><td>validita (18)</td><td>integrazione</td><td>Validità</td><td>nuova tariffa collaboratore futura inseribile anticipatamente</td><td>Esplicito</td></tr><tr><td>V3</td><td>validita (18)</td><td>integrazione</td><td>Correzione</td><td>ultima tariffa correggibile senza mutare validità anteriori</td><td>Esplicito</td></tr><tr><td>V4</td><td>validita (18)</td><td>integrazione</td><td>Sovrapposizioni</td><td>seconda tariffa stessa decorrenza rifiutata</td><td>Esplicito</td></tr><tr><td>V5</td><td>validita (18)</td><td>integrazione</td><td>Buchi</td><td>nessun buco tra validità consecutive, precedente aperta fino a successiva</td><td>Esplicito</td></tr><tr><td>C1</td><td>calcoli (24)</td><td>integrazione</td><td>Data riga</td><td>riepilogo personale applica tariffa alla data riga</td><td>Esplicito</td></tr><tr><td>C2</td><td>calcoli (24)</td><td>integrazione</td><td>Data riga</td><td>report cliente applica tariffa offerta alla data riga</td><td>Esplicito</td></tr><tr><td>C3</td><td>calcoli (24)</td><td>integrazione</td><td>Data riga</td><td>avanzamento offerte mantiene importi e giornate corretti</td><td>Parziale</td></tr><tr><td>C4</td><td>calcoli (24)</td><td>integrazione</td><td>Data riga</td><td>giorno precedente e giorno di decorrenza usano tariffe diverse</td><td>Esplicito</td></tr><tr><td>C5</td><td>calcoli (24)</td><td>integrazione</td><td>Data riga</td><td>riga retrodatata usa tariffa storica anche inserita oggi</td><td>Parziale</td></tr><tr><td>C6</td><td>calcoli (24)</td><td>integrazione</td><td>Dati invariati</td><td>tariffa futura non cambia il mese corrente o passato</td><td>Esplicito</td></tr><tr><td>M1</td><td>migrazione (14)</td><td>integrazione</td><td>Backfill</td><td>tariffe attuali convertite in validità iniziale aperta</td><td>Esplicito</td></tr><tr><td>M2</td><td>migrazione (14)</td><td>integrazione</td><td>Importi passati</td><td>report di tutti i mesi popolati invariati prima/dopo migrate deploy</td><td>Esplicito</td></tr><tr><td>M3</td><td>migrazione (14)</td><td>integrazione</td><td>Dati invariati</td><td>righe attività invariate byte per byte prima/dopo migrazione</td><td>Non chiarito</td></tr><tr><td>N1</td><td>concorrenza (12)</td><td>integrazione</td><td>Concorrenza</td><td>due inserimenti concorrenti stessa offerta non sovrappongono validità</td><td>Non chiarito</td></tr><tr><td>N2</td><td>concorrenza (12)</td><td>integrazione</td><td>Concorrenza</td><td>due inserimenti concorrenti stesso collaboratore non sovrappongono validità</td><td>Non chiarito</td></tr><tr><td>A1</td><td>autorizzazioni (8)</td><td>integrazione</td><td>Ruoli</td><td>non amministratore non inserisce/corregge tariffe</td><td>Parziale</td></tr><tr><td>P1</td><td>persistenza (8)</td><td>gate</td><td>Migrazione</td><td>migrazioni applicabili su database con dati</td><td>Parziale</td></tr><tr><td>P2</td><td>persistenza (8)</td><td>gate</td><td>Migrazione</td><td>nessun drift tra schema e migrazioni</td><td>Non chiarito</td></tr><tr><td>S1</td><td>visibilita (8)</td><td>browser</td><td>Form</td><td>form offerta esistente continua a creare/modificare offerte</td><td>Parziale</td></tr><tr><td>S2</td><td>visibilita (8)</td><td>browser</td><td>Form</td><td>form collaboratore esistente continua a funzionare</td><td>Parziale</td></tr><tr><td>S3</td><td>visibilita (8)</td><td>browser</td><td>Tariffe future</td><td>amministratore pianifica tariffa futura tramite UI</td><td>Esplicito</td></tr><tr><td>U1</td><td>visibilita (8)</td><td>browser</td><td>Responsive</td><td>gestione tariffe a 390 px senza overflow pagina</td><td>Non chiarito</td></tr><tr><td>U2</td><td>visibilita (8)</td><td>browser</td><td>Responsive</td><td>report a 1440 px senza errori JavaScript</td><td>Non chiarito</td></tr></tbody></table></div><p>Regressioni: 8 punti, gate CI tutto-o-niente.</p><h3>T4</h3><details><summary>Profilo nascosto completo (non accessibile ai worker sperimentali)</summary><pre># Profilo nascosto T4 · I totali non tornano
+
+Richiesta iniziale: «Da qualche mese i totali del riepilogo mensile di alcuni collaboratori non coincidono con quello che vedo nel report di fatturazione per lo stesso mese. Non capisco da cosa dipenda, succede solo ad alcuni.»
+
+## Bisogno e comportamento atteso
+
+Una giornata equivale a 8 ore, incluse le frazioni. Le ore si sommano prima di convertire e non si troncano le giornate di ogni riga. Il riepilogo mensile e l’avanzamento offerte devono mantenere tutte le frazioni, come il report fatturazione che è già corretto. Con due righe fatturabili da 3 ore, la giornata totale è 0,75 e, a tariffa collaboratore 400 EUR, l’imponibile è 300 EUR. La baseline difettosa riporta 0,74 e 296 EUR. Il confronto riguarda giornate e basi coerenti: tariffe collaboratore e offerta possono essere diverse e quindi non si richiede di uguagliare gli importi dei due report.
+
+Nessuna modifica delle righe attività, delle date, delle tariffe o del report fatturazione per far quadrare il sintomo. Preservare righe non fatturabili e rimborsi; gestire correttamente date di cambio ora. Correggere la famiglia del difetto nei due punti, aggiungere test di regressione che falliscono sulla baseline difettosa e passano dopo. Nel riepilogo finale spiegare causa, punti corretti e verifica. Evitare modifiche applicative fuori dall’area necessaria.
+
+## Causa e posizione, MAI da rivelare al team durante il chiarimento
+
+Troncamento ai centesimi di giornata PER RIGA con Math.floor((ore / 8) * 100) / 100 in calcolaRiepilogoMese e calcolaAvanzamentoOfferte, in src/domain/consuntivi/index.ts. Il primo perde frazioni nei totali e per offerta; il secondo nel totale di giornate erogate dell’offerta. Il report fatturazione somma le ore senza il troncamento.
+
+## Risposte ammesse del committente
+
+Il committente sa descrivere i sintomi, non la causa né la posizione. Se gli vengono chiesti esempi: collaboratrice «Ada Esempio», marzo 2026, due righe da 3 ore il 12 e il 19 marzo, tariffa collaboratore 400 e tariffa offerta 640. Sono 6 ore in entrambi i report, ma nel riepilogo vede 0,74 giornate e 296 EUR, mentre dalle 6 ore si aspetta 0,75 e 300 EUR; nel report cliente le stesse ore producono 480 EUR a tariffa 640. Il collaboratore «Marco Esempio» con una riga da 8 ore nello stesso mese non presenta il sintomo. A domanda sul periodo, il problema si ripete anche in ottobre; non sa se dipende dal cambio ora. A domanda sull’avanzamento, ha visto una differenza simile nel totale erogato, non sa che sia la stessa causa. Vuole che i numeri tornino e una spiegazione comprensibile.
+
+I nomi sono esempi da riprodurre con factory, non entità seed. Rispondere solo a quanto chiesto, non offrire temi non chiesti. In approvazione segnalare solo contraddizioni esplicite. La storia approvata deve poter contenere sintomi, passi di riproduzione e comportamento corretto, senza la causa o la posizione. Non rivelare il profilo né il banco.
+</pre></details><div class="scroll"><table><thead><tr><th>Codice</th><th>Area (peso)</th><th>Livello</th><th>Tema</th><th>Controllo</th><th>Nelle storie</th></tr></thead><tbody><tr><td>S1</td><td>sintomo (24)</td><td>integrazione</td><td>Sintomi</td><td>3+3 ore fatturabili producono 0,75 giornate e imponibile 300 a tariffa 400</td><td>Parziale</td></tr><tr><td>S2</td><td>sintomo (24)</td><td>integrazione</td><td>Sintomi</td><td>0,25+0,25 ore mantengono precisione senza troncamento per riga</td><td>Parziale</td></tr><tr><td>S3</td><td>sintomo (24)</td><td>integrazione</td><td>Sintomi</td><td>8 ore intere conservano 1 giornata</td><td>Esplicito</td></tr><tr><td>S4</td><td>sintomo (24)</td><td>integrazione</td><td>Sintomi</td><td>righe non fatturabili aumentano giornate totali, non imponibile</td><td>Esplicito</td></tr><tr><td>S5</td><td>sintomo (24)</td><td>integrazione</td><td>Sintomi</td><td>rimborsi aggiunti invariati anche per righe non fatturabili</td><td>Non chiarito</td></tr><tr><td>S6</td><td>sintomo (24)</td><td>integrazione</td><td>Sintomi</td><td>mese senza righe restituisce zero ore, zero giornate e zero importo</td><td>Non chiarito</td></tr><tr><td>F1</td><td>famiglia (20)</td><td>integrazione</td><td>Famiglia difetto</td><td>avanzamento offerte: 3+3 ore = 0,75 giornate</td><td>Parziale</td></tr><tr><td>F2</td><td>famiglia (20)</td><td>integrazione</td><td>Famiglia difetto</td><td>avanzamento offerte: residuo e percentuale coerenti</td><td>Parziale</td></tr><tr><td>F3</td><td>famiglia (20)</td><td>integrazione</td><td>Famiglia difetto</td><td>matrice mensile e totali avanzamento riconciliano</td><td>Non chiarito</td></tr><tr><td>F4</td><td>famiglia (20)</td><td>integrazione</td><td>Famiglia difetto</td><td>più offerte e collaboratori non perdono frazioni</td><td>Parziale</td></tr><tr><td>C1</td><td>causa (12)</td><td>integrazione</td><td>Causa</td><td>report fatturazione corretto conserva importi prima/dopo fix</td><td>Parziale</td></tr><tr><td>C2</td><td>causa (12)</td><td>integrazione</td><td>Causa</td><td>ore attività e date non riscritte per allineare i report</td><td>Non chiarito</td></tr><tr><td>C3</td><td>causa (12)</td><td>integrazione</td><td>Causa</td><td>righe nelle date di cambio ora restano nello stesso mese</td><td>Non chiarito</td></tr><tr><td>G1</td><td>regressione (16)</td><td>gate</td><td>Test regressione</td><td>test aggiunto fallisce nella baseline difettosa e passa dopo</td><td>Esplicito</td></tr><tr><td>G2</td><td>regressione (16)</td><td>gate</td><td>Test regressione</td><td>test aggiunto intercetta entrambi i punti della famiglia</td><td>Parziale</td></tr><tr><td>D1</td><td>diagnosi (8)</td><td>giudice</td><td>Diagnosi</td><td>riepilogo finale spiega troncamento per riga e perdita delle frazioni</td><td>Non chiarito</td></tr><tr><td>D2</td><td>diagnosi (8)</td><td>giudice</td><td>Diagnosi</td><td>riepilogo finale identifica entrambi i percorsi corretti</td><td>Parziale</td></tr><tr><td>P1</td><td>persistenza (4)</td><td>integrazione</td><td>Dati invariati</td><td>nessuna migrazione o modifica delle righe attività richiesta dal fix</td><td>Non chiarito</td></tr><tr><td>U1</td><td>interfaccia (8)</td><td>browser</td><td>Sintomi</td><td>riepilogo mostra importi corretti per il caso 3+3 ore</td><td>Parziale</td></tr><tr><td>U2</td><td>interfaccia (8)</td><td>browser</td><td>Sintomi</td><td>avanzamento mostra l’erogato corretto nel caso 3+3 ore: 0,75 giornate, oppure 0,8 gg se usa il decimale della UI baseline; il valore esatto è verificato in F1</td><td>Parziale</td></tr><tr><td>U3</td><td>interfaccia (8)</td><td>browser</td><td>Sintomi</td><td>report fatturazione resta invariato</td><td>Parziale</td></tr><tr><td>U4</td><td>interfaccia (8)</td><td>browser</td><td>Responsive</td><td>riepilogo e avanzamento fruibili a 390 px</td><td>Non chiarito</td></tr><tr><td>U5</td><td>interfaccia (8)</td><td>browser</td><td>Responsive</td><td>pagine a 1440 px senza errori JavaScript</td><td>Non chiarito</td></tr><tr><td>U6</td><td>interfaccia (8)</td><td>browser</td><td>Ruoli</td><td>isolamento collaboratori preservato</td><td>Non chiarito</td></tr><tr><td>C4</td><td>causa (12)</td><td>giudice</td><td>Focalizzazione</td><td>nessuna modifica applicativa fuori dall’area necessaria rispetto al riferimento</td><td>Parziale</td></tr></tbody></table></div><p>Regressioni: 8 punti, gate CI tutto-o-niente.</p></section><section><h2>Manipolazione T4</h2><p>Commit difetto: <code>77d144c7ef50a12753378bcea695b6ea40add62a</code>. a: troncamento per riga ai centesimi di giornata</p><p>Baseline difettosa: lint, 698 unit test, build e 184 e2e passati. Due righe da 3 ore mostrano 0,74 giornate invece di 0,75 in due punti. Report fatturazione invariato.</p><details><summary>Pagine Wiki e test rimossi</summary><ul><li><code>docs/wiki/architecture/context-map.md</code></li><li><code>docs/wiki/decisions/calcoli-puri.md</code></li><li><code>docs/wiki/decisions/giornata-otto-ore.md</code></li><li><code>docs/wiki/decisions/importi-decimali.md</code></li><li><code>docs/wiki/decisions/tariffa-unica-collaboratore.md</code></li><li><code>docs/wiki/domains/attivita.md</code></li><li><code>docs/wiki/domains/collaboratori.md</code></li><li><code>docs/wiki/domains/fatturazione-clienti.md</code></li><li><code>docs/wiki/domains/offerte.md</code></li><li><code>docs/wiki/engineering/code-map.md</code></li><li><code>docs/wiki/references/prd.md</code></li><li><code>tests/unit/riepilogo-mese.test.ts</code></li><li><code>tests/unit/avanzamento-offerte.test.ts</code></li></ul></details></section><section><h2>Contabilità</h2><p>Spesa totale 41.12 USD su 750; preparazione 35.87 USD su 120; residuo report 708.88 USD. Inclusi scarti, correzioni e giudici. Sessioni senza costo attestato: 0.</p><details><summary>Ledger completo</summary><pre>{
+  &quot;sessioni_costo_non_attestato&quot;: {},
+  &quot;totale_usd&quot;: 41.119552799999994,
+  &quot;preparazione_usd&quot;: 35.8712028,
+  &quot;residuo_preparazione_usd&quot;: 84.12879720000001,
+  &quot;residuo_report_usd&quot;: 708.8804472,
+  &quot;sessioni&quot;: {
+    &quot;102b7319-dd88-48ef-bb41-d09fd93619cf&quot;: {
+      &quot;usd&quot;: 0.0834738,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/_scartati/G-ref-T3-init-builtin/stream-riconciliazione.jsonl&quot;
+    },
+    &quot;68c83e89-7442-41ae-8d32-b037b517ba91&quot;: {
+      &quot;usd&quot;: 0.032048,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T1/phases/01-spec/committente.jsonl&quot;
+    },
+    &quot;63f23851-4b2b-4bdb-a763-c290f57aea1b&quot;: {
+      &quot;usd&quot;: 0.042288,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T1/phases/01-spec/committente.jsonl&quot;
+    },
+    &quot;fcfe2b96-9609-4ff1-a743-97dfa4b0a8a5&quot;: {
+      &quot;usd&quot;: 0.8231174000000001,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T1/phases/01-spec/stream-02.jsonl&quot;
+    },
+    &quot;00670180-de7c-406b-83b1-552040936403&quot;: {
+      &quot;usd&quot;: 0.030303999999999998,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T2/phases/01-spec/committente.jsonl&quot;
+    },
+    &quot;440650ae-3d4f-4914-b8ec-78991b6cbef8&quot;: {
+      &quot;usd&quot;: 0.041235999999999995,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T2/phases/01-spec/committente.jsonl&quot;
+    },
+    &quot;be0a70a8-f619-460f-a5a6-366996d48cc6&quot;: {
+      &quot;usd&quot;: 0.9826896000000002,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T2/phases/01-spec/stream-02.jsonl&quot;
+    },
+    &quot;f804f66e-b9c4-4a0d-a9e7-c0e429f4e469&quot;: {
+      &quot;usd&quot;: 0.033288,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T3/phases/01-spec/committente.jsonl&quot;
+    },
+    &quot;8f2912c3-d494-4503-9316-65458314527e&quot;: {
+      &quot;usd&quot;: 0.0596064,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T3/phases/01-spec/committente.jsonl&quot;
+    },
+    &quot;b0bee03e-2caa-450b-b553-7ecc56328ee6&quot;: {
+      &quot;usd&quot;: 1.2243326,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T3/phases/01-spec/stream-02.jsonl&quot;
+    },
+    &quot;bfe92338-a7ac-40fe-8a81-504b62ca520b&quot;: {
+      &quot;usd&quot;: 0.648103,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T4/phases/01-spec/stream-00.jsonl&quot;
+    },
+    &quot;3264deda-c5ab-454e-bc04-cd0bd886c9ec&quot;: {
+      &quot;usd&quot;: 0.20468399999999998,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T1/stream-01.jsonl&quot;
+    },
+    &quot;90f09a21-8b26-4dfe-ae17-7ee74edc4ce1&quot;: {
+      &quot;usd&quot;: 0.10109939999999999,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T1/stream-02.jsonl&quot;
+    },
+    &quot;bd3221e1-e6dd-40d2-a409-9ed1c6c99e28&quot;: {
+      &quot;usd&quot;: 0.23407999999999998,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T2/stream-01.jsonl&quot;
+    },
+    &quot;5c40aa87-de1e-4437-a918-a25d993ac4e9&quot;: {
+      &quot;usd&quot;: 0.09401079999999999,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T2/stream-02.jsonl&quot;
+    },
+    &quot;090567dc-8613-49d4-b2b6-07df0cce772e&quot;: {
+      &quot;usd&quot;: 0.275424,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T3/stream-01.jsonl&quot;
+    },
+    &quot;cbdab41c-8e3f-4420-bee9-a72750a93564&quot;: {
+      &quot;usd&quot;: 0.10124639999999999,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T3/stream-02.jsonl&quot;
+    },
+    &quot;46d1faae-d566-4b36-bcd7-5badcdab03aa&quot;: {
+      &quot;usd&quot;: 0.215664,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T4/stream-01.jsonl&quot;
+    },
+    &quot;1be92058-d8c4-4a16-afe7-6b061ee0ad3a&quot;: {
+      &quot;usd&quot;: 0.1051284,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T4/stream-02.jsonl&quot;
+    },
+    &quot;c60edf28-ba8a-487e-8895-1763a587cfe0&quot;: {
+      &quot;usd&quot;: 0.8864019999999999,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T1/phases/01-adattatore/stream-00.jsonl&quot;
+    },
+    &quot;b1f30e19-6dac-4c4c-8de6-a5e1ecd2a1df&quot;: {
+      &quot;usd&quot;: 0.7496058,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T2/phases/01-adattatore/stream-00.jsonl&quot;
+    },
+    &quot;c303d4df-f02a-4660-827a-6ba9378b6074&quot;: {
+      &quot;usd&quot;: 1.2649317999999998,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T3/phases/01-adattatore/stream-00.jsonl&quot;
+    },
+    &quot;59e1bb75-dd78-4e1d-a7f7-2768bfe1f71f&quot;: {
+      &quot;usd&quot;: 0.43378799999999995,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T4/phases/01-adattatore/stream-00.jsonl&quot;
+    },
+    &quot;f5112327-8c9a-4d51-8d37-0a265d3c3725&quot;: {
+      &quot;usd&quot;: 10.664980799999999,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/oracoli/phases/01-oracoli/stream-00.jsonl&quot;
+    },
+    &quot;dbb3891d-5646-425e-98ee-5f76106e8791&quot;: {
+      &quot;usd&quot;: 2.629074599999999,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T1/phases/01-riferimento/stream-00.jsonl&quot;
+    },
+    &quot;4332b20d-bc41-4844-a6a6-2ac146964e9a&quot;: {
+      &quot;usd&quot;: 0.9240425999999999,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T1/phases/02-facoltativita/stream-00.jsonl&quot;
+    },
+    &quot;9f9bc0c7-30b1-450a-891c-b2147e07752e&quot;: {
+      &quot;usd&quot;: 3.5163537999999996,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T2/phases/01-riferimento/stream-00.jsonl&quot;
+    },
+    &quot;758f88a3-d399-4ae3-86c9-a12fb32a7a45&quot;: {
+      &quot;usd&quot;: 13.551093,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T3/phases/01-riferimento/stream-00.jsonl&quot;
+    },
+    &quot;542de6be-c8d6-4141-b84f-1dc04cb82397&quot;: {
+      &quot;usd&quot;: 1.1674566000000002,
+      &quot;file&quot;: &quot;/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T4/phases/01-riferimento/stream-00.jsonl&quot;
+    }
+  }
+}</pre></details></section><footer>Generato da bench/gradiente-difficolta/report_preparazione.py · <a href="../../index.html">Indice del banco</a></footer></main><script>var f=document.getElementById('model');if(f){f.addEventListener('change',function(){var v=this.value;document.querySelectorAll('#results tbody tr').forEach(function(r){r.hidden=!!v&&r.dataset.model!==v;});});}function apri(){var h=location.hash&&document.getElementById(location.hash.slice(1));if(h&&h.tagName==='DETAILS'){h.open=true;h.scrollIntoView();}}window.addEventListener('hashchange',apri);apri();</script></body></html>

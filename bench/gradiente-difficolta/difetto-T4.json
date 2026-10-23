@@ -1,0 +1,70 @@
+{
+  "baseline_pre_difetto": "65b01ddcabdd0dba9351a127da6059714cc35a8d",
+  "commit_difetto": "77d144c7ef50a12753378bcea695b6ea40add62a",
+  "candidato": "a: troncamento per riga ai centesimi di giornata",
+  "punti": [
+    "calcolaRiepilogoMese",
+    "calcolaAvanzamentoOfferte"
+  ],
+  "rimossi": [
+    "docs/wiki/architecture/context-map.md",
+    "docs/wiki/decisions/calcoli-puri.md",
+    "docs/wiki/decisions/giornata-otto-ore.md",
+    "docs/wiki/decisions/importi-decimali.md",
+    "docs/wiki/decisions/tariffa-unica-collaboratore.md",
+    "docs/wiki/domains/attivita.md",
+    "docs/wiki/domains/collaboratori.md",
+    "docs/wiki/domains/fatturazione-clienti.md",
+    "docs/wiki/domains/offerte.md",
+    "docs/wiki/engineering/code-map.md",
+    "docs/wiki/references/prd.md",
+    "tests/unit/riepilogo-mese.test.ts",
+    "tests/unit/avanzamento-offerte.test.ts"
+  ],
+  "esempio": {
+    "ore": [
+      3,
+      3
+    ],
+    "giornate_corrette": 0.75,
+    "giornate_errate": 0.74,
+    "tariffa": 400,
+    "imponibile_corretto": 300,
+    "imponibile_errato": 296
+  },
+  "gate": {
+    "lint": {
+      "ok": true,
+      "exit_code": 0,
+      "secondi": 6.90952205657959,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/baseline/T4/gate/lint.log"
+    },
+    "unit": {
+      "ok": true,
+      "exit_code": 0,
+      "secondi": 2.1599979400634766,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/baseline/T4/gate/unit.log",
+      "test_passati": 698,
+      "file_passati": 39
+    },
+    "build": {
+      "ok": true,
+      "exit_code": 0,
+      "secondi": 9.851577043533325,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/baseline/T4/gate/build.log"
+    },
+    "e2e": {
+      "ok": true,
+      "exit_code": 0,
+      "secondi": 72.26546382904053,
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/baseline/T4/gate/e2e.log",
+      "test_passati": 184
+    }
+  },
+  "limite": "Manipolazione artificiale; T4 non è codice legacy reale.",
+  "wiki_validate": {
+    "ok": true,
+    "warning_link_interrotti": 24,
+    "nota": "Pagine rimosse intenzionalmente; warning preesistenti alle prove, non errori di precondizione."
+  }
+}

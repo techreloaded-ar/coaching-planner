@@ -1,0 +1,22 @@
+--- T3/integrazione.test.ts precedente
++++ T3/integrazione.test.ts corretto
+@@ -294,7 +294,7 @@
+ 	const amministratori = [amministratore, utenteDi({ utente: await factory.createUtente({ ruolo: "AMMINISTRATORE" }) })];
+ 	let attese = (await dati.validita(entita)).length;
+ 	for (let giro = 0; giro < 6; giro++) {
+-		const decorrenza = giornoDopo(CAPODANNO_PROSSIMO, giro * 30);
++		const decorrenza = giornoDi(meseDopo(CAPODANNO_PROSSIMO.slice(0, 7), giro), 1);
+ 		await Promise.all(
+ 			[0, 1, 2].map((i) =>
+ 				conSessione(amministratori[i % 2], () =>
+@@ -308,8 +308,8 @@
+ 		expect(problemiCatena(v), `giro ${giro}`).toEqual([]);
+ 	}
+ 	// Due decorrenze diverse in contemporanea: possono riuscire entrambe, ma senza sovrapposizioni.
+-	const a = giornoDopo(CAPODANNO_PROSSIMO, 400);
+-	const b = giornoDopo(CAPODANNO_PROSSIMO, 430);
++	const a = `${annoCorrente + 2}-03-01`;
++	const b = `${annoCorrente + 2}-04-01`;
+ 	await Promise.all([
+ 		conSessione(amministratori[0], () => tenta(() => adattatore.pianificaTariffa(entita, { decorrenza: a, tariffa: 901 }))),
+ 		conSessione(amministratori[1], () => tenta(() => adattatore.pianificaTariffa(entita, { decorrenza: b, tariffa: 902 }))),

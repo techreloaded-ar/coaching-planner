@@ -1,0 +1,2040 @@
+diff --git a/docs/PRD.md b/docs/PRD.md
+index b38ccb0..dfb9768 100644
+--- a/docs/PRD.md
++++ b/docs/PRD.md
+@@ -144,6 +144,7 @@ Il doppio consuntivo automatico su un unico inserimento dati: la stessa riga di
+ **Reportistica (Amministratore)**
+ - Report mensile per cliente: importi da fatturare calcolati dalle attività dei collaboratori (giornate × tariffa dell'offerta), inclusi i rimborsi trasferta ribaltati al cliente.
+ - Vista avanzamento offerte: giornate erogate per collaboratore rispetto alle giornate previste, con residuo.
++- Analisi della marginalità per periodo da mese a mese (anticipata dal Post-MVP su conferma del committente): per cliente, con dettaglio per offerta e per collaboratore, ricavi (giornate fatturabili × tariffa offerta, coerenti con il report di fatturazione clienti), costi (tutte le giornate lavorate, comprese quelle non fatturabili, × tariffa collaboratore), margine assoluto e percentuale; rimborsi trasferta esclusi da entrambi i lati perché passanti. Sola lettura.
+ 
+ **Trasversale**
+ - Autenticazione con ruoli (Amministratore / Collaboratore) e segregazione dei dati: ogni collaboratore vede e modifica solo le proprie attività.
+@@ -151,7 +152,7 @@ Il doppio consuntivo automatico su un unico inserimento dati: la stessa riga di
+ 
+ ### Funzionalità di Crescita (Post-MVP)
+ 
+-- **Analisi della marginalità** (decisione presa in riunione: posticipata dopo il rilascio iniziale): confronto per periodo tra ricavi da clienti (tariffe offerte × giornate) e costi dai collaboratori (tariffe collaboratori × giornate), per cliente e per offerta.
++- ~~**Analisi della marginalità**~~ (decisione presa in riunione: posticipata dopo il rilascio iniziale; successivamente il committente ha confermato di volerla subito: ora è nella Reportistica dell'MVP).
+ - Esportazione di report e riepiloghi (Excel/PDF).
+ - Promemoria automatici di compilazione per i collaboratori.
+ - Tariffa collaboratore con override per offerta, se il bisogno emergerà.
+@@ -283,6 +284,7 @@ Sviluppo locale su Windows 11 con Node.js LTS e un'istanza PostgreSQL locale (co
+ 
+ - **RF-16** — Il sistema deve generare un report mensile per cliente con l'importo da fatturare, calcolato dalle giornate lavorate dai collaboratori sulle offerte di quel cliente moltiplicate per la tariffa giornaliera di ciascuna offerta, più i rimborsi trasferta ribaltati al cliente nel mese.
+ - **RF-17** — Il sistema deve offrire una vista di avanzamento per offerta che mostri le giornate erogate (con dettaglio per collaboratore) rispetto alle giornate previste, evidenziando il residuo.
++- **RF-18** — Il sistema deve offrire all'amministratore, in sola lettura, un'analisi della marginalità su un periodo da mese a mese scelto dall'utente, per cliente con dettaglio per offerta e per collaboratore: ricavi = giornate fatturabili × tariffa dell'offerta (coerenti al centesimo con l'imponibile manodopera del report RF-16 sugli stessi mesi); costi = tutte le giornate lavorate, comprese quelle non fatturabili (costo senza ricavo), × tariffa del collaboratore; margine assoluto e percentuale sui ricavi. I rimborsi trasferta sono esclusi da ricavi e costi perché passanti. A differenza di RF-13 (importo dovuto al collaboratore, sole giornate fatturabili), il costo della marginalità valorizza l'intero impegno erogato.
+ 
+ ---
+ 
+diff --git a/src/app/(back-office)/console-sidebar.tsx b/src/app/(back-office)/console-sidebar.tsx
+index 6d36b7a..c2b10d2 100644
+--- a/src/app/(back-office)/console-sidebar.tsx
++++ b/src/app/(back-office)/console-sidebar.tsx
+@@ -44,6 +44,12 @@ const IconReport = (
+   </svg>
+ );
+ 
++const IconMarginalita = (
++  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
++    <path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" />
++  </svg>
++);
++
+ const IconAttivita = (
+   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
+     <path d="M8 3v3M16 3v3M4 10h16M5 6h14a1 1 0 0 1 1 1v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a1 1 0 0 1 1-1Z" />
+@@ -60,6 +66,7 @@ const NAV_ITEMS = [
+   { href: "/anagrafiche/utenti", label: "Utenti", icon: IconUtenti },
+   { href: "/anagrafiche/voci-rimborso", label: "Voci di rimborso", icon: IconVociRimborso },
+   { href: "/report/fatturazione-clienti", label: "Fatturazione clienti", icon: IconReport },
++  { href: "/report/marginalita", label: "Marginalità", icon: IconMarginalita },
+ ] as const;
+ 
+ // ── Props ──────────────────────────────────────────────────────
+diff --git a/src/app/(back-office)/report/marginalita/page.tsx b/src/app/(back-office)/report/marginalita/page.tsx
+new file mode 100644
+index 0000000..ee8eb86
+--- /dev/null
++++ b/src/app/(back-office)/report/marginalita/page.tsx
+@@ -0,0 +1,58 @@
++import { richiediRuolo } from "@/lib/dal";
++import { reportMarginalitaPeriodo } from "@/lib/report";
++import { formattaTokenMese, tokenMeseCorrente } from "@/domain/calendario";
++import ReportMarginalita from "./report-marginalita";
++
++/** Primo valore di un search param che può arrivare ripetuto. */
++function primoValore(valore: string | string[] | undefined): string | undefined {
++  return Array.isArray(valore) ? valore[0] : valore;
++}
++
++export default async function ReportMarginalitaPage({
++  searchParams,
++}: {
++  searchParams: Promise<{ [chiave: string]: string | string[] | undefined }>;
++}) {
++  await richiediRuolo("AMMINISTRATORE");
++
++  const params = await searchParams;
++  const meseCorrente = tokenMeseCorrente();
++  const meseInizioAnno = formattaTokenMese(Number(meseCorrente.slice(0, 4)), 1);
++
++  // Periodo: se manca un estremo vale l'altro, se mancano entrambi il mese corrente
++  const daRichiesto = primoValore(params.da)?.trim() || undefined;
++  const aRichiesto = primoValore(params.a)?.trim() || undefined;
++  const meseDa = daRichiesto ?? aRichiesto ?? meseCorrente;
++  const meseA = aRichiesto ?? daRichiesto ?? meseCorrente;
++
++  // Dati del report — già serializzabili (stringhe e numeri)
++  const risultato = await reportMarginalitaPeriodo(meseDa, meseA);
++
++  return (
++    <div>
++      {/* Intestazione view */}
++      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-4">
++        <div>
++          <div className="mb-1 text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
++            Reportistica
++          </div>
++          <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
++            Analisi della marginalità
++          </h1>
++          <p className="mt-[6px] max-w-[620px] text-[13px] text-zinc-400 dark:text-zinc-500">
++            Ricavi (giornate fatturabili × tariffa dell&apos;offerta) confrontati
++            con il costo dei collaboratori (tutte le giornate lavorate, anche non
++            fatturabili, × tariffa del collaboratore). I rimborsi trasferta sono
++            esclusi da entrambi i lati perché passanti. 1 giornata = 8 ore.
++          </p>
++        </div>
++      </div>
++
++      <ReportMarginalita
++        risultato={risultato}
++        meseCorrente={meseCorrente}
++        meseInizioAnno={meseInizioAnno}
++      />
++    </div>
++  );
++}
+diff --git a/src/app/(back-office)/report/marginalita/report-marginalita.tsx b/src/app/(back-office)/report/marginalita/report-marginalita.tsx
+new file mode 100644
+index 0000000..e2dacd1
+--- /dev/null
++++ b/src/app/(back-office)/report/marginalita/report-marginalita.tsx
+@@ -0,0 +1,463 @@
++import Form from "next/form";
++import Link from "next/link";
++import type { RisultatoReportMarginalita } from "@/lib/report";
++import type {
++  ImportiMarginalita,
++  VoceClienteMarginalita,
++  VoceCollaboratoreMarginalita,
++} from "@/domain/marginalita";
++import { etichettaMese } from "@/domain/calendario";
++import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
++
++// ── Formattatori ────────────────────────────────────────────────
++
++const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
++  minimumFractionDigits: 0,
++  maximumFractionDigits: 2,
++});
++
++const formattatorePercentuale = new Intl.NumberFormat("it-IT", {
++  minimumFractionDigits: 1,
++  maximumFractionDigits: 1,
++});
++
++/** Percentuale di margine sui ricavi; "n.d." quando non ci sono ricavi. */
++function formattaPercentuale(percentuale: string | null): string {
++  return percentuale === null
++    ? "n.d."
++    : `${formattatorePercentuale.format(Number(percentuale))}%`;
++}
++
++/** Colore del margine: rosso se negativo, verde se positivo. */
++function classeMargine(margine: string): string {
++  const valore = Number(margine);
++  if (valore < 0) return "text-red-600 dark:text-red-400";
++  if (valore > 0) return "text-emerald-600 dark:text-emerald-400";
++  return "text-zinc-500 dark:text-zinc-400";
++}
++
++function etichettaPeriodo(meseDa: string, meseA: string): string {
++  return meseDa === meseA
++    ? etichettaMese(meseDa)
++    : `${etichettaMese(meseDa)} – ${etichettaMese(meseA)}`;
++}
++
++// ── Classi condivise ────────────────────────────────────────────
++
++const classeIntestazioneBase =
++  "border-b border-zinc-200 bg-white px-4 py-[10px] text-[10.5px] font-bold uppercase tracking-[0.05em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500";
++const classeIntestazione = `${classeIntestazioneBase} text-right`;
++const classeIntestazionePrima = `${classeIntestazioneBase} text-left`;
++const classeCella =
++  "border-b border-zinc-100 px-4 py-[11px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-700 dark:border-zinc-700/50 dark:text-zinc-200";
++const classeCellaPrima =
++  "border-b border-zinc-100 px-4 py-[11px] text-left align-middle dark:border-zinc-700/50";
++
++// ── Sotto-componenti ────────────────────────────────────────────
++
++/** Intestazioni delle colonne economiche, comuni a tutte le tabelle */
++function IntestazioniImporti() {
++  return (
++    <>
++      <th scope="col" className={classeIntestazione}>
++        Gg fatturabili
++      </th>
++      <th scope="col" className={classeIntestazione}>
++        Gg non fatturabili
++      </th>
++      <th scope="col" className={classeIntestazione}>
++        Ricavi
++      </th>
++      <th scope="col" className={classeIntestazione}>
++        Costi
++      </th>
++      <th scope="col" className={classeIntestazione}>
++        Margine
++      </th>
++      <th scope="col" className={classeIntestazione}>
++        Margine %
++      </th>
++    </>
++  );
++}
++
++/** Celle economiche di una riga di dettaglio */
++function CelleImporti({ importi }: { importi: ImportiMarginalita }) {
++  return (
++    <>
++      <td className={classeCella}>
++        {formattatoreGiornate.format(importi.giornateFatturabili)}
++      </td>
++      <td className={classeCella}>
++        {formattatoreGiornate.format(importi.giornateNonFatturabili)}
++      </td>
++      <td className={classeCella}>{formattaEuro(importi.ricavi)}</td>
++      <td className={classeCella}>{formattaEuro(importi.costi)}</td>
++      <td className={`${classeCella} font-bold ${classeMargine(importi.margine)}`}>
++        {formattaEuro(importi.margine)}
++      </td>
++      <td className={`${classeCella} font-bold ${classeMargine(importi.margine)}`}>
++        {formattaPercentuale(importi.marginePercentuale)}
++      </td>
++    </>
++  );
++}
++
++/** Tabella di dettaglio per collaboratore */
++function TabellaCollaboratori({
++  titolo,
++  collaboratori,
++}: {
++  titolo: string;
++  collaboratori: VoceCollaboratoreMarginalita[];
++}) {
++  return (
++    <div className="overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-zinc-700">
++      <table aria-label={titolo} className="w-full border-collapse text-[13px]">
++        <thead>
++          <tr>
++            <th scope="col" className={classeIntestazionePrima}>
++              Collaboratore
++            </th>
++            <th scope="col" className={classeIntestazione}>
++              Tariffa/gg
++            </th>
++            <IntestazioniImporti />
++          </tr>
++        </thead>
++        <tbody>
++          {collaboratori.map((voce) => (
++            <tr key={voce.collaboratoreId}>
++              <th
++                scope="row"
++                className={`${classeCellaPrima} font-semibold text-zinc-800 dark:text-zinc-100`}
++              >
++                {voce.collaboratoreNome}
++              </th>
++              <td className={classeCella}>
++                {formattaEuro(voce.tariffaCollaboratoreGiornaliera)}
++              </td>
++              <CelleImporti importi={voce} />
++            </tr>
++          ))}
++        </tbody>
++      </table>
++    </div>
++  );
++}
++
++/** Indicatore sintetico (ricavi, costi, margine…) */
++function Indicatore({
++  etichetta,
++  valore,
++  testId,
++  classeValore = "text-zinc-800 dark:text-zinc-100",
++}: {
++  etichetta: string;
++  valore: string;
++  testId: string;
++  classeValore?: string;
++}) {
++  return (
++    <div className="min-w-[130px]">
++      <div className="mb-[3px] text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
++        {etichetta}
++      </div>
++      <div
++        data-testid={testId}
++        className={`text-[18px] font-extrabold -tracking-[0.02em] tabular-nums ${classeValore}`}
++      >
++        {valore}
++      </div>
++    </div>
++  );
++}
++
++/** Scheda di un cliente: indicatori, dettaglio per offerta e per collaboratore */
++function SchedaCliente({ cliente }: { cliente: VoceClienteMarginalita }) {
++  const prefissoTestId = `marginalita-cliente-${cliente.clienteId}`;
++
++  return (
++    <section
++      aria-label={`Marginalità ${cliente.clienteRagioneSociale}`}
++      data-testid={prefissoTestId}
++      className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
++    >
++      {/* Intestazione: ragione sociale e indicatori del cliente */}
++      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/60">
++        <div className="flex min-w-0 items-center gap-[13px]">
++          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-indigo-50 text-[14px] font-extrabold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
++            {inizialiCliente(cliente.clienteRagioneSociale)}
++          </div>
++          <div className="min-w-0 leading-[1.3]">
++            <h2 className="text-[16px] font-bold -tracking-[0.01em] text-zinc-800 dark:text-zinc-100">
++              {cliente.clienteRagioneSociale}
++            </h2>
++            <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">
++              {formattatoreGiornate.format(cliente.giornateFatturabili)} gg
++              fatturabili ·{" "}
++              {formattatoreGiornate.format(cliente.giornateNonFatturabili)} gg
++              non fatturabili
++            </span>
++          </div>
++        </div>
++        <div className="flex flex-wrap items-end gap-5 text-right">
++          <Indicatore
++            etichetta="Ricavi"
++            valore={formattaEuro(cliente.ricavi)}
++            testId={`${prefissoTestId}-ricavi`}
++          />
++          <Indicatore
++            etichetta="Costi"
++            valore={formattaEuro(cliente.costi)}
++            testId={`${prefissoTestId}-costi`}
++          />
++          <Indicatore
++            etichetta="Margine"
++            valore={formattaEuro(cliente.margine)}
++            testId={`${prefissoTestId}-margine`}
++            classeValore={classeMargine(cliente.margine)}
++          />
++          <Indicatore
++            etichetta="Margine %"
++            valore={formattaPercentuale(cliente.marginePercentuale)}
++            testId={`${prefissoTestId}-percentuale`}
++            classeValore={classeMargine(cliente.margine)}
++          />
++        </div>
++      </div>
++
++      {/* Dettaglio per offerta */}
++      <div className="overflow-x-auto">
++        <table
++          aria-label={`Offerte ${cliente.clienteRagioneSociale}`}
++          className="w-full border-collapse text-[13.5px]"
++        >
++          <thead>
++            <tr>
++              <th scope="col" className={classeIntestazionePrima}>
++                Offerta
++              </th>
++              <th scope="col" className={classeIntestazione}>
++                Tariffa/gg
++              </th>
++              <IntestazioniImporti />
++            </tr>
++          </thead>
++          <tbody>
++            {cliente.perOfferta.map((offerta) => (
++              <tr key={offerta.offertaId}>
++                <th scope="row" className={`${classeCellaPrima} font-normal`}>
++                  <div className="flex min-w-0 flex-col gap-1">
++                    <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
++                      {offerta.offertaCodice}
++                    </span>
++                    <span className="text-[12.5px] leading-snug text-zinc-500 dark:text-zinc-400">
++                      {offerta.offertaDescrizione}
++                    </span>
++                  </div>
++                </th>
++                <td className={classeCella}>
++                  {formattaEuro(offerta.tariffaOffertaGiornaliera)}
++                </td>
++                <CelleImporti importi={offerta} />
++              </tr>
++            ))}
++          </tbody>
++        </table>
++      </div>
++
++      {/* Dettaglio per collaboratore: complessivo sul cliente e per offerta.
++          `<details>` nativo: espandibile senza JavaScript né stato client. */}
++      <details className="group border-t border-zinc-200 bg-zinc-50/60 dark:border-zinc-700 dark:bg-zinc-800/40">
++        <summary className="flex cursor-pointer items-center gap-2 px-5 py-3 text-[12px] font-bold uppercase tracking-[0.05em] text-zinc-500 select-none dark:text-zinc-400">
++          <svg
++            aria-hidden="true"
++            viewBox="0 0 24 24"
++            fill="none"
++            stroke="currentColor"
++            strokeWidth={2.2}
++            className="h-4 w-4 transition-transform group-open:rotate-90"
++          >
++            <path d="m9 6 6 6-6 6" />
++          </svg>
++          Dettaglio collaboratori {cliente.clienteRagioneSociale}
++        </summary>
++        <div className="flex flex-col gap-5 px-5 pb-5">
++          <div>
++            <h3 className="mb-2 text-[12.5px] font-semibold text-zinc-600 dark:text-zinc-300">
++              Tutte le offerte del cliente
++            </h3>
++            <TabellaCollaboratori
++              titolo={`Collaboratori ${cliente.clienteRagioneSociale}`}
++              collaboratori={cliente.perCollaboratore}
++            />
++          </div>
++          {cliente.perOfferta.map((offerta) => (
++            <div key={offerta.offertaId}>
++              <h3 className="mb-2 text-[12.5px] font-semibold text-zinc-600 dark:text-zinc-300">
++                Offerta {offerta.offertaCodice} — {offerta.offertaDescrizione}
++              </h3>
++              <TabellaCollaboratori
++                titolo={`Collaboratori offerta ${offerta.offertaCodice}`}
++                collaboratori={offerta.perCollaboratore}
++              />
++            </div>
++          ))}
++        </div>
++      </details>
++
++      {/* Rimborsi trasferta esclusi dal margine, per riconciliazione */}
++      <div className="flex items-center justify-between gap-[14px] border-t border-zinc-200 bg-white px-5 py-3 dark:border-zinc-700 dark:bg-zinc-800">
++        <div className="text-[13px] font-semibold text-zinc-500 dark:text-zinc-400">
++          Rimborsi trasferta esclusi dal margine (passanti)
++        </div>
++        <span
++          data-testid={`${prefissoTestId}-rimborsi-esclusi`}
++          className="text-[14px] font-bold tabular-nums text-zinc-600 dark:text-zinc-300"
++        >
++          {formattaEuro(cliente.rimborsiTrasfertaEsclusi)}
++        </span>
++      </div>
++    </section>
++  );
++}
++
++// ── Componente ──────────────────────────────────────────────────
++
++interface ReportMarginalitaProps {
++  risultato: RisultatoReportMarginalita;
++  meseCorrente: string;
++  meseInizioAnno: string;
++}
++
++export default function ReportMarginalita({
++  risultato,
++  meseCorrente,
++  meseInizioAnno,
++}: ReportMarginalitaProps) {
++  const { meseDa, meseA, errore, perCliente, totali } = risultato;
++  const vuoto = perCliente.length === 0;
++  const periodo = etichettaPeriodo(meseDa, meseA);
++  const classeScorciatoia =
++    "inline-flex items-center rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200";
++  const classeCampo =
++    "rounded-[10px] border border-zinc-200 bg-white px-3 py-[7px] text-[13.5px] text-zinc-800 shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
++
++  return (
++    <div>
++      {/* ── Selezione del periodo (GET: il periodo vive nell'URL) ── */}
++      <Form
++        action="/report/marginalita"
++        aria-label="Periodo di analisi"
++        className="mb-6 flex flex-wrap items-end gap-4 rounded-[11px] border border-zinc-200 bg-white px-5 py-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
++      >
++        <label className="flex flex-col gap-1 text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">
++          Dal mese
++          <input
++            type="month"
++            name="da"
++            defaultValue={meseDa}
++            required
++            pattern="\d{4}-\d{2}"
++            placeholder="AAAA-MM"
++            className={classeCampo}
++          />
++        </label>
++        <label className="flex flex-col gap-1 text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">
++          Al mese
++          <input
++            type="month"
++            name="a"
++            defaultValue={meseA}
++            required
++            pattern="\d{4}-\d{2}"
++            placeholder="AAAA-MM"
++            className={classeCampo}
++          />
++        </label>
++        <button
++          type="submit"
++          className="inline-flex cursor-pointer items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[8px] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
++        >
++          Aggiorna analisi
++        </button>
++        <div className="flex flex-wrap items-center gap-2">
++          <Link
++            href={`/report/marginalita?da=${meseCorrente}&a=${meseCorrente}`}
++            className={classeScorciatoia}
++          >
++            Mese corrente
++          </Link>
++          <Link
++            href={`/report/marginalita?da=${meseInizioAnno}&a=${meseCorrente}`}
++            className={classeScorciatoia}
++          >
++            Da inizio anno
++          </Link>
++        </div>
++      </Form>
++
++      {errore ? (
++        <div
++          role="alert"
++          className="rounded-[11px] border border-red-200 bg-red-50 px-5 py-4 text-[13.5px] font-semibold text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
++        >
++          {errore}
++        </div>
++      ) : vuoto ? (
++        /* ── Stato vuoto ── */
++        <div className="rounded-[11px] border border-zinc-200 bg-white px-6 py-14 text-center shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
++          <h2 className="mb-[7px] text-[16px] font-bold text-zinc-800 dark:text-zinc-100">
++            Nessuna attività nel periodo selezionato
++          </h2>
++          <p className="mx-auto max-w-[420px] text-[13px] leading-relaxed text-zinc-400 dark:text-zinc-500">
++            Non risultano ore registrate dai collaboratori in {periodo}. Scegli
++            un periodo diverso.
++          </p>
++        </div>
++      ) : (
++        <>
++          <div className="flex flex-col gap-[18px]">
++            {perCliente.map((cliente) => (
++              <SchedaCliente key={cliente.clienteId} cliente={cliente} />
++            ))}
++          </div>
++
++          {/* ── Totale complessivo del periodo ── */}
++          <section
++            aria-label="Totale del periodo"
++            className="mt-[22px] overflow-hidden rounded-[11px] border border-indigo-700 bg-gradient-to-br from-indigo-500 to-indigo-700 px-6 py-[22px] text-white shadow-lg"
++          >
++            <h2 className="mb-4 text-[11.5px] font-bold uppercase tracking-[0.06em] text-white/80">
++              Totale del periodo — <span className="capitalize">{periodo}</span>
++            </h2>
++            <div className="flex flex-wrap items-end gap-x-[26px] gap-y-4">
++              {(
++                [
++                  ["Ricavi", formattaEuro(totali.ricavi), "marginalita-totale-ricavi"],
++                  ["Costi collaboratori", formattaEuro(totali.costi), "marginalita-totale-costi"],
++                  ["Margine", formattaEuro(totali.margine), "marginalita-totale-margine"],
++                  ["Margine %", formattaPercentuale(totali.marginePercentuale), "marginalita-totale-percentuale"],
++                  ["Rimborsi esclusi", formattaEuro(totali.rimborsiTrasfertaEsclusi), "marginalita-totale-rimborsi-esclusi"],
++                ] as const
++              ).map(([etichetta, valore, testId]) => (
++                <div key={testId}>
++                  <div className="mb-[5px] text-[11.5px] font-semibold text-white/80">
++                    {etichetta}
++                  </div>
++                  <div
++                    data-testid={testId}
++                    className="text-[19px] font-bold -tracking-[0.02em] tabular-nums"
++                  >
++                    {valore}
++                  </div>
++                </div>
++              ))}
++            </div>
++          </section>
++        </>
++      )}
++    </div>
++  );
++}
+diff --git a/src/domain/marginalita/index.ts b/src/domain/marginalita/index.ts
+new file mode 100644
+index 0000000..d71b8cb
+--- /dev/null
++++ b/src/domain/marginalita/index.ts
+@@ -0,0 +1,464 @@
++// Modulo di dominio Marginalità — funzioni pure per l'analisi di ricavi,
++// costi e margine su un periodo da mese a mese.
++//
++// Regole del committente:
++// - ricavi = giornate FATTURABILI × tariffa dell'offerta, calcolati mese per
++//   mese con lo stesso algoritmo del report Fatturazione Clienti, così che i
++//   ricavi di un cliente coincidano al centesimo con la somma degli imponibili
++//   manodopera mostrati da quel report per i mesi del periodo;
++// - costi = giornate LAVORATE (fatturabili e non fatturabili) × tariffa del
++//   collaboratore: una riga non fatturabile è costo senza ricavo;
++// - rimborsi trasferta esclusi da ricavi e costi perché passanti: sono esposti
++//   solo come informazione di riconciliazione col report Fatturazione Clienti;
++// - 1 giornata = 8 ore (ORE_PER_GIORNATA).
++//
++// Nessuna dipendenza da framework o Prisma.
++
++import { ORE_PER_GIORNATA } from "../types";
++import { parseTokenMese } from "../calendario";
++import {
++  calcolaReportFatturazioneClienti,
++  type RigaReportFatturazione,
++} from "../consuntivi";
++
++// ── Tipi di input ───────────────────────────────────────────────
++
++/**
++ * Riga elementare di attività per l'analisi della marginalità.
++ * Estende la riga del report fatturazione con il mese di competenza e la
++ * tariffa giornaliera del collaboratore (costo per la società).
++ */
++export interface RigaMarginalita extends RigaReportFatturazione {
++  /** Token YYYY-MM del mese di competenza della riga */
++  mese: string;
++  /** Tariffa giornaliera del collaboratore (serializzabile come stringa o numero) */
++  tariffaCollaboratoreGiornaliera: string | number;
++}
++
++// ── Tipi di output ──────────────────────────────────────────────
++
++/** Grandezze economiche comuni a ogni livello di aggregazione */
++export interface ImportiMarginalita {
++  /** Giornate fatturabili (ore fatturabili / 8) che generano ricavo */
++  giornateFatturabili: number;
++  /** Giornate non fatturabili (ore non fatturabili / 8): costo senza ricavo */
++  giornateNonFatturabili: number;
++  /** Ricavi: giornate fatturabili × tariffa offerta, a due decimali */
++  ricavi: string;
++  /** Costi: tutte le giornate lavorate × tariffa collaboratore, a due decimali */
++  costi: string;
++  /** Margine assoluto: ricavi − costi, a due decimali */
++  margine: string;
++  /**
++   * Margine percentuale sui ricavi (margine / ricavi × 100) a un decimale;
++   * `null` quando i ricavi sono zero e la percentuale non è definita.
++   */
++  marginePercentuale: string | null;
++}
++
++/** Dettaglio di un collaboratore (su una offerta o sull'intero cliente) */
++export interface VoceCollaboratoreMarginalita extends ImportiMarginalita {
++  collaboratoreId: string;
++  collaboratoreNome: string;
++  /** Tariffa giornaliera del collaboratore usata per i costi */
++  tariffaCollaboratoreGiornaliera: string;
++}
++
++/** Dettaglio di una offerta del cliente */
++export interface VoceOffertaMarginalita extends ImportiMarginalita {
++  offertaId: string;
++  offertaCodice: string;
++  offertaDescrizione: string;
++  /** Tariffa giornaliera dell'offerta usata per i ricavi */
++  tariffaOffertaGiornaliera: string;
++  perCollaboratore: VoceCollaboratoreMarginalita[];
++}
++
++/** Voce di analisi aggregata per cliente */
++export interface VoceClienteMarginalita extends ImportiMarginalita {
++  clienteId: string;
++  clienteRagioneSociale: string;
++  perOfferta: VoceOffertaMarginalita[];
++  /** Collaboratori che hanno lavorato per il cliente, aggregati su tutte le offerte */
++  perCollaboratore: VoceCollaboratoreMarginalita[];
++  /** Rimborsi trasferta del cliente nel periodo, esclusi dal margine (passanti) */
++  rimborsiTrasfertaEsclusi: string;
++}
++
++/** Analisi della marginalità complessiva del periodo */
++export interface ReportMarginalita {
++  perCliente: VoceClienteMarginalita[];
++  totali: ImportiMarginalita & { rimborsiTrasfertaEsclusi: string };
++}
++
++/** Periodo dell'analisi, estremi inclusi */
++export interface PeriodoMarginalita {
++  /** Token YYYY-MM del primo mese */
++  meseDa: string;
++  /** Token YYYY-MM dell'ultimo mese */
++  meseA: string;
++}
++
++/** Esito della validazione del periodo richiesto */
++export type EsitoValidazionePeriodo =
++  | { valido: true; periodo: PeriodoMarginalita }
++  | { valido: false; errore: string };
++
++// ── Validazione periodo ─────────────────────────────────────────
++
++/**
++ * Valida il periodo "da mese a mese" richiesto dall'amministratore.
++ *
++ * Regole:
++ * - entrambi gli estremi devono essere token YYYY-MM validi;
++ * - il mese iniziale non può essere successivo al mese finale;
++ * - un periodo di un solo mese (da = a) è ammesso.
++ */
++export function validaPeriodoMarginalita(
++  meseDa: string,
++  meseA: string,
++): EsitoValidazionePeriodo {
++  if (!parseTokenMese(meseDa)) {
++    return {
++      valido: false,
++      errore: "Il mese iniziale non è valido: usa il formato AAAA-MM.",
++    };
++  }
++  if (!parseTokenMese(meseA)) {
++    return {
++      valido: false,
++      errore: "Il mese finale non è valido: usa il formato AAAA-MM.",
++    };
++  }
++  // I token YYYY-MM sono confrontabili lessicograficamente.
++  if (meseDa > meseA) {
++    return {
++      valido: false,
++      errore: "Il mese iniziale non può essere successivo al mese finale.",
++    };
++  }
++  return { valido: true, periodo: { meseDa, meseA } };
++}
++
++// ── Aritmetica in centesimi ─────────────────────────────────────
++
++/** Converte un importo a due decimali (stringa o numero) in centesimi interi */
++function inCentesimi(importo: string | number): number {
++  const valore = Number(importo);
++  return Number.isFinite(valore) ? Math.round(valore * 100) : 0;
++}
++
++/** Converte ore (Decimal(4,2)) in centesimi di ora interi, per somme esatte */
++function inCentesimiDiOra(ore: number): number {
++  return Number.isFinite(ore) ? Math.round(ore * 100) : 0;
++}
++
++function formattaCentesimi(centesimi: number): string {
++  return (centesimi / 100).toFixed(2);
++}
++
++function giornateDaCentesimiDiOra(centesimiDiOra: number): number {
++  return centesimiDiOra / 100 / ORE_PER_GIORNATA;
++}
++
++/**
++ * Costo in centesimi di un monte ore a una tariffa giornaliera:
++ * ore / 8 × tariffa = (centesimiDiOra × centesimiTariffa) / (100 × 8) centesimi.
++ * Il prodotto è intero e resta ben sotto 2^53: l'unico arrotondamento è finale.
++ */
++function costoInCentesimi(centesimiDiOra: number, centesimiTariffa: number): number {
++  return Math.round(
++    (centesimiDiOra * centesimiTariffa) / (100 * ORE_PER_GIORNATA),
++  );
++}
++
++// ── Accumulatori ────────────────────────────────────────────────
++
++interface Accumulatore {
++  centesimiDiOraFatturabili: number;
++  centesimiDiOraNonFatturabili: number;
++  ricaviCentesimi: number;
++  costiCentesimi: number;
++}
++
++function nuovoAccumulatore(): Accumulatore {
++  return {
++    centesimiDiOraFatturabili: 0,
++    centesimiDiOraNonFatturabili: 0,
++    ricaviCentesimi: 0,
++    costiCentesimi: 0,
++  };
++}
++
++function sommaIn(destinazione: Accumulatore, sorgente: Accumulatore): void {
++  destinazione.centesimiDiOraFatturabili += sorgente.centesimiDiOraFatturabili;
++  destinazione.centesimiDiOraNonFatturabili +=
++    sorgente.centesimiDiOraNonFatturabili;
++  destinazione.ricaviCentesimi += sorgente.ricaviCentesimi;
++  destinazione.costiCentesimi += sorgente.costiCentesimi;
++}
++
++function importiDa(accumulatore: Accumulatore): ImportiMarginalita {
++  const margineCentesimi =
++    accumulatore.ricaviCentesimi - accumulatore.costiCentesimi;
++  return {
++    giornateFatturabili: giornateDaCentesimiDiOra(
++      accumulatore.centesimiDiOraFatturabili,
++    ),
++    giornateNonFatturabili: giornateDaCentesimiDiOra(
++      accumulatore.centesimiDiOraNonFatturabili,
++    ),
++    ricavi: formattaCentesimi(accumulatore.ricaviCentesimi),
++    costi: formattaCentesimi(accumulatore.costiCentesimi),
++    margine: formattaCentesimi(margineCentesimi),
++    marginePercentuale:
++      accumulatore.ricaviCentesimi === 0
++        ? null
++        : ((margineCentesimi / accumulatore.ricaviCentesimi) * 100).toFixed(1),
++  };
++}
++
++interface FogliaCollaboratore extends Accumulatore {
++  collaboratoreId: string;
++  collaboratoreNome: string;
++  centesimiTariffaCollaboratore: number;
++}
++
++interface NodoOfferta {
++  offertaId: string;
++  offertaCodice: string;
++  offertaDescrizione: string;
++  centesimiTariffaOfferta: number;
++  collaboratori: Map<string, FogliaCollaboratore>;
++}
++
++interface NodoCliente {
++  clienteId: string;
++  clienteRagioneSociale: string;
++  offerte: Map<string, NodoOfferta>;
++  rimborsiCentesimi: number;
++}
++
++function confrontaCollaboratori(
++  a: VoceCollaboratoreMarginalita,
++  b: VoceCollaboratoreMarginalita,
++): number {
++  return a.collaboratoreNome.localeCompare(b.collaboratoreNome);
++}
++
++function voceCollaboratore(
++  foglia: FogliaCollaboratore,
++): VoceCollaboratoreMarginalita {
++  return {
++    collaboratoreId: foglia.collaboratoreId,
++    collaboratoreNome: foglia.collaboratoreNome,
++    tariffaCollaboratoreGiornaliera: formattaCentesimi(
++      foglia.centesimiTariffaCollaboratore,
++    ),
++    ...importiDa(foglia),
++  };
++}
++
++// ── Calcolo principale ──────────────────────────────────────────
++
++/**
++ * Calcola l'analisi della marginalità per cliente, con dettaglio per offerta
++ * e per collaboratore, a partire dalle righe attività del periodo.
++ *
++ * Ricavi: per ogni mese viene invocato `calcolaReportFatturazioneClienti` e si
++ * sommano, in centesimi, gli imponibili allocati per collaboratore. Poiché il
++ * report fatturazione ancora quell'allocazione all'imponibile manodopera del
++ * cliente, i ricavi di ogni cliente coincidono esattamente con la somma degli
++ * imponibili manodopera mensili del report Fatturazione Clienti; offerte e
++ * collaboratori sommano esattamente al totale del cliente.
++ *
++ * Costi: per ogni coppia (offerta, collaboratore) le ore lavorate del periodo,
++ * fatturabili e non, sono valorizzate alla tariffa del collaboratore e
++ * arrotondate al centesimo una sola volta; i livelli superiori sommano i
++ * centesimi delle foglie, quindi i totali quadrano per costruzione.
++ *
++ * Ordinamento: clienti per ragione sociale, offerte per codice, collaboratori
++ * per nome. Clienti senza ore lavorate nel periodo sono omessi (i loro
++ * eventuali rimborsi restano nel totale dei rimborsi esclusi).
++ */
++export function calcolaReportMarginalita(
++  righe: RigaMarginalita[],
++): ReportMarginalita {
++  const clienti = new Map<string, NodoCliente>();
++  const righePerMese = new Map<string, RigaMarginalita[]>();
++  let rimborsiTotaliCentesimi = 0;
++
++  // 1. Struttura cliente → offerta → collaboratore, ore e rimborsi
++  for (const riga of righe) {
++    let cliente = clienti.get(riga.clienteId);
++    if (!cliente) {
++      cliente = {
++        clienteId: riga.clienteId,
++        clienteRagioneSociale: riga.clienteRagioneSociale,
++        offerte: new Map(),
++        rimborsiCentesimi: 0,
++      };
++      clienti.set(riga.clienteId, cliente);
++    }
++
++    let offerta = cliente.offerte.get(riga.offertaId);
++    if (!offerta) {
++      offerta = {
++        offertaId: riga.offertaId,
++        offertaCodice: riga.offertaCodice,
++        offertaDescrizione: riga.offertaDescrizione,
++        centesimiTariffaOfferta: inCentesimi(riga.tariffaOffertaGiornaliera),
++        collaboratori: new Map(),
++      };
++      cliente.offerte.set(riga.offertaId, offerta);
++    }
++
++    let foglia = offerta.collaboratori.get(riga.collaboratoreId);
++    if (!foglia) {
++      foglia = {
++        collaboratoreId: riga.collaboratoreId,
++        collaboratoreNome: riga.collaboratoreNome,
++        centesimiTariffaCollaboratore: inCentesimi(
++          riga.tariffaCollaboratoreGiornaliera,
++        ),
++        ...nuovoAccumulatore(),
++      };
++      offerta.collaboratori.set(riga.collaboratoreId, foglia);
++    }
++
++    const centesimiDiOra = inCentesimiDiOra(riga.ore);
++    if (riga.fatturabile) {
++      foglia.centesimiDiOraFatturabili += centesimiDiOra;
++    } else {
++      foglia.centesimiDiOraNonFatturabili += centesimiDiOra;
++    }
++
++    if (riga.rimborsoTrasfertaImporto != null) {
++      const rimborso = inCentesimi(riga.rimborsoTrasfertaImporto);
++      cliente.rimborsiCentesimi += rimborso;
++      rimborsiTotaliCentesimi += rimborso;
++    }
++
++    const righeMese = righePerMese.get(riga.mese);
++    if (righeMese) {
++      righeMese.push(riga);
++    } else {
++      righePerMese.set(riga.mese, [riga]);
++    }
++  }
++
++  // 2. Ricavi: stesso calcolo del report Fatturazione Clienti, mese per mese
++  for (const righeMese of righePerMese.values()) {
++    const reportMese = calcolaReportFatturazioneClienti(righeMese);
++    for (const voceCliente of reportMese.perCliente) {
++      const cliente = clienti.get(voceCliente.clienteId);
++      for (const voceOfferta of voceCliente.perOfferta) {
++        const offerta = cliente?.offerte.get(voceOfferta.offertaId);
++        for (const voceCollaboratore of voceOfferta.perCollaboratore) {
++          const foglia = offerta?.collaboratori.get(
++            voceCollaboratore.collaboratoreId,
++          );
++          if (foglia) {
++            foglia.ricaviCentesimi += inCentesimi(voceCollaboratore.imponibile);
++          }
++        }
++      }
++    }
++  }
++
++  // 3. Costi sulle foglie e aggregazione verso l'alto
++  const totali = nuovoAccumulatore();
++  const perCliente: VoceClienteMarginalita[] = [];
++
++  for (const cliente of clienti.values()) {
++    const accumulatoreCliente = nuovoAccumulatore();
++    const collaboratoriCliente = new Map<string, FogliaCollaboratore>();
++    const perOfferta: VoceOffertaMarginalita[] = [];
++
++    for (const offerta of cliente.offerte.values()) {
++      const accumulatoreOfferta = nuovoAccumulatore();
++      const perCollaboratore: VoceCollaboratoreMarginalita[] = [];
++
++      for (const foglia of offerta.collaboratori.values()) {
++        foglia.costiCentesimi = costoInCentesimi(
++          foglia.centesimiDiOraFatturabili + foglia.centesimiDiOraNonFatturabili,
++          foglia.centesimiTariffaCollaboratore,
++        );
++        sommaIn(accumulatoreOfferta, foglia);
++
++        let fogliaCliente = collaboratoriCliente.get(foglia.collaboratoreId);
++        if (!fogliaCliente) {
++          fogliaCliente = {
++            collaboratoreId: foglia.collaboratoreId,
++            collaboratoreNome: foglia.collaboratoreNome,
++            centesimiTariffaCollaboratore: foglia.centesimiTariffaCollaboratore,
++            ...nuovoAccumulatore(),
++          };
++          collaboratoriCliente.set(foglia.collaboratoreId, fogliaCliente);
++        }
++        sommaIn(fogliaCliente, foglia);
++
++        perCollaboratore.push(voceCollaboratore(foglia));
++      }
++
++      const oreOfferta =
++        accumulatoreOfferta.centesimiDiOraFatturabili +
++        accumulatoreOfferta.centesimiDiOraNonFatturabili;
++      if (oreOfferta === 0) {
++        continue;
++      }
++
++      sommaIn(accumulatoreCliente, accumulatoreOfferta);
++      perOfferta.push({
++        offertaId: offerta.offertaId,
++        offertaCodice: offerta.offertaCodice,
++        offertaDescrizione: offerta.offertaDescrizione,
++        tariffaOffertaGiornaliera: formattaCentesimi(
++          offerta.centesimiTariffaOfferta,
++        ),
++        ...importiDa(accumulatoreOfferta),
++        perCollaboratore: perCollaboratore
++          .filter(
++            (voce) =>
++              voce.giornateFatturabili + voce.giornateNonFatturabili > 0,
++          )
++          .sort(confrontaCollaboratori),
++      });
++    }
++
++    if (perOfferta.length === 0) {
++      continue;
++    }
++
++    sommaIn(totali, accumulatoreCliente);
++    perOfferta.sort((a, b) => a.offertaCodice.localeCompare(b.offertaCodice));
++    perCliente.push({
++      clienteId: cliente.clienteId,
++      clienteRagioneSociale: cliente.clienteRagioneSociale,
++      ...importiDa(accumulatoreCliente),
++      perOfferta,
++      perCollaboratore: Array.from(collaboratoriCliente.values())
++        .filter(
++          (foglia) =>
++            foglia.centesimiDiOraFatturabili +
++              foglia.centesimiDiOraNonFatturabili >
++            0,
++        )
++        .map(voceCollaboratore)
++        .sort(confrontaCollaboratori),
++      rimborsiTrasfertaEsclusi: formattaCentesimi(cliente.rimborsiCentesimi),
++    });
++  }
++
++  perCliente.sort((a, b) =>
++    a.clienteRagioneSociale.localeCompare(b.clienteRagioneSociale),
++  );
++
++  return {
++    perCliente,
++    totali: {
++      ...importiDa(totali),
++      rimborsiTrasfertaEsclusi: formattaCentesimi(rimborsiTotaliCentesimi),
++    },
++  };
++}
+diff --git a/src/lib/report.ts b/src/lib/report.ts
+index e72da90..9c44ad7 100644
+--- a/src/lib/report.ts
++++ b/src/lib/report.ts
+@@ -14,6 +14,12 @@ import {
+   type RigaReportFatturazione,
+   type ReportFatturazioneClienti,
+ } from "@/domain/consuntivi";
++import {
++  calcolaReportMarginalita,
++  validaPeriodoMarginalita,
++  type ReportMarginalita,
++  type RigaMarginalita,
++} from "@/domain/marginalita";
+ 
+ // ── Tipi ────────────────────────────────────────────────────────
+ 
+@@ -108,3 +114,107 @@ export async function reportFatturazioneClientiMese(
+ 
+   return { token, ...report };
+ }
++
++// ── Analisi della marginalità ───────────────────────────────────
++
++/**
++ * Risultato serializzabile dell'analisi della marginalità su un periodo.
++ * In caso di periodo non valido `errore` è valorizzato e il report è vuoto.
++ */
++export interface RisultatoReportMarginalita extends ReportMarginalita {
++  /** Token YYYY-MM del primo mese del periodo, come richiesto */
++  meseDa: string;
++  /** Token YYYY-MM dell'ultimo mese del periodo, come richiesto */
++  meseA: string;
++  /** Messaggio di validazione del periodo, `null` se il periodo è valido */
++  errore: string | null;
++}
++
++function reportMarginalitaVuoto(): ReportMarginalita {
++  return {
++    perCliente: [],
++    totali: {
++      giornateFatturabili: 0,
++      giornateNonFatturabili: 0,
++      ricavi: "0.00",
++      costi: "0.00",
++      margine: "0.00",
++      marginePercentuale: null,
++      rimborsiTrasfertaEsclusi: "0.00",
++    },
++  };
++}
++
++/**
++ * Calcola l'analisi della marginalità (ricavi, costi dei collaboratori e
++ * margine) per cliente, offerta e collaboratore su un periodo da mese a mese,
++ * estremi inclusi, aggregando le righe attività di TUTTI i collaboratori.
++ *
++ * Accesso riservato all'amministratore (`richiediRuoloApi("AMMINISTRATORE")`).
++ * Sola lettura: nessuna scrittura sul database.
++ *
++ * L'intervallo di date di ogni mese segue la stessa convenzione di
++ * `reportFatturazioneClientiMese`, e il mese di competenza di ogni riga è
++ * derivato dalla sua data: i ricavi per cliente coincidono quindi con la somma
++ * degli imponibili manodopera del report Fatturazione Clienti sugli stessi mesi.
++ *
++ * @param meseDa - Token YYYY-MM del primo mese
++ * @param meseA - Token YYYY-MM dell'ultimo mese
++ */
++export async function reportMarginalitaPeriodo(
++  meseDa: string,
++  meseA: string,
++): Promise<RisultatoReportMarginalita> {
++  await richiediRuoloApi("AMMINISTRATORE");
++
++  const esito = validaPeriodoMarginalita(meseDa, meseA);
++  if (!esito.valido) {
++    return { meseDa, meseA, errore: esito.errore, ...reportMarginalitaVuoto() };
++  }
++
++  const da = parseTokenMese(esito.periodo.meseDa)!;
++  const a = parseTokenMese(esito.periodo.meseA)!;
++  const inizio = new Date(da.anno, da.mese - 1, 1);
++  const fine = new Date(a.anno, a.mese, 0); // ultimo giorno del mese finale
++
++  const righe = await db.rigaAttivita.findMany({
++    where: {
++      data: {
++        gte: inizio,
++        lte: fine,
++      },
++    },
++    include: {
++      offerta: true,
++      cliente: true,
++      collaboratore: {
++        select: { nome: true, cognome: true, tariffaGiornaliera: true },
++      },
++    },
++    orderBy: { data: "asc" },
++  });
++
++  const righeMappate: RigaMarginalita[] = righe.map((riga) => ({
++    mese: riga.data.toISOString().slice(0, 7),
++    clienteId: riga.clienteId,
++    clienteRagioneSociale: riga.cliente.ragioneSociale,
++    offertaId: riga.offertaId,
++    offertaCodice: riga.offerta.codice,
++    offertaDescrizione: riga.offerta.descrizione,
++    tariffaOffertaGiornaliera: riga.offerta.tariffaGiornaliera.toString(),
++    collaboratoreId: riga.collaboratoreId,
++    collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
++    tariffaCollaboratoreGiornaliera:
++      riga.collaboratore.tariffaGiornaliera.toString(),
++    ore: Number(riga.ore),
++    fatturabile: riga.fatturabile,
++    rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
++  }));
++
++  return {
++    meseDa,
++    meseA,
++    errore: null,
++    ...calcolaReportMarginalita(righeMappate),
++  };
++}
+diff --git a/tests/e2e/report-marginalita.spec.ts b/tests/e2e/report-marginalita.spec.ts
+new file mode 100644
+index 0000000..806970c
+--- /dev/null
++++ b/tests/e2e/report-marginalita.spec.ts
+@@ -0,0 +1,363 @@
++import type { Page } from "@playwright/test";
++
++import { accediAlBackOfficeComeAdmin, accediComeAdmin, accediComeCollaboratore } from "./support/auth";
++import { dataNelMesePassatoRiservato, mesePassatoRiservato } from "./support/date";
++import { test, expect, type E2eDataFactory } from "./support/fixtures";
++
++/**
++ * Test e2e — Analisi della marginalità per periodo (sola lettura, solo amministratore).
++ *
++ * Il dataset è creato dalla factory su mesi passati riservati: le asserzioni
++ * riguardano solo cliente, offerte e collaboratori del test, mai i totali
++ * globali del periodo, quindi righe estranee negli stessi mesi non interferiscono.
++ */
++
++const CODICE_SPEC_MARGINALITA = "MARGINALITA-REPORT-PERIODO";
++
++const formattatoreEuro = new Intl.NumberFormat("it-IT", {
++	style: "currency",
++	currency: "EUR",
++});
++
++const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
++	minimumFractionDigits: 0,
++	maximumFractionDigits: 2,
++});
++
++const formattatorePercentuale = new Intl.NumberFormat("it-IT", {
++	minimumFractionDigits: 1,
++	maximumFractionDigits: 1,
++});
++
++function euro(valore: number): string {
++	return formattatoreEuro.format(valore);
++}
++
++function giornate(valore: number): string {
++	return formattatoreGiornate.format(valore);
++}
++
++function percentuale(valore: number): string {
++	return `${formattatorePercentuale.format(valore)}%`;
++}
++
++/** Converte un importo formattato it-IT ("1.175,00 €") in centesimi interi. */
++function centesimiDaEuro(testo: string): number {
++	const normalizzato = testo.replace(/[^\d,-]/g, "").replace(",", ".");
++	return Math.round(Number(normalizzato) * 100);
++}
++
++function suffissoDa(namespace: string): string {
++	let hash = 2166136261;
++	for (const carattere of namespace) {
++		hash ^= carattere.charCodeAt(0);
++		hash = Math.imul(hash, 16777619);
++	}
++	return (hash >>> 0).toString(36);
++}
++
++function dataRiservata(giorno: number, mesiIndietro: number): Date {
++	return new Date(
++		`${dataNelMesePassatoRiservato(CODICE_SPEC_MARGINALITA, giorno, mesiIndietro)}T00:00:00.000Z`,
++	);
++}
++
++/**
++ * Dataset su due mesi consecutivi (M1 = 2 mesi indietro, M2 = 1 mese indietro)
++ * più una riga nel mese precedente M1, fuori dal periodo analizzato.
++ *
++ * | Collab. (tariffa) | Offerta (tariffa) | Mese | Ore | Fatt. | Rimborso | Ricavi | Costi |
++ * | A (400)           | O1 (640)          | M1   | 8   | sì    | 35,00    | 640    | 400   |
++ * | A (400)           | O2 (500)          | M1   | 8   | sì    | —        | 500    | 400   |
++ * | B (300)           | O1 (640)          | M2   | 4   | sì    | —        | 320    | 150   |
++ * | B (300)           | O2 (500)          | M2   | 6   | no    | 22,50    | 0      | 225   |
++ * | A (400)           | O1 (640)          | M0   | 8   | sì    | —        | fuori periodo  |
++ */
++async function creaDatasetMarginalita(factory: E2eDataFactory) {
++	const suffisso = suffissoDa(factory.namespace);
++	const cliente = await factory.createCliente({
++		ragioneSociale: `E2E Marginalità ${suffisso}`,
++	});
++	const offertaUno = await factory.createOfferta({
++		cliente,
++		codice: `MRG1-${suffisso}`,
++		descrizione: `Coaching team ${suffisso}`,
++		tariffaGiornaliera: "640.00",
++	});
++	const offertaDue = await factory.createOfferta({
++		cliente,
++		codice: `MRG2-${suffisso}`,
++		descrizione: `Formazione ${suffisso}`,
++		tariffaGiornaliera: "500.00",
++	});
++	const collaboratoreA = await factory.createCollaboratore({
++		nome: "E2E Margine",
++		cognome: `Alfa ${suffisso}`,
++		tariffaGiornaliera: "400.00",
++	});
++	const collaboratoreB = await factory.createCollaboratore({
++		nome: "E2E Margine",
++		cognome: `Beta ${suffisso}`,
++		tariffaGiornaliera: "300.00",
++	});
++
++	await factory.createRigaAttivita({
++		collaboratore: collaboratoreA,
++		cliente,
++		offerta: offertaUno,
++		data: dataRiservata(4, 2),
++		ore: "8.00",
++		fatturabile: true,
++		rimborsoTrasfertaEtichetta: `Trasferta ${suffisso}`,
++		rimborsoTrasfertaImporto: "35.00",
++	});
++	await factory.createRigaAttivita({
++		collaboratore: collaboratoreA,
++		cliente,
++		offerta: offertaDue,
++		data: dataRiservata(20, 2),
++		ore: "8.00",
++		fatturabile: true,
++	});
++	await factory.createRigaAttivita({
++		collaboratore: collaboratoreB,
++		cliente,
++		offerta: offertaUno,
++		data: dataRiservata(11, 1),
++		ore: "4.00",
++		fatturabile: true,
++	});
++	await factory.createRigaAttivita({
++		collaboratore: collaboratoreB,
++		cliente,
++		offerta: offertaDue,
++		data: dataRiservata(18, 1),
++		ore: "6.00",
++		fatturabile: false,
++		rimborsoTrasfertaEtichetta: `Trasferta non fatturabile ${suffisso}`,
++		rimborsoTrasfertaImporto: "22.50",
++	});
++	// Fuori periodo: non deve contribuire all'analisi
++	await factory.createRigaAttivita({
++		collaboratore: collaboratoreA,
++		cliente,
++		offerta: offertaUno,
++		data: dataRiservata(9, 3),
++		ore: "8.00",
++		fatturabile: true,
++	});
++
++	return {
++		cliente,
++		offertaUno,
++		offertaDue,
++		nomeCollaboratoreA: `E2E Margine Alfa ${suffisso}`,
++		nomeCollaboratoreB: `E2E Margine Beta ${suffisso}`,
++		meseDa: mesePassatoRiservato(CODICE_SPEC_MARGINALITA, 2),
++		meseA: mesePassatoRiservato(CODICE_SPEC_MARGINALITA, 1),
++	};
++}
++
++type DatasetMarginalita = Awaited<ReturnType<typeof creaDatasetMarginalita>>;
++
++function rigaTabella(page: Page, nomeTabella: string, testoRiga: string) {
++	return page
++		.getByRole("table", { name: nomeTabella, exact: true })
++		.getByRole("row")
++		.filter({ has: page.getByText(testoRiga, { exact: true }) });
++}
++
++async function verificaCelle(
++	page: Page,
++	nomeTabella: string,
++	testoRiga: string,
++	valoriAttesi: string[],
++): Promise<void> {
++	const riga = rigaTabella(page, nomeTabella, testoRiga);
++	await expect(riga).toHaveCount(1);
++	await expect(riga.getByRole("cell")).toHaveText(valoriAttesi);
++}
++
++async function verificaAnalisiCliente(
++	page: Page,
++	dataset: DatasetMarginalita,
++): Promise<void> {
++	const { cliente, offertaUno, offertaDue } = dataset;
++	const prefisso = `marginalita-cliente-${cliente.id}`;
++
++	await expect(
++		page.getByRole("heading", { name: cliente.ragioneSociale, exact: true }),
++	).toBeVisible();
++
++	// Cliente: ricavi 1460, costi 1175, margine 285 (19,5%); rimborsi esclusi 57,50
++	await expect(page.getByTestId(`${prefisso}-ricavi`)).toHaveText(euro(1460));
++	await expect(page.getByTestId(`${prefisso}-costi`)).toHaveText(euro(1175));
++	await expect(page.getByTestId(`${prefisso}-margine`)).toHaveText(euro(285));
++	await expect(page.getByTestId(`${prefisso}-percentuale`)).toHaveText(percentuale(19.5));
++	await expect(page.getByTestId(`${prefisso}-rimborsi-esclusi`)).toHaveText(euro(57.5));
++
++	// Per offerta: tariffa, gg fatturabili, gg non fatturabili, ricavi, costi, margine, %
++	const tabellaOfferte = `Offerte ${cliente.ragioneSociale}`;
++	await verificaCelle(page, tabellaOfferte, offertaUno.codice, [
++		euro(640),
++		giornate(1.5),
++		giornate(0),
++		euro(960),
++		euro(550),
++		euro(410),
++		percentuale(42.7),
++	]);
++	await verificaCelle(page, tabellaOfferte, offertaDue.codice, [
++		euro(500),
++		giornate(1),
++		giornate(0.75),
++		euro(500),
++		euro(625),
++		euro(-125),
++		percentuale(-25),
++	]);
++}
++
++test.describe("Analisi della marginalità", () => {
++	test("l'amministratore sceglie il periodo dal form e vede ricavi, costi e margine per cliente e offerta", async ({
++		page,
++		factory,
++	}) => {
++		const dataset = await creaDatasetMarginalita(factory);
++
++		await accediComeAdmin(page);
++		await page.goto("/report/marginalita");
++		await expect(
++			page.getByRole("heading", { name: "Analisi della marginalità", exact: true }),
++		).toBeVisible();
++
++		await page.getByLabel("Dal mese", { exact: true }).fill(dataset.meseDa);
++		await page.getByLabel("Al mese", { exact: true }).fill(dataset.meseA);
++		await page.getByRole("button", { name: "Aggiorna analisi", exact: true }).click();
++		await page.waitForURL(
++			(url) =>
++				url.pathname === "/report/marginalita" &&
++				url.searchParams.get("da") === dataset.meseDa &&
++				url.searchParams.get("a") === dataset.meseA,
++		);
++
++		await verificaAnalisiCliente(page, dataset);
++	});
++
++	test("il dettaglio per collaboratore include le ore non fatturabili come costo senza ricavo", async ({
++		page,
++		factory,
++	}) => {
++		const dataset = await creaDatasetMarginalita(factory);
++		const { cliente, offertaDue } = dataset;
++
++		await accediComeAdmin(page);
++		await page.goto(`/report/marginalita?da=${dataset.meseDa}&a=${dataset.meseA}`);
++
++		// <details> nativo: l'espansione non dipende dall'idratazione
++		await page
++			.getByText(`Dettaglio collaboratori ${cliente.ragioneSociale}`, { exact: true })
++			.click();
++
++		// Complessivo sul cliente: tariffa, gg fatt., gg non fatt., ricavi, costi, margine, %
++		const tabellaCliente = `Collaboratori ${cliente.ragioneSociale}`;
++		await verificaCelle(page, tabellaCliente, dataset.nomeCollaboratoreA, [
++			euro(400),
++			giornate(2),
++			giornate(0),
++			euro(1140),
++			euro(800),
++			euro(340),
++			percentuale(29.8),
++		]);
++		await verificaCelle(page, tabellaCliente, dataset.nomeCollaboratoreB, [
++			euro(300),
++			giornate(0.5),
++			giornate(0.75),
++			euro(320),
++			euro(375),
++			euro(-55),
++			percentuale(-17.2),
++		]);
++
++		// Su un'offerta: B ha solo ore non fatturabili → margine negativo, % non definita
++		await verificaCelle(
++			page,
++			`Collaboratori offerta ${offertaDue.codice}`,
++			dataset.nomeCollaboratoreB,
++			[euro(300), giornate(0), giornate(0.75), euro(0), euro(225), euro(-225), "n.d."],
++		);
++	});
++
++	test("i ricavi coincidono con il report Fatturazione Clienti degli stessi mesi al netto dei rimborsi", async ({
++		page,
++		factory,
++	}) => {
++		const dataset = await creaDatasetMarginalita(factory);
++		const { cliente } = dataset;
++
++		await accediComeAdmin(page);
++
++		let imponibileFatturazioneCentesimi = 0;
++		for (const mese of [dataset.meseDa, dataset.meseA]) {
++			await page.goto(`/report/fatturazione-clienti?mese=${mese}`);
++			const totale = await page
++				.getByTestId(`report-client-${cliente.id}-totale`)
++				.textContent();
++			const rimborsi = await page
++				.getByTestId(`report-client-${cliente.id}-rimborsi`)
++				.textContent();
++			imponibileFatturazioneCentesimi +=
++				centesimiDaEuro(totale ?? "") - centesimiDaEuro(rimborsi ?? "");
++		}
++		expect(imponibileFatturazioneCentesimi).toBe(146000);
++
++		await page.goto(`/report/marginalita?da=${dataset.meseDa}&a=${dataset.meseA}`);
++		await expect(
++			page.getByTestId(`marginalita-cliente-${cliente.id}-ricavi`),
++		).toHaveText(euro(imponibileFatturazioneCentesimi / 100));
++	});
++
++	test("un periodo con mese iniziale successivo al finale mostra un errore di validazione", async ({
++		page,
++	}) => {
++		const meseDa = mesePassatoRiservato(CODICE_SPEC_MARGINALITA, 1);
++		const meseA = mesePassatoRiservato(CODICE_SPEC_MARGINALITA, 2);
++
++		await accediComeAdmin(page);
++		await page.goto(`/report/marginalita?da=${meseDa}&a=${meseA}`);
++
++		await expect(
++			page.getByRole("alert").filter({
++				hasText: "Il mese iniziale non può essere successivo al mese finale.",
++			}),
++		).toBeVisible();
++		await expect(
++			page.getByRole("table", { name: /^Offerte / }),
++		).toHaveCount(0);
++	});
++
++	test("la voce Marginalità della console apre il report", async ({ page }) => {
++		await accediAlBackOfficeComeAdmin(page);
++
++		await page.getByRole("link", { name: "Marginalità", exact: true }).click();
++		await page.waitForURL("**/report/marginalita**");
++		await expect(
++			page.getByRole("heading", { name: "Analisi della marginalità", exact: true }),
++		).toBeVisible();
++	});
++
++	test("un collaboratore non può accedere all'analisi della marginalità", async ({
++		page,
++		collaboratore,
++	}) => {
++		await accediComeCollaboratore(page, collaboratore.utente.email);
++
++		await page.goto("/report/marginalita");
++
++		await page.waitForURL("**/attivita**");
++		await expect(
++			page.getByRole("heading", { name: "Analisi della marginalità" }),
++		).toHaveCount(0);
++	});
++});
+diff --git a/tests/unit/policy-rotte.test.ts b/tests/unit/policy-rotte.test.ts
+index 1c26b79..e950354 100644
+--- a/tests/unit/policy-rotte.test.ts
++++ b/tests/unit/policy-rotte.test.ts
+@@ -14,6 +14,7 @@ describe("politicaAccessoPerRotta", () => {
+     ["AMMINISTRATORE", "/collaboratori"],
+     ["AMMINISTRATORE", "/report"],
+     ["AMMINISTRATORE", "/report/2025"],
++    ["AMMINISTRATORE", "/report/marginalita"],
+     ["AUTENTICATO", "/attivita"],
+     ["AUTENTICATO", "/attivita/2025-06"],
+     ["AUTENTICATO", "/rotta-non-classificata"],
+diff --git a/tests/unit/report-marginalita-dal.test.ts b/tests/unit/report-marginalita-dal.test.ts
+new file mode 100644
+index 0000000..dba86a9
+--- /dev/null
++++ b/tests/unit/report-marginalita-dal.test.ts
+@@ -0,0 +1,138 @@
++import { describe, it, expect, vi, beforeEach } from "vitest";
++
++const { mockRigaAttivita } = vi.hoisted(() => ({
++  mockRigaAttivita: {
++    findMany: vi.fn(),
++  },
++}));
++
++vi.mock("@/lib/db", () => ({
++  db: { rigaAttivita: mockRigaAttivita },
++}));
++
++const { mockRichiediRuoloApi, ErroreAutorizzazioneFinto } = vi.hoisted(() => {
++  class ErroreAutorizzazioneFinto extends Error {
++    constructor(readonly statusCode: 401 | 403) {
++      super(`Errore ${statusCode}`);
++    }
++  }
++  return { mockRichiediRuoloApi: vi.fn(), ErroreAutorizzazioneFinto };
++});
++
++vi.mock("@/lib/dal", () => ({
++  richiediRuoloApi: mockRichiediRuoloApi,
++}));
++
++import { reportMarginalitaPeriodo } from "@/lib/report";
++
++/** Simula il Decimal Prisma con un oggetto dotato di toString() */
++function decimale(valore: string) {
++  return { toString: () => valore };
++}
++
++/** Riga attività come restituita da Prisma, con relazioni incluse */
++function rigaPrisma(modifiche: {
++  data: string;
++  ore: string;
++  fatturabile?: boolean;
++  rimborso?: string | null;
++}) {
++  return {
++    id: `riga-${modifiche.data}`,
++    collaboratoreId: "col-1",
++    clienteId: "cli-1",
++    offertaId: "off-1",
++    data: new Date(`${modifiche.data}T00:00:00.000Z`),
++    ore: decimale(modifiche.ore),
++    nota: null,
++    fatturabile: modifiche.fatturabile ?? true,
++    rimborsoTrasfertaEtichetta: modifiche.rimborso ? "Trasferta" : null,
++    rimborsoTrasfertaImporto: modifiche.rimborso ? decimale(modifiche.rimborso) : null,
++    createdAt: new Date(),
++    updatedAt: new Date(),
++    offerta: {
++      id: "off-1",
++      codice: "OFF-001",
++      descrizione: "Coaching",
++      tariffaGiornaliera: decimale("640.00"),
++    },
++    cliente: { id: "cli-1", ragioneSociale: "Cliente Uno" },
++    collaboratore: {
++      nome: "Mario",
++      cognome: "Rossi",
++      tariffaGiornaliera: decimale("400.00"),
++    },
++  };
++}
++
++describe("reportMarginalitaPeriodo", () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++    mockRichiediRuoloApi.mockResolvedValue({ utenteId: "admin", ruolo: "AMMINISTRATORE" });
++    mockRigaAttivita.findMany.mockResolvedValue([]);
++  });
++
++  it("richiede il ruolo amministratore e non legge dati se l'utente non è autorizzato", async () => {
++    mockRichiediRuoloApi.mockRejectedValue(new ErroreAutorizzazioneFinto(403));
++
++    await expect(reportMarginalitaPeriodo("2026-01", "2026-03")).rejects.toMatchObject({
++      statusCode: 403,
++    });
++    expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
++    expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
++  });
++
++  it("con un periodo non valido restituisce l'errore e un report vuoto senza interrogare il database", async () => {
++    const risultato = await reportMarginalitaPeriodo("2026-04", "2026-03");
++
++    expect(risultato.errore).toBe(
++      "Il mese iniziale non può essere successivo al mese finale.",
++    );
++    expect(risultato.perCliente).toEqual([]);
++    expect(risultato.totali.ricavi).toBe("0.00");
++    expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
++  });
++
++  it("legge le righe dal primo giorno del mese iniziale all'ultimo del mese finale, di tutti i collaboratori", async () => {
++    await reportMarginalitaPeriodo("2026-01", "2026-03");
++
++    expect(mockRigaAttivita.findMany).toHaveBeenCalledTimes(1);
++    const argomenti = mockRigaAttivita.findMany.mock.calls[0][0];
++    expect(argomenti.where).toEqual({
++      data: { gte: new Date(2026, 0, 1), lte: new Date(2026, 2, 31) },
++    });
++    expect(argomenti.include.collaboratore).toEqual({
++      select: { nome: true, cognome: true, tariffaGiornaliera: true },
++    });
++  });
++
++  it("calcola ricavi, costi (incluse le ore non fatturabili) e margine escludendo i rimborsi", async () => {
++    mockRigaAttivita.findMany.mockResolvedValue([
++      rigaPrisma({ data: "2026-01-15", ore: "8.00", rimborso: "35.00" }),
++      rigaPrisma({ data: "2026-02-10", ore: "4.00", fatturabile: false }),
++    ]);
++
++    const risultato = await reportMarginalitaPeriodo("2026-01", "2026-02");
++
++    expect(risultato).toMatchObject({
++      meseDa: "2026-01",
++      meseA: "2026-02",
++      errore: null,
++    });
++    const cliente = risultato.perCliente[0];
++    expect(cliente).toMatchObject({
++      clienteRagioneSociale: "Cliente Uno",
++      ricavi: "640.00",
++      costi: "600.00",
++      margine: "40.00",
++      marginePercentuale: "6.3",
++      rimborsiTrasfertaEsclusi: "35.00",
++    });
++    expect(cliente.perCollaboratore[0]).toMatchObject({
++      collaboratoreNome: "Mario Rossi",
++      tariffaCollaboratoreGiornaliera: "400.00",
++    });
++    // Il risultato è interamente serializzabile
++    expect(JSON.parse(JSON.stringify(risultato))).toEqual(risultato);
++  });
++});
+diff --git a/tests/unit/report-marginalita.test.ts b/tests/unit/report-marginalita.test.ts
+new file mode 100644
+index 0000000..94cb1bb
+--- /dev/null
++++ b/tests/unit/report-marginalita.test.ts
+@@ -0,0 +1,327 @@
++import { describe, it, expect } from "vitest";
++import {
++  calcolaReportMarginalita,
++  validaPeriodoMarginalita,
++  type ImportiMarginalita,
++  type RigaMarginalita,
++} from "@/domain/marginalita";
++import { calcolaReportFatturazioneClienti } from "@/domain/consuntivi";
++
++// ── Helper e dati di esempio ────────────────────────────────────
++
++/** Crea una riga di attività con valori di default sovrascrivibili */
++function riga(modifiche: Partial<RigaMarginalita> = {}): RigaMarginalita {
++  return {
++    mese: "2026-03",
++    clienteId: "cliente-1",
++    clienteRagioneSociale: "Cliente Uno",
++    offertaId: "offerta-1",
++    offertaCodice: "OFF-001",
++    offertaDescrizione: "Sviluppo software",
++    tariffaOffertaGiornaliera: 600,
++    collaboratoreId: "collaboratore-1",
++    collaboratoreNome: "Mario Rossi",
++    tariffaCollaboratoreGiornaliera: 400,
++    ore: 8,
++    fatturabile: true,
++    rimborsoTrasfertaImporto: null,
++    ...modifiche,
++  };
++}
++
++function centesimi(importo: string): number {
++  return Math.round(Number(importo) * 100);
++}
++
++function sommaCentesimi(
++  voci: ImportiMarginalita[],
++  campo: "ricavi" | "costi" | "margine",
++): number {
++  return voci.reduce((somma, voce) => somma + centesimi(voce[campo]), 0);
++}
++
++// ═══════════════════════════════════════════════════════════════
++// calcolaReportMarginalita
++// ═══════════════════════════════════════════════════════════════
++
++describe("calcolaReportMarginalita", () => {
++  it("restituisce un report vuoto con totali a zero e percentuale non definita", () => {
++    const report = calcolaReportMarginalita([]);
++
++    expect(report.perCliente).toEqual([]);
++    expect(report.totali).toEqual({
++      giornateFatturabili: 0,
++      giornateNonFatturabili: 0,
++      ricavi: "0.00",
++      costi: "0.00",
++      margine: "0.00",
++      marginePercentuale: null,
++      rimborsiTrasfertaEsclusi: "0.00",
++    });
++  });
++
++  it("valorizza i ricavi alla tariffa dell'offerta e i costi alla tariffa del collaboratore (8 ore = 1 giornata)", () => {
++    const report = calcolaReportMarginalita([riga({ ore: 8 })]);
++
++    const cliente = report.perCliente[0];
++    expect(cliente.giornateFatturabili).toBe(1);
++    expect(cliente.ricavi).toBe("600.00");
++    expect(cliente.costi).toBe("400.00");
++    expect(cliente.margine).toBe("200.00");
++    expect(cliente.marginePercentuale).toBe("33.3");
++  });
++
++  it("conta le righe non fatturabili come costo senza ricavo", () => {
++    const report = calcolaReportMarginalita([
++      riga({ ore: 8, fatturabile: true }),
++      riga({ ore: 4, fatturabile: false }),
++    ]);
++
++    const cliente = report.perCliente[0];
++    expect(cliente.giornateFatturabili).toBe(1);
++    expect(cliente.giornateNonFatturabili).toBe(0.5);
++    expect(cliente.ricavi).toBe("600.00");
++    // 1,5 giornate lavorate × 400
++    expect(cliente.costi).toBe("600.00");
++    expect(cliente.margine).toBe("0.00");
++    expect(cliente.marginePercentuale).toBe("0.0");
++  });
++
++  it("espone un'offerta con sole ore non fatturabili: margine negativo e percentuale non definita", () => {
++    const report = calcolaReportMarginalita([
++      riga({ ore: 8, fatturabile: false }),
++    ]);
++
++    const offerta = report.perCliente[0].perOfferta[0];
++    expect(offerta.offertaCodice).toBe("OFF-001");
++    expect(offerta.ricavi).toBe("0.00");
++    expect(offerta.costi).toBe("400.00");
++    expect(offerta.margine).toBe("-400.00");
++    expect(offerta.marginePercentuale).toBeNull();
++    expect(report.totali.marginePercentuale).toBeNull();
++  });
++
++  it("calcola margine e percentuale negativi quando i costi superano i ricavi", () => {
++    const report = calcolaReportMarginalita([
++      riga({ tariffaOffertaGiornaliera: 500, tariffaCollaboratoreGiornaliera: 800 }),
++    ]);
++
++    expect(report.totali.margine).toBe("-300.00");
++    expect(report.totali.marginePercentuale).toBe("-60.0");
++  });
++
++  it("esclude i rimborsi trasferta da ricavi e costi, anche su righe non fatturabili, esponendoli a parte", () => {
++    const report = calcolaReportMarginalita([
++      riga({ ore: 8, rimborsoTrasfertaImporto: "35.00" }),
++      riga({ ore: 8, fatturabile: false, rimborsoTrasfertaImporto: "22.50" }),
++    ]);
++
++    const cliente = report.perCliente[0];
++    expect(cliente.ricavi).toBe("600.00");
++    expect(cliente.costi).toBe("800.00");
++    expect(cliente.rimborsiTrasfertaEsclusi).toBe("57.50");
++    expect(report.totali.rimborsiTrasfertaEsclusi).toBe("57.50");
++  });
++
++  it("arrotonda il costo al centesimo una sola volta per collaboratore e offerta", () => {
++    // 1h × 333,33 / 8 = 41,66625 → 41,67; tre righe da 1h → 3h → 124,99875 → 125,00
++    const report = calcolaReportMarginalita([
++      riga({ ore: 1, tariffaCollaboratoreGiornaliera: "333.33" }),
++      riga({ ore: 1, tariffaCollaboratoreGiornaliera: "333.33" }),
++      riga({ ore: 1, tariffaCollaboratoreGiornaliera: "333.33" }),
++    ]);
++
++    expect(report.perCliente[0].costi).toBe("125.00");
++  });
++
++  it("dettaglia per offerta e per collaboratore, con l'aggregato dei collaboratori sul cliente", () => {
++    const report = calcolaReportMarginalita([
++      riga({ offertaId: "o-b", offertaCodice: "OFF-B", collaboratoreId: "c-2", collaboratoreNome: "Zeno Bianchi", tariffaCollaboratoreGiornaliera: 300, ore: 8 }),
++      riga({ offertaId: "o-a", offertaCodice: "OFF-A", collaboratoreId: "c-1", collaboratoreNome: "Anna Verdi", ore: 8 }),
++      riga({ offertaId: "o-b", offertaCodice: "OFF-B", collaboratoreId: "c-1", collaboratoreNome: "Anna Verdi", ore: 4, fatturabile: false }),
++    ]);
++
++    const cliente = report.perCliente[0];
++    expect(cliente.perOfferta.map((o) => o.offertaCodice)).toEqual(["OFF-A", "OFF-B"]);
++
++    const offertaB = cliente.perOfferta[1];
++    expect(offertaB.perCollaboratore.map((c) => c.collaboratoreNome)).toEqual([
++      "Anna Verdi",
++      "Zeno Bianchi",
++    ]);
++    expect(offertaB.perCollaboratore[0]).toMatchObject({
++      tariffaCollaboratoreGiornaliera: "400.00",
++      giornateFatturabili: 0,
++      giornateNonFatturabili: 0.5,
++      ricavi: "0.00",
++      costi: "200.00",
++      margine: "-200.00",
++      marginePercentuale: null,
++    });
++    expect(offertaB.perCollaboratore[1]).toMatchObject({
++      ricavi: "600.00",
++      costi: "300.00",
++      margine: "300.00",
++      marginePercentuale: "50.0",
++    });
++
++    const anna = cliente.perCollaboratore.find((c) => c.collaboratoreId === "c-1");
++    expect(anna).toMatchObject({
++      giornateFatturabili: 1,
++      giornateNonFatturabili: 0.5,
++      ricavi: "600.00",
++      costi: "600.00",
++      margine: "0.00",
++    });
++    expect(cliente.ricavi).toBe("1200.00");
++    expect(cliente.costi).toBe("900.00");
++  });
++
++  it("ordina i clienti per ragione sociale e calcola i totali complessivi", () => {
++    const report = calcolaReportMarginalita([
++      riga({ clienteId: "z", clienteRagioneSociale: "Zeta Srl" }),
++      riga({ clienteId: "a", clienteRagioneSociale: "Alfa Spa", offertaId: "o-2", offertaCodice: "OFF-2" }),
++    ]);
++
++    expect(report.perCliente.map((c) => c.clienteRagioneSociale)).toEqual([
++      "Alfa Spa",
++      "Zeta Srl",
++    ]);
++    expect(report.totali).toMatchObject({
++      giornateFatturabili: 2,
++      ricavi: "1200.00",
++      costi: "800.00",
++      margine: "400.00",
++      marginePercentuale: "33.3",
++    });
++  });
++
++  it("omette i clienti con soli rimborsi e nessuna ora, ma ne conserva i rimborsi nel totale escluso", () => {
++    const report = calcolaReportMarginalita([
++      riga(),
++      riga({ clienteId: "solo-rimborsi", clienteRagioneSociale: "Solo Rimborsi", ore: 0, rimborsoTrasfertaImporto: 40 }),
++    ]);
++
++    expect(report.perCliente.map((c) => c.clienteId)).toEqual(["cliente-1"]);
++    expect(report.totali.rimborsiTrasfertaEsclusi).toBe("40.00");
++  });
++
++  // ── Coerenza con il report Fatturazione Clienti ───────────────
++
++  describe("coerenza con il report Fatturazione Clienti sullo stesso periodo", () => {
++    // Dati con arrotondamenti non banali: tariffe e ore frazionarie,
++    // più collaboratori, offerte, clienti e mesi.
++    const mesi = ["2026-01", "2026-02", "2026-03"];
++    const righe: RigaMarginalita[] = [];
++    let contatore = 0;
++    for (const mese of mesi) {
++      for (const [clienteId, offerte] of [
++        ["cli-a", ["oa-1", "oa-2"]],
++        ["cli-b", ["ob-1"]],
++      ] as const) {
++        for (const offertaId of offerte) {
++          for (const collaboratoreId of ["col-1", "col-2", "col-3"]) {
++            contatore += 1;
++            righe.push(
++              riga({
++                mese,
++                clienteId,
++                clienteRagioneSociale: clienteId === "cli-a" ? "Alfa" : "Beta",
++                offertaId,
++                offertaCodice: offertaId.toUpperCase(),
++                tariffaOffertaGiornaliera: offertaId === "oa-1" ? "333.33" : "517.77",
++                collaboratoreId,
++                collaboratoreNome: collaboratoreId,
++                tariffaCollaboratoreGiornaliera: collaboratoreId === "col-1" ? "251.13" : "199.99",
++                ore: [1.25, 2.5, 3.75, 0.5, 7.25][contatore % 5],
++                fatturabile: contatore % 4 !== 0,
++                rimborsoTrasfertaImporto: contatore % 3 === 0 ? "12.34" : null,
++              }),
++            );
++          }
++        }
++      }
++    }
++
++    const report = calcolaReportMarginalita(righe);
++
++    it("i ricavi di ogni cliente coincidono con la somma degli imponibili manodopera mensili", () => {
++      for (const cliente of report.perCliente) {
++        const attesoCentesimi = mesi.reduce((somma, mese) => {
++          const fatturazione = calcolaReportFatturazioneClienti(
++            righe.filter((r) => r.mese === mese),
++          );
++          const voce = fatturazione.perCliente.find(
++            (c) => c.clienteId === cliente.clienteId,
++          );
++          return somma + (voce ? centesimi(voce.imponibileManodopera) : 0);
++        }, 0);
++        expect(centesimi(cliente.ricavi)).toBe(attesoCentesimi);
++      }
++    });
++
++    it("i rimborsi esclusi coincidono con i rimborsi ribaltati dal report fatturazione", () => {
++      const attesoCentesimi = mesi.reduce(
++        (somma, mese) =>
++          somma +
++          centesimi(
++            calcolaReportFatturazioneClienti(righe.filter((r) => r.mese === mese))
++              .totali.totaleRimborsi,
++          ),
++        0,
++      );
++      expect(centesimi(report.totali.rimborsiTrasfertaEsclusi)).toBe(attesoCentesimi);
++    });
++
++    it("offerte e collaboratori quadrano al centesimo con il cliente, i clienti con il totale", () => {
++      for (const campo of ["ricavi", "costi", "margine"] as const) {
++        for (const cliente of report.perCliente) {
++          expect(sommaCentesimi(cliente.perOfferta, campo)).toBe(centesimi(cliente[campo]));
++          expect(sommaCentesimi(cliente.perCollaboratore, campo)).toBe(centesimi(cliente[campo]));
++          for (const offerta of cliente.perOfferta) {
++            expect(sommaCentesimi(offerta.perCollaboratore, campo)).toBe(centesimi(offerta[campo]));
++          }
++        }
++        expect(sommaCentesimi(report.perCliente, campo)).toBe(centesimi(report.totali[campo]));
++      }
++    });
++  });
++});
++
++// ═══════════════════════════════════════════════════════════════
++// validaPeriodoMarginalita
++// ═══════════════════════════════════════════════════════════════
++
++describe("validaPeriodoMarginalita", () => {
++  it.each([
++    ["2026-01", "2026-03"],
++    ["2026-05", "2026-05"],
++    ["2025-11", "2026-02"],
++  ])("accetta il periodo %s → %s", (meseDa, meseA) => {
++    expect(validaPeriodoMarginalita(meseDa, meseA)).toEqual({
++      valido: true,
++      periodo: { meseDa, meseA },
++    });
++  });
++
++  it("rifiuta un mese iniziale non valido", () => {
++    expect(validaPeriodoMarginalita("2026-13", "2026-12")).toEqual({
++      valido: false,
++      errore: "Il mese iniziale non è valido: usa il formato AAAA-MM.",
++    });
++  });
++
++  it("rifiuta un mese finale non valido", () => {
++    expect(validaPeriodoMarginalita("2026-01", "marzo")).toEqual({
++      valido: false,
++      errore: "Il mese finale non è valido: usa il formato AAAA-MM.",
++    });
++  });
++
++  it("rifiuta un mese iniziale successivo al finale", () => {
++    expect(validaPeriodoMarginalita("2026-04", "2026-03")).toEqual({
++      valido: false,
++      errore: "Il mese iniziale non può essere successivo al mese finale.",
++    });
++  });
++});

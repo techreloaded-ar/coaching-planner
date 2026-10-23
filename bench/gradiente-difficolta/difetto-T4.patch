@@ -1,0 +1,2014 @@
+diff --git a/docs/wiki/architecture/context-map.md b/docs/wiki/architecture/context-map.md
+deleted file mode 100644
+index ec105ed..0000000
+--- a/docs/wiki/architecture/context-map.md
++++ /dev/null
+@@ -1,65 +0,0 @@
+----
+-type: context-map
+-title: Mappa dei contesti candidati
+-description: Relazioni tra capability candidate, infrastruttura condivisa e confini ancora da revisionare
+-status: reviewed
+-sources:
+-    - path: src/lib/actions/righe-attivita.ts
+-      role: cross-capability-flow
+-    - path: src/lib/report.ts
+-      role: downstream-projections
+-    - path: src/lib/dal.ts
+-      role: shared-access-boundary
+-    - path: prisma/schema.prisma
+-      role: shared-storage
+-review:
+-    content_hash: sha256:c59fa3a00f0e5f3e2c138fa778e9c80d2610d0200fbce2335381c64ecc8701fe
+-    evidence_revision: 08d10077f33ac8619ca0151e75df8fd63349b9f0
+-    evidence_hash: sha256:4279b4a2e85ab8951a6a13d8d183e3270a5f71946fbb052bc5964d531ed65058
+-    reviewed_at: "2026-08-06T15:14:25Z"
+----
+-# Mappa dei contesti candidati
+-
+-<!-- archetipo:wiki section=contexts -->
+-## Contesti candidati
+-
+-| Candidato | Responsabilità osservata | Dati/decisioni principali |
+-|---|---|---|
+-| Clienti | Identità fiscale e abilitazione del cliente | `Cliente`, dati fiscali, `attivo` |
+-| Collaboratori | Profilo professionale, operatività e abilitazione esplicita sulle offerte | `Collaboratore`, tariffa, `attivo`, `AbilitazioneOfferta` |
+-| Offerte | Termini commerciali, budget e avanzamento derivato | `Offerta`, tariffa, giorni previsti, `attiva` |
+-| Politiche di rimborso | Configurazione di voci di rimborso a etichetta libera, senza fasce né calcolo a lettura | `VoceRimborsoTrasferta`, fotografia su `RigaAttivita` |
+-| Attività | Registrazione, proprietà e riepilogo personale | `RigaAttivita`, ore, fatturabilità, trasferta |
+-| Fatturazione clienti | Proiezione mensile amministrativa | Regole di aggregazione; nessun dato persistito proprio |
+-| Identità e accesso | Google OAuth, sessione, ruoli e guardie | `Account`, cookie JWT, policy e accesso a `Utente` |
+-
+-<!-- archetipo:wiki section=relationships -->
+-## Relazioni osservate
+-
+-- Attività consulta Collaboratori per il profilo operativo e per l'abilitazione esplicita del collaboratore sull'offerta, Clienti e Offerte per i riferimenti selezionabili e Politiche di rimborso per validare la trasferta. La selezione dell'offerta, la creazione e la modifica riga leggono `AbilitazioneOfferta` e rifiutano l'operazione quando manca.
+-- Offerte riferisce Clienti; la creazione richiede un cliente attivo. Le attività fatturabili sono input della proiezione di avanzamento dell'offerta.
+-- Fatturazione clienti legge fatti da Attività — incluso il rimborso trasferta già fotografato — tariffa e metadati da Offerte, ragione sociale da Clienti; non legge più direttamente Politiche di rimborso al momento dell'aggregazione, perché il rimborso è già uno snapshot sulla riga.
+-- Identità e accesso consulta `Collaboratore.attivo` per la revoca operativa; Collaboratori crea o sincronizza anche `Utente`, oggi condiviso nello stesso database.
+-- Collaboratori possiede ora anche `AbilitazioneOfferta`, una relazione esplicita e revocabile verso Offerte (coppia unica collaboratore-offerta) che rappresenta l'ingaggio corrente, indipendente dalle righe attività storiche.
+-- Tutti i flussi amministrativi e operativi dipendono dalle guardie di Identità e accesso.
+-
+-Il codice mostra dipendenze dirette e storage condiviso, ma non fornisce evidenza sufficiente per assegnare nomi DDD specializzati alle relazioni o per dichiarare governance autonoma.
+-
+-<!-- archetipo:wiki section=shared -->
+-## Infrastruttura condivisa
+-
+-`src/lib/db.ts` espone il singleton Prisma; `prisma/schema.prisma` contiene tutte le tabelle nello stesso schema PostgreSQL. `src/lib/dal.ts` centralizza identità, ruolo e segregazione. `src/domain/consuntivi/index.ts` è un kernel fisico condiviso tra Attività, Offerte, Politiche di rimborso e Fatturazione, pur contenendo regole con attori e scopi distinti. `src/domain/calendario/index.ts` è un modulo puro di supporto. Next App Router, Server Action, revalidation e redirect sono infrastruttura applicativa comune.
+-
+-<!-- archetipo:wiki section=uncertainties -->
+-## Confini e incertezze
+-
+-- `Utente` è scritto da Collaboratori e letto da Identità e accesso; l'ownership logica richiede review.
+-- La macro-area fisica `anagrafiche` non ha ciclo o decisioni proprie e viene mappata su quattro capability.
+-- Il candidato fisico `report` combina fatturazione clienti e avanzamento offerte; quest'ultimo riusa la stessa proiezione anche nella lista Offerte.
+-- `RigaAttivita` conserva sia `clienteId` sia `offertaId` con FK indipendenti. La creazione verifica sempre coerenza offerta-cliente e abilitazione; la modifica le riverifica entrambe quando il form invia un'offerta o un cliente diversi da quelli già sulla riga, ma non le rivaluta se la coppia resta invariata.
+-- La tariffa giornaliera del collaboratore non è uno snapshot: riepiloghi e report storici la ricalcolano con la configurazione corrente. Il rimborso trasferta, invece, è uno snapshot dalla fotografia al salvataggio (US-054): `RigaAttivita.rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` restano quelli del momento del salvataggio anche se la voce di rimborso viene successivamente modificata o eliminata.
+-- Le capability condividono processo, database e application layer; la classificazione `candidate` descrive una mappa semantica, non isolamento di deploy.
+-
+-## Concetti correlati
+-
+-La vista logica completa la [panoramica](/overview.md) e la [mappa fisica del codice](/engineering/code-map.md). Collega [Clienti](/domains/clienti.md), [Collaboratori](/domains/collaboratori.md), [Offerte](/domains/offerte.md), [Politiche di rimborso](/domains/politiche-rimborso.md), [Attività](/domains/attivita.md), [Fatturazione clienti](/domains/fatturazione-clienti.md) e [Identità e accesso](/domains/identita-accesso.md).
+diff --git a/docs/wiki/decisions/calcoli-puri.md b/docs/wiki/decisions/calcoli-puri.md
+deleted file mode 100644
+index 3b08535..0000000
+--- a/docs/wiki/decisions/calcoli-puri.md
++++ /dev/null
+@@ -1,55 +0,0 @@
+----
+-type: decision
+-title: Calcoli di dominio in funzioni pure
+-description: Isolare validazioni e calcoli di consuntivazione in funzioni pure testabili
+-status: reviewed
+-decision_status: accepted
+-sources:
+-    - path: docs/PRD.md
+-      role: decision-source
+-    - path: src/domain/consuntivi/index.ts
+-      role: implementation
+-    - path: src/domain/calendario/index.ts
+-      role: implementation
+-    - path: src/domain/anagrafiche/valida-cliente.ts
+-      role: implementation
+-    - path: tests/unit/riepilogo-mese.test.ts
+-      role: verification
+-    - path: tests/unit/avanzamento-offerte.test.ts
+-      role: verification
+-review:
+-    content_hash: sha256:4d9a909dc2f03a0d5d51d3e302423fb4e31f61e263d4342a66c2455a1f8bd71a
+-    evidence_revision: 67133f5adf25203fb1b17a224c25b5b65dd89772
+-    evidence_hash: sha256:e040fc01b0fb506c99c09659c2cf3804cb540b8abc96e5a74b4f96fad0620367
+-    reviewed_at: "2026-08-06T16:26:38Z"
+----
+-# Calcoli di dominio in funzioni pure
+-
+-<!-- archetipo:wiki section=context -->
+-## Contesto
+-
+-Conversioni, rimborsi, riepiloghi e avanzamento devono essere verificabili senza framework o database. Il PRD, ADR-006, registra questa scelta per ridurre accoppiamento e rendere i calcoli testabili.
+-
+-<!-- archetipo:wiki section=decision -->
+-## Decisione
+-
+-Collocare validazioni e calcoli deterministici in moduli TypeScript puri, passando input serializzabili e lasciando query, sessione e persistenza agli adapter applicativi.
+-
+-<!-- archetipo:wiki section=alternatives -->
+-## Alternative
+-
+-Implementare i calcoli direttamente nelle pagine, Server Action o query Prisma. Il PRD la scarta perché aumenterebbe duplicazione e renderebbe più difficile il test in isolamento.
+-
+-<!-- archetipo:wiki section=consequences -->
+-## Conseguenze
+-
+-Le stesse regole possono essere riusate da UI, report e lista offerte e sono coperte da unit test veloci. Il modulo fisico `consuntivi` raccoglie però regole di più capability e richiede attenzione per non confondere riuso tecnico con un unico confine di dominio.
+-
+-<!-- archetipo:wiki section=verification -->
+-## Verifica
+-
+-`src/domain/consuntivi/index.ts` non importa Next o Prisma e implementa validazione, rimborsi, riepilogo, fatturazione e avanzamento. Calendario e validatori anagrafici sono anch'essi puri. Le suite unitarie importano direttamente queste funzioni. La decisione è adottata, mentre orchestrazione e scritture restano correttamente nei moduli `lib` e nelle Server Action.
+-
+-## Concetti correlati
+-
+-La decisione deriva dal [PRD originale](/references/prd.md) e influenza [Attività](/domains/attivita.md), [Offerte](/domains/offerte.md), [Fatturazione clienti](/domains/fatturazione-clienti.md) e la [mappa del codice](/engineering/code-map.md).
+diff --git a/docs/wiki/decisions/giornata-otto-ore.md b/docs/wiki/decisions/giornata-otto-ore.md
+deleted file mode 100644
+index a8b6cb6..0000000
+--- a/docs/wiki/decisions/giornata-otto-ore.md
++++ /dev/null
+@@ -1,54 +0,0 @@
+----
+-type: decision
+-title: Giornata equivalente a otto ore
+-description: Convertire ore e giornate con la costante fissa di otto ore per giornata
+-status: reviewed
+-decision_status: accepted
+-sources:
+-    - path: docs/PRD.md
+-      role: decision-source
+-    - path: src/domain/types.ts
+-      role: implementation
+-      symbol: ORE_PER_GIORNATA
+-    - path: src/domain/consuntivi/index.ts
+-      role: implementation
+-    - path: tests/unit/riepilogo-mese.test.ts
+-      role: verification
+-    - path: tests/unit/avanzamento-offerte.test.ts
+-      role: verification
+-review:
+-    content_hash: sha256:af115e4647d4ca91950930b6f8744e1b292b8fc5831625568b90b0c84ff54be9
+-    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+-    evidence_hash: sha256:2a946e3459edd5f52137baa7fa3e52377802648a78ab2e2f5bc5b5a7a5137dee
+-    reviewed_at: "2026-07-31T15:56:35Z"
+----
+-# Giornata equivalente a otto ore
+-
+-<!-- archetipo:wiki section=context -->
+-## Contesto
+-
+-Il prodotto acquisisce ore ma tariffe, budget e consuntivi sono espressi in giornate. Il PRD, ADR-002, registra la conferma del committente della conversione fissa.
+-
+-<!-- archetipo:wiki section=decision -->
+-## Decisione
+-
+-Definire una giornata equivalente a 8 ore e centralizzare la costante per tutti i calcoli.
+-
+-<!-- archetipo:wiki section=alternatives -->
+-## Alternative
+-
+-Configurare ore per giornata per azienda, collaboratore o offerta. Il PRD non la seleziona per mantenere il modello MVP semplice e perché la regola fissa è stata confermata.
+-
+-<!-- archetipo:wiki section=consequences -->
+-## Conseguenze
+-
+-Riepilogo personale, fatturazione cliente e avanzamento offerta sono coerenti e semplici da verificare. Una futura configurabilità richiederà di definire snapshot e compatibilità storica invece di cambiare soltanto una formula.
+-
+-<!-- archetipo:wiki section=verification -->
+-## Verifica
+-
+-`src/domain/types.ts` esporta `ORE_PER_GIORNATA = 8`; `src/domain/consuntivi/index.ts` la usa nei tre calcoli. I test unitari verificano, fra gli altri casi, che 8 ore corrispondano a una giornata. La decisione è adottata.
+-
+-## Concetti correlati
+-
+-La decisione deriva dal [PRD originale](/references/prd.md) e influenza [Attività](/domains/attivita.md), [Offerte](/domains/offerte.md) e [Fatturazione clienti](/domains/fatturazione-clienti.md).
+diff --git a/docs/wiki/decisions/importi-decimali.md b/docs/wiki/decisions/importi-decimali.md
+deleted file mode 100644
+index 4d42d52..0000000
+--- a/docs/wiki/decisions/importi-decimali.md
++++ /dev/null
+@@ -1,53 +0,0 @@
+----
+-type: decision
+-title: Importi monetari decimali
+-description: Persistire gli importi monetari come Decimal per evitare errori contabili
+-status: reviewed
+-decision_status: accepted
+-sources:
+-    - path: docs/PRD.md
+-      role: decision-source
+-    - path: prisma/schema.prisma
+-      role: implementation
+-    - path: src/domain/anagrafiche/valida-offerta.ts
+-      role: implementation
+-    - path: src/domain/consuntivi/index.ts
+-      role: implementation-status
+-    - path: tests/unit/report-fatturazione-clienti.test.ts
+-      role: verification
+-review:
+-    content_hash: sha256:fcf32cade6b9ad7f73dc4cc79171a09c768b15316ba61ca61d9b49f4611b02ff
+-    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+-    evidence_hash: sha256:da293eb15cbfc770540e3dbbb1502a66d2ac247cd1625e742fc1b9a8e3fcbf6d
+-    reviewed_at: "2026-07-31T15:56:23Z"
+----
+-# Importi monetari decimali
+-
+-<!-- archetipo:wiki section=context -->
+-## Contesto
+-
+-Tariffe, rimborsi e totali richiedono precisione contabile. Il PRD, ADR-005, dichiara l'obiettivo di usare Decimal in database e applicazione invece di floating point.
+-
+-<!-- archetipo:wiki section=decision -->
+-## Decisione
+-
+-Rappresentare e persistere gli importi monetari con precisione decimale e normalizzare gli input a due cifre decimali.
+-
+-<!-- archetipo:wiki section=alternatives -->
+-## Alternative
+-
+-Usare `number`/floating point direttamente oppure memorizzare centesimi interi. Il PRD scarta il float per il rischio di arrotondamento; non seleziona il modello a centesimi.
+-
+-<!-- archetipo:wiki section=consequences -->
+-## Conseguenze
+-
+-Il database conserva tariffe e importi con scala due. I confini client devono serializzare i valori. L'obiettivo richiede disciplina anche nei calcoli intermedi; convertire a `number` riduce la garanzia end-to-end dichiarata.
+-
+-<!-- archetipo:wiki section=verification -->
+-## Verifica
+-
+-Prisma usa `Decimal(10,2)` per tariffa collaboratore, tariffa offerta e importo della voce di rimborso trasferta (`VoceRimborsoTrasferta.importo`); i validatori normalizzano stringhe decimali. Tuttavia `src/domain/consuntivi/index.ts` converte vari importi in `number`/`parseFloat` per somme e moltiplicazioni prima di formattare a due decimali. La decisione è adottata nello storage ma non integralmente nella catena applicativa; i test verificano gli output correnti, non precisione arbitraria.
+-
+-## Concetti correlati
+-
+-La decisione deriva dal [PRD originale](/references/prd.md) e influenza [Collaboratori](/domains/collaboratori.md), [Offerte](/domains/offerte.md), [Politiche di rimborso](/domains/politiche-rimborso.md) e [Fatturazione clienti](/domains/fatturazione-clienti.md).
+diff --git a/docs/wiki/decisions/tariffa-unica-collaboratore.md b/docs/wiki/decisions/tariffa-unica-collaboratore.md
+deleted file mode 100644
+index 3917b76..0000000
+--- a/docs/wiki/decisions/tariffa-unica-collaboratore.md
++++ /dev/null
+@@ -1,56 +0,0 @@
+----
+-type: decision
+-title: Tariffa unica per collaboratore
+-description: Mantenere una sola tariffa giornaliera per ogni collaboratore nel MVP
+-status: reviewed
+-decision_status: accepted
+-sources:
+-    - path: docs/PRD.md
+-      role: decision-source
+-    - path: prisma/schema.prisma
+-      role: implementation
+-      symbol: Collaboratore.tariffaGiornaliera
+-    - path: src/lib/attivita.ts
+-      role: implementation
+-      symbol: riepilogoMese
+-    - path: src/domain/consuntivi/index.ts
+-      role: implementation
+-      symbol: calcolaRiepilogoMese
+-    - path: tests/unit/riepilogo-mese.test.ts
+-      role: verification
+-review:
+-    content_hash: sha256:a6b5ee38c45859ea9be515dbab7f8dac4d31b0290c605e91aa87db485fe69de3
+-    evidence_revision: 8c555e4e212062e4ae73e66ea4b1b049cd082901
+-    evidence_hash: sha256:0f29620edea1bda892c515fadbac061787f49aa50c246597f9a89735e0605958
+-    reviewed_at: "2026-08-05T07:29:49Z"
+----
+-# Tariffa unica per collaboratore
+-
+-<!-- archetipo:wiki section=context -->
+-## Contesto
+-
+-Il riepilogo personale deve stimare la fattura del collaboratore. Il PRD, ADR-003, registra che il committente ha confermato una tariffa unica per collaboratore per l'MVP.
+-
+-<!-- archetipo:wiki section=decision -->
+-## Decisione
+-
+-Memorizzare una sola `tariffaGiornaliera` sul profilo Collaboratore e usarla per tutte le sue ore fatturabili.
+-
+-<!-- archetipo:wiki section=alternatives -->
+-## Alternative
+-
+-Consentire override della tariffa per cliente o offerta. Il PRD la rimanda alla crescita perché il bisogno non era emerso e avrebbe ampliato modello e configurazione.
+-
+-<!-- archetipo:wiki section=consequences -->
+-## Conseguenze
+-
+-Il calcolo della fattura personale è uniforme e la gestione anagrafica è semplice. Non è possibile rappresentare accordi diversi per singolo incarico; un'evoluzione dovrà stabilire precedenza e storicizzazione degli override.
+-
+-<!-- archetipo:wiki section=verification -->
+-## Verifica
+-
+-`Collaboratore` possiede un solo campo `tariffaGiornaliera`. `riepilogoMese` passa quella tariffa a `calcolaRiepilogoMese`; non esiste una tariffa collaboratore per offerta. I test coprono il calcolo. La tariffa dell'offerta esiste separatamente per la fatturazione cliente e non contraddice questa decisione.
+-
+-## Concetti correlati
+-
+-La decisione deriva dal [PRD originale](/references/prd.md) e influenza [Collaboratori](/domains/collaboratori.md) e [Attività](/domains/attivita.md).
+diff --git a/docs/wiki/domains/attivita.md b/docs/wiki/domains/attivita.md
+deleted file mode 100644
+index 6921b31..0000000
+--- a/docs/wiki/domains/attivita.md
++++ /dev/null
+@@ -1,195 +0,0 @@
+----
+-type: domain
+-title: Attività e consuntivazione
+-description: Consuntivazione giornaliera del lavoro, calendario e riepilogo mensile del collaboratore
+-status: reviewed
+-classification: candidate
+-sources:
+-    - path: src/lib/actions/righe-attivita.ts
+-      role: inbound-commands
+-      symbol: creaRiga, modificaRiga, eliminaRiga, rimuoviRimborsoTrasferta, duplicaRigaSuGiorni, fotografaVoceRimborsoTrasferta, verificaAbilitazioneOfferta, caricaRigaDelCollaboratore
+-    - path: src/lib/attivita.ts
+-      role: application-query
+-      symbol: attivitaDelMese, riepilogoMese, clientiAttiviPerSelezione, offerteAbilitatePerCliente, datiCalendarioMesePerCollaboratoreAutorizzato, righeDelGiornoPerCollaboratoreAutorizzato, contestoInserimentoPerCollaboratoreAutorizzato
+-    - path: src/lib/attivita-contract.ts
+-      role: application-query
+-      symbol: DatiCalendarioMese, SintesiGiorno, DatiGiornataAttivita, ContestoInserimentoGiornata, RigaAttivitaClient, ClienteSelect, VoceRimborsoTrasfertaSelezionabile
+-    - path: src/app/api/attivita/calendario/route.ts
+-      role: inbound-query
+-      symbol: GET
+-    - path: src/app/api/attivita/giornata/route.ts
+-      role: inbound-query
+-      symbol: GET
+-    - path: src/app/api/attivita/contesto-inserimento/route.ts
+-      role: inbound-query
+-      symbol: GET
+-    - path: src/app/api/attivita/offerte-cliente/route.ts
+-      role: inbound-query
+-      symbol: GET
+-    - path: src/lib/risposta-dati-privati.ts
+-      role: data-boundary
+-      symbol: rispostaDatiPrivati, INTESTAZIONI_DATI_PRIVATI
+-    - path: src/app/(front-office)/attivita/cache-dati-scheda.ts
+-      role: read-model-cache
+-      symbol: CacheDatiScheda, GuardiaIdentitaScheda, DURATA_FRESH_MS
+-    - path: src/app/(front-office)/attivita/calendario-cache.ts
+-      role: read-model-cache
+-      symbol: CacheCalendarioMesi
+-    - path: src/app/(front-office)/attivita/giornata-cache.ts
+-      role: read-model-cache
+-      symbol: CacheGiornateAttivita, CacheContestoInserimento
+-    - path: src/app/(front-office)/attivita/attivita-cache-provider.tsx
+-      role: read-model-cache
+-      symbol: AttivitaCacheProvider, ErroreSessioneAttivita
+-    - path: src/domain/calendario/index.ts
+-      role: supporting-domain
+-      symbol: parseDataGiorno, giornoSpostatoDi, etichettaMeseBreve
+-    - path: src/app/(front-office)/attivita/[data]/dettaglio-giornata.tsx
+-      role: inbound-ui
+-    - path: src/app/(front-office)/attivita/[data]/isola-giornata.tsx
+-      role: inbound-ui
+-    - path: src/app/(front-office)/attivita/[data]/selettore-duplicazione.tsx
+-      role: inbound-ui
+-    - path: src/app/(front-office)/attivita/calendario-mensile.tsx
+-      role: inbound-ui
+-    - path: src/app/(front-office)/attivita/selettore-mese.tsx
+-      role: inbound-ui
+-    - path: src/domain/consuntivi/index.ts
+-      role: domain-calculation
+-      symbol: validaOre, calcolaRiepilogoMese
+-    - path: prisma/schema.prisma
+-      role: owned-data
+-      symbol: RigaAttivita
+-    - path: tests/unit/righe-attivita-actions.test.ts
+-      role: verification
+-    - path: tests/unit/attivita.test.ts
+-      role: verification
+-    - path: tests/e2e/calendario-segregazione.spec.ts
+-      role: verification
+-    - path: tests/e2e/offerte-abilitate-inserimento.spec.ts
+-      role: verification
+-    - path: tests/e2e/clienti-abilitati-inserimento.spec.ts
+-      role: verification
+-    - path: tests/e2e/calendario-navigazione-reattiva.spec.ts
+-      role: verification
+-    - path: tests/e2e/calendario-cache-mesi.spec.ts
+-      role: verification
+-    - path: tests/unit/calendario-cache-provider.test.ts
+-      role: verification
+-    - path: tests/unit/attivita-calendario-route.test.ts
+-      role: verification
+-    - path: tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts
+-      role: verification
+-    - path: tests/e2e/rimborso-trasferta-selezione.spec.ts
+-      role: verification
+-    - path: tests/e2e/calendario-salto-mese.spec.ts
+-      role: verification
+-    - path: tests/unit/cache-dati-scheda.test.ts
+-      role: verification
+-    - path: tests/unit/attivita-giornata-routes.test.ts
+-      role: verification
+-    - path: tests/e2e/giornata-cache-cambio-giorno.spec.ts
+-      role: verification
+-    - path: tests/e2e/duplica-riga-su-giorni.spec.ts
+-      role: verification
+-review:
+-    content_hash: sha256:e1a0d53cb092bcd030a7147922387ef676f079940424d4ea40b4cee2d3e88c5e
+-    evidence_revision: 67133f5adf25203fb1b17a224c25b5b65dd89772
+-    evidence_hash: sha256:0c400ca71be96ec83a5b1e27f09fe4e69b12c3f5c1fc05f30857daf35727ca73
+-    reviewed_at: "2026-08-06T16:26:27Z"
+----
+-# Attività e consuntivazione
+-
+-<!-- archetipo:wiki section=purpose -->
+-## Scopo
+-
+-Permette a un collaboratore con profilo operativo di registrare e consultare le proprie ore giornaliere su cliente e offerta, indicare fatturabilità e l'eventuale voce di rimborso trasferta, navigare il calendario mensile e ottenere un riepilogo economico personale.
+-
+-<!-- archetipo:wiki section=language -->
+-## Linguaggio
+-
+-Riga attività, giornata, mese, ore, cliente, offerta, fatturabile, nota, voce di rimborso trasferta (etichetta + importo fotografati), tariffa giornaliera, giornate equivalenti e riepilogo mensile. Il token mese è `YYYY-MM`; la data di una riga è esposta come `YYYY-MM-DD`.
+-
+-<!-- archetipo:wiki section=ownership -->
+-## Ownership
+-
+-Possiede `RigaAttivita` e decide ammissibilità, proprietà e aggregazioni personali. Consuma profilo collaboratore, cliente, offerta e politica di rimborso. Il calendario è un supporting module senza persistenza. I report amministrativi sono downstream e leggono le righe come fatti.
+-
+-<!-- archetipo:wiki section=contracts -->
+-## Contratti
+-
+-`creaRiga`, `modificaRiga`, `eliminaRiga` e `rimuoviRimborsoTrasferta` restituiscono `{ success, error? }`; `duplicaRigaSuGiorni(rigaId, giorni)` restituisce la stessa forma arricchita del conteggio, `{ success, error?, giorniCreati? }`. Le query espongono attività per giorno/mese e un `RisultatoRiepilogoMese` serializzabile. Il profilo deve essere `ATTIVO`; le offerte selezionabili devono appartenere al cliente, essere attive ed essere abilitate per il collaboratore corrente tramite `AbilitazioneOfferta` (si veda la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md)). `creaRiga` rifiuta con errore visibile la creazione su un'offerta non abilitata, senza scrivere alcuna riga. `modificaRiga` richiede l'abilitazione solo quando la riga cambia offerta; a parità di offerta non la ricontrolla, così una riga storica su un'offerta nel frattempo non più abilitata resta modificabile ed eliminabile dal proprietario.
+-
+-`duplicaRigaSuGiorni(rigaId, giorni)` non condivide però quella clemenza: **riverifica sempre** coerenza offerta-cliente e abilitazione del collaboratore sull'offerta della riga di origine, perché non aggiorna una riga esistente ma ne crea di nuove, che devono rispettare le regole valide oggi. Ne discende una asimmetria osservabile: una riga storica su offerta decaduta o non più abilitata resta modificabile ed eliminabile, ma **non** duplicabile — il tentativo è rifiutato con errore visibile e nessuna riga viene creata su alcuno dei giorni scelti. I giorni di destinazione arrivano come token `YYYY-MM-DD` e sono normalizzati lato server prima di scrivere: formato obbligatorio, deduplica, esclusione del giorno di origine e rifiuto della lista che resta vuota; la selezione lato client applica le stesse regole, ma il server non si fida della UI.
+-
+-La stessa abilitazione governa anche la selezione a monte: `clientiAttiviPerSelezione()` restituisce i soli clienti attivi su cui il collaboratore corrente ha almeno un'offerta attiva abilitata, con `select { id, ragioneSociale }` e ordinamento per ragione sociale ascendente invariati; senza collaboratore corrente lancia `ErroreAutorizzazione` 401. Ne discendono due comportamenti del form giornata: quando l'elenco è vuoto e il form è in modalità «Nuova riga», al posto della select compare un messaggio esplicito che invita a contattare un amministratore e il salvataggio non è disponibile; in modifica il cliente della riga storica resta visibile e selezionato anche se il collaboratore non è più abilitato su alcuna sua offerta, così il salvataggio a parità di offerta resta consentito coerentemente con la regola server. Il filtro riguarda solo la selezione: le regole di ammissibilità su creazione e modifica restano quelle delle action.
+-
+-Il rimborso trasferta ha un contratto proprio, di sola selezione. Il form riga non chiede più una quantità: propone una tendina delle voci di rimborso correnti, la cui scelta è opzionale (`Nessun rimborso` è un'opzione legittima) e viene inviata come `voceRimborsoTrasfertaId`. `creaRiga` e `modificaRiga` non conservano il riferimento alla voce: la fotografano, cioè copiano sulla riga etichetta e importo correnti della voce scelta al momento del salvataggio (`fotografaVoceRimborsoTrasferta`), e rifiutano con errore visibile una voce non più esistente. In modifica la tendina espone anche l'opzione «Non modificare il rimborso attuale», che omette del tutto il campo dal `FormData`: è l'assenza del campo a far sì che `modificaRiga` lasci invariato il rimborso già fotografato. `rimuoviRimborsoTrasferta(rigaId)` azzera entrambi i campi fotografati. Il razionale è in [Fotografia del rimborso trasferta sulla riga attività](/decisions/fotografia-rimborso-trasferta.md).
+-
+-Il calendario mensile ha inoltre un contratto dati proprio. `datiCalendarioMesePerCollaboratoreAutorizzato(token, collaboratoreId)` restituisce `DatiCalendarioMese` (`{ token, collaboratoreId, sintesiPerGiorno }`), serializzabile e privo di griglia: riceve un collaboratore **già autorizzato** dal chiamante e non è una guardia. Lo stesso DTO è esposto da `GET /api/attivita/calendario?mese=YYYY-MM`, che deriva sempre il collaboratore dalla sessione server, non accetta alcun identificativo dal browser e risponde `400` su token assente o malformato, `401` senza sessione, `403` con profilo non operativo. Le risposte portano `Cache-Control: private, no-store` e `Vary: Cookie`, quindi la staleness è governata soltanto dalla cache client. Etichetta del mese e griglia delle 42 celle non fanno parte del contratto: il client le deriva dalle funzioni pure di `src/domain/calendario`.
+-
+-Anche la giornata ha ora un contratto dati proprio, diviso in due risorse perché la loro invalidazione è distinta. `righeDelGiornoPerCollaboratoreAutorizzato(data, collaboratoreId)` restituisce `DatiGiornataAttivita` (`{ data, collaboratoreId, righe }`) e `contestoInserimentoPerCollaboratoreAutorizzato(collaboratoreId)` restituisce `ContestoInserimentoGiornata` (`{ collaboratoreId, clienti, vociRimborso }`): come la lettura mensile, entrambe ricevono un collaboratore **già autorizzato** dal chiamante e **non sono guardie**: non risolvono sessione né profilo, e non vanno usate come punto in cui applicare l'autorizzazione. La lettura per giorno ha sostituito la precedente `righeDelGiorno`, che risolveva da sé il collaboratore corrente: oggi la serializzazione delle righe vive in un unico punto, così rendering server ed endpoint non possono divergere. I DTO serializzabili — `DatiGiornataAttivita`, `ContestoInserimentoGiornata`, `RigaAttivitaClient`, `ClienteSelect`, `VoceRimborsoTrasfertaSelezionabile` — vivono in `src/lib/attivita-contract.ts`, non più dichiarati dentro la pagina server e importati come tipi dal client.
+-
+-Gli stessi DTO sono esposti da `GET /api/attivita/giornata?data=YYYY-MM-DD` e `GET /api/attivita/contesto-inserimento`; a queste si aggiunge `GET /api/attivita/offerte-cliente?cliente=<id>`, che restituisce `{ offerte }` ed è la sorgente del cascade cliente → offerta del form (ha sostituito la server action `fetchOffertePerCliente`, perché la risposta di una server action riconcilia l'albero RSC del router con l'URL e, dopo un cambio giorno scritto con la History API, quella riconciliazione rimonterebbe la pagina azzerando il form in compilazione). Tutte e tre derivano **sempre** il collaboratore dalla sessione server e non accettano alcun identificativo dal browser: `giornata` e `offerte-cliente` accettano un solo parametro ciascuna (rispettivamente `data` e `cliente`) e rispondono `400` su quel parametro assente o malformato — rilevato prima di interrogare il read model; `contesto-inserimento` non dichiara alcun parametro di richiesta e non ha quindi un caso `400`. Tutte e tre rispondono `401` senza sessione, `403` con profilo non operativo, `200` con il DTO; nessun dettaglio dell'errore interno esce dal confine. Le risposte portano le stesse intestazioni private del calendario, `Cache-Control: private, no-store` e `Vary: Cookie`, condivise nella convenzione unica `rispostaDatiPrivati` di `src/lib/risposta-dati-privati.ts`: la staleness è governata soltanto dalla cache client.
+-
+-<!-- archetipo:wiki section=flows -->
+-## Flussi osservati
+-
+-1. Le pagine e le action risolvono il profilo; solo l'esito derivato `ATTIVO` consente operazioni.
+-2. Il form giornata popola la select cliente con i soli clienti abilitati (`clientiAttiviPerSelezione`) e la select offerta con `offerteAbilitatePerCliente`. Se non esiste alcun cliente abilitato, in modalità «Nuova riga» la select cliente è sostituita da un box `nessun-cliente-abilitato` e il pulsante «Aggiungi riga» è disabilitato. All'ingresso in modifica, `handleModifica` inietta in coda alle option il cliente della riga storica quando non è più fra quelli abilitati — stesso trattamento già applicato all'offerta storica — così la riga resta modificabile; il banner per-cliente `nessuna-offerta-abilitata` compare solo se l'utente cambia esplicitamente cliente verso uno senza offerte abilitate.
+-3. La creazione verifica campi, coerenza offerta-cliente, stato offerta, abilitazione del collaboratore sull'offerta, ore e formato data, poi `src/lib/actions/righe-attivita.ts` (`creaRiga`) crea una `RigaAttivita` per il collaboratore corrente e assegna esattamente cliente, offerta, data, ore, nota, `fatturabile` e la coppia `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` fotografata dalla voce eventualmente scelta nella tendina. Senza selezione entrambi i campi restano `null` e la riga è valida.
+-4. `modificaRiga`, `eliminaRiga` e `rimuoviRimborsoTrasferta` caricano prima la riga corrente e verificano che `RigaAttivita.collaboratoreId` coincida con il collaboratore corrente (`caricaRigaDelCollaboratore`). `rimuoviRimborsoTrasferta` assegna esattamente `rimborsoTrasfertaEtichetta: null` e `rimborsoTrasfertaImporto: null` nello stesso file; l'eliminazione cancella il record e non è una transizione di stato.
+-5. `modificaRiga` costruisce un aggiornamento parziale. Rifotografa etichetta e importo soltanto se il `FormData` contiene `voceRimborsoTrasfertaId`: una modifica che non tocca la tendina lascia invariato il rimborso già fotografato, mentre una selezione vuota lo azzera. Assegna `fatturabile` soltanto se il `FormData` contiene il campo; non legge uno stato sorgente né modella transizioni nominate. Quando il form invia un'`offertaId` diversa da quella della riga, `modificaRiga` riverifica coerenza offerta-cliente (usando il cliente del form o, in assenza, quello della riga) e abilitazione sulla nuova offerta, rifiutando l'aggiornamento con errore visibile in caso contrario; a parità di offerta nessuna delle due verifiche viene ripetuta.
+-6. Ogni riga già salvata espone nella propria card l'azione «Duplica…», che apre un pannello modale (`role="dialog"`, `aria-modal="true"`) sopra il dettaglio giornata. Il collaboratore compone lì l'elenco dei giorni di destinazione un giorno alla volta: date arbitrarie, non necessariamente contigue e anche appartenenti a mesi diversi, mostrate raggruppate per mese e rimuovibili singolarmente. Il giorno di origine non entra nell'elenco (il tentativo produce un avviso e lascia il conteggio invariato) e la conferma resta indisponibile finché l'elenco è vuoto. Alla conferma `duplicaRigaSuGiorni` ricarica la riga di origine una sola volta (`caricaRigaDelCollaboratore`, la cui `select` legge oggi anche `data, ore, nota, fatturabile` e la coppia del rimborso), riverifica l'ammissibilità e scrive tutte le copie con una sola `createMany`: o tutti i giorni ammessi ricevono la riga, o non ne viene creata nessuna. Ogni copia riporta cliente, offerta, ore, nota e fatturabilità della sorgente **e** la stessa coppia `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` già congelata su di essa: etichetta e importo sono **copiati dalla riga sorgente**, e il catalogo delle voci di rimborso non viene interrogato affatto (`fotografaVoceRimborsoTrasferta` non è invocata su questo percorso). La pagina dichiara poi in un banner su quanti giorni la riga è stata replicata, elencandoli; un rifiuto compare invece come errore `role="alert"` dentro il pannello ancora aperto.
+-7. La lettura mensile filtra sempre per `collaboratoreId` e intervallo del mese (`orderBy: data asc, createdAt asc`), poi aggrega per giorno: numero righe, ore totali e, per ciascun cliente con attività quel giorno, ragione sociale e ore cumulate su tutte le sue offerte, in ordine di prima apparizione. La cella del calendario mostra fino a due etichette cliente con le ore, oltre le quali compare un indicatore "+N" con i clienti rimanenti; il codice offerta non è più mostrato nella cella.
+-8. Il calendario è un'isola client sopra un rendering server autorevole. Primo ingresso, URL diretto e reload passano da `page.tsx`, che ora riusa la sessione già verificata per risolvere il profilo e passa l'id del collaboratore autorizzato alla lettura specializzata: cinque statement SQL per rendering invece di undici, perché sessione e profilo non vengono più risolti tre e due volte. Dopo l'idratazione, un provider montato dal layout `/attivita` conserva i DTO mensili nella sola memoria della scheda (nessuno storage persistente), con finestra fresca di 300 secondi e limite LRU di 12 mesi, e prefetcha i due mesi adiacenti dopo ogni commit. Un mese fresco viene mostrato con un commit sincrono e la History API nativa (`window.history.pushState`, integrata nel router di Next e quindi senza navigazione RSC): nessuna richiesta né alla pagina né all'endpoint. `popstate` gestisce Back e Forward dalla stessa cache, senza creare nuove entry. Il contratto URL `?mese=YYYY-MM` resta invariato e condivisibile, e il pulsante «Mese corrente» continua a portare su `/attivita` senza query. Il salto diretto a un mese lontano non è un controllo affiancato all'etichetta: è **l'etichetta stessa**. Il testo del mese è un `<button>` con `aria-haspopup="dialog"` e `aria-expanded` che apre un pannello ancorato sotto di sé (un popover, non una modale: nessun velo, nessuna centratura, nessun focus trap), composto da una riga di navigazione dell'anno e da una griglia 3 × 4 dei dodici mesi abbreviati; la cella il cui token coincide con il mese in griglia porta `aria-current="true"`, e quando l'anno mostrato non è quello del mese in griglia nessuna cella è evidenziata e la riga dell'anno lo dichiara. La scelta di una cella chiude il pannello e cambia subito il mese: non esiste alcun passaggio di conferma. Il pannello si chiude senza effetti anche con `Esc` o con un clic fuori, e ogni apertura rilegge il mese effettivamente in griglia, quindi un anno navigato senza scegliere non sopravvive alla chiusura. Da tastiera il percorso è completo: `Tab` raggiunge l'etichetta, `Invio` apre portando il focus sulla cella del mese in griglia, le frecce orizzontali attraversano il confine dell'anno (da gennaio a dicembre dell'anno precedente e viceversa) mentre le verticali spostano di tre celle dentro l'anno, `Invio` sceglie e `Esc` chiude. In entrambi i casi di chiusura il focus torna sull'etichetta, cioè dove l'utente era, e non cade sul corpo del documento; il focus segue la cella attiva **solo** quando è la tastiera a spostarla, altrimenti scorrere più anni di seguito con i due pulsanti dell'anno sarebbe impossibile senza mouse. Resta vera l'affermazione strutturale che regge tutto il resto: non è un percorso di navigazione parallelo ma un ulteriore ingresso verso lo stesso intento `vaiA` usato da frecce, «Mese corrente» e Back/Forward. Ne discendono senza codice aggiuntivo il medesimo indicatore di attesa sul mese non ancora in cache, la stessa scrittura dell'URL `?mese=YYYY-MM` dentro il commit e quindi solo a dati pronti, e la piena coerenza dei controlli esistenti a partire dal mese raggiunto. Le etichette abbreviate della griglia sono dodici costanti dichiarate in `src/domain/calendario/index.ts` (`etichettaMeseBreve`) e non derivate da `Intl`, perché devono restare corte e stabili fra versioni di ICU; l'etichetta lunga del trigger e i nomi accessibili delle celle restano invece prodotti da `etichettaMese`.
+-9. Sul mese non ancora disponibile (miss) la griglia precedente resta visibile, l'area calendario espone `aria-busy=true` con l'indicatore di caricamento e parte una sola lettura deduplicata; il dato e l'URL vengono committati solo se quella destinazione è ancora l'ultima richiesta dall'utente, così una risposta tardiva non sovrascrive il mese che l'utente sta guardando. Una lettura fallita mantiene la griglia precedente e mostra un errore `role="alert"` con «Riprova»; una sessione decaduta svuota la cache e provoca una navigazione completa. Ogni DTO dell'area dichiara il collaboratore a cui appartiene: se una risposta ne indica un altro — caso di un accesso con un altro account nella stessa finestra, che non produce alcun `401` — la guardia d'identità **condivisa** fra le tre cache della scheda (mesi, giornate, contesto) le svuota tutte insieme con una sola notifica e l'isola client viene abbandonata. La guardia è condivisa proprio perché un *fresh hit* non emette per costruzione alcuna richiesta che possa accorgersi del cambio account: senza condivisione, un cambio rilevato dal calendario lascerebbe leggibili le giornate del collaboratore precedente.
+-10. La staleness è delimitata da mitigazioni effettive, non dalla sola navigazione successiva: una entry scaduta viene mostrata subito e provoca **una sola** rivalidazione in background, un timer scatta alla scadenza della risorsa attiva, e al ritorno sulla scheda (`focus`/`visibilitychange`) la rivalidazione è forzata anche se la entry è ancora fresca — altrimenti quel ritorno non delimiterebbe alcuna staleness. Dopo una mutazione le due invalidazioni restano distinte e complementari: le cinque action continuano a fare `revalidatePath` su giorno, riepilogo e `/attivita`, proteggendo il rendering SSR/RSC — `duplicaRigaSuGiorni` lo fa su **ciascun** giorno di destinazione — mentre il dettaglio giornata invalida nelle cache client **sia le giornate mutate sia i token di mese che le contengono** e poi rilegge la giornata, il cui esito raggiunge la vista attraverso la sottoscrizione agli aggiornamenti in background. `router.refresh()` non è più usato su questo percorso: sarebbe ridondante — la risposta della server action invalida già la Router Cache client per quei percorsi — e dannoso, perché rigenererebbe l'albero RSC del giorno da cui l'utente è partito, riportando la vista sul giorno sbagliato dopo un cambio giorno client (resta solo come ripiego quando il provider non è montato). Il giorno invalidato è quello **visualizzato**, non quello dell'ultimo payload server, perché dopo un cambio giorno i due possono differire. Una mutazione può però toccare più di un giorno — la duplicazione di una riga su più giornate — e allora l'insieme invalidato non è più singolo: il dettaglio giornata calcola l'unione fra giorno visualizzato e giorni aggiuntivi ricevuti dalla mutazione, ne deriva i **token di mese distinti** e invalida entrambe le cache con una sola chiamata varargs ciascuna. La rilettura forzata resta invece limitata al solo giorno visualizzato: i giorni di destinazione restano invalidati e vengono riletti al primo ingresso, mentre forzarne subito la rilettura produrrebbe N richieste per dati che l'utente non sta guardando. È da questa invalidazione dei mesi distinti che discende la valorizzazione delle celle di un mese diverso da quello di partenza senza alcun reload: l'isola del calendario non può più riusare la sintesi memorizzata di quel mese. Un'invalidazione neutralizza anche le risposte già in volo. Una modifica proveniente da un'altra scheda può restare invisibile per al massimo 300 secondi; un reload distrugge la cache e rilegge dal server. Le scelte e i loro limiti sono registrati in [Cache client dell'area attività del collaboratore — mesi del calendario e giornate](/decisions/cache-client-calendario-collaboratore.md).
+-11. Anche il dettaglio giornata è un'isola client sopra un rendering server autorevole: `page.tsx` produce giornata e contesto di inserimento e li passa a `isola-giornata.tsx`, che li semina nelle cache della scheda e da lì in poi possiede breadcrumb, controlli e giornata mostrata. Il selettore data e i due pulsanti «Giorno precedente»/«Giorno successivo» (funzione pura `giornoSpostatoDi`) raggiungono qualsiasi giorno, anche di un mese diverso, ma **non** con una navigazione RSC: un giorno fresco viene mostrato con un commit sincrono e la History API nativa (`window.history.pushState`), senza alcuna richiesta né alla pagina né all'endpoint. Sul giorno non ancora in cache (miss) restano visibili le righe precedenti, il contenitore `contenuto-giornata` espone `aria-busy=true` con l'indicatore di caricamento, e dato e URL vengono committati **solo** se quella destinazione è ancora l'ultima richiesta dall'utente: l'URL è scritto dentro il commit, cioè solo a dati pronti. Dopo ogni commit vengono prefetchati i soli giorni adiacenti (più o meno uno); un salto lontano dal selettore data resta per scelta un miss. `popstate` serve Back e Forward dalla stessa cache, senza creare nuove entry di cronologia. Il contratto URL `/attivita/{data}` è invariante — con `?mese=` preservato quando la pagina è stata aperta dal calendario, e riallineato al mese del giorno di **destinazione** attraversando un confine di mese — quindi reload e link profondo continuano a essere serviti dal server con intestazione e righe coerenti. Il form di inserimento/modifica riga viene ancora azzerato a ogni cambio giorno dal remount forzato con `key`, ma il `key` è ora comandato dall'isola client (`<DettaglioGiornata key={giornoVisualizzato}>`) anziché dalla pagina server: il meccanismo non cambia natura, cambia solo chi lo impone. Una lettura fallita mantiene la giornata precedente e mostra un errore con «Riprova»; una risposta che dichiara un altro collaboratore svuota tutte le cache della scheda e provoca una navigazione completa.
+-12. Il contesto di inserimento — clienti abilitati e voci di rimborso trasferta — è una risorsa **invariante rispetto al giorno** e vive in una cache a voce singola, distinta da quella delle giornate proprio perché la sua invalidazione è distinta. Viene seminato dal rendering server e non è più richiesto ad ogni cambio giorno: la select cliente resta popolata attraversando i giorni senza alcuna GET a `/api/attivita/contesto-inserimento`. La sua freschezza è delimitata dalle stesse mitigazioni del mese e della giornata — scadenza a 300 secondi con timer dedicato e rivalidazione **forzata** al ritorno sulla scheda — perché senza di esse clienti e voci resterebbero quelli del primo rendering per tutta la vita della scheda. Le offerte del cliente selezionato restano invece una lettura puntuale su `GET /api/attivita/offerte-cliente`, non memorizzata nella cache della scheda.
+-13. Come ottimizzazione del percorso freddo, la lettura del calendario seleziona soltanto `data`, `ore`, `createdAt` e `cliente { id, ragioneSociale }` su un intervallo half-open, e `RigaAttivita` ha un indice composto `@@index([collaboratoreId, data, createdAt])` che sostiene filtro e ordinamento. Riguarda il costo di ogni singola lettura, non l'assenza di richieste sul ritorno: quella dipende dalla cache client. I 42 link giorno usano `prefetch={false}`, perché su rotta dinamica il loro prefetch non trasporta i dati della giornata.
+-14. Il riepilogo somma ore, converte con 8 ore/giorno, include nell'imponibile solo ore fatturabili e somma i rimborsi già fotografati sulle righe, senza alcun ricalcolo: `calcolaRiepilogoMese` e `calcolaReportFatturazioneClienti` non ricevono più alcuna configurazione di rimborso e leggono direttamente `rimborsoTrasfertaImporto`.
+-15. Non esiste uno stato lifecycle persistito della riga. La presenza o assenza del rimborso fotografato non è una transizione.
+-16. Un lettore amministrativo downstream, `storicoAttivitaCollaboratore` in `src/lib/collaboratori.ts`, legge tutte le righe di un collaboratore con cliente e offerta (`orderBy: data asc, createdAt asc`) per la pagina di dettaglio del collaboratore, che le raggruppa per mese solare decrescente con la funzione pura `raggruppaAttivitaPerMese` di `src/domain/consuntivi/index.ts` (totali ore e giornate equivalenti a 8 ore/giornata).
+-
+-<!-- archetipo:wiki section=code -->
+-## Codice
+-
+-| Aspetto | Percorsi |
+-|---|---|
+-| UI | `src/app/(front-office)/attivita/**` |
+-| Comandi | `src/lib/actions/righe-attivita.ts` |
+-| Query | `src/lib/attivita.ts`, contratto condiviso `src/lib/attivita-contract.ts` |
+-| Calendario | `src/domain/calendario/index.ts` |
+-| Isola calendario | `src/app/(front-office)/attivita/calendario-mensile.tsx`, `selettore-mese.tsx` |
+-| Confine dati calendario | `src/app/api/attivita/calendario/route.ts` |
+-| Confini dati della giornata | `src/app/api/attivita/giornata/route.ts`, `src/app/api/attivita/contesto-inserimento/route.ts`, `src/app/api/attivita/offerte-cliente/route.ts`, intestazioni condivise in `src/lib/risposta-dati-privati.ts` |
+-| Cache di scheda | `src/app/(front-office)/attivita/cache-dati-scheda.ts` (`CacheDatiScheda`, `GuardiaIdentitaScheda`), `calendario-cache.ts` (mesi, LRU 12), `giornata-cache.ts` (`CacheGiornateAttivita` LRU 31, `CacheContestoInserimento` a voce singola), `attivita-cache-provider.tsx`, `layout.tsx` |
+-| Isola giornata | `src/app/(front-office)/attivita/[data]/isola-giornata.tsx`, `[data]/page.tsx`, `[data]/dettaglio-giornata.tsx`, `[data]/selettore-duplicazione.tsx` |
+-| Regole e riepilogo | `src/domain/consuntivi/index.ts` (`validaOre`, `calcolaRiepilogoMese`) |
+-| Dati | `prisma/schema.prisma` (`RigaAttivita`, indice `RigaAttivita_collaboratore_data_createdAt_idx` dalla migrazione `20260728201452_indice_calendario_collaboratore`) |
+-| Test | `tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/unit/calendario.test.ts`, `tests/unit/riepilogo-mese.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/e2e/calendario-segregazione.spec.ts`, `tests/e2e/offerte-abilitate-inserimento.spec.ts`, `tests/e2e/clienti-abilitati-inserimento.spec.ts`, `tests/e2e/calendario-navigazione-reattiva.spec.ts`, `tests/unit/calendario-cache-provider.test.ts`, `tests/unit/attivita-calendario-route.test.ts`, `tests/e2e/calendario-cache-mesi.spec.ts`, `tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts`, `tests/e2e/rimborso-trasferta-selezione.spec.ts`, `tests/e2e/calendario-salto-mese.spec.ts`, `tests/unit/cache-dati-scheda.test.ts`, `tests/unit/attivita-giornata-routes.test.ts`, `tests/e2e/giornata-cache-cambio-giorno.spec.ts`, `tests/e2e/duplica-riga-su-giorni.spec.ts` e scenari attività dedicati |
+-
+-<!-- archetipo:wiki section=invariants -->
+-## Invarianti e limiti
+-
+-Le ore devono essere maggiori di zero e non superiori a 24 per singola riga; non esiste un limite alla somma giornaliera. Il rimborso, se presente, è una coppia etichetta/importo fotografata al salvataggio; non esiste più alcun vincolo di copertura da uno scaglione. La proprietà è applicata da filtri e controlli applicativi. Lo schema ha tre FK separate e non impone che `RigaAttivita.clienteId` coincida con il cliente dell'offerta. La creazione verifica sempre la coppia offerta-cliente e l'abilitazione; `modificaRiga` le ricontrolla entrambe non appena il form invia un'offerta diversa da quella corrente, usando il cliente del form o, in assenza, quello della riga — una modifica che lascia l'offerta invariata non le rivaluta. Inoltre `dettaglio-giornata.tsx` invia `fatturabile` soltanto quando la checkbox è selezionata e `modificaRiga` ignora il campo assente: dal flusso UI osservato una riga `true` non può quindi essere salvata come `false`. La regex delle action verifica il formato data ma non la validità civile; `Date.UTC` normalizza date impossibili. La duplicazione **non** confronta le righe già presenti sui giorni di destinazione: aggiunge righe, non le deduplica, quindi duplicare due volte sullo stesso giorno produce due righe identiche e nessun avviso. Il giorno di origine da escludere non è dedotto dall'URL ma derivato dalla riga con i getter **UTC** di `RigaAttivita.data`: la colonna è `@db.Date` e Prisma la restituisce a mezzanotte UTC, quindi i getter locali sposterebbero il giorno indietro nei fusi a offset negativo. La tariffa corrente del collaboratore ricalcola retroattivamente l'imponibile del riepilogo, ma i rimborsi trasferta restano quelli fotografati sulle singole righe e non sono più influenzati dalla configurazione corrente: modificare o disattivare una voce del catalogo non altera nessuna riga già salvata.
+-
+-<!-- archetipo:wiki section=verification -->
+-## Verifica
+-
+-La suite unit copre segregazione, CRUD, validazioni, calendario, rimborso, riepilogo e l'enforcement dell'abilitazione offerta in `creaRiga`/`modificaRiga` (`tests/unit/righe-attivita-actions.test.ts`) e il filtro delle query `offerteAbilitatePerCliente` e `clientiAttiviPerSelezione` (`tests/unit/attivita.test.ts`, dove il payload Prisma esatto e la guardia `ErroreAutorizzazione` sono asseriti per entrambe), oltre alle due letture autorizzate della giornata introdotte da questa spec: `righeDelGiornoPerCollaboratoreAutorizzato` (payload Prisma e DTO serializzato, `righe` vuoto senza interrogare il database su una data malformata o civilmente non valida, nessuna risoluzione di sessione) e `contestoInserimentoPerCollaboratoreAutorizzato` (payload di clienti e voci di rimborso, `collaboratoreId` riportato nel DTO). Gli E2E coprono flussi browser, ma alcuni scenari storici usano seed condivisi mentre i test mutanti recenti adottano factory e risorse riservate; `tests/e2e/offerte-abilitate-inserimento.spec.ts` copre la select offerte filtrata, il messaggio di assenza offerte abilitate — ora osservato sul cambio cliente esplicito durante la modifica, unico percorso ancora raggiungibile dopo il filtro dei clienti — e la modifica/eliminazione di una riga storica su offerta non abilitata. `tests/e2e/clienti-abilitati-inserimento.spec.ts` copre la select clienti filtrata (cliente abilitato presente, non abilitato assente), il messaggio `nessun-cliente-abilitato` con select assente e «Aggiungi riga» disabilitato, e la riga storica su cliente non abilitato che resta selezionata e salvabile a parità di offerta. La reattività della navigazione mensile è coperta da `tests/e2e/calendario-navigazione-reattiva.spec.ts`, che trattiene la lettura dati del mese di destinazione per osservare l'indicatore di caricamento. L'assenza di round-trip sul ritorno a un mese già visitato è provata da `tests/e2e/calendario-cache-mesi.spec.ts` con un gate che conta **e** aborta sia le navigazioni RSC verso `/attivita` sia le GET verso `/api/attivita/calendario`, così spostare i dati su un endpoint nuovo non può generare un falso positivo; lo stesso file copre miss con griglia precedente, race con risposte invertite, Back/Forward, reload e invalidazione dopo una mutazione. Le semantiche della cache — bordo esatto dei 300 000 ms, singola rivalidazione, deduplica, espulsione LRU, invalidazione di una risposta in volo e svuotamento — sono provate con orologio iniettato in `tests/unit/calendario-cache-provider.test.ts`, senza timer reali. Il confine dati è coperto da `tests/unit/attivita-calendario-route.test.ts` per validazione, 401/403 e header, dai casi sulla guardia d'identità in `tests/unit/calendario-cache-provider.test.ts`, e da `tests/e2e/calendario-segregazione.spec.ts`, che con due collaboratori factory prova sul browser che la risposta non contiene dati altrui. Confidenza alta sul comportamento descritto; i limiti server-side sono osservazioni esplicite, non invarianti presunte. `tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts` copre il cambio giorno dal dettaglio giornata: il selettore data verso un giorno di un mese diverso (URL, intestazione e righe aggiornati), i pulsanti «Giorno precedente»/«Giorno successivo» attraverso un confine di mese in entrambe le direzioni, la registrazione della riga aggiunta dopo il cambio sul giorno effettivamente visualizzato — verificata anche nella cella corrispondente del calendario mensile — e la persistenza dell'URL al reload. `tests/e2e/rimborso-trasferta-selezione.spec.ts` copre la selezione della voce di rimborso dalla tendina, la fotografia di etichetta e importo sulla riga salvata e l'invarianza della riga rispetto a una successiva modifica del catalogo. Il salto diretto dall'etichetta è coperto da `tests/e2e/calendario-salto-mese.spec.ts` con quattro scenari. Il primo apre il selettore dal calendario del mese corrente e verifica che il vecchio controllo separato non esista più (`toHaveCount(0)` sulla label «Vai a un mese specifico» e sul pulsante «Vai al mese selezionato»), che `aria-expanded` passi da `false` a `true`, che il pannello mostri l'anno in griglia con la sua cella `aria-current="true"` e che, portato l'anno su quello di un mese riservato, nessuna cella resti evidenziata; la scelta della cella chiude il pannello, valorizza la cella del giorno con l'etichetta cliente attesa e scrive il token `?mese=YYYY-MM` nell'URL, che sopravvive al reload. Il secondo prova la chiusura senza scelta due volte — con `Esc` e con un clic fuori sulla legenda — lasciando invariati sia l'etichetta del mese sia l'URL. Il terzo non usa il mouse dopo il `focus()` iniziale: `Invio` apre il pannello con il focus sulla cella del mese in griglia, le pressioni di `ArrowLeft` attraversano il confine dell'anno fino a dicembre dell'anno precedente, `Invio` sceglie senza conferma e, riaperto il pannello, `Esc` lo chiude riportando il focus sul trigger. Il quarto conserva la regressione sul feedback di attesa: un salto verso un mese quarantadue mesi precedente a quello di partenza — quindi fuori dal prefetch dei mesi adiacenti e mai un hit di cache — mostra l'indicatore già esistente con `aria-busy=true` finché la lettura resta trattenuta, per poi scomparire a celle valorizzate. Come in `calendario-navigazione-reattiva.spec.ts` la finestra di attesa non nasce da un throttling reale né da un hard wait, ma da una `page.route` registrata prima del `goto` e sbloccata da una promessa dopo le asserzioni, così lo scenario resta deterministico e parallelizzabile. La navigazione dell'anno negli helper non è un ciclo di polling: l'anno mostrato è letto una sola volta e il numero di clic è calcolato prima di iniziare.
+-
+-La funzione pura che alimenta le celle del selettore è coperta a parte in `tests/unit/calendario.test.ts`: `NOMI_MESI_ABBREVIATI` ha dodici etichette tutte distinte, `etichettaMeseBreve` rispetta l'ordine civile, ogni abbreviazione è prefisso dell'etichetta lunga prodotta da `etichettaMese` — così la costante dichiarata resta legata alla formattazione `Intl` senza dipendere dai suoi valori esatti — e un mese fuori intervallo o non intero non produce alcuna etichetta. Non esiste un test di componente del selettore: il setup vitest è `environment: "node"` senza alcuna infrastruttura DOM, e i criteri che contano (URL, `history`, focus, DOM idratato) sono osservabili solo nel browser.
+-
+-Il cambio giorno servito dalla cache è coperto da `tests/e2e/giornata-cache-cambio-giorno.spec.ts`, su collaboratori e righe creati dalle factory in giorni riservati alla spec. Il suo oracolo di rete conta **e** aborta insieme le navigazioni verso `/attivita/{data}` e le GET verso `/api/attivita/giornata` e `/api/attivita/contesto-inserimento`: un dato che comparisse grazie a una richiesta farebbe fallire l'asserzione invece di passare, quindi spostare i dati su un endpoint diverso non può produrre un falso positivo. I dodici scenari provano il ritorno a un giorno già visitato con contatore a zero e righe, totali e URL corretti; Back e Forward dalla stessa cache senza nuove voci di cronologia (`history.length` invariato); un click su «Giorno precedente» durante il miss verso il giorno successivo, che non produce una voce di cronologia duplicata quando la destinazione ricalcolata coincide già con l'URL corrente; il giorno mai visitato, che trattiene la risposta e mostra `aria-busy=true` su `contenuto-giornata` con l'indicatore visibile mentre righe e URL restano quelli del giorno di partenza, per poi passare al nuovo giorno solo al rilascio; tre cambi giorno consecutivi con zero richieste al contesto di inserimento e la select cliente ancora popolata con la ragione sociale del cliente factory; il form che riparte azzerato ad ogni cambio giorno; il salvataggio dopo un cambio giorno, che lascia la vista sul giorno salvato e il cui dato sopravvive al cambio giorno, al ritorno e alla cella del calendario mensile; il cambio account nella stessa finestra, dopo il quale il dettaglio non mostra né righe né clienti del collaboratore precedente; il selettore data svuotato che torna a descrivere il giorno effettivamente mostrato invece di restare a metà; il rientro nell'isola da un'altra rotta (Indietro dal calendario) che mostra il giorno dell'URL e non quello dell'albero RSC ripristinato dal router; una risposta trattenuta e rilasciata dopo che l'utente ha già lasciato l'isola, che non riscrive né l'URL né la cronologia; e reload e link profondo con `?mese=`, serviti dal server con il contratto URL invariato. Le attese nascono sempre da una `page.route` sbloccata da una promessa del test, mai da un hard wait, e l'idratazione dell'isola è attesa esplicitamente (`data-idratata`) perché prima di essa un click sui controlli del giorno è un no-op.
+-
+-La duplicazione su più giorni è provata a due livelli con confini netti. Negli unit (`tests/unit/righe-attivita-actions.test.ts`, blocco `duplicaRigaSuGiorni`, con il solo Prisma/DAL mockato) l'oracolo è il payload di `createMany`, asserito campo per campo — `collaboratoreId`, `clienteId`, `offertaId`, `data` normalizzata a mezzogiorno UTC, `ore`, `nota`, `fatturabile` ed etichetta/importo del rimborso — su tre giorni di cui uno in un mese diverso, con una sola chiamata; la propagazione della fotografia è provata dall'**assenza** di qualunque lettura del catalogo (`voceRimborsoTrasferta.findUnique` asserito non chiamato), perché la sola uguaglianza dei valori passerebbe anche con una rilettura che per caso coincide. Gli stessi test asseriscono deduplica ed esclusione del giorno di origine sul payload effettivo, il risultato `{ success: true, giorniCreati }` con l'invalidazione di ciascun giorno più riepilogo e `/attivita` (`aspettatiPercorsiInvalidati`), e sei rifiuti — lista vuota, lista con il solo giorno di origine, data malformata, offerta non più attiva, abilitazione revocata, riga di un altro collaboratore e profilo assente — tutti verificati come **nessuna scrittura e nessuna invalidazione** (`aspettataNessunaInvalidazione`), non come semplice messaggio di errore. Sul browser, `tests/e2e/duplica-riga-su-giorni.spec.ts` copre tre scenari su collaboratore, cliente, offerta e riga sorgente creati dalle factory in giorni riservati alla spec: la replica su tre giorni non contigui di cui uno in un secondo mese riservato, con il conteggio nel selettore, il banner d'esito che dichiara «3 giorni» e la verifica su ciascun giorno di destinazione di ragione sociale, codice offerta, `6.0 h`, badge `Fatt.`, etichetta e importo del rimborso — e, nello stesso scenario e **senza alcun reload**, il ritorno al calendario e il salto al mese di destinazione con il selettore aperto dall'etichetta del mese, dove la cella espone `data-con-attivita="true"` e l'etichetta cliente con le ore; le guardie del selettore a pista vuota (conferma `disabled`, avviso sul giorno di origine che non entra in pista e conteggio invariato, conferma abilitata dopo una data valida); e il rifiuto su una riga storica di un'offerta non abilitata, con l'errore `role="alert"` nel pannello, nessun banner d'esito e il giorno scelto riaperto **dal server** che non contiene alcuna `activity-row`. Non esiste un unit test del wiring dell'invalidazione multi-mese nell'isola: il suo oracolo è la cella del calendario, osservabile solo nel browser.
+-
+-Le semantiche della cache generalizzata sono provate con orologio e caricatore iniettati in `tests/unit/cache-dati-scheda.test.ts`, senza timer reali: la guardia d'identità condivisa (una risposta di un altro collaboratore rende illeggibili giornate **e** contesto insieme, con una sola notifica, e dopo lo svuotamento entrambe accettano la nuova identità), la cache delle giornate (semina indicizzata per data servita fresca senza invocare il caricatore, bordo esatto della finestra fresca dove tre letture consecutive producono **una sola** rivalidazione, limite LRU di 31 giornate che non espelle mai quella appena scritta) e la cache del contesto (chiave costante, quindi due semine non fanno crescere la cache oltre una voce; `revalida` che forza la lettura anche su voce fresca; invalidazione che neutralizza una risposta già in volo). Che `CacheCalendarioMesi` conservi il comportamento precedente alla generalizzazione è provato da `tests/unit/calendario-cache-provider.test.ts`, che resta verde senza modifiche. I tre confini dati della giornata sono coperti da `tests/unit/attivita-giornata-routes.test.ts` con il solo DAL mockato: `400` su parametro assente, malformato o vuoto rilevato **prima** di interrogare il read model, `401` senza sessione, `403` propagato come tale e non come `500`, `200` con il DTO e le intestazioni `Cache-Control: private, no-store` e `Vary: Cookie`, elenco vuoto legittimo per un cliente senza offerte abilitate, e nessun dettaglio interno esposto su errore inatteso. La sicurezza è provata come per il calendario, verificando che l'unico id collaboratore passato alla lettura sia quello risolto dal DAL e che dal browser non arrivi alcuna identità: la route del contesto non dichiara alcun parametro di richiesta.
+-
+-## Concetti correlati
+-
+-Le letture dell'area attività — mesi del calendario, giornate e contesto di inserimento — seguono [Cache client dell'area attività del collaboratore — mesi del calendario e giornate](/decisions/cache-client-calendario-collaboratore.md). Il rimborso trasferta sulla riga segue [Fotografia del rimborso trasferta sulla riga attività](/decisions/fotografia-rimborso-trasferta.md).
+-
+-Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Collaboratori](/domains/collaboratori.md), [Clienti](/domains/clienti.md), [Offerte](/domains/offerte.md), [Politiche di rimborso](/domains/politiche-rimborso.md) e [Fatturazione clienti](/domains/fatturazione-clienti.md).
+diff --git a/docs/wiki/domains/collaboratori.md b/docs/wiki/domains/collaboratori.md
+deleted file mode 100644
+index bc4604f..0000000
+--- a/docs/wiki/domains/collaboratori.md
++++ /dev/null
+@@ -1,153 +0,0 @@
+----
+-type: domain
+-title: Collaboratori
+-description: Profili professionali dei collaboratori, tariffa e abilitazione operativa
+-status: reviewed
+-classification: candidate
+-sources:
+-    - path: src/app/(back-office)/anagrafiche/collaboratori/actions.ts
+-      role: inbound-commands
+-      symbol: aggiornaCollaboratore
+-    - path: src/lib/collaboratori.ts
+-      role: application-query
+-      symbol: collaboratorePerId, storicoAttivitaCollaboratore
+-    - path: src/domain/anagrafiche/valida-collaboratore.ts
+-      role: domain-validation
+-      symbol: validaCollaboratore, validaCampoPartitaIva, validaCampoTariffaGiornaliera
+-    - path: src/lib/dal.ts
+-      role: outbound-consumer
+-      symbol: risolviProfiloCollaboratoreCorrente
+-    - path: src/app/(back-office)/anagrafiche/utenti/cambia-stato-utente-action.ts
+-      role: coordinated-lifecycle-command
+-      symbol: cambiaStatoUtenteAction
+-    - path: src/app/(back-office)/anagrafiche/utenti/actions.ts
+-      role: coordinated-creation-command
+-      symbol: creaUtente, aggiornaUtente
+-    - path: src/app/(back-office)/anagrafiche/utenti/utenti-tabella.tsx
+-      role: coordinated-administration-ui
+-    - path: src/app/(back-office)/anagrafiche/utenti/utente-form.tsx
+-      role: coordinated-administration-ui
+-    - path: prisma/schema.prisma
+-      role: owned-data
+-      symbol: Collaboratore
+-    - path: prisma/migrations/20260728135453_aggiungi_cognome_utente/migration.sql
+-      role: coordinated-data-migration
+-    - path: src/lib/abilitazioni.ts
+-      role: application-query
+-      symbol: elencaOfferteAbilitate, elencaOfferteAbilitabili, elencaCollaboratoriIngaggiati, elencaCollaboratoriIngaggiabili
+-    - path: src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-actions.ts
+-      role: inbound-commands
+-      symbol: abilitaCollaboratoreSuOfferte, revocaAbilitazioneCollaboratore
+-    - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts
+-      role: inbound-commands
+-      symbol: ingaggiaCollaboratoriSuOfferta, revocaIngaggioCollaboratore
+-    - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx
+-      role: coordinated-administration-ui
+-    - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-collaboratori.tsx
+-      role: coordinated-administration-ui
+-    - path: prisma/schema.prisma
+-      role: owned-data
+-      symbol: AbilitazioneOfferta
+-    - path: scripts/backfill-abilitazioni-iniziali.ts
+-      role: one-time-bootstrap-command
+-      symbol: eseguiBackfillAbilitazioniIniziali
+-    - path: tests/unit/cambia-stato-utente.test.ts
+-      role: verification
+-    - path: tests/unit/abilitazioni-dal-actions.test.ts
+-      role: verification
+-    - path: tests/unit/ingaggi-offerta-dal-actions.test.ts
+-      role: verification
+-    - path: tests/unit/backfill-abilitazioni-iniziali.test.ts
+-      role: verification
+-    - path: tests/unit/utenti-actions.test.ts
+-      role: verification
+-    - path: tests/unit/valida-utente.test.ts
+-      role: verification
+-    - path: tests/e2e/anagrafica-collaboratori.spec.ts
+-      role: verification
+-    - path: tests/e2e/gestione-utenti.spec.ts
+-      role: verification
+-    - path: tests/e2e/dettaglio-collaboratore.spec.ts
+-      role: verification
+-    - path: tests/e2e/abilitazioni-collaboratore.spec.ts
+-      role: verification
+-    - path: tests/e2e/ingaggi-offerta.spec.ts
+-      role: verification
+-review:
+-    content_hash: sha256:0ceb2d1400f712e38d9d6ed8f879a8a9b4049fd5a0c0b8ba3a969b8495ecf1e3
+-    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+-    evidence_hash: sha256:c306f3a57110f7a2734371890e85ff927b28f9b2c388b1afc2b397bacd8412dd
+-    reviewed_at: "2026-07-31T15:56:35Z"
+----
+-# Collaboratori
+-
+-<!-- archetipo:wiki section=purpose -->
+-## Scopo
+-
+-Gestisce il profilo professionale usato per consuntivare: identità anagrafica, partita IVA, tariffa giornaliera e abilitazione operativa. L'amministratore governa il profilo; il collaboratore lo usa indirettamente per accedere alle proprie attività e al riepilogo.
+-
+-<!-- archetipo:wiki section=language -->
+-## Linguaggio
+-
+-- **Collaboratore**: profilo professionale collegato uno-a-uno a un `Utente`.
+-- **Tariffa giornaliera**: valore usato nel riepilogo economico personale.
+-- **Attivo / disattivato**: disponibilità del profilo per attività e, per utenti di ruolo collaboratore, validità operativa dell'accesso.
+-- **Profilo assente**: utente autenticato privo di record `Collaboratore`.
+-- **Abilitazione esplicita**: relazione persistita e revocabile tra un collaboratore e un'offerta, che stabilisce su quali offerte il collaboratore può registrare nuove attività; è indipendente dallo storico delle righe attività già registrate (vedi la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md)).
+-
+-<!-- archetipo:wiki section=ownership -->
+-## Ownership
+-
+-Possiede `Collaboratore`, la tariffa e il booleano `attivo`. Coordina la sincronizzazione del solo nome sul record `Utente` (da US-047 non tocca più l'email); ruolo, account provider, sessione ed email sono decisioni della capability Identità e accesso. L'invalidazione o riattivazione dell'utente è un comando di Identità e accesso che sincronizza nello stesso writer lo stato del profilo collegato. Le righe attività dipendono dall'identificativo collaboratore. Possiede anche `AbilitazioneOfferta`, l'abilitazione esplicita e revocabile che stabilisce su quali offerte il collaboratore può operare; riferisce le offerte possedute dalla capability Offerte senza modificarle.
+-
+-`creaUtente` e `aggiornaUtente` (capability Identità e accesso) sono, da US-047, gli unici writer di creazione e cambio-stato di `Collaboratore`: l'anagrafica collaboratori non censisce né disattiva/riattiva più profili, ed espone solo `aggiornaCollaboratore` come writer dei dati di profilo (nome, cognome, partita IVA, tariffa). `creaUtente`, quando l'amministratore seleziona il ruolo Collaboratore nel censimento di un nuovo utente, crea il profilo con `attivo: true` nella stessa transazione dell'utente, riusando gli identici helper di validazione di partita IVA e tariffa (`validaCampoPartitaIva`, `validaCampoTariffaGiornaliera`, ora esportati da questo modulo). `aggiornaUtente` estende la stessa derivazione al ciclo di vita di un utente già censito: aggiungere il ruolo Collaboratore crea il profilo (se assente) o lo riattiva conservando partita IVA e tariffa (se disattivato); toglierlo lo disattiva, senza mai cancellarlo — vedi la decisione [Ruoli combinabili derivati dal profilo collaboratore](/decisions/ruoli-combinabili-profilo-derivato.md). Il ruolo di accesso "Collaboratore" resta comunque derivato dalla presenza e dallo stato del profilo, non da un flag distinto.
+-
+-<!-- archetipo:wiki section=contracts -->
+-## Contratti
+-
+-L'anagrafica collaboratori (`src/app/(back-office)/anagrafiche/collaboratori/`) non censisce più profili né ne cambia lo stato: da US-047 espone solo `aggiornaCollaboratore`, che sincronizza in transazione i dati di profilo (nome, cognome, partita IVA, tariffa) e propaga `Utente.nome`/`Utente.cognome` distinti (da US-048 non più una stringa composta), senza mai leggere né scrivere `Utente.email` — un valore email eventualmente presente nel FormData viene ignorato. `Utente` resta la fonte autorevole di nome e cognome; `Collaboratore.nome`/`cognome` sono copie coordinate, mantenute allineate in entrambe le direzioni dai writer transazionali — vedi la decisione [Cognome nella sezione anagrafica dell'utente](/decisions/cognome-anagrafica-utente.md). Censimento, cambio di stato e modifica dell'email restano esclusivamente sotto la capability Identità e accesso, tramite `creaUtente`/`aggiornaUtente` e `cambiaStatoUtenteAction`. `creaUtente`, quando il ruolo Collaboratore è selezionato nel censimento utenti, crea nella stessa transazione utente e profilo (`attivo: true`) senza tentare alcun riuso: un'email già presente è sempre un errore di duplicato. `aggiornaUtente`, in modifica, calcola dai due checkbox di ruolo il nuovo ruolo e applica nella stessa transazione esattamente una delle quattro transizioni sul profilo esistente: crea (`attivo: true`, con i dati profilo raccolti dal form) se il ruolo Collaboratore viene aggiunto e il profilo è assente; riattiva (solo `attivo: true`, senza richiedere nuovamente i dati) se viene aggiunto e il profilo esiste disattivato; disattiva (`attivo: false`, mai una delete) se il ruolo Collaboratore viene tolto e il profilo è attivo; nessuna scrittura sul profilo negli altri casi. `cambiaStatoUtenteAction`, riservata all'amministratore, sincronizza il booleano richiesto sul profilo collegato nella stessa transazione dell'invalidazione o riattivazione di `Utente`. Il DAL espone `ATTIVO`, `ASSENTE` o `DISATTIVATO` come esiti derivati dalla presenza del profilo e dal booleano. `storicoAttivitaCollaboratore` in `src/lib/collaboratori.ts` è una query riservata all'amministratore che restituisce tutte le righe attività del collaboratore con cliente e offerta inclusi, ordinate per data crescente, senza filtro temporale.
+-
+-`elencaOfferteAbilitate` ed `elencaOfferteAbilitabili` in `src/lib/abilitazioni.ts`, riservate all'amministratore, restituiscono rispettivamente le offerte già abilitate per il collaboratore (incluse quelle nel frattempo disattivate, con `offertaAttiva: false`) e le offerte attive non ancora abilitate, entrambe ordinate per ragione sociale del cliente e poi per codice offerta. `abilitaCollaboratoreSuOfferte` crea in blocco le coppie `(collaboratoreId, offertaId)` mancanti verificando prima che ciascuna offerta selezionata sia attiva, ignorando i duplicati grazie al vincolo unico; `revocaAbilitazioneCollaboratore` elimina la singola coppia bersaglio. Entrambe le action sono riservate all'amministratore e rivalidano la pagina di dettaglio del collaboratore.
+-
+-`elencaCollaboratoriIngaggiati` ed `elencaCollaboratoriIngaggiabili`, nello stesso modulo, sono la vista speculare dal lato offerta sulla stessa tabella `AbilitazioneOfferta`: restituiscono rispettivamente i collaboratori già ingaggiati sull'offerta data, con nome, cognome ed email (inclusi quelli il cui profilo è nel frattempo disattivato, con `collaboratoreAttivo: false`), e i collaboratori attivi non ancora ingaggiati, entrambe ordinate per cognome e poi per nome. `ingaggiaCollaboratoriSuOfferta`, in `src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts`, verifica prima che l'offerta esista e sia attiva, poi crea in blocco le coppie mancanti verificando che ciascun collaboratore selezionato sia attivo, ignorando i duplicati grazie allo stesso vincolo unico; `revocaIngaggioCollaboratore` elimina la singola coppia bersaglio. Entrambe le action sono riservate all'amministratore e rivalidano sia la pagina offerta sia il dettaglio di ogni collaboratore toccato, cosicché le due viste sulla stessa relazione restano coerenti per costruzione.
+-
+-<!-- archetipo:wiki section=flows -->
+-## Flussi osservati
+-
+-1. `creaUtente` in `src/app/(back-office)/anagrafiche/utenti/actions.ts` è l'unico percorso di censimento: quando l'amministratore seleziona il ruolo Collaboratore nel censimento, la transazione crea `Utente` (ruolo `AMMINISTRATORE` o `COLLABORATORE` secondo i checkbox selezionati, `nome`/`cognome` distinti dall'anagrafica) e, in aggiunta, `Collaboratore` con `attivo: true` e gli stessi `nome`/`cognome`. Non riusa mai un utente esistente: un'email già presente produce sempre l'esito di duplicato senza scritture.
+-2. `aggiornaUtente` nello stesso file, in modifica, legge utente e profilo fuori transazione per decidere se i campi di profilo condizionati (partita IVA, tariffa) sono richiesti (`validaModificaUtente` con `profiloPresente`; il cognome è invece sempre richiesto in Anagrafica, indipendentemente dal profilo), poi nella transazione aggiorna sempre `Utente.nome`/`cognome` distinti (oltre a email/ruolo) e applica sul profilo esattamente una transizione: crea (`attivo: true`, con gli stessi `nome`/`cognome`) se il ruolo Collaboratore è aggiunto senza profilo preesistente; riattiva (`attivo: true`, `nome`, `cognome`) se il profilo esiste disattivato; disattiva (`attivo: false`, `nome`, `cognome`) se il ruolo Collaboratore è tolto e il profilo era attivo; se lo stato richiesto coincide con quello attuale e il profilo esiste già, sincronizza comunque `Collaboratore.nome`/`cognome` con l'anagrafica corrente (nessuna transizione di stato). La protezione dell'ultimo amministratore attivo si applica al ruolo derivato dai checkbox esattamente come prima di US-046. Rivalida l'anagrafica utenti sempre e quella collaboratori ogni volta che il profilo è stato toccato o risincronizzato.
+-3. `aggiornaCollaboratore` in `src/app/(back-office)/anagrafiche/collaboratori/actions.ts` — unica action esposta da questo modulo da US-047 — aggiorna nella stessa transazione profilo (nome, cognome, partita IVA, tariffa) e propaga `Utente.nome`/`Utente.cognome` distinti (non più una stringa composta da US-048), senza mai leggere né scrivere `Utente.email`, senza cambiare `attivo` o `ruolo`. Un valore `email` eventualmente presente nel FormData viene ignorato, non validato: la validazione email non esiste più in questo modulo (`RE_EMAIL` e il campo `email` sono stati rimossi da `valida-collaboratore.ts`). Censimento (`creaCollaboratore`) e cambio di stato (`cambiaStatoCollaboratore`, con l'adapter `cambia-stato-action.ts`) sono stati rimossi da US-047: l'UI dell'anagrafica collaboratori non offre più un percorso per crearli o disattivarli/riattivarli — `/anagrafiche/collaboratori/nuovo` reindirizza l'amministratore a `/anagrafiche/utenti`, e l'elenco/la modifica mostrano lo stato attivo/disattivato in sola lettura.
+-4. L'invalidazione di `Utente` scrive `false` anche in `Collaboratore.attivo` se il profilo è presente; la riattivazione scrive `true` su entrambi. Senza profilo non viene tentata la cascata. Il comando rivalida elenco utenti e collaboratori e non elimina attività o record.
+-5. `risolviProfiloCollaboratoreCorrente` in `src/lib/dal.ts` produce `ASSENTE`, `DISATTIVATO` o `ATTIVO` mediante branch di lettura: sono esiti derivati, non stati persistiti separatamente.
+-6. La pagina di dettaglio `src/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx`, riservata all'amministratore e raggiungibile dal click sulla riga dell'elenco, mostra il profilo e lo storico completo delle attività: legge le righe via `storicoAttivitaCollaboratore` e le raggruppa per mese solare decrescente con la funzione pura `raggruppaAttivitaPerMese` di `src/domain/consuntivi/index.ts`, esponendo per ogni mese totale ore e giornate equivalenti (8 ore/giornata); senza righe mostra un messaggio esplicito di assenza di attività.
+-7. Nella stessa pagina di dettaglio, la sezione "Offerte abilitate" (`abilitazioni-offerte.tsx`) elenca le abilitazioni correnti del collaboratore e apre un dialog di ricerca e selezione multipla sulle offerte abilitabili; la conferma invoca `abilitaCollaboratoreSuOfferte`, che assegna esattamente le coppie mancanti in `AbilitazioneOfferta`, mentre la revoca di una singola riga invoca `revocaAbilitazioneCollaboratore`, che elimina esattamente la coppia bersaglio. Nessuna delle due action modifica le righe attività già registrate.
+-8. `scripts/backfill-abilitazioni-iniziali.ts` pre-popola una tantum `AbilitazioneOfferta` dalle coppie `(collaboratoreId, offertaId)` distinte già presenti in `RigaAttivita` su offerte attive, dietro una guardia che salta la scrittura se la tabella contiene già almeno una riga. È invocabile manualmente con `npm run db:backfill-abilitazioni` e viene eseguito automaticamente da `prisma/seed.ts` negli ambienti di sviluppo/test (vedi la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md)).
+-9. La pagina `/offerte/{offertaId}/collaboratori`, fisicamente sotto la rotta Offerte ma di proprietà di questa capability perché opera su `AbilitazioneOfferta`, mostra la tabella "Collaboratori ingaggiati" (nome, cognome, pill di stato Attivo/Disattivato dal profilo) e un dialog di ricerca e selezione multipla sui collaboratori ingaggiabili; è raggiunta da un link "Collaboratori" aggiunto alla colonna Azioni di `offerte-tabella.tsx`. È la vista speculare della sezione "Offerte abilitate" del dettaglio collaboratore (stessa tabella, stesso modello di autorizzazione): ingaggio e revoca da questa pagina rivalidano anche il dettaglio di ogni collaboratore toccato, così le due viste restano coerenti.
+-
+-<!-- archetipo:wiki section=code -->
+-## Codice
+-
+-| Aspetto | Percorsi |
+-|---|---|
+-| UI e comandi | `src/app/(back-office)/anagrafiche/collaboratori/**`, inclusa la pagina di dettaglio `[id]/page.tsx` con storico attività mensile e la sezione `[id]/abilitazioni-offerte.tsx` con dialog di ricerca e selezione multipla; `utenti/cambia-stato-utente-action.ts` per la cascata da utente; `utenti/actions.ts` (`creaUtente`, `aggiornaUtente`), `utenti/utente-form.tsx` (fieldset a checkbox condiviso fra creazione e modifica) e `utenti/utenti-tabella.tsx` (badge multipli) per la creazione e modifica combinate e la loro rappresentazione nell'elenco utenti; `src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx` e `ingaggi-collaboratori.tsx`, vista speculare dal lato offerta, fisicamente ospitata sotto la rotta Offerte |
+-| Query | `src/lib/collaboratori.ts` (inclusa `storicoAttivitaCollaboratore`), `src/lib/abilitazioni.ts` (`elencaOfferteAbilitate`, `elencaOfferteAbilitabili`, `elencaCollaboratoriIngaggiati`, `elencaCollaboratoriIngaggiabili`) |
+-| Action abilitazioni | `[id]/abilitazioni-actions.ts` (`abilitaCollaboratoreSuOfferte`, `revocaAbilitazioneCollaboratore`); `offerte/[offertaId]/collaboratori/ingaggi-actions.ts` (`ingaggiaCollaboratoriSuOfferta`, `revocaIngaggioCollaboratore`), vista speculare dal lato offerta sulla stessa tabella |
+-| Validazione | `src/domain/anagrafiche/valida-collaboratore.ts`, `src/domain/anagrafiche/valida-utente.ts` (`validaCensimentoUtente`, `validaModificaUtente`, obbligo condizionale dei campi profilo) |
+-| Dati | `prisma/schema.prisma` (`Collaboratore`, relazione con `Utente`; `AbilitazioneOfferta`, coppia unica `collaboratoreId`/`offertaId` con `Offerta`) |
+-| Pre-popolamento una tantum | `scripts/backfill-abilitazioni-iniziali.ts`, esposto da `npm run db:backfill-abilitazioni` e agganciato a `prisma/seed.ts` |
+-| Policy consumatrici | `src/lib/dal.ts`, `src/lib/attivita.ts` |
+-| Test | `tests/unit/collaboratori-dal-actions.test.ts`, `tests/unit/cambia-stato-utente.test.ts`, `tests/unit/valida-collaboratore.test.ts`, `tests/unit/storico-attivita-mensile.test.ts`, `tests/unit/abilitazioni-dal-actions.test.ts`, `tests/unit/ingaggi-offerta-dal-actions.test.ts`, `tests/unit/backfill-abilitazioni-iniziali.test.ts`, `tests/unit/utenti-actions.test.ts`, `tests/unit/valida-utente.test.ts`, `tests/e2e/anagrafica-collaboratori.spec.ts`, `tests/e2e/dettaglio-collaboratore.spec.ts`, `tests/e2e/abilitazioni-collaboratore.spec.ts`, `tests/e2e/ingaggi-offerta.spec.ts`, `tests/e2e/gestione-utenti.spec.ts` |
+-
+-<!-- archetipo:wiki section=invariants -->
+-## Invarianti e limiti
+-
+-Nome, cognome, partita IVA e tariffa sono obbligatori lato applicazione in `aggiornaCollaboratore`; partita IVA ha controllo di formato e la tariffa deve essere positiva con massimo due decimali. L'email non è più un campo di questo modulo: `validaCollaboratore` non la valida né la richiede (rimossa da `DatiCollaboratoreInput` insieme a `RE_EMAIL`), e `aggiornaCollaboratore` non la legge né la scrive, anche se presente nel FormData inviato. `Utente.email`, obbligatoria e con controllo di formato, resta un invariante della capability Identità e accesso, unica insieme a `Collaboratore.userId` a database. La disattivazione è reversibile e non cancella attività. L'invalidazione e la riattivazione dell'utente mantengono allineato il profilo esistente nella stessa transazione, rispettivamente con `false` e `true`; non viene registrata l'origine della disattivazione del profilo. Per un utente di ruolo `COLLABORATORE`, un profilo presente ma disattivato rende la sessione non risolvibile dal DAL; un amministratore conserva la sessione ma non può usare quel profilo per consuntivare. La coppia `(collaboratoreId, offertaId)` è unica a database su `AbilitazioneOfferta`: creazione e revoca sono entrambe idempotenti. Un'offerta abilitata resta elencata anche se successivamente disattivata, ma solo le offerte attive compaiono tra quelle abilitabili nel dialog di ricerca. La revoca non cancella né altera le righe attività già registrate su quell'offerta.
+-
+-<!-- archetipo:wiki section=verification -->
+-## Verifica
+-
+-Test unitari coprono transazioni, duplicati e guardie. `collaboratori-dal-actions.test.ts` copre ora solo `aggiornaCollaboratore` (censimento e cambio stato sono stati rimossi dal modulo con i relativi describe): il payload esatto di `utente.update` con `{ nome, cognome }` distinti e nessuna chiave `email`, incluso il caso in cui il FormData contiene comunque un valore email — deve essere ignorato senza propagarsi alla scrittura. `valida-collaboratore.test.ts` non copre più il campo email, rimosso dal contratto di validazione. `cambia-stato-utente.test.ts` verifica la cascata atomica da invalidazione/riattivazione utente al profilo, incluso il caso senza profilo. `abilitazioni-dal-actions.test.ts` copre le query e le action di abilitazione/revoca, inclusi idempotenza e rifiuto di offerte non attive; `backfill-abilitazioni-iniziali.test.ts` copre la logica di pre-popolamento e la guardia tabella-vuota. `utenti-actions.test.ts` copre ora anche `creaUtente` e `aggiornaUtente` come secondo e terzo writer di `Collaboratore`: le tre combinazioni di ruoli con i payload esatti di `utente.create`/`collaboratore.create` (nome/cognome distinti) in creazione; le quattro transizioni di profilo (creazione, riattivazione, disattivazione, sincronizzazione senza transizione) con i payload esatti di `collaboratore.create`/`collaboratore.update` in modifica, la revalidate condizionale dell'anagrafica collaboratori e la protezione dell'ultimo amministratore applicata al ruolo derivato dai checkbox; l'assenza di scritture sugli esiti di rifiuto (nessun ruolo, cognome mancante, partita IVA invalida, email duplicata) in entrambi i flussi. `valida-utente.test.ts` copre `validaCensimentoUtente` e `validaModificaUtente`, incluso il cognome obbligatorio incondizionato e l'obbligo condizionale dei soli campi di profilo (partita IVA, tariffa). Gli E2E di gestione utenti verificano che invalidazione e riattivazione risultino nell'anagrafica collaboratori, che l'accesso segua lo stato, che il censimento con ruolo Collaboratore produca una riga coerente nell'anagrafica collaboratori più il primo accesso al calendario delle attività, e che aggiungere o togliere il ruolo Collaboratore su un utente esistente crei, riattivi o disattivi il profilo conservando lo storico attività e senza richiedere nuovamente i dati già noti alla riattivazione; `abilitazioni-collaboratore.spec.ts` verifica end-to-end abilitazione e revoca con collaboratori e offerte creati da factory. `ingaggi-offerta-dal-actions.test.ts` copre, con lo stesso stile di mock, i contratti esatti delle query e delle action speculari dal lato offerta (filtri, ordinamenti, payload di `createMany`/`deleteMany`, assenza di scritture sugli esiti di rifiuto, guardia di ruolo, revalidate di entrambe le pagine); `ingaggi-offerta.spec.ts` verifica end-to-end il flusso di ingaggio e revoca dalla pagina offerta e la sua ricaduta coerente sul dettaglio dei due collaboratori coinvolti. Confidenza alta sul comportamento osservato; ownership condivisa di `Utente` resta una boundary candidata da sottoporre a review.
+-
+-## Concetti correlati
+-
+-Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Identità e accesso](/domains/identita-accesso.md), [Attività](/domains/attivita.md) e [Offerte](/domains/offerte.md), ed è disciplinata dalle decisioni [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md), [Ruoli combinabili derivati dal profilo collaboratore](/decisions/ruoli-combinabili-profilo-derivato.md) e [Cognome nella sezione anagrafica dell'utente](/decisions/cognome-anagrafica-utente.md).
+diff --git a/docs/wiki/domains/fatturazione-clienti.md b/docs/wiki/domains/fatturazione-clienti.md
+deleted file mode 100644
+index 9d7bff2..0000000
+--- a/docs/wiki/domains/fatturazione-clienti.md
++++ /dev/null
+@@ -1,82 +0,0 @@
+----
+-type: domain
+-title: Fatturazione clienti
+-description: Proiezione amministrativa mensile degli importi da fatturare ai clienti
+-status: reviewed
+-classification: candidate
+-sources:
+-    - path: src/lib/report.ts
+-      role: application-query
+-      symbol: reportFatturazioneClientiMese
+-    - path: src/domain/consuntivi/index.ts
+-      role: domain-calculation
+-      symbol: calcolaReportFatturazioneClienti
+-    - path: src/app/(back-office)/report/fatturazione-clienti/page.tsx
+-      role: inbound-ui
+-    - path: tests/unit/report-fatturazione-clienti.test.ts
+-      role: verification
+-    - path: tests/e2e/report-fatturazione-clienti.spec.ts
+-      role: verification
+-review:
+-    content_hash: sha256:d85bb87ba8ea345ad391806a26e385e8762c3b667e9074396c4db05aa2ed02c8
+-    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+-    evidence_hash: sha256:270ab929c267006de92dadf71d0a88d131aec1b39e9bfcdc706b5e2eeda911dd
+-    reviewed_at: "2026-07-31T15:56:23Z"
+----
+-# Fatturazione clienti
+-
+-<!-- archetipo:wiki section=purpose -->
+-## Scopo
+-
+-Fornisce all'amministratore una proiezione mensile per cliente e offerta degli importi da fatturare: imponibile di manodopera, rimborsi trasferta e totale. Per ogni offerta del cliente, un dettaglio opzionale espone anche la ripartizione per singolo collaboratore. È una capability di lettura con decisioni di calcolo proprie, non un documento fiscale persistito.
+-
+-<!-- archetipo:wiki section=language -->
+-## Linguaggio
+-
+-Mese, cliente, offerta, tariffa giornaliera dell'offerta, ore fatturabili, giornate fatturabili, imponibile manodopera, rimborso trasferta, importo totale e dettaglio per collaboratore (ore fatturabili, giornate equivalenti e imponibile allocato).
+-
+-<!-- archetipo:wiki section=ownership -->
+-## Ownership
+-
+-Possiede il contratto e le regole della proiezione, ma nessun aggregate persistito. Consuma righe attività — incluso il rimborso trasferta già fotografato su ciascuna riga — e metadati cliente/offerta. Non possiede la tariffa commerciale né alcuna configurazione delle voci di rimborso: quella configurazione non viene più letta al momento dell'aggregazione.
+-
+-<!-- archetipo:wiki section=contracts -->
+-## Contratti
+-
+-`reportFatturazioneClientiMese(token)` richiede ruolo amministratore e restituisce un risultato serializzabile con `perCliente` e totali; ogni voce `perOfferta` include ora `perCollaboratore`, il dettaglio fatturabile per collaboratore su quell'offerta. L'input dominio `RigaReportFatturazione` isola il calcolo puro da Prisma. Un token mese non valido restituisce un report vuoto nel service; la pagina UI lo normalizza al mese corrente.
+-
+-<!-- archetipo:wiki section=flows -->
+-## Flussi osservati
+-
+-1. Il service filtra tutte le righe nel mese, senza filtro collaboratore, e carica offerta, cliente e collaboratore.
+-2. Mappa Decimal e relazioni in input serializzabili e invoca `calcolaReportFatturazioneClienti`, che non riceve più alcun parametro di configurazione esterna: somma direttamente il `rimborsoTrasfertaImporto` già presente su ogni riga.
+-3. Solo le ore con `fatturabile = true` incrementano l'imponibile e alimentano il dettaglio `perCollaboratore`; le giornate sono ore/8 e usano la tariffa dell'offerta.
+-4. Per ogni offerta, le voci `perCollaboratore` sono ordinate per ore fatturabili decrescenti (pareggio per nome) e i loro imponibili sono allocati a resto massimo in centesimi interi, ancorati al valore visualizzato di `imponibileManodopera` del cliente: la somma delle stringhe coincide sempre esattamente col totale, senza scostamenti di arrotondamento.
+-5. Una riga con `rimborsoTrasfertaImporto` fotografato viene ribaltata al cliente anche su riga non fatturabile; questi clienti "solo rimborsi" hanno `perOfferta` vuoto, e la UI lo segnala esplicitamente nel dettaglio.
+-6. Clienti senza imponibile e senza rimborsi sono omessi; risultati e totali sono formattati a due decimali.
+-7. Non esiste stato né write del report: ogni richiesta ricostruisce la proiezione, incluso il dettaglio per collaboratore; l'espansione del dettaglio in UI è stato locale non persistito, esclusivo per una sola scheda cliente alla volta.
+-
+-<!-- archetipo:wiki section=code -->
+-## Codice
+-
+-| Aspetto | Percorsi |
+-|---|---|
+-| UI | `src/app/(back-office)/report/fatturazione-clienti/**` |
+-| Query e mapping | `src/lib/report.ts` |
+-| Calcolo puro | `src/domain/consuntivi/index.ts` |
+-| Dati letti | `prisma/schema.prisma` (`RigaAttivita`, `Offerta`, `Cliente`) |
+-| Test | `tests/unit/report-fatturazione-clienti.test.ts`, `tests/e2e/report-fatturazione-clienti.spec.ts`, scenari demo dedicati |
+-
+-<!-- archetipo:wiki section=invariants -->
+-## Invarianti e limiti
+-
+-Accesso solo amministratore. La tariffa è quella corrente dell'offerta; modifiche successive alla tariffa ricalcolano mesi storici, quindi il risultato non è una fattura immutabile su quel fronte. Il rimborso trasferta, invece, è uno snapshot: il report somma `rimborsoTrasfertaImporto` già fotografato su ogni riga al momento del salvataggio, quindi una modifica o eliminazione successiva di una voce di rimborso non altera i mesi storici già riportati. Lo schema non garantisce coerenza fra cliente diretto della riga e cliente dell'offerta: la proiezione usa il cliente della riga per il raggruppamento e la tariffa dell'offerta per il calcolo. Una riga senza rimborso fotografato non contribuisce alcun importo di rimborso al report.
+-
+-<!-- archetipo:wiki section=verification -->
+-## Verifica
+-
+-I test unitari coprono aggregazione, righe non fatturabili, rimborsi, ordinamento, formattazione e la ripartizione per collaboratore (raggruppamento, esclusione ore non fatturabili, ordinamento e quadratura esatta dell'allocazione a resto massimo, incluso il caso limite di arrotondamento). L'E2E usa factory e mese riservato per verificare risultati, stato vuoto, l'espansione esclusiva del dettaglio collaboratori e il messaggio per i clienti solo-rimborsi. Confidenza alta sulla proiezione; l'indipendenza resta candidata perché il calcolo condivide il modulo fisico `consuntivi` con Attività e Offerte.
+-
+-## Concetti correlati
+-
+-Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Attività](/domains/attivita.md), [Offerte](/domains/offerte.md) e [Politiche di rimborso](/domains/politiche-rimborso.md).
+diff --git a/docs/wiki/domains/offerte.md b/docs/wiki/domains/offerte.md
+deleted file mode 100644
+index 2f68708..0000000
+--- a/docs/wiki/domains/offerte.md
++++ /dev/null
+@@ -1,118 +0,0 @@
+----
+-type: domain
+-title: Offerte
+-description: Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento
+-status: reviewed
+-classification: candidate
+-sources:
+-    - path: src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts
+-      role: inbound-commands
+-      symbol: creaOfferta, aggiornaOfferta
+-    - path: src/app/(back-office)/offerte/actions.ts
+-      role: inbound-commands
+-      symbol: cambiaStatoOfferta, eliminaOfferta
+-    - path: src/lib/offerte.ts
+-      role: application-query
+-      symbol: elencaOfferteConAvanzamento, elencaOffertePerClienteConAvanzamento
+-    - path: src/domain/anagrafiche/valida-offerta.ts
+-      role: domain-validation
+-    - path: src/domain/consuntivi/index.ts
+-      role: projection-calculation
+-      symbol: calcolaAvanzamentoOfferte
+-    - path: prisma/schema.prisma
+-      role: owned-data
+-      symbol: Offerta
+-    - path: src/lib/abilitazioni.ts
+-      role: outbound-consumer
+-      symbol: elencaOfferteAbilitabili
+-    - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx
+-      role: coordinated-administration-ui
+-    - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-collaboratori.tsx
+-      role: coordinated-administration-ui
+-    - path: src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts
+-      role: coordinated-administration-ui
+-    - path: tests/unit/avanzamento-offerte.test.ts
+-      role: verification
+-    - path: tests/e2e/dettaglio-avanzamento-offerta.spec.ts
+-      role: verification
+-    - path: tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts
+-      role: verification
+-    - path: tests/e2e/ingaggi-offerta.spec.ts
+-      role: verification
+-review:
+-    content_hash: sha256:d004f3a752e82a16c5ee4cbd4a4b0654621a7ed9aa8ba5272e738bce16f15d44
+-    evidence_revision: 684073cbe95870736f7b37fbbe2fcccb01a7dd38
+-    evidence_hash: sha256:1f135208058bbc0b2178a301a85a55f6c2be3d6e4b774bddc5e5445d3c41e762
+-    reviewed_at: "2026-07-31T15:56:35Z"
+----
+-# Offerte
+-
+-<!-- archetipo:wiki section=purpose -->
+-## Scopo
+-
+-Gestisce gli impegni commerciali associati a un cliente: codice, descrizione, tariffa giornaliera, giornate previste e disponibilità per nuove attività. Offre anche una proiezione amministrativa dell'avanzamento rispetto al budget.
+-
+-<!-- archetipo:wiki section=language -->
+-## Linguaggio
+-
+-- **Offerta**: impegno commerciale identificato da codice nel perimetro di un cliente.
+-- **Giorni previsti**: budget dell'offerta.
+-- **Attiva**: offerta selezionabile per nuove righe attività.
+-- **Giornate erogate, residuo, percentuale di utilizzo**: misure derivate dalle ore fatturabili.
+-- **IN_CORSO, IN_ALLERTA, ESAURITA, OLTRE_BUDGET**: classificazioni calcolate, non lifecycle persistito.
+-- **Matrice mensile**: ripartizione delle giornate erogate per collaboratore e mese solare, con colonna e riga di totale; è parte della stessa proiezione di avanzamento, non uno stato persistito.
+-- **Abilitazione esplicita**: relazione persistita e revocabile tra un collaboratore e un'offerta, posseduta dalla capability Collaboratori, che determina quali collaboratori possono registrare nuove attività sull'offerta. Il vincolo è applicato lato server dalla capability Attività (selezione, creazione e modifica riga); si veda la decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md).
+-
+-<!-- archetipo:wiki section=ownership -->
+-## Ownership
+-
+-Possiede `Offerta`, i termini commerciali, il budget e il booleano `attiva`. Riferisce un cliente posseduto da Clienti. Le ore erogate appartengono alle attività; la vista di avanzamento è una proiezione calcolata e non modifica l'offerta. L'abilitazione esplicita che regola quali collaboratori possono operare su un'offerta è posseduta dalla capability Collaboratori (`AbilitazioneOfferta`); Offerte ne è solo il riferimento passivo tramite la relazione Prisma `abilitazioniCollaboratori` e non impone invarianti propri su quella tabella.
+-
+-<!-- archetipo:wiki section=contracts -->
+-## Contratti
+-
+-Le offerte possono essere create dalle viste annidate cliente o trasversali. La creazione richiede un cliente esistente e attivo. `offertaPerId`, `elencaOfferteConAvanzamento` ed `elencaOffertePerClienteConAvanzamento` sono riservate all'amministratore; le ultime due espongono percentuale di utilizzo, ripartizione per collaboratore e matrice mensile per collaboratore. La query annidata filtra offerte e attività per cliente e le ordina per codice. Le attività consumano solo offerte attive del cliente selezionato **e abilitate per il collaboratore corrente**: sia la query di selezione (`offerteAbilitatePerCliente` nella capability Attività) sia le action di creazione e modifica riga applicano il filtro/vincolo sull'abilitazione esplicita, non solo l'appartenenza al cliente e lo stato attivo.
+-
+-`elencaOfferteAbilitabili` in `src/lib/abilitazioni.ts` filtra le offerte attive prive di un'abilitazione per il collaboratore dato, usando la relazione Prisma `abilitazioniCollaboratori`; è una query dell'ambito Collaboratori che legge `Offerta` in sola lettura, senza scrivere né validare dati di questa capability.
+-
+-La pagina `/offerte/{offertaId}/collaboratori` (`src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx` e `ingaggi-collaboratori.tsx`) è fisicamente ospitata sotto la rotta Offerte ma opera esclusivamente su `AbilitazioneOfferta`, di proprietà della capability Collaboratori: legge `offertaPerId` di questa capability solo per l'intestazione (codice, descrizione, ragione sociale del cliente) e delega interamente lettura e scrittura dei collaboratori ingaggiati alle query e action dell'ambito Collaboratori. È raggiunta da un link "Collaboratori" nella colonna Azioni della tabella trasversale `/offerte`.
+-
+-<!-- archetipo:wiki section=flows -->
+-## Flussi osservati
+-
+-1. `creaOfferta` in `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/actions.ts` valida termini e budget, verifica il cliente e crea il record assegnando esattamente `attiva: true`.
+-2. `aggiornaOfferta` nello stesso file aggiorna codice, descrizione, tariffa e giorni previsti senza assegnare `attiva`; il `clienteId` del form è usato per navigazione e non viene riscritto.
+-3. `cambiaStatoOfferta` in `src/app/(back-office)/offerte/actions.ts` assegna direttamente a `attiva` il booleano del form, senza guardia sullo stato sorgente.
+-4. `eliminaOfferta` nello stesso file conta prima le righe attività e traduce anche l'errore FK da concorrenza; in presenza di righe invita a disattivare. La cancellazione non è una transizione di stato.
+-5. `calcolaAvanzamentoOfferte` assegna una delle quattro classificazioni in base a residuo e soglia 85%. Non esiste una colonna `stato` né una write di transizione: ogni lettura ricalcola il valore.
+-6. La tabella trasversale `/offerte` e quella annidata nel dettaglio cliente espandono una riga per mostrare classificazione, KPI, percentuale e ripartizione; nell'elenco cliente il link Modifica non attiva il toggle. Il toggle di attivazione della tabella trasversale conserva la riga espansa attraverso il redirect. La precedente rotta `/report/avanzamento-offerte` reindirizza a `/offerte`.
+-7. Il pannello espanso mostra, sotto la ripartizione per collaboratore, una matrice mensile per collaboratore (una colonna per mese solare con attività, in ordine cronologico, colonna e riga di totale); per un'offerta senza attività mostra il messaggio "Nessuna attività registrata" al posto della matrice. Il componente è condiviso tra `/offerte` e l'elenco offerte del cliente, quindi la matrice compare in entrambe le viste.
+-8. Il link "Collaboratori" nella colonna Azioni di `offerte-tabella.tsx` apre `/offerte/{offertaId}/collaboratori`, dove l'amministratore vede la tabella "Collaboratori ingaggiati" e ingaggia o revoca collaboratori tramite un dialog di ricerca e selezione multipla; è la vista speculare, dal lato offerta, della sezione "Offerte abilitate" del dettaglio collaboratore, sulla stessa tabella `AbilitazioneOfferta`.
+-
+-<!-- archetipo:wiki section=code -->
+-## Codice
+-
+-| Aspetto | Percorsi |
+-|---|---|
+-| UI annidata | `src/app/(back-office)/anagrafiche/clienti/[id]/offerte/**`, `src/app/(back-office)/anagrafiche/clienti/[id]/offerte-cliente-tabella.tsx` |
+-| UI trasversale e stato | `src/app/(back-office)/offerte/**` |
+-| Ingaggio collaboratori (di proprietà Collaboratori) | `src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx`, `ingaggi-collaboratori.tsx`, `ingaggi-actions.ts` |
+-| Query | `src/lib/offerte.ts` |
+-| Validazione | `src/domain/anagrafiche/valida-offerta.ts` |
+-| Avanzamento | `src/domain/consuntivi/index.ts`, `src/lib/offerte.ts`, `src/app/(back-office)/offerte/dettaglio-avanzamento-offerta.tsx` |
+-| Dati | `prisma/schema.prisma` (`Offerta`; relazione inversa `abilitazioniCollaboratori` verso `AbilitazioneOfferta`, posseduta da Collaboratori) |
+-| Test | `tests/unit/offerte-dal-actions.test.ts`, `tests/unit/elenca-offerte-con-avanzamento.test.ts`, `tests/unit/avanzamento-offerte.test.ts`, `tests/e2e/anagrafica-offerte.spec.ts`, `tests/e2e/gestione-offerte.spec.ts`, `tests/e2e/dettaglio-avanzamento-offerta.spec.ts`, `tests/e2e/dettaglio-avanzamento-offerta-cliente.spec.ts` |
+-
+-<!-- archetipo:wiki section=invariants -->
+-## Invarianti e limiti
+-
+-Codice e descrizione sono obbligatori; il codice non può superare 60 caratteri (`LUNGHEZZA_MASSIMA_CODICE` in `src/domain/anagrafiche/valida-offerta.ts`); tariffa positiva con massimo due decimali e giorni previsti interi positivi. Il database garantisce unicità `(codice, clienteId)` e le FK. Solo la creazione verifica che il cliente sia attivo: `cambiaStatoOfferta` può riattivare un'offerta di un cliente disattivato, anche se il front office continuerà a escluderla perché filtra anche i clienti. L'avanzamento (ripartizione per collaboratore e matrice mensile) usa esclusivamente ore fatturabili e la conversione fissa di 8 ore per giornata; include offerte senza attività. Le classificazioni di avanzamento sono temporanee e possono cambiare quando cambiano budget o attività. Il mese di ogni riga è derivato in UTC dalla data dell'attività, indipendentemente dal fuso del server.
+-
+-<!-- archetipo:wiki section=verification -->
+-## Verifica
+-
+-Unit test coprono validazione, DAL, eliminazione, calcolo e le query di avanzamento trasversale e filtrata per cliente; E2E coprono gestione, viste annidate e trasversali, inclusi i dettagli espandibili, la navigazione a Modifica dall'elenco cliente e il redirect della rotta dismessa. Confidenza alta sui flussi osservati. L'autonomia rispetto a Clienti è candidata: ha ciclo, decisioni e contratti propri, ma condivide storage e application layer. La relazione con le abilitazioni esplicite è verificata dai test della capability Collaboratori (`tests/unit/abilitazioni-dal-actions.test.ts`, `tests/e2e/abilitazioni-collaboratore.spec.ts`) per la gestione delle abilitazioni, dai test della capability Attività (`tests/unit/attivita.test.ts`, `tests/unit/righe-attivita-actions.test.ts`, `tests/e2e/offerte-abilitate-inserimento.spec.ts`) per l'enforcement del vincolo in selezione, creazione e modifica riga, e dai test della capability Collaboratori (`tests/unit/ingaggi-offerta-dal-actions.test.ts`, `tests/e2e/ingaggi-offerta.spec.ts`) per la vista speculare di ingaggio e revoca dalla pagina offerta.
+-
+-## Concetti correlati
+-
+-Questa capability partecipa alla [mappa dei contesti](/architecture/context-map.md), [Clienti](/domains/clienti.md), [Attività](/domains/attivita.md), [Fatturazione clienti](/domains/fatturazione-clienti.md) e [Collaboratori](/domains/collaboratori.md), ed è coinvolta dalla decisione [Abilitazioni esplicite collaboratore-offerta](/decisions/abilitazioni-offerte-esplicite.md).
+diff --git a/docs/wiki/engineering/code-map.md b/docs/wiki/engineering/code-map.md
+deleted file mode 100644
+index 7acdf57..0000000
+--- a/docs/wiki/engineering/code-map.md
++++ /dev/null
+@@ -1,154 +0,0 @@
+----
+-type: code-map
+-title: Mappa del codice
+-description: Matrice fisica fra capability candidate, codice, dati e test
+-status: reviewed
+-sources:
+-    - path: package.json
+-      role: manifest
+-    - path: src
+-      role: runtime-boundary
+-    - path: prisma/schema.prisma
+-      role: data-boundary
+-    - path: tests
+-      role: verification-boundary
+-coverage:
+-    - kind: boundary
+-      path: .
+-      status: mapped
+-      pages:
+-        - engineering/code-map
+-        - operations/development
+-    - kind: boundary
+-      path: docker
+-      status: mapped
+-      pages:
+-        - operations/development
+-    - kind: boundary
+-      path: docs
+-      status: partial
+-      note: L'inspector dichiara un campione rappresentativo; mockup e fonti di intento sono mappati fisicamente ma non letti come runtime.
+-    - kind: boundary
+-      path: prisma
+-      status: mapped
+-      pages:
+-        - engineering/code-map
+-        - operations/development
+-    - kind: boundary
+-      path: scripts
+-      status: mapped
+-      pages:
+-        - operations/development
+-    - kind: boundary
+-      path: src
+-      status: partial
+-      note: Letti entry point, candidati e dipendenze pertinenti; l'inspector segnala il boundary complessivo come campione rappresentativo.
+-    - kind: boundary
+-      path: tests
+-      status: partial
+-      note: Letti test pertinenti ai candidati e rappresentanti; l'inspector segnala il boundary complessivo come campione rappresentativo.
+-    - kind: capability
+-      path: anagrafiche
+-      status: mapped
+-      pages:
+-        - domains/clienti
+-        - domains/collaboratori
+-        - domains/offerte
+-        - domains/politiche-rimborso
+-        - domains/identita-accesso
+-    - kind: capability
+-      path: attivita
+-      status: mapped
+-      pages:
+-        - domains/attivita
+-    - kind: capability
+-      path: auth
+-      status: mapped
+-      pages:
+-        - domains/identita-accesso
+-    - kind: capability
+-      path: calendario
+-      status: mapped
+-      pages:
+-        - domains/attivita
+-    - kind: capability
+-      path: clienti
+-      status: mapped
+-      pages:
+-        - domains/clienti
+-    - kind: capability
+-      path: collaboratori
+-      status: mapped
+-      pages:
+-        - domains/collaboratori
+-    - kind: capability
+-      path: offerte
+-      status: mapped
+-      pages:
+-        - domains/offerte
+-    - kind: capability
+-      path: report
+-      status: mapped
+-      pages:
+-        - domains/fatturazione-clienti
+-    - kind: capability
+-      path: voci-rimborso
+-      status: mapped
+-      pages:
+-        - domains/politiche-rimborso
+-    - kind: capability
+-      path: utenti
+-      status: mapped
+-      pages:
+-        - domains/identita-accesso
+-review:
+-    content_hash: sha256:26f3bc8f85656facc3387c68c4fd34fe1fd956290131dda6539298e6d3b081a2
+-    evidence_revision: 728e8ca4fd8de5a351130466b789229bc537d553
+-    evidence_hash: sha256:82506d1e41fff7ce006b4fe3731fe3119e54534f16e0197751c91733a776ae49
+-    reviewed_at: "2026-08-06T17:32:22Z"
+----
+-# Mappa del codice
+-
+-<!-- archetipo:wiki section=domain-code -->
+-## Capability → codice
+-
+-| Capability | UI / ingresso | Applicazione e dominio | Dati | Integrazioni | Test principali | Wiki |
+-|---|---|---|---|---|---|---|
+-| Clienti | `src/app/(back-office)/anagrafiche/clienti/**` | `src/lib/clienti.ts`, `src/domain/anagrafiche/valida-cliente.ts` | `Cliente` | Offerte, Attività, report | unit clienti/validazione; E2E anagrafica clienti | `domains.clienti` |
+-| Collaboratori | `src/app/(back-office)/anagrafiche/collaboratori/**`, inclusa la sezione `[id]/abilitazioni-offerte.tsx` con dialog di ricerca e selezione multipla | `src/lib/collaboratori.ts`, validatore, parti di `dal.ts`; la lifecycle action utenti sincronizza il profilo; `src/lib/abilitazioni.ts` e `[id]/abilitazioni-actions.ts` per l'abilitazione esplicita su offerte; `scripts/backfill-abilitazioni-iniziali.ts` (pre-popolamento una tantum, esposto da `npm run db:backfill-abilitazioni` e agganciato anche a `prisma/seed.ts`) | `Collaboratore`, sincronizzazione coordinata con `Utente.attivo`; `AbilitazioneOfferta` | Identità, Attività, Offerte | unit collaboratori/DAL, cambio stato utente, abilitazioni/DAL e backfill abilitazioni; E2E collaboratori, gestione utenti e abilitazioni | `domains.collaboratori` |
+-| Offerte | UI annidata cliente, compresa `offerte-cliente-tabella.tsx`, e `src/app/(back-office)/offerte/**`, entrambe con dettaglio avanzamento espandibile | `src/lib/offerte.ts`, inclusa query filtrata per cliente, validatore offerta, `calcolaAvanzamentoOfferte` | `Offerta`, relazione inversa `abilitazioniCollaboratori` verso `AbilitazioneOfferta` (posseduta da Collaboratori) | Clienti, Attività, Collaboratori | unit offerte/avanzamento; E2E offerte e dettaglio avanzamento nelle viste trasversale e cliente | `domains.offerte` |
+-| Politiche rimborso | `src/app/(back-office)/anagrafiche/voci-rimborso/**` | `src/lib/voci-rimborso.ts`, `src/domain/anagrafiche/valida-voce-rimborso.ts` | `VoceRimborsoTrasferta` | Attività (sola fotografia al salvataggio, nessuna FK) | unit voci-rimborso DAL/action/validazione; E2E anagrafica voci di rimborso e selezione/fotografia | `domains.politiche-rimborso` |
+-| Attività | `src/app/(front-office)/attivita/**`, inclusa l'isola client `[data]/isola-giornata.tsx` che governa il cambio giorno nella stessa scheda | `src/lib/actions/righe-attivita.ts`, `src/lib/attivita.ts`, `src/lib/attivita-contract.ts`, calendario e consuntivi; cache in sola memoria della scheda (`cache-dati-scheda.ts` con la guardia d'identità condivisa, `calendario-cache.ts`, `giornata-cache.ts`, provider `attivita-cache-provider.tsx`) e le route GET sotto `src/app/api/attivita/**`, che condividono le intestazioni di `src/lib/risposta-dati-privati.ts` | `RigaAttivita`, inclusi i campi fotografati `rimborsoTrasfertaEtichetta`/`rimborsoTrasfertaImporto` | tutte le anagrafiche operative | unit attività/action/calendario/riepilogo e `tests/unit/calendario-cache-provider.test.ts`, più `tests/unit/attivita-calendario-route.test.ts`, `tests/unit/attivita-giornata-routes.test.ts` (giornata, contesto di inserimento e offerte per cliente) e `tests/unit/cache-dati-scheda.test.ts` (guardia condivisa, cache di giornata e di contesto); E2E attività, rimborso trasferta selezionato, `tests/e2e/calendario-cache-mesi.spec.ts`, `tests/e2e/cambio-rapido-giorno-dettaglio.spec.ts` e `tests/e2e/giornata-cache-cambio-giorno.spec.ts` | `domains.attivita` |
+-| Fatturazione clienti | `src/app/(back-office)/report/fatturazione-clienti/**` | `src/lib/report.ts`, `calcolaReportFatturazioneClienti` | sola lettura di attività/offerte/clienti, rimborsi già fotografati sulle righe | nessuna esterna | unit ed E2E report fatturazione | `domains.fatturazione-clienti` |
+-| Identità e accesso | route Google, root, proxy e `src/app/(back-office)/anagrafiche/utenti/**` | OAuth adapter, session token/cookie, proxy di sola autenticazione e DAL autorevole; `src/lib/utenti.ts`, action, validatore, protezione ultimo amministratore e `scripts/bootstrap-amministratore-iniziale.ts` (bootstrap idempotente al deploy) | `Utente` con stato `attivo` e ruolo, `Account`; tabella `Session` non usata dal flusso | Google OIDC, Collaboratori per la sincronizzazione del profilo | unit session/proxy/DAL, callback, action utenti e bootstrap amministratore; E2E auth/ruoli e gestione utenti | `domains.identita-accesso` |
+-
+-<!-- archetipo:wiki section=shared -->
+-## Codice condiviso
+-
+-- `src/lib/db.ts` e `src/generated/prisma/**`: accesso e client generato; infrastruttura, non dominio autonomo.
+-- `src/lib/dal.ts`: guardie comuni e risoluzione profilo.
+-- `src/lib/formattazione.ts`: formattatore euro e iniziali cliente condivisi, usati dalle viste di Clienti, Collaboratori, Offerte, Politiche rimborso e Fatturazione clienti.
+-- `src/domain/consuntivi/index.ts`: validazioni e calcoli usati da più capability.
+-- `src/domain/calendario/index.ts`: value object e griglia mensile per Attività.
+-- `src/app/layout.tsx`, layout front/back office, `globals.css` e sidebar: shell UI condivisa. `globals.css` ospita anche la regola `@layer base` che dà il cursore a manina a tutti i pulsanti abilitati e il keyframe `comparsa-caricamento` riusato da overlay e rotelline.
+-- `src/components/**`: componenti UI condivisi, esposti dal barrel `src/components/index.ts` e riusati sia dal front office sia dal back office. `PulsanteAttesa` (`pulsante-attesa.tsx`) è il pulsante con feedback di attesa uniforme basato su `useFormStatus`, adottato dai form e dai modali di entrambe le aree; `useIdratata` (`use-idratata.ts`) segnala al client l'avvenuta idratazione. Si veda [Feedback di attesa e cursore uniformi](/decisions/feedback-attesa-uniforme.md).
+-- `prisma/schema.prisma`: storage condiviso per tutte le capability.
+-
+-<!-- archetipo:wiki section=unmapped -->
+-## Codice non mappato semanticamente
+-
+-- `docs/mockups/**` sono prototipi isolati e fonti d'intento, non runtime.
+-- `src/generated/prisma/**` è codice generato.
+-- `scripts/check-e2e-guardrails.ts`, `scripts/siteground-connectivity-check.ts`, `scripts/bootstrap-amministratore-iniziale.ts` e `scripts/backfill-abilitazioni-iniziali.ts` sono tooling operativo.
+-- `docker/postgres/initdb/**` è infrastruttura locale: script eseguiti dall'entrypoint di PostgreSQL alla prima inizializzazione del volume, non codice applicativo.
+-- Asset binari, favicon, `.DS_Store`, output Playwright e directory build/dependency non rappresentano capability.
+-- I modelli Prisma `Session` e `VerificationToken` e `src/lib/auth.ts` sono dichiarati/placeholder ma non partecipano al flusso di sessione osservato.
+-
+-<!-- archetipo:wiki section=coverage -->
+-## Copertura dell'ispezione
+-
+-Tutti i sette boundary e i dieci candidati restituiti da `archetipo wiki inspect` sono rappresentati nel frontmatter `coverage`. Root, Prisma, script e `docker` sono mappati. Il boundary `docker` è comparso con `docker/postgres/initdb/`, gli script che l'entrypoint di PostgreSQL esegue alla prima inizializzazione del volume per creare il database dedicato agli e2e: è infrastruttura locale mappata su [Sviluppo e operazioni](/operations/development.md), non una capability, e infatti l'ispezione continua a restituire dieci candidati. `docs`, `src` e `tests` restano `partial` perché l'inspector li dichiara campionati; per i candidati sono stati comunque letti tutti i file riportati e le dipendenze/test pertinenti. `anagrafiche` è distribuito sulle pagine di Clienti, Collaboratori, Offerte, Politiche rimborso e Identità/accesso; il candidato `utenti`, introdotto dalla UI `/anagrafiche/utenti`, è assegnato a Identità/accesso. Il dettaglio di avanzamento appartiene a Offerte, mentre `report` mappa solo Fatturazione clienti. Il candidato `calendario`, comparso con la route dati `src/app/api/attivita/calendario/route.ts` introdotta dalla cache client dei mesi, è assegnato ad Attività: non è una capability autonoma, è un confine dati di quella capability. Quella route non è però più l'unico confine dati dell'area: sotto `src/app/api/attivita/` ne convivono oggi quattro — `calendario/route.ts` (parametro `mese`), `giornata/route.ts` (parametro `data`), `contesto-inserimento/route.ts` (senza parametri) e `offerte-cliente/route.ts` (parametro `cliente`, subentrata alla server action del cascade cliente → offerta perché la risposta di una server action riconcilia l'albero RSC con l'URL e azzererebbe il form dopo un cambio giorno scritto con la History API). Sono tutte confini dati della **stessa** capability Attività e nessuna è una capability autonoma: derivano sempre il collaboratore dalla sessione e rispondono con le intestazioni condivise `Cache-Control: private, no-store` e `Vary: Cookie` di `src/lib/risposta-dati-privati.ts`. L'ispezione continua infatti a restituire dieci candidati, senza candidati nuovi per le route aggiunte.
+-
+-## Concetti correlati
+-
+-La mappa fisica dettaglia la [panoramica](/overview.md), implementa la [mappa dei contesti](/architecture/context-map.md) e rimanda alle [operazioni di sviluppo](/operations/development.md).
+diff --git a/docs/wiki/references/prd.md b/docs/wiki/references/prd.md
+deleted file mode 100644
+index 125a889..0000000
+--- a/docs/wiki/references/prd.md
++++ /dev/null
+@@ -1,334 +0,0 @@
+----
+-type: reference
+-title: Documento dei Requisiti di Prodotto
+-description: PRD originale di Coaching Planner, conservato come fonte di intento e decisioni attribuite
+-status: reviewed
+-sources:
+-    - path: docs/PRD.md
+-      role: original
+-review:
+-    content_hash: sha256:54621186195155a042a26f13a7dfc50383b5e745f14bfede805b5157c7be1b9e
+-    evidence_revision: 8ebeb2c8bb63227feb4d26fece4766baa9b086de
+-    evidence_hash: sha256:72d9e11ae2e234a0ea190d62076f235fa34415f270e1d9d66227d983592c86d4
+-    reviewed_at: "2026-07-28T10:51:15Z"
+----
+-# Coaching Planner - Documento dei Requisiti di Prodotto (PRD)
+-
+-**Autore:** ARchetipo
+-**Data:** 2026-06-11
+-**Versione:** 1.1
+-
+----
+-
+-## Elevator Pitch
+-
+-> Coaching Planner trasforma la consuntivazione mensile di una società di consulenza da rincorsa manuale a processo automatico: i collaboratori registrano le attività giorno per giorno, il titolare ottiene a fine mese sia gli importi da fatturare ai clienti sia le fatture da attendersi dai collaboratori.
+->
+-> Per **le società di consulenza e coaching che lavorano con collaboratori a partita IVA**, che hanno il problema di **consuntivare manualmente ore, trasferte e importi tra collaboratori, clienti e offerte**, **Coaching Planner** è un **gestionale web** che **automatizza il doppio consuntivo mensile: fatturazione attiva verso i clienti e fatture passive attese dai collaboratori**. A differenza di **fogli di calcolo condivisi e raccolte dati via email**, il nostro prodotto **centralizza anagrafiche, tariffe e attività in un'unica fonte di verità, con calcoli automatici e visibilità in tempo reale sull'avanzamento delle offerte**.
+-
+----
+-
+-## Visione
+-
+-Coaching Planner è il punto di riferimento operativo dell'azienda: ogni cliente, offerta e collaboratore è censito in un unico sistema, ogni ora lavorata è tracciata alla fonte da chi la eroga, e i numeri di fine mese — quanto fatturare a ogni cliente, quanto riconoscere a ogni collaboratore, quante giornate residue per ogni offerta — emergono automaticamente dai dati, senza riconciliazioni manuali. Nel tempo, il sistema evolverà da strumento di consuntivazione a strumento di governo del business, con il monitoraggio della marginalità per cliente e offerta.
+-
+-### Differenziatore di Prodotto
+-
+-Il doppio consuntivo automatico su un unico inserimento dati: la stessa riga di attività registrata dal collaboratore alimenta contemporaneamente la fattura attiva verso il cliente (tariffa dell'offerta), la fattura passiva attesa dal collaboratore (tariffa del collaboratore) e l'avanzamento delle giornate erogate rispetto a quelle previste dall'offerta. Nessun gestionale generalista copre questo flusso specifico per collaboratori a partita IVA senza pesanti personalizzazioni.
+-
+----
+-
+-## Personas Utente
+-
+-### Persona 1: Stefano
+-
+-**Ruolo:** Titolare e amministratore della società (utente Back Office)
+-**Età:** 37 | **Background:** Fondatore della società di consulenza, segue commerciale, contratti e amministrazione; oggi gestisce la consuntivazione con fogli di calcolo.
+-
+-**Obiettivi:**
+-- Sapere a fine mese, senza elaborazioni manuali, quanto fatturare a ogni cliente e quanto attendersi come fatture dai collaboratori.
+-- Tenere sotto controllo l'avanzamento delle offerte: giornate erogate rispetto a quelle vendute.
+-- Configurare una sola volta tariffe, offerte e regole di rimborso trasferte, e non doverci più pensare.
+-
+-**Pain Point:**
+-- Raccolta manuale delle ore dai collaboratori, con solleciti, formati diversi ed errori di trascrizione.
+-- Nessuna visibilità in corso d'opera su quanto è stato erogato di un'offerta: il superamento dei giorni venduti si scopre tardi.
+-- Verifica faticosa della coerenza tra le fatture ricevute dai collaboratori e il lavoro effettivamente svolto.
+-
+-**Comportamenti e Strumenti:**
+-- Lavora da desktop, usa quotidianamente fogli di calcolo, email e gestionale di fatturazione.
+-- Controlla i numeri a fine mese, ma vorrebbe poterli guardare in qualsiasi momento.
+-
+-**Motivazioni:** Ridurre il tempo amministrativo, eliminare gli errori, decidere con numeri aggiornati.
+-**Confidenza Tecnologica:** Alta — usa strumenti digitali con disinvoltura e apprezza l'automazione.
+-
+-#### Customer Journey - Stefano
+-
+-| Fase | Azione | Pensiero | Emozione | Opportunità |
+-|---|---|---|---|---|
+-| Consapevolezza | A fine mese passa ore a riconciliare fogli di calcolo dei collaboratori | "Sto perdendo tempo e prima o poi sbaglio una fattura" | Frustrazione | Mostrare il costo nascosto della consuntivazione manuale |
+-| Considerazione | Valuta gestionali generalisti e decide di far sviluppare uno strumento su misura | "Mi serve esattamente il mio flusso, non cento funzioni inutili" | Determinazione | Prodotto su misura per il flusso collaboratori a P.IVA |
+-| Primo Utilizzo | Censisce clienti, offerte, collaboratori e scaglioni di rimborso km | "Se configuro bene ora, dopo va tutto da solo" | Fiducia prudente | Onboarding guidato delle anagrafiche e validazione dei dati |
+-| Uso Regolare | Apre i report mensili e la vista di avanzamento offerte | "So già quanto fatturare e cosa aspettarmi, senza chiedere niente a nessuno" | Sollievo, controllo | Report sempre aggiornati in tempo reale |
+-| Advocacy | Consiglia l'approccio ad altri imprenditori con collaboratori a P.IVA | "Questo flusso vale per chiunque lavori così" | Orgoglio | Possibile evoluzione multi-azienda |
+-
+----
+-
+-### Persona 2: Giulia
+-
+-**Ruolo:** Collaboratrice a partita IVA (utente Front Office)
+-**Età:** 32 | **Background:** Consulente/coach freelance, collabora con più aziende, fattura mensilmente la società per le giornate erogate.
+-
+-**Obiettivi:**
+-- Registrare le attività in pochi secondi al giorno, anche su più clienti e offerte nella stessa giornata.
+-- Sapere in ogni momento quante ore e giornate ha lavorato nel mese e quanto dovrà fatturare alla società.
+-- Vedere i rimborsi trasferta calcolati automaticamente, senza dover ricordare gli scaglioni.
+-
+-**Pain Point:**
+-- Annotare le ore su strumenti personali e doverle ricopiare a fine mese per la società.
+-- Incertezza sull'importo della fattura da emettere: il conteggio manuale di ore, fatturabilità e rimborsi è soggetto a errori.
+-- Solleciti dell'amministrazione quando i dati mancano o non tornano.
+-
+-**Comportamenti e Strumenti:**
+-- Lavora da laptop, spesso in mobilità tra un cliente e l'altro.
+-- Compila i dati a fine giornata o a fine settimana: l'inserimento deve essere veloce e tollerare la compilazione differita.
+-
+-**Motivazioni:** Meno burocrazia, certezza dell'importo da fatturare, zero ricopiature.
+-**Confidenza Tecnologica:** Media — a suo agio con le web app, nessuna voglia di strumenti complicati.
+-
+-#### Customer Journey - Giulia
+-
+-| Fase | Azione | Pensiero | Emozione | Opportunità |
+-|---|---|---|---|---|
+-| Consapevolezza | La società le chiede di usare il nuovo strumento al posto del foglio di calcolo | "Un altro strumento da imparare?" | Scetticismo | Esperienza di primo accesso semplicissima |
+-| Considerazione | Prova l'inserimento di una giornata di attività | "Ok, sono due campi e un click" | Sorpresa positiva | Inserimento riga in pochi secondi, default intelligenti |
+-| Primo Utilizzo | Compila la sua prima settimana con clienti, offerte e una trasferta | "Il rimborso me lo calcola da solo" | Soddisfazione | Calcolo automatico rimborsi e totali |
+-| Uso Regolare | Naviga il mese, controlla il riepilogo e a fine mese emette la fattura con l'importo indicato | "So esattamente quanto fatturare, niente più conti a mano" | Fiducia | Riepilogo mensile come incentivo alla compilazione puntuale |
+-| Advocacy | Suggerisce miglioramenti e usa volentieri lo strumento | "Mi fa risparmiare tempo ogni mese" | Affezione | Raccolta feedback per evoluzioni future |
+-
+----
+-
+-## Insight dal Brainstorming
+-
+-> Scoperte chiave e direzioni alternative esplorate durante la sessione di inception.
+-
+-### Assunzioni Sfidate
+-
+-- **"Ogni collaboratore ha una tariffa giornaliera unica"** — Sfidata da Costanza (e se variasse per cliente/offerta?). **Confermata dal committente**: la tariffa è unica per collaboratore. Il modello dati resta semplice; un eventuale override per offerta è rimandato alla fase di crescita se emergerà il bisogno.
+-- **"Il prodotto è diviso in due applicazioni web"** — Riletta da Leonardo: si realizza come **un'unica applicazione web con due aree e ruoli distinti** (Collaboratore → Front Office, Amministratore → Back Office). Stessa base dati, meno infrastruttura, stessa esperienza percepita.
+-- **"Tariffe giornaliere ma caricamento a ore"** — La regola di conversione mancava nelle note ed era critica per tutti i calcoli. **Risolta con il committente**: conversione fissa **1 giornata = 8 ore**.
+-
+-### Nuove Direzioni Emerse
+-
+-- **Chiusura del mese**: dal "what if" di Costanza (cosa succede se un collaboratore modifica una riga di un mese già fatturato?) è emersa l'ipotesi di un meccanismo di chiusura/blocco del mese consuntivato. **Decisione del committente**: il mese resta aperto e modificabile anche dopo la sua conclusione; nessun blocco è previsto. Le eventuali divergenze tra consuntivi e fatture già emesse vengono gestite organizzativamente.
+-- **Il riepilogo mensile come leva di adozione**: per i collaboratori il valore immediato è vedere crescere l'importo della propria fattura man mano che compilano; questo trasforma un obbligo amministrativo in un beneficio personale.
+-
+-### Assunzioni da Validare
+-
+-- **Ribaltamento trasferte al cliente con lo stesso importo**: il committente ha confermato che i rimborsi trasferta vengono anche ribaltati in fattura al cliente; si assume che l'importo ribaltato coincida con il rimborso forfettario riconosciuto al collaboratore (stessi scaglioni, nessun ricarico). Da validare se servirà un ricarico o una tariffazione diversa lato cliente.
+-- **Hosting dell'applicazione**: il database sarà un Postgres su SiteGround (decisione del committente); si assume che l'app Next.js sia ospitata su una piattaforma Node-compatibile con accesso remoto al database. Da verificare che il piano SiteGround consenta connessioni remote a Postgres con TLS.
+-- **Emissione fatture fuori scope**: il sistema calcola gli imponibili (consuntivi) ma non emette documenti fiscali; la fatturazione elettronica resta sui sistemi esistenti.
+-- **Volumi attesi contenuti**: una sola azienda, ordine di grandezza di decine di collaboratori e clienti; l'architettura monolitica è dimensionata su questa assunzione.
+-
+-### Rischi Principali
+-
+-- **Adozione dei collaboratori**: se l'inserimento quotidiano è macchinoso, i dati arrivano tardi o incompleti e i consuntivi perdono affidabilità. Mitigazione: inserimento riga in pochi secondi, riepilogo fattura sempre visibile come incentivo.
+-- **Modifiche retroattive**: righe modificate dopo la fatturazione del mese generano divergenze tra consuntivo e fatture emesse. Per decisione del committente il mese resta sempre aperto: il rischio è accettato e gestito organizzativamente; i report ricalcolano sempre i dati correnti, quindi le differenze emergono rieseguendo il report del mese.
+-- **Errori di configurazione**: tariffe o scaglioni km errati propagano errori su tutti i calcoli. Mitigazione: validazioni in back office e tracciabilità dei parametri usati nei calcoli.
+-- **Esecuzione tecnica del deploy**: la combinazione app Node + Postgres su SiteGround va validata presto (connettività remota, TLS, latenza) per non scoprire vincoli a ridosso del rilascio.
+-
+----
+-
+-## Scope di Prodotto
+-
+-### MVP - Minimum Viable Product
+-
+-**Front Office (Collaboratore)**
+-- Navigazione mensile delle proprie attività (mese per mese, giorno per giorno).
+-- Inserimento di una o più righe di attività per giornata, ognuna associata a cliente e offerta, con ore lavorate, nota descrittiva e flag "fatturabile".
+-- Registrazione della trasferta con distanza in km e calcolo automatico del rimborso forfettario in base agli scaglioni configurati.
+-- Riepilogo mensile automatico: ore e giornate lavorate per offerta, rimborsi trasferta, importo totale della fattura da emettere alla società (solo righe fatturabili).
+-
+-**Back Office (Amministratore)**
+-- Anagrafica clienti con dati di fatturazione.
+-- Anagrafica offerte per cliente: codice, descrizione, tariffa giornaliera, giorni previsti.
+-- Anagrafica collaboratori: dati anagrafici, partita IVA, tariffa giornaliera applicata alla società.
+-- Configurazione degli scaglioni chilometrici per i rimborsi trasferta (es. fino a 100 km → importo X, fino a 200 km → importo Y).
+-
+-**Reportistica (Amministratore)**
+-- Report mensile per cliente: importi da fatturare calcolati dalle attività dei collaboratori (giornate × tariffa dell'offerta), inclusi i rimborsi trasferta ribaltati al cliente.
+-- Vista avanzamento offerte: giornate erogate per collaboratore rispetto alle giornate previste, con residuo.
+-
+-**Trasversale**
+-- Autenticazione con ruoli (Amministratore / Collaboratore) e segregazione dei dati: ogni collaboratore vede e modifica solo le proprie attività.
+-- Conversione fissa 1 giornata = 8 ore in tutti i calcoli.
+-
+-### Funzionalità di Crescita (Post-MVP)
+-
+-- **Analisi della marginalità** (decisione presa in riunione: posticipata dopo il rilascio iniziale): confronto per periodo tra ricavi da clienti (tariffe offerte × giornate) e costi dai collaboratori (tariffe collaboratori × giornate), per cliente e per offerta.
+-- Esportazione di report e riepiloghi (Excel/PDF).
+-- Promemoria automatici di compilazione per i collaboratori.
+-- Tariffa collaboratore con override per offerta, se il bisogno emergerà.
+-
+-### Visione (Futuro)
+-
+-- Integrazione con sistemi di fatturazione elettronica (generazione automatica delle bozze di fattura attiva e riconciliazione delle fatture passive).
+-- Dashboard direzionale con andamento di ricavi, costi e marginalità nel tempo.
+-- Supporto multi-azienda per offrire lo strumento ad altre realtà con lo stesso modello operativo.
+-
+----
+-
+-## Architettura Tecnica
+-
+-> **Proposta da:** Leonardo (Architect)
+-
+-### Architettura di Sistema
+-
+-Unica applicazione web full-stack (monolite) che serve sia il Front Office dei collaboratori sia il Back Office amministrativo, differenziati tramite ruoli. Il rendering e le API convivono nello stesso progetto Next.js; la persistenza è su PostgreSQL gestito esternamente (SiteGround). Nessun servizio aggiuntivo: i volumi attesi (una azienda, decine di utenti) non giustificano complessità distribuita.
+-
+-**Pattern Architetturale:** Monolite full-stack server-rendered (Next.js App Router) con accesso al database tramite ORM; logica di calcolo (conversioni ore/giorni, rimborsi, consuntivi) isolata in moduli di dominio puri e testabili.
+-
+-**Componenti Principali:**
+-- **Area Front Office**: vista calendario mensile, gestione righe di attività e trasferte, riepilogo mensile del collaboratore.
+-- **Area Back Office**: CRUD anagrafiche (clienti, offerte, collaboratori), configurazione scaglioni km, reportistica.
+-- **Modulo di dominio "Consuntivi"**: funzioni pure per conversione ore→giorni (8h = 1g), calcolo rimborsi a scaglioni, totali fattura collaboratore, importi per cliente, avanzamento offerte.
+-- **Livello dati**: schema relazionale PostgreSQL gestito via ORM con migrazioni versionate.
+-- **Autenticazione e autorizzazione**: sessioni con ruoli (Amministratore/Collaboratore) e policy di accesso per risorsa.
+-
+-### Stack Tecnologico
+-
+-| Livello | Tecnologia | Versione | Motivazione |
+-|---|---|---|---|
+-| Linguaggio | TypeScript | 5.x | Tipizzazione end-to-end su frontend, backend e schema dati |
+-| Framework Backend | Next.js (App Router, Server Actions / Route Handlers) | 15.x | Scelta confermata dal committente; un solo progetto per UI e API |
+-| Framework Frontend | React | 19.x | Integrato in Next.js; ecosistema maturo per UI a calendario e tabelle |
+-| Database | PostgreSQL (hosting SiteGround) | 16.x (versione effettiva da verificare sul piano SiteGround) | Decisione del committente; relazionale, adatto a dati contabili |
+-| ORM | Prisma | 6.x | Migrazioni versionate, schema tipizzato, produttività per CRUD |
+-| Auth | Auth.js (NextAuth) v5, credenziali + sessioni con ruolo | | |
+-| Testing | Vitest (unit, modulo consuntivi) + Playwright (e2e flussi chiave) | | |
+-
+-UI: Tailwind CSS 4.x con componenti shadcn/ui per tabelle, form e date picker. Importi gestiti come `Decimal` (mai float) in tutta la catena.
+-
+-### Struttura del Progetto
+-
+-**Pattern organizzativo:** Feature-based dentro la convenzione Next.js App Router: le route raggruppate per area (front office / back office), la logica di dominio separata dalle route e indipendente dal framework.
+-
+-```text
+-coaching-planner/
+-├── prisma/
+-│   ├── schema.prisma          # Schema dati e migrazioni
+-│   └── seed.ts                # Dati di esempio per sviluppo
+-├── src/
+-│   ├── app/
+-│   │   ├── (front-office)/    # Area collaboratore: calendario mensile, attività, riepilogo
+-│   │   ├── (back-office)/     # Area admin: anagrafiche, tariffe, scaglioni km, report
+-│   │   ├── api/               # Route handlers (se necessari oltre alle Server Actions)
+-│   │   └── login/             # Autenticazione
+-│   ├── domain/
+-│   │   ├── consuntivi/        # Funzioni pure: ore→giorni, rimborsi, totali, avanzamento
+-│   │   └── types.ts           # Tipi di dominio condivisi
+-│   ├── lib/
+-│   │   ├── db.ts              # Client Prisma
+-│   │   └── auth.ts            # Configurazione Auth.js e policy ruoli
+-│   └── components/            # Componenti UI condivisi
+-├── tests/
+-│   ├── unit/                  # Vitest sul modulo consuntivi
+-│   └── e2e/                   # Playwright sui flussi chiave
+-└── docs/                      # PRD, mockup, risultati test
+-```
+-
+-### Ambiente di Sviluppo
+-
+-Sviluppo locale su Windows 11 con Node.js LTS e un'istanza PostgreSQL locale (container Docker o installazione nativa) per non dipendere dal database SiteGround durante lo sviluppo; `prisma migrate dev` per evolvere lo schema e `seed` per i dati di prova. Variabili d'ambiente in `.env.local` (mai committate) con `DATABASE_URL` distinta per locale e produzione.
+-
+-**Strumenti richiesti:** Node.js 22 LTS, npm/pnpm, Docker Desktop (Postgres locale), Git.
+-
+-### CI/CD e Deployment
+-
+-**Build tool:** Next.js build (`next build`) via npm/pnpm.
+-
+-**Pipeline:** Ad ogni push: install → lint → test unit (Vitest) → build → test e2e (Playwright) sui flussi critici; migrazioni applicate con `prisma migrate deploy` in fase di rilascio.
+-
+-**Deployment:** App Next.js su piattaforma Node-compatibile (es. Vercel o VPS), collegata via TLS al database PostgreSQL ospitato su SiteGround. La connettività remota al Postgres SiteGround va validata come primo spike tecnico.
+-
+-**Infrastruttura target:** Singolo ambiente di produzione + ambiente locale di sviluppo; database PostgreSQL gestito su SiteGround con backup a cura dell'hosting.
+-
+-### Architecture Decision Records (ADR)
+-
+-1. **ADR-001 — Unica web app con ruoli invece di due applicazioni separate**: stessa base dati e un solo deploy; le "due applicazioni" delle note diventano due aree con autorizzazioni distinte.
+-2. **ADR-002 — Conversione fissa 1 giornata = 8 ore**: confermata dal committente; implementata come costante centralizzata nel modulo di dominio, così un'eventuale futura configurabilità resta un cambiamento locale.
+-3. **ADR-003 — Tariffa unica per collaboratore**: confermata dal committente; il modello dati non prevede override per offerta nel MVP.
+-4. **ADR-004 — PostgreSQL su SiteGround**: vincolo del committente; lo sviluppo locale usa un Postgres equivalente e l'accesso remoto TLS va validato a inizio progetto.
+-5. **ADR-005 — Importi come Decimal**: tutti i valori monetari usano tipi decimali (DB e applicazione) per evitare errori di arrotondamento nei consuntivi.
+-6. **ADR-006 — Logica di calcolo in funzioni pure**: conversioni, rimborsi e totali vivono in `src/domain/consuntivi`, senza dipendenze dal framework, per essere testabili in isolamento.
+-
+----
+-
+-## Requisiti Funzionali
+-
+-### Autenticazione e Ruoli
+-
+-- **RF-01** — Il sistema deve consentire l'accesso autenticato con credenziali e distinguere due ruoli: Amministratore (Back Office) e Collaboratore (Front Office).
+-- **RF-02** — Ogni collaboratore deve poter visualizzare e modificare esclusivamente le proprie attività; l'amministratore deve poter consultare i dati di tutti i collaboratori.
+-
+-### Anagrafiche e Configurazione (Back Office)
+-
+-- **RF-03** — L'amministratore deve poter creare, modificare e disattivare i clienti, includendo i dati di fatturazione.
+-- **RF-04** — L'amministratore deve poter gestire le offerte associate a ciascun cliente, specificando codice, descrizione, tariffa giornaliera e numero di giorni previsti.
+-- **RF-05** — L'amministratore deve poter gestire i collaboratori con dati anagrafici, partita IVA e tariffa giornaliera applicata alla società.
+-- **RF-06** — L'amministratore deve poter configurare gli scaglioni chilometrici per i rimborsi trasferta, definendo per ogni soglia di distanza l'importo forfettario corrispondente.
+-
+-### Consuntivazione Attività (Front Office)
+-
+-- **RF-07** — Il collaboratore deve poter navigare le proprie attività su base mensile, spostandosi tra i mesi e visualizzando i giorni del mese selezionato.
+-- **RF-08** — Il collaboratore deve poter inserire per ogni giornata una o più righe di attività, ciascuna associata a un cliente e a un'offerta, indicando le ore lavorate.
+-- **RF-09** — Per ogni riga di attività il collaboratore deve poter aggiungere una nota descrittiva e contrassegnare la riga come fatturabile o non fatturabile; solo le righe fatturabili concorrono al totale della fattura.
+-- **RF-10** — Il collaboratore deve poter registrare una trasferta indicando la distanza in km; il sistema calcola automaticamente il rimborso forfettario in base agli scaglioni configurati.
+-- **RF-11** — Il Front Office deve mostrare un riepilogo mensile aggiornato automaticamente: ore e giornate lavorate per offerta, totale rimborsi trasferta e importo complessivo della fattura che il collaboratore emetterà alla società.
+-
+-### Calcoli e Regole di Dominio
+-
+-- **RF-12** — Tutti i calcoli devono applicare la conversione fissa 1 giornata = 8 ore lavorate.
+-- **RF-13** — L'importo dovuto al collaboratore deve essere calcolato come giornate fatturabili × tariffa giornaliera del collaboratore, più i rimborsi trasferta del periodo.
+-- **RF-14** — I rimborsi trasferta devono essere ribaltati anche in fattura al cliente: ogni trasferta registrata concorre, con lo stesso importo forfettario, sia alla fattura del collaboratore sia all'importo da fatturare al cliente di riferimento.
+-- **RF-15** — Le attività devono rimanere sempre modificabili dal collaboratore, anche per mesi conclusi: il sistema non prevede alcun blocco o chiusura del mese e i report riflettono sempre i dati correnti.
+-
+-### Reportistica (Back Office)
+-
+-- **RF-16** — Il sistema deve generare un report mensile per cliente con l'importo da fatturare, calcolato dalle giornate lavorate dai collaboratori sulle offerte di quel cliente moltiplicate per la tariffa giornaliera di ciascuna offerta, più i rimborsi trasferta ribaltati al cliente nel mese.
+-- **RF-17** — Il sistema deve offrire una vista di avanzamento per offerta che mostri le giornate erogate (con dettaglio per collaboratore) rispetto alle giornate previste, evidenziando il residuo.
+-
+----
+-
+-## Requisiti Non Funzionali
+-
+-### Sicurezza
+-
+-- Le password devono essere memorizzate con hashing robusto (es. bcrypt/argon2); le sessioni devono essere protette e scadere dopo inattività prolungata.
+-- Tutte le comunicazioni devono avvenire su HTTPS; la connessione al database SiteGround deve usare TLS.
+-- L'autorizzazione deve essere applicata lato server su ogni operazione: nessun dato di altri collaboratori deve essere accessibile aggirando l'interfaccia.
+-- I dati personali trattati (anagrafiche, partite IVA) rientrano nel perimetro GDPR: accesso limitato per ruolo e possibilità di rettifica dei dati.
+-- I valori monetari devono essere gestiti con tipi decimali per garantire correttezza contabile.
+-
+-### Integrazioni
+-
+-- Nessuna integrazione esterna nel MVP: l'emissione delle fatture (attive e passive) resta sui sistemi esistenti; Coaching Planner fornisce gli importi consuntivati.
+-- Unica dipendenza infrastrutturale esterna: il database PostgreSQL ospitato su SiteGround, raggiunto tramite connessione remota TLS (da validare come primo spike tecnico).
+-- Predisposizione futura (visione): integrazione con sistemi di fatturazione elettronica.
+-
+----
+-
+-## Prossimi Passi
+-
+-1. **Backlog** - Esegui `/archetipo-spec` per trasformare questo PRD in un backlog
+-2. **Design** - Esegui `/archetipo-design` per i mockup UI (quando applicabile)
+-3. **Validazione** - Rivedi con gli stakeholder e testa le assunzioni più rischiose (connettività Postgres SiteGround, eventuale ricarico sui rimborsi trasferta ribaltati al cliente)
+-
+----
+-
+-_PRD generato tramite ARchetipo Product Inception - 2026-06-11_
+-_Sessione condotta da: Stefano Marello con il team ARchetipo_
+-
+-## Concetti correlati
+-
+-Questa fonte d’intento è distinta dal comportamento osservato nella [panoramica](/overview.md) e alimenta le decisioni architetturali nella sezione [Decisioni](/decisions/unica-app-ruoli.md).
+diff --git a/src/domain/consuntivi/index.ts b/src/domain/consuntivi/index.ts
+index 32d3262..e0ae7f9 100644
+--- a/src/domain/consuntivi/index.ts
++++ b/src/domain/consuntivi/index.ts
+@@ -160,14 +160,22 @@ export function calcolaRiepilogoMese(
+     aggregati.set(riga.offertaId, voce);
+   }
+ 
+-  const giornateTotali = oreTotali / ORE_PER_GIORNATA;
+-  const giornateFatturabili = oreFatturabili / ORE_PER_GIORNATA;
++  const giornateTotali = righe.reduce(
++    (totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0,
++  );
++  const giornateFatturabili = righe.filter((riga) => riga.fatturabile).reduce(
++    (totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0,
++  );
+   const imponibileManodopera = giornateFatturabili * tariffaNumerica;
+ 
+   const perOfferta = Array.from(aggregati.values()).map((voce) => ({
+     ...voce,
+-    giornateTotali: voce.oreTotali / ORE_PER_GIORNATA,
+-    giornateFatturabili: voce.oreFatturabili / ORE_PER_GIORNATA,
++    giornateTotali: righe.filter((riga) => riga.offertaId === voce.offertaId).reduce(
++      (totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0,
++    ),
++    giornateFatturabili: righe.filter((riga) => riga.offertaId === voce.offertaId && riga.fatturabile).reduce(
++      (totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0,
++    ),
+     rimborsiTrasferta: formattaImporto(voce.rimborsiTrasferta),
+   }));
+ 
+@@ -634,8 +642,9 @@ export function calcolaAvanzamentoOfferte(
+ 
+   const perOfferta: VoceAvanzamentoOfferta[] = offerte.map((offerta) => {
+     const accumulatoreOfferta = accumulatori.get(offerta.offertaId);
+-    const oreErogate = accumulatoreOfferta?.oreErogateTotali ?? 0;
+-    const giornateErogate = oreErogate / ORE_PER_GIORNATA;
++    const giornateErogate = righe
++      .filter((riga) => riga.offertaId === offerta.offertaId && riga.fatturabile)
++      .reduce((totale, riga) => totale + Math.floor((riga.ore / ORE_PER_GIORNATA) * 100) / 100, 0);
+     const giornatePreviste = offerta.giorniPrevisti;
+     const residuo = giornatePreviste - giornateErogate;
+ 
+diff --git a/tests/unit/avanzamento-offerte.test.ts b/tests/unit/avanzamento-offerte.test.ts
+deleted file mode 100644
+index a398d61..0000000
+--- a/tests/unit/avanzamento-offerte.test.ts
++++ /dev/null
+@@ -1,438 +0,0 @@
+-import { describe, it, expect } from "vitest";
+-import {
+-  calcolaAvanzamentoOfferte,
+-  SOGLIA_ALLERTA_UTILIZZO,
+-  type OffertaAvanzamento,
+-  type RigaAvanzamento,
+-} from "@/domain/consuntivi";
+-
+-// ── Helper e dati di esempio ────────────────────────────────────
+-
+-/** Crea una offerta di avanzamento con valori di default sovrascrivibili */
+-function offerta(modifiche: Partial<OffertaAvanzamento> = {}): OffertaAvanzamento {
+-  return {
+-    offertaId: "offerta-1",
+-    offertaCodice: "OFF-001",
+-    offertaDescrizione: "Sviluppo software",
+-    clienteId: "cliente-1",
+-    clienteRagioneSociale: "Cliente Uno",
+-    giorniPrevisti: 10,
+-    ...modifiche,
+-  };
+-}
+-
+-/** Crea una riga di attività ai fini dell'avanzamento con valori di default sovrascrivibili */
+-function riga(modifiche: Partial<RigaAvanzamento> = {}): RigaAvanzamento {
+-  return {
+-    offertaId: "offerta-1",
+-    collaboratoreId: "collaboratore-1",
+-    collaboratoreNome: "Mario Rossi",
+-    ore: 8,
+-    fatturabile: true,
+-    mese: "2026-01",
+-    ...modifiche,
+-  };
+-}
+-
+-// ═══════════════════════════════════════════════════════════════
+-// calcolaAvanzamentoOfferte
+-// ═══════════════════════════════════════════════════════════════
+-
+-describe("calcolaAvanzamentoOfferte", () => {
+-  // ── Report vuoto ───────────────────────────────────────────
+-
+-  it("restituisce un report vuoto con totali a zero quando non ci sono offerte né righe", () => {
+-    const report = calcolaAvanzamentoOfferte([], []);
+-
+-    expect(report.perOfferta).toEqual([]);
+-    expect(report.totali).toEqual({
+-      giornatePrevisteTotali: 0,
+-      giornateErogateTotali: 0,
+-      residuoTotale: 0,
+-    });
+-  });
+-
+-  // ── Conversione ore → giornate ──────────────────────────────
+-
+-  it("converte 8 ore fatturabili in 1 giornata erogata", () => {
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      [riga({ ore: 8 })],
+-    );
+-
+-    expect(report.perOfferta[0].giornateErogate).toBe(1);
+-  });
+-
+-  it("converte 12 ore fatturabili in 1,5 giornate erogate", () => {
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      [riga({ ore: 12 })],
+-    );
+-
+-    expect(report.perOfferta[0].giornateErogate).toBe(1.5);
+-  });
+-
+-  // ── Aggregazione per collaboratore ──────────────────────────
+-
+-  it("aggrega più collaboratori sulla stessa offerta con dettaglio corretto e ordinamento decrescente", () => {
+-    const righe = [
+-      riga({ collaboratoreId: "collab-a", collaboratoreNome: "Anna Bianchi", ore: 8 }), // 1 giornata
+-      riga({ collaboratoreId: "collab-b", collaboratoreNome: "Bruno Verdi", ore: 16 }), // 2 giornate
+-    ];
+-
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      righe,
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.giornateErogate).toBe(3);
+-    expect(voce.perCollaboratore).toHaveLength(2);
+-    // Ordinamento decrescente per giornate erogate: Bruno (2gg) prima di Anna (1gg)
+-    expect(voce.perCollaboratore.map((c) => c.collaboratoreNome)).toEqual([
+-      "Bruno Verdi",
+-      "Anna Bianchi",
+-    ]);
+-    expect(voce.perCollaboratore[0].giornateErogate).toBe(2);
+-    expect(voce.perCollaboratore[1].giornateErogate).toBe(1);
+-  });
+-
+-  it("somma le ore dello stesso collaboratore su righe multiple della stessa offerta", () => {
+-    const righe = [
+-      riga({ collaboratoreId: "collab-a", collaboratoreNome: "Anna Bianchi", ore: 8 }),
+-      riga({ collaboratoreId: "collab-a", collaboratoreNome: "Anna Bianchi", ore: 4 }),
+-    ];
+-
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      righe,
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.perCollaboratore).toHaveLength(1);
+-    expect(voce.perCollaboratore[0].giornateErogate).toBe(1.5);
+-  });
+-
+-  // ── Residuo e stati ──────────────────────────────────────────
+-
+-  it("calcola un residuo positivo quando erogato < previsto (stato IN_CORSO)", () => {
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      [riga({ ore: 40 })], // 5 giornate
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.giornatePreviste).toBe(10);
+-    expect(voce.giornateErogate).toBe(5);
+-    expect(voce.residuo).toBe(5);
+-    expect(voce.stato).toBe("IN_CORSO");
+-  });
+-
+-  it("classifica come ESAURITA quando erogato == previsto (residuo nullo)", () => {
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      [riga({ ore: 80 })], // 10 giornate
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.residuo).toBe(0);
+-    expect(voce.stato).toBe("ESAURITA");
+-  });
+-
+-  it("classifica come OLTRE_BUDGET quando erogato > previsto (residuo negativo)", () => {
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      [riga({ ore: 96 })], // 12 giornate
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.residuo).toBe(-2);
+-    expect(voce.stato).toBe("OLTRE_BUDGET");
+-  });
+-
+-  // ── Soglia di allerta ─────────────────────────────────────────
+-
+-  it("classifica come IN_ALLERTA esattamente all'85% di utilizzo con residuo positivo", () => {
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 20 })],
+-      [riga({ ore: 8 * 17 })], // 17 giornate = 85% di 20
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.percentualeUtilizzo).toBeCloseTo(SOGLIA_ALLERTA_UTILIZZO, 10);
+-    expect(voce.residuo).toBeGreaterThan(0);
+-    expect(voce.stato).toBe("IN_ALLERTA");
+-  });
+-
+-  it("classifica come IN_CORSO appena sotto la soglia dell'85%", () => {
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 20 })],
+-      [riga({ ore: 8 * 16 })], // 16 giornate = 80% di 20
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.percentualeUtilizzo).toBeCloseTo(0.8, 10);
+-    expect(voce.stato).toBe("IN_CORSO");
+-  });
+-
+-  // ── Esclusione righe non fatturabili ──────────────────────────
+-
+-  it("esclude dall'erogato le righe non fatturabili e dal dettaglio per collaboratore", () => {
+-    const righe = [
+-      riga({ collaboratoreId: "collab-a", collaboratoreNome: "Anna Bianchi", ore: 8, fatturabile: true }),
+-      riga({ collaboratoreId: "collab-b", collaboratoreNome: "Bruno Verdi", ore: 8, fatturabile: false }),
+-    ];
+-
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      righe,
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.giornateErogate).toBe(1);
+-    expect(voce.perCollaboratore).toHaveLength(1);
+-    expect(voce.perCollaboratore[0].collaboratoreNome).toBe("Anna Bianchi");
+-  });
+-
+-  it("risulta con erogato 0 e perCollaboratore vuoto se l'offerta ha sole righe non fatturabili", () => {
+-    const righe = [riga({ ore: 8, fatturabile: false })];
+-
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      righe,
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.giornateErogate).toBe(0);
+-    expect(voce.perCollaboratore).toEqual([]);
+-  });
+-
+-  // ── Ordinamento per criticità ──────────────────────────────────
+-
+-  it("ordina perOfferta per percentuale di utilizzo decrescente", () => {
+-    const offerte = [
+-      offerta({ offertaId: "offerta-bassa", offertaCodice: "OFF-BASSA", giorniPrevisti: 10 }),
+-      offerta({ offertaId: "offerta-alta", offertaCodice: "OFF-ALTA", giorniPrevisti: 10 }),
+-      offerta({ offertaId: "offerta-media", offertaCodice: "OFF-MEDIA", giorniPrevisti: 10 }),
+-    ];
+-    const righe = [
+-      riga({ offertaId: "offerta-bassa", ore: 8 }), // 1/10 = 10%
+-      riga({ offertaId: "offerta-alta", ore: 72 }), // 9/10 = 90%
+-      riga({ offertaId: "offerta-media", ore: 40 }), // 5/10 = 50%
+-    ];
+-
+-    const report = calcolaAvanzamentoOfferte(offerte, righe);
+-
+-    expect(report.perOfferta.map((v) => v.offertaCodice)).toEqual([
+-      "OFF-ALTA",
+-      "OFF-MEDIA",
+-      "OFF-BASSA",
+-    ]);
+-  });
+-
+-  // ── Guardia divisione per zero ─────────────────────────────────
+-
+-  it("gestisce giorniPrevisti = 0 senza produrre NaN/Infinity e risulta OLTRE_BUDGET se ha erogato", () => {
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 0 })],
+-      [riga({ ore: 8 })],
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.giornatePreviste).toBe(0);
+-    expect(voce.giornateErogate).toBe(1);
+-    expect(Number.isFinite(voce.percentualeUtilizzo)).toBe(true);
+-    expect(Number.isNaN(voce.percentualeUtilizzo)).toBe(false);
+-    expect(voce.residuo).toBeLessThan(0);
+-    expect(voce.stato).toBe("OLTRE_BUDGET");
+-  });
+-
+-  // ── Offerta senza attività ──────────────────────────────────────
+-
+-  it("include un'offerta senza attività con erogato 0, residuo = previste, perCollaboratore vuoto e stato IN_CORSO", () => {
+-    const report = calcolaAvanzamentoOfferte(
+-      [offerta({ giorniPrevisti: 10 })],
+-      [],
+-    );
+-
+-    const voce = report.perOfferta[0];
+-    expect(voce.giornateErogate).toBe(0);
+-    expect(voce.residuo).toBe(10);
+-    expect(voce.perCollaboratore).toEqual([]);
+-    expect(voce.stato).toBe("IN_CORSO");
+-  });
+-
+-  // ── Totali di portafoglio ────────────────────────────────────────
+-
+-  it("calcola i totali di portafoglio come somma di previste/erogate/residuo tra le offerte", () => {
+-    const offerte = [
+-      offerta({ offertaId: "offerta-1", offertaCodice: "OFF-001", giorniPrevisti: 10 }),
+-      offerta({ offertaId: "offerta-2", offertaCodice: "OFF-002", giorniPrevisti: 20 }),
+-    ];
+-    const righe = [
+-      riga({ offertaId: "offerta-1", ore: 40 }), // 5 giornate
+-      riga({ offertaId: "offerta-2", ore: 160 }), // 20 giornate
+-    ];
+-
+-    const report = calcolaAvanzamentoOfferte(offerte, righe);
+-
+-    expect(report.totali).toEqual({
+-      giornatePrevisteTotali: 30,
+-      giornateErogateTotali: 25,
+-      residuoTotale: 5,
+-    });
+-  });
+-
+-  // ── Matrice mensile ──────────────────────────────────────────────
+-
+-  describe("Matrice mensile", () => {
+-    it("ordina i mesi cronologicamente indipendentemente dall'ordine delle righe", () => {
+-      const righe = [
+-        riga({ mese: "2026-03", ore: 8 }),
+-        riga({ mese: "2025-11", ore: 8 }),
+-        riga({ mese: "2026-01", ore: 8 }),
+-      ];
+-
+-      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+-
+-      expect(report.perOfferta[0].matriceMensile.mesi).toEqual([
+-        "2025-11",
+-        "2026-01",
+-        "2026-03",
+-      ]);
+-    });
+-
+-    it("aggrega nella stessa cella le ore dello stesso collaboratore nello stesso mese", () => {
+-      const righe = [
+-        riga({ mese: "2026-01", ore: 8 }),
+-        riga({ mese: "2026-01", ore: 4 }),
+-      ];
+-
+-      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+-
+-      const rigaMatrice = report.perOfferta[0].matriceMensile.righe[0];
+-      expect(rigaMatrice.giornatePerMese["2026-01"]).toBe(1.5);
+-    });
+-
+-    it("non crea una cella per un mese in cui il collaboratore non ha erogato (chiave assente, non zero)", () => {
+-      const righe = [
+-        riga({
+-          collaboratoreId: "collab-a",
+-          collaboratoreNome: "Anna Bianchi",
+-          mese: "2026-01",
+-          ore: 8,
+-        }),
+-        riga({
+-          collaboratoreId: "collab-b",
+-          collaboratoreNome: "Bruno Verdi",
+-          mese: "2026-02",
+-          ore: 8,
+-        }),
+-      ];
+-
+-      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+-
+-      const matrice = report.perOfferta[0].matriceMensile;
+-      expect(matrice.mesi).toEqual(["2026-01", "2026-02"]);
+-
+-      const rigaAnna = matrice.righe.find(
+-        (r) => r.collaboratoreId === "collab-a",
+-      )!;
+-      expect(rigaAnna.giornatePerMese).toHaveProperty("2026-01");
+-      expect(rigaAnna.giornatePerMese).not.toHaveProperty("2026-02");
+-    });
+-
+-    it("quadra totali per mese, totali di riga e totale complessivo con le giornate erogate", () => {
+-      const righe = [
+-        riga({
+-          collaboratoreId: "collab-a",
+-          collaboratoreNome: "Anna Bianchi",
+-          mese: "2026-01",
+-          ore: 8, // 1 gg
+-        }),
+-        riga({
+-          collaboratoreId: "collab-a",
+-          collaboratoreNome: "Anna Bianchi",
+-          mese: "2026-02",
+-          ore: 8, // 1 gg
+-        }),
+-        riga({
+-          collaboratoreId: "collab-b",
+-          collaboratoreNome: "Bruno Verdi",
+-          mese: "2026-01",
+-          ore: 16, // 2 gg
+-        }),
+-        riga({
+-          collaboratoreId: "collab-b",
+-          collaboratoreNome: "Bruno Verdi",
+-          mese: "2026-02",
+-          ore: 8, // 1 gg
+-        }),
+-      ];
+-
+-      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+-      const voce = report.perOfferta[0];
+-      const matrice = voce.matriceMensile;
+-
+-      // AC-2: totali per colonna (mese)
+-      expect(matrice.totaliPerMese).toEqual({
+-        "2026-01": 3, // Anna 1 + Bruno 2
+-        "2026-02": 2, // Anna 1 + Bruno 1
+-      });
+-
+-      // AC-2: totale di ogni riga = somma delle sue celle
+-      for (const rigaMatrice of matrice.righe) {
+-        const sommaCelle = Object.values(rigaMatrice.giornatePerMese).reduce(
+-          (acc, giornate) => acc + giornate,
+-          0,
+-        );
+-        expect(rigaMatrice.totaleGiornate).toBe(sommaCelle);
+-      }
+-
+-      // AC-2: totale complessivo della matrice = giornate erogate della voce
+-      expect(matrice.totaleGiornate).toBe(voce.giornateErogate);
+-      expect(matrice.totaleGiornate).toBe(5);
+-    });
+-
+-    it("esclude dalla matrice i mesi con sole righe non fatturabili", () => {
+-      const righe = [
+-        riga({ mese: "2026-01", ore: 8, fatturabile: true }),
+-        riga({ mese: "2026-02", ore: 8, fatturabile: false }),
+-      ];
+-
+-      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+-      const matrice = report.perOfferta[0].matriceMensile;
+-
+-      expect(matrice.mesi).toEqual(["2026-01"]);
+-      expect(matrice.totaliPerMese).not.toHaveProperty("2026-02");
+-      for (const rigaMatrice of matrice.righe) {
+-        expect(rigaMatrice.giornatePerMese).not.toHaveProperty("2026-02");
+-      }
+-    });
+-
+-    it("restituisce una matrice vuota per un'offerta senza righe", () => {
+-      const report = calcolaAvanzamentoOfferte([offerta()], []);
+-
+-      expect(report.perOfferta[0].matriceMensile).toEqual({
+-        mesi: [],
+-        righe: [],
+-        totaliPerMese: {},
+-        totaleGiornate: 0,
+-      });
+-    });
+-
+-    it("ordina le righe della matrice come il dettaglio per collaboratore", () => {
+-      const righe = [
+-        riga({ collaboratoreId: "collab-a", collaboratoreNome: "Anna Bianchi", ore: 8 }), // 1 gg
+-        riga({ collaboratoreId: "collab-b", collaboratoreNome: "Bruno Verdi", ore: 16 }), // 2 gg
+-      ];
+-
+-      const report = calcolaAvanzamentoOfferte([offerta()], righe);
+-      const voce = report.perOfferta[0];
+-
+-      expect(voce.matriceMensile.righe.map((r) => r.collaboratoreId)).toEqual(
+-        voce.perCollaboratore.map((c) => c.collaboratoreId),
+-      );
+-    });
+-  });
+-});
+diff --git a/tests/unit/riepilogo-mese.test.ts b/tests/unit/riepilogo-mese.test.ts
+deleted file mode 100644
+index ee03865..0000000
+--- a/tests/unit/riepilogo-mese.test.ts
++++ /dev/null
+@@ -1,136 +0,0 @@
+-import { describe, it, expect } from "vitest";
+-
+-import {
+-  calcolaRiepilogoMese,
+-  type RigaRiepilogo,
+-} from "@/domain/consuntivi";
+-
+-function riga(parziale: Partial<RigaRiepilogo> = {}): RigaRiepilogo {
+-  return {
+-    offertaId: "off-1",
+-    offertaCodice: "OFF-001",
+-    offertaDescrizione: "Percorso coaching",
+-    clienteRagioneSociale: "Cliente Uno",
+-    ore: 8,
+-    fatturabile: true,
+-    rimborsoTrasfertaImporto: null,
+-    ...parziale,
+-  };
+-}
+-
+-describe("calcolaRiepilogoMese", () => {
+-  it("restituisce un riepilogo vuoto per un mese senza righe", () => {
+-    const result = calcolaRiepilogoMese([], 450);
+-
+-    expect(result.perOfferta).toEqual([]);
+-    expect(result.importoFattura).toBe("0.00");
+-    expect(result.totali).toEqual({
+-      oreTotali: 0,
+-      oreFatturabili: 0,
+-      giornateTotali: 0,
+-      giornateFatturabili: 0,
+-      totaleRimborsi: "0.00",
+-    });
+-    expect(result.breakdown).toEqual({
+-      giornateFatturabili: "0.00",
+-      tariffaGiornaliera: "450.00",
+-      imponibileManodopera: "0.00",
+-      totaleRimborsi: "0.00",
+-    });
+-  });
+-
+-  it("aggrega più righe sulla stessa offerta e calcola l'importo fattura", () => {
+-    const result = calcolaRiepilogoMese([riga({ ore: 8 }), riga({ ore: 4 })], 450);
+-
+-    expect(result.perOfferta).toHaveLength(1);
+-    expect(result.perOfferta[0]).toMatchObject({
+-      oreTotali: 12,
+-      oreFatturabili: 12,
+-      giornateTotali: 1.5,
+-      giornateFatturabili: 1.5,
+-      rimborsiTrasferta: "0.00",
+-    });
+-    expect(result.totali.oreTotali).toBe(12);
+-    expect(result.totali.giornateTotali).toBe(1.5);
+-    expect(result.totali.giornateFatturabili).toBe(1.5);
+-    expect(result.importoFattura).toBe("675.00");
+-  });
+-
+-  it("mantiene precisione nella conversione ore → giornate e aggrega offerte diverse", () => {
+-    const result = calcolaRiepilogoMese(
+-      [
+-        riga({ ore: 3.5 }),
+-        riga({
+-          offertaId: "off-2",
+-          offertaCodice: "OFF-002",
+-          offertaDescrizione: "Workshop",
+-          clienteRagioneSociale: "Cliente Due",
+-          ore: 4,
+-        }),
+-      ],
+-      400,
+-    );
+-
+-    expect(result.perOfferta).toHaveLength(2);
+-    expect(result.perOfferta[0]?.giornateTotali).toBe(0.4375);
+-    expect(result.perOfferta[1]?.giornateTotali).toBe(0.5);
+-    expect(result.totali.giornateTotali).toBe(0.9375);
+-  });
+-
+-  it("esclude le righe non fatturabili dall'importo ma le include nei totali ore", () => {
+-    const resultSoloNonFatturabile = calcolaRiepilogoMese(
+-      [riga({ ore: 4, fatturabile: false })],
+-      450,
+-    );
+-
+-    expect(resultSoloNonFatturabile.totali.oreTotali).toBe(4);
+-    expect(resultSoloNonFatturabile.totali.oreFatturabili).toBe(0);
+-    expect(resultSoloNonFatturabile.importoFattura).toBe("0.00");
+-
+-    const resultMisto = calcolaRiepilogoMese(
+-      [riga({ ore: 8, fatturabile: true }), riga({ ore: 4, fatturabile: false })],
+-      450,
+-    );
+-
+-    expect(resultMisto.totali.oreTotali).toBe(12);
+-    expect(resultMisto.totali.oreFatturabili).toBe(8);
+-    expect(resultMisto.totali.giornateFatturabili).toBe(1);
+-    expect(resultMisto.importoFattura).toBe("450.00");
+-  });
+-
+-  it("somma i rimborsi fotografati e ignora le righe senza rimborso", () => {
+-    const result = calcolaRiepilogoMese(
+-      [
+-        riga({ ore: 8, rimborsoTrasfertaImporto: "15.00" }),
+-        riga({
+-          offertaId: "off-2",
+-          offertaCodice: "OFF-002",
+-          offertaDescrizione: "Workshop",
+-          clienteRagioneSociale: "Cliente Due",
+-          ore: 8,
+-          rimborsoTrasfertaImporto: null,
+-        }),
+-      ],
+-      350,
+-    );
+-
+-    expect(result.perOfferta[0]?.rimborsiTrasferta).toBe("15.00");
+-    expect(result.perOfferta[1]?.rimborsiTrasferta).toBe("0.00");
+-    expect(result.totali.totaleRimborsi).toBe("15.00");
+-    expect(result.breakdown.totaleRimborsi).toBe("15.00");
+-    expect(result.importoFattura).toBe("715.00");
+-  });
+-
+-  it("formatta gli importi come stringhe con due decimali", () => {
+-    const result = calcolaRiepilogoMese(
+-      [riga({ ore: 8, rimborsoTrasfertaImporto: "28.00" })],
+-      "450",
+-    );
+-
+-    expect(result.perOfferta[0]?.rimborsiTrasferta).toBe("28.00");
+-    expect(result.totali.totaleRimborsi).toBe("28.00");
+-    expect(result.breakdown.tariffaGiornaliera).toBe("450.00");
+-    expect(result.breakdown.imponibileManodopera).toBe("450.00");
+-    expect(result.importoFattura).toBe("478.00");
+-  });
+-});

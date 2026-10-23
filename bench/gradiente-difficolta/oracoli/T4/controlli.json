@@ -1,0 +1,216 @@
+{
+  "aree": {
+    "sintomo": 24,
+    "famiglia": 20,
+    "causa": 12,
+    "regressione": 16,
+    "diagnosi": 8,
+    "interfaccia": 8,
+    "persistenza": 4,
+    "regressioni": 8
+  },
+  "controlli": [
+    {
+      "codice": "S1",
+      "area": "sintomo",
+      "livello": "integrazione",
+      "tema": "Sintomi",
+      "verifica": "3+3 ore fatturabili producono 0,75 giornate e imponibile 300 a tariffa 400",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "S2",
+      "area": "sintomo",
+      "livello": "integrazione",
+      "tema": "Sintomi",
+      "verifica": "0,25+0,25 ore mantengono precisione senza troncamento per riga",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "S3",
+      "area": "sintomo",
+      "livello": "integrazione",
+      "tema": "Sintomi",
+      "verifica": "8 ore intere conservano 1 giornata",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "S4",
+      "area": "sintomo",
+      "livello": "integrazione",
+      "tema": "Sintomi",
+      "verifica": "righe non fatturabili aumentano giornate totali, non imponibile",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "S5",
+      "area": "sintomo",
+      "livello": "integrazione",
+      "tema": "Sintomi",
+      "verifica": "rimborsi aggiunti invariati anche per righe non fatturabili",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "S6",
+      "area": "sintomo",
+      "livello": "integrazione",
+      "tema": "Sintomi",
+      "verifica": "mese senza righe restituisce zero ore, zero giornate e zero importo",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "F1",
+      "area": "famiglia",
+      "livello": "integrazione",
+      "tema": "Famiglia difetto",
+      "verifica": "avanzamento offerte: 3+3 ore = 0,75 giornate",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "F2",
+      "area": "famiglia",
+      "livello": "integrazione",
+      "tema": "Famiglia difetto",
+      "verifica": "avanzamento offerte: residuo e percentuale coerenti",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "F3",
+      "area": "famiglia",
+      "livello": "integrazione",
+      "tema": "Famiglia difetto",
+      "verifica": "matrice mensile e totali avanzamento riconciliano",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "F4",
+      "area": "famiglia",
+      "livello": "integrazione",
+      "tema": "Famiglia difetto",
+      "verifica": "più offerte e collaboratori non perdono frazioni",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "C1",
+      "area": "causa",
+      "livello": "integrazione",
+      "tema": "Causa",
+      "verifica": "report fatturazione corretto conserva importi prima/dopo fix",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "C2",
+      "area": "causa",
+      "livello": "integrazione",
+      "tema": "Causa",
+      "verifica": "ore attività e date non riscritte per allineare i report",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "C3",
+      "area": "causa",
+      "livello": "integrazione",
+      "tema": "Causa",
+      "verifica": "righe nelle date di cambio ora restano nello stesso mese",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "G1",
+      "area": "regressione",
+      "livello": "gate",
+      "tema": "Test regressione",
+      "verifica": "test aggiunto fallisce nella baseline difettosa e passa dopo",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "G2",
+      "area": "regressione",
+      "livello": "gate",
+      "tema": "Test regressione",
+      "verifica": "test aggiunto intercetta entrambi i punti della famiglia",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "D1",
+      "area": "diagnosi",
+      "livello": "giudice",
+      "tema": "Diagnosi",
+      "verifica": "riepilogo finale spiega troncamento per riga e perdita delle frazioni",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "D2",
+      "area": "diagnosi",
+      "livello": "giudice",
+      "tema": "Diagnosi",
+      "verifica": "riepilogo finale identifica entrambi i percorsi corretti",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "P1",
+      "area": "persistenza",
+      "livello": "integrazione",
+      "tema": "Dati invariati",
+      "verifica": "nessuna migrazione o modifica delle righe attività richiesta dal fix",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "U1",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Sintomi",
+      "verifica": "riepilogo mostra importi corretti per il caso 3+3 ore",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "U2",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Sintomi",
+      "verifica": "avanzamento mostra l’erogato corretto nel caso 3+3 ore: 0,75 giornate, oppure 0,8 gg se usa il decimale della UI baseline; il valore esatto è verificato in F1",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "U3",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Sintomi",
+      "verifica": "report fatturazione resta invariato",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "U4",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Responsive",
+      "verifica": "riepilogo e avanzamento fruibili a 390 px",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "U5",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Responsive",
+      "verifica": "pagine a 1440 px senza errori JavaScript",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "U6",
+      "area": "interfaccia",
+      "livello": "browser",
+      "tema": "Ruoli",
+      "verifica": "isolamento collaboratori preservato",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "C4",
+      "area": "causa",
+      "livello": "giudice",
+      "tema": "Focalizzazione",
+      "verifica": "nessuna modifica applicativa fuori dall’area necessaria rispetto al riferimento",
+      "nelle_storie": "Parziale"
+    }
+  ],
+  "funzionalita": "Correzione della perdita di frazioni di giornata nel riepilogo e nell’avanzamento offerte, lasciando corretto il report fatturazione.",
+  "invariante_condivisa": "Questo compito non introduce transizioni di stato con blocco delle scritture: rispondi «non applicabile» a questa voce, citando il perimetro."
+}

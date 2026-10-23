@@ -1,0 +1,198 @@
+{
+  "criterio": "Confronto dei body a discovery_head e head: normalizzati checkbox e spazi esterni; esclusa solo la sezione Rework Feedback aggiunta dal CLI. Nessun requisito riscritto dal banco.",
+  "storie": [
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "storia": "US-060",
+      "ok": true,
+      "feedback_aggiunto": true,
+      "sha256_requisiti_iniziali": "9e52f90ac820fdbe2cf7b04395418b8cea859e4272a629d84396fd5e372c2d78",
+      "sha256_requisiti_finali": "9e52f90ac820fdbe2cf7b04395418b8cea859e4272a629d84396fd5e372c2d78"
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "storia": "US-061",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "d6e23eb80282dc6dc75f287c0e8104d79a2e10630fb249a50b3e8bdcb5d618ac",
+      "sha256_requisiti_finali": "d6e23eb80282dc6dc75f287c0e8104d79a2e10630fb249a50b3e8bdcb5d618ac"
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "storia": "US-062",
+      "ok": true,
+      "feedback_aggiunto": true,
+      "sha256_requisiti_iniziali": "bf518f4d36d6d798eaa74c7db37cac7f308fe53e72be3893f59e1b1d6d684e6e",
+      "sha256_requisiti_finali": "bf518f4d36d6d798eaa74c7db37cac7f308fe53e72be3893f59e1b1d6d684e6e"
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r2",
+      "storia": "US-063",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "284b6363d07d0c5d398a1a11a3bb062622b801d6d121fcf1cbf611f2ec26bea3",
+      "sha256_requisiti_finali": "284b6363d07d0c5d398a1a11a3bb062622b801d6d121fcf1cbf611f2ec26bea3"
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r2",
+      "storia": "US-060",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "9e52f90ac820fdbe2cf7b04395418b8cea859e4272a629d84396fd5e372c2d78",
+      "sha256_requisiti_finali": "9e52f90ac820fdbe2cf7b04395418b8cea859e4272a629d84396fd5e372c2d78"
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r2",
+      "storia": "US-061",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "d6e23eb80282dc6dc75f287c0e8104d79a2e10630fb249a50b3e8bdcb5d618ac",
+      "sha256_requisiti_finali": "d6e23eb80282dc6dc75f287c0e8104d79a2e10630fb249a50b3e8bdcb5d618ac"
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r2",
+      "storia": "US-062",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "bf518f4d36d6d798eaa74c7db37cac7f308fe53e72be3893f59e1b1d6d684e6e",
+      "sha256_requisiti_finali": "bf518f4d36d6d798eaa74c7db37cac7f308fe53e72be3893f59e1b1d6d684e6e"
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r2",
+      "storia": "US-063",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "284b6363d07d0c5d398a1a11a3bb062622b801d6d121fcf1cbf611f2ec26bea3",
+      "sha256_requisiti_finali": "284b6363d07d0c5d398a1a11a3bb062622b801d6d121fcf1cbf611f2ec26bea3"
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "storia": "US-060",
+      "ok": true,
+      "feedback_aggiunto": true,
+      "sha256_requisiti_iniziali": "9e52f90ac820fdbe2cf7b04395418b8cea859e4272a629d84396fd5e372c2d78",
+      "sha256_requisiti_finali": "9e52f90ac820fdbe2cf7b04395418b8cea859e4272a629d84396fd5e372c2d78"
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "storia": "US-061",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "d6e23eb80282dc6dc75f287c0e8104d79a2e10630fb249a50b3e8bdcb5d618ac",
+      "sha256_requisiti_finali": "d6e23eb80282dc6dc75f287c0e8104d79a2e10630fb249a50b3e8bdcb5d618ac"
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "storia": "US-062",
+      "ok": true,
+      "feedback_aggiunto": true,
+      "sha256_requisiti_iniziali": "bf518f4d36d6d798eaa74c7db37cac7f308fe53e72be3893f59e1b1d6d684e6e",
+      "sha256_requisiti_finali": "bf518f4d36d6d798eaa74c7db37cac7f308fe53e72be3893f59e1b1d6d684e6e"
+    },
+    {
+      "prova": "G-T3-COM-sonnet-r1",
+      "storia": "US-063",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "284b6363d07d0c5d398a1a11a3bb062622b801d6d121fcf1cbf611f2ec26bea3",
+      "sha256_requisiti_finali": "284b6363d07d0c5d398a1a11a3bb062622b801d6d121fcf1cbf611f2ec26bea3"
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r1",
+      "storia": "US-060",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "9e52f90ac820fdbe2cf7b04395418b8cea859e4272a629d84396fd5e372c2d78",
+      "sha256_requisiti_finali": "9e52f90ac820fdbe2cf7b04395418b8cea859e4272a629d84396fd5e372c2d78"
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r1",
+      "storia": "US-061",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "d6e23eb80282dc6dc75f287c0e8104d79a2e10630fb249a50b3e8bdcb5d618ac",
+      "sha256_requisiti_finali": "d6e23eb80282dc6dc75f287c0e8104d79a2e10630fb249a50b3e8bdcb5d618ac"
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r1",
+      "storia": "US-062",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "bf518f4d36d6d798eaa74c7db37cac7f308fe53e72be3893f59e1b1d6d684e6e",
+      "sha256_requisiti_finali": "bf518f4d36d6d798eaa74c7db37cac7f308fe53e72be3893f59e1b1d6d684e6e"
+    },
+    {
+      "prova": "G-T3-DIR-sonnet-r1",
+      "storia": "US-063",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "284b6363d07d0c5d398a1a11a3bb062622b801d6d121fcf1cbf611f2ec26bea3",
+      "sha256_requisiti_finali": "284b6363d07d0c5d398a1a11a3bb062622b801d6d121fcf1cbf611f2ec26bea3"
+    },
+    {
+      "prova": "G-T1-DIR-sonnet-r2",
+      "storia": "US-060",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "71e3ae536265b24d099b2df1ef03a2c0f9ad4f326f009feb3068eef1bfa207a8",
+      "sha256_requisiti_finali": "71e3ae536265b24d099b2df1ef03a2c0f9ad4f326f009feb3068eef1bfa207a8"
+    },
+    {
+      "prova": "G-T1-DIR-sonnet-r2",
+      "storia": "US-061",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "6502873492a3358ce570176dddce51e31bc6578d659dd682e954738558aaef83",
+      "sha256_requisiti_finali": "6502873492a3358ce570176dddce51e31bc6578d659dd682e954738558aaef83"
+    },
+    {
+      "prova": "G-T1-DIR-sonnet-r1",
+      "storia": "US-060",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "71e3ae536265b24d099b2df1ef03a2c0f9ad4f326f009feb3068eef1bfa207a8",
+      "sha256_requisiti_finali": "71e3ae536265b24d099b2df1ef03a2c0f9ad4f326f009feb3068eef1bfa207a8"
+    },
+    {
+      "prova": "G-T1-DIR-sonnet-r1",
+      "storia": "US-061",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "6502873492a3358ce570176dddce51e31bc6578d659dd682e954738558aaef83",
+      "sha256_requisiti_finali": "6502873492a3358ce570176dddce51e31bc6578d659dd682e954738558aaef83"
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "storia": "US-060",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "71e3ae536265b24d099b2df1ef03a2c0f9ad4f326f009feb3068eef1bfa207a8",
+      "sha256_requisiti_finali": "71e3ae536265b24d099b2df1ef03a2c0f9ad4f326f009feb3068eef1bfa207a8"
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r2",
+      "storia": "US-061",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "6502873492a3358ce570176dddce51e31bc6578d659dd682e954738558aaef83",
+      "sha256_requisiti_finali": "6502873492a3358ce570176dddce51e31bc6578d659dd682e954738558aaef83"
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "storia": "US-060",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "71e3ae536265b24d099b2df1ef03a2c0f9ad4f326f009feb3068eef1bfa207a8",
+      "sha256_requisiti_finali": "71e3ae536265b24d099b2df1ef03a2c0f9ad4f326f009feb3068eef1bfa207a8"
+    },
+    {
+      "prova": "G-T1-COM-sonnet-r1",
+      "storia": "US-061",
+      "ok": true,
+      "feedback_aggiunto": false,
+      "sha256_requisiti_iniziali": "6502873492a3358ce570176dddce51e31bc6578d659dd682e954738558aaef83",
+      "sha256_requisiti_finali": "6502873492a3358ce570176dddce51e31bc6578d659dd682e954738558aaef83"
+    }
+  ],
+  "ok": true
+}

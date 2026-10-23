@@ -1,5 +1,5 @@
 {
- "aggiornato": "2026-10-22",
+ "aggiornato": "2026-10-23",
  "titolo": "Banco di prova ARchetipo · Coaching Planner",
  "domanda_guida": "Quali parti di ARchetipo portano un vantaggio misurabile e quali appesantiscono il processo?",
  "prove": "~/repo/coaching-planner-bench-runs/",
@@ -122,16 +122,26 @@
   },
   {
    "numero": 3,
-   "slug": null,
-   "titolo": "Da definire",
-   "domanda": "Da definire: la proposta originale di questo report non è nel repository.",
-   "disegno": "Da definire",
-   "stato": "pianificato",
-   "path": null,
-   "costo_usd": null,
-   "data": null,
-   "risultato": null,
-   "ipotesi": null
+   "slug": "gradiente-difficolta",
+   "titolo": "L'harness serve quando il compito è difficile?",
+   "domanda": "Il vantaggio del percorso completo cresce con la difficoltà a storie uguali?",
+   "disegno": "Studio esplorativo ridotto: T1 e T3 × diretto/completo × 2 repliche Sonnet = 8 prove; una lettura funzionale, metriche tecniche automatiche",
+   "stato": "fatto",
+   "path": "reports/gradiente-difficolta/report.html",
+   "costo_usd": 92.8518091,
+   "data": "2026-10-23",
+   "risultato": "8 prove Sonnet: Δ funzionale 0,0 in T1/T3; costo mediano di sviluppo del completo 5,18× e 5,54× il diretto. H3 integrale non verificabile.",
+   "ipotesi": {
+    "id": "H3",
+    "testo": "Il vantaggio di plan → implement → review sul diretto, a storie uguali, cresce con la difficoltà del compito: nullo sui compiti locali, misurabile su quelli trasversali e con migrazione di dati.",
+    "metrica": "Per compito e modello: Δ delle mediane completo−diretto sul funzionale e sul tecnico, bootstrap appaiato 95 %, 10 000 ricampionamenti. SD pooled report 1 = 0,775, 2 SD = 1,550 punti, misurata solo sulla chiusura mese.",
+    "soglia": "Prima leggere il controllo di manipolazione: Sonnet diretto deve decrescere da T1 a T4 di almeno 2 SD pooled (1,550); altrimenti H3 non verificabile e conclusioni solo per compito. Confermata: su T3 e T4 Δ funzionale ≥ 1,550 con IC sopra zero per almeno un modello, su T1 entro il rumore; harness adattivo. Respinta: Δ entro il rumore su tutti i compiti per entrambi i modelli; plan e implement non giustificati alle difficoltà provate, valore della review aperto. Ambigua: vantaggio solo tecnico, solo un modello o non monotono; riportare senza forzare. Secondarie: USD/punto, rework, problemi intercettati dalla review, dimensione diff rispetto al riferimento, tecnico.",
+    "esito": "Non verificabile integralmente nel disegno ridotto: mancano T2, T4, Opus e il controllo T1→T4. Su Sonnet T1 e T3, Δ funzionale 0,0 (entro il rumore storico) con due repliche per cella; nessuna conclusione di equivalenza o conferma/confutazione di H3. I fallimenti comuni riflettono perimetri delle storie più stretti del profilo nascosto, accettati dal committente simulato.",
+    "disegno_ridotto": "H3 integrale non verificabile; confronto esplorativo T1/T3 con Sonnet, nessuna conclusione su Opus/T2/T4 o equivalenza.",
+    "metrica_ridotta": "Per T1/T3: due repliche Sonnet per percorso, mediana/min/max e Δ funzionale descrittivo; una lettura valida per consegna, nessun intervallo o punteggio tecnico /100. Metriche tecniche automatiche, senza mutation testing né giudici tecnici."
+   },
+   "budget_usd": 121.1195528,
+   "note": "Set ridotto autorizzato il 23 ottobre: 8/8 valutazioni valide; 51,73 USD aggiuntivi su massimo 80. Due letture browser invalide sostituite e conservate; rework massimo uno per storia."
   },
   {
    "numero": 5,

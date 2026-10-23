@@ -1,0 +1,34 @@
+{
+  "exit": 0,
+  "esito": {
+    "schema": "archetipo/v1",
+    "kind": "validation_result",
+    "data": {
+      "ok": false,
+      "pages": 28,
+      "findings": [
+        {
+          "code": "WIKI_CORE_PAGE_UNANCHORED",
+          "severity": "error",
+          "page_id": "architecture/context-map",
+          "path": "architecture/context-map.md",
+          "message": "bootstrap core page requires at least one tracked directory source: a page anchored only on individual files cannot become affected when the area it describes grows"
+        },
+        {
+          "code": "WIKI_CORE_PAGE_UNANCHORED",
+          "severity": "error",
+          "page_id": "operations/development",
+          "path": "operations/development.md",
+          "message": "bootstrap core page requires at least one tracked directory source: a page anchored only on individual files cannot become affected when the area it describes grows"
+        },
+        {
+          "code": "WIKI_CORE_PAGE_UNANCHORED",
+          "severity": "error",
+          "page_id": "overview",
+          "path": "overview.md",
+          "message": "bootstrap core page requires at least one tracked directory source: a page anchored only on individual files cannot become affected when the area it describes grows"
+        }
+      ]
+    }
+  }
+}

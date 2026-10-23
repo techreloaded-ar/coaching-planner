@@ -1,0 +1,370 @@
+{
+  "sessioni_costo_non_attestato": {},
+  "totale_usd": 92.8518091,
+  "preparazione_usd": 45.6217658,
+  "residuo_preparazione_usd": 74.37823420000001,
+  "residuo_report_usd": 28.267743699999997,
+  "budget_usd": 121.1195528,
+  "sessioni": {
+    "926be9f7-521d-4be3-91cf-91043f8fe750": {
+      "usd": 0.4095319,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/_scartati/G-T3-COM-sonnet-r2--US-062-review-1--1792740881417874000/phases/US-062-review-1/stream-00.jsonl"
+    },
+    "102b7319-dd88-48ef-bb41-d09fd93619cf": {
+      "usd": 0.0834738,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/_scartati/G-ref-T3-init-builtin/stream-riconciliazione.jsonl"
+    },
+    "1b1d7f67-5b7d-48d0-8e16-432f240c34ea": {
+      "usd": 0.8659666000000001,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/adattatori/G-T1-COM-sonnet-r1/phases/01-adattatore/stream-00.jsonl"
+    },
+    "86dd2ee8-cb4c-4ead-8baa-15b54e8d1cc2": {
+      "usd": 0.9463327999999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/adattatori/G-T1-COM-sonnet-r2/phases/01-adattatore/stream-00.jsonl"
+    },
+    "f3f2a22b-8f20-49ab-927e-0d3642b30764": {
+      "usd": 0.7869107999999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/adattatori/G-T1-DIR-sonnet-r1/phases/01-adattatore/stream-00.jsonl"
+    },
+    "4d68f886-578f-4e1b-87c3-d1c47a017a19": {
+      "usd": 0.8925824000000002,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/adattatori/G-T1-DIR-sonnet-r2/phases/01-adattatore/stream-00.jsonl"
+    },
+    "af50d46c-3be7-41a6-8983-ae6972f0230c": {
+      "usd": 1.8208220000000004,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/adattatori/G-T3-COM-sonnet-r1/phases/01-adattatore/stream-00.jsonl"
+    },
+    "bc76ab91-e2ec-4bc2-ac9b-447ae571ebe9": {
+      "usd": 1.5306182,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/adattatori/G-T3-COM-sonnet-r2/phases/01-adattatore/stream-00.jsonl"
+    },
+    "0af9519a-affd-42fa-a411-ea77757e09b1": {
+      "usd": 1.5263714,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/adattatori/G-T3-DIR-sonnet-r1/phases/01-adattatore/stream-00.jsonl"
+    },
+    "eb1fda48-1232-48de-a7f6-911a3d931487": {
+      "usd": 1.3809588000000002,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/adattatori/G-T3-DIR-sonnet-r2/phases/01-adattatore/stream-00.jsonl"
+    },
+    "68c83e89-7442-41ae-8d32-b037b517ba91": {
+      "usd": 0.032048,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T1/phases/01-spec/committente.jsonl"
+    },
+    "63f23851-4b2b-4bdb-a763-c290f57aea1b": {
+      "usd": 0.042288,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T1/phases/01-spec/committente.jsonl"
+    },
+    "fcfe2b96-9609-4ff1-a743-97dfa4b0a8a5": {
+      "usd": 0.8231174000000001,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T1/phases/01-spec/stream-02.jsonl"
+    },
+    "00670180-de7c-406b-83b1-552040936403": {
+      "usd": 0.030303999999999998,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T2/phases/01-spec/committente.jsonl"
+    },
+    "440650ae-3d4f-4914-b8ec-78991b6cbef8": {
+      "usd": 0.041235999999999995,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T2/phases/01-spec/committente.jsonl"
+    },
+    "be0a70a8-f619-460f-a5a6-366996d48cc6": {
+      "usd": 0.9826896000000002,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T2/phases/01-spec/stream-02.jsonl"
+    },
+    "f804f66e-b9c4-4a0d-a9e7-c0e429f4e469": {
+      "usd": 0.033288,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T3/phases/01-spec/committente.jsonl"
+    },
+    "8f2912c3-d494-4503-9316-65458314527e": {
+      "usd": 0.0596064,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T3/phases/01-spec/committente.jsonl"
+    },
+    "b0bee03e-2caa-450b-b553-7ecc56328ee6": {
+      "usd": 1.2243326,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T3/phases/01-spec/stream-02.jsonl"
+    },
+    "bfe92338-a7ac-40fe-8a81-504b62ca520b": {
+      "usd": 0.648103,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/chiarimenti/T4/phases/01-spec/stream-00.jsonl"
+    },
+    "3264deda-c5ab-454e-bc04-cd0bd886c9ec": {
+      "usd": 0.20468399999999998,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T1/stream-01.jsonl"
+    },
+    "90f09a21-8b26-4dfe-ae17-7ee74edc4ce1": {
+      "usd": 0.10109939999999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T1/stream-02.jsonl"
+    },
+    "bd3221e1-e6dd-40d2-a409-9ed1c6c99e28": {
+      "usd": 0.23407999999999998,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T2/stream-01.jsonl"
+    },
+    "5c40aa87-de1e-4437-a918-a25d993ac4e9": {
+      "usd": 0.09401079999999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T2/stream-02.jsonl"
+    },
+    "090567dc-8613-49d4-b2b6-07df0cce772e": {
+      "usd": 0.275424,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T3/stream-01.jsonl"
+    },
+    "cbdab41c-8e3f-4420-bee9-a72750a93564": {
+      "usd": 0.10124639999999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T3/stream-02.jsonl"
+    },
+    "46d1faae-d566-4b36-bcd7-5badcdab03aa": {
+      "usd": 0.215664,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T4/stream-01.jsonl"
+    },
+    "1be92058-d8c4-4a16-afe7-6b061ee0ad3a": {
+      "usd": 0.1051284,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/giudici-scoperta/T4/stream-02.jsonl"
+    },
+    "c60edf28-ba8a-487e-8895-1763a587cfe0": {
+      "usd": 0.8864019999999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T1/phases/01-adattatore/stream-00.jsonl"
+    },
+    "b1f30e19-6dac-4c4c-8de6-a5e1ecd2a1df": {
+      "usd": 0.7496058,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T2/phases/01-adattatore/stream-00.jsonl"
+    },
+    "c303d4df-f02a-4660-827a-6ba9378b6074": {
+      "usd": 1.2649317999999998,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T3/phases/01-adattatore/stream-00.jsonl"
+    },
+    "59e1bb75-dd78-4e1d-a7f7-2768bfe1f71f": {
+      "usd": 0.43378799999999995,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/adattatori-riferimento/T4/phases/01-adattatore/stream-00.jsonl"
+    },
+    "f5112327-8c9a-4d51-8d37-0a265d3c3725": {
+      "usd": 10.664980799999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/preparazione/oracoli/phases/01-oracoli/stream-00.jsonl"
+    },
+    "c958e852-ab9e-4a5d-929c-669621166d7b": {
+      "usd": 0.6744814000000001,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r1/phases/US-060-implement-1/stream-00.jsonl"
+    },
+    "9b2f4cb2-c748-4f58-aa5f-7ec79420c0ea": {
+      "usd": 0.6623624,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r1/phases/US-060-plan-1/stream-00.jsonl"
+    },
+    "dc66076d-fbee-4ffe-9fa1-f28a0197811b": {
+      "usd": 0.45990780000000003,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r1/phases/US-060-review-1/stream-00.jsonl"
+    },
+    "01679d9c-a342-4197-99b7-ebfa0851b98f": {
+      "usd": 0.7094782000000001,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r1/phases/US-061-implement-1/stream-00.jsonl"
+    },
+    "c8256720-1160-4f9c-abae-e018289276a6": {
+      "usd": 0.49470439999999993,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r1/phases/US-061-plan-1/stream-00.jsonl"
+    },
+    "0385c791-9a14-4a1e-a9b9-eab69b858a53": {
+      "usd": 0.37945480000000004,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r1/phases/US-061-review-1/stream-00.jsonl"
+    },
+    "4217013e-27cf-4979-a03e-4fef940bd134": {
+      "usd": 0.7908773,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r2/phases/US-060-implement-1/stream-00.jsonl"
+    },
+    "42b4387e-150c-4aac-b307-305c7ec8e3b0": {
+      "usd": 0.6688151000000001,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r2/phases/US-060-plan-1/stream-00.jsonl"
+    },
+    "df1d9a78-9644-41a3-9fdf-aedf04cd6e0f": {
+      "usd": 0.2295577,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r2/phases/US-060-review-1/stream-00.jsonl"
+    },
+    "cbdf5f95-562c-436a-a745-9131384d99c5": {
+      "usd": 0.5305956000000001,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r2/phases/US-061-implement-1/stream-00.jsonl"
+    },
+    "3bcdfda4-cf64-48fb-ae0c-b34a5cb71fb8": {
+      "usd": 0.5766936,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r2/phases/US-061-plan-1/stream-00.jsonl"
+    },
+    "e0db4a23-5b16-46d2-b923-f6c07011e14f": {
+      "usd": 0.3431162,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-COM-sonnet-r2/phases/US-061-review-1/stream-00.jsonl"
+    },
+    "4432ba65-2c8b-4ab2-befe-3a8600a77a37": {
+      "usd": 0.6420421,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-DIR-sonnet-r1/phases/01-diretto/stream-00.jsonl"
+    },
+    "b5979d79-7680-4f41-97ad-2991e5f6b9ee": {
+      "usd": 0.617291,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T1/G-T1-DIR-sonnet-r2/phases/01-diretto/stream-00.jsonl"
+    },
+    "17099173-c822-429e-8262-c3dad04c6275": {
+      "usd": 3.9897853000000008,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-060-implement-1/stream-00.jsonl"
+    },
+    "594de193-5a02-4683-8bcb-7f41e4b10cd9": {
+      "usd": 0.3293916,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-060-implement-2/stream-00.jsonl"
+    },
+    "ec1d98a6-dd1b-482b-8e63-13edad9fc71c": {
+      "usd": 1.6664963000000002,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-060-plan-1/stream-00.jsonl"
+    },
+    "fc92f722-7e4e-4da5-989f-0f4a558e6986": {
+      "usd": 0.3594488,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-060-plan-2/stream-00.jsonl"
+    },
+    "09bbbf12-6170-45d6-a638-3815864118ef": {
+      "usd": 0.29230920000000005,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-060-review-1/stream-00.jsonl"
+    },
+    "ca595863-3071-4894-93f6-32a055b2f418": {
+      "usd": 0.3201671,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-060-review-2/stream-00.jsonl"
+    },
+    "2d462c39-318a-439b-8905-eb09f619f57a": {
+      "usd": 1.0172998000000002,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-061-implement-1/stream-00.jsonl"
+    },
+    "bbee0e5d-9afa-4861-9cd6-5ed5c14e2089": {
+      "usd": 0.764332,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-061-plan-1/stream-00.jsonl"
+    },
+    "d9aa085a-ac12-4f09-81a2-5c02991b5667": {
+      "usd": 0.3402357,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-061-review-1/stream-00.jsonl"
+    },
+    "27b07fb5-3409-4a53-856e-3e6767394f9f": {
+      "usd": 2.4669101999999996,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-062-implement-1/stream-00.jsonl"
+    },
+    "eccd84a7-b282-4171-9b39-b40727f64bfc": {
+      "usd": 0.4176094000000001,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-062-implement-2/stream-00.jsonl"
+    },
+    "70a3858b-e924-4a0f-b3fa-5099b1dd04a4": {
+      "usd": 1.1817627,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-062-plan-1/stream-00.jsonl"
+    },
+    "7c77d807-3937-4a15-8c41-825181aa910a": {
+      "usd": 0.31095860000000003,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-062-plan-2/stream-00.jsonl"
+    },
+    "31baae26-990f-413b-a787-d3bf02dc3c56": {
+      "usd": 0.4159758,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-062-review-1/stream-00.jsonl"
+    },
+    "c2e60ddf-b1f2-4fa4-b7b1-1b894d779fb0": {
+      "usd": 0.30973340000000005,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-062-review-2/stream-00.jsonl"
+    },
+    "068196b1-ae99-4a71-a93b-3160081f1fee": {
+      "usd": 0.8378642999999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-063-implement-1/stream-00.jsonl"
+    },
+    "1cac2759-2e54-4676-8041-3faca384f1cb": {
+      "usd": 0.8145773,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-063-plan-1/stream-00.jsonl"
+    },
+    "d23472ae-a26d-43dd-9b87-355d9f778917": {
+      "usd": 0.3368119,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r1/phases/US-063-review-1/stream-00.jsonl"
+    },
+    "5525ce81-b391-415a-afd8-dc170cde1bc4": {
+      "usd": 2.1098228,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-060-implement-1/stream-00.jsonl"
+    },
+    "6510ff61-87bd-4fba-a8d8-7271659d9ca0": {
+      "usd": 0.22963770000000003,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-060-implement-2/stream-00.jsonl"
+    },
+    "480b5b6a-9a69-4087-8c75-3fc8e7cf8c34": {
+      "usd": 1.0946531000000002,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-060-plan-1/stream-00.jsonl"
+    },
+    "557edc14-a709-43be-aab9-fad1c8149e1f": {
+      "usd": 0.258973,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-060-plan-2/stream-00.jsonl"
+    },
+    "f89c0edb-549a-4609-925c-ce5eb909ab1c": {
+      "usd": 0.3505971000000001,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-060-review-1/stream-00.jsonl"
+    },
+    "628cf167-ada2-48f8-8e3c-d841c4489676": {
+      "usd": 0.293652,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-060-review-2/stream-00.jsonl"
+    },
+    "07d5677c-f96e-41d4-94e9-f8f9dfead943": {
+      "usd": 0.8176928999999996,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-061-implement-1/stream-00.jsonl"
+    },
+    "b090a638-91c0-4f6d-9529-ff62db4e6932": {
+      "usd": 0.7202120000000001,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-061-plan-1/stream-00.jsonl"
+    },
+    "1b859603-debc-498d-920a-496e195dc3bf": {
+      "usd": 0.3454214,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-061-review-1/stream-00.jsonl"
+    },
+    "fd132f79-dc44-40a7-8710-a90e6fd76aa4": {
+      "usd": 2.0371949999999996,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-062-implement-1/stream-00.jsonl"
+    },
+    "02b3a941-7a27-497d-80d2-78be2fda044a": {
+      "usd": 0.2523768,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-062-implement-2/stream-00.jsonl"
+    },
+    "5421af1a-e0cb-47c3-b398-deebb60a4e16": {
+      "usd": 1.2019753000000004,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-062-plan-1/stream-00.jsonl"
+    },
+    "15da1eff-4517-4a1f-96a3-3cc51fd1cd65": {
+      "usd": 0.2818815,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-062-plan-2/stream-00.jsonl"
+    },
+    "faff36a8-b795-422b-b629-506295ead556": {
+      "usd": 0.2626714,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-062-review-1/stream-00.jsonl"
+    },
+    "e83f4856-a09c-46ec-abd4-c4c54ab75d47": {
+      "usd": 0.373777,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-062-review-2/stream-00.jsonl"
+    },
+    "97bcd03b-c1f4-4fc0-be9e-b43b9f6672f7": {
+      "usd": 0.688354,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-063-implement-1/stream-00.jsonl"
+    },
+    "816d3da9-3f95-414c-acdb-78e4a65f2db4": {
+      "usd": 0.7681982,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-063-plan-1/stream-00.jsonl"
+    },
+    "2ecff8e7-ae7b-42a2-b5e7-4c1c530ef2bb": {
+      "usd": 0.30360480000000006,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-COM-sonnet-r2/phases/US-063-review-1/stream-00.jsonl"
+    },
+    "f9c2e70f-110a-4a73-aa06-c19a0aec20dd": {
+      "usd": 2.6065399999999994,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-DIR-sonnet-r1/phases/01-diretto/stream-00.jsonl"
+    },
+    "45e32ee0-18a3-49c4-b3a2-eac728a00268": {
+      "usd": 2.623878400000002,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/prove/T3/G-T3-DIR-sonnet-r2/phases/01-diretto/stream-00.jsonl"
+    },
+    "dbb3891d-5646-425e-98ee-5f76106e8791": {
+      "usd": 2.629074599999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T1/phases/01-riferimento/stream-00.jsonl"
+    },
+    "4332b20d-bc41-4844-a6a6-2ac146964e9a": {
+      "usd": 0.9240425999999999,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T1/phases/02-facoltativita/stream-00.jsonl"
+    },
+    "9f9bc0c7-30b1-450a-891c-b2147e07752e": {
+      "usd": 3.5163537999999996,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T2/phases/01-riferimento/stream-00.jsonl"
+    },
+    "758f88a3-d399-4ae3-86c9-a12fb32a7a45": {
+      "usd": 13.551093,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T3/phases/01-riferimento/stream-00.jsonl"
+    },
+    "542de6be-c8d6-4141-b84f-1dc04cb82397": {
+      "usd": 1.1674566000000002,
+      "file": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T4/phases/01-riferimento/stream-00.jsonl"
+    }
+  }
+}

@@ -1,0 +1,211 @@
+{
+  "aree": {
+    "validita": 18,
+    "calcoli": 24,
+    "migrazione": 14,
+    "concorrenza": 12,
+    "autorizzazioni": 8,
+    "visibilita": 8,
+    "persistenza": 8,
+    "regressioni": 8
+  },
+  "controlli": [
+    {
+      "codice": "V1",
+      "area": "validita",
+      "livello": "integrazione",
+      "tema": "Validità",
+      "verifica": "nuova tariffa offerta futura inseribile anticipatamente",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "V2",
+      "area": "validita",
+      "livello": "integrazione",
+      "tema": "Validità",
+      "verifica": "nuova tariffa collaboratore futura inseribile anticipatamente",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "V3",
+      "area": "validita",
+      "livello": "integrazione",
+      "tema": "Correzione",
+      "verifica": "ultima tariffa correggibile senza mutare validità anteriori",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "V4",
+      "area": "validita",
+      "livello": "integrazione",
+      "tema": "Sovrapposizioni",
+      "verifica": "seconda tariffa stessa decorrenza rifiutata",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "V5",
+      "area": "validita",
+      "livello": "integrazione",
+      "tema": "Buchi",
+      "verifica": "nessun buco tra validità consecutive, precedente aperta fino a successiva",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "C1",
+      "area": "calcoli",
+      "livello": "integrazione",
+      "tema": "Data riga",
+      "verifica": "riepilogo personale applica tariffa alla data riga",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "C2",
+      "area": "calcoli",
+      "livello": "integrazione",
+      "tema": "Data riga",
+      "verifica": "report cliente applica tariffa offerta alla data riga",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "C3",
+      "area": "calcoli",
+      "livello": "integrazione",
+      "tema": "Data riga",
+      "verifica": "avanzamento offerte mantiene importi e giornate corretti",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "C4",
+      "area": "calcoli",
+      "livello": "integrazione",
+      "tema": "Data riga",
+      "verifica": "giorno precedente e giorno di decorrenza usano tariffe diverse",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "C5",
+      "area": "calcoli",
+      "livello": "integrazione",
+      "tema": "Data riga",
+      "verifica": "riga retrodatata usa tariffa storica anche inserita oggi",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "C6",
+      "area": "calcoli",
+      "livello": "integrazione",
+      "tema": "Dati invariati",
+      "verifica": "tariffa futura non cambia il mese corrente o passato",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "M1",
+      "area": "migrazione",
+      "livello": "integrazione",
+      "tema": "Backfill",
+      "verifica": "tariffe attuali convertite in validità iniziale aperta",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "M2",
+      "area": "migrazione",
+      "livello": "integrazione",
+      "tema": "Importi passati",
+      "verifica": "report di tutti i mesi popolati invariati prima/dopo migrate deploy",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "M3",
+      "area": "migrazione",
+      "livello": "integrazione",
+      "tema": "Dati invariati",
+      "verifica": "righe attività invariate byte per byte prima/dopo migrazione",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "N1",
+      "area": "concorrenza",
+      "livello": "integrazione",
+      "tema": "Concorrenza",
+      "verifica": "due inserimenti concorrenti stessa offerta non sovrappongono validità",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "N2",
+      "area": "concorrenza",
+      "livello": "integrazione",
+      "tema": "Concorrenza",
+      "verifica": "due inserimenti concorrenti stesso collaboratore non sovrappongono validità",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "A1",
+      "area": "autorizzazioni",
+      "livello": "integrazione",
+      "tema": "Ruoli",
+      "verifica": "non amministratore non inserisce/corregge tariffe",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "P1",
+      "area": "persistenza",
+      "livello": "gate",
+      "tema": "Migrazione",
+      "verifica": "migrazioni applicabili su database con dati",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "P2",
+      "area": "persistenza",
+      "livello": "gate",
+      "tema": "Migrazione",
+      "verifica": "nessun drift tra schema e migrazioni",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "S1",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Form",
+      "verifica": "form offerta esistente continua a creare/modificare offerte",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "S2",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Form",
+      "verifica": "form collaboratore esistente continua a funzionare",
+      "nelle_storie": "Parziale"
+    },
+    {
+      "codice": "S3",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Tariffe future",
+      "verifica": "amministratore pianifica tariffa futura tramite UI",
+      "nelle_storie": "Esplicito"
+    },
+    {
+      "codice": "U1",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Responsive",
+      "verifica": "gestione tariffe a 390 px senza overflow pagina",
+      "nelle_storie": "Non chiarito"
+    },
+    {
+      "codice": "U2",
+      "area": "visibilita",
+      "livello": "browser",
+      "tema": "Responsive",
+      "verifica": "report a 1440 px senza errori JavaScript",
+      "nelle_storie": "Non chiarito"
+    }
+  ],
+  "critici": [
+    "M2: importo di un mese passato cambiato dopo migrazione"
+  ],
+  "funzionalita": "Tariffe di offerte e collaboratori storicizzate, calcolo alla data riga, migrazione senza alterare importi passati e concorrenza.",
+  "invariante_condivisa": "Il controllo di validità delle tariffe (niente sovrapposizioni o buchi anche in concorrenza) è centralizzato e attraversato da tutte le server action di inserimento e correzione per Offerta e Collaboratore?"
+}

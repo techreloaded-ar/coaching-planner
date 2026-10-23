@@ -1,0 +1,64 @@
+{
+  "test": "gestione-utenti · riattiva un utente invalidato: accesso e profilo ripristinati",
+  "percorso_invariato_T3": [
+    "cambia-stato-utente-action.ts",
+    "utenti-tabella.tsx",
+    "src/lib/utenti.ts",
+    "tests/e2e/gestione-utenti.spec.ts"
+  ],
+  "diagnosi": {
+    "T3-6": {
+      "stats": {
+        "startTime": "2026-10-22T23:06:28.680Z",
+        "duration": 9495.578,
+        "expected": 5,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T3/diagnosi-gestione-utenti/ripetizioni.log"
+    },
+    "baseline-8": {
+      "stats": {
+        "startTime": "2026-10-22T23:12:10.795Z",
+        "duration": 8371.083999999999,
+        "expected": 8,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/baseline/T4/diagnosi-gestione-utenti/ripetizioni.log"
+    },
+    "T3-8": {
+      "stats": {
+        "startTime": "2026-10-22T23:15:09.760Z",
+        "duration": 7812.526,
+        "expected": 8,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/riferimenti/T3/diagnosi-gestione-utenti-con-log/ripetizioni.log"
+    },
+    "baseline-24": {
+      "stats": {
+        "startTime": "2026-10-22T23:17:38.258Z",
+        "duration": 17625.510000000002,
+        "expected": 23,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "log": "/Users/smarello/repo/coaching-planner-bench-runs/gradiente-difficolta/baseline/T4/diagnosi-gestione-utenti-stress/ripetizioni.log"
+    }
+  },
+  "errore_baseline": "DriverAdapterError: TransactionWriteConflict; could not serialize access due to read/write dependencies among transactions",
+  "note": "Nessun worker ridotto, nessun retry aumentato, nessuna modifica applicativa o di test. Sintomo riprodotto sulla baseline; non attribuire automaticamente al compito T3. Conservare tutti i tentativi. Il gate delle consegne seguirà la configurazione CI (retries già configurati), gli oracoli browser manterranno retries=0 come nel banco comune.",
+  "seconda_verifica_UTC": {
+    "passati_e2e1": 189,
+    "falliti_e2e2": 1,
+    "test": "sessione-proxy · sessione scaduta elimina il cookie di sessione",
+    "log": "riferimenti/T3/gate-finale/71bd9b995c4b/tentativo-2/e2e-2.log",
+    "nota": "Esito conservato. Nessun altro giro automatico per ottenere tre pass. Il riferimento iniziale aveva tre suite verdi nel fuso locale; la stabilità della regressione UTC resta una limitazione."
+  }
+}
