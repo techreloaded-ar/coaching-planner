@@ -17,7 +17,12 @@
 #   probe-database  verifica schema Prisma e raggiungibilità del database
 #   unit | build | e2e  test unitari / build Next.js / suite Playwright con l'ambiente del checkout
 #   anteprima <porta>  next dev sulla porta indicata (strict), con Google
-#                   Calendar e Gemini simulati (E2E_TEST_MODE) e dati sintetici
+#                   Calendar e Gemini simulati (E2E_TEST_MODE) e dati sintetici.
+#                   Il login Google NON è simulato: "Accedi con Google" porta al
+#                   vero Google e fallisce con le credenziali sintetiche. Per
+#                   entrare, dalla console del browser sulla pagina di accesso:
+#                   fetch('/api/e2e-test/sessione',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'giulia.conti@agilereloaded.it'})}).then(r=>r.json()).then(d=>location.href=d.redirect)
+#                   (info@techreloaded.it per la console amministrativa)
 #   esegui <cmd>    esegue un comando arbitrario con l'ambiente del checkout
 #   pulizia         rimuove gli artefatti transitori dei check (test-results, playwright-report)
 set -eu
@@ -40,10 +45,18 @@ etichette() {
 }
 
 # Esce 0 se l'oggetto non esiste, 1 se esiste ed è nostro; fallisce se è estraneo.
+# Il nome dell'oggetto è già legato al checkout; l'owner invece cambia a ogni
+# nuova versione della ricetta (e le etichette docker sono immutabili), quindi
+# confrontarlo renderebbe il volume dati inutilizzabile dopo il primo cambio.
+# Basta che l'oggetto porti un owner archetipo e il nostro nome di risorsa.
 assente_o_nostro() {
   trovate="$(etichette "$1" "$2")"
   [ -z "$trovate" ] && return 0
-  if [ "$trovate" != "${ARCHETIPO_RESOURCE_OWNER}|${ARCHETIPO_RESOURCE_NAME}" ]; then
+  case "${trovate%%|*}" in
+    resource-*) owner_archetipo=1 ;;
+    *) owner_archetipo=0 ;;
+  esac
+  if [ "$owner_archetipo" != 1 ] || [ "${trovate#*|}" != "${ARCHETIPO_RESOURCE_NAME}" ]; then
     echo "$1 $2 esiste ma non appartiene a questa risorsa ($trovate): non viene adottato." >&2
     exit 1
   fi
