@@ -1,22 +1,38 @@
 import { expect, type Page } from "@playwright/test";
 
-export type TemaTest = "chiaro" | "scuro" | "browser";
-
 /** Sfondo del body con il tema chiaro e scuro (variabili --background di globals.css). */
 export const SFONDO_CHIARO = "rgb(255, 255, 255)";
 export const SFONDO_SCURO = "rgb(10, 10, 10)";
 
-export function selettoreTema(page: Page) {
-	return page.getByRole("group", { name: "Tema" });
+export type EtichettaTema = "Chiaro" | "Scuro" | "Browser";
+
+/** Pulsante-icona del selettore nell'intestazione. */
+export function pulsanteTema(page: Page) {
+	return page.getByRole("button", { name: "Tema", exact: true });
 }
 
-/** Sceglie un tema dopo aver atteso l'idratazione del selettore (click su handler client). */
-export async function scegliTema(page: Page, etichetta: "Chiaro" | "Scuro" | "Browser") {
-	const selettore = selettoreTema(page);
-	await expect(selettore).toHaveAttribute("data-idratata", "true");
-	const pulsante = selettore.getByRole("button", { name: etichetta, exact: true });
-	await pulsante.click();
-	await expect(pulsante).toHaveAttribute("aria-pressed", "true");
+/** Pannello a comparsa con le tre opzioni. */
+export function pannelloTema(page: Page) {
+	return page.getByRole("group", { name: "Scegli il tema" });
+}
+
+export function opzioneTema(page: Page, etichetta: EtichettaTema) {
+	return pannelloTema(page).getByRole("button", { name: etichetta, exact: true });
+}
+
+/** Apre il pannello dopo aver atteso l'idratazione del selettore (click su handler client). */
+export async function apriPannelloTema(page: Page) {
+	await expect(page.getByTestId("selettore-tema")).toHaveAttribute("data-idratata", "true");
+	await pulsanteTema(page).click();
+	await expect(pannelloTema(page)).toBeVisible();
+}
+
+/** Sceglie un tema dal pannello: il pannello si chiude e il documento porta il nuovo tema. */
+export async function scegliTema(page: Page, etichetta: EtichettaTema) {
+	await apriPannelloTema(page);
+	await opzioneTema(page, etichetta).click();
+	await expect(pannelloTema(page)).toBeHidden();
+	await expect(page.locator("html")).toHaveAttribute("data-tema", etichetta.toLowerCase());
 }
 
 /**

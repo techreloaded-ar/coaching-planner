@@ -1,7 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
-import { attendiAspetto, scegliTema, selettoreTema } from "./support/tema";
+import {
+	apriPannelloTema,
+	attendiAspetto,
+	opzioneTema,
+	pannelloTema,
+	pulsanteTema,
+	scegliTema,
+} from "./support/tema";
 
 /**
  * Test e2e — Temi Chiaro, Scuro e Browser (US-001, US-002 dell'incremento).
@@ -11,28 +18,17 @@ import { attendiAspetto, scegliTema, selettoreTema } from "./support/tema";
  */
 
 test.describe("Selettore del tema", () => {
-	test("pagina di accesso: Scuro si applica subito e resta dopo il reload", async ({ page }) => {
+	test("pagina di accesso: nessun selettore, ma usa il tema già scelto", async ({ page, context, baseURL }) => {
 		await page.emulateMedia({ colorScheme: "light" });
 		await page.goto("/");
-
-		const selettore = selettoreTema(page);
-		await expect(selettore.getByRole("button", { name: "Browser", exact: true })).toHaveAttribute(
-			"aria-pressed",
-			"true",
-		);
+		await expect(page.getByRole("heading", { name: "Coaching Planner" })).toBeVisible();
+		await expect(pulsanteTema(page)).toHaveCount(0);
+		await expect(page.getByTestId("selettore-tema")).toHaveCount(0);
 		await attendiAspetto(page, "chiaro");
 
-		await scegliTema(page, "Scuro");
-		await attendiAspetto(page, "scuro");
-
+		await context.addCookies([{ name: "tema", value: "scuro", url: baseURL! }]);
 		await page.reload();
-		// Già al primo rendering server il documento porta il tema scelto.
-		await expect(page.locator("html")).toHaveAttribute("data-tema", "scuro");
 		await attendiAspetto(page, "scuro");
-		await expect(selettore.getByRole("button", { name: "Scuro", exact: true })).toHaveAttribute(
-			"aria-pressed",
-			"true",
-		);
 	});
 
 	test("l'HTML iniziale contiene già il tema del cookie (nessun flash)", async ({ page, context, baseURL }) => {
@@ -41,9 +37,48 @@ test.describe("Selettore del tema", () => {
 		expect(await risposta.text()).toMatch(/<html[^>]*data-tema="scuro"/);
 	});
 
+	test("front office: pulsante-icona, menu, scelta persistente tra reload e logout", async ({ page }) => {
+		await page.emulateMedia({ colorScheme: "light" });
+		await accediComeCollaboratore(page);
+
+		const pulsante = page.getByRole("banner").getByRole("button", { name: "Tema", exact: true });
+		await expect(pulsante).toBeVisible();
+		// Compatto: solo icona, nessuna etichetta testuale visibile.
+		await expect(pulsante).toHaveText("");
+		await expect(pannelloTema(page)).toBeHidden();
+
+		await apriPannelloTema(page);
+		await expect(pulsante).toHaveAttribute("aria-expanded", "true");
+		for (const etichetta of ["Chiaro", "Scuro", "Browser"] as const) {
+			await expect(opzioneTema(page, etichetta)).toBeVisible();
+		}
+		await expect(opzioneTema(page, "Browser")).toHaveAttribute("aria-pressed", "true");
+		await opzioneTema(page, "Scuro").click();
+		await expect(pannelloTema(page)).toBeHidden();
+		await attendiAspetto(page, "scuro");
+
+		await page.reload();
+		await expect(page.locator("html")).toHaveAttribute("data-tema", "scuro");
+		await attendiAspetto(page, "scuro");
+		await apriPannelloTema(page);
+		await expect(opzioneTema(page, "Scuro")).toHaveAttribute("aria-pressed", "true");
+
+		// Esc e click fuori chiudono il pannello senza cambiare tema.
+		await page.keyboard.press("Escape");
+		await expect(pannelloTema(page)).toBeHidden();
+		await apriPannelloTema(page);
+		await page.getByRole("heading", { level: 1 }).first().click();
+		await expect(pannelloTema(page)).toBeHidden();
+		await expect(page.locator("html")).toHaveAttribute("data-tema", "scuro");
+
+		await page.locator("[data-esci]").click();
+		await page.waitForURL("**/?logout=1");
+		await attendiAspetto(page, "scuro");
+	});
+
 	test("Chiaro e Scuro ignorano il sistema, Browser lo segue in tempo reale", async ({ page }) => {
 		await page.emulateMedia({ colorScheme: "dark" });
-		await page.goto("/");
+		await accediComeCollaboratore(page);
 		await attendiAspetto(page, "scuro");
 
 		await scegliTema(page, "Chiaro");
@@ -59,42 +94,22 @@ test.describe("Selettore del tema", () => {
 		await attendiAspetto(page, "scuro");
 	});
 
-	test("la scelta sopravvive a login e logout: selettore nell'intestazione del front office", async ({ page }) => {
-		await page.emulateMedia({ colorScheme: "light" });
-		await page.goto("/");
-		await scegliTema(page, "Scuro");
-
-		await accediComeCollaboratore(page);
-		const selettore = page.getByRole("banner").getByRole("group", { name: "Tema" });
-		await expect(selettore).toBeVisible();
-		await expect(selettore.getByRole("button", { name: "Scuro", exact: true })).toHaveAttribute(
-			"aria-pressed",
-			"true",
-		);
-		await attendiAspetto(page, "scuro");
-
-		await scegliTema(page, "Chiaro");
-		await attendiAspetto(page, "chiaro");
-
-		await page.emulateMedia({ colorScheme: "dark" });
-		await page.locator("[data-esci]").click();
-		await page.waitForURL("**/?logout=1");
-		await expect(
-			selettoreTema(page).getByRole("button", { name: "Chiaro", exact: true }),
-		).toHaveAttribute("aria-pressed", "true");
-		await attendiAspetto(page, "chiaro");
-	});
-
-	test("selettore nell'intestazione della console amministrativa, utilizzabile da tastiera", async ({ page }) => {
+	test("console amministrativa: pulsante nell'intestazione, utilizzabile da tastiera", async ({ page }) => {
 		await page.emulateMedia({ colorScheme: "light" });
 		await accediAlBackOfficeComeAdmin(page);
 
-		const selettore = page.getByRole("banner").getByRole("group", { name: "Tema" });
-		await expect(selettore).toHaveAttribute("data-idratata", "true");
-		const scuro = selettore.getByRole("button", { name: "Scuro", exact: true });
-		await scuro.focus();
+		const pulsante = page.getByRole("banner").getByRole("button", { name: "Tema", exact: true });
+		await expect(page.getByTestId("selettore-tema")).toHaveAttribute("data-idratata", "true");
+		await pulsante.focus();
 		await page.keyboard.press("Enter");
-		await expect(scuro).toHaveAttribute("aria-pressed", "true");
+		await expect(pannelloTema(page)).toBeVisible();
+		// All'apertura il fuoco va sull'opzione attiva.
+		await expect(opzioneTema(page, "Browser")).toBeFocused();
+
+		await opzioneTema(page, "Scuro").focus();
+		await page.keyboard.press("Enter");
+		await expect(pannelloTema(page)).toBeHidden();
+		await expect(pulsante).toBeFocused();
 		await attendiAspetto(page, "scuro");
 	});
 });
