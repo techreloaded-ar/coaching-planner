@@ -6,11 +6,13 @@ import { datiCalendarioMesePerCollaboratoreAutorizzato } from "@/lib/attivita";
 import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
 import CalendarioMensile from "./calendario-mensile";
 import StatoProfiloCollaboratore from "./stato-profilo-collaboratore";
+import CollegamentoCalendario from "./collegamento-calendario";
+import { calendarioCollegato } from "@/lib/proposte-calendario";
 
 export default async function AttivitaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mese?: string }>;
+  searchParams: Promise<{ mese?: string; calendario?: string }>;
 }) {
   const sessione = await verificaSessione();
   // La sessione è già verificata: il resolver del profilo la riusa invece di
@@ -37,15 +39,18 @@ export default async function AttivitaPage({
   // ripete la catena sessione → profilo. Etichetta del mese e griglia delle 42
   // celle sono derivate nel client dalle funzioni pure del dominio, quindi non
   // vengono serializzate nel payload.
-  const datiMese = await datiCalendarioMesePerCollaboratoreAutorizzato(
-    token,
-    profilo.collaboratore.id
-  );
+  const [datiMese, collegato] = await Promise.all([
+    datiCalendarioMesePerCollaboratoreAutorizzato(token, profilo.collaboratore.id),
+    calendarioCollegato(profilo.collaboratore.id),
+  ]);
 
   return (
-    <CalendarioMensile
-      datiMeseIniziale={datiMese}
-      oggi={new Date().toISOString()}
-    />
+    <>
+      <CollegamentoCalendario collegato={collegato} esito={params.calendario} />
+      <CalendarioMensile
+        datiMeseIniziale={datiMese}
+        oggi={new Date().toISOString()}
+      />
+    </>
   );
 }

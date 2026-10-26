@@ -1,0 +1,154 @@
+{
+  "ports": [
+    "POSTGRES"
+  ],
+  "resources": [
+    {
+      "name": "postgres",
+      "start": {
+        "name": "avvia-postgres",
+        "argv": [
+          "sh",
+          "scripts/ambiente-sandbox.sh",
+          "avvia-postgres"
+        ],
+        "timeout_seconds": 30
+      },
+      "probe": {
+        "name": "probe-postgres",
+        "argv": [
+          "sh",
+          "scripts/ambiente-sandbox.sh",
+          "probe-postgres"
+        ],
+        "timeout_seconds": 10
+      },
+      "stop": {
+        "name": "ferma-postgres",
+        "argv": [
+          "sh",
+          "scripts/ambiente-sandbox.sh",
+          "ferma-postgres"
+        ],
+        "timeout_seconds": 30
+      },
+      "stopped": {
+        "name": "postgres-fermo",
+        "argv": [
+          "sh",
+          "scripts/ambiente-sandbox.sh",
+          "postgres-fermo"
+        ],
+        "timeout_seconds": 10
+      }
+    }
+  ],
+  "version": 1,
+  "inputs": [
+    "package.json",
+    "package-lock.json",
+    "prisma/schema.prisma",
+    "prisma/migrations",
+    "scripts/ambiente-sandbox.sh"
+  ],
+  "outputs": [
+    "node_modules"
+  ],
+  "prepare": [
+    {
+      "name": "npm-ci",
+      "argv": [
+        "npm",
+        "ci",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "name": "migrazioni-e-seed",
+      "argv": [
+        "sh",
+        "scripts/ambiente-sandbox.sh",
+        "database"
+      ],
+      "timeout_seconds": 180
+    }
+  ],
+  "probe": [
+    {
+      "name": "prisma-valido",
+      "argv": [
+        "sh",
+        "scripts/ambiente-sandbox.sh",
+        "probe-database"
+      ],
+      "timeout_seconds": 30
+    }
+  ],
+  "checks": {
+    "build": {
+      "name": "build",
+      "argv": [
+        "sh",
+        "scripts/ambiente-sandbox.sh",
+        "build"
+      ],
+      "timeout_seconds": 900,
+      "inputs": [
+        "src",
+        "prisma",
+        "next.config.ts",
+        "package.json"
+      ],
+      "cache": true
+    },
+    "e2e": {
+      "name": "e2e",
+      "argv": [
+        "sh",
+        "scripts/ambiente-sandbox.sh",
+        "e2e"
+      ],
+      "timeout_seconds": 1800,
+      "inputs": [
+        "src",
+        "tests/e2e",
+        "prisma",
+        "playwright.config.ts"
+      ],
+      "cache": true
+    },
+    "lint": {
+      "name": "lint",
+      "argv": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "timeout_seconds": 600,
+      "inputs": [
+        "src",
+        "tests",
+        "scripts",
+        "eslint.config.mjs"
+      ],
+      "cache": true
+    },
+    "unit": {
+      "name": "unit",
+      "argv": [
+        "sh",
+        "scripts/ambiente-sandbox.sh",
+        "unit"
+      ],
+      "timeout_seconds": 600,
+      "inputs": [
+        "src",
+        "tests/unit",
+        "vitest.config.ts"
+      ],
+      "cache": true
+    }
+  }
+}

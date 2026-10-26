@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "directory": ".",
+  "argv": [
+    "sh",
+    "scripts/ambiente-sandbox.sh",
+    "anteprima",
+    "{port}"
+  ],
+  "url": "http://127.0.0.1:{port}",
+  "prepare_environment": true
+}

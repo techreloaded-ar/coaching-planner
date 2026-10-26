@@ -70,6 +70,8 @@ interface IsolaGiornataProps {
   contestoIniziale: ContestoInserimentoGiornata;
   /** Token mese (YYYY-MM) con cui la pagina è stata aperta, se presente. */
   meseToken?: string;
+  /** Il collaboratore ha collegato il calendario Google (invariante per giorno). */
+  calendarioCollegato?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -89,6 +91,7 @@ export default function IsolaGiornata({
   datiGiornataIniziale,
   contestoIniziale,
   meseToken,
+  calendarioCollegato = false,
 }: IsolaGiornataProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -698,6 +701,7 @@ export default function IsolaGiornata({
             righe={giornataVisualizzata.righe}
             clienti={contesto.clienti}
             vociRimborso={contesto.vociRimborso}
+            calendarioCollegato={calendarioCollegato}
             onMutazioneCompletata={invalidaDopoMutazione}
           />
         </div>

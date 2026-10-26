@@ -8,6 +8,7 @@ import {
   contestoInserimentoPerCollaboratoreAutorizzato,
 } from "@/lib/attivita";
 import { parseDataGiorno } from "@/domain/calendario";
+import { calendarioCollegato } from "@/lib/proposte-calendario";
 import IsolaGiornata from "./isola-giornata";
 import StatoProfiloCollaboratore from "../stato-profilo-collaboratore";
 
@@ -47,9 +48,10 @@ export default async function DettaglioGiornataPage({
   // Dati letti con il collaboratore già autorizzato: la giornata e il contesto
   // di inserimento sono prodotti dalle stesse letture usate dai route handler,
   // così rendering server ed endpoint non possono divergere.
-  const [datiGiornata, contestoInserimento] = await Promise.all([
+  const [datiGiornata, contestoInserimento, collegato] = await Promise.all([
     righeDelGiornoPerCollaboratoreAutorizzato(dataStr, profilo.collaboratore.id),
     contestoInserimentoPerCollaboratoreAutorizzato(profilo.collaboratore.id),
+    calendarioCollegato(profilo.collaboratore.id),
   ]);
 
   // L'isola client possiede breadcrumb, cambio giorno e giornata mostrata: non
@@ -62,6 +64,7 @@ export default async function DettaglioGiornataPage({
       datiGiornataIniziale={datiGiornata}
       contestoIniziale={contestoInserimento}
       meseToken={meseToken}
+      calendarioCollegato={collegato}
     />
   );
 }

@@ -129,3 +129,33 @@ export interface ContestoInserimentoGiornata {
   /** Voci di rimborso trasferta selezionabili */
   vociRimborso: VoceRimborsoTrasfertaSelezionabile[];
 }
+
+/** Proposta di riga attività ricavata da un evento del calendario Google. */
+export interface PropostaCalendarioClient {
+  /** Id dell'evento (istanza singola, anche per gli eventi ricorrenti) */
+  eventoId: string;
+  /** Titolo dell'evento, proposto come nota della riga */
+  titolo: string;
+  /** Orario di inizio `HH:MM` (Europe/Rome) */
+  inizio: string;
+  /** Orario di fine `HH:MM` (Europe/Rome) */
+  fine: string;
+  /** Durata arrotondata al quarto d'ora */
+  ore: number;
+  /** Cliente associato, `null` se da scegliere */
+  cliente: ClienteSelect | null;
+  /** Offerta associata, `null` se da scegliere */
+  offerta: { id: string; codice: string; descrizione: string } | null;
+}
+
+/**
+ * Proposte dal calendario di una giornata.
+ *
+ * - `NON_COLLEGATO`: il collaboratore non ha collegato il calendario
+ * - `ERRORE`: il calendario non è leggibile (token revocato, Google non risponde)
+ * - `COLLEGATO`: proposte calcolate, eventualmente nessuna
+ */
+export interface ProposteCalendarioGiornata {
+  stato: "NON_COLLEGATO" | "COLLEGATO" | "ERRORE";
+  proposte: PropostaCalendarioClient[];
+}

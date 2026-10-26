@@ -48,6 +48,8 @@ Apri [http://localhost:3000](http://localhost:3000) nel browser.
 | `E2E_DATABASE_URL` | Stringa di connessione PostgreSQL dedicata agli end-to-end (es. `postgresql://user:pass@localhost:5432/coaching_planner_e2e`) |
 | `AUTH_SECRET` | Segreto per Auth.js (genera con `openssl rand -base64 32`) |
 | `SESSION_SECRET` | Chiave obbligatoria per firmare la sessione applicativa; deve essere reale, non vuota, non placeholder e lunga almeno 32 caratteri |
+| `GEMINI_API_KEY` | API key di server di Google Gemini, usata per associare gli impegni del calendario Google a cliente e offerta; se assente le proposte di ore compaiono senza associazione |
+| `GEMINI_MODEL` | Modello Gemini opzionale (predefinito `gemini-flash-latest`) |
 
 Copia `.env.example` in `.env.local` e personalizza i valori. `.env.local` non viene mai committato.
 

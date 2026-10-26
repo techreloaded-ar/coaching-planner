@@ -88,6 +88,8 @@ model Collaboratore {
   utente          Utente          @relation(fields: [userId], references: [id])
   righeAttivita    RigaAttivita[]
   abilitazioniOfferte AbilitazioneOfferta[]
+  collegamentoCalendarioGoogle CollegamentoCalendarioGoogle?
+  eventiCalendarioGestiti      EventoCalendarioGestito[]
 }
 
 // ── Clienti ─────────────────────────────────────────────────────
@@ -178,4 +180,31 @@ model AbilitazioneOfferta {
   offerta       Offerta       @relation(fields: [offertaId], references: [id])
 
   @@unique([collaboratoreId, offertaId])
+}
+
+// ── Calendario Google del collaboratore ─────────────────────────
+
+// Consenso in sola lettura al calendario principale: il token di rinnovo è
+// conservato cifrato (AES-256-GCM) e non lascia mai il server.
+model CollegamentoCalendarioGoogle {
+  id                  String   @id @default(uuid())
+  collaboratoreId     String   @unique
+  refreshTokenCifrato String   @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
+}
+
+// Evento del calendario già confermato (diventato riga attività) o rifiutato:
+// non viene più proposto al collaboratore.
+model EventoCalendarioGestito {
+  id                 String   @id @default(uuid())
+  collaboratoreId    String
+  eventoCalendarioId String
+  createdAt          DateTime @default(now())
+
+  collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
+
+  @@unique([collaboratoreId, eventoCalendarioId])
 }

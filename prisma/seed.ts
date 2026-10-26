@@ -10,6 +10,8 @@ async function main() {
   console.log("🌱 Avvio seed del database...\n");
 
   // Pulisci i dati esistenti in ordine di dipendenza (figli prima dei genitori)
+  await prisma.eventoCalendarioGestito.deleteMany();
+  await prisma.collegamentoCalendarioGoogle.deleteMany();
   await prisma.rigaAttivita.deleteMany();
   await prisma.offerta.deleteMany();
   await prisma.cliente.deleteMany();
