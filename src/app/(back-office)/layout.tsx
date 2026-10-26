@@ -1,6 +1,7 @@
 import { disconnetti, richiediRuolo } from "@/lib/dal";
 import ConsoleSidebar from "@/app/(back-office)/console-sidebar";
-import { PulsanteAttesa } from "@/components";
+import { PulsanteAttesa, SelettoreTema } from "@/components";
+import { temaPreferito } from "@/lib/tema-preferito";
 
 export default async function BackOfficeLayout({
   children,
@@ -8,6 +9,7 @@ export default async function BackOfficeLayout({
   children: React.ReactNode;
 }) {
   const sessione = await richiediRuolo("AMMINISTRATORE");
+  const tema = await temaPreferito();
   const iniziali = sessione.nome
     .split(" ")
     .map((p) => p[0])
@@ -28,6 +30,7 @@ export default async function BackOfficeLayout({
       <div className="ml-[248px] max-[920px]:ml-[66px] flex min-h-screen flex-col">
         {/* Header sottile con pulsante Esci */}
         <header className="sticky top-0 z-10 flex items-center justify-end gap-4 border-b border-zinc-200 bg-white/80 px-8 py-2.5 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
+          <SelettoreTema temaIniziale={tema} />
           <div className="flex items-center gap-3">
             <div className="text-right leading-tight">
               <b className="block text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">

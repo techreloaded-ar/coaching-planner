@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { utenteCorrente } from "@/lib/dal";
 import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
+import { SelettoreTema } from "@/components";
+import { temaPreferito } from "@/lib/tema-preferito";
 import AccessoGoogle from "./accesso-google";
 
 export default async function Home({
@@ -15,6 +17,7 @@ export default async function Home({
   }
 
   const params = await searchParams;
+  const tema = await temaPreferito();
   const showLogout = params.logout === "1";
   const showError = params.error === "1";
 
@@ -25,6 +28,10 @@ export default async function Home({
         <div className="absolute -left-[140px] -top-[160px] h-[480px] w-[480px] rounded-full bg-gradient-to-br from-emerald-200/60 to-transparent blur-[70px]" />
         <div className="absolute -right-[160px] -bottom-[200px] h-[520px] w-[520px] rounded-full bg-gradient-to-tl from-indigo-200/60 to-transparent blur-[70px]" />
         <div className="absolute right-[14vw] -top-[120px] h-[340px] w-[340px] rounded-full bg-gradient-to-b from-rose-200/50 to-transparent blur-[80px]" />
+      </div>
+
+      <div className="absolute right-5 top-5 z-20">
+        <SelettoreTema temaIniziale={tema} />
       </div>
 
       <main className="relative z-10 flex w-full max-w-[420px] flex-col items-center px-5 py-12 text-center">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { disconnetti, verificaSessione } from "@/lib/dal";
-import { PulsanteAttesa } from "@/components";
+import { PulsanteAttesa, SelettoreTema } from "@/components";
+import { temaPreferito } from "@/lib/tema-preferito";
 
 export default async function FrontOfficeLayout({
   children,
@@ -8,6 +9,7 @@ export default async function FrontOfficeLayout({
   children: React.ReactNode;
 }) {
   const sessione = await verificaSessione();
+  const tema = await temaPreferito();
   const iniziali = sessione.nome
     .split(" ")
     .map((p) => p[0])
@@ -30,6 +32,7 @@ export default async function FrontOfficeLayout({
           <div className="flex-1" />
 
           <div className="flex items-center gap-3.5">
+            <SelettoreTema temaIniziale={tema} />
             {sessione.ruolo === "AMMINISTRATORE" && (
               <Link
                 href="/anagrafiche"

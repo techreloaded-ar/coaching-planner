@@ -9,7 +9,7 @@
         "name": "avvia-postgres",
         "argv": [
           "sh",
-          "scripts/ambiente-sandbox.sh",
+          "scripts/archetipo/ambiente.sh",
           "avvia-postgres"
         ],
         "timeout_seconds": 30
@@ -18,7 +18,7 @@
         "name": "probe-postgres",
         "argv": [
           "sh",
-          "scripts/ambiente-sandbox.sh",
+          "scripts/archetipo/ambiente.sh",
           "probe-postgres"
         ],
         "timeout_seconds": 10
@@ -27,7 +27,7 @@
         "name": "ferma-postgres",
         "argv": [
           "sh",
-          "scripts/ambiente-sandbox.sh",
+          "scripts/archetipo/ambiente.sh",
           "ferma-postgres"
         ],
         "timeout_seconds": 30
@@ -36,7 +36,7 @@
         "name": "postgres-fermo",
         "argv": [
           "sh",
-          "scripts/ambiente-sandbox.sh",
+          "scripts/archetipo/ambiente.sh",
           "postgres-fermo"
         ],
         "timeout_seconds": 10
@@ -49,10 +49,13 @@
     "package-lock.json",
     "prisma/schema.prisma",
     "prisma/migrations",
-    "scripts/ambiente-sandbox.sh"
+    "prisma/seed.ts",
+    "prisma.config.ts",
+    "scripts/archetipo/ambiente.sh"
   ],
   "outputs": [
-    "node_modules"
+    "node_modules",
+    "src/generated/prisma"
   ],
   "prepare": [
     {
@@ -69,7 +72,7 @@
       "name": "migrazioni-e-seed",
       "argv": [
         "sh",
-        "scripts/ambiente-sandbox.sh",
+        "scripts/archetipo/ambiente.sh",
         "database"
       ],
       "timeout_seconds": 180
@@ -80,8 +83,19 @@
       "name": "prisma-valido",
       "argv": [
         "sh",
-        "scripts/ambiente-sandbox.sh",
+        "scripts/archetipo/ambiente.sh",
         "probe-database"
+      ],
+      "timeout_seconds": 30
+    }
+  ],
+  "cleanup": [
+    {
+      "name": "pulizia-artefatti",
+      "argv": [
+        "sh",
+        "scripts/archetipo/ambiente.sh",
+        "pulizia"
       ],
       "timeout_seconds": 30
     }
@@ -91,15 +105,17 @@
       "name": "build",
       "argv": [
         "sh",
-        "scripts/ambiente-sandbox.sh",
+        "scripts/archetipo/ambiente.sh",
         "build"
       ],
       "timeout_seconds": 900,
       "inputs": [
         "src",
         "prisma",
+        "public",
         "next.config.ts",
-        "package.json"
+        "package.json",
+        "scripts/archetipo/ambiente.sh"
       ],
       "cache": true
     },
@@ -107,7 +123,7 @@
       "name": "e2e",
       "argv": [
         "sh",
-        "scripts/ambiente-sandbox.sh",
+        "scripts/archetipo/ambiente.sh",
         "e2e"
       ],
       "timeout_seconds": 1800,
@@ -115,7 +131,8 @@
         "src",
         "tests/e2e",
         "prisma",
-        "playwright.config.ts"
+        "playwright.config.ts",
+        "scripts/archetipo/ambiente.sh"
       ],
       "cache": true
     },
@@ -139,14 +156,15 @@
       "name": "unit",
       "argv": [
         "sh",
-        "scripts/ambiente-sandbox.sh",
+        "scripts/archetipo/ambiente.sh",
         "unit"
       ],
       "timeout_seconds": 600,
       "inputs": [
         "src",
         "tests/unit",
-        "vitest.config.ts"
+        "vitest.config.ts",
+        "scripts/archetipo/ambiente.sh"
       ],
       "cache": true
     }
