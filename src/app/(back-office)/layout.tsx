@@ -1,6 +1,7 @@
 import { disconnetti, richiediRuolo } from "@/lib/dal";
 import ConsoleSidebar from "@/app/(back-office)/console-sidebar";
-import { PulsanteAttesa } from "@/components";
+import { PulsanteAttesa, SelettoreTema } from "@/components";
+import { temaPreferito } from "@/lib/tema-preferito";
 
 export default async function BackOfficeLayout({
   children,
@@ -8,6 +9,7 @@ export default async function BackOfficeLayout({
   children: React.ReactNode;
 }) {
   const sessione = await richiediRuolo("AMMINISTRATORE");
+  const tema = await temaPreferito();
   const iniziali = sessione.nome
     .split(" ")
     .map((p) => p[0])
@@ -41,6 +43,7 @@ export default async function BackOfficeLayout({
               {iniziali}
             </div>
             <div className="mx-1 h-[26px] w-px bg-zinc-200 dark:bg-zinc-700" />
+            <SelettoreTema temaIniziale={tema} />
             <form action={disconnetti}>
               <PulsanteAttesa
                 data-esci

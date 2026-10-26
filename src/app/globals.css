@@ -1,8 +1,33 @@
 @import "tailwindcss";
 
+/*
+ * Tema scelto dall'utente: `data-tema` su <html> vale "chiaro", "scuro" o
+ * "browser" (letto dal cookie nel layout radice). La variante `dark:` si
+ * attiva con "scuro" sempre e con "browser" solo se il sistema è scuro, così
+ * il tema è corretto fin dal primo rendering e "browser" segue i cambi live.
+ */
+@custom-variant dark {
+  &:where([data-tema="scuro"], [data-tema="scuro"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-tema="browser"], [data-tema="browser"] *) {
+      @slot;
+    }
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Controlli nativi (date picker, select, scrollbar) allineati al tema. */
+  color-scheme: light;
+
+  @variant dark {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    color-scheme: dark;
+  }
 }
 
 @theme inline {
@@ -10,13 +35,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 /* Comparsa ritardata dell'indicatore di caricamento: evita il flash sulle transizioni veloci. */
