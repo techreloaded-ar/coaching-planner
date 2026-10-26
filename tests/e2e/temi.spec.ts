@@ -4,6 +4,8 @@ import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/
 import {
 	apriPannelloTema,
 	attendiAspetto,
+	attendiIconaTema,
+	attendiSelettoreAccantoAEsci,
 	opzioneTema,
 	pannelloTema,
 	pulsanteTema,
@@ -46,6 +48,8 @@ test.describe("Selettore del tema", () => {
 		// Compatto: solo icona, nessuna etichetta testuale visibile.
 		await expect(pulsante).toHaveText("");
 		await expect(pannelloTema(page)).toBeHidden();
+		await attendiSelettoreAccantoAEsci(page);
+		await attendiIconaTema(page, "sole");
 
 		await apriPannelloTema(page);
 		await expect(pulsante).toHaveAttribute("aria-expanded", "true");
@@ -56,10 +60,12 @@ test.describe("Selettore del tema", () => {
 		await opzioneTema(page, "Scuro").click();
 		await expect(pannelloTema(page)).toBeHidden();
 		await attendiAspetto(page, "scuro");
+		await attendiIconaTema(page, "luna");
 
 		await page.reload();
 		await expect(page.locator("html")).toHaveAttribute("data-tema", "scuro");
 		await attendiAspetto(page, "scuro");
+		await attendiIconaTema(page, "luna");
 		await apriPannelloTema(page);
 		await expect(opzioneTema(page, "Scuro")).toHaveAttribute("aria-pressed", "true");
 
@@ -81,22 +87,31 @@ test.describe("Selettore del tema", () => {
 		await accediComeCollaboratore(page);
 		await attendiAspetto(page, "scuro");
 
+		await attendiIconaTema(page, "luna");
+
 		await scegliTema(page, "Chiaro");
 		await attendiAspetto(page, "chiaro");
+		await attendiIconaTema(page, "sole");
 
 		await page.emulateMedia({ colorScheme: "light" });
 		await scegliTema(page, "Scuro");
 		await attendiAspetto(page, "scuro");
+		await attendiIconaTema(page, "luna");
 
+		// Con Browser l'icona segue il sistema: sole se chiaro, luna se scuro.
 		await scegliTema(page, "Browser");
 		await attendiAspetto(page, "chiaro");
+		await attendiIconaTema(page, "sole");
 		await page.emulateMedia({ colorScheme: "dark" });
 		await attendiAspetto(page, "scuro");
+		await attendiIconaTema(page, "luna");
 	});
 
-	test("console amministrativa: pulsante nell'intestazione, utilizzabile da tastiera", async ({ page }) => {
+	test("console amministrativa: pulsante accanto a Esci, utilizzabile da tastiera", async ({ page }) => {
 		await page.emulateMedia({ colorScheme: "light" });
 		await accediAlBackOfficeComeAdmin(page);
+		await attendiSelettoreAccantoAEsci(page);
+		await attendiIconaTema(page, "sole");
 
 		const pulsante = page.getByRole("banner").getByRole("button", { name: "Tema", exact: true });
 		await expect(page.getByTestId("selettore-tema")).toHaveAttribute("data-idratata", "true");
@@ -111,6 +126,7 @@ test.describe("Selettore del tema", () => {
 		await expect(pannelloTema(page)).toBeHidden();
 		await expect(pulsante).toBeFocused();
 		await attendiAspetto(page, "scuro");
+		await attendiIconaTema(page, "luna");
 	});
 });
 

@@ -1,14 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 import { accediComeCollaboratore } from "./support/auth";
-import { apriPannelloTema, attendiAspetto, pulsanteTema, scegliTema } from "./support/tema";
+import { apriPannelloTema, attendiAspetto, attendiIconaTema, pulsanteTema, scegliTema } from "./support/tema";
 
 /**
  * Demo scenario — Temi Chiaro, Scuro e Browser
  *
  * Con il sistema in modalità chiara: la pagina di accesso non mostra il
- * selettore; dopo il login il pulsante-icona "Tema" nell'intestazione apre il
- * menu, si sceglie "Scuro", si ricarica e si naviga; si esce e la pagina di
+ * selettore; dopo il login il pulsante-icona "Tema" accanto a Esci (sole o
+ * luna secondo l'aspetto) apre il menu, si sceglie "Scuro", si ricarica e si naviga; si esce e la pagina di
  * accesso resta scura; rientrati si passa a "Chiaro" e infine a "Browser",
  * che segue il cambio del sistema.
  *
@@ -31,10 +31,12 @@ test.describe("Temi Demo", () => {
 		await attendiAspetto(page, "chiaro");
 
 		await accediComeCollaboratore(page);
+		await attendiIconaTema(page, "sole");
 		await apriPannelloTema(page);
 		await page.keyboard.press("Escape");
 		await scegliTema(page, "Scuro");
 		await attendiAspetto(page, "scuro");
+		await attendiIconaTema(page, "luna");
 		await page.reload();
 		await attendiAspetto(page, "scuro");
 		await page.goto("/attivita/riepilogo");
@@ -49,8 +51,10 @@ test.describe("Temi Demo", () => {
 		await attendiAspetto(page, "chiaro");
 
 		await scegliTema(page, "Browser");
+		await attendiIconaTema(page, "sole");
 		await page.emulateMedia({ colorScheme: "dark" });
 		await attendiAspetto(page, "scuro");
+		await attendiIconaTema(page, "luna");
 
 		// Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
 		await page.waitForTimeout(1500);

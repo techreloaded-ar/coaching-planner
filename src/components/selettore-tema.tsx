@@ -8,22 +8,18 @@ import {
 } from "@/lib/tema";
 import { useIdratata } from "./use-idratata";
 
+const ICONA_SOLE = (
+  <>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+  </>
+);
+
+const ICONA_LUNA = <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />;
+
 const OPZIONI_TEMA: { tema: Tema; etichetta: string; icona: React.ReactNode }[] = [
-  {
-    tema: "chiaro",
-    etichetta: "Chiaro",
-    icona: (
-      <>
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-      </>
-    ),
-  },
-  {
-    tema: "scuro",
-    etichetta: "Scuro",
-    icona: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
-  },
+  { tema: "chiaro", etichetta: "Chiaro", icona: ICONA_SOLE },
+  { tema: "scuro", etichetta: "Scuro", icona: ICONA_LUNA },
   {
     tema: "browser",
     etichetta: "Browser",
@@ -42,11 +38,11 @@ function applicaERicordaTema(tema: Tema) {
 }
 
 /**
- * Selettore discreto del tema: un pulsante-icona che mostra il tema attivo e
- * apre un piccolo pannello con Chiaro / Scuro / Browser. Applica subito il tema
- * impostando `data-tema` sull'elemento <html> (letto dalla variante `dark` in
- * globals.css) e lo ricorda nel cookie, che il layout radice rilegge al
- * rendering successivo. Il pannello si chiude dopo la scelta, con Esc o con un
+ * Selettore discreto del tema: un pulsante-icona (sole se l'interfaccia è
+ * chiara, luna se è scura) che apre un piccolo pannello con Chiaro / Scuro /
+ * Browser. Applica subito il tema impostando `data-tema` sull'elemento <html>
+ * (letto dalla variante `dark` in globals.css) e lo ricorda nel cookie, che il
+ * layout radice rilegge al rendering successivo. Il pannello si chiude dopo la scelta, con Esc o con un
  * click fuori.
  */
 export function SelettoreTema({ temaIniziale }: { temaIniziale: Tema }) {
@@ -102,7 +98,14 @@ export function SelettoreTema({ temaIniziale }: { temaIniziale: Tema }) {
         onClick={() => setAperto((valore) => !valore)}
         className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 aria-expanded:bg-zinc-100 aria-expanded:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 dark:aria-expanded:bg-zinc-800 dark:aria-expanded:text-zinc-100"
       >
-        <IconaTema>{opzioneAttiva.icona}</IconaTema>
+        {/* L'icona segue l'aspetto effettivo tramite la stessa variante `dark`
+            dei colori: con "browser" cambia insieme all'impostazione del sistema. */}
+        <span data-testid="icona-tema-sole" className="block dark:hidden">
+          <IconaTema>{ICONA_SOLE}</IconaTema>
+        </span>
+        <span data-testid="icona-tema-luna" className="hidden dark:block">
+          <IconaTema>{ICONA_LUNA}</IconaTema>
+        </span>
       </button>
 
       {aperto && (

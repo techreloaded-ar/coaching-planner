@@ -32,7 +32,6 @@ export default async function FrontOfficeLayout({
           <div className="flex-1" />
 
           <div className="flex items-center gap-3.5">
-            <SelettoreTema temaIniziale={tema} />
             {sessione.ruolo === "AMMINISTRATORE" && (
               <Link
                 href="/anagrafiche"
@@ -58,6 +57,7 @@ export default async function FrontOfficeLayout({
             </div>
             <div className="h-[26px] w-px bg-zinc-200 dark:bg-zinc-700" />
 
+            <SelettoreTema temaIniziale={tema} />
             <form action={disconnetti}>
               <PulsanteAttesa
                 data-esci

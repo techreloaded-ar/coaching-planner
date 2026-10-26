@@ -58,3 +58,27 @@ export async function attendiAspetto(page: Page, aspetto: "chiaro" | "scuro") {
 		)
 		.toBe(aspetto === "scuro" ? "testo-chiaro" : "testo-scuro");
 }
+
+/** L'icona del pulsante segue l'aspetto effettivo: sole se chiaro, luna se scuro. */
+export async function attendiIconaTema(page: Page, icona: "sole" | "luna") {
+	const visibile = page.getByTestId(icona === "sole" ? "icona-tema-sole" : "icona-tema-luna");
+	const nascosta = page.getByTestId(icona === "sole" ? "icona-tema-luna" : "icona-tema-sole");
+	await expect(visibile).toBeVisible();
+	await expect(nascosta).toBeHidden();
+}
+
+/** Il selettore sta subito a sinistra del pulsante Esci, nella stessa riga dell'intestazione. */
+export async function attendiSelettoreAccantoAEsci(page: Page) {
+	const banner = page.getByRole("banner");
+	const selettore = banner.getByTestId("selettore-tema");
+	await expect(selettore).toBeVisible();
+	expect(
+		await selettore.evaluate(
+			(elemento) => elemento.nextElementSibling?.querySelector("[data-esci]") !== null,
+		),
+	).toBe(true);
+	const riquadroSelettore = (await selettore.boundingBox())!;
+	const riquadroEsci = (await banner.locator("[data-esci]").boundingBox())!;
+	expect(riquadroSelettore.x + riquadroSelettore.width).toBeLessThanOrEqual(riquadroEsci.x);
+	expect(riquadroEsci.x - (riquadroSelettore.x + riquadroSelettore.width)).toBeLessThan(40);
+}
