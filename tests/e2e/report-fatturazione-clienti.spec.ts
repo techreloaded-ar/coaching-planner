@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import type { Page } from "@playwright/test";
 
 import { accediComeAdmin } from "./support/auth";
-import { dataNelMesePassatoRiservato, mesePassatoRiservato } from "./support/date";
+import {
+  dataNelMesePassatoRiservato,
+  mesePassatoRiservato,
+  mesiIndietroPerTentativo,
+} from "./support/date";
 import { test, expect } from "./support/fixtures";
 import {
   creaDatasetReportFatturazioneClienti,
@@ -152,9 +156,13 @@ function gruppoOffertaNelDettaglio(
   );
 }
 
-function dataRiservataReport(codiceSpec: string, giorno: number): Date {
+function dataRiservataReport(
+  codiceSpec: string,
+  giorno: number,
+  mesiIndietro: number,
+): Date {
   return new Date(
-    `${dataNelMesePassatoRiservato(codiceSpec, giorno)}T00:00:00.000Z`,
+    `${dataNelMesePassatoRiservato(codiceSpec, giorno, mesiIndietro)}T00:00:00.000Z`,
   );
 }
 
@@ -169,6 +177,7 @@ test.describe("Report fatturazione clienti", () => {
   }) => {
     const dataset = await creaDatasetReportFatturazioneClienti(factory, {
       codiceSpec: CODICE_SPEC_REPORT,
+      mesiIndietro: mesiIndietroPerTentativo(test.info()),
       tariffaGiornaliera: "640.00",
     });
 
@@ -201,7 +210,8 @@ test.describe("Report fatturazione clienti", () => {
     factory,
   }) => {
     const codiceSpec = "US-037-DETTAGLIO-COLLABORATORI";
-    const mese = mesePassatoRiservato(codiceSpec);
+    const mesiIndietro = mesiIndietroPerTentativo(test.info());
+    const mese = mesePassatoRiservato(codiceSpec, mesiIndietro);
     const suffisso = randomUUID().slice(0, 8);
 
     const cliente = await factory.createCliente({
@@ -232,7 +242,7 @@ test.describe("Report fatturazione clienti", () => {
       collaboratore: ada,
       cliente,
       offerta: offerta1,
-      data: dataRiservataReport(codiceSpec, 5),
+      data: dataRiservataReport(codiceSpec, 5, mesiIndietro),
       ore: "8.00",
       fatturabile: true,
     });
@@ -240,7 +250,7 @@ test.describe("Report fatturazione clienti", () => {
       collaboratore: grace,
       cliente,
       offerta: offerta1,
-      data: dataRiservataReport(codiceSpec, 6),
+      data: dataRiservataReport(codiceSpec, 6, mesiIndietro),
       ore: "4.00",
       fatturabile: true,
     });
@@ -248,7 +258,7 @@ test.describe("Report fatturazione clienti", () => {
       collaboratore: grace,
       cliente,
       offerta: offerta2,
-      data: dataRiservataReport(codiceSpec, 12),
+      data: dataRiservataReport(codiceSpec, 12, mesiIndietro),
       ore: "8.00",
       fatturabile: true,
     });
@@ -313,7 +323,8 @@ test.describe("Report fatturazione clienti", () => {
     factory,
   }) => {
     const codiceSpec = "US-037-ESPANSIONE-SINGOLA";
-    const mese = mesePassatoRiservato(codiceSpec);
+    const mesiIndietro = mesiIndietroPerTentativo(test.info());
+    const mese = mesePassatoRiservato(codiceSpec, mesiIndietro);
     const suffisso = randomUUID().slice(0, 8);
 
     const clienteA = await factory.createCliente({
@@ -331,7 +342,7 @@ test.describe("Report fatturazione clienti", () => {
       collaboratore: collaboratoreA,
       cliente: clienteA,
       offerta: offertaA,
-      data: dataRiservataReport(codiceSpec, 5),
+      data: dataRiservataReport(codiceSpec, 5, mesiIndietro),
       ore: "8.00",
       fatturabile: true,
     });
@@ -351,7 +362,7 @@ test.describe("Report fatturazione clienti", () => {
       collaboratore: collaboratoreB,
       cliente: clienteB,
       offerta: offertaB,
-      data: dataRiservataReport(codiceSpec, 6),
+      data: dataRiservataReport(codiceSpec, 6, mesiIndietro),
       ore: "8.00",
       fatturabile: true,
     });
@@ -383,7 +394,8 @@ test.describe("Report fatturazione clienti", () => {
     factory,
   }) => {
     const codiceSpec = "US-037-SOLO-RIMBORSI";
-    const mese = mesePassatoRiservato(codiceSpec);
+    const mesiIndietro = mesiIndietroPerTentativo(test.info());
+    const mese = mesePassatoRiservato(codiceSpec, mesiIndietro);
     const suffisso = randomUUID().slice(0, 8);
 
     const cliente = await factory.createCliente({
@@ -401,7 +413,7 @@ test.describe("Report fatturazione clienti", () => {
       collaboratore,
       cliente,
       offerta,
-      data: dataRiservataReport(codiceSpec, 7),
+      data: dataRiservataReport(codiceSpec, 7, mesiIndietro),
       ore: "4.00",
       fatturabile: false,
       rimborsoTrasfertaEtichetta: `US-037 Solo rimborsi ${suffisso}`,

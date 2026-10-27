@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { mesiIndietroPerTentativo } from "./support/date";
 import { test, expect } from "./support/fixtures";
 import {
   creaDatasetReportFatturazioneClienti,
@@ -110,6 +111,7 @@ test.describe("US-015 Demo", () => {
 
     const dataset = await creaDatasetReportFatturazioneClienti(factory, {
       codiceSpec: CODICE_SPEC_DEMO,
+      mesiIndietro: mesiIndietroPerTentativo(test.info()),
       tariffaGiornaliera: "640.00",
     });
 

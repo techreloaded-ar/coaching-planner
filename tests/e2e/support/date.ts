@@ -1,8 +1,10 @@
+import type { TestInfo } from "@playwright/test";
+
 const MESE_TOKEN_PATTERN = /^\d{4}-\d{2}$/;
 const MESI_RISERVATI_BASE_OFFSET = 12;
 const MESI_RISERVATI_FINESTRA = 120;
 const MESI_ESCLUSIVI_BASE_OFFSET = 360;
-const MESI_ESCLUSIVI_AMPIEZZA_SLOT = 2;
+const MESI_ESCLUSIVI_AMPIEZZA_SLOT = 8;
 
 /**
  * Slot espliciti per i mesi riservati "esclusivi": le chiavi dei test che
@@ -15,8 +17,14 @@ const MESI_ESCLUSIVI_AMPIEZZA_SLOT = 2;
  * La banda parte 360 mesi indietro, oltre ogni mese raggiungibile dalle
  * chiavi hash: offset base 12 + hash % 120 = max 131, più gli extra usati
  * dai test (la finestra contigua di dettaglio-avanzamento-offerta arriva a
- * ~299 mesi). Ogni slot occupa 2 mesi, così `mesePassatoRiservato(codice)`
- * resta dentro lo slot senza toccare quello adiacente.
+ * ~299 mesi). Ogni slot occupa 8 mesi: `mesePassatoRiservato(codice, n)`
+ * con n da 1 a 7 resta dentro lo slot senza toccare quello adiacente.
+ *
+ * I test che CREANO dati in uno slot esclusivo devono usare
+ * `mesiIndietroPerTentativo(test.info())` come offset: con `retries` o
+ * `--repeat-each` i dati di un tentativo precedente restano nel database
+ * (niente cleanup per-test), e un tentativo successivo nello stesso mese
+ * troverebbe totali raddoppiati.
  *
  * Ogni nuovo test che asserisce totali o vuoto dell'intero mese deve
  * registrare qui la propria chiave con uno slot libero.
@@ -29,6 +37,7 @@ const SLOT_MESI_RISERVATI_ESCLUSIVI: Record<string, number> = {
 	"US-037-DETTAGLIO-COLLABORATORI": 4,
 	"US-037-ESPANSIONE-SINGOLA": 5,
 	"US-037-SOLO-RIMBORSI": 6,
+	"US-018-ESPORTAZIONE-FATTURAZIONE": 7,
 };
 
 {
@@ -139,6 +148,20 @@ export function mesePassatoRiservato(
 	}
 
 	return meseCorrenteToken(offsetMeseRiservato(codiceSpec) - mesiIndietro);
+}
+
+/**
+ * Offset (1..AMPIEZZA-1) del mese dentro uno slot esclusivo per il tentativo
+ * corrente: ogni retry e ogni ripetizione `--repeat-each` usa un mese diverso.
+ */
+export function mesiIndietroPerTentativo(
+	testInfo: Pick<TestInfo, "retry" | "repeatEachIndex" | "project">,
+): number {
+	const tentativo =
+		testInfo.repeatEachIndex * (testInfo.project.retries + 1) + testInfo.retry;
+	// ponytail: oltre 7 tentativi il mese si ripete; ampliare
+	// MESI_ESCLUSIVI_AMPIEZZA_SLOT se servono più ripetizioni.
+	return 1 + (tentativo % (MESI_ESCLUSIVI_AMPIEZZA_SLOT - 1));
 }
 
 export function dataNelMeseRiservato(

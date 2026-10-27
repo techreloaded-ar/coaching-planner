@@ -45,6 +45,12 @@ tollera nessuna riga estranea nel mese: la sua chiave va registrata in
 Gli slot espliciti garantiscono l'unicità del mese per costruzione, in una
 banda (360+ mesi indietro) fuori dalla portata delle chiavi hash.
 
+Se il test **crea dati** nello slot esclusivo, passa come offset
+`mesiIndietroPerTentativo(test.info())` (ad esempio nell'opzione `mesiIndietro`
+di `creaDatasetReportFatturazioneClienti`): ogni retry e ogni ripetizione
+`--repeat-each` usa un mese diverso dello slot (8 mesi), così i dati lasciati
+da un tentativo precedente non raddoppiano i totali del successivo.
+
 ## Scaglioni km
 
 `ScaglioneKm.finoAKm` è una risorsa globale con vincolo di unicità, quindi non è namespaceabile per relazione come clienti/offerte.
