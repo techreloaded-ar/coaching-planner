@@ -34,6 +34,7 @@ interface ReportFatturazioneClientiProps {
 // ── Componente ──────────────────────────────────────────────────
 
 export default function ReportFatturazioneClienti({
+  token,
   tokenPrecedente,
   tokenSuccessivo,
   etichetta,
@@ -112,30 +113,51 @@ export default function ReportFatturazioneClienti({
 
         <div className="flex-1" />
 
-        {/* Pill riepilogo mese */}
         {!vuoto && (
-          <div className="inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[14px] py-1.5 text-[12.5px] font-semibold text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-300">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              className="h-[15px] w-[15px]"
+          <div className="flex items-center gap-3">
+            <a
+              href={`/report/fatturazione-clienti/esporta?mese=${token}`}
+              download
+              data-testid="esporta-excel"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750 dark:hover:text-zinc-100"
             >
-              <path d="M3 21V8.5L9 4l6 4.5V21" />
-              <path d="M15 21h6V11l-6-3" />
-            </svg>
-            <span>
-              <b className="tabular-nums">{clienti.length}</b>{" "}
-              {clienti.length === 1 ? "cliente" : "clienti"}
-            </span>
-            <span className="h-[13px] w-px bg-indigo-200 dark:bg-indigo-500/40" />
-            <span>
-              <b className="tabular-nums">
-                {formattatoreGiornate.format(giornateTotali)}
-              </b>{" "}
-              giornate
-            </span>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="h-4 w-4"
+              >
+                <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              Esporta Excel
+            </a>
+
+            {/* Pill riepilogo mese */}
+            <div className="inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[14px] py-1.5 text-[12.5px] font-semibold text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-300">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="h-[15px] w-[15px]"
+              >
+                <path d="M3 21V8.5L9 4l6 4.5V21" />
+                <path d="M15 21h6V11l-6-3" />
+              </svg>
+              <span>
+                <b className="tabular-nums">{clienti.length}</b>{" "}
+                {clienti.length === 1 ? "cliente" : "clienti"}
+              </span>
+              <span className="h-[13px] w-px bg-indigo-200 dark:bg-indigo-500/40" />
+              <span>
+                <b className="tabular-nums">
+                  {formattatoreGiornate.format(giornateTotali)}
+                </b>{" "}
+                giornate
+              </span>
+            </div>
           </div>
         )}
       </div>
