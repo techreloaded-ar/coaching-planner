@@ -24,7 +24,7 @@ describe("next.config: origini delle Server Action", () => {
     expect(isCsrfOriginAllowed("127.0.0.1:62471", origini)).toBe(false);
   });
 
-  it("con i mock accetta il proxy loopback della preview su qualunque porta, non altri host", async () => {
+  it("con i mock accetta il proxy loopback della preview su qualunque porta, non i domini esterni", async () => {
     const origini = await originiConsentite("true");
 
     expect(isCsrfOriginAllowed("127.0.0.1:62471", origini)).toBe(true);
