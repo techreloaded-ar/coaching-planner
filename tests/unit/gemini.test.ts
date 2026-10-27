@@ -79,7 +79,7 @@ describe("analizzaEventiCalendario", () => {
       "confidenza",
       "nonLavorativo",
     ]);
-    expect(corpo.generationConfig.thinkingConfig).toEqual({ thinkingBudget: 0 });
+    expect(corpo.generationConfig.thinkingConfig).toEqual({ thinkingLevel: "low" });
   });
 
   it("precompila solo a confidenza alta ed esclude i non lavorativi (US-001, US-002)", async () => {
@@ -180,10 +180,14 @@ describe("analizzaEventiCalendario", () => {
     );
     expect((await analizzaEventiCalendario(PROPOSTE, OFFERTE)).associazioni.size).toBe(0);
 
+    mockFetch.mockResolvedValueOnce(new Response("<html>non json</html>", { status: 200 }));
+    expect((await analizzaEventiCalendario(PROPOSTE, OFFERTE)).associazioni.size).toBe(0);
+
     const righe = righeLog();
     expect(righe).toEqual([
       expect.stringMatching(/^Gemini: esito=timeout .*durataMs=\d+$/),
       expect.stringMatching(/^Gemini: esito=errore-rete .*tipoErrore=TypeError$/),
+      expect.stringMatching(/^Gemini: esito=risposta-non-valida /),
       expect.stringMatching(/^Gemini: esito=risposta-non-valida /),
     ]);
     const tutto = righe.join("\n");
@@ -192,7 +196,7 @@ describe("analizzaEventiCalendario", () => {
     }
   });
 
-  it("usa il modello configurato in GEMINI_MODEL, senza budget di ragionamento nullo per i modelli pro", async () => {
+  it("usa il modello configurato in GEMINI_MODEL, senza livello di ragionamento per i modelli pro", async () => {
     vi.stubEnv("GEMINI_MODEL", "gemini-2.5-pro");
     mockFetch.mockResolvedValue(rispostaGemini([]));
 

@@ -61,7 +61,7 @@ Ogni lettura delle proposte dal calendario con almeno un impegno scrive nei log 
 
 ```
 Gemini: esito=ok modello=gemini-flash-latest eventi=4 offerte=12 durataMs=812 associazioniAlta=1 associazioniBassa=2 nonLavorativi=1
-Gemini: esito=errore-http modello=gemini-flash-latest eventi=4 offerte=12 durataMs=230 stato=402 messaggio="Your prepayment credits are depleted."
+Gemini: esito=errore-http modello=gemini-flash-latest eventi=4 offerte=12 durataMs=230 stato=402 statoGoogle=PAYMENT_REQUIRED messaggio="Your prepayment credits are depleted."
 ```
 
 La riga non contiene mai l'API key, titoli, descrizioni, email o domini degli eventi. Gli esiti:

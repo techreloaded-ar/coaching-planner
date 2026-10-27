@@ -114,10 +114,10 @@ export async function analizzaEventiCalendario(
       return nessunaAnalisi();
     }
 
-    const dati = (await risposta.json()) as {
+    const dati = (await risposta.json().catch(() => null)) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
-    };
-    const testo = dati.candidates?.[0]?.content?.parts?.[0]?.text;
+    } | null;
+    const testo = dati?.candidates?.[0]?.content?.parts?.[0]?.text;
     const analisi = testo ? analisiValida(testo, proposte, offerte) : null;
     if (!analisi) {
       registraEsito("risposta-non-valida", { ...base, durataMs: durataMs() });
@@ -240,9 +240,9 @@ function corpoRichiesta(
     contents: [{ role: "user", parts: [{ text: istruzioni }] }],
     generationConfig: {
       temperature: 0,
-      // Ragionamento minimo per restare nel timeout: i modelli «pro» non
-      // accettano un budget nullo, quindi vale solo per i «flash».
-      ...(modello.includes("flash") ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+      // Ragionamento ridotto per restare nel timeout: livello supportato dai
+      // modelli «flash» (2.5 e 3); i «pro» mantengono il loro predefinito.
+      ...(modello.includes("flash") ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
       responseMimeType: "application/json",
       responseSchema: {
         type: "OBJECT",
