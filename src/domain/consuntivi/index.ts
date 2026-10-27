@@ -480,6 +480,195 @@ export function calcolaReportFatturazioneClienti(
   };
 }
 
+// ── Marginalità clienti e offerte ───────────────────────────────
+
+/**
+ * Riga elementare di attività per l'analisi di marginalità (dipendenza-zero).
+ * Porta sia la tariffa dell'offerta (ricavo) sia quella del collaboratore (costo).
+ */
+export interface RigaMarginalita {
+  clienteId: string;
+  clienteRagioneSociale: string;
+  offertaId: string;
+  offertaCodice: string;
+  offertaDescrizione: string;
+  tariffaOffertaGiornaliera: string | number;
+  tariffaCollaboratoreGiornaliera: string | number;
+  ore: number;
+  fatturabile: boolean;
+}
+
+/** Importi economici di una voce di marginalità (importi in euro con 2 decimali) */
+export interface ImportiMarginalita {
+  giornateFatturabili: number;
+  ricavi: string;
+  costi: string;
+  margine: string;
+  /** Margine / ricavi; `null` quando i ricavi sono zero */
+  marginePercentuale: number | null;
+  margineNegativo: boolean;
+}
+
+export interface VoceOffertaMarginalita extends ImportiMarginalita {
+  offertaId: string;
+  offertaCodice: string;
+  offertaDescrizione: string;
+}
+
+export interface VoceClienteMarginalita extends ImportiMarginalita {
+  clienteId: string;
+  clienteRagioneSociale: string;
+  perOfferta: VoceOffertaMarginalita[];
+}
+
+export interface ReportMarginalita {
+  perCliente: VoceClienteMarginalita[];
+  totali: ImportiMarginalita;
+}
+
+function importiMarginalita(
+  oreFatturabili: number,
+  ricaviGrezzi: number,
+  costiGrezzi: number,
+): ImportiMarginalita {
+  const ricavi = ricaviGrezzi.toFixed(2);
+  const costi = costiGrezzi.toFixed(2);
+  const ricaviCentesimi = Math.round(Number(ricavi) * 100);
+  const margineCentesimi = ricaviCentesimi - Math.round(Number(costi) * 100);
+
+  return {
+    giornateFatturabili: oreFatturabili / ORE_PER_GIORNATA,
+    ricavi,
+    costi,
+    margine: (margineCentesimi / 100).toFixed(2),
+    marginePercentuale:
+      ricaviCentesimi > 0 ? margineCentesimi / ricaviCentesimi : null,
+    margineNegativo: margineCentesimi < 0,
+  };
+}
+
+function tariffaNumerica(tariffa: string | number): number {
+  const numero = Number(tariffa);
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+/**
+ * Aggrega le righe attività fatturabili per cliente e offerta calcolando
+ * ricavi (giornate × tariffa offerta), costi (giornate × tariffa del
+ * collaboratore) e margine. I rimborsi trasferta sono esclusi: sono passanti.
+ *
+ * Gli arrotondamenti seguono `calcolaReportFatturazioneClienti`, così i ricavi
+ * coincidono al centesimo con l'imponibile manodopera del report fatturazione.
+ *
+ * Funzione pura: nessuna dipendenza da framework o Prisma.
+ */
+export function calcolaMarginalitaClienti(
+  righe: RigaMarginalita[],
+): ReportMarginalita {
+  interface Accumulatore {
+    ore: number;
+    ricavi: number;
+    costi: number;
+  }
+  interface AccumulatoreOfferta extends Accumulatore {
+    tariffaOfferta: number;
+    offertaCodice: string;
+    offertaDescrizione: string;
+  }
+  interface AccumulatoreCliente {
+    clienteRagioneSociale: string;
+    offerte: Map<string, AccumulatoreOfferta>;
+  }
+
+  const clienti = new Map<string, AccumulatoreCliente>();
+
+  for (const riga of righe) {
+    if (!riga.fatturabile) {
+      continue;
+    }
+
+    let cliente = clienti.get(riga.clienteId);
+    if (!cliente) {
+      cliente = {
+        clienteRagioneSociale: riga.clienteRagioneSociale,
+        offerte: new Map(),
+      };
+      clienti.set(riga.clienteId, cliente);
+    }
+
+    let offerta = cliente.offerte.get(riga.offertaId);
+    if (!offerta) {
+      offerta = {
+        offertaCodice: riga.offertaCodice,
+        offertaDescrizione: riga.offertaDescrizione,
+        tariffaOfferta: tariffaNumerica(riga.tariffaOffertaGiornaliera),
+        ore: 0,
+        ricavi: 0,
+        costi: 0,
+      };
+      cliente.offerte.set(riga.offertaId, offerta);
+    }
+
+    offerta.ore += riga.ore;
+    offerta.costi +=
+      (riga.ore / ORE_PER_GIORNATA) *
+      tariffaNumerica(riga.tariffaCollaboratoreGiornaliera);
+  }
+
+  const totale: Accumulatore = { ore: 0, ricavi: 0, costi: 0 };
+  const perCliente: VoceClienteMarginalita[] = [];
+
+  for (const [clienteId, cliente] of clienti) {
+    const sommaCliente: Accumulatore = { ore: 0, ricavi: 0, costi: 0 };
+    const perOfferta: VoceOffertaMarginalita[] = [];
+
+    for (const [offertaId, offerta] of cliente.offerte) {
+      if (offerta.ore <= 0) {
+        continue;
+      }
+      // Stessa formula di calcolaReportFatturazioneClienti: ore totali / 8 × tariffa
+      offerta.ricavi = (offerta.ore / ORE_PER_GIORNATA) * offerta.tariffaOfferta;
+      sommaCliente.ore += offerta.ore;
+      sommaCliente.ricavi += offerta.ricavi;
+      sommaCliente.costi += offerta.costi;
+      perOfferta.push({
+        offertaId,
+        offertaCodice: offerta.offertaCodice,
+        offertaDescrizione: offerta.offertaDescrizione,
+        ...importiMarginalita(offerta.ore, offerta.ricavi, offerta.costi),
+      });
+    }
+
+    if (perOfferta.length === 0) {
+      continue;
+    }
+
+    perOfferta.sort((a, b) => a.offertaCodice.localeCompare(b.offertaCodice));
+    totale.ore += sommaCliente.ore;
+    totale.ricavi += sommaCliente.ricavi;
+    totale.costi += sommaCliente.costi;
+    perCliente.push({
+      clienteId,
+      clienteRagioneSociale: cliente.clienteRagioneSociale,
+      perOfferta,
+      ...importiMarginalita(
+        sommaCliente.ore,
+        sommaCliente.ricavi,
+        sommaCliente.costi,
+      ),
+    });
+  }
+
+  perCliente.sort((a, b) =>
+    a.clienteRagioneSociale.localeCompare(b.clienteRagioneSociale),
+  );
+
+  return {
+    perCliente,
+    totali: importiMarginalita(totale.ore, totale.ricavi, totale.costi),
+  };
+}
+
 // ── Avanzamento offerte ──────────────────────────────────────────
 
 /** Soglia di percentuale di utilizzo oltre la quale un'offerta è considerata in allerta */

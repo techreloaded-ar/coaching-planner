@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marginalità per cliente e offerta — Coaching Planner (US-017)</title>
+<link rel="stylesheet" href="shared.css">
+<script src="app.js"></script>
+</head>
+<body>
+
+<!-- ============ SIDEBAR (come console-sidebar.tsx, nuova voce "Marginalità") ============ -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">CP</div>
+    <div class="brand-name"><b>Coaching Planner</b><span>Console gestionale</span></div>
+  </div>
+
+  <nav class="side-nav" aria-label="Navigazione principale">
+    <a class="nav-item" href="#" title="Le mie attività">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 3v3M16 3v3M4 10h16M5 6h14a1 1 0 0 1 1 1v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a1 1 0 0 1 1-1Z"/><path d="m8 15 2.5 2.5L16 12"/></svg>
+      <span class="lbl">Le mie attività</span>
+    </a>
+
+    <span class="nav-label">Gestione</span>
+    <a class="nav-item" href="#" title="Clienti">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 21V8.5L9 4l6 4.5V21"/><path d="M15 21h6V11l-6-3"/><path d="M7.5 21v-4.5h3V21"/><path d="M7 9.5h.01M11 9.5h.01M7 13h.01M11 13h.01"/></svg>
+      <span class="lbl">Clienti</span>
+    </a>
+    <a class="nav-item" href="#" title="Offerte">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+      <span class="lbl">Offerte</span>
+    </a>
+    <a class="nav-item" href="#" title="Collaboratori">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.4"/><path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0"/><circle cx="17.2" cy="9.4" r="2.6"/><path d="M15.4 14.6a5 5 0 0 1 5.8 4.8"/></svg>
+      <span class="lbl">Collaboratori</span>
+    </a>
+    <a class="nav-item" href="#" title="Utenti">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/><path d="M18 5.5V9M16.3 7.2h3.4"/></svg>
+      <span class="lbl">Utenti</span>
+    </a>
+    <a class="nav-item" href="#" title="Voci di rimborso">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+      <span class="lbl">Voci di rimborso</span>
+    </a>
+    <a class="nav-item" href="../US-015/index.html" title="Fatturazione clienti">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7.5 15.5v-4M12 15.5V7.5M16.5 15.5v-6"/></svg>
+      <span class="lbl">Fatturazione clienti</span>
+    </a>
+    <a class="nav-item active" href="index.html" aria-current="page" title="Marginalità">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/><path d="M3 21h18"/></svg>
+      <span class="lbl">Marginalità</span>
+      <span class="nav-new">Nuovo</span>
+    </a>
+  </nav>
+
+  <div class="side-foot">
+    <div class="side-user">
+      <div class="avatar">SM</div>
+      <div class="meta"><b>Stefano Marello</b><span>Amministratore</span></div>
+    </div>
+    <a class="btn btn-ghost btn-sm" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+      <span class="lbl">Esci</span>
+    </a>
+  </div>
+</aside>
+
+<div class="main">
+  <!-- ============ HEADER SOTTILE (come layout back office) ============ -->
+  <header class="topbar">
+    <div class="who"><b>Stefano Marello</b><span>Amministratore</span></div>
+    <div class="avatar">SM</div>
+    <div class="divider"></div>
+    <div class="tema">
+      <button class="icon-btn" id="pulsanteTema" type="button" aria-label="Tema" aria-haspopup="true" aria-expanded="false">
+        <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+        <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+      </button>
+      <div class="tema-menu" id="menuTema" role="group" aria-label="Scegli il tema" hidden>
+        <button type="button" data-tema="chiaro">Chiaro</button>
+        <button type="button" data-tema="scuro">Scuro</button>
+        <button type="button" data-tema="browser">Browser</button>
+      </div>
+    </div>
+    <a class="btn btn-ghost btn-sm" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+      Esci
+    </a>
+  </header>
+
+  <!-- ============ CONTENUTO — /report/marginalita ============ -->
+  <main class="content">
+    <div class="view-head">
+      <div class="eyebrow">Reportistica</div>
+      <h1>Marginalità per cliente e offerta</h1>
+      <p class="desc">Confronto, per il periodo selezionato, tra i ricavi verso i clienti (tariffe offerta per giornate) e i costi dei collaboratori (tariffe collaboratore per giornate). Ricavi e costi considerano le sole ore fatturabili; i rimborsi trasferta sono esclusi.</p>
+    </div>
+
+    <!-- Selettore periodo: form GET con input month nativi -->
+    <div class="period-bar">
+      <form class="period-form" id="formPeriodo" method="get" action="index.html">
+        <div class="field">
+          <label for="dal">Dal mese</label>
+          <input type="month" id="dal" name="dal" value="2026-01" required>
+        </div>
+        <span class="period-sep" aria-hidden="true">→</span>
+        <div class="field">
+          <label for="al">Al mese</label>
+          <input type="month" id="al" name="al" value="2026-03" required>
+        </div>
+        <button class="btn btn-primary" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+          Applica
+        </button>
+      </form>
+      <div class="spacer"></div>
+      <div class="period-label" id="etichettaPeriodo" aria-live="polite">Periodo: <b>gennaio 2026 – marzo 2026</b></div>
+    </div>
+
+    <!-- Schede per cliente + totali del periodo (oppure stato vuoto), generati da app.js -->
+    <div id="reportMount"></div>
+
+    <div class="mockup-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+      <span><b>Nota mockup US-017</b> — route <code>/report/marginalita?dal=2026-01&amp;al=2026-03</code>, solo amministratore. Ricavi = giornate fatturabili × tariffa offerta (coerenti con l'imponibile del report <a href="../US-015/index.html">Fatturazione clienti</a> sugli stessi mesi, al netto dei rimborsi); costi = giornate fatturabili × tariffa del collaboratore. Dati demo da dicembre 2025 ad aprile 2026: prova ad allargare il periodo, oppure apri lo <a href="stato-vuoto.html">stato vuoto</a>.</span>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

@@ -11,8 +11,11 @@ import type {
 } from "@/generated/prisma/client";
 import {
   calcolaReportFatturazioneClienti,
+  calcolaMarginalitaClienti,
   type RigaReportFatturazione,
   type ReportFatturazioneClienti,
+  type RigaMarginalita,
+  type ReportMarginalita,
 } from "@/domain/consuntivi";
 
 // ── Tipi ────────────────────────────────────────────────────────
@@ -24,6 +27,14 @@ import {
 export interface RisultatoReportFatturazione extends ReportFatturazioneClienti {
   /** Token YYYY-MM del mese di riferimento */
   token: string;
+}
+
+/** Report di marginalità per un periodo di mesi interi, serializzabile. */
+export interface RisultatoReportMarginalita extends ReportMarginalita {
+  /** Primo mese del periodo (token YYYY-MM) */
+  da: string;
+  /** Ultimo mese del periodo (token YYYY-MM), incluso */
+  a: string;
 }
 
 /** Riga attività arricchita con offerta e cliente */
@@ -107,4 +118,56 @@ export async function reportFatturazioneClientiMese(
   const report = calcolaReportFatturazioneClienti(righeMappate);
 
   return { token, ...report };
+}
+
+/**
+ * Calcola la marginalità (ricavi, costi, margine) per cliente e per offerta su
+ * un periodo di mesi interi, aggregando le righe fatturabili di TUTTI i
+ * collaboratori.
+ *
+ * Accesso riservato all'amministratore. I ricavi usano la tariffa
+ * dell'OFFERTA, i costi la tariffa del COLLABORATORE autore della riga.
+ * Se un token non è valido restituisce un report vuoto senza errori.
+ *
+ * @param da - Primo mese del periodo (YYYY-MM)
+ * @param a - Ultimo mese del periodo (YYYY-MM), incluso
+ */
+export async function reportMarginalitaPeriodo(
+  da: string,
+  a: string,
+): Promise<RisultatoReportMarginalita> {
+  await richiediRuoloApi("AMMINISTRATORE");
+
+  const parsedDa = parseTokenMese(da);
+  const parsedA = parseTokenMese(a);
+  if (!parsedDa || !parsedA) {
+    return { da, a, ...calcolaMarginalitaClienti([]) };
+  }
+
+  const inizio = new Date(parsedDa.anno, parsedDa.mese - 1, 1);
+  const fine = new Date(parsedA.anno, parsedA.mese, 0);
+
+  const righeDb = await db.rigaAttivita.findMany({
+    where: { fatturabile: true, data: { gte: inizio, lte: fine } },
+    include: {
+      offerta: true,
+      cliente: true,
+      collaboratore: { select: { tariffaGiornaliera: true } },
+    },
+  });
+
+  const righe: RigaMarginalita[] = righeDb.map((riga) => ({
+    clienteId: riga.clienteId,
+    clienteRagioneSociale: riga.cliente.ragioneSociale,
+    offertaId: riga.offertaId,
+    offertaCodice: riga.offerta.codice,
+    offertaDescrizione: riga.offerta.descrizione,
+    tariffaOffertaGiornaliera: riga.offerta.tariffaGiornaliera.toString(),
+    tariffaCollaboratoreGiornaliera:
+      riga.collaboratore.tariffaGiornaliera.toString(),
+    ore: Number(riga.ore),
+    fatturabile: riga.fatturabile,
+  }));
+
+  return { da, a, ...calcolaMarginalitaClienti(righe) };
 }

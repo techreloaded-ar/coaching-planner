@@ -271,3 +271,20 @@ export function giornoSpostatoDi(dataStr: string, delta: number): string {
     giorno: spostata.getDate(),
   });
 }
+
+/**
+ * Normalizza un intervallo di mesi (token YYYY-MM) letto da query string:
+ * i valori mancanti o non validi diventano `tokenCorrente`, e se `da` è
+ * successivo ad `a` i due estremi vengono scambiati.
+ */
+export function normalizzaPeriodoMesi(
+  daRaw: string | undefined,
+  aRaw: string | undefined,
+  tokenCorrente: string,
+): { da: string; a: string } {
+  const valido = (token: string | undefined): string =>
+    token !== undefined && parseTokenMese(token) ? token : tokenCorrente;
+  const da = valido(daRaw);
+  const a = valido(aRaw);
+  return da <= a ? { da, a } : { da: a, a: da };
+}
