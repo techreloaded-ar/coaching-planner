@@ -1,32 +1,42 @@
 schema: archetipo/spec/v2
 code: US-019
-title: Promemoria automatici di compilazione per i collaboratori
+title: Promemoria email di fine mese per compilazione e fattura
 epic:
   code: EP-005
   title: Evoluzioni Post-MVP
 priority: LOW
-points: 3
-status: TODO
+points: 5
+status: DONE
 scope: Growth
 body: |-
-  #### US-019: Promemoria automatici di compilazione per i collaboratori
+  #### US-019: Promemoria email di fine mese per compilazione e fattura
 
-  **Epic:** EP-005 | **Priorità:** LOW | **Punti:** 3 | **Stato:** TODO
+  **Epic:** EP-005 | **Priorità:** LOW | **Punti:** 5 | **Stato:** TODO
   **Bloccata da:** -
 
   **Storia Utente**
   Come Giulia, collaboratrice,
-  voglio ricevere un promemoria quando ho giorni lavorativi senza attività registrate,
-  così da compilare in tempo ed evitare i solleciti dell'amministrazione a fine mese.
+  voglio ricevere a fine mese una email personale che mi ricordi di completare la compilazione del coaching planner e di emettere la fattura,
+  così da chiudere il mese in tempo ed evitare i solleciti dell'amministrazione.
 
   **Dimostrazione**
-  Dopo l'implementazione di questa spec, una collaboratrice con giorni recenti privi di registrazioni riceve un promemoria che la invita a completare la compilazione, mentre chi è in regola non riceve nulla.
+  Dopo l'implementazione di questa spec, l'amministratore apre il report di fatturazione mensile, preme "Invia promemoria di fine mese" e vede quante email sono partite; ogni collaboratore attivo trova nella propria casella una email personale che gli ricorda di completare il coaching planner del mese e di emettere la fattura. Lo stesso invio parte da solo l'ultimo giorno lavorativo del mese.
 
   **Criteri di Accettazione**
-  - [ ] Il sistema individua i giorni lavorativi recenti senza alcuna riga registrata per ciascun collaboratore attivo
-  - [ ] Il collaboratore riceve un promemoria con l'indicazione dei giorni mancanti
-  - [ ] I collaboratori senza giorni mancanti non ricevono promemoria
-  - [ ] La frequenza dei promemoria è configurabile dall'amministratore o disattivabile
+  - [ ] L'ultimo giorno lavorativo (lunedì–venerdì) di ogni mese ciascun collaboratore attivo riceve automaticamente una email personale, inviata al proprio indirizzo
+  - [ ] L'email ricorda di completare la compilazione del coaching planner per il mese in corso e di emettere la fattura, e contiene il link all'applicazione
+  - [ ] L'invio non dipende dalle attività registrate: la ricevono tutti i collaboratori attivi, anche chi ha già compilato tutto il mese
+  - [ ] I collaboratori disattivati non ricevono l'email
+  - [ ] L'invio automatico raggiunge ogni collaboratore al massimo una volta per mese, anche se viene ripetuto
+  - [ ] Dalla pagina del report di fatturazione mensile l'amministratore può inviare subito il promemoria a tutti i collaboratori attivi e vede quante email sono state inviate e quante non sono riuscite
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-10-27T13:47:02Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T14:22:46Z"
+  - status: REVIEW
+    at: "2026-10-27T14:33:02Z"
+  - status: DONE
+    at: "2026-10-27T15:27:46Z"

@@ -1,0 +1,582 @@
+schema: archetipo/plan/v2
+spec_code: US-019
+body: |-
+  # US-019: Promemoria email di fine mese per compilazione e fattura — Piano di implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-10-27. Seconda revisione: invio via SMTP SiteGround, ultimo giorno lavorativo, pulsante manuale nel report di fatturazione.
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** LOW | **Punti:** 5
+
+  **Storia Utente**
+  Come Giulia, collaboratrice, voglio ricevere a fine mese una email personale che mi ricordi di completare la compilazione del coaching planner e di emettere la fattura, così da chiudere il mese in tempo ed evitare i solleciti dell'amministrazione.
+
+  **Criteri di Accettazione**
+  - AC-1 — L'ultimo giorno lavorativo (lunedì–venerdì) di ogni mese ciascun collaboratore attivo riceve automaticamente una email personale, inviata al proprio indirizzo
+  - AC-2 — L'email ricorda di completare la compilazione del coaching planner per il mese in corso e di emettere la fattura, e contiene il link all'applicazione
+  - AC-3 — L'invio non dipende dalle attività registrate: la ricevono tutti i collaboratori attivi, anche chi ha già compilato tutto il mese
+  - AC-4 — I collaboratori disattivati non ricevono l'email
+  - AC-5 — L'invio automatico raggiunge ogni collaboratore al massimo una volta per mese, anche se viene ripetuto
+  - AC-6 — Dalla pagina del report di fatturazione mensile l'amministratore può inviare subito il promemoria a tutti i collaboratori attivi e vede quante email sono state inviate e quante non sono riuscite
+
+  ---
+
+  ## Decisioni e assunzioni
+
+  - **Ultimo giorno lavorativo** = l'ultimo lunedì–venerdì del mese, nel fuso `Europe/Rome` (`FUSO_GIORNATA`). Non c'è un calendario delle festività: se quel giorno è festivo (per esempio un Lunedì dell'Angelo il 30 o il 31 marzo), l'email parte comunque.
+  - **Orario:** Vercel Cron alle 07:00 UTC, cioè le 08:00 o le 09:00 a Roma secondo l'ora legale.
+  - **SMTP del dominio su SiteGround** tramite `nodemailer`, l'unica nuova dipendenza: SMTP con TLS e autenticazione non si scrive a mano in poche righe. Parametri SiteGround tipici: host `mail.<dominio>` (o l'hostname del server indicato in Site Tools → Email → Accounts → Mail Configuration), porta `465` con SSL/TLS, username uguale all'indirizzo email completo.
+  - **Variabili d'ambiente**, documentate in `.env.example`:
+    - `SMTP_HOST`, `SMTP_PORT` (`secure` è dedotto: `true` se la porta è `465`), `SMTP_USER`, `SMTP_PASSWORD`;
+    - `EMAIL_MITTENTE` (es. `Coaching Planner <noreply@dominio.it>`, un indirizzo autorizzato dall'account SMTP);
+    - `CRON_SECRET`;
+    - `EMAIL_DESTINATARIO_DI_PROVA`, facoltativa: se è impostata, **tutte** le email vanno a questo indirizzo invece che ai collaboratori, e l'oggetto riporta il destinatario originale. Va usata in locale e in staging, dove il seed contiene indirizzi reali `@agilereloaded.it`. Non va impostata in produzione.
+  - **Destinatari:** `Collaboratore.attivo = true` e `Utente.attivo = true`, la stessa definizione del DAL (`risolviProfiloCollaboratoreCorrente`). Indirizzo: `Utente.email`.
+  - **Email solo testo** in italiano: nome, mese (es. "ottobre 2026") e link `NEXT_PUBLIC_APP_URL` + `/attivita`.
+  - **Invio manuale:** invia subito a tutti i collaboratori attivi, per il mese corrente. Non controlla la data e non legge né scrive il registro degli invii automatici. Così si può ripetere quante volte si vuole per le prove, e non impedisce l'invio automatico di fine mese. La regola "al massimo una volta" (AC-5) vale solo per il cron.
+  - **Fuori scope:** controllo dei giorni mancanti, banner in-app, frequenza configurabile, email HTML.
+
+  ---
+
+  ## Soluzione tecnica
+
+  - **Schema (migration dedicata):**
+    - `model PromemoriaFineMeseInviato { collaboratoreId String; mese String /* YYYY-MM */; inviatoIl DateTime @default(now()); collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id], onDelete: Cascade); @@id([collaboratoreId, mese]) }`;
+    - back-relation `promemoriaFineMeseInviati` su `Collaboratore`;
+    - seed invariato.
+  - **Dominio puro** (`src/domain/promemoria-fine-mese/index.ts`):
+    - `ultimoGiornoLavorativoDelMese(mese: string): string` parte da `giornoSpostatoDi(\`${meseSuccessivo(mese)}-01\`, -1)` e torna indietro finché il giorno cade di sabato o domenica (`getUTCDay()` su `T00:00:00Z`);
+    - `eUltimoGiornoLavorativoDelMese(giorno: string): boolean` restituisce `false` se la data non è valida, altrimenti verifica `giorno === ultimoGiornoLavorativoDelMese(giorno.slice(0, 7))`;
+    - `contenutoEmailPromemoriaFineMese({ nome, mese, urlApplicazione }): { oggetto; testo }` usa `etichettaMese` in minuscolo.
+  - **Giorno civile:** `src/domain/calendario-google/index.ts` esporta `giornoCivile(istante: Date): string`, che riusa il `formattatoreGiorno` privato già presente.
+  - **Invio email** (`src/lib/email.ts`, `server-only`): `inviaEmail({ destinatario, oggetto, testo }): Promise<boolean>`.
+    - `E2E_TEST_MODE=true` ⇒ `true` senza rete (come `src/lib/gemini.ts`);
+    - variabili SMTP o `EMAIL_MITTENTE` mancanti ⇒ `console.error("SMTP non configurato")` e `false`;
+    - altrimenti `nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })` e `sendMail({ from, to, subject, text })`, con `to`/`subject` riscritti se `EMAIL_DESTINATARIO_DI_PROVA` è impostata;
+    - errori ⇒ log del solo `errore.name`/`code` (mai le credenziali) e `false`.
+  - **Orchestrazione** (`src/lib/promemoria-fine-mese.ts`, `server-only`): `inviaPromemoriaFineMese({ modalita: "AUTOMATICA" | "MANUALE", adesso?: Date }): Promise<EsitoPromemoriaFineMese>`, con esito `{ inviati, giaInviati, falliti }`.
+    1. Calcola `oggi = giornoCivile(adesso)` e `mese = oggi.slice(0, 7)`. In modalità `AUTOMATICA`, se `!eUltimoGiornoLavorativoDelMese(oggi)` restituisce un esito a zero senza query.
+    2. Legge `db.collaboratore.findMany({ where: { attivo: true, utente: { attivo: true } }, select: { id, nome, utente: { select: { email } } } })`. Nessuna lettura di `RigaAttivita`.
+    3. Per ogni collaboratore, in modalità `AUTOMATICA`:
+       - prenota con `db.promemoriaFineMeseInviato.create`;
+       - se la prenotazione dà `P2002`, incrementa `giaInviati` e passa al successivo;
+       - se `inviaEmail` fallisce, esegue `delete` della prenotazione, così una nuova invocazione ritenta.
+       In modalità `MANUALE` si chiama solo `inviaEmail`.
+    4. `ponytail:` invii sequenziali con una connessione SMTP per email. Se i collaboratori superano il centinaio, passare a `pool: true` e riusare il transport.
+  - **Route cron** `src/app/api/cron/promemoria-fine-mese/route.ts`, `GET`:
+    - `CRON_SECRET` vuoto o `Authorization !== \`Bearer ${CRON_SECRET}\`` ⇒ `401` senza invii;
+    - altrimenti `inviaPromemoriaFineMese({ modalita: "AUTOMATICA" })` ⇒ `200` con l'esito JSON;
+    - `dynamic = "force-dynamic"`, da verificare nella guida dei route handler della versione di Next in uso.
+  - **Proxy:** `src/proxy.ts` classifica `/api/cron/*` come pubblico, come `/api/e2e-test`. La route si autorizza da sé.
+  - **Pianificazione:** nuovo `vercel.json` con `{ "crons": [{ "path": "/api/cron/promemoria-fine-mese", "schedule": "0 7 26-31 * *" }] }`.
+    - Il 26 è il primo giorno utile: per esempio a febbraio 2027 il 28 è domenica e l'ultimo giorno lavorativo è venerdì 26.
+    - Il filtro sul giorno della settimana non va messo nel cron: con giorno del mese e giorno della settimana entrambi valorizzati, cron li combina in OR. Decide il dominio.
+  - **Pulsante manuale:**
+    - Server Action `inviaPromemoriaFineMeseOra()` in `src/app/(back-office)/report/fatturazione-clienti/actions.ts`, con `richiediRuoloApi("AMMINISTRATORE")`, poi `inviaPromemoriaFineMese({ modalita: "MANUALE" })` e `redirect("/report/fatturazione-clienti?promemoriaInviati=N&promemoriaFalliti=M")`;
+    - nella pagina, nell'intestazione già impostata con `justify-between`, un `<form action={inviaPromemoriaFineMeseOra}>` con `PulsanteAttesa` "Invia promemoria di fine mese" e una riga che avverte "Invia subito l'email a tutti i collaboratori attivi";
+    - un banner di esito "Promemoria inviati: N. Non riusciti: M." con `role="status"` (ambra se M > 0), che legge i parametri con `Number.parseInt` e ignora i valori non numerici.
+  - **Vercel Cron** gira solo sui deploy di produzione: in staging e in locale si usa il pulsante.
+
+  ### Decisioni architetturali
+
+  Il piano introduce un'integrazione esterna (SMTP), un job pianificato (Vercel Cron) e una nuova dipendenza (`nodemailer`), quindi supera la soglia ADR. Le alternative valutate:
+  - un provider HTTP (Resend): è stato scartato perché il dominio e la casella sono già su SiteGround;
+  - GitHub Actions schedulato: secret duplicati e accesso al DB di produzione dalla CI;
+  - un cron con "ultimo giorno": Vercel non supporta `L`.
+
+  **Wiki:** `wiki.enabled: false`, quindi il piano non prevede pagine né task Wiki. Se la Wiki viene riabilitata, si crea l'ADR `decisions/promemoria-email-fine-mese` e si aggiorna `operations/deploy-vercel-siteground` con le variabili SMTP e il cron.
+
+  ### Rischi noti
+
+  - In locale e in staging il DB contiene indirizzi reali: senza `EMAIL_DESTINATARIO_DI_PROVA` il pulsante scrive ai collaboratori veri. Va detto chiaramente in `.env.example`.
+  - SiteGround può limitare il numero di email per ora per account. Con poche decine di collaboratori non è un problema.
+  - Sul piano Hobby di Vercel l'orario del cron è approssimato all'ora.
+  - Se `NEXT_PUBLIC_APP_URL` manca, il link punta a `http://localhost:3000`, lo stesso fallback delle altre route.
+
+  ---
+
+  ## Baseline
+
+  | Check | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm test` | Passa: 56 file, 838 test | Ogni task richiede `npm test` verde |
+  | `npm run lint` | Exit 0 con 9 warning noti "chiave riservata non risolvibile staticamente" | Stessi 9 warning, nessuno nuovo |
+  | `npx tsc --noEmit` | Exit 0 | Exit 0 dopo ogni task TypeScript |
+
+  Analisi statica dell'impatto sulla CI (`.github/workflows/ci.yml`):
+  - `npm ci` richiede `package.json` e `package-lock.json` aggiornati insieme (TASK-04);
+  - `prisma migrate deploy` richiede la migration del TASK-01;
+  - seed invariato;
+  - lint: il nuovo e2e deve rispettare il guardrail;
+  - build: le variabili SMTP sono lette solo a runtime, quindi la CI non richiede nuovi secret;
+  - e2e: in CI `E2E_TEST_MODE=true`, quindi l'invio è simulato.
+
+  ---
+
+  ## Mappa delle evidenze di accettazione
+
+  | Criterio | Fixture | Livello | Oracolo osservabile | Task |
+  |---|---|---|---|---|
+  | AC-1 | `ultimoGiornoLavorativoDelMese` su `2026-10` (31 è sabato), `2026-11`, `2027-02` (28 è domenica), `2026-05` (31 è domenica), `2026-12` | Unit dominio | `2026-10-30`, `2026-11-30`, `2027-02-26`, `2026-05-29`, `2026-12-31` | TASK-03 |
+  | AC-1 | `AUTOMATICA` con `adesso` `2026-10-30T07:00:00Z` (due collaboratori) e `2026-10-31T07:00:00Z` | Unit orchestrazione | Il 30: un `inviaEmail` per collaboratore, ognuno alla propria `email`. Il 31: nessuna query e nessun invio | TASK-05 |
+  | AC-1 | Richiesta senza header, con secret errato, con `CRON_SECRET` vuoto, con secret corretto; proxy senza cookie | Unit route + proxy | `401` senza invii nei primi tre casi, `200` nell'ultimo; nessun redirect del proxy | TASK-07 |
+  | AC-2 | `nome = "Giulia"`, `mese = "2026-10"`, `urlApplicazione = "https://cp.example"` | Unit dominio | Il testo contiene "Giulia", "ottobre 2026", "coaching planner", "fattura" e `https://cp.example/attivita` | TASK-03 |
+  | AC-2 | `nodemailer` mockato | Unit email | `createTransport` con host, porta e `secure` dedotto. `sendMail` con `from` = `EMAIL_MITTENTE`, `to` = destinatario, `subject`/`text`. Con `EMAIL_DESTINATARIO_DI_PROVA`: `to` riscritto e oggetto con il destinatario originale | TASK-05 |
+  | AC-3 | db mockato senza `rigaAttivita` | Unit orchestrazione | Invio a tutti i collaboratori restituiti | TASK-05 |
+  | AC-4 | db mockato | Unit orchestrazione | `findMany` con `where: { attivo: true, utente: { attivo: true } }` | TASK-05 |
+  | AC-5 | `create` che lancia `P2002`; `inviaEmail` che restituisce `false` | Unit orchestrazione | Doppione saltato (`giaInviati: 1`); prenotazione cancellata (`falliti: 1`) | TASK-05 |
+  | AC-6 | Action con `richiediRuoloApi` che lancia oppure risolve | Unit action | Senza ruolo nessun invio. Con ruolo: modalità `MANUALE`, nessuna `create` e `redirect` con i conteggi | TASK-09 |
+  | AC-6 | Admin su `/report/fatturazione-clienti` con `E2E_TEST_MODE` | E2E | Il click su "Invia promemoria di fine mese" porta all'URL con `promemoriaInviati` e alla regione di stato con testo `/^Promemoria inviati: \d+\. Non riusciti: 0\.$/` | TASK-09 |
+
+  ---
+
+  ## Strategia di test
+
+  - Le funzioni pure si testano con date fisse.
+  - Email, orchestrazione, route e action si testano con `db`, `nodemailer` ed `@/lib/email` mockati, sul pattern di `tests/unit/voci-rimborso-dal-actions.test.ts` e `tests/unit/gemini.test.ts`. Il dominio non si mocka.
+  - L'e2e copre il pulsante sul percorso reale.
+
+  ### Test E2E — Simulazione utente
+
+  **Framework:** Playwright, con `tests/e2e/support/fixtures.ts`.
+  **Video demo:** atteso, per il pulsante dell'amministratore (lo registra `archetipo-review`).
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Invio manuale | L'admin apre il report di fatturazione, preme "Invia promemoria di fine mese" e vede l'esito con il numero di email inviate e zero non riuscite |
+
+  Il conteggio non si confronta con un numero fisso, perché i worker paralleli creano collaboratori. L'invio manuale non scrive sul DB, quindi il test non altera uno stato globale. Con `E2E_TEST_MODE` nessuna email parte davvero.
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: [domains/collaboratori, decisions/calcoli-puri, operations/deploy-vercel-siteground]
+    update: []
+    create: []
+  ```
+
+  _Piano generato con ARchetipo Planning — 2026-10-27_
+tasks:
+  - id: TASK-01
+    title: Schema e migration della tabella PromemoriaFineMeseInviato
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Il database registra gli invii automatici con chiave (collaboratore, mese).
+
+      ## Read
+      - prisma/schema.prisma — model `Collaboratore`, sezioni `// ── … ──`
+      - prisma/migrations/20261023132700_calendario_google_collaboratore/migration.sql
+
+      ## Change
+      - prisma/schema.prisma:
+        - sezione `// ── Promemoria di fine mese ──` con `model PromemoriaFineMeseInviato` (vedi "Soluzione tecnica") e il commento "Un invio automatico per collaboratore e mese: la chiave impedisce doppioni se il cron viene ripetuto.";
+        - back-relation `promemoriaFineMeseInviati` su `Collaboratore`.
+      - prisma/migrations/<timestamp>_promemoria_fine_mese/migration.sql — generata da Prisma.
+      - Non toccare: `prisma/seed.ts`.
+
+      ## Steps
+      1. Modificare lo schema.
+      2. Eseguire `npx prisma migrate dev --name promemoria_fine_mese`.
+      3. Verificare che l'SQL contenga solo la nuova tabella, con la PK composta e la FK `ON DELETE CASCADE`.
+      4. Eseguire `npm run db:generate`.
+
+      ## Verify
+      - Run: `npx prisma validate && npx tsc --noEmit && npm test`
+      - Expect: verde come in baseline.
+
+      ## Done
+      - [ ] AC-5 — PK composta (collaboratoreId, mese) a livello DB
+      - [ ] La migration contiene solo la nuova tabella
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Funzioni pure — ultimo giorno lavorativo, giorno civile e contenuto dell'email
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il dominio sa qual è l'ultimo giorno lavorativo del mese e compone oggetto e testo dell'email.
+
+      ## Read
+      - src/domain/calendario/index.ts — `giornoSpostatoDi`, `meseSuccessivo`, `parseDataGiorno`, `etichettaMese`
+      - src/domain/calendario-google/index.ts — `FUSO_GIORNATA`, `formattatoreGiorno`
+      - docs/wiki/decisions/calcoli-puri.md
+
+      ## Change
+      - src/domain/calendario-google/index.ts — aggiungere `export function giornoCivile(istante: Date): string` (`formattatoreGiorno.format(istante)`).
+      - src/domain/promemoria-fine-mese/index.ts — nuovo file con `ultimoGiornoLavorativoDelMese`, `eUltimoGiornoLavorativoDelMese` e `contenutoEmailPromemoriaFineMese` (vedi "Soluzione tecnica").
+
+      ## Steps
+      1. Scrivere `ultimoGiornoLavorativoDelMese`: un ciclo che arretra al massimo 2 giorni rispetto all'ultimo giorno del mese.
+      2. Scrivere `contenutoEmailPromemoriaFineMese`:
+         - oggetto `Promemoria di fine mese: coaching planner e fattura di ${etichetta}`;
+         - testo su più righe: "Ciao {nome},", l'invito a completare la compilazione del coaching planner di {etichetta} e a emettere la fattura del mese, il link `${url senza slash finale}/attivita`, la firma "Coaching Planner".
+
+      ## Verify
+      - Run: `npx tsc --noEmit && npx eslint src/domain/promemoria-fine-mese src/domain/calendario-google`
+      - Expect: exit 0, nessun warning.
+
+      ## Done
+      - [ ] AC-1 — l'ultimo giorno lavorativo salta sabato e domenica
+      - [ ] AC-2 — il contenuto cita coaching planner, fattura, mese e link
+      - [ ] Il modulo non importa Prisma, Next né `server-only`
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Unit test delle funzioni pure
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Test Vitest con date fisse delle funzioni del TASK-02.
+
+      ## Read
+      - tests/unit/calendario.test.ts — stile
+
+      ## Change
+      - tests/unit/promemoria-fine-mese.test.ts — nuovo file, senza mock.
+
+      ## Steps
+      1. `ultimoGiornoLavorativoDelMese`: `2026-10` ⇒ `2026-10-30`; `2026-11` ⇒ `2026-11-30`; `2027-02` ⇒ `2027-02-26`; `2026-05` ⇒ `2026-05-29`; `2026-12` ⇒ `2026-12-31`.
+      2. `eUltimoGiornoLavorativoDelMese`: true per `2026-10-30`; false per `2026-10-31`, `2026-10-29` e `2026-02-30` (data non valida).
+      3. `giornoCivile`:
+         - `2026-10-30T23:30:00Z` ⇒ `2026-10-31` (UTC+1);
+         - `2026-07-30T22:30:00Z` ⇒ `2026-07-31` (UTC+2);
+         - `2026-10-30T07:00:00Z` ⇒ `2026-10-30`.
+      4. Contenuto con `nome "Giulia"`, `mese "2026-10"` e `url "https://cp.example"`:
+         - l'oggetto contiene "ottobre 2026";
+         - il testo contiene "Giulia", "coaching planner", "fattura", "ottobre 2026" e `https://cp.example/attivita`;
+         - con `url "https://cp.example/"` il link resta lo stesso.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/promemoria-fine-mese.test.ts && npm test`
+      - Expect: verde; 57 file.
+
+      ## Done
+      - [ ] AC-1 — evidenza sull'ultimo giorno lavorativo nel fuso di Roma
+      - [ ] AC-2 — evidenza sul contenuto
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Dipendenza nodemailer, client SMTP e orchestrazione dell'invio
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Il server invia le email con l'SMTP del dominio e sa mandare il promemoria a tutti i collaboratori attivi, in modalità automatica (con data e registro) o manuale.
+
+      ## Read
+      - src/lib/gemini.ts — `E2E_TEST_MODE`, logging senza segreti, variabili d'ambiente
+      - src/lib/calendario-google.ts — fallback di `NEXT_PUBLIC_APP_URL`
+      - src/lib/dal.ts — definizione di collaboratore attivo
+      - documentazione di nodemailer per `createTransport` e `sendMail` (`node_modules/nodemailer/README.md` dopo l'installazione)
+
+      ## Change
+      - package.json e package-lock.json — `npm install nodemailer` e `npm install -D @types/nodemailer`. Nessun'altra dipendenza.
+      - src/lib/email.ts — nuovo file `server-only` con `inviaEmail` (vedi "Soluzione tecnica").
+      - src/lib/promemoria-fine-mese.ts — nuovo file `server-only` con `EsitoPromemoriaFineMese` e `inviaPromemoriaFineMese({ modalita, adesso })`.
+
+      ## Steps
+      1. In `inviaEmail`, leggere `SMTP_PORT` con `Number`: un valore non numerico conta come configurazione assente.
+      2. Con `EMAIL_DESTINATARIO_DI_PROVA` impostata: `to` diventa quell'indirizzo e `subject` diventa `[prova per ${destinatario}] ${oggetto}`.
+      3. Riconoscere il doppione con `errore instanceof Prisma.PrismaClientKnownRequestError && errore.code === "P2002"`, importando `Prisma` da `@/generated/prisma` come gli altri moduli. Gli altri errori si rilanciano.
+      4. Mettere il commento `ponytail:` sopra il ciclo degli invii.
+
+      ## Verify
+      - Run: `npm ci && npx tsc --noEmit && npx eslint src/lib/email.ts src/lib/promemoria-fine-mese.ts`
+      - Expect: exit 0, nessun warning; lockfile coerente.
+
+      ## Done
+      - [ ] AC-1 — modalità automatica solo nell'ultimo giorno lavorativo, un'email per collaboratore attivo all'indirizzo di `Utente.email`
+      - [ ] AC-3 — nessuna lettura di `RigaAttivita`
+      - [ ] AC-4 — filtro su `Collaboratore.attivo` e `Utente.attivo`
+      - [ ] AC-5 — prenotazione, doppione saltato, prenotazione rimossa se l'invio fallisce (solo modalità automatica)
+      - [ ] Nessuna credenziale SMTP nei log
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Unit test di client SMTP e orchestrazione
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      Test Vitest dei contratti di `inviaEmail` e `inviaPromemoriaFineMese`.
+
+      ## Read
+      - tests/unit/gemini.test.ts — mock delle variabili d'ambiente
+      - tests/unit/voci-rimborso-dal-actions.test.ts — `vi.hoisted` + `vi.mock("@/lib/db")`
+
+      ## Change
+      - tests/unit/promemoria-fine-mese-invio.test.ts — nuovo file. Mockare:
+        - `nodemailer` (`createTransport` restituisce `{ sendMail }`);
+        - `@/lib/db` (`collaboratore.findMany`, `promemoriaFineMeseInviato.create/delete`);
+        - `@/lib/email`, solo nel blocco dell'orchestrazione.
+
+      ## Steps
+      1. `inviaEmail` con le variabili SMTP impostate e porta `465`:
+         - `createTransport` con `secure: true` e `auth`;
+         - `sendMail` con `from`, `to`, `subject` e `text`;
+         - risultato `true`.
+         Con porta `587` ⇒ `secure: false`.
+      2. `inviaEmail` negli altri casi:
+         - senza `SMTP_HOST` ⇒ `false`, `createTransport` non chiamato;
+         - `sendMail` che lancia ⇒ `false`, e il log non contiene la password;
+         - `E2E_TEST_MODE=true` ⇒ `true` senza `createTransport`;
+         - con `EMAIL_DESTINATARIO_DI_PROVA=prova@x.it`: `to: "prova@x.it"` e oggetto che contiene il destinatario originale.
+      3. `AUTOMATICA` con `adesso` `2026-10-31T07:00:00Z` (sabato) ⇒ esito a zero, `findMany` non chiamato.
+      4. `AUTOMATICA` con `adesso` `2026-10-30T07:00:00Z` e 2 collaboratori:
+         - `findMany` con il filtro sugli attivi;
+         - `create` con `mese: "2026-10"`;
+         - due `inviaEmail` alle rispettive email;
+         - esito `{ inviati: 2, giaInviati: 0, falliti: 0 }`.
+      5. `P2002` sul primo ⇒ `{ inviati: 1, giaInviati: 1 }`. `inviaEmail` false ⇒ `delete` con la chiave composta e `falliti: 1`. Un errore diverso da `P2002` ⇒ la funzione rilancia.
+      6. `MANUALE` con `adesso` `2026-10-15T07:00:00Z` ⇒ invio a entrambi, `create`/`delete` mai chiamati.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/promemoria-fine-mese-invio.test.ts && npm test`
+      - Expect: verde; 58 file.
+
+      ## Done
+      - [ ] AC-1, AC-3, AC-4 — passi 3, 4 e 6
+      - [ ] AC-2 — passo 1
+      - [ ] AC-5 — passo 5
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Route cron protetta, eccezione nel proxy, vercel.json e variabili d'ambiente
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      Vercel invoca ogni giorno dal 26 al 31 una route che solo il cron autorizzato può eseguire. Le variabili d'ambiente sono documentate.
+
+      ## Read
+      - node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md
+      - src/proxy.ts — `classificaRichiesta`, caso `e2e-public`
+      - src/app/api/attivita/calendario/route.ts — JSDoc degli esiti
+      - .env.example
+
+      ## Change
+      - src/app/api/cron/promemoria-fine-mese/route.ts — nuovo `GET` (vedi "Soluzione tecnica").
+      - src/proxy.ts — nuovo tipo `"cron-public"` per `/api/cron/`, con il commento "Job pianificati: la route verifica da sé CRON_SECRET."
+      - vercel.json — nuovo file, solo `crons`.
+      - .env.example — nuova sezione `# ── Promemoria email di fine mese (US-019) ──` con:
+        - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, con le istruzioni SiteGround: Site Tools → Email → Accounts → Mail Configuration; porta 465 SSL/TLS; username = indirizzo completo;
+        - `EMAIL_MITTENTE`;
+        - `CRON_SECRET` (`openssl rand -base64 32`), da impostare anche su Vercel, che lo invia nell'header;
+        - `EMAIL_DESTINATARIO_DI_PROVA`, con l'avviso esplicito: "in locale e staging il DB contiene indirizzi reali: impostala; in produzione lasciala vuota".
+      - Non toccare: `.env`, `src/lib/policy-rotte.ts`.
+
+      ## Steps
+      1. Rifiutare con `401` anche quando `CRON_SECRET` è vuoto, per evitare che `Bearer ` passi il controllo.
+      2. Verificare che `/api/cron/...` senza cookie non venga reindirizzato.
+
+      ## Verify
+      - Run: `npx tsc --noEmit && npx eslint src/app/api/cron src/proxy.ts && npm run build`
+      - Expect: exit 0; la route compare nell'output di build.
+
+      ## Done
+      - [ ] AC-1 — cron pianificato dal 26 al 31; la route invia solo se autorizzata
+      - [ ] Variabili d'ambiente documentate, con gli avvisi per locale e staging
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Unit test di route cron e proxy
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+      Prova del confine di fiducia della route e del passaggio nel proxy.
+
+      ## Read
+      - tests/unit/attivita-calendario-route.test.ts
+      - tests/unit/proxy.test.ts — `creaRequest`, casi `e2e-test`
+
+      ## Change
+      - tests/unit/promemoria-fine-mese-route.test.ts — nuovo file, con `@/lib/promemoria-fine-mese` mockato.
+      - tests/unit/proxy.test.ts — un caso aggiunto.
+
+      ## Steps
+      1. Con `CRON_SECRET="s3cr3t"`:
+         - senza header ⇒ `401`;
+         - `Bearer altro` ⇒ `401`;
+         - `Bearer s3cr3t` ⇒ `200`, con l'esito del mock e `modalita: "AUTOMATICA"`.
+      2. Con `CRON_SECRET` vuoto e header `Bearer ` ⇒ `401`. Nei casi `401` non c'è nessuna chiamata.
+      3. Proxy: `/api/cron/promemoria-fine-mese` senza cookie ⇒ nessun redirect.
+
+      ## Verify
+      - Run: `npm test`
+      - Expect: verde; 59 file.
+
+      ## Done
+      - [ ] AC-1 — invio automatico solo con il secret corretto
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Pulsante "Invia promemoria di fine mese" nel report di fatturazione
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      L'amministratore invia subito il promemoria dalla pagina `/report/fatturazione-clienti` e vede quante email sono partite.
+
+      ## Read
+      - src/app/(back-office)/report/fatturazione-clienti/page.tsx — intestazione con `justify-between`
+      - src/app/(back-office)/anagrafiche/voci-rimborso/actions.ts e page.tsx — `richiediRuoloApi`, `redirect` con esito, markup del banner
+      - src/components/index.ts — `PulsanteAttesa`
+      - node_modules/next/dist/docs/01-app/01-getting-started/07-mutating-data.md
+
+      ## Change
+      - src/app/(back-office)/report/fatturazione-clienti/actions.ts — nuovo file `"use server"` con `inviaPromemoriaFineMeseOra()`.
+      - src/app/(back-office)/report/fatturazione-clienti/page.tsx:
+        - `searchParams` esteso con `promemoriaInviati?` e `promemoriaFalliti?`;
+        - form con il pulsante nell'intestazione;
+        - banner di esito sopra il report.
+      - Non toccare: `report-fatturazione-clienti.tsx` e le route `dati` ed `esporta`.
+
+      ## Steps
+      1. Action:
+         1. `await richiediRuoloApi("AMMINISTRATORE")`;
+         2. `const esito = await inviaPromemoriaFineMese({ modalita: "MANUALE" })`;
+         3. `redirect(\`/report/fatturazione-clienti?promemoriaInviati=${esito.inviati}&promemoriaFalliti=${esito.falliti}\`)`.
+      2. Pagina:
+         - un blocco a destra del titolo con `<form action={inviaPromemoriaFineMeseOra}>`, `<PulsanteAttesa etichettaAttesa="Invio…">Invia promemoria di fine mese</PulsanteAttesa>` e una riga piccola "Invia subito l'email a tutti i collaboratori attivi";
+         - se i due parametri sono interi validi, un `<div role="status">` con "Promemoria inviati: N. Non riusciti: M.", verde se M = 0 e ambra altrimenti, con lo stile del banner di voci-rimborso.
+
+      ## Verify
+      - Run: `npx tsc --noEmit && npx eslint "src/app/(back-office)/report/fatturazione-clienti" && npm run build`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-6 — pulsante riservato all'amministratore, invio immediato e conteggi visibili
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: Unit test dell'action ed e2e del pulsante
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-08
+    body: |-
+      ## Objective
+      Prova che solo l'amministratore invia e che l'esito arriva in pagina sul percorso reale.
+
+      ## Read
+      - tests/unit/voci-rimborso-dal-actions.test.ts
+      - tests/e2e/README.md, tests/e2e/support/fixtures.ts, tests/e2e/support/auth.ts (`accediComeAdmin`)
+      - tests/e2e/report-fatturazione-clienti.spec.ts — stile
+
+      ## Change
+      - tests/unit/promemoria-fine-mese-route.test.ts — aggiungere un `describe` per l'action, con `@/lib/dal`, `next/navigation` e `@/lib/promemoria-fine-mese` mockati.
+      - tests/e2e/promemoria-fine-mese.spec.ts — nuovo file con un test.
+
+      ## Steps
+      1. Unit:
+         - `richiediRuoloApi` che lancia ⇒ errore propagato e `inviaPromemoriaFineMese` non chiamato;
+         - con il ruolo ⇒ chiamato con `modalita: "MANUALE"` e `redirect` a `?promemoriaInviati=3&promemoriaFalliti=1` per l'esito mockato.
+      2. E2E:
+         1. `accediComeAdmin(page)`;
+         2. `page.goto("/report/fatturazione-clienti")`;
+         3. click su `getByRole("button", { name: "Invia promemoria di fine mese", exact: true })`;
+         4. `await page.waitForURL(/promemoriaInviati=\d+/)`;
+         5. `expect(page.getByRole("status").filter({ hasText: "Promemoria inviati" })).toHaveText(/^Promemoria inviati: \d+\. Non riusciti: 0\.$/)`.
+         Nessun dato da creare: l'invio manuale non scrive sul DB e in e2e è simulato.
+
+      ## Verify
+      - Run: `npm test`
+      - Expect: verde; 59 file (il describe si aggiunge a un file esistente).
+      - Run: `npx playwright test tests/e2e/promemoria-fine-mese.spec.ts --retries=0 --repeat-each=3`, con un `E2E_DATABASE_URL` dedicato esportato nella shell
+      - Expect: 3 passati.
+      - Run: `npm run lint`
+      - Expect: exit 0, guardrail e2e passato.
+
+      ## Done
+      - [ ] AC-6 — evidenza unit (guardia e modalità) ed e2e (esito visibile)
+
+      ## Blockers
+      L'e2e locale richiede un `E2E_DATABASE_URL` diverso da `DATABASE_URL`. In CI è già così.
+    ref: TASK-09
+  - id: TASK-10
+    title: Gate finale — unit, lint, type-check, build ed e2e completa
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+      - TASK-09
+    body: |-
+      ## Objective
+      Tutte le evidenze sono verdi e la CI non regredisce.
+
+      ## Read
+      - .github/workflows/ci.yml
+      - Sezioni "Baseline" e "Mappa delle evidenze"
+
+      ## Change
+      - Nessuna. Se un check fallisce, correggere nel task di competenza.
+
+      ## Steps
+      1. `npm ci` e `npx prisma migrate deploy`.
+      2. `npm test && npm run lint && npx tsc --noEmit && npm run build`.
+      3. Con un `E2E_DATABASE_URL` dedicato esportato nella shell, senza modificare `.env`: `npx playwright test --retries=0`.
+      4. Segnare il task `DONE`, verificare con `archetipo spec show US-019` che nessun task resti `TODO`, poi eseguire `archetipo spec review`.
+
+      ## Verify
+      - Run: `npm test && npm run lint && npx tsc --noEmit && npm run build`
+      - Expect: tutti exit 0; 59 file unit; nessun warning oltre ai 9 della baseline.
+      - Run: `npx playwright test --retries=0`
+      - Expect: suite completa verde.
+
+      ## Done
+      - [ ] AC-1…AC-6 — evidenze verdi (TASK-03, 05, 07, 09)
+      - [ ] `npm ci` passa con il lockfile aggiornato
+
+      ## Blockers
+      L'e2e locale richiede un `E2E_DATABASE_URL` dedicato.
+    ref: TASK-10

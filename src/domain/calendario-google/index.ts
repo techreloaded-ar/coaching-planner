@@ -56,6 +56,11 @@ const formattatoreOrario = new Intl.DateTimeFormat("it-IT", {
 
 // ── Funzioni ────────────────────────────────────────────────────
 
+/** Giorno civile `YYYY-MM-DD` dell'istante nel fuso della giornata. */
+export function giornoCivile(istante: Date): string {
+  return formattatoreGiorno.format(istante);
+}
+
 /**
  * Finestra UTC da chiedere alla Calendar API per una giornata `YYYY-MM-DD`.
  *

@@ -16,6 +16,7 @@ type TipoRichiesta =
   | "login-tombstone"
   | "auth-public"
   | "e2e-public"
+  | "cron-public"
   | "protected";
 
 interface ClassificazioneRichiesta {
@@ -77,6 +78,11 @@ function classificaRichiesta(pathname: string): ClassificazioneRichiesta {
     pathname.startsWith("/e2e-test/")
   ) {
     return { tipo: "e2e-public" };
+  }
+
+  // Job pianificati: la route verifica da sé CRON_SECRET.
+  if (pathname.startsWith("/api/cron/")) {
+    return { tipo: "cron-public" };
   }
 
   return { tipo: "protected" };

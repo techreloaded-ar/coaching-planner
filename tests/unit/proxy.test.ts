@@ -50,6 +50,12 @@ describe("proxy", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  it("lascia passare senza cookie i job pianificati, che si autorizzano da sé", async () => {
+    const response = await proxy(creaRequest("/api/cron/promemoria-fine-mese"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
   it("reindirizza una rotta protetta senza cookie verso la radice", async () => {
     const response = await proxy(creaRequest("/anagrafiche"));
 

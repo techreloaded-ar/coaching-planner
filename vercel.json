@@ -1,0 +1,3 @@
+{
+  "crons": [{ "path": "/api/cron/promemoria-fine-mese", "schedule": "0 7 26-31 * *" }]
+}

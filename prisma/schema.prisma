@@ -90,6 +90,7 @@ model Collaboratore {
   abilitazioniOfferte AbilitazioneOfferta[]
   collegamentoCalendarioGoogle CollegamentoCalendarioGoogle?
   eventiCalendarioGestiti      EventoCalendarioGestito[]
+  promemoriaFineMeseInviati    PromemoriaFineMeseInviato[]
 }
 
 // ── Clienti ─────────────────────────────────────────────────────
@@ -207,4 +208,17 @@ model EventoCalendarioGestito {
   collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
 
   @@unique([collaboratoreId, eventoCalendarioId])
+}
+
+// ── Promemoria di fine mese ──────────────────────────────────────
+
+// Un invio automatico per collaboratore e mese: la chiave impedisce doppioni se il cron viene ripetuto.
+model PromemoriaFineMeseInviato {
+  collaboratoreId String
+  mese            String // YYYY-MM
+  inviatoIl       DateTime @default(now())
+
+  collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id], onDelete: Cascade)
+
+  @@id([collaboratoreId, mese])
 }
