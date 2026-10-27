@@ -46,7 +46,11 @@ export default async function AttivitaPage({
 
   return (
     <>
-      <CollegamentoCalendario collegato={collegato} esito={params.calendario} />
+      <CollegamentoCalendario
+        collegato={collegato}
+        esito={params.calendario}
+        emailAccesso={sessione.email}
+      />
       <CalendarioMensile
         datiMeseIniziale={datiMese}
         oggi={new Date().toISOString()}

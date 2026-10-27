@@ -57,7 +57,10 @@ beforeEach(() => {
   mockSessione.mockResolvedValue({ utenteId: "u-1", email: "collab@test.local" });
   mockProfilo.mockResolvedValue({ stato: "ATTIVO", collaboratore: COLLABORATORE });
   mockCollaboratoreCorrente.mockResolvedValue(COLLABORATORE);
-  mockScambia.mockResolvedValue("refresh-token-google");
+  mockScambia.mockResolvedValue({
+    refreshToken: "refresh-token-google",
+    emailAutorizzata: "collab@test.local",
+  });
 });
 
 describe("GET /api/calendario-google/collega (US-001)", () => {
@@ -115,6 +118,30 @@ describe("GET /api/calendario-google/callback (US-001)", () => {
 
     expect(esito(await callback(richiestaCallback("code=codice&state=state-ok")))).toBe("negato");
     expect(mockCollegamento.upsert).not.toHaveBeenCalled();
+  });
+
+  it("collega se l'account autorizzato differisce solo per maiuscole (US-003 AC-2/AC-4)", async () => {
+    mockScambia.mockResolvedValue({
+      refreshToken: "refresh-token-google",
+      emailAutorizzata: "Collab@Test.Local",
+    });
+
+    expect(esito(await callback(richiestaCallback("code=codice&state=state-ok")))).toBe("collegato");
+    expect(mockCollegamento.upsert).toHaveBeenCalledOnce();
+  });
+
+  it("con un account Google diverso non salva nulla e torna con l'esito dedicato (US-003 AC-3)", async () => {
+    mockScambia.mockResolvedValue({
+      refreshToken: "refresh-token-personale",
+      emailAutorizzata: "personale@gmail.com",
+    });
+
+    const response = await callback(richiestaCallback("code=codice&state=state-ok"));
+
+    expect(esito(response)).toBe("account-diverso");
+    expect(response.headers.get("location")).not.toContain("personale");
+    expect(mockCollegamento.upsert).not.toHaveBeenCalled();
+    expect(response.cookies.get("calendario_oauth_state")?.value).toBe("");
   });
 
   it("non collega il calendario a un profilo non operativo (AC-6)", async () => {

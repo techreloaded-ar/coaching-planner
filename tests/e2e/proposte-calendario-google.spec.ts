@@ -119,6 +119,32 @@ test.describe("US-001 Collegamento del Google Calendar", () => {
 	});
 });
 
+test.describe("Verifica dell'account Google al collegamento", () => {
+	test("un account Google diverso da quello di accesso non viene collegato", async ({
+		page,
+		factory,
+	}) => {
+		const collaboratore = await factory.createCollaboratore();
+		await accediComeCollaboratore(page, collaboratore.utente.email);
+
+		// Il consenso simulato riporta nel codice l'account autorizzato: lo si
+		// sostituisce con un account diverso prima di tornare al callback.
+		const avvio = await page.request.get("/api/calendario-google/collega", {
+			maxRedirects: 0,
+		});
+		expect(avvio.status()).toBe(307);
+		const ritorno = new URL(avvio.headers()["location"]);
+		ritorno.searchParams.set("code", "e2e-consenso:altro-account@esempio.test");
+		await page.goto(`${ritorno.pathname}${ritorno.search}`);
+
+		await page.waitForURL("**/attivita?calendario=account-diverso");
+		await expect(
+			page.getByRole("alert").filter({ hasText: "account Google diverso" }),
+		).toContainText(collaboratore.utente.email);
+		await expect(page.getByText("Calendario Google non collegato")).toBeVisible();
+	});
+});
+
 test.describe("US-002/US-003 Proposte dagli impegni del calendario", () => {
 	test("propone solo gli impegni validi del giorno, associati a cliente e offerta quando riconosciuti", async ({
 		page,

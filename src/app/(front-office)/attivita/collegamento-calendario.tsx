@@ -5,6 +5,8 @@ interface CollegamentoCalendarioProps {
   collegato: boolean;
   /** Esito del ritorno dal consenso Google (`?calendario=`) */
   esito?: string;
+  /** Email con cui il collaboratore accede: è l'account Google da autorizzare */
+  emailAccesso: string;
 }
 
 /**
@@ -15,6 +17,7 @@ interface CollegamentoCalendarioProps {
 export default function CollegamentoCalendario({
   collegato,
   esito,
+  emailAccesso,
 }: CollegamentoCalendarioProps) {
   return (
     <section
@@ -28,6 +31,16 @@ export default function CollegamentoCalendario({
         >
           Collegamento non completato: il consenso a Google Calendar è stato
           negato o non è più valido. Puoi riprovare quando vuoi.
+        </p>
+      )}
+      {esito === "account-diverso" && (
+        <p
+          role="alert"
+          className="mb-3 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+        >
+          Collegamento non completato: hai autorizzato un account Google
+          diverso da quello con cui accedi. Riprova scegliendo l&apos;account{" "}
+          <strong>{emailAccesso}</strong>.
         </p>
       )}
       <div className="flex flex-wrap items-center gap-3 rounded-[11px] border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900">

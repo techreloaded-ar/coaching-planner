@@ -1,12 +1,6 @@
 import { richiediRuolo } from "@/lib/dal";
 import { reportFatturazioneClientiMese } from "@/lib/report";
-import {
-  tokenMeseCorrente,
-  parseTokenMese,
-  etichettaMese,
-  mesePrecedente,
-  meseSuccessivo,
-} from "@/domain/calendario";
+import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
 import ReportFatturazioneClienti from "./report-fatturazione-clienti";
 
 export default async function ReportFatturazioneClientiPage({
@@ -22,11 +16,6 @@ export default async function ReportFatturazioneClientiPage({
   const tokenRaw = params.mese ?? tokenMeseCorrente();
   const parsed = parseTokenMese(tokenRaw);
   const token = parsed ? tokenRaw : tokenMeseCorrente();
-
-  // Navigazione
-  const tokenPrecedente = mesePrecedente(token);
-  const tokenSuccessivo = meseSuccessivo(token);
-  const etichetta = etichettaMese(token);
 
   // Dati del report — serializzati per il passaggio al Client Component
   const risultato = await reportFatturazioneClientiMese(token);
@@ -50,13 +39,9 @@ export default async function ReportFatturazioneClientiPage({
         </div>
       </div>
 
-      <ReportFatturazioneClienti
-        token={token}
-        tokenPrecedente={tokenPrecedente}
-        tokenSuccessivo={tokenSuccessivo}
-        etichetta={etichetta}
-        report={report}
-      />
+      {/* Il mese iniziale arriva dal server; i cambi mese successivi sono
+          serviti dalla cache client del componente. */}
+      <ReportFatturazioneClienti report={report} />
     </div>
   );
 }

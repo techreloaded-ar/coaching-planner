@@ -52,7 +52,7 @@ sources:
       role: inbound-ui
     - path: src/app/(front-office)/attivita/calendario-mensile.tsx
       role: inbound-ui
-    - path: src/app/(front-office)/attivita/selettore-mese.tsx
+    - path: src/components/selettore-mese.tsx
       role: inbound-ui
     - path: src/domain/consuntivi/index.ts
       role: domain-calculation
