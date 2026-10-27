@@ -73,6 +73,9 @@ interface SezioneProposteCalendarioProps {
  * Sezione «Proposte dal calendario»: ogni impegno del giorno si può
  * confermare (se associato a cliente e offerta), modificare nel form riga o
  * rifiutare. L'inserimento manuale resta disponibile accanto.
+ *
+ * Le proposte stanno in un pannello chiuso che ne mostra solo il numero;
+ * lettura in corso, errore e assenza di proposte restano sempre visibili.
  */
 export function SezioneProposteCalendario({
   data,
@@ -83,6 +86,7 @@ export function SezioneProposteCalendario({
   onModifica,
 }: SezioneProposteCalendarioProps) {
   const [inAttesaId, setInAttesaId] = useState<string | null>(null);
+  const [aperto, setAperto] = useState(false);
   const [errori, setErrori] = useState<Record<string, string>>({});
 
   const impostaErrore = useCallback((eventoId: string, errore: string | null) => {
@@ -148,6 +152,8 @@ export function SezioneProposteCalendario({
 
   if (stato === "NON_COLLEGATO") return null;
 
+  const conProposte = stato === "COLLEGATO" && proposte.length > 0;
+
   return (
     <section
       aria-labelledby="titolo-proposte-calendario"
@@ -158,7 +164,26 @@ export function SezioneProposteCalendario({
         id="titolo-proposte-calendario"
         className="mb-3 text-[11px] font-bold uppercase tracking-[0.07em] text-zinc-400 dark:text-zinc-500"
       >
-        Proposte dal calendario
+        {conProposte ? (
+          // Pattern accordion: il pulsante nel titolo apre e chiude l'elenco.
+          <button
+            type="button"
+            aria-expanded={aperto}
+            aria-controls="elenco-proposte-calendario"
+            onClick={() => setAperto((corrente) => !corrente)}
+            className="inline-flex items-center gap-1.5 uppercase tracking-[0.07em] hover:text-indigo-600 dark:hover:text-indigo-400"
+          >
+            <span aria-hidden="true" className={`transition-transform ${aperto ? "rotate-90" : ""}`}>
+              ▸
+            </span>
+            Proposte dal calendario
+            <span className="rounded-full bg-indigo-100 px-2 py-0.5 normal-case tracking-normal text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+              · {proposte.length} da proporre
+            </span>
+          </button>
+        ) : (
+          "Proposte dal calendario"
+        )}
       </h2>
 
       {stato === "CARICAMENTO" && (
@@ -187,8 +212,8 @@ export function SezioneProposteCalendario({
         </p>
       )}
 
-      {stato === "COLLEGATO" && proposte.length > 0 && (
-        <ul className="space-y-2.5">
+      {conProposte && (
+        <ul id="elenco-proposte-calendario" hidden={!aperto} className="space-y-2.5">
           {proposte.map((proposta) => {
             const associata = proposta.cliente !== null && proposta.offerta !== null;
             const inAttesa = inAttesaId === proposta.eventoId;
@@ -213,6 +238,10 @@ export function SezioneProposteCalendario({
                           <span className="font-semibold">{proposta.cliente!.ragioneSociale}</span>
                           {" · "}
                           {proposta.offerta!.codice} — {proposta.offerta!.descrizione}
+                          {/* Cliente e offerta arrivano solo da Gemini a confidenza alta. */}
+                          <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10.5px] font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                            Suggerito dall&apos;AI
+                          </span>
                         </>
                       ) : (
                         <span className="italic text-amber-700 dark:text-amber-400">

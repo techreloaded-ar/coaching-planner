@@ -48,12 +48,33 @@ Apri [http://localhost:3000](http://localhost:3000) nel browser.
 | `E2E_DATABASE_URL` | Stringa di connessione PostgreSQL dedicata agli end-to-end (es. `postgresql://user:pass@localhost:5432/coaching_planner_e2e`) |
 | `AUTH_SECRET` | Segreto per Auth.js (genera con `openssl rand -base64 32`) |
 | `SESSION_SECRET` | Chiave obbligatoria per firmare la sessione applicativa; deve essere reale, non vuota, non placeholder e lunga almeno 32 caratteri |
-| `GEMINI_API_KEY` | API key di server di Google Gemini, usata per associare gli impegni del calendario Google a cliente e offerta; se assente le proposte di ore compaiono senza associazione |
-| `GEMINI_MODEL` | Modello Gemini opzionale (predefinito `gemini-flash-latest`) |
+| `GEMINI_API_KEY` | API key di server di Google Gemini, usata per suggerire cliente e offerta degli impegni del calendario Google ed escludere quelli non lavorativi; se assente le proposte di ore compaiono tutte, senza associazione (vedi «Diagnostica dei suggerimenti Gemini») |
+| `GEMINI_MODEL` | Modello Gemini opzionale (predefinito `gemini-flash-latest`); con i modelli «flash» il ragionamento è ridotto al minimo per restare nel timeout |
 
 Copia `.env.example` in `.env.local` e personalizza i valori. `.env.local` non viene mai committato.
 
 L'applicazione esegue un fail-fast all'avvio se `SESSION_SECRET` è assente, vuota, troppo corta o ancora impostata al placeholder di esempio.
+
+### Diagnostica dei suggerimenti Gemini
+
+Ogni lettura delle proposte dal calendario con almeno un impegno scrive nei log del server (su Vercel: *Logs*, filtro `Gemini:`) una sola riga come:
+
+```
+Gemini: esito=ok modello=gemini-flash-latest eventi=4 offerte=12 durataMs=812 associazioniAlta=1 associazioniBassa=2 nonLavorativi=1
+Gemini: esito=errore-http modello=gemini-flash-latest eventi=4 offerte=12 durataMs=230 stato=402 messaggio="Your prepayment credits are depleted."
+```
+
+La riga non contiene mai l'API key, titoli, descrizioni, email o domini degli eventi. Gli esiti:
+
+| Esito | Significato e verifica |
+|---|---|
+| `ok` | Gemini ha risposto: `associazioniAlta` sono le proposte precompilate, `associazioniBassa` quelle lasciate da scegliere, `nonLavorativi` gli impegni esclusi |
+| `chiave-assente` | `GEMINI_API_KEY` non arriva al deployment: controlla l'ambiente (Production/Preview) e rifai il deploy |
+| `nessuna-offerta-abilitata` | Il collaboratore non è abilitato su offerte attive: Gemini non viene chiamato |
+| `errore-http` | Gemini ha rifiutato la richiesta: `stato`, `statoGoogle` e `messaggio` indicano la causa (402 = credito prepagato esaurito in Google AI Studio → *Billing*; 400/403 = chiave o modello non validi; 429 = limiti di utilizzo) |
+| `errore-rete` | Gemini non raggiungibile (`tipoErrore` indica il tipo) |
+| `timeout` | Nessuna risposta entro 15 secondi |
+| `risposta-non-valida` | Gemini ha risposto con un contenuto diverso dal JSON atteso |
 
 ### Test end-to-end e database dedicato
 
