@@ -17,12 +17,9 @@
 #   probe-database  verifica schema Prisma e raggiungibilità del database
 #   unit | build | e2e  test unitari / build Next.js / suite Playwright con l'ambiente del checkout
 #   anteprima <porta>  next dev sulla porta indicata (strict), con Google
-#                   Calendar e Gemini simulati (E2E_TEST_MODE) e dati sintetici.
-#                   Il login Google NON è simulato: "Accedi con Google" porta al
-#                   vero Google e fallisce con le credenziali sintetiche. Per
-#                   entrare, dalla console del browser sulla pagina di accesso:
-#                   fetch('/api/e2e-test/sessione',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'giulia.conti@agilereloaded.it'})}).then(r=>r.json()).then(d=>location.href=d.redirect)
-#                   (info@techreloaded.it per la console amministrativa)
+#                   (login e Calendar) e Gemini simulati (E2E_TEST_MODE) e dati
+#                   sintetici. "Accedi con Google" apre la scelta locale
+#                   dell'utente; "Collega Google Calendar" la scelta dell'account.
 #   esegui <cmd>    esegue un comando arbitrario con l'ambiente del checkout
 #   pulizia         rimuove gli artefatti transitori dei check (test-results, playwright-report)
 set -eu
