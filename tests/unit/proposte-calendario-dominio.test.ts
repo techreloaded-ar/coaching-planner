@@ -59,8 +59,8 @@ describe("proposteDaEventi (US-002)", () => {
     );
 
     expect(proposte).toEqual([
-      { eventoId: "riunione", titolo: "Riunione", descrizione: "Agenda", inizio: "09:00", fine: "10:30", ore: 1.5 },
-      { eventoId: "workshop", titolo: "Workshop", descrizione: "", inizio: "14:00", fine: "17:00", ore: 3 },
+      { eventoId: "riunione", titolo: "Riunione", descrizione: "Agenda", inizio: "09:00", fine: "10:30", ore: 1.5, dominiPartecipanti: [] },
+      { eventoId: "workshop", titolo: "Workshop", descrizione: "", inizio: "14:00", fine: "17:00", ore: 3, dominiPartecipanti: [] },
     ]);
   });
 
@@ -123,6 +123,39 @@ describe("proposteDaEventi (US-002)", () => {
     );
 
     expect(proposte.map((p) => p.eventoId)).toEqual(["nuovo"]);
+  });
+
+  it("non propone mai gli eventi «Fuori sede» (US-002 incremento)", () => {
+    const proposte = proposteDaEventi(
+      [
+        evento({ id: "fuori-sede", eventType: "outOfOffice", summary: "Fuori sede" }),
+        evento({ id: "riunione", eventType: "default" }),
+      ],
+      GIORNO
+    );
+
+    expect(proposte.map((p) => p.eventoId)).toEqual(["riunione"]);
+  });
+
+  it("raccoglie i domini dei partecipanti senza duplicati né il dominio del collaboratore (US-001 incremento)", () => {
+    const [proposta] = proposteDaEventi(
+      [
+        evento({
+          id: "sync",
+          attendees: [
+            { email: "io@agilereloaded.it", self: true, responseStatus: "accepted" },
+            { email: "collega@agilereloaded.it", responseStatus: "accepted" },
+            { email: "mario@Pippo.com", responseStatus: "accepted" },
+            { email: "anna@pippo.com", responseStatus: "needsAction" },
+            { email: "luca@beta.it" },
+            { responseStatus: "accepted" },
+          ],
+        }),
+      ],
+      GIORNO
+    );
+
+    expect(proposta.dominiPartecipanti).toEqual(["pippo.com", "beta.it"]);
   });
 
   it("usa un titolo di ripiego per gli eventi senza titolo", () => {

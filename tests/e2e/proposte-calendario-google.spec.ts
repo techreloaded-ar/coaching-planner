@@ -14,8 +14,11 @@ import { test, expect } from "./support/fixtures";
  * Google Calendar e Gemini sono simulati dal server in E2E_TEST_MODE:
  * - `/api/e2e-test/calendario-google` collega al collaboratore un calendario
  *   con gli eventi forniti (formato Calendar API v3) o un calendario in errore;
- * - l'associazione evento → offerta abbina il codice offerta o la ragione
- *   sociale citati nel titolo, solo tra le offerte abilitate.
+ * - l'analisi di Gemini, solo tra le offerte abilitate, dà confidenza alta a
+ *   codice offerta o ragione sociale nel titolo e ai domini dei partecipanti
+ *   contenuti nella ragione sociale, bassa alla sola descrizione dell'offerta,
+ *   e marca non lavorativi i titoli con pranzo, palestra, medico, dentista o
+ *   personale.
  */
 
 const MESE = meseRiservato("INC-CALENDARIO-GOOGLE");
@@ -23,9 +26,10 @@ const MESE = meseRiservato("INC-CALENDARIO-GOOGLE");
 type EventoSimulato = {
 	id: string;
 	summary: string;
+	eventType?: string;
 	start: { dateTime?: string; date?: string };
 	end: { dateTime?: string; date?: string };
-	attendees?: { self: boolean; responseStatus: string }[];
+	attendees?: { email?: string; self?: boolean; responseStatus?: string }[];
 };
 
 /** Evento di `durataMinuti` che inizia alle `oraUtc` del giorno indicato. */
@@ -59,6 +63,19 @@ async function collegaCalendarioSimulato(
 
 function proposta(page: Page, titolo: string) {
 	return page.getByTestId("proposta-calendario").filter({ hasText: titolo });
+}
+
+function pulsantePannelloProposte(page: Page) {
+	return page.getByRole("button", { name: /^Proposte dal calendario/ });
+}
+
+/** Apre il pannello delle proposte, chiuso all'apertura della giornata. */
+async function apriProposte(page: Page, numeroAtteso: number): Promise<void> {
+	const pulsante = pulsantePannelloProposte(page);
+	await expect(pulsante).toHaveAccessibleName(`Proposte dal calendario · ${numeroAtteso} da proporre`);
+	await expect(pulsante).toHaveAttribute("aria-expanded", "false");
+	await pulsante.click();
+	await expect(pulsante).toHaveAttribute("aria-expanded", "true");
 }
 
 test.describe("US-001 Collegamento del Google Calendar", () => {
@@ -180,6 +197,11 @@ test.describe("US-002/US-003 Proposte dagli impegni del calendario", () => {
 					...eventoDelGiorno(data, "ev-rifiutato", "Evento rifiutato", "09:00", 60),
 					attendees: [{ self: true, responseStatus: "declined" }],
 				},
+				{
+					...eventoDelGiorno(data, "ev-fuori-sede", "Fuori sede", "10:00", 120),
+					eventType: "outOfOffice",
+				},
+				eventoDelGiorno(data, "ev-pranzo", "Pranzo con la famiglia", "11:00", 60),
 			],
 		});
 
@@ -187,9 +209,13 @@ test.describe("US-002/US-003 Proposte dagli impegni del calendario", () => {
 		await page.goto(`/attivita/${data}?mese=${MESE}`);
 
 		await expect(page.getByRole("heading", { name: "Proposte dal calendario" })).toBeVisible();
+		await apriProposte(page, 3);
 		await expect(page.getByTestId("proposta-calendario")).toHaveCount(3);
 		await expect(page.getByText("Ferie")).toHaveCount(0);
 		await expect(page.getByText("Evento rifiutato")).toHaveCount(0);
+		// «Fuori sede» e impegni palesemente non lavorativi non sono proposti.
+		await expect(proposta(page, "Fuori sede")).toHaveCount(0);
+		await expect(proposta(page, "Pranzo")).toHaveCount(0);
 
 		const riunione = proposta(page, "Riunione");
 		await expect(riunione).toContainText("1,5 h");
@@ -262,12 +288,13 @@ test.describe("US-004 Conferma, modifica o rifiuto delle proposte", () => {
 			eventi: [
 				eventoDelGiorno(data, "ev-kickoff", `Kickoff ${codice}`, "07:00", 60),
 				eventoDelGiorno(data, "ev-workshop", `Workshop ${codice}`, "09:00", 180),
-				eventoDelGiorno(data, "ev-pranzo", "Pausa pranzo", "11:00", 60),
+				eventoDelGiorno(data, "ev-allineamento", "Allineamento interno", "11:00", 60),
 			],
 		});
 
 		await accediComeCollaboratore(page, collaboratore.utente.email);
 		await page.goto(`/attivita/${data}?mese=${MESE}`);
+		await apriProposte(page, 3);
 		await expect(page.getByTestId("proposta-calendario")).toHaveCount(3);
 		const righe = page.getByTestId("activity-row");
 
@@ -292,8 +319,8 @@ test.describe("US-004 Conferma, modifica o rifiuto delle proposte", () => {
 		await expect(proposta(page, "Workshop")).toHaveCount(0);
 
 		// Rifiuta: nessuna riga creata.
-		await proposta(page, "Pausa pranzo").getByRole("button", { name: "Rifiuta" }).click();
-		await expect(proposta(page, "Pausa pranzo")).toHaveCount(0);
+		await proposta(page, "Allineamento interno").getByRole("button", { name: "Rifiuta" }).click();
+		await expect(proposta(page, "Allineamento interno")).toHaveCount(0);
 		await expect(page.getByText("Nessun impegno da proporre per questa giornata.")).toBeVisible();
 
 		// L'inserimento manuale resta disponibile accanto alle proposte.
@@ -313,5 +340,87 @@ test.describe("US-004 Conferma, modifica o rifiuto delle proposte", () => {
 		await expect(page.getByTestId("proposta-calendario")).toHaveCount(0);
 		// Ore totali e ore fatturabili: tutte le righe sono fatturabili.
 		await expect(page.getByText("4.5 h", { exact: true })).toHaveCount(2);
+	});
+});
+
+test.describe("Incremento: suggerimenti a confidenza alta e pannello chiuso", () => {
+	test("suggerisce cliente e offerta dai domini dei partecipanti solo a confidenza alta", async ({
+		page,
+		factory,
+	}) => {
+		const data = dataNelMese(MESE, 18);
+		const collaboratore = await factory.createCollaboratore();
+		const pippo = await factory.createClienteConOfferta();
+		await factory.createAbilitazioneOfferta({ collaboratore, offerta: pippo.offerta });
+		// Dominio ricavato dalla ragione sociale, come «pippo.com» per «Pippo».
+		const dominioCliente = `${pippo.cliente.ragioneSociale.toLowerCase().replace(/[^a-z0-9]/g, "")}.example`;
+
+		await collegaCalendarioSimulato(page, collaboratore.utente.email, {
+			eventi: [
+				{
+					...eventoDelGiorno(data, "ev-sync", "Sync settimanale", "07:00", 60),
+					attendees: [
+						{ email: collaboratore.utente.email, self: true, responseStatus: "accepted" },
+						{ email: `referente@${dominioCliente}`, responseStatus: "accepted" },
+					],
+				},
+				// Cita solo la descrizione dell'offerta: confidenza bassa.
+				eventoDelGiorno(data, "ev-ambiguo", `Lavoro su ${pippo.offerta.descrizione}`, "09:00", 60),
+			],
+		});
+
+		await accediComeCollaboratore(page, collaboratore.utente.email);
+		await page.goto(`/attivita/${data}?mese=${MESE}`);
+		await apriProposte(page, 2);
+
+		const sync = proposta(page, "Sync settimanale");
+		await expect(sync).toContainText(pippo.cliente.ragioneSociale);
+		await expect(sync).toContainText(labelOffertaTest(pippo));
+		await expect(sync).toContainText("Suggerito dall'AI");
+		await expect(sync.getByRole("button", { name: "Conferma" })).toBeVisible();
+
+		const ambiguo = proposta(page, "Lavoro su");
+		await expect(ambiguo).toContainText("Cliente e offerta da scegliere");
+		await expect(ambiguo).not.toContainText("Suggerito dall'AI");
+		await expect(ambiguo.getByRole("button", { name: "Conferma" })).toHaveCount(0);
+		await expect(ambiguo.getByRole("button", { name: "Modifica" })).toBeVisible();
+		await expect(ambiguo.getByRole("button", { name: "Rifiuta" })).toBeVisible();
+	});
+
+	test("il pannello parte chiuso, si apre da tastiera e il numero scende con le proposte gestite", async ({
+		page,
+		factory,
+	}) => {
+		const data = dataNelMese(MESE, 19);
+		const collaboratore = await factory.createCollaboratore();
+		await collegaCalendarioSimulato(page, collaboratore.utente.email, {
+			eventi: [
+				eventoDelGiorno(data, "ev-uno", "Riunione uno", "07:00", 60),
+				eventoDelGiorno(data, "ev-due", "Riunione due", "09:00", 60),
+				eventoDelGiorno(data, "ev-tre", "Riunione tre", "11:00", 60),
+			],
+		});
+
+		await accediComeCollaboratore(page, collaboratore.utente.email);
+		await page.goto(`/attivita/${data}?mese=${MESE}`);
+
+		const pulsante = pulsantePannelloProposte(page);
+		await expect(pulsante).toHaveAccessibleName("Proposte dal calendario · 3 da proporre");
+		await expect(pulsante).toHaveAttribute("aria-expanded", "false");
+		await expect(page.getByTestId("proposta-calendario").first()).toBeHidden();
+
+		await pulsante.focus();
+		await page.keyboard.press("Enter");
+		await expect(pulsante).toHaveAttribute("aria-expanded", "true");
+		await expect(page.getByTestId("proposta-calendario")).toHaveCount(3);
+		await expect(proposta(page, "Riunione uno")).toBeVisible();
+
+		await proposta(page, "Riunione uno").getByRole("button", { name: "Rifiuta" }).click();
+		await expect(pulsante).toHaveAccessibleName("Proposte dal calendario · 2 da proporre");
+
+		await pulsante.focus();
+		await page.keyboard.press("Space");
+		await expect(pulsante).toHaveAttribute("aria-expanded", "false");
+		await expect(proposta(page, "Riunione due")).toBeHidden();
 	});
 });

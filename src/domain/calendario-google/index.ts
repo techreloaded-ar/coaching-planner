@@ -8,11 +8,13 @@
 export interface EventoGoogle {
   id: string;
   status?: string;
+  /** `default`, `outOfOffice`, `focusTime`, `workingLocation`, … */
+  eventType?: string;
   summary?: string;
   description?: string;
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
-  attendees?: { self?: boolean; responseStatus?: string }[];
+  attendees?: { email?: string; self?: boolean; responseStatus?: string }[];
 }
 
 /** Impegno del giorno proposto come riga attività, prima dell'associazione. */
@@ -25,6 +27,8 @@ export interface PropostaEvento {
   /** Orario di fine `HH:MM` nel fuso della giornata */
   fine: string;
   ore: number;
+  /** Domini email degli altri partecipanti, senza duplicati (mai gli indirizzi) */
+  dominiPartecipanti: string[];
 }
 
 // ── Costanti ────────────────────────────────────────────────────
@@ -82,8 +86,8 @@ export function oreDaDurata(inizio: Date, fine: Date): number {
 /**
  * Proposte di una giornata a partire dagli eventi del calendario.
  *
- * Escluse: eventi annullati, di intera giornata, rifiutati dal collaboratore,
- * di durata (arrotondata) nulla, che iniziano in un altro giorno civile del
+ * Escluse: eventi annullati, «Fuori sede», di intera giornata, rifiutati dal
+ * collaboratore, di durata (arrotondata) nulla, che iniziano in un altro giorno civile del
  * fuso della giornata e quelli già gestiti (confermati o rifiutati).
  */
 export function proposteDaEventi(
@@ -96,6 +100,7 @@ export function proposteDaEventi(
   for (const evento of eventi) {
     if (!evento.id || eventiGestiti.has(evento.id)) continue;
     if (evento.status === "cancelled") continue;
+    if (evento.eventType === "outOfOffice") continue;
     if (!evento.start?.dateTime || !evento.end?.dateTime) continue;
     if (
       evento.attendees?.some(
@@ -120,10 +125,30 @@ export function proposteDaEventi(
       inizio: formattatoreOrario.format(inizio),
       fine: formattatoreOrario.format(fine),
       ore,
+      dominiPartecipanti: dominiPartecipanti(evento),
     });
   }
 
   return proposte.sort((a, b) => a.inizio.localeCompare(b.inizio));
+}
+
+/**
+ * Domini email dei partecipanti diversi dal collaboratore, in minuscolo e
+ * senza duplicati. Il dominio del collaboratore è escluso: non indica il
+ * cliente.
+ */
+function dominiPartecipanti(evento: EventoGoogle): string[] {
+  const dominio = (email?: string) => email?.split("@")[1]?.trim().toLowerCase() || null;
+  const partecipanti = evento.attendees ?? [];
+  const dominiPropri = new Set(
+    partecipanti.filter((p) => p.self === true).map((p) => dominio(p.email))
+  );
+  const domini = new Set<string>();
+  for (const partecipante of partecipanti) {
+    const d = dominio(partecipante.email);
+    if (d && !dominiPropri.has(d)) domini.add(d);
+  }
+  return [...domini];
 }
 
 /**

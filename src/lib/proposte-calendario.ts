@@ -3,13 +3,16 @@ import "server-only";
 import { db } from "@/lib/db";
 import { decifraToken } from "@/lib/cifratura-token";
 import { eventiAttornoAlGiorno } from "@/lib/calendario-google";
-import { associaEventiAOfferte } from "@/lib/gemini";
+import { analizzaEventiCalendario } from "@/lib/gemini";
 import { proposteDaEventi, type EventoGoogle } from "@/domain/calendario-google";
 import type { ProposteCalendarioGiornata } from "@/lib/attivita-contract";
 
 // Read model delle proposte di ore dal calendario Google. Riceve il
 // collaboratore già autorizzato dal chiamante, come le altre letture
 // `...PerCollaboratoreAutorizzato` dell'area attività.
+
+/** Righe recenti passate a Gemini come esempi di associazione nota → offerta. */
+const NUMERO_ESEMPI_ASSOCIAZIONE = 30;
 
 /** `true` se il collaboratore ha collegato il proprio calendario. */
 export async function calendarioCollegato(collaboratoreId: string): Promise<boolean> {
@@ -24,7 +27,8 @@ export async function calendarioCollegato(collaboratoreId: string): Promise<bool
  * Proposte della giornata `YYYY-MM-DD` per il collaboratore indicato.
  *
  * Una sola chiamata a Gemini per invocazione, e solo se ci sono proposte e
- * offerte abilitate. Un calendario illeggibile produce lo stato `ERRORE` senza
+ * offerte abilitate: gli eventi che giudica non lavorativi sono esclusi, e
+ * cliente e offerta sono precompilati solo con confidenza alta. Un calendario illeggibile produce lo stato `ERRORE` senza
  * eccezioni: la giornata resta utilizzabile per l'inserimento manuale.
  */
 export async function proposteCalendarioPerCollaboratoreAutorizzato(
@@ -82,12 +86,33 @@ export async function proposteCalendarioPerCollaboratoreAutorizzato(
     },
     orderBy: { codice: "asc" },
   });
-  const associazioni = await associaEventiAOfferte(proposte, offerte);
   const offertePerId = new Map(offerte.map((o) => [o.id, o]));
+  const righeRecenti =
+    offerte.length === 0
+      ? []
+      : await db.rigaAttivita.findMany({
+          where: {
+            collaboratoreId,
+            nota: { not: "" },
+            offertaId: { in: offerte.map((o) => o.id) },
+          },
+          select: { nota: true, offertaId: true },
+          orderBy: [{ data: "desc" }, { createdAt: "desc" }],
+          take: NUMERO_ESEMPI_ASSOCIAZIONE,
+        });
+  const esempi = righeRecenti.flatMap((r) =>
+    r.nota ? [{ nota: r.nota, offertaId: r.offertaId }] : []
+  );
+
+  const { associazioni, nonLavorativi } = await analizzaEventiCalendario(
+    proposte,
+    offerte,
+    esempi
+  );
 
   return {
     stato: "COLLEGATO",
-    proposte: proposte.map((p) => {
+    proposte: proposte.filter((p) => !nonLavorativi.has(p.eventoId)).map((p) => {
       const offerta = offertePerId.get(associazioni.get(p.eventoId) ?? "");
       return {
         eventoId: p.eventoId,
