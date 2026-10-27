@@ -1,0 +1,50 @@
+schema: archetipo/spec/v2
+code: US-063
+title: Conferma, modifica o rifiuto delle proposte di ore
+epic:
+  code: EP-006
+  title: voglio fare in modo che il coaching planner possa essere collegato al ca…
+priority: HIGH
+points: 5
+status: DONE
+blocked_by:
+  - US-062
+scope: MVP
+body: |-
+  #### US-004: Conferma, modifica o rifiuto delle proposte di ore
+
+  **Epic:** EP-001 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
+  **Bloccata da:** US-003
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio confermare, modificare o rifiutare ciascuna proposta e continuare a inserire righe a mano,
+  così da registrare la giornata in pochi clic mantenendo il pieno controllo sui dati.
+
+  **Dimostrazione**
+  Il revisore apre una giornata con tre proposte associate. Clicca «Conferma» sulla prima: compare tra le righe della giornata e sparisce dalle proposte. Clicca «Modifica» sulla seconda: si apre il form riga precompilato, cambia le ore da 3 a 2,5 e salva; la riga compare con 2,5 ore. Clicca «Rifiuta» sulla terza: sparisce. Aggiunge poi una riga a mano dal form esistente. Ricaricando la giornata vede le tre righe salvate e nessuna proposta residua; il calendario mensile mostra il nuovo totale del giorno.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — «Conferma» su una proposta associata crea la riga attività con cliente, offerta, ore, nota (titolo evento), fatturabile e nessun rimborso, applicando le stesse regole di validazione e abilitazione dell'inserimento manuale
+  - [ ] AC-2 — «Conferma» non è disponibile su una proposta senza cliente/offerta; per essa resta «Modifica»
+  - [ ] AC-3 — «Modifica» apre il form riga precompilato con i dati della proposta; al salvataggio la riga viene creata con i valori modificati
+  - [ ] AC-4 — «Rifiuta» elimina la proposta senza creare righe
+  - [ ] AC-5 — Una proposta confermata, modificata e salvata o rifiutata non viene più riproposta riaprendo la giornata, anche dopo un nuovo accesso
+  - [ ] AC-6 — Dopo conferma o salvataggio, riepilogo e totale giornaliero del calendario si aggiornano come per una riga inserita a mano
+  - [ ] AC-7 — L'inserimento manuale di righe resta disponibile e invariato accanto alle proposte
+  - [ ] AC-8 — Un collaboratore non può confermare o rifiutare eventi di un altro collaboratore
+
+  **Out of Scope**
+  Conferma di tutte le proposte in blocco; annullamento di un rifiuto; modifica delle righe confermate diversa da quella già esistente.
+
+  **Wiki context**
+  `domains/attivita`
+
+  <!-- archetipo-increment:inc-d3eac2dc995a8b64:US-004 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/1
+history:
+  - status: TODO
+    at: "2026-10-26T13:27:19Z"
+  - status: DONE
+    at: "2026-10-26T13:34:18Z"

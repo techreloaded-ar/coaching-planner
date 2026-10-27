@@ -1,0 +1,27 @@
+schema: archetipo/review/v1
+spec_code: US-017
+comments: []
+dossier:
+  execution_id: exec-6ba7d39678099906cab0a4a99d50f895
+  prepared_at: "2026-10-27T08:28:09Z"
+  summary: 'Nuova pagina /report/marginalita riservata all''amministratore (voce "Marginalità" in sidebar). Con due campi mese ("Dal mese"/"Al mese", query ?da=YYYY-MM&a=YYYY-MM, estremi scambiati se invertiti) mostra per ogni cliente e per ogni offerta ricavi (giornate fatturabili × tariffa offerta), costi (giornate fatturabili × tariffa del collaboratore) e margine con percentuale, più i totali del periodo. I rimborsi trasferta sono esclusi. I margini negativi sono in rosso con badge testuale "Margine negativo". Dominio: calcolaMarginalitaClienti e normalizzaPeriodoMesi; lettura in reportMarginalitaPeriodo (src/lib/report.ts). Tutti i 6 task del piano sono DONE. Evidenze: 15 unit test nuovi (inclusa la coerenza al centesimo con calcolaReportFatturazioneClienti e calcolaRiepilogoMese), 2 e2e nuovi passati anche con --repeat-each=3, 1 demo e2e registrato (docs/test-results/US-017/demo__analisi-marginalita--292c4--e-vede-il-margine-negativo-chromium/video.webm). Suite finale: unit 792/792, build ok con route /report/marginalita, e2e completa 193 passed. Layout aderente ai mockup in docs/mockups/US-017/ (la barra proporzionale ricavi/costi del mockup non è stata implementata perché non richiesta dagli AC). Wiki non abilitata (wiki.enabled=false): nessun impatto Wiki. Stato ricontrollato in questa esecuzione: spec in REVIEW, task tutti DONE, tsc verde, unit di marginalità 15/15.'
+  criteria:
+    - id: AC-1
+      verdict: met
+      note: 'Form con "Dal mese"/"Al mese" e "Applica"; ogni cliente ha una scheda con Ricavi, Costi, Margine e Margine %. Verificato da unit (calcolaMarginalitaClienti: cliente 1.200/1.000/200), da e2e report-marginalita.spec.ts (periodo di due mesi) e dal video demo.'
+    - id: AC-2
+      verdict: met
+      note: 'Tabella sempre visibile per offerta con giornate, ricavi, costi, margine e margine %. E2e: offerta A 900/600/300, offerta B 300/400/-100.'
+    - id: AC-3
+      verdict: met
+      note: 'Unit: i ricavi coincidono con imponibileManodopera/imponibile di calcolaReportFatturazioneClienti (anche con ore frazionarie e tariffe non tonde) e i costi di un collaboratore con breakdown.imponibileManodopera di calcolaRiepilogoMese. E2e: per un singolo mese i ricavi in marginalità (600,00 €) coincidono con l''importo del report Fatturazione clienti. Vale a parità di dati fatturabili e con la tariffa corrente del collaboratore (nessuno storico tariffe).'
+    - id: AC-4
+      verdict: met
+      note: 'Margine negativo in rosso con badge testuale "Margine negativo" (non solo colore) e sfondo rosato sulla riga offerta; a livello offerta, cliente e totali. E2e: badge presente solo sull''offerta B in perdita e unico nella scheda cliente; assente su offerta A e sul cliente in utile.'
+  minor_findings:
+    - 'Le modifiche non sono committate: il worktree non è abilitato (worktree.enabled=false) e `spec review` non ha creato un commit; tutto il lavoro è nel working tree di main (4 file modificati e i nuovi percorsi: pagina marginalita, test unit, spec e2e, demo e2e, helper e2e, mockup).'
+    - 7 e2e preesistenti sui temi (tests/e2e/temi.spec.ts, demo__temi-chiaro-scuro-browser.spec.ts) falliscono con color-scheme "normal" in modalità dev; falliscono identici anche senza queste modifiche (verificato con stash dei soli file della spec). Non causati da US-017.
+    - calendario-cache-mesi (US-052) è risultato flaky una volta ed è passato al retry; non toccato da questa spec.
+    - 'Limite noto: la tariffa del collaboratore non ha storico, quindi i costi di periodi passati usano la tariffa corrente (stesso comportamento del riepilogo mensile del collaboratore).'
+    - 'Se "Dal mese" è successivo ad "Al mese" gli estremi vengono scambiati senza avviso: scelta da confermare rispetto a un errore di validazione.'
+    - Le e2e con il .env locale si fermano per il guardrail E2E_DATABASE_URL = DATABASE_URL; vanno lanciate con l'ambiente sandbox (scripts/archetipo/ambiente.sh e2e).

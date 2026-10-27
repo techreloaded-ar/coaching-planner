@@ -1,0 +1,38 @@
+schema: archetipo/spec/v2
+code: US-065
+title: Tutta l'interfaccia rispetta il tema scelto
+epic:
+  code: EP-007
+  title: Voglio fare in modo che il coaching-planner gestisca i temi Dark, Light …
+priority: MEDIUM
+points: 2
+status: DONE
+blocked_by:
+  - US-064
+scope: MVP
+body: |-
+  **Come** utente di Coaching Planner
+  **voglio** che ogni schermata rispetti il tema scelto
+  **così da** non trovare parti dell'interfaccia con colori incoerenti o illeggibili.
+
+  ### Demonstrates
+  Con il tema "Scuro" selezionato e il sistema in modalità chiara, percorrere: pagina di accesso, calendario mensile, dettaglio giornata con un dialog aperto, riepilogo mese, anagrafiche (clienti, collaboratori, utenti, voci rimborso) con un form aperto, offerte e report fatturazione, pagina 404. Ogni schermata è scura e leggibile, inclusi date picker, select e scrollbar. Ripetere con "Chiaro" e il sistema in modalità scura: tutto è chiaro.
+
+  ### Acceptance Criteria
+  - [ ] Ogni pagina del front office, della console amministrativa, la pagina di accesso e la pagina 404 usano i colori del tema scelto, non quelli del sistema
+  - [ ] Componenti condivisi (pulsanti di attesa, dialog, form, tabelle, sidebar) rispettano il tema scelto
+  - [ ] I controlli nativi del browser (input data, select, scrollbar) usano lo schema di colori del tema scelto
+  - [ ] Nessun testo o controllo diventa illeggibile per contrasto insufficiente in nessuno dei due temi
+
+  <!-- archetipo-increment:inc-b3385f50a5cbdd24:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/2
+history:
+  - status: TODO
+    at: "2026-10-26T16:18:40Z"
+  - status: IN PROGRESS
+    at: "2026-10-26T16:18:40Z"
+  - status: REVIEW
+    at: "2026-10-26T17:31:02Z"
+  - status: DONE
+    at: "2026-10-26T17:37:29Z"

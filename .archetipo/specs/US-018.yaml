@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: LOW
 points: 3
-status: TODO
+status: DONE
 scope: Growth
 body: |-
   #### US-018: Esportazione di report e riepiloghi
@@ -26,6 +26,15 @@ body: |-
   - [ ] Il report mensile per cliente è esportabile in almeno un formato tra Excel e PDF
   - [ ] Il file esportato contiene gli stessi dati e totali mostrati a schermo per il mese selezionato
   - [ ] L'esportazione rispetta le autorizzazioni: è disponibile solo all'amministratore
+fork_base: 6351e553ab9832f4334760907673a9d8481fda94
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-10-27T08:37:13Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T08:43:49Z"
+  - status: REVIEW
+    at: "2026-10-27T08:51:02Z"
+  - status: DONE
+    at: "2026-10-27T09:17:12Z"

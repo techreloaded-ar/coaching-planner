@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: MEDIUM
 points: 5
-status: TODO
+status: DONE
 scope: Growth
 body: |-
   #### US-017: Analisi della marginalità per cliente e offerta
@@ -27,6 +27,15 @@ body: |-
   - [ ] Il dettaglio per offerta mostra ricavi, costi e margine della singola offerta
   - [ ] Ricavi e costi sono coerenti con i valori dei report mensili esistenti a parità di dati
   - [ ] I margini negativi sono evidenziati visivamente
+fork_base: 6351e553ab9832f4334760907673a9d8481fda94
 history:
   - status: TODO
     at: "2026-06-11T10:35:05Z"
+  - status: PLANNED
+    at: "2026-10-27T08:13:33Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T08:14:19Z"
+  - status: REVIEW
+    at: "2026-10-27T08:23:04Z"
+  - status: DONE
+    at: "2026-10-27T08:32:48Z"

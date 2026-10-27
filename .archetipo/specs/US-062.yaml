@@ -1,0 +1,48 @@
+schema: archetipo/spec/v2
+code: US-062
+title: Associazione delle proposte a cliente e offerta tramite Gemini
+epic:
+  code: EP-006
+  title: voglio fare in modo che il coaching planner possa essere collegato al ca…
+priority: HIGH
+points: 5
+status: DONE
+blocked_by:
+  - US-061
+scope: MVP
+body: |-
+  #### US-003: Associazione delle proposte a cliente e offerta tramite Gemini
+
+  **Epic:** EP-001 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
+  **Bloccata da:** US-002
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio che ogni proposta arrivi già associata al cliente e all'offerta giusti, dedotti dall'AI a partire dall'evento,
+  così da dover solo confermare invece di compilare.
+
+  **Dimostrazione**
+  In ambiente di test, con Gemini simulato e un collaboratore abilitato a due offerte di clienti diversi, il revisore apre una giornata con l'evento «Kickoff progetto con Acme» e vede la proposta associata al cliente Acme e alla relativa offerta. Un evento «Pausa pranzo» compare invece come proposta «Cliente e offerta da scegliere». Disattivando la chiave Gemini nell'ambiente, tutte le proposte compaiono senza associazione ma con ore e nota.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Il server invia a Gemini, usando l'API key configurata in ambiente, solo titolo, descrizione e orario degli eventi del giorno e l'elenco delle offerte attive abilitate per il collaboratore (codice, descrizione, ragione sociale del cliente)
+  - [ ] AC-2 — Ogni proposta mostra il cliente e l'offerta scelti da Gemini quando ne individua uno
+  - [ ] AC-3 — Un'offerta restituita da Gemini che non è tra quelle attive e abilitate per il collaboratore viene scartata e la proposta resta senza associazione
+  - [ ] AC-4 — Se Gemini non è configurato, va in errore o non associa l'evento, la proposta compare con l'indicazione «Cliente e offerta da scegliere», con ore e nota invariate
+  - [ ] AC-5 — L'API key di Gemini non è mai esposta al browser né nei log
+  - [ ] AC-6 — Le proposte di una giornata richiedono al massimo una chiamata a Gemini per apertura della giornata
+
+  **Out of Scope**
+  Apprendimento dalle correzioni del collaboratore; inferenza di fatturabilità o rimborso trasferta; scelta del modello Gemini da interfaccia.
+
+  **Wiki context**
+  `domains/attivita` · `domains/offerte` · `decisions/abilitazioni-offerte-esplicite`
+
+  <!-- archetipo-increment:inc-d3eac2dc995a8b64:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/1
+history:
+  - status: TODO
+    at: "2026-10-26T13:27:19Z"
+  - status: DONE
+    at: "2026-10-26T13:34:18Z"

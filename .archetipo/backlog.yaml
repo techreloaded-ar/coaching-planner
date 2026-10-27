@@ -13,6 +13,10 @@ epics:
     title: Reportistica
   - code: EP-005
     title: Evoluzioni Post-MVP
+  - code: EP-006
+    title: voglio fare in modo che il coaching planner possa essere collegato al ca…
+  - code: EP-007
+    title: Voglio fare in modo che il coaching-planner gestisca i temi Dark, Light …
 order:
   - US-001
   - US-004
@@ -23,8 +27,6 @@ order:
   - US-013
   - US-014
   - US-016
-  - US-017
-  - US-018
   - US-019
   - US-020
   - US-002
@@ -73,3 +75,11 @@ order:
   - US-057
   - US-058
   - US-059
+  - US-060
+  - US-061
+  - US-062
+  - US-063
+  - US-064
+  - US-065
+  - US-017
+  - US-018

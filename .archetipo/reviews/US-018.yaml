@@ -1,0 +1,24 @@
+schema: archetipo/review/v1
+spec_code: US-018
+comments: []
+dossier:
+  execution_id: exec-9e0008632f758849cf0cb2ce6e86a1ca
+  prepared_at: "2026-10-27T08:54:31Z"
+  summary: 'Il report mensile "Fatturazione clienti" ha un pulsante "Esporta Excel" (visibile solo quando il mese ha dati) che scarica fatturazione-clienti-YYYY-MM.xlsx tramite la nuova route GET /report/fatturazione-clienti/esporta?mese=YYYY-MM. Il file ha due fogli: "Fatturazione clienti" (una riga per offerta con tariffa/gg, giornate, imponibile; riga "Totale {cliente}" con imponibile manodopera, rimborsi e totale da fatturare; riga "Totale mese") e "Dettaglio collaboratori" (ore, giornate e imponibile per collaboratore e offerta). Gli importi sono celle numeriche. I dati arrivano dallo stesso reportFatturazioneClientiMese della pagina, quindi la guardia amministratore vale anche per l''esportazione: collaboratore 403, senza sessione redirect alla radice, errori interni opachi. Il file xlsx è prodotto da un writer interno (src/lib/xlsx.ts) senza nuove dipendenze; package.json e lockfile invariati. Tutti i 9 task del piano sono DONE. Evidenze: 22 unit test nuovi (writer, builder, route), 3 e2e nuovi (download confrontato con i totali a schermo, 403 al collaboratore, redirect senza sessione) passati anche con --repeat-each=3, demo e2e registrato (docs/test-results/US-018/demo__esportazione-fattura-a6a60-i-stessi-dati-dello-schermo-chromium/video.webm). Suite finale in implementazione: unit 814/814, build ok con la route di esportazione, e2e 198 passed con 7 fallimenti preesistenti sui temi. Scope: solo Excel e solo il report mensile per cliente (gli AC chiedono almeno un formato); PDF e altri riepiloghi fuori perimetro. Nessun mockup (pulsante aggiunto a un layout esistente). Wiki non abilitata (wiki.enabled=false): nessun impatto Wiki.'
+  criteria:
+    - id: AC-1
+      verdict: met
+      note: 'Il report mensile per cliente è esportabile in Excel (.xlsx). Unit: lo zip prodotto ha CRC validi, le 7 parti OOXML attese e i due fogli; verificato anche con unzip -t e un parser XML indipendente. Route unit: 200 con Content-Type xlsx e Content-Disposition attachment. E2E: il click su "Esporta Excel" produce il download fatturazione-clienti-{mese}.xlsx leggibile. Confermato dal video demo. Non è stato possibile aprire il file in Excel/LibreOffice nella pipeline: si raccomanda un''apertura manuale in review.'
+    - id: AC-2
+      verdict: met
+      note: 'Unit del builder: per un report prodotto dal dominio reale, offerte (tariffa, giornate, imponibile), totale per cliente (imponibile manodopera, rimborsi, totale), "Totale mese" e dettaglio collaboratori coincidono cifra per cifra con il report; coperti cliente di soli rimborsi, report vuoto e ragioni sociali con caratteri speciali. E2E in mese riservato esclusivo (slot 7): i valori del file (totale e rimborsi del cliente, riga offerta, totali del mese) sono uguali a quelli letti a schermo (report-client-*-rimborsi/-totale, report-total-*).'
+    - id: AC-3
+      verdict: met
+      note: 'La route riusa reportFatturazioneClientiMese, che applica richiediRuoloApi("AMMINISTRATORE"). Unit di route: ErroreAutorizzazione 401/403 propagata come JSON senza Content-Disposition né corpo xlsx; 500 senza dettagli interni. E2E: un collaboratore autenticato che chiama l''URL riceve 403 senza content-type xlsx; senza sessione la richiesta viene reindirizzata alla radice (nessun xlsx). Il pulsante è nella pagina del solo back office.'
+  minor_findings:
+    - 'Le modifiche non sono committate: il worktree non è abilitato (worktree.enabled=false) e `spec review` non ha creato un commit; il lavoro di US-018 sta nel working tree di main insieme a quello di US-017 (già approvata).'
+    - 7 e2e preesistenti sui temi (tests/e2e/temi.spec.ts, demo__temi-chiaro-scuro-browser.spec.ts) falliscono con color-scheme "normal" in modalità dev; fallivano identici anche prima delle modifiche. Non causati da US-018.
+    - 'tests/e2e/report-fatturazione-clienti.spec.ts (non toccato) fallisce se eseguito con --repeat-each=3: le ripetizioni condividono lo stesso mese riservato esclusivo. Limite preesistente della spec, fuori da US-018; gli e2e di US-018 passano anche ripetuti.'
+    - 'Il file xlsx non è mai stato aperto in Excel: la validità è provata da un lettore di test (CRC, XML ben formato) e da unzip/parser XML esterni. Si raccomanda una prova manuale.'
+    - 'Lo zip è senza compressione (commento ponytail in src/lib/xlsx.ts): adeguato per file piccoli, da passare a deflate se le dimensioni diventano rilevanti.'
+    - Le e2e con il .env locale si fermano per il guardrail E2E_DATABASE_URL = DATABASE_URL; vanno lanciate con l'ambiente sandbox (scripts/archetipo/ambiente.sh e2e).

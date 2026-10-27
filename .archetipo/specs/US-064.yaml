@@ -1,0 +1,42 @@
+schema: archetipo/spec/v2
+code: US-064
+title: Selettore discreto del tema Chiaro, Scuro o Browser dopo il login
+epic:
+  code: EP-007
+  title: Voglio fare in modo che il coaching-planner gestisca i temi Dark, Light …
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **Come** utente autenticato di Coaching Planner (collaboratore o amministratore)
+  **voglio** scegliere tra tema Chiaro, Scuro o Browser con un controllo discreto nell'intestazione
+  **così da** usare l'applicazione con l'aspetto che preferisco senza elementi ingombranti.
+
+  ### Demonstrates
+  Con il sistema operativo in modalità chiara: aprire la pagina di accesso → non c'è alcun selettore del tema. Effettuare l'accesso come collaboratore → nell'intestazione, subito a sinistra del pulsante Esci, c'è un solo pulsante-icona "Tema" con il sole (il sistema è chiaro e il tema è Browser). Cliccarlo → si apre un piccolo menu con "Chiaro", "Scuro" e "Browser", con la voce attiva evidenziata; scegliere "Scuro" → il menu si chiude, l'interfaccia diventa scura immediatamente e l'icona del pulsante diventa la luna. Ricaricare → resta scura senza lampeggiare in chiaro. Fare logout → la pagina di accesso è scura. Accedere come amministratore → lo stesso pulsante è nell'intestazione della console; scegliere "Browser" → l'icona torna il sole; passare il sistema in modalità scura → l'interfaccia diventa scura senza ricaricare e l'icona diventa la luna.
+
+  ### Acceptance Criteria
+  - [ ] Nell'intestazione del front office e della console amministrativa c'è un unico pulsante compatto (solo icona, nome accessibile "Tema") posizionato subito a sinistra del pulsante Esci
+  - [ ] L'icona del pulsante segue l'aspetto effettivo dell'interfaccia: sole quando è chiara, luna quando è scura; con "Browser" dipende dall'impostazione del sistema e si aggiorna quando questa cambia
+  - [ ] Il pulsante apre un menu con le tre opzioni "Chiaro", "Scuro" e "Browser" che indica quella attiva; il menu si chiude dopo la scelta, con Esc o cliccando fuori
+  - [ ] La pagina di accesso non mostra il selettore del tema, ma usa il tema già scelto su quel browser
+  - [ ] Selezionando un'opzione il tema si applica immediatamente senza ricaricare la pagina
+  - [ ] Con "Chiaro" l'interfaccia resta chiara anche se il sistema è in modalità scura; con "Scuro" resta scura anche se il sistema è in modalità chiara
+  - [ ] Con "Browser" l'interfaccia segue l'impostazione del sistema/browser e si aggiorna quando questa cambia
+  - [ ] La scelta è ricordata sul browser tra ricaricamenti, navigazioni, login e logout; in assenza di scelta il tema predefinito è "Browser"
+  - [ ] Al caricamento di una pagina il tema scelto è applicato fin dal primo rendering, senza flash del tema opposto
+  - [ ] Pulsante e menu sono utilizzabili da tastiera
+
+  <!-- archetipo-increment:inc-b3385f50a5cbdd24:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/2
+history:
+  - status: TODO
+    at: "2026-10-26T16:18:40Z"
+  - status: IN PROGRESS
+    at: "2026-10-26T16:18:40Z"
+  - status: REVIEW
+    at: "2026-10-26T17:31:02Z"
+  - status: DONE
+    at: "2026-10-26T17:37:29Z"

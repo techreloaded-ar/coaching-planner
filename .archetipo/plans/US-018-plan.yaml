@@ -1,0 +1,529 @@
+schema: archetipo/plan/v2
+spec_code: US-018
+body: |-
+  # US-018: Esportazione di report e riepiloghi — Piano di implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-10-27
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** LOW | **Punti:** 3
+
+  **Storia Utente**
+  Come Stefano, amministratore, voglio esportare i report mensili e i riepiloghi in formato Excel o PDF, così da condividerli con il commercialista e archiviarli fuori dal sistema.
+
+  **Criteri di Accettazione**
+  - AC-1 — Il report mensile per cliente è esportabile in almeno un formato tra Excel e PDF
+  - AC-2 — Il file esportato contiene gli stessi dati e totali mostrati a schermo per il mese selezionato
+  - AC-3 — L'esportazione rispetta le autorizzazioni: è disponibile solo all'amministratore
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Il report "Fatturazione clienti" (`/report/fatturazione-clienti?mese=YYYY-MM`) ottiene un pulsante **Esporta Excel** che scarica `fatturazione-clienti-YYYY-MM.xlsx`. Il file nasce dallo stesso `reportFatturazioneClientiMese(token)` che alimenta la pagina, quindi i numeri non possono divergere dallo schermo (AC-2) e la guardia `richiediRuoloApi("AMMINISTRATORE")` si applica anche all'esportazione (AC-3). Scope: solo Excel e solo il report mensile per cliente (gli AC chiedono "almeno un formato" e il "report mensile per cliente"); PDF, esportazione del riepilogo del collaboratore e del report di marginalità sono fuori perimetro e possono riusare lo stesso writer.
+
+  - **Writer xlsx senza dipendenze** — `src/lib/xlsx.ts` espone `creaXlsx(fogli): Buffer`. Un `.xlsx` è uno zip di poche parti XML: il writer produce uno zip "store" (senza compressione, CRC32 con `node:zlib` `crc32`, disponibile da Node 20.15/22.2; CI usa Node 22) con `[Content_Types].xml`, `_rels/.rels`, `xl/workbook.xml`, `xl/_rels/workbook.xml.rels`, `xl/styles.xml` e un `xl/worksheets/sheetN.xml` per foglio. Le stringhe sono `inlineStr`; gli importi e le giornate sono **celle numeriche** (il commercialista può sommarle) con formato `#,##0.00` / `0.0#`.
+  - **Builder dei fogli** — `src/lib/esportazione-fatturazione.ts` trasforma il `RisultatoReportFatturazione` in due fogli: "Fatturazione clienti" (riga titolo con l'etichetta del mese; intestazioni; per ogni cliente una riga per offerta con tariffa/gg, giornate, imponibile, poi una riga grassetto "Totale {cliente}" con giornate, imponibile manodopera, rimborsi trasferta e totale da fatturare; riga finale "Totale mese") e "Dettaglio collaboratori" (cliente, offerta, collaboratore, ore fatturabili, giornate, imponibile: lo stesso dettaglio che la pagina mostra espandendo il cliente). Gli importi sono quelli già arrotondati a 2 decimali dal dominio, convertiti con `Number(...)`: nessun ricalcolo.
+  - **Endpoint** — route handler `GET /report/fatturazione-clienti/esporta?mese=YYYY-MM` in `src/app/(back-office)/report/fatturazione-clienti/esporta/route.ts`. Mese assente o non valido ricade sul mese corrente (stesso comportamento della pagina). Risposte: `200` con `Content-Type` xlsx e `Content-Disposition: attachment`; `401/403` JSON `{ errore }` mappando `ErroreAutorizzazione`; `500` generico senza dettagli. Intestazioni `Cache-Control: private, no-store` e `Vary: Cookie` riusando `INTESTAZIONI_DATI_PRIVATI`. Il proxy già reindirizza alla radice le richieste senza sessione; un collaboratore autenticato arriva alla route e riceve `403` dalla guardia del report.
+  - **UI** — un link `<a href=".../esporta?mese={token}" download>` "Esporta Excel" accanto alla pill di riepilogo, visibile solo quando il mese ha dati. È un'aggiunta a un layout esistente: nessun mockup (scelta da segnalare, vedi Team Brief).
+
+  ### Decisioni Architetturali
+
+  Nessuna ADR (e la Wiki non è abilitata, `wiki.enabled: false`). L'unica scelta con alternative reali è come produrre l'xlsx:
+
+  | Opzione | Pro | Contro |
+  |---|---|---|
+  | **Writer minimo interno (scelta)** | zero dipendenze, `package-lock.json` invariato, il test verifica a livello di byte | codice da mantenere (~120 righe); niente stili avanzati, niente compressione |
+  | Libreria (`exceljs`/`xlsx`) | funzionalità complete | nuova dipendenza grande, aggiornamento del lockfile (`npm ci` in CI), superficie di sicurezza |
+  | CSV | banale | non è Excel: separatori/encoding dipendono dalla locale, nessun tipo numerico |
+
+  È una scelta locale e reversibile (un solo modulo dietro `creaXlsx`), non tocca dati, sicurezza o integrazioni, quindi non supera la soglia ADR.
+
+  **Limite noto:** non è possibile aprire il file in Excel/LibreOffice nella pipeline; la validità è provata leggendo lo zip e i fogli con un lettore di test (CRC verificati, XML ben formato). Una apertura manuale in Excel è raccomandata in review.
+
+  ---
+
+  ## Baseline
+
+  | Check | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npx tsc --noEmit` | Passa (exit 0) con il client Prisma generato | Nessun nuovo errore di tipo ammesso; se fallisce con TS2339 su modelli Prisma, eseguire prima `npx prisma generate` (prerequisito d'ambiente, non bug) |
+  | `npm run lint` | Exit 0; 1 warning preesistente (`MESE_ALTRO` non usato in `tests/e2e/demo__duplicazione-riga-su-piu-giorni.spec.ts`) + 4 warning guardrail "chiave riservata non risolvibile staticamente" in `tests/e2e/support/date.ts`/`report-data.ts` | Nessun nuovo warning ammesso |
+  | `npm test` | Passa: 48 file, 792 test | I nuovi test si sommano; nessuna regressione |
+  | `npm run build` | Passa (verificato in US-017) | Eseguito nel gate finale |
+  | E2E (`sh scripts/archetipo/ambiente.sh e2e [file]`) | 193 passati; **7 falliscono già prima** (`tests/e2e/temi.spec.ts` ×6 e `demo__temi-chiaro-scuro-browser.spec.ts`, `color-scheme "normal"` in dev mode, verificato anche senza modifiche); `calendario-cache-mesi` flaky 1 volta | I fallimenti sui temi sono il confine preesistente: la verifica richiede "nessun nuovo fallimento oltre a questi 7" |
+
+  **Prerequisiti d'ambiente:** le e2e girano solo sul Postgres sandbox: esportare `ARCHETIPO_PORT_POSTGRES` (porta in `.archetipo/environment/resources.json`, chiave `ports.POSTGRES`), `ARCHETIPO_RESOURCE_OWNER` (chiave `owner`) e `ARCHETIPO_RESOURCE_NAME=postgres`, poi `sh scripts/archetipo/ambiente.sh e2e <file>`. Con il `.env` locale il guardrail si rifiuta perché `E2E_DATABASE_URL` coincide con `DATABASE_URL`. Non leggere né modificare `.env`.
+
+  Il working tree contiene ancora le modifiche non committate di US-017: non toccarle.
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato iniziale / fixture | Livello di test | Oracolo osservabile | Task |
+  |---|---|---|---|---|
+  | AC-1 | Mese riservato con cliente, offerta e 2 collaboratori creati dalla factory (`creaDatasetReportFatturazioneClienti`) | Unit (writer) + E2E | Unit: lo zip prodotto ha CRC validi, contiene le 6 parti attese e i fogli con i nomi dichiarati. E2E: dopo il click su "Esporta Excel" Playwright riceve un download `fatturazione-clienti-{mese}.xlsx`, `Content-Type` xlsx, e il contenuto è uno zip leggibile con i due fogli | TASK-02, TASK-08 |
+  | AC-2 | Come sopra; schermo e file sono letti nello stesso test | Unit (builder) + E2E | Unit: per un `ReportFatturazioneClienti` noto, righe offerta/cliente/totale mese del foglio coincidono cifra per cifra con il report (incluso cliente di soli rimborsi e report vuoto). E2E: le celle del cliente (giornate, imponibile, rimborsi, totale) e "Totale mese" del file sono uguali a `report-client-{id}-rimborsi`/`-totale` e `report-total-imponibile`/`-rimborsi`/`-importo` mostrati a schermo | TASK-04, TASK-08 |
+  | AC-3 | Sessione collaboratore; richiesta senza sessione | Unit (route) + E2E | Unit: errore `ErroreAutorizzazione(403)` dal report → risposta `403` JSON senza corpo xlsx. E2E: `request.get` come collaboratore → `403` e nessun `Content-Type` xlsx; senza cookie → redirect (3xx) alla radice | TASK-06, TASK-08 |
+
+  ---
+
+  ## Strategia di Test
+
+  La parte critica è la correttezza dei byte dello zip/xlsx e la fedeltà dei dati: unit test su writer e builder; test di route con il report mockato solo al confine `@/lib/report` (la guardia reale dell'autorizzazione viene provata end-to-end); un e2e Playwright che scarica davvero il file dal browser e lo confronta con lo schermo.
+
+  - Lettore di test condiviso `tests/e2e/support/xlsx-lettura.ts` (solo `node:zlib`): parsa la central directory dello zip, verifica CRC32 e restituisce le parti XML; ne estrae le celle dei fogli. Usato da unit ed e2e per non avere due interpretazioni del formato.
+  - Nessun mock del writer nel test di route: si verifica che il corpo sia davvero uno zip valido.
+  - Il mese dell'e2e è un **mese riservato esclusivo** (`SLOT_MESI_RISERVATI_ESCLUSIVI` in `tests/e2e/support/date.ts`, chiave `US-018-ESPORTAZIONE-FATTURAZIONE`, slot 7) perché asserisce il "Totale mese" del file contro i totali globali dello schermo: qualunque riga estranea nel mese romperebbe il confronto.
+
+  ### Test E2E — Simulazione utente
+
+  **Framework:** Playwright (già configurato, `playwright.config.ts`, fixture `tests/e2e/support/fixtures.ts`)
+  **Video demo:** previsto e filmabile (registrato poi da `archetipo-review`, non durante l'implementazione)
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Esporta e confronta | L'amministratore apre il report del mese riservato, legge cliente, totali a schermo, clicca "Esporta Excel", scarica il file e i valori del file coincidono con quelli a schermo |
+  | Autorizzazioni | Un collaboratore che chiama direttamente l'URL di esportazione riceve 403; una richiesta senza sessione viene reindirizzata alla radice |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: []
+    update: []
+    create: []
+  ```
+
+  La Wiki non è abilitata (`wiki.enabled: false`): nessun impatto documentale contrattuale.
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-10-27_
+tasks:
+  - id: TASK-01
+    title: Writer xlsx minimo senza dipendenze in src/lib/xlsx.ts
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste `creaXlsx(fogli): Buffer` che produce un file `.xlsx` valido (zip "store" con le parti OOXML minime) con celle testuali, numeriche e stili di base, senza nuove dipendenze npm.
+
+      ## Read
+      - `node_modules/@types/node/zlib.d.ts` — firma di `crc32(data, value?)`
+      - `src/lib/formattazione.ts` — stile dei moduli `src/lib` senza `server-only` (puro, testabile)
+
+      ## Change
+      - `src/lib/xlsx.ts` — nuovo file. Non importare `server-only`, Next o Prisma. Non modificare `package.json`/`package-lock.json`.
+      - Non-goal: compressione deflate, formule, celle unite, immagini, lettura di xlsx.
+
+      ## Steps
+      1. Esportare i tipi:
+         ```ts
+         export type StileCella = "grassetto" | "importo" | "importoGrassetto" | "giornate";
+         export type Cella = string | number | null | { valore: string | number; stile: StileCella };
+         export interface FoglioXlsx { nome: string; righe: Cella[][]; larghezzeColonne?: number[] }
+         ```
+         Indici di stile in `cellXfs` (ordine fisso): 0 normale, 1 grassetto, 2 importo (`numFmtId` 4 = `#,##0.00`), 3 importoGrassetto (font bold + `numFmtId` 4), 4 giornate (`numFmtId` 164 custom `0.0#`).
+      2. `creaXlsx(fogli: FoglioXlsx[]): Buffer`. Validare in ingresso e lanciare `Error` con messaggio in italiano se: nessun foglio; nome foglio vuoto, > 31 caratteri, contenente `[ ] : * ? / \`, o duplicato (confronto case-insensitive); numero non finito (`NaN`/`Infinity`).
+      3. Helper `escapeXml(testo)`: sostituire `& < > " '` con le entità e rimuovere i caratteri di controllo non ammessi da XML 1.0 (`[\u0000-\u0008\u000B\u000C\u000E-\u001F]`).
+      4. Helper `riferimentoCella(indiceColonna, numeroRiga)`: lettere stile Excel (0→A, 25→Z, 26→AA) + riga 1-based.
+      5. Generare `xl/worksheets/sheet{N}.xml` (N da 1): radice `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`; se `larghezzeColonne` è presente, `<cols><col min="i" max="i" width="w" customWidth="1"/></cols>` PRIMA di `<sheetData>`; per ogni riga `<row r="n">`, per ogni cella non `null`: stringa → `<c r="A1" t="inlineStr" s="k"><is><t xml:space="preserve">testo</t></is></c>`; numero → `<c r="A1" s="k"><v>123.45</v></c>`. Stile assente = nessun attributo `s`. Le celle `null` sono saltate (riga vuota = `<row r="n"/>`).
+      6. Generare le altre parti:
+         - `[Content_Types].xml`: `Default` per `rels` (`application/vnd.openxmlformats-package.relationships+xml`) e `xml` (`application/xml`); `Override` per `/xl/workbook.xml` (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml`), `/xl/styles.xml` (`application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml`) e ogni `/xl/worksheets/sheetN.xml` (`application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml`).
+         - `_rels/.rels`: una `Relationship` `Id="rId1"` di tipo `http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument` verso `xl/workbook.xml`.
+         - `xl/workbook.xml`: `<workbook xmlns="…/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>` con `<sheet name="…" sheetId="N" r:id="rIdN"/>` (nome escapato).
+         - `xl/_rels/workbook.xml.rels`: `rIdN` → `worksheets/sheetN.xml` (tipo `…/relationships/worksheet`) e `rId{n+1}` → `styles.xml` (tipo `…/relationships/styles`).
+         - `xl/styles.xml`: `numFmts` con `164` = `0.0#`; `fonts` (0 normale, 1 grassetto); `fills` (obbligatori `none` e `gray125`); `borders` (1); `cellStyleXfs` (1); `cellXfs` con le 5 voci dell'elenco al punto 1 (`applyNumberFormat`/`applyFont` dove serve).
+      7. Zip "store": per ogni parte (ordine: `[Content_Types].xml`, `_rels/.rels`, `xl/workbook.xml`, `xl/_rels/workbook.xml.rels`, `xl/styles.xml`, fogli) scrivere local file header (`0x04034b50`, versione 20, flag 0, metodo 0, ora 0, data `0x0021` = 1980-01-01, CRC32 da `crc32` di `node:zlib`, dimensioni compressa = non compressa, nome UTF-8, nessun extra) seguito dai byte; poi central directory (`0x02014b50`, versione creata 20 / necessaria 20, stessi campi, offset del local header) e `end of central directory` (`0x06054b50`, numero voci, dimensione e offset della central directory, commento 0). Tutto little-endian con `Buffer.alloc` + `writeUInt16LE/32LE`.
+      8. Aggiungere un commento `// ponytail:` sopra lo zip: "zip senza compressione: i file sono piccoli; usare deflate (`zlib.deflateRawSync`) se le dimensioni diventano rilevanti".
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npx eslint src/lib/xlsx.ts`
+      - Expect: nessun errore né warning.
+      - Run: `git diff --stat -- package.json package-lock.json`
+      - Expect: nessuna modifica.
+
+      ## Done
+      - [ ] AC-1 — `creaXlsx` restituisce un `Buffer` zip con le 5 parti fisse + un foglio per elemento di `fogli`
+      - [ ] Validazioni di nome foglio e numeri non finiti implementate
+      - [ ] Nessuna nuova dipendenza
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Lettore xlsx di test e unit test del writer
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Un lettore di test condiviso interpreta lo zip prodotto da `creaXlsx` (CRC verificati) e una suite Vitest prova struttura, contenuto delle celle, escape e validazioni.
+
+      ## Read
+      - `src/lib/xlsx.ts` — `creaXlsx`, `FoglioXlsx`, `Cella`
+      - `tests/unit/report-fatturazione-clienti.test.ts` — stile dei test unitari
+      - `vitest.config.ts` — `include: tests/unit/**/*.test.ts`
+
+      ## Change
+      - `tests/e2e/support/xlsx-lettura.ts` — nuovo file, solo `node:zlib`, nessun import da `@playwright/test`. Esporta `leggiXlsx(buffer: Buffer): { parti: Record<string, string>; fogli: { nome: string; righe: (string | number | null)[][] }[] }`.
+      - `tests/unit/xlsx.test.ts` — nuovo file; importa il lettore con `../e2e/support/xlsx-lettura`.
+      - Non-goal: nessuna modifica a `src/lib/xlsx.ts` (se un test rivela un difetto, correggerlo in TASK-01 e segnalarlo).
+
+      ## Steps
+      1. `leggiXlsx`: cercare l'`end of central directory` (firma `0x06054b50`) dalla fine; leggere la central directory; per ogni voce leggere il local header, **richiedere metodo 0**, verificare che `zlib.crc32(dati)` coincida con il CRC dichiarato (altrimenti `throw`), decodificare UTF-8 in `parti[nome]`.
+      2. Dentro `leggiXlsx`, ricavare i fogli: leggere `xl/workbook.xml` (regex su `<sheet name="…" sheetId="…" r:id="rIdN"/>`, decodificando le entità XML) e `xl/_rels/workbook.xml.rels` per risolvere il target; per ogni foglio estrarre le celle con regex su `<row r="n">…</row>` e `<c r="A1" …>` ricostruendo una matrice per indice di colonna/riga (stringhe da `<t …>…</t>` decodificate, numeri da `<v>` come `Number`, celle mancanti `null`).
+      3. In `tests/unit/xlsx.test.ts`:
+         - struttura: `leggiXlsx(creaXlsx([...]))` contiene le chiavi `[Content_Types].xml`, `_rels/.rels`, `xl/workbook.xml`, `xl/_rels/workbook.xml.rels`, `xl/styles.xml`, `xl/worksheets/sheet1.xml` e `sheet2.xml` con due fogli; i nomi dei fogli nell'ordine dato;
+         - roundtrip: riga `["Cliente", { valore: 1234.5, stile: "importo" }, null, 0.25]` → `["Cliente", 1234.5, null, 0.25]`;
+         - escape: testo `A & B <x> "q" 'z'` torna identico; carattere di controllo `\u0001` rimosso;
+         - stili: `sheet1.xml` contiene `s="2"` per una cella `importo` e `s="1"` per `grassetto`; `styles.xml` contiene `numFmtId="164"`;
+         - colonne oltre la Z: una riga con 28 celle produce il riferimento `AB1` nel foglio;
+         - larghezze: `larghezzeColonne: [30, 12]` produce `<cols>` prima di `<sheetData>`;
+         - integrità: alterare un byte dentro un file dello zip → `leggiXlsx` lancia (CRC non valido);
+         - validazioni: `creaXlsx([])`, nome vuoto, nome di 32 caratteri, nome con `/`, nomi duplicati `A`/`a`, cella `NaN` → ciascuno lancia `Error`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/xlsx.test.ts`
+      - Expect: tutti i test passano.
+      - Run: `npx tsc --noEmit && npx eslint tests/unit/xlsx.test.ts tests/e2e/support/xlsx-lettura.ts`
+      - Expect: exit 0, nessun nuovo warning.
+      - Run: `npm test`
+      - Expect: 49 file verdi (792 test preesistenti + i nuovi).
+
+      ## Done
+      - [ ] AC-1 — lo zip prodotto ha CRC validi, le parti attese e fogli con i nomi dichiarati (oracolo: asserzioni su `leggiXlsx`)
+      - [ ] Roundtrip di testo, numeri e celle vuote; escape XML; validazioni di ingresso
+      - [ ] Il lettore è riusabile dall'e2e (nessuna dipendenza da Vitest/Playwright)
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Builder dei fogli di esportazione in src/lib/esportazione-fatturazione.ts
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Esiste `costruisciFogliFatturazioneClienti(report, etichettaMese)` che trasforma il report mensile in due `FoglioXlsx` con gli stessi dati e totali mostrati a schermo, senza ricalcoli.
+
+      ## Read
+      - `src/lib/report.ts` — `RisultatoReportFatturazione`, `reportFatturazioneClientiMese`
+      - `src/domain/consuntivi/index.ts` — `ReportFatturazioneClienti`, `VoceClienteReport`, `VoceOffertaReport`, `VoceCollaboratoreOffertaReport` (importi già stringhe `toFixed(2)`)
+      - `src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx` — cosa mostra lo schermo: per offerta tariffa/gg, giornate, imponibile; per cliente giornate totali (somma delle offerte), rimborsi, importo totale; totali mese; dettaglio collaboratori (ore fatturabili, giornate, imponibile)
+      - `src/lib/xlsx.ts` — `Cella`, `FoglioXlsx`
+
+      ## Change
+      - `src/lib/esportazione-fatturazione.ts` — nuovo file, puro (niente `server-only`, niente Prisma). Importare i tipi con `import type`.
+      - Non-goal: nessun arrotondamento o somma di importi (si usano `Number(valoreStringa)` dei valori del report); le uniche somme ammesse sono le giornate del cliente e del mese, come fa lo schermo.
+
+      ## Steps
+      1. Esportare `costruisciFogliFatturazioneClienti(report: RisultatoReportFatturazione, etichettaMese: string): FoglioXlsx[]` e `nomeFileFatturazioneClienti(token: string): string` che restituisce `` `fatturazione-clienti-${token}.xlsx` ``.
+      2. Foglio 1, nome `"Fatturazione clienti"`, `larghezzeColonne: [34, 16, 40, 14, 12, 20, 18, 20]`:
+         - riga 1: `[{ valore: `Fatturazione clienti — ${etichettaMese}`, stile: "grassetto" }]`; riga 2 vuota (`[]`);
+         - riga 3 intestazioni (tutte `grassetto`): `Cliente`, `Codice offerta`, `Descrizione offerta`, `Tariffa/gg`, `Giornate`, `Imponibile manodopera`, `Rimborsi trasferta`, `Totale da fatturare`;
+         - per ogni cliente nell'ordine del report e per ogni offerta nell'ordine del report: `[ragioneSociale, codice, descrizione, {importo tariffaGiornaliera}, {giornate giornateFatturabili}, {importo imponibile}, null, null]`;
+         - dopo le offerte del cliente una riga `[{grassetto `Totale ${ragioneSociale}`}, null, null, null, {giornate: somma giornate offerte del cliente}, {importoGrassetto imponibileManodopera}, {importoGrassetto rimborsiTrasferta}, {importoGrassetto importoTotale}]` (presente anche per clienti di soli rimborsi, con giornate 0);
+         - riga finale `Totale mese`: giornate = somma di tutte le giornate, e `report.totali.imponibileManodopera`, `totaleRimborsi`, `importoTotale` in `importoGrassetto` (presente anche a report vuoto, con zeri).
+      3. Foglio 2, nome `"Dettaglio collaboratori"`, `larghezzeColonne: [34, 16, 30, 16, 12, 16]`: riga 1 titolo `Dettaglio collaboratori — ${etichettaMese}` (grassetto), riga 2 vuota, riga 3 intestazioni `Cliente`, `Codice offerta`, `Collaboratore`, `Ore fatturabili`, `Giornate`, `Imponibile`; poi una riga per ogni `perCollaboratore` di ogni offerta (ore e giornate numeri con stile `giornate`, imponibile `importo`).
+      4. Helper locali non esportati `importo(s: string): Cella` → `{ valore: Number(s), stile: "importo" }` e `giornate(n: number): Cella` → `{ valore: n, stile: "giornate" }`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npx eslint src/lib/esportazione-fatturazione.ts`
+      - Expect: nessun errore né warning.
+
+      ## Done
+      - [ ] AC-2 — il builder usa solo valori del report: tariffe, giornate, imponibili, rimborsi, totali cliente e totali mese presenti a schermo
+      - [ ] AC-2 — il dettaglio collaboratori per offerta è nel secondo foglio
+      - [ ] Il nome file contiene il token del mese
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: 'Unit test del builder: il file contiene gli stessi dati e totali del report'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+      - TASK-02
+    body: |-
+      ## Objective
+      Una suite Vitest prova, cifra per cifra, che i fogli prodotti da `costruisciFogliFatturazioneClienti` (letti dopo `creaXlsx` + `leggiXlsx`) coincidono con il report calcolato dal dominio.
+
+      ## Read
+      - `src/lib/esportazione-fatturazione.ts` — `costruisciFogliFatturazioneClienti`, `nomeFileFatturazioneClienti`
+      - `src/domain/consuntivi/index.ts` — `calcolaReportFatturazioneClienti`, `RigaReportFatturazione`
+      - `tests/unit/report-fatturazione-clienti.test.ts` — helper `riga()` da replicare
+      - `tests/e2e/support/xlsx-lettura.ts` — `leggiXlsx`
+
+      ## Change
+      - `tests/unit/esportazione-fatturazione.test.ts` — nuovo file. Nessun'altra modifica.
+
+      ## Steps
+      1. Helper `riga(modifiche)` come nel test del report (cliente, offerta, collaboratore, ore, fatturabile, rimborso), e helper `esporta(righe, etichetta)` che costruisce `{ token: "2026-05", ...calcolaReportFatturazioneClienti(righe) }`, chiama il builder, `creaXlsx` e `leggiXlsx`, restituendo i due fogli.
+      2. Scenario principale (dominio reale, non fixture a mano): 2 clienti ("Alfa", "Beta"), il primo con 2 offerte e 2 collaboratori (ore 8 e 4, una riga non fatturabile, un rimborso 35.00), il secondo con un'offerta a tariffa 512.50 e ore 2.5 + 5.75. Asserire sul foglio 1: riga titolo `Fatturazione clienti — Maggio 2026`; intestazioni nell'ordine; per ogni offerta tariffa/giornate/imponibile uguali ai valori del report (`Number(...)`); riga `Totale Alfa` con giornate, imponibile manodopera, rimborsi, importo totale uguali al report; riga `Totale mese` uguale a `report.totali`.
+      3. Cliente di soli rimborsi (nessuna riga fatturabile, un rimborso 20.00): compare la riga `Totale {cliente}` con giornate 0, imponibile 0, rimborsi 20, totale 20 e nessuna riga offerta.
+      4. Report vuoto (`[]`): solo titolo, intestazioni e `Totale mese` con quattro valori 0.
+      5. Foglio 2: una riga per collaboratore per offerta con ore, giornate e imponibile uguali a `perCollaboratore` del report, nell'ordine del report.
+      6. Tipi: gli importi sono `number` (non stringhe) nelle celle lette; i testi con `&` nella ragione sociale ("Rossi & Figli") tornano identici.
+      7. `nomeFileFatturazioneClienti("2026-05")` → `fatturazione-clienti-2026-05.xlsx`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/esportazione-fatturazione.test.ts`
+      - Expect: tutti i test passano.
+      - Run: `npx eslint tests/unit/esportazione-fatturazione.test.ts && npx tsc --noEmit`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-2 — oracolo: valori delle celle letti dallo xlsx uguali ai valori di `calcolaReportFatturazioneClienti` per offerte, clienti e totale mese
+      - [ ] AC-2 — casi limite coperti: cliente di soli rimborsi, report vuoto, ragione sociale con `&`
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Route handler GET /report/fatturazione-clienti/esporta
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      `GET /report/fatturazione-clienti/esporta?mese=YYYY-MM` restituisce il file xlsx come download all'amministratore e nega l'accesso a chiunque altro.
+
+      ## Read
+      - `node_modules/next/dist/docs/` — la guida sui Route Handlers (cercare `route.ts`/"route handlers"; questa versione di Next ha differenze rispetto al training: usare solo ciò che la guida conferma)
+      - `src/app/api/attivita/offerte-cliente/route.ts` — schema di gestione errori (`ErroreAutorizzazione`, `console.error`, nessun dettaglio verso il client)
+      - `src/lib/risposta-dati-privati.ts` — `INTESTAZIONI_DATI_PRIVATI`
+      - `src/lib/report.ts` — `reportFatturazioneClientiMese` (chiama `richiediRuoloApi("AMMINISTRATORE")`)
+      - `src/lib/dal.ts` — `ErroreAutorizzazione` (`statusCode: 401 | 403`)
+      - `src/app/(back-office)/report/fatturazione-clienti/page.tsx` — fallback del token mese (`parseTokenMese`, `tokenMeseCorrente`) e `etichettaMese`
+
+      ## Change
+      - `src/app/(back-office)/report/fatturazione-clienti/esporta/route.ts` — nuovo file con `export async function GET(request: NextRequest)`.
+      - Non-goal: nessuna modifica a `src/proxy.ts` o `src/lib/policy-rotte.ts` (il prefisso `/report` è già riservato; la guardia autorevole è `richiediRuoloApi`).
+
+      ## Steps
+      1. Leggere `request.nextUrl.searchParams.get("mese")`; se assente o se `parseTokenMese` è `null` usare `tokenMeseCorrente()` (stesso comportamento della pagina).
+      2. `const report = await reportFatturazioneClientiMese(token)` — la chiamata applica l'autorizzazione e lancia `ErroreAutorizzazione` se il ruolo non è amministratore.
+      3. `const fogli = costruisciFogliFatturazioneClienti(report, etichettaMese(token))`; `const corpo = creaXlsx(fogli)`.
+      4. Rispondere `new Response(new Uint8Array(corpo), { status: 200, headers })` con `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `Content-Disposition: attachment; filename="${nomeFileFatturazioneClienti(token)}"`, `Content-Length` e le `INTESTAZIONI_DATI_PRIVATI`.
+      5. `catch`: se `errore instanceof ErroreAutorizzazione` → `rispostaDatiPrivati({ errore: errore.message }, errore.statusCode)`; altrimenti `console.error("Errore nell'esportazione del report di fatturazione:", errore)` e `rispostaDatiPrivati({ errore: "Errore interno" }, 500)`.
+      6. Dichiarare `export const dynamic = "force-dynamic"` solo se la guida di Next lo richiede per i route handler che leggono cookie; altrimenti non aggiungerlo.
+
+      ## Verify
+      - Run: `npx tsc --noEmit && npx eslint "src/app/(back-office)/report/fatturazione-clienti/esporta/route.ts"`
+      - Expect: exit 0, nessun warning.
+      - Run: `npm run build`
+      - Expect: build riuscita con la route `/report/fatturazione-clienti/esporta` nell'elenco (richiede `DATABASE_URL`; usare `sh scripts/archetipo/ambiente.sh build` con le variabili `ARCHETIPO_*` descritte nella Baseline).
+
+      ## Done
+      - [ ] AC-1 — la route risponde `200` con un xlsx e `Content-Disposition: attachment`
+      - [ ] AC-3 — ogni errore di autorizzazione diventa `401/403` JSON, nessun dettaglio interno nelle `500`
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Unit test della route di esportazione (risposta, mese, errori)
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+      - TASK-02
+    body: |-
+      ## Objective
+      Una suite Vitest prova il contratto HTTP della route: file valido con le intestazioni giuste, fallback del mese, propagazione di 401/403 senza corpo xlsx, 500 opaco.
+
+      ## Read
+      - `src/app/(back-office)/report/fatturazione-clienti/esporta/route.ts` — `GET`
+      - `tests/unit/attivita-giornata-routes.test.ts` — come i test esistenti mockano `@/lib/dal`/moduli e costruiscono `NextRequest`
+      - `tests/e2e/support/xlsx-lettura.ts` — `leggiXlsx`
+      - `src/lib/dal.ts` — `ErroreAutorizzazione`
+
+      ## Change
+      - `tests/unit/esportazione-fatturazione-route.test.ts` — nuovo file. Nessun'altra modifica.
+
+      ## Steps
+      1. `vi.mock("@/lib/report")` limitando il mock a `reportFatturazioneClientiMese` (il writer e il builder restano reali, così il corpo viene davvero prodotto e letto). `ErroreAutorizzazione` si importa reale da `@/lib/dal` solo se il modulo è importabile nei test; altrimenti mockare `@/lib/dal` come fanno i test esistenti, mantenendo una classe `ErroreAutorizzazione` equivalente con `statusCode`.
+      2. Caso 200: il mock restituisce un `RisultatoReportFatturazione` con un cliente; `GET(new NextRequest("http://localhost/report/fatturazione-clienti/esporta?mese=2026-05"))` → `status 200`, `Content-Type` xlsx, `Content-Disposition` contenente `attachment` e `fatturazione-clienti-2026-05.xlsx`, `Cache-Control: private, no-store`; `leggiXlsx(Buffer.from(await risposta.arrayBuffer()))` produce i due fogli e la ragione sociale del cliente compare nel foglio 1; il mock è stato chiamato con `"2026-05"`.
+      3. Mese assente e mese non valido (`2026-13`, `abc`): `reportFatturazioneClientiMese` chiamato con il mese corrente (`tokenMeseCorrente()`) e nome file coerente.
+      4. Autorizzazione: il mock lancia `ErroreAutorizzazione(403, …)` → `status 403`, `Content-Type` JSON, corpo `{ errore }`, **nessun** `Content-Disposition` e nessun `Content-Type` xlsx; stesso per `401`.
+      5. Errore generico (`new Error("boom")`) → `status 500`, corpo `{ errore: "Errore interno" }` che non contiene `boom`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/esportazione-fatturazione-route.test.ts`
+      - Expect: tutti i test passano.
+      - Run: `npm test && npx tsc --noEmit && npx eslint tests/unit/esportazione-fatturazione-route.test.ts`
+      - Expect: tutti i test verdi (≥ 51 file), exit 0.
+
+      ## Done
+      - [ ] AC-1 — oracolo: il corpo della risposta 200 è un xlsx leggibile con intestazioni di download corrette
+      - [ ] AC-3 — oracolo: 401/403 propagati come JSON senza corpo xlsx; 500 senza dettagli interni
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Pulsante "Esporta Excel" nella pagina Fatturazione clienti
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Objective
+      Nella pagina `/report/fatturazione-clienti` l'amministratore vede un pulsante "Esporta Excel" che scarica il file del mese visualizzato.
+
+      ## Read
+      - `src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx` — props (`token` è già nell'interfaccia ma non destrutturato), barra di navigazione del mese e pill di riepilogo (`{!vuoto && …}`)
+      - `src/app/(back-office)/report/fatturazione-clienti/page.tsx` — passa già `token`
+      - `src/app/(back-office)/report/marginalita/report-marginalita.tsx` — stile del pulsante "Applica" per coerenza visiva
+
+      ## Change
+      - `src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx` — destrutturare `token` e aggiungere il link di esportazione. Nessun'altra modifica al componente.
+      - Nessun mockup: è un pulsante aggiunto a un layout esistente (scelta dichiarata nel piano).
+
+      ## Steps
+      1. Destrutturare `token` dalle props.
+      2. Dentro la barra del mese, subito dopo la pill di riepilogo e solo quando `!vuoto`, aggiungere un tag `<a>` (non `Link`: è un file, non una navigazione) con `href={`/report/fatturazione-clienti/esporta?mese=${token}`}`, attributo `download`, testo visibile "Esporta Excel" e `data-testid="esporta-excel"`. Classi come i pulsanti secondari esistenti (`rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-[12.5px] font-semibold … dark:…`), con una piccola icona SVG di download (`aria-hidden="true"`).
+      3. Il contenitore della pill e del link deve restare allineato a destra (`flex items-center gap-3`); non spostare gli altri elementi.
+
+      ## Verify
+      - Run: `npx tsc --noEmit && npm run lint`
+      - Expect: exit 0; solo i warning preesistenti della Baseline.
+      - Run: `sh scripts/archetipo/ambiente.sh e2e tests/e2e/report-fatturazione-clienti.spec.ts` (con le variabili `ARCHETIPO_*` della Baseline)
+      - Expect: i test preesistenti del report restano verdi.
+
+      ## Done
+      - [ ] AC-1 — il pulsante "Esporta Excel" è visibile con dati e punta alla route con il mese corrente della pagina
+      - [ ] Il pulsante non compare nello stato vuoto
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: 'Test e2e Playwright: download, confronto con lo schermo e autorizzazioni'
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-07
+      - TASK-02
+    body: |-
+      ## Objective
+      Un e2e deterministico scarica il file dal browser, lo legge e prova che cliente e totali coincidono con lo schermo; verifica inoltre che collaboratore e utente senza sessione non ottengano il file.
+
+      ## Read
+      - `tests/e2e/README.md` — contratto e2e (factory, mesi riservati, slot esclusivi)
+      - `tests/e2e/report-fatturazione-clienti.spec.ts` — localizzatori e formattatori (`report-client-{id}-rimborsi`, `-totale`, `report-total-imponibile`, `report-total-rimborsi`, `report-total-importo`)
+      - `tests/e2e/support/report-data.ts` — `creaDatasetReportFatturazioneClienti(factory, { codiceSpec })`, `dataset.atteso`
+      - `tests/e2e/support/date.ts` — `SLOT_MESI_RISERVATI_ESCLUSIVI`
+      - `tests/e2e/autorizzazione-ruoli.spec.ts` — come si fanno richieste HTTP autenticate/anonime
+      - `tests/e2e/support/auth.ts` — `accediComeAdmin`, `accediComeCollaboratore`
+      - `tests/e2e/support/xlsx-lettura.ts` — `leggiXlsx`
+
+      ## Change
+      - `tests/e2e/support/date.ts` — aggiungere alla mappa `SLOT_MESI_RISERVATI_ESCLUSIVI` la chiave `"US-018-ESPORTAZIONE-FATTURAZIONE": 7` (7 è il primo slot libero: la mappa arriva a 6; se nel frattempo un'altra spec ha preso 7, usare il primo intero non presente; il blocco di controllo duplicati in fondo alla mappa deve restare verde).
+      - `tests/e2e/esportazione-fatturazione.spec.ts` — nuovo file. Importare `test, expect` da `./support/fixtures`.
+      - Non modificare entità del seed (Giulia Conti, TechSolutions, DataFlow).
+
+      ## Steps
+      1. `const CODICE_SPEC = "US-018-ESPORTAZIONE-FATTURAZIONE"` passato come **letterale** o costante risolvibile a `creaDatasetReportFatturazioneClienti(factory, { codiceSpec: CODICE_SPEC })` (mese = `dataset.mese`, 1 mese indietro nello slot esclusivo).
+      2. Test "scarica il file con gli stessi dati dello schermo" (AC-1, AC-2): `accediComeAdmin(page)`; `page.goto(`/report/fatturazione-clienti?mese=${dataset.mese}`)`; leggere dallo schermo con i testid: `report-client-{cliente.id}-rimborsi`, `report-client-{cliente.id}-totale`, `report-total-imponibile`, `report-total-rimborsi`, `report-total-importo` (testo formattato euro `it-IT`; convertire con una funzione locale che toglie `€`, spazi e punti migliaia e sostituisce la virgola con il punto, poi `Number`).
+         Poi `const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("esporta-excel").click()])`; asserire `download.suggestedFilename() === `fatturazione-clienti-${dataset.mese}.xlsx``; `leggiXlsx(await fs.readFile(await download.path()))`.
+         Asserire sul foglio "Fatturazione clienti": esiste una riga la cui colonna A è `Totale {ragioneSociale del cliente}` con rimborsi e totale uguali a quelli letti a schermo; la riga `Totale mese` ha imponibile, rimborsi e totale uguali ai `report-total-*` letti a schermo; esiste la riga offerta con `dataset.offerta.codice` e imponibile uguale a `dataset.atteso.perCliente[0].perOfferta[0].totali.imponibile`. Il foglio "Dettaglio collaboratori" contiene i due collaboratori del dataset (cognome dei `dataset.collaboratori`).
+      3. Test "la richiesta del collaboratore è negata" (AC-3): `accediComeCollaboratore(page, collaboratore.utente.email)` con la fixture `collaboratore`; `const risposta = await page.request.get(`/report/fatturazione-clienti/esporta?mese=${mese}`)`; asserire `status() === 403` e che `headers()["content-type"]` non contenga `spreadsheetml`.
+      4. Test "senza sessione si viene reindirizzati" (AC-3): contesto senza cookie, `request.get(url, { maxRedirects: 0 })` → status 3xx e `location` che termina con `/` (radice), nessun xlsx.
+      5. Nessun `waitForTimeout`, nessun selettore di classi Tailwind, nessun `selectOption({ index })`; ruoli/testid/label.
+
+      ## Verify
+      - Run (variabili `ARCHETIPO_*` della Baseline): `sh scripts/archetipo/ambiente.sh e2e tests/e2e/esportazione-fatturazione.spec.ts --retries=0`
+      - Expect: 3 test passati.
+      - Run: `sh scripts/archetipo/ambiente.sh e2e tests/e2e/esportazione-fatturazione.spec.ts tests/e2e/report-fatturazione-clienti.spec.ts --repeat-each=3`
+      - Expect: tutti passati (nessuna dipendenza dall'ordine o da dati condivisi).
+      - Run: `npm run lint`
+      - Expect: exit 0, nessun nuovo warning oltre a quelli della Baseline.
+
+      ## Done
+      - [ ] AC-1 — il click su "Esporta Excel" produce un download `fatturazione-clienti-{mese}.xlsx` leggibile con i due fogli
+      - [ ] AC-2 — oracolo: cliente (rimborsi, totale), riga offerta e "Totale mese" del file uguali ai valori `report-client-*`/`report-total-*` mostrati a schermo nello stesso test
+      - [ ] AC-3 — collaboratore: 403 senza xlsx; senza sessione: redirect alla radice
+
+      ## Blockers
+      None.
+    ref: TASK-08
+  - id: TASK-09
+    title: Gate finale — verifiche complete e controllo stato task prima della review
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+    body: |-
+      ## Objective
+      Tutte le verifiche di accettazione e di regressione passano senza nuovi fallimenti rispetto alla baseline e ogni task della spec è `DONE` prima di chiedere la review.
+
+      ## Read
+      - `.github/workflows/ci.yml` — sequenza CI (install, migrate, seed, lint, unit, build, e2e)
+      - Sezione "Baseline" del piano — confini preesistenti (7 e2e sui temi, warning lint, prerequisiti `ARCHETIPO_*`)
+
+      ## Change
+      - Nessuna modifica al codice. Se un controllo fallisce, correggere nel task che ha introdotto il problema e rieseguire questo gate.
+
+      ## Steps
+      1. `npx tsc --noEmit`
+      2. `npm run lint`
+      3. `npm test`
+      4. `sh scripts/archetipo/ambiente.sh build` (variabili `ARCHETIPO_*` della Baseline)
+      5. `sh scripts/archetipo/ambiente.sh e2e tests/e2e/esportazione-fatturazione.spec.ts tests/e2e/report-fatturazione-clienti.spec.ts tests/e2e/anagrafica-clienti.spec.ts`
+      6. `sh scripts/archetipo/ambiente.sh e2e` (suite completa, foreground)
+      7. Verificare che `git diff --stat -- package.json package-lock.json` sia vuoto.
+      8. Marcare questo task `DONE`.
+      9. Da `data.project_root` eseguire `archetipo spec show US-018` e verificare che nessun task risulti `TODO`; solo allora eseguire `archetipo spec review US-018`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npm run lint`
+      - Expect: exit 0, solo i warning preesistenti della Baseline.
+      - Run: `npm test`
+      - Expect: tutti verdi (≥ 51 file; 792 test preesistenti + i nuovi).
+      - Run: `sh scripts/archetipo/ambiente.sh build`
+      - Expect: build riuscita con la route `/report/fatturazione-clienti/esporta`.
+      - Run: `sh scripts/archetipo/ambiente.sh e2e`
+      - Expect: nessun fallimento oltre ai 7 preesistenti sui temi (`temi.spec.ts`, `demo__temi-chiaro-scuro-browser.spec.ts`); i 3 test nuovi passano.
+      - Run (da `data.project_root`): `archetipo spec show US-018`
+      - Expect: tutti i task `DONE`.
+
+      ## Done
+      - [ ] AC-1 — evidenza unit (TASK-02, TASK-06) ed e2e (TASK-08) verde
+      - [ ] AC-2 — evidenza unit (TASK-04) ed e2e di confronto con lo schermo (TASK-08) verde
+      - [ ] AC-3 — evidenza unit di route (TASK-06) ed e2e 403/redirect (TASK-08) verde
+      - [ ] Lint, type-check, unit, build ed e2e senza nuove diagnostiche rispetto alla baseline; `package.json` e lockfile invariati
+      - [ ] `archetipo spec show US-018` mostra tutti i task `DONE` prima di `archetipo spec review US-018`
+
+      ## Blockers
+      None.
+    ref: TASK-09

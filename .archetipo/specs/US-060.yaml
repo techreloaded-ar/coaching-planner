@@ -1,0 +1,47 @@
+schema: archetipo/spec/v2
+code: US-060
+title: Collegamento e scollegamento del Google Calendar del collaboratore
+epic:
+  code: EP-006
+  title: voglio fare in modo che il coaching planner possa essere collegato al ca…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  #### US-001: Collegamento e scollegamento del Google Calendar del collaboratore
+
+  **Epic:** EP-001 | **Priorità:** HIGH | **Punti:** 5 | **Stato:** TODO
+  **Bloccata da:** -
+
+  **Storia Utente**
+  Come collaboratore,
+  voglio collegare in sola lettura il mio Google Calendar al coaching planner e poterlo scollegare quando voglio,
+  così da autorizzare consapevolmente l'uso dei miei impegni per la proposta delle ore.
+
+  **Dimostrazione**
+  Il revisore entra come collaboratore nell'area attività e vede lo stato «Calendario Google non collegato» con il pulsante «Collega Google Calendar». Cliccandolo passa dal consenso Google (simulato nell'ambiente di test) e torna all'area attività dove vede «Calendario Google collegato». Clicca «Scollega» e lo stato torna «non collegato». Un secondo collaboratore, nel frattempo, vede sempre il proprio stato e mai quello del primo.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Nell'area attività un collaboratore attivo vede lo stato del collegamento del proprio calendario e l'azione coerente («Collega Google Calendar» o «Scollega»)
+  - [ ] AC-2 — Il collegamento richiede a Google il solo permesso di lettura del calendario, separato dal login, e al ritorno dal consenso lo stato risulta «collegato»
+  - [ ] AC-3 — Se il collaboratore nega il consenso o il ritorno da Google non è valido (state errato o assente), resta «non collegato» con un messaggio comprensibile e nessun dato salvato
+  - [ ] AC-4 — Il token di rinnovo del calendario è salvato cifrato a database e non è mai esposto al browser
+  - [ ] AC-5 — «Scollega» rimuove il token salvato e lo stato torna «non collegato»; un nuovo collegamento è poi possibile
+  - [ ] AC-6 — Ogni collaboratore vede e gestisce solo il proprio collegamento; un utente non collaboratore o non autenticato riceve il rifiuto previsto (redirect o 401/403)
+  - [ ] AC-7 — Login e accesso esistenti con Google continuano a funzionare invariati
+
+  **Out of Scope**
+  Scelta di calendari secondari; scrittura sul calendario; revoca del consenso lato Google oltre alla rimozione locale del token.
+
+  **Wiki context**
+  `domains/identita-accesso` · `domains/attivita`
+
+  <!-- archetipo-increment:inc-d3eac2dc995a8b64:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/1
+history:
+  - status: TODO
+    at: "2026-10-26T13:27:19Z"
+  - status: DONE
+    at: "2026-10-26T13:34:18Z"

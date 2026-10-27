@@ -1,8 +1,8 @@
 connector: file
 paths:
     prd: docs/PRD.md
-    mockups: docs/mockups/
     wiki: docs/wiki/
+    mockups: docs/mockups/
     test_results: docs/test-results/
 workflow:
     statuses:
@@ -16,10 +16,24 @@ file:
     planning: .archetipo/plans/
 github: {}
 jira: {}
+wiki:
+    enabled: false
 worktree:
-    enabled: true
+    enabled: false
     base: main
     dir: .archetipo/worktrees
     branch_prefix: archetipo/
 e2e:
     record_demo_video: true
+git:
+    auto_commit: false
+execution:
+    default_provider:
+        id: claude
+        config:
+            effort: high
+            model: opus
+            permission_profile: full_access
+template:
+    id: fabbrica-del-software
+    version: 1.0.0

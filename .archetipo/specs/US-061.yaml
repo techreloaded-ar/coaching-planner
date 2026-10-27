@@ -1,0 +1,49 @@
+schema: archetipo/spec/v2
+code: US-061
+title: Proposte di ore dagli impegni del calendario nella giornata
+epic:
+  code: EP-006
+  title: voglio fare in modo che il coaching planner possa essere collegato al ca…
+priority: HIGH
+points: 3
+status: DONE
+blocked_by:
+  - US-060
+scope: MVP
+body: |-
+  #### US-002: Proposte di ore dagli impegni del calendario nella giornata
+
+  **Epic:** EP-001 | **Priorità:** HIGH | **Punti:** 3 | **Stato:** TODO
+  **Bloccata da:** US-001
+
+  **Storia Utente**
+  Come collaboratore con il calendario collegato,
+  voglio che aprendo una giornata il coaching planner mi mostri gli impegni di quel giorno come proposte di ore,
+  così da non dover ricostruire a memoria come ho passato la giornata.
+
+  **Dimostrazione**
+  Con un calendario di test che contiene, per una data, una riunione 9:00–10:30, un workshop 14:00–17:00, un evento di intera giornata e un evento rifiutato, il revisore apre quella giornata come collaboratore collegato e vede una sezione «Proposte dal calendario» con due proposte: «Riunione» 1,5 ore e «Workshop» 3 ore, ciascuna con il titolo dell'evento come nota e l'orario. Gli eventi di intera giornata e rifiutati non compaiono. Aprendo la stessa giornata con un collaboratore non collegato, la sezione non compare e il form manuale funziona come oggi.
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Aprendo una giornata con calendario collegato, compare la sezione «Proposte dal calendario» con una proposta per ogni evento del giorno nel calendario principale del collaboratore
+  - [ ] AC-2 — Ogni proposta mostra titolo dell'evento, orario e ore pari alla durata arrotondata al quarto d'ora, con un massimo di 24
+  - [ ] AC-3 — Eventi di intera giornata, eventi rifiutati dal collaboratore ed eventi di durata nulla non generano proposte
+  - [ ] AC-4 — Il giorno è calcolato nel fuso orario Europe/Rome, così un evento serale non finisce sul giorno successivo
+  - [ ] AC-5 — Se Google non risponde o il collegamento non è più valido, la giornata mostra un avviso («Impossibile leggere il calendario, prova a ricollegarlo») e l'inserimento manuale resta pienamente disponibile
+  - [ ] AC-6 — Senza calendario collegato la giornata si comporta esattamente come oggi
+  - [ ] AC-7 — Le proposte sono calcolate solo sugli eventi del collaboratore autenticato e non sono mai visibili ad altri utenti
+
+  **Out of Scope**
+  Associazione a cliente/offerta (US-003); conferma, modifica e rifiuto (US-004); proposte su più giorni.
+
+  **Wiki context**
+  `domains/attivita` · `decisions/cache-client-calendario-collaboratore`
+
+  <!-- archetipo-increment:inc-d3eac2dc995a8b64:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/1
+history:
+  - status: TODO
+    at: "2026-10-26T13:27:19Z"
+  - status: DONE
+    at: "2026-10-26T13:34:18Z"

@@ -1,0 +1,313 @@
+schema: archetipo/plan/v2
+spec_code: US-017
+body: "# US-017: Analisi della marginalità per cliente e offerta — Piano di implementazione\n\n**Generato da:** ARchetipo Planning Team\n**Data:** 2026-10-27\n\n---\n\n## Spec\n\n**Epic:** EP-005 — Evoluzioni Post-MVP\n**Priorità:** MEDIUM | **Punti:** 5\n\n**Storia Utente**\nCome Stefano, amministratore, voglio confrontare per periodo i ricavi dai clienti con i costi dei collaboratori, per cliente e per offerta, così da capire dove l'azienda guadagna davvero e governare il business con i numeri.\n\n**Criteri di Accettazione**\n- AC-1 — L'amministratore seleziona un periodo e ottiene ricavi, costi e margine per cliente\n- AC-2 — Il dettaglio per offerta mostra ricavi, costi e margine della singola offerta\n- AC-3 — Ricavi e costi sono coerenti con i valori dei report mensili esistenti a parità di dati\n- AC-4 — I margini negativi sono evidenziati visivamente\n\n---\n\n## Soluzione Tecnica\n\nNuova pagina back-office `/report/marginalita`, solo amministratore, costruita sullo stesso schema del report \"Fatturazione clienti\": funzione pura di dominio in `src/domain/consuntivi`, lettura Prisma in `src/lib/report.ts`, Server Component per la pagina. Nessuna modifica allo schema dati, nessuna nuova dipendenza.\n\n- **Periodo:** intervallo di mesi interi, query string `?da=YYYY-MM&a=YYYY-MM`, selezionato con un form GET con due `<input type=\"month\">` nativi (\"Dal mese\", \"Al mese\") e pulsante \"Applica\". Default: mese corrente su entrambi. Valori mancanti o non validi ricadono sul mese corrente; se `da > a` i due valori vengono scambiati (confronto lessicografico dei token `YYYY-MM`). La normalizzazione è una funzione pura `normalizzaPeriodoMesi(daRaw, aRaw, tokenCorrente)` in `src/domain/calendario/index.ts`.\n- **Ricavi** = giornate fatturabili × tariffa giornaliera dell'**offerta** (identico a `imponibileManodopera` del report fatturazione clienti). **Costi** = giornate fatturabili × tariffa giornaliera del **collaboratore** autore della riga (identico a `breakdown.imponibileManodopera` del riepilogo mensile collaboratore, che paga le sole giornate fatturabili). Giornate = ore / `ORE_PER_GIORNATA` (8). Le righe non fatturabili e i rimborsi trasferta sono esclusi da ricavi e costi: i rimborsi sono un ribaltamento passante (incassati dal cliente, pagati al collaboratore) e non contribuiscono al margine.\n- **Arrotondamento:** ricavi e costi sono accumulati non arrotondati e formattati con `toFixed(2)` a ogni livello (offerta, cliente, totale), come fa `calcolaReportFatturazioneClienti`: così a parità di dati il ricavo cliente di un mese coincide al centesimo con l'imponibile manodopera del report fatturazione (AC-3). Il **margine** è calcolato in centesimi interi dagli importi già arrotondati (`Math.round(Number(x.toFixed(2)) * 100)`), così `ricavi − costi = margine` è sempre verificabile a vista. `marginePercentuale = margineCentesimi / ricaviCentesimi` (`null` se ricavi = 0). `margineNegativo = margineCentesimi < 0`.\n- **Dominio:** `calcolaMarginalitaClienti(righe: RigaMarginalita[]): ReportMarginalita` in `src/domain/consuntivi/index.ts`, accanto a `calcolaReportFatturazioneClienti`. Clienti ordinati per ragione sociale (`localeCompare`), offerte per codice; voci con zero giornate fatturabili omesse.\n- **Lettura dati:** `reportMarginalitaPeriodo(da, a)` in `src/lib/report.ts`, con `richiediRuoloApi(\"AMMINISTRATORE\")`, filtro `fatturabile: true` e intervallo `new Date(annoDa, meseDa - 1, 1)` … `new Date(annoA, meseA, 0)` (stessa costruzione dei confini mese del report fatturazione, per coerenza AC-3). Tariffe passate al dominio come stringhe (`Decimal.toString()`).\n- **UI:** Server Component senza stato client (nessun `\"use client\"`): card per cliente con ricavi/costi/margine e tabella offerte sempre visibile; barra totali del periodo; stato vuoto \"Nessuna attività fatturabile nel periodo selezionato.\". Margine negativo evidenziato con testo rosso **e** badge testuale \"Margine negativo\" (non solo colore, accessibile). Nuova voce sidebar \"Marginalità\" dopo \"Fatturazione clienti\". Layout da `docs/mockups/US-017/`; la barra proporzionale ricavi/costi del mockup è fuori perimetro (non richiesta dagli AC).\n- **Autorizzazione:** il prefisso `/report` è già riservato all'amministratore in `src/lib/policy-rotte.ts`; la pagina chiama comunque `richiediRuolo(\"AMMINISTRATORE\")` come le altre pagine report.\n\n**Limite noto (assunzione):** la tariffa collaboratore non ha storico, quindi i costi usano la tariffa corrente anche per periodi passati. È lo stesso comportamento del riepilogo mensile collaboratore, quindi AC-3 resta soddisfatto; uno storico tariffe è fuori perimetro.\n\n### Decisioni Architetturali\n\nNessuna ADR: la soluzione riusa il pattern consolidato dei report (funzione pura di dominio + lettura Prisma in `src/lib/report.ts` + Server Component) senza toccare modello dati, sicurezza, integrazioni o politiche trasversali. La scelta \"rimborsi esclusi dal margine\" è una regola di calcolo locale del report, documentata qui e nei test.\n\n---\n\n## Baseline\n\n| Check | Risultato prima dell'implementazione | Conseguenza per il piano |\n|---|---|---|\n| `npm run lint` | Passa (exit 0); guardrail e2e \"passed\" con 4 warning preesistenti \"chiave riservata non risolvibile staticamente\" in `tests/e2e/support/date.ts` e `tests/e2e/support/report-data.ts` | Nessun nuovo warning ammesso: nei nuovi test passare a `mesePassatoRiservato`/`dataNelMesePassatoRiservato` sempre una costante stringa letterale |\n| `npm test` | Passa: 47 file, 777 test | Le verifiche richiedono tutti i test esistenti verdi più i nuovi |\n| `npx tsc --noEmit` | Passa (exit 0) **dopo** `npx prisma generate`; senza rigenerare il client fallisce con TS2339 su `eventoCalendarioGestito`/`collegamentoCalendarioGoogle` (client Prisma generato non aggiornato) | Prerequisito d'ambiente, non bug di codice: ogni verifica di tipo esegue prima `npx prisma generate` |\n| `npm run build` / `npm run test:e2e` | Non eseguiti in planning (richiedono DB Postgres e2e) | Eseguiti nel gate finale; prerequisito: Postgres attivo con `DATABASE_URL`/`E2E_DATABASE_URL` configurati come in `.github/workflows/ci.yml` |\n\n**Prerequisiti d'ambiente:** `npm ci`, `npx prisma generate`, database Postgres raggiungibile con migrazioni applicate (`npx prisma migrate deploy`) per build ed e2e.\n\n---\n\n## Mappa delle Evidenze di Accettazione\n\n| Criterio | Stato iniziale / fixture | Livello di test | Oracolo osservabile | Task |\n|---|---|---|---|---|\n| AC-1 | Righe sintetiche di due clienti; e2e: cliente+2 offerte+collaboratore creati dalla factory in due mesi riservati contigui | Unit + E2E | Unit: `perCliente[i].ricavi/costi/margine` attesi. E2E: dopo aver compilato \"Dal mese\"/\"Al mese\" e cliccato \"Applica\", la card `marginalita-cliente-{clienteId}` mostra `1.200,00 €`, `1.000,00 €`, `200,00 €` | TASK-02, TASK-05 |\n| AC-2 | Come sopra | Unit + E2E | Unit: `perOfferta[j]` con ricavi/costi/margine/giornate attesi. E2E: riga `marginalita-offerta-{offertaId}` mostra `900,00 €`/`600,00 €`/`300,00 €` per l'offerta A e `300,00 €`/`400,00 €`/`-100,00 €` per l'offerta B | TASK-02, TASK-05 |\n| AC-3 | Stesse righe date a `calcolaReportFatturazioneClienti` e `calcolaRiepilogoMese`; e2e: stesso mese aperto nei due report | Unit + E2E | Unit: `ricavi` cliente/offerta === `imponibileManodopera`/`imponibile` del report fatturazione; `costi` di un collaboratore === `breakdown.imponibileManodopera` del riepilogo mensile. E2E: per il mese 2 la card marginalità mostra ricavi `600,00 €` e il report fatturazione mostra per lo stesso cliente \"da fatturare 600,00 €\" | TASK-02, TASK-05 |\n| AC-4 | Offerta con tariffa offerta < tariffa collaboratore | Unit + E2E | Unit: `margineNegativo === true` solo dove margine < 0. E2E: la riga dell'offerta B contiene il testo \"Margine negativo\"; la riga A e la card cliente (margine positivo) non lo contengono | TASK-02, TASK-05 |\n\n---\n\n## Strategia di Test\n\nLa logica economica sta interamente nella funzione pura di dominio, testata a fondo con Vitest; l'e2e Playwright prova il flusso reale amministratore (sidebar → form periodo → card) attraverso route server, autorizzazione e persistenza.\n\n- Unit (`tests/unit/marginalita-clienti.test.ts`): aggregazione per cliente/offerta, esclusione righe non fatturabili, margine negativo, percentuale con ricavi zero, ordinamenti, arrotondamento al centesimo, coerenza diretta con `calcolaReportFatturazioneClienti` e `calcolaRiepilogoMese` sugli stessi input (AC-3).\n- Unit (stesso file): `normalizzaPeriodoMesi` — default al mese corrente, token non validi, scambio `da > a`.\n- E2E (`tests/e2e/report-marginalita.spec.ts`): dati creati solo con la factory (`tests/e2e/support/fixtures.ts`), mesi da `mesePassatoRiservato` con chiave letterale non esclusiva; tutte le asserzioni sono confinate al `data-testid` del cliente creato dal test, quindi non serve uno slot in `SLOT_MESI_RISERVATI_ESCLUSIVI` (nessuna asserzione sui totali globali del periodo).\n\n### Test E2E — Simulazione utente\n\n**Framework:** Playwright (già configurato, `playwright.config.ts`, fixture in `tests/e2e/support/`)\n**Video demo:** previsto e filmabile (registrato poi da `archetipo-review`, non durante l'implementazione)\n\n| Scenario | Flusso utente |\n|---|---|\n| Marginalità su periodo di due mesi | L'amministratore apre \"Marginalità\" dalla sidebar, imposta \"Dal mese\" = mese 1 e \"Al mese\" = mese 2, clicca \"Applica\" e legge ricavi, costi e margine del cliente e delle due offerte, con il badge \"Margine negativo\" solo sull'offerta in perdita |\n| Coerenza con il report fatturazione | Per il solo mese 2 confronta i ricavi del cliente nella pagina marginalità con l'importo da fatturare nel report \"Fatturazione clienti\" |\n\n---\n\n## Impatto Wiki\n\n```yaml\nwiki_impact:\n  read: []\n  update: []\n  create: []\n```\n\nLa Wiki non è abilitata in `.archetipo/config.yaml` (`wiki.enabled: false`): nessun impatto documentale contrattuale.\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-017/`\n\n_Piano generato con ARchetipo Planning — 2026-10-27_"
+tasks:
+  - id: TASK-01
+    title: Funzioni di dominio calcolaMarginalitaClienti e normalizzaPeriodoMesi
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste una funzione pura `calcolaMarginalitaClienti` che aggrega righe attività fatturabili in ricavi, costi e margine per cliente e per offerta, e una funzione pura `normalizzaPeriodoMesi` che produce un intervallo di mesi valido.
+
+      ## Read
+      - `src/domain/consuntivi/index.ts` — `calcolaReportFatturazioneClienti` (struttura accumulatori, ordinamenti, `toFixed(2)` per livello) e `calcolaRiepilogoMese` (costo collaboratore = giornate fatturabili × tariffa)
+      - `src/domain/types.ts` — `ORE_PER_GIORNATA`
+      - `src/domain/calendario/index.ts` — `parseTokenMese`, `formattaTokenMese`, `etichettaMese`
+
+      ## Change
+      - `src/domain/consuntivi/index.ts` — aggiungere in fondo alla sezione "Report fatturazione clienti" una nuova sezione `// ── Marginalità clienti e offerte ──` con tipi e funzione sotto descritti. Non modificare le funzioni esistenti.
+      - `src/domain/calendario/index.ts` — aggiungere `normalizzaPeriodoMesi`. Non modificare le funzioni esistenti.
+      - Non-goal: nessun accesso a Prisma/Next, nessun calcolo dei rimborsi trasferta.
+
+      ## Steps
+      1. In `src/domain/consuntivi/index.ts` esportare:
+         ```ts
+         export interface RigaMarginalita {
+           clienteId: string; clienteRagioneSociale: string;
+           offertaId: string; offertaCodice: string; offertaDescrizione: string;
+           tariffaOffertaGiornaliera: string | number;
+           tariffaCollaboratoreGiornaliera: string | number;
+           ore: number; fatturabile: boolean;
+         }
+         export interface ImportiMarginalita {
+           giornateFatturabili: number;
+           ricavi: string; costi: string; margine: string;
+           marginePercentuale: number | null; margineNegativo: boolean;
+         }
+         export interface VoceOffertaMarginalita extends ImportiMarginalita { offertaId: string; offertaCodice: string; offertaDescrizione: string; }
+         export interface VoceClienteMarginalita extends ImportiMarginalita { clienteId: string; clienteRagioneSociale: string; perOfferta: VoceOffertaMarginalita[]; }
+         export interface ReportMarginalita { perCliente: VoceClienteMarginalita[]; totali: ImportiMarginalita; }
+         ```
+      2. Scrivere un helper locale non esportato `importiMarginalita(oreFatturabili: number, ricaviGrezzi: number, costiGrezzi: number): ImportiMarginalita`: `ricavi = ricaviGrezzi.toFixed(2)`, `costi = costiGrezzi.toFixed(2)`, `centesimi = (x: string) => Math.round(Number(x) * 100)`, `margineCentesimi = centesimi(ricavi) - centesimi(costi)`, `margine = (margineCentesimi / 100).toFixed(2)`, `marginePercentuale = centesimi(ricavi) > 0 ? margineCentesimi / centesimi(ricavi) : null`, `margineNegativo = margineCentesimi < 0`, `giornateFatturabili = oreFatturabili / ORE_PER_GIORNATA`.
+      3. Implementare `export function calcolaMarginalitaClienti(righe: RigaMarginalita[]): ReportMarginalita` con JSDoc in italiano: ignora le righe con `fatturabile === false`; per ogni riga `giornate = ore / ORE_PER_GIORNATA`, accumula per cliente → offerta `oreFatturabili += ore`, `ricaviGrezzi += giornate * Number(tariffaOffertaGiornaliera)`, `costiGrezzi += giornate * Number(tariffaCollaboratoreGiornaliera)` (tariffe non finite → 0). I grezzi del cliente sono la somma dei grezzi delle sue offerte; i totali la somma dei grezzi dei clienti. Applicare `importiMarginalita` a ogni livello. Ordinare clienti per `clienteRagioneSociale.localeCompare`, offerte per `offertaCodice.localeCompare`. Omettere offerte/clienti con zero ore fatturabili. Con input vuoto restituire `perCliente: []` e totali a zero (`"0.00"`, `marginePercentuale: null`, `margineNegativo: false`).
+      4. In `src/domain/calendario/index.ts` esportare con JSDoc `normalizzaPeriodoMesi(daRaw: string | undefined, aRaw: string | undefined, tokenCorrente: string): { da: string; a: string }`: ogni valore non valido per `parseTokenMese` (o `undefined`) diventa `tokenCorrente`; se `da > a` (confronto stringa) scambiarli.
+
+      ## Verify
+      - Run: `npx prisma generate && npx tsc --noEmit`
+      - Expect: exit 0 (baseline verde dopo `prisma generate`).
+      - Run: `npm test`
+      - Expect: 47 file / 777 test ancora verdi (nessuna regressione).
+      - Run: `npx eslint src/domain/consuntivi/index.ts src/domain/calendario/index.ts`
+      - Expect: nessun errore né warning.
+
+      ## Done
+      - [ ] AC-1 — `calcolaMarginalitaClienti` restituisce ricavi, costi e margine per cliente
+      - [ ] AC-2 — ogni cliente ha `perOfferta` con ricavi, costi e margine per offerta
+      - [ ] AC-3 — ricavi calcolati con tariffa offerta e costi con tariffa collaboratore sulle sole giornate fatturabili, arrotondati come nei report mensili esistenti
+      - [ ] AC-4 — `margineNegativo` valorizzato a ogni livello
+      - [ ] `normalizzaPeriodoMesi` esportata
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Test unitari di marginalità, coerenza con i report mensili e periodo
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Una suite Vitest prova i valori di ricavi/costi/margine, l'evidenza del margine negativo, la coerenza al centesimo con i report mensili esistenti e la normalizzazione del periodo.
+
+      ## Read
+      - `tests/unit/report-fatturazione-clienti.test.ts` — helper `riga(modifiche)` e stile dei test
+      - `src/domain/consuntivi/index.ts` — `calcolaMarginalitaClienti`, `calcolaReportFatturazioneClienti`, `calcolaRiepilogoMese`, `RigaReportFatturazione`, `RigaRiepilogo`
+      - `src/domain/calendario/index.ts` — `normalizzaPeriodoMesi`
+
+      ## Change
+      - `tests/unit/marginalita-clienti.test.ts` — nuovo file. Nessun'altra modifica.
+
+      ## Steps
+      1. Creare un helper `riga(modifiche: Partial<RigaMarginalita> = {})` con default: cliente `cliente-1`/"Cliente Uno", offerta `offerta-1`/"OFF-001", tariffa offerta 600, tariffa collaboratore 400, ore 8, fatturabile true.
+      2. Test "report vuoto": `calcolaMarginalitaClienti([])` → `perCliente: []`, totali `"0.00"`, `marginePercentuale: null`, `margineNegativo: false`.
+      3. Test AC-1/AC-2: cliente con offerta A (600) 12 ore e offerta B (300) 8 ore, collaboratore 400 → offerta A `ricavi "900.00"`, `costi "600.00"`, `margine "300.00"`, `giornateFatturabili 1.5`; offerta B `"300.00"`/`"400.00"`/`"-100.00"`; cliente `"1200.00"`/`"1000.00"`/`"200.00"`, `marginePercentuale` ≈ 0.1667 (`toBeCloseTo(1/6, 4)`).
+      4. Test esclusioni: una riga `fatturabile: false` non cambia alcun importo; un'offerta con sole righe non fatturabili non compare in `perOfferta`.
+      5. Test AC-4: `margineNegativo` true solo sull'offerta B, false sul cliente e sui totali dello scenario del punto 3; true sul cliente quando tutte le sue offerte sono in perdita.
+      6. Test ordinamento: clienti per ragione sociale, offerte per codice.
+      7. Test arrotondamento: 1 ora a tariffa offerta 333.35 e collaboratore 111.15 → `ricavi "41.67"`, `costi "13.89"`, `margine "27.78"` (margine = differenza degli importi arrotondati).
+      8. Test AC-3 ricavi: costruire righe di due collaboratori su due offerte di due clienti; mappare le stesse righe in `RigaReportFatturazione` (`tariffaOffertaGiornaliera` uguale, `rimborsoTrasfertaImporto: null`) e asserire che per ogni cliente `ricavi === imponibileManodopera` e per ogni offerta `ricavi === imponibile` di `calcolaReportFatturazioneClienti`; includere ore frazionarie (es. 2.5, 5.75) e una tariffa non tonda (512.5).
+      9. Test AC-3 costi: per ciascun collaboratore, le sue righe mappate in `RigaRiepilogo` → `calcolaRiepilogoMese(righe, tariffa).breakdown.imponibileManodopera` deve essere uguale a `calcolaMarginalitaClienti(righeDelCollaboratore).totali.costi`.
+      10. Test `normalizzaPeriodoMesi`: `(undefined, undefined, "2026-10")` → `{da:"2026-10", a:"2026-10"}`; `("xx", "2026-13", "2026-10")` → mese corrente; `("2026-05", "2026-02", c)` → `{da:"2026-02", a:"2026-05"}`; `("2025-12", "2026-01", c)` invariato.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/marginalita-clienti.test.ts`
+      - Expect: tutti i test passano.
+      - Run: `npm test`
+      - Expect: 48 file verdi (777 test preesistenti + i nuovi).
+
+      ## Done
+      - [ ] AC-1 — asserzioni su ricavi/costi/margine per cliente
+      - [ ] AC-2 — asserzioni su ricavi/costi/margine per offerta
+      - [ ] AC-3 — uguaglianza al centesimo con `calcolaReportFatturazioneClienti` (ricavi) e `calcolaRiepilogoMese` (costi) sugli stessi input
+      - [ ] AC-4 — asserzioni su `margineNegativo` a livello offerta, cliente e totali
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Lettura dati reportMarginalitaPeriodo in src/lib/report.ts
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il server espone `reportMarginalitaPeriodo(da, a)`, riservata all'amministratore, che legge le righe attività fatturabili del periodo e restituisce un report di marginalità serializzabile.
+
+      ## Read
+      - `src/lib/report.ts` — `reportFatturazioneClientiMese` (guardia `richiediRuoloApi`, costruzione date `inizio`/`fine`, mapping `Decimal.toString()`)
+      - `src/domain/consuntivi/index.ts` — `RigaMarginalita`, `ReportMarginalita`, `calcolaMarginalitaClienti`
+      - `src/domain/calendario/index.ts` — `parseTokenMese`
+      - `prisma/schema.prisma` — `RigaAttivita`, `Collaboratore.tariffaGiornaliera`, `Offerta.tariffaGiornaliera`
+
+      ## Change
+      - `src/lib/report.ts` — aggiungere l'interfaccia `RisultatoReportMarginalita extends ReportMarginalita { da: string; a: string }` e la funzione `reportMarginalitaPeriodo`. Non modificare `reportFatturazioneClientiMese`.
+      - Non-goal: nessuna validazione/normalizzazione del periodo qui (è compito della pagina con `normalizzaPeriodoMesi`), nessuna modifica allo schema Prisma.
+
+      ## Steps
+      1. Importare `calcolaMarginalitaClienti`, `type RigaMarginalita`, `type ReportMarginalita` da `@/domain/consuntivi`.
+      2. Implementare `export async function reportMarginalitaPeriodo(da: string, a: string): Promise<RisultatoReportMarginalita>` con JSDoc in italiano:
+         - `await richiediRuoloApi("AMMINISTRATORE")`;
+         - `parseTokenMese(da)` e `parseTokenMese(a)`; se uno dei due è `null` restituire `{ da, a, ...calcolaMarginalitaClienti([]) }`;
+         - `inizio = new Date(annoDa, meseDa - 1, 1)`, `fine = new Date(annoA, meseA, 0)` (stessa costruzione di `reportFatturazioneClientiMese`);
+         - `db.rigaAttivita.findMany({ where: { fatturabile: true, data: { gte: inizio, lte: fine } }, include: { offerta: true, cliente: true, collaboratore: { select: { tariffaGiornaliera: true } } } })`;
+         - mappare ogni riga in `RigaMarginalita` con `tariffaOffertaGiornaliera: riga.offerta.tariffaGiornaliera.toString()`, `tariffaCollaboratoreGiornaliera: riga.collaboratore.tariffaGiornaliera.toString()`, `ore: Number(riga.ore)`, `fatturabile: riga.fatturabile`;
+         - restituire `{ da, a, ...calcolaMarginalitaClienti(righe) }`.
+
+      ## Verify
+      - Run: `npx prisma generate && npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npx eslint src/lib/report.ts`
+      - Expect: nessun errore né warning.
+      - Run: `npm test`
+      - Expect: tutti i test verdi (nessuna regressione).
+
+      ## Done
+      - [ ] AC-1 — i dati del periodo `da`…`a` (mesi interi inclusi) sono letti per tutti i collaboratori e aggregati per cliente
+      - [ ] AC-3 — confini mese e tariffe identici a quelli usati dai report mensili esistenti (offerta per ricavi, collaboratore per costi)
+      - [ ] Accesso negato ai non amministratori tramite `richiediRuoloApi("AMMINISTRATORE")`
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Pagina /report/marginalita con form periodo, card clienti e voce sidebar
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      L'amministratore apre "Marginalità" dalla sidebar, sceglie il periodo con due campi mese e vede per ogni cliente e per ogni offerta ricavi, costi e margine, con i margini negativi evidenziati.
+
+      ## Read
+      - `docs/mockups/US-017/index.html`, `docs/mockups/US-017/stato-vuoto.html`, `docs/mockups/US-017/shared.css` — layout di riferimento (intestazione, form periodo, card cliente con tabella offerte, barra totali, badge "Margine negativo", stato vuoto)
+      - `src/app/(back-office)/report/fatturazione-clienti/page.tsx` — pattern pagina report (`richiediRuolo`, intestazione "Reportistica", `searchParams` Promise)
+      - `src/app/(back-office)/report/fatturazione-clienti/report-fatturazione-clienti.tsx` — classi Tailwind delle card/tabelle e palette chiaro/scuro da replicare
+      - `src/app/(back-office)/console-sidebar.tsx` — `NAV_ITEMS`, `IconReport`
+      - `src/lib/formattazione.ts` — `formattaEuro`, `inizialiCliente`
+      - `src/domain/calendario/index.ts` — `tokenMeseCorrente`, `etichettaMese`, `normalizzaPeriodoMesi`
+
+      ## Change
+      - `src/app/(back-office)/report/marginalita/page.tsx` — nuovo Server Component.
+      - `src/app/(back-office)/report/marginalita/report-marginalita.tsx` — nuovo componente di presentazione **senza** `"use client"` (nessuno stato client).
+      - `src/app/(back-office)/console-sidebar.tsx` — aggiungere in `NAV_ITEMS`, subito dopo "Fatturazione clienti", `{ href: "/report/marginalita", label: "Marginalità", icon: IconReport }`.
+      - Non-goal: la barra proporzionale ricavi/costi del mockup, export, grafici, filtri per collaboratore.
+
+      ## Steps
+      1. `page.tsx`: `export default async function ReportMarginalitaPage({ searchParams }: { searchParams: Promise<{ da?: string; a?: string }> })`; `await richiediRuolo("AMMINISTRATORE")`; `const { da, a } = normalizzaPeriodoMesi(params.da, params.a, tokenMeseCorrente())`; `const report = await reportMarginalitaPeriodo(da, a)`; etichetta periodo = `etichettaMese(da)` se `da === a`, altrimenti `` `${etichettaMese(da)} – ${etichettaMese(a)}` ``. Intestazione come il report fatturazione: eyebrow "Reportistica", `<h1>` "Marginalità per cliente e offerta", descrizione "Confronto per periodo tra ricavi dai clienti (tariffe offerta) e costi dei collaboratori (tariffe collaboratore). Ricavi e costi considerano le sole ore fatturabili; i rimborsi trasferta sono esclusi."
+      2. Form periodo in `report-marginalita.tsx`: `<form method="get" action="/report/marginalita">` con `<label>` "Dal mese" + `<input type="month" name="da" defaultValue={da}>`, `<label>` "Al mese" + `<input type="month" name="a" defaultValue={a}>`, `<button type="submit">` "Applica", e testo "Periodo: {etichetta}". Gli input devono avere label associate (`htmlFor`/`id`) così che `getByLabel("Dal mese")` funzioni.
+      3. Stato vuoto: se `report.perCliente.length === 0` mostrare (con il form ancora visibile) il messaggio "Nessuna attività fatturabile nel periodo selezionato." e nient'altro.
+      4. Card cliente: `<section data-testid={`marginalita-cliente-${cliente.clienteId}`} aria-label={cliente.clienteRagioneSociale}>` con avatar (`inizialiCliente`), ragione sociale come `<h2>`, giornate fatturabili, e i tre importi etichettati "Ricavi", "Costi", "Margine" (`formattaEuro`) più margine % (`Intl.NumberFormat("it-IT", { style: "percent", maximumFractionDigits: 1 })`, "—" se `null`).
+      5. Tabella offerte (sempre visibile) dentro la card: colonne "Codice", "Descrizione", "Giornate", "Ricavi", "Costi", "Margine", "Margine %"; ogni `<tr data-testid={`marginalita-offerta-${offerta.offertaId}`}>`.
+      6. Barra totali sotto le card: `data-testid="marginalita-totali"` con "Ricavi totali", "Costi totali", "Margine totale".
+      7. Evidenza AC-4: un piccolo componente locale `ImportoMargine({ importi })` usato per cliente, offerta e totali: se `margineNegativo` il valore usa `text-red-600 dark:text-red-400` e accanto compare un badge testuale `<span>` "Margine negativo" (rosso tenue, come nel mockup); per la riga offerta negativa aggiungere anche lo sfondo rosato del mockup. Il badge non compare quando il margine è ≥ 0.
+      8. Sidebar: aggiungere la voce come da Change; nessun'altra modifica alla sidebar.
+
+      ## Verify
+      - Run: `npx prisma generate && npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npm run lint`
+      - Expect: exit 0, nessun nuovo errore/warning rispetto alla baseline (solo i 4 warning preesistenti del guardrail e2e).
+      - Run: `npm run build`
+      - Expect: build completata, route `/report/marginalita` presente nell'output (prerequisito: `DATABASE_URL` configurata come in CI).
+
+      ## Done
+      - [ ] AC-1 — form "Dal mese"/"Al mese" + "Applica" e card per cliente con Ricavi, Costi, Margine
+      - [ ] AC-2 — tabella per offerta con ricavi, costi e margine di ciascuna offerta
+      - [ ] AC-4 — margini negativi in rosso con badge testuale "Margine negativo" a ogni livello
+      - [ ] Voce sidebar "Marginalità" → `/report/marginalita`
+      - [ ] Layout coerente con `docs/mockups/US-017/` in tema chiaro e scuro
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Test e2e Playwright del report marginalità e coerenza con la fatturazione
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      Un test e2e deterministico prova il flusso reale dell'amministratore: sidebar → selezione periodo → valori per cliente e offerta, badge del margine negativo e coerenza dei ricavi con il report "Fatturazione clienti".
+
+      ## Read
+      - `tests/e2e/README.md` — contratto e2e (factory, mesi riservati, selettori)
+      - `tests/e2e/support/fixtures.ts` — `test`, `expect`, fixture `factory`
+      - `tests/e2e/support/factory.ts` — `createCliente`, `createOfferta({ cliente, codice, descrizione, tariffaGiornaliera })`, `createCollaboratore({ nome, cognome, tariffaGiornaliera, utenteOptions })`, `createRigaAttivita({ collaboratore, cliente, offerta, data, ore, fatturabile })`
+      - `tests/e2e/support/date.ts` — `mesePassatoRiservato`, `dataNelMesePassatoRiservato`
+      - `tests/e2e/support/report-data.ts` — come costruire `Date` da `dataNelMesePassatoRiservato` e suffissi univoci
+      - `tests/e2e/report-fatturazione-clienti.spec.ts` — `verificaDatasetReport` (asserzioni su `report-client-{id}-totale`, formattatori `Intl`)
+      - `tests/e2e/support/auth.ts` — `accediComeAdmin`
+
+      ## Change
+      - `tests/e2e/report-marginalita.spec.ts` — nuovo file. Nessuna modifica a `date.ts` (nessuno slot esclusivo: le asserzioni sono confinate al cliente creato dal test).
+      - Non-goal: modificare entità di seed, aggiungere spec `demo__` (il video lo registra `archetipo-review`).
+
+      ## Steps
+      1. Costante `const CODICE_SPEC_MARGINALITA = "US-017-REPORT-MARGINALITA";` passata **come letterale** alle chiamate di `date.ts` (il guardrail di lint deve poterla risolvere staticamente). `meseUno = mesePassatoRiservato(CODICE_SPEC_MARGINALITA, 2)`, `meseDue = mesePassatoRiservato(CODICE_SPEC_MARGINALITA, 1)` (mesi contigui, `meseUno` precede `meseDue`).
+      2. Dataset con la fixture `factory`: cliente `E2E Marginalità {suffisso}` (suffisso da `factory.namespace`); offerta A `MRG-A-{suffisso}` tariffa `"600.00"`; offerta B `MRG-B-{suffisso}` tariffa `"300.00"`; un collaboratore con tariffa `"400.00"`. Righe: meseUno giorno 5 → A 8 ore fatturabile; meseDue giorno 6 → A 4 ore fatturabile; meseDue giorno 7 → B 8 ore fatturabile; meseDue giorno 8 → A 6 ore **non** fatturabile. Date costruite come `new Date(`${dataNelMesePassatoRiservato(CODICE_SPEC_MARGINALITA, giorno, mesiIndietro)}T00:00:00.000Z`)`.
+      3. Formattatore euro locale `Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" })` come nello spec fatturazione.
+      4. Test "periodo di due mesi" (AC-1, AC-2, AC-4): `accediComeAdmin(page)`; `page.goto("/report/fatturazione-clienti")`; click `getByRole("link", { name: "Marginalità", exact: true })`; `waitForURL("**/report/marginalita")`; `getByLabel("Dal mese").fill(meseUno)`; `getByLabel("Al mese").fill(meseDue)`; click `getByRole("button", { name: "Applica", exact: true })`; `waitForURL` con `da=${meseUno}` e `a=${meseDue}`. Poi:
+         - card `getByTestId(`marginalita-cliente-${cliente.id}`)` contiene `1.200,00 €`, `1.000,00 €`, `200,00 €` (via formattatore) e **non** contiene "Margine negativo" a livello card: verificare con `cardCliente.getByText("Margine negativo")` che il conteggio sia 1 (solo la riga B dentro la card);
+         - riga `getByTestId(`marginalita-offerta-${offertaA.id}`)` contiene `900,00 €`, `600,00 €`, `300,00 €` e `toHaveCount(0)` per `getByText("Margine negativo")`;
+         - riga `getByTestId(`marginalita-offerta-${offertaB.id}`)` contiene `300,00 €`, `400,00 €`, `-100,00 €` (usare il formattatore su `-100`) e `getByText("Margine negativo")` visibile.
+      5. Test "coerenza con il report fatturazione" (AC-3), dataset creato nel proprio test con lo stesso helper: `page.goto(`/report/marginalita?da=${meseDue}&a=${meseDue}`)` → card cliente contiene `600,00 €` come ricavi; `page.goto(`/report/fatturazione-clienti?mese=${meseDue}`)` → `getByTestId(`report-client-${cliente.id}-totale`)` ha testo `600,00 €` (dataset senza rimborsi, quindi totale = imponibile manodopera), seguendo lo stesso pattern di `verificaDatasetReport` (se lì il pannello del cliente va espanso prima, espanderlo allo stesso modo).
+      6. Nessun `waitForTimeout`, nessun selettore di classi Tailwind, nessun `selectOption({ index })`.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/report-marginalita.spec.ts`
+      - Expect: 2 test passati (prerequisito: Postgres e2e e variabili come in `.github/workflows/ci.yml`).
+      - Run: `npx playwright test tests/e2e/report-marginalita.spec.ts --repeat-each=3`
+      - Expect: tutti passati (nessuna dipendenza dall'ordine o da dati condivisi).
+      - Run: `npm run lint`
+      - Expect: exit 0, "Guardrail e2e anti-flakiness passed" senza nuovi warning oltre ai 4 preesistenti.
+
+      ## Done
+      - [ ] AC-1 — dopo "Applica" la card del cliente mostra ricavi 1.200,00 €, costi 1.000,00 €, margine 200,00 € sul periodo di due mesi
+      - [ ] AC-2 — le righe offerta A e B mostrano i rispettivi ricavi, costi e margine
+      - [ ] AC-3 — per il mese 2 i ricavi in marginalità (600,00 €) coincidono con l'importo del report fatturazione per lo stesso cliente
+      - [ ] AC-4 — "Margine negativo" visibile sulla sola offerta B
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Gate finale — verifiche complete e controllo stato task prima della review
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+    body: |-
+      ## Objective
+      Tutte le verifiche di accettazione e di regressione passano e ogni task della spec è `DONE` prima di chiedere la review.
+
+      ## Read
+      - `.github/workflows/ci.yml` — sequenza CI (install, migrate, seed, lint, unit, build, e2e)
+      - Sezione "Baseline" del piano — confini preesistenti (warning guardrail, `prisma generate` prima di `tsc`)
+
+      ## Change
+      - Nessuna modifica al codice. Se un controllo fallisce, correggere nel task che ha introdotto il problema e rieseguire questo gate.
+
+      ## Steps
+      1. `npx prisma generate && npx tsc --noEmit`
+      2. `npm run lint`
+      3. `npm test`
+      4. `npm run build`
+      5. `npx playwright test tests/e2e/report-marginalita.spec.ts tests/e2e/report-fatturazione-clienti.spec.ts tests/e2e/anagrafica-clienti.spec.ts` (nuovo spec + report fatturazione + test sidebar)
+      6. `npm run test:e2e` (suite completa, come in CI)
+      7. Marcare questo task `DONE`.
+      8. Da `data.project_root` eseguire `archetipo spec show US-017` e verificare che nessun task risulti `TODO`; solo allora eseguire `archetipo spec review US-017`.
+
+      ## Verify
+      - Run: `npx prisma generate && npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npm run lint`
+      - Expect: exit 0, solo i 4 warning preesistenti del guardrail e2e.
+      - Run: `npm test`
+      - Expect: tutti verdi (≥ 48 file; 777 test preesistenti + nuovi).
+      - Run: `npm run build`
+      - Expect: build riuscita con route `/report/marginalita`.
+      - Run: `npm run test:e2e`
+      - Expect: suite verde, inclusi i 2 test di `tests/e2e/report-marginalita.spec.ts` (prerequisito: Postgres e2e come in CI).
+      - Run (da `data.project_root`): `archetipo spec show US-017`
+      - Expect: tutti i task `DONE`.
+
+      ## Done
+      - [ ] AC-1 — evidenza unit (TASK-02) ed e2e (TASK-05) verde
+      - [ ] AC-2 — evidenza unit (TASK-02) ed e2e (TASK-05) verde
+      - [ ] AC-3 — evidenza unit di coerenza con i report mensili (TASK-02) ed e2e con il report fatturazione (TASK-05) verde
+      - [ ] AC-4 — evidenza unit (TASK-02) ed e2e del badge "Margine negativo" (TASK-05) verde
+      - [ ] Lint, type-check, unit, build ed e2e verdi senza nuove diagnostiche rispetto alla baseline
+      - [ ] `archetipo spec show US-017` mostra tutti i task `DONE` prima di `archetipo spec review US-017`
+
+      ## Blockers
+      None.
+    ref: TASK-06
