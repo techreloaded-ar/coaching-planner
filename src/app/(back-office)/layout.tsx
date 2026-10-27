@@ -1,6 +1,6 @@
 import { disconnetti, richiediRuolo } from "@/lib/dal";
 import ConsoleSidebar from "@/app/(back-office)/console-sidebar";
-import { PulsanteAttesa, SelettoreTema } from "@/components";
+import { LogoAgileReloaded, PulsanteAttesa, SelettoreTema } from "@/components";
 import { temaPreferito } from "@/lib/tema-preferito";
 
 export default async function BackOfficeLayout({
@@ -28,8 +28,9 @@ export default async function BackOfficeLayout({
 
       {/* Area contenuto — margin-left = larghezza sidebar */}
       <div className="ml-[248px] max-[920px]:ml-[66px] flex min-h-screen flex-col">
-        {/* Header sottile con pulsante Esci */}
-        <header className="sticky top-0 z-10 flex items-center justify-end gap-4 border-b border-zinc-200 bg-white/80 px-8 py-2.5 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
+        {/* Header sottile con logo e pulsante Esci */}
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-zinc-200 bg-white/80 px-8 py-2.5 max-sm:gap-2 max-sm:px-4 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
+          <LogoAgileReloaded />
           <div className="flex items-center gap-3">
             <div className="text-right leading-tight">
               <b className="block text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
@@ -42,7 +43,7 @@ export default async function BackOfficeLayout({
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[13px] font-bold text-white">
               {iniziali}
             </div>
-            <div className="mx-1 h-[26px] w-px bg-zinc-200 dark:bg-zinc-700" />
+            <div className="mx-1 h-[26px] w-px bg-zinc-200 max-sm:hidden dark:bg-zinc-700" />
             <SelettoreTema temaIniziale={tema} />
             <form action={disconnetti}>
               <PulsanteAttesa

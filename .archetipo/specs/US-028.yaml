@@ -6,7 +6,7 @@ epic:
   title: Evoluzioni Post-MVP
 priority: MEDIUM
 points: 2
-status: TODO
+status: DONE
 body: |-
   #### US-028: Logo Agile Reloaded nelle aree interne dell'applicazione
 
@@ -26,6 +26,15 @@ body: |-
   - [ ] L'intestazione del back office (area titolare) mostra lo stesso logo con lo stesso trattamento
   - [ ] Il logo resta leggibile sia in tema chiaro sia in tema scuro e non degrada la resa su schermi piccoli
   - [ ] Il logo è servito dall'applicazione stessa e non caricato a runtime dal sito esterno
+fork_base: 13688159d617eb95e365d3e640a56666a837aedb
 history:
   - status: TODO
     at: "2026-07-15T08:16:22Z"
+  - status: PLANNED
+    at: "2026-10-27T09:25:07Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T09:26:51Z"
+  - status: REVIEW
+    at: "2026-10-27T09:33:03Z"
+  - status: DONE
+    at: "2026-10-27T09:40:40Z"

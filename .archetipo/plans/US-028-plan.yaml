@@ -1,0 +1,339 @@
+schema: archetipo/plan/v2
+spec_code: US-028
+body: |-
+  # US-028: Logo Agile Reloaded nelle aree interne dell'applicazione — Piano di implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-10-27
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-005 — Evoluzioni Post-MVP
+  **Priorità:** MEDIUM | **Punti:** 2
+
+  **Storia Utente**
+  Come utente autenticato di Coaching Planner (titolare o collaboratore), voglio vedere il logo Agile Reloaded nell'intestazione delle aree interne dell'applicazione, così da avere un'identità visiva coerente tra la pagina di accesso e l'applicazione che uso ogni giorno.
+
+  **Criteri di Accettazione**
+  - AC-1 — L'intestazione del front office (area collaboratore) mostra il logo Agile Reloaded in dimensione adeguata, senza compromettere la disposizione e la leggibilità degli elementi esistenti
+  - AC-2 — L'intestazione del back office (area titolare) mostra lo stesso logo con lo stesso trattamento
+  - AC-3 — Il logo resta leggibile sia in tema chiaro sia in tema scuro e non degrada la resa su schermi piccoli
+  - AC-4 — Il logo è servito dall'applicazione stessa e non caricato a runtime dal sito esterno
+
+  ---
+
+  ## Soluzione Tecnica
+
+  Un solo componente condiviso `LogoAgileReloaded` (`src/components/logo-agile-reloaded.tsx`, esportato da `src/components/index.ts`) usato identico nelle due intestazioni (`src/app/(front-office)/layout.tsx` e `src/app/(back-office)/layout.tsx`), così il "trattamento" è lo stesso per costruzione (AC-2).
+
+  - **Asset locale:** il file esiste già in `public/agile-reloaded-logo.png` (1000×290, usato dalla pagina di accesso di US-027). Il componente usa `next/image` con `src="/agile-reloaded-logo.png"`, quindi il logo è servito dall'app stessa (`/_next/image?url=%2Fagile-reloaded-logo.png…`, stessa origine) e mai dal sito esterno (AC-4). Nessuna modifica a `next.config.ts`.
+  - **Tema scuro:** il PNG è RGB senza trasparenza, con fondo bianco e scritta nera. Su sfondo scuro non può essere ricolorato, quindi si riusa il pattern della pagina di accesso: una **targa bianca** (`bg-white`, bordo `zinc-200` / `white/15` in scuro) attorno all'immagine, identica in entrambi i temi (AC-3).
+  - **Dimensione:** immagine alta 24 px (`h-6 w-auto`, larghezza ~83 px), targa con `px-2 py-0.5`, `rounded-[8px]`, bordo 1 px → altezza totale ~30 px. È minore dei 32 px di avatar e pulsanti già presenti, quindi non cresce l'altezza delle intestazioni (back office 57 px, front office 83 px misurati a 1280 px).
+  - **Schermi piccoli (< 640 px):** la versione completa (~100 px con targa) peggiorerebbe intestazioni già strette. Sotto il breakpoint `sm` l'immagine mostra solo la mascotte del logo: larghezza fissa 23 px con `object-cover object-left`, nessun asset aggiuntivo. Il logo resta riconoscibile e proporzionato (niente distorsione) e occupa ~35 px.
+  - **Posizione:**
+    - front office: primo elemento dell'intestazione, a sinistra del blocco "Front office / Le mie attività", separato da un divisore verticale come quello già usato prima del selettore tema;
+    - back office: l'intestazione passa da `justify-end` a `justify-between` e il logo va a sinistra; il gruppo utente/tema/Esci resta invariato a destra.
+  - **Accessibilità:** `alt="Agile Reloaded"`; la targa ha `data-testid="logo-agile-reloaded"` per le asserzioni sul fondo bianco.
+  - **Pagina di accesso:** resta invariata (ha una targa più grande e i suoi test in `tests/e2e/accesso-radice.spec.ts`).
+
+  ### Decisioni Architetturali
+
+  Nessuna ADR: si riusa l'asset locale e il pattern "targa bianca" già deciso in US-027; nessun impatto su dati, sicurezza o integrazioni. La Wiki non è abilitata (`wiki.enabled: false`).
+
+  **Limite noto (assunzione da confermare in review):** a 375 px l'intestazione del front office **già oggi** trabocca di 110 px (il pulsante "Esci" esce dallo schermo: misurato prima di questa spec). La spec non autorizza a modificare gli elementi esistenti, quindi il piano non la ripara. Il logo compatto aggiunge ~35 px a un overflow preesistente. Si propone una spec separata per l'intestazione mobile del front office.
+
+  ---
+
+  ## Baseline
+
+  Misure fatte prima dell'implementazione su `next dev` del sandbox, con utente seed in sola lettura:
+
+  | Area / larghezza | Overflow orizzontale intestazione | Altezza intestazione | Overflow documento |
+  |---|---|---|---|
+  | Front office `/attivita` 1280 | 0 | 83 px | 0 |
+  | Front office 768 | 0 | 83 px | 0 |
+  | Front office 375 | **110 px (preesistente)** | 116 px | 158 px |
+  | Back office `/anagrafiche/clienti` 1280 | 0 | 57 px | 0 |
+  | Back office 768 | 0 | 57 px | 47 px (contenuto, non intestazione) |
+  | Back office 375 | 0 | 74 px | 440 px (contenuto) |
+
+  | Check | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npx tsc --noEmit` | Passa (exit 0) | Nessun nuovo errore ammesso |
+  | `npm run lint` | Exit 0: 1 warning preesistente (`MESE_ALTRO` in `tests/e2e/demo__duplicazione-riga-su-piu-giorni.spec.ts`) e 9 avvisi informativi del guardrail "chiave riservata non risolvibile staticamente" | Nessun nuovo warning ammesso |
+  | `npm test` | Passa: 51 file, 814 test | Nessuna regressione |
+  | E2E completa (`sh scripts/archetipo/ambiente.sh e2e`) | 205 passati, 0 falliti, `calendario-cache-mesi` occasionalmente flaky (passa al retry) | La verifica richiede "nessun nuovo fallimento" |
+
+  **Prerequisiti d'ambiente:** e2e e build solo con il Postgres sandbox: esportare `ARCHETIPO_PORT_POSTGRES` (`ports.POSTGRES` in `.archetipo/environment/resources.json`), `ARCHETIPO_RESOURCE_OWNER` (chiave `owner`) e `ARCHETIPO_RESOURCE_NAME=postgres`, poi `sh scripts/archetipo/ambiente.sh e2e <file>`. Non usare `.env`. Se test legati al CSS falliscono solo in dev, confrontare il CSS servito con i sorgenti e, se è vecchio, fermare il dev server del checkout e `rm -rf .next/dev` (cache Turbopack stale).
+
+  ---
+
+  ## Mappa delle Evidenze di Accettazione
+
+  | Criterio | Stato iniziale / fixture | Livello di test | Oracolo osservabile | Task |
+  |---|---|---|---|---|
+  | AC-1 | Accesso come collaboratore seed (sola lettura), `/attivita`, viewport 1280 e 768 | E2E | Nel `banner` è visibile un `img` con nome "Agile Reloaded" alto 24 px (±1); sono ancora visibili heading "Le mie attività", pulsante "Tema" e "Esci"; overflow orizzontale dell'intestazione 0 e altezza ≤ 84 px (baseline 83) | TASK-04 |
+  | AC-2 | Accesso come amministratore, `/anagrafiche/clienti` poi navigazione su "Offerte" | E2E | Stesso logo (stesso `src` e stessa altezza) nel `banner` del back office, prima e dopo la navigazione; overflow intestazione 0 e altezza ≤ 58 px (baseline 57) | TASK-04 |
+  | AC-3 | Cookie `tema=scuro` e `tema=chiaro`; viewport 375 | E2E | In entrambi i temi la targa `logo-agile-reloaded` ha `background-color: rgb(255, 255, 255)` e il logo è visibile con `naturalWidth > 0`; a 375 px il logo è visibile, largo ≤ 32 px, non sovrapposto al pulsante "Esci", e l'intestazione del back office resta senza overflow (front office: limite preesistente documentato) | TASK-04 |
+  | AC-4 | Qualsiasi pagina interna | E2E | L'`src` del logo non contiene `http` né `agilereloaded`; la richiesta all'asset risponde 200; durante il caricamento nessuna richiesta immagine verso un host diverso da quello dell'app | TASK-04 |
+
+  ---
+
+  ## Strategia di Test
+
+  Il comportamento è solo presentazione dentro i layout server: nessuna logica da testare in unit. La prova è un e2e Playwright in sola lettura (nessun dato scritto, utenti seed solo per accedere), che verifica posizione, dimensioni, temi, viewport piccoli e origine dell'asset nel browser vero.
+
+  ### Test E2E — Simulazione utente
+
+  **Framework:** Playwright (già configurato)
+  **Video demo:** previsto e filmabile (registrato poi da `archetipo-review`, non durante l'implementazione)
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Front office | Il collaboratore accede e vede il logo nell'intestazione accanto a "Le mie attività", con gli elementi esistenti invariati |
+  | Back office | L'amministratore apre la console, vede il logo nell'intestazione, naviga su "Offerte" e il logo resta |
+  | Temi e schermi piccoli | Con tema scuro la targa resta bianca; a 375 px il logo compatto (mascotte) resta visibile |
+  | Origine | Il logo è servito dall'app (stessa origine, risposta 200) |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: []
+    update: []
+    create: []
+  ```
+
+  La Wiki non è abilitata (`wiki.enabled: false`): nessun impatto documentale contrattuale.
+
+  ---
+
+  _Piano generato via ARchetipo Planning — 2026-10-27_
+tasks:
+  - id: TASK-01
+    title: Componente condiviso LogoAgileReloaded con targa bianca e versione compatta
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste `LogoAgileReloaded`, un componente server che mostra il logo locale su targa bianca: alto 24 px da 640 px in su, solo mascotte (23 px di larghezza) sotto i 640 px.
+
+      ## Read
+      - `src/app/page.tsx` — uso di `next/image` e classi della "targa bianca" della pagina di accesso (righe ~30-40)
+      - `src/components/index.ts` — stile degli export condivisi
+      - `public/agile-reloaded-logo.png` — asset 1000×290 RGB con fondo bianco; la mascotte occupa circa il primo 27% della larghezza
+
+      ## Change
+      - `src/components/logo-agile-reloaded.tsx` — nuovo file, senza `"use client"`.
+      - `src/components/index.ts` — aggiungere `export { LogoAgileReloaded } from "./logo-agile-reloaded";`.
+      - Non-goal: nessuna modifica a `src/app/page.tsx`, a `next.config.ts` o all'asset.
+
+      ## Steps
+      1. Creare `export function LogoAgileReloaded()` con un commento di una riga: il PNG non ha trasparenza, quindi la targa bianca lo rende leggibile anche in tema scuro.
+      2. Markup:
+         ```tsx
+         <span
+           data-testid="logo-agile-reloaded"
+           className="inline-flex shrink-0 items-center rounded-[8px] border border-zinc-200 bg-white px-2 py-0.5 dark:border-white/15"
+         >
+           <Image
+             src="/agile-reloaded-logo.png"
+             alt="Agile Reloaded"
+             width={83}
+             height={24}
+             className="h-6 w-auto max-sm:w-[23px] max-sm:object-cover max-sm:object-left"
+             priority
+           />
+         </span>
+         ```
+         `Image` da `next/image`. Larghezza e altezza dichiarate rispettano il rapporto 1000:290.
+      3. Aggiungere l'export in `src/components/index.ts`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit && npx eslint src/components/logo-agile-reloaded.tsx src/components/index.ts`
+      - Expect: exit 0, nessun warning.
+
+      ## Done
+      - [ ] AC-4 — il logo usa l'asset locale `/agile-reloaded-logo.png` tramite `next/image` (stessa origine)
+      - [ ] AC-3 — targa bianca in entrambi i temi; versione compatta sotto `sm` senza distorsione (`object-cover object-left`)
+      - [ ] AC-2 — un unico componente garantisce lo stesso trattamento nelle due aree
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Logo nell'intestazione del front office
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      L'intestazione del front office mostra il logo come primo elemento a sinistra, prima del blocco "Front office / Le mie attività", senza alterare gli altri elementi.
+
+      ## Read
+      - `src/app/(front-office)/layout.tsx` — `<header>` e il contenitore `flex items-center gap-5 px-8 py-3.5`; divisore verticale esistente `h-[26px] w-px bg-zinc-200 dark:bg-zinc-700`
+      - `src/components/logo-agile-reloaded.tsx`
+
+      ## Change
+      - `src/app/(front-office)/layout.tsx` — importare `LogoAgileReloaded` da `@/components` (stesso import di `PulsanteAttesa`, `SelettoreTema`) e inserire logo + divisore all'inizio del contenitore dell'intestazione.
+      - Non-goal: non cambiare classi, testi o ordine degli elementi esistenti (titolo, link "Console amministrativa", blocco utente, selettore tema, Esci).
+
+      ## Steps
+      1. Aggiungere `LogoAgileReloaded` all'import da `@/components`.
+      2. Come primi figli del `div` `flex items-center gap-5 px-8 py-3.5` inserire `<LogoAgileReloaded />` e subito dopo `<div aria-hidden="true" className="h-[26px] w-px shrink-0 bg-zinc-200 dark:bg-zinc-700" />`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit && npm run lint`
+      - Expect: exit 0; solo i warning preesistenti della Baseline.
+      - Run (variabili `ARCHETIPO_*` della Baseline): `sh scripts/archetipo/ambiente.sh e2e tests/e2e/temi.spec.ts tests/e2e/feedback-attesa-front-office.spec.ts`
+      - Expect: tutti passati (le asserzioni sull'intestazione esistente restano valide).
+
+      ## Done
+      - [ ] AC-1 — logo visibile nell'intestazione del front office a sinistra del titolo, elementi esistenti invariati
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Logo nell'intestazione del back office
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      L'intestazione del back office mostra lo stesso logo a sinistra, mentre il gruppo utente/tema/Esci resta a destra invariato.
+
+      ## Read
+      - `src/app/(back-office)/layout.tsx` — `<header className="sticky top-0 z-10 flex items-center justify-end gap-4 …">` e il gruppo `flex items-center gap-3`
+      - `src/components/logo-agile-reloaded.tsx`
+
+      ## Change
+      - `src/app/(back-office)/layout.tsx` — importare `LogoAgileReloaded` da `@/components`, sostituire nell'`header` la classe `justify-end` con `justify-between` e inserire `<LogoAgileReloaded />` come primo figlio dell'`header`. Aggiornare il commento `{/* Header sottile con pulsante Esci */}` in `{/* Header sottile con logo e pulsante Esci */}`.
+      - Non-goal: nessuna modifica a `console-sidebar.tsx` (il marchio "CP" della sidebar resta) né al gruppo utente/tema/Esci.
+
+      ## Steps
+      1. Aggiungere `LogoAgileReloaded` all'import da `@/components`.
+      2. Nell'`header`: `justify-end` → `justify-between`; primo figlio `<LogoAgileReloaded />`; il `div` `flex items-center gap-3` resta il secondo figlio, invariato.
+
+      ## Verify
+      - Run: `npx tsc --noEmit && npm run lint`
+      - Expect: exit 0; solo i warning preesistenti della Baseline.
+      - Run (variabili `ARCHETIPO_*` della Baseline): `sh scripts/archetipo/ambiente.sh e2e tests/e2e/temi.spec.ts tests/e2e/anagrafica-clienti.spec.ts`
+      - Expect: tutti passati (inclusa l'asserzione "selettore subito a sinistra di Esci" in `support/tema.ts`).
+
+      ## Done
+      - [ ] AC-2 — stesso componente e stesso trattamento del front office nell'intestazione del back office
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Test e2e del logo nelle intestazioni (aree, temi, schermi piccoli, origine)
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+      - TASK-03
+    body: |-
+      ## Objective
+      Un e2e in sola lettura prova che il logo è presente e proporzionato in entrambe le intestazioni, leggibile in chiaro e scuro, compatto a 375 px e servito dall'app.
+
+      ## Read
+      - `tests/e2e/accesso-radice.spec.ts` — test "logo servito localmente" (pattern per `src` e risposta 200)
+      - `tests/e2e/support/auth.ts` — `accediComeCollaboratore()` (Giulia Conti, seed), `accediAlBackOfficeComeAdmin()`
+      - `tests/e2e/support/tema.ts` — `SFONDO_SCURO`, `attendiAspetto`
+      - `tests/e2e/temi.spec.ts` — come impostare il cookie `tema` con `context.addCookies`
+      - `tests/e2e/README.md` — regole anti-flakiness
+
+      ## Change
+      - `tests/e2e/logo-intestazione.spec.ts` — nuovo file. Usa `test, expect` da `@playwright/test` (test in sola lettura: nessuna scrittura di dati, gli utenti seed servono solo ad accedere).
+      - Non-goal: nessuna modifica ad altri test.
+
+      ## Steps
+      1. Helper locali:
+         - `logo(page)` = `page.getByRole("banner").getByRole("img", { name: "Agile Reloaded" })`;
+         - `targa(page)` = `page.getByRole("banner").getByTestId("logo-agile-reloaded")`;
+         - `misuraIntestazione(page)` = `evaluate` che restituisce `{ overflow: header.scrollWidth - header.clientWidth, altezza: Math.round(header.getBoundingClientRect().height) }` dell'elemento `header`;
+         - `immagineCaricata(page)` = `logo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)`.
+      2. Test "front office" (AC-1), viewport 1280×800: `accediComeCollaboratore(page)`; `logo` visibile; altezza della bounding box tra 23 e 25; `immagineCaricata` vero; visibili `getByRole("heading", { name: "Le mie attività" })`, `getByRole("button", { name: "Tema", exact: true })` ed "Esci"; `misuraIntestazione` → `overflow === 0` e `altezza <= 84`. Ripetere le misure a 768×800 (`page.setViewportSize`): `overflow === 0`, `altezza <= 84`.
+      3. Test "back office" (AC-2), viewport 1280×800: `accediAlBackOfficeComeAdmin(page)`; `logo` visibile, altezza 23-25, `overflow === 0`, `altezza <= 58`; salvare `src` del logo; click su `getByRole("link", { name: "Offerte", exact: true })`, `waitForURL("**/offerte")`, logo ancora visibile con lo stesso `src`. A 768×800: `overflow === 0`, `altezza <= 58`.
+      4. Test "tema scuro e chiaro" (AC-3): per `["scuro", "chiaro"]` impostare il cookie `tema` con `context.addCookies([{ name: "tema", value, url: baseURL! }])` prima di accedere come collaboratore; verificare `html[data-tema]` uguale al valore; `targa` con `toHaveCSS("background-color", "rgb(255, 255, 255)")`; logo visibile e caricato. Con "scuro" verificare anche che il `body` abbia lo sfondo `SFONDO_SCURO`, per provare che il contesto è davvero scuro.
+      5. Test "schermi piccoli" (AC-3), viewport 375×800: front office e back office (due contesti/page o due accessi in sequenza): logo visibile, larghezza della bounding box ≤ 32, `immagineCaricata` vero, e la bounding box del logo non interseca quella del pulsante "Esci" (calcolo su `boundingBox()`). Back office: `misuraIntestazione().overflow === 0`. Front office: nessuna asserzione sull'overflow, con un commento che rimanda al limite preesistente documentato nel piano (110 px già prima della spec).
+      6. Test "servito dall'app" (AC-4): registrare `page.on("request")` prima dell'accesso come collaboratore e raccogliere gli URL con `resourceType() === "image"`; dopo il caricamento: `src` del logo non contiene `http` né `agilereloaded`; `page.request.get(new URL(src, page.url()).href)` → 200; ogni URL immagine raccolto ha lo stesso `host` di `page.url()`.
+      7. Nessun `waitForTimeout`, nessun selettore di classi Tailwind (solo ruoli, alt e `data-testid`).
+
+      ## Verify
+      - Run (variabili `ARCHETIPO_*` della Baseline): `sh scripts/archetipo/ambiente.sh e2e tests/e2e/logo-intestazione.spec.ts --retries=0`
+      - Expect: tutti i test passati.
+      - Run: `sh scripts/archetipo/ambiente.sh e2e tests/e2e/logo-intestazione.spec.ts --repeat-each=3`
+      - Expect: tutti passati.
+      - Run: `npm run lint`
+      - Expect: exit 0, nessun nuovo warning.
+
+      ## Done
+      - [ ] AC-1 — oracolo: logo 24 px nel banner del front office, elementi esistenti visibili, intestazione senza overflow e non più alta della baseline a 1280 e 768 px
+      - [ ] AC-2 — oracolo: stesso logo (stesso `src` e stessa altezza) nel banner del back office, persistente dopo la navigazione
+      - [ ] AC-3 — oracolo: targa bianca in tema scuro e chiaro; a 375 px logo compatto ≤ 32 px, caricato e non sovrapposto a "Esci"
+      - [ ] AC-4 — oracolo: `src` locale con risposta 200 e nessuna richiesta immagine verso host esterni
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Gate finale — verifiche complete e controllo stato task prima della review
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+    body: |-
+      ## Objective
+      Le verifiche di accettazione e di regressione passano senza nuovi fallimenti rispetto alla baseline e ogni task della spec è `DONE` prima di chiedere la review.
+
+      ## Read
+      - `.github/workflows/ci.yml` — sequenza CI (install, migrate, seed, lint, unit, build, e2e)
+      - Sezione "Baseline" del piano — misure delle intestazioni, warning lint preesistenti, prerequisiti `ARCHETIPO_*`
+
+      ## Change
+      - Nessuna modifica al codice. Se un controllo fallisce, correggere nel task che ha introdotto il problema e rieseguire questo gate.
+
+      ## Steps
+      1. `npx tsc --noEmit`
+      2. `npm run lint`
+      3. `npm test`
+      4. `sh scripts/archetipo/ambiente.sh build` (variabili `ARCHETIPO_*` della Baseline)
+      5. `sh scripts/archetipo/ambiente.sh e2e tests/e2e/logo-intestazione.spec.ts tests/e2e/accesso-radice.spec.ts tests/e2e/temi.spec.ts`
+      6. `sh scripts/archetipo/ambiente.sh e2e` (suite completa, in foreground)
+      7. Marcare questo task `DONE`.
+      8. Da `data.project_root` eseguire `archetipo spec show US-028` e verificare che nessun task risulti `TODO`; solo allora eseguire `archetipo spec review US-028`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: exit 0.
+      - Run: `npm run lint`
+      - Expect: exit 0, solo i warning preesistenti della Baseline.
+      - Run: `npm test`
+      - Expect: 51 file e 814 test verdi (nessun test unitario nuovo è previsto).
+      - Run: `sh scripts/archetipo/ambiente.sh build`
+      - Expect: build riuscita.
+      - Run: `sh scripts/archetipo/ambiente.sh e2e`
+      - Expect: nessun fallimento; al massimo il flaky preesistente `calendario-cache-mesi` recuperato al retry. Se falliscono test sul CSS solo in dev, applicare il rimedio della cache `.next/dev` descritto nella Baseline prima di considerarli regressioni.
+      - Run (da `data.project_root`): `archetipo spec show US-028`
+      - Expect: tutti i task `DONE`.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4 — evidenza e2e di TASK-04 verde nella suite completa
+      - [ ] Lint, type-check, unit, build ed e2e senza nuove diagnostiche rispetto alla baseline
+      - [ ] `archetipo spec show US-028` mostra tutti i task `DONE` prima di `archetipo spec review US-028`
+
+      ## Blockers
+      None.
+    ref: TASK-05
