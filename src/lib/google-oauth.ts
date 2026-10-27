@@ -49,6 +49,9 @@ export interface ProfiloGoogle {
 /**
  * Genera l'URL di autorizzazione Google con stato OAuth (state + code verifier).
  * Il chiamante deve salvare state e codeVerifier in un cookie per validarli al callback.
+ *
+ * `prompt=select_account` forza la scelta dell'account: con più account Google
+ * attivi nel browser Google non usa in silenzio quello predefinito.
  */
 export async function urlAutorizzazione(): Promise<{
   url: string;
@@ -62,6 +65,7 @@ export async function urlAutorizzazione(): Promise<{
     "email",
     "profile",
   ]);
+  url.searchParams.set("prompt", "select_account");
 
   return { url: url.toString(), state, codeVerifier };
 }
