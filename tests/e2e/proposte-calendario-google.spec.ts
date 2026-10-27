@@ -71,6 +71,11 @@ test.describe("US-001 Collegamento del Google Calendar", () => {
 
 		await expect(page.getByText("Calendario Google non collegato")).toBeVisible();
 		await page.getByRole("link", { name: "Collega Google Calendar" }).click();
+		await page.waitForURL("**/e2e-test/consenso-calendario**");
+		await expect(
+			page.getByRole("radio", { name: `${collaboratore.utente.email} (account di accesso)` }),
+		).toBeChecked();
+		await page.getByRole("button", { name: "Autorizza" }).click();
 
 		await page.waitForURL("**/attivita?calendario=collegato");
 		await expect(page.getByText("Calendario Google collegato", { exact: true })).toBeVisible();
@@ -87,7 +92,9 @@ test.describe("US-001 Collegamento del Google Calendar", () => {
 		const collaboratore = await factory.createCollaboratore();
 		await accediComeCollaboratore(page, collaboratore.utente.email);
 
-		await page.goto("/api/calendario-google/callback?error=access_denied&state=qualsiasi");
+		await page.getByRole("link", { name: "Collega Google Calendar" }).click();
+		await page.waitForURL("**/e2e-test/consenso-calendario**");
+		await page.getByRole("link", { name: "Nega il consenso" }).click();
 
 		await page.waitForURL("**/attivita?calendario=negato");
 		await expect(
@@ -127,15 +134,14 @@ test.describe("Verifica dell'account Google al collegamento", () => {
 		const collaboratore = await factory.createCollaboratore();
 		await accediComeCollaboratore(page, collaboratore.utente.email);
 
-		// Il consenso simulato riporta nel codice l'account autorizzato: lo si
-		// sostituisce con un account diverso prima di tornare al callback.
-		const avvio = await page.request.get("/api/calendario-google/collega", {
-			maxRedirects: 0,
-		});
-		expect(avvio.status()).toBe(307);
-		const ritorno = new URL(avvio.headers()["location"]);
-		ritorno.searchParams.set("code", "e2e-consenso:altro-account@esempio.test");
-		await page.goto(`${ritorno.pathname}${ritorno.search}`);
+		// Nel consenso simulato si sceglie di autorizzare un altro account.
+		await page.getByRole("link", { name: "Collega Google Calendar" }).click();
+		await page.waitForURL("**/e2e-test/consenso-calendario**");
+		await page.getByRole("radio", { name: "Un altro account" }).check();
+		await page
+			.getByRole("textbox", { name: "Email dell'altro account" })
+			.fill("altro-account@esempio.test");
+		await page.getByRole("button", { name: "Autorizza" }).click();
 
 		await page.waitForURL("**/attivita?calendario=account-diverso");
 		await expect(

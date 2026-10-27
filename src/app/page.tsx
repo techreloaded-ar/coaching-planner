@@ -93,7 +93,14 @@ export default async function Home({
 
         {/* Pulsante Accedi con Google */}
         <div className={showLogout || showError ? "mt-4" : "mt-[26px]"}>
-          <AccessoGoogle />
+          <AccessoGoogle
+            destinazione={
+              // Con Google simulato (anteprime, e2e) si sceglie l'utente in locale.
+              process.env.E2E_TEST_MODE === "true"
+                ? "/e2e-test/scegli-utente"
+                : "/api/auth/google"
+            }
+          />
         </div>
 
         {/* Nota a piè di pagina */}

@@ -44,6 +44,12 @@ describe("proxy", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  it("lascia passare senza cookie le pagine riservate ai test e2e", async () => {
+    const response = await proxy(creaRequest("/e2e-test/scegli-utente"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
   it("reindirizza una rotta protetta senza cookie verso la radice", async () => {
     const response = await proxy(creaRequest("/anagrafiche"));
 
