@@ -4,3 +4,4 @@ export { useIdratata } from "./use-idratata";
 export { useValoriInviati, type MemoriaValoriInviati } from "./use-valori-inviati";
 export { SelettoreTema } from "./selettore-tema";
 export { LogoAgileReloaded } from "./logo-agile-reloaded";
+export { SelettoreMese } from "./selettore-mese";

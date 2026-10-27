@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ErroreAutorizzazione, risolviProfiloCollaboratoreCorrente } from "@/lib/dal";
+import { ErroreAutorizzazione, risolviProfiloCollaboratoreCorrente, richiediSessioneApi } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { scambiaCodiceCalendario } from "@/lib/calendario-google";
 import { cifraToken } from "@/lib/cifratura-token";
+import { stessoAccountGoogle } from "@/domain/calendario-google";
 import {
   COOKIE_CODE_VERIFIER_CALENDARIO,
   COOKIE_STATE_CALENDARIO,
@@ -18,8 +19,9 @@ function baseUrl(): string {
  *
  * Ritorno dal consenso Google. Salva il token di rinnovo, cifrato, sul
  * collaboratore della sessione corrente e torna all'area attività con l'esito
- * in `?calendario=collegato|negato`. Consenso negato, state errato o assente e
- * scambio fallito non salvano nulla.
+ * in `?calendario=collegato|negato|account-diverso`. Consenso negato, state
+ * errato o assente, scambio fallito e account Google diverso da quello di
+ * accesso non salvano nulla: un collegamento esistente resta invariato.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const params = request.nextUrl.searchParams;
@@ -29,7 +31,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const codeVerifier = request.cookies.get(COOKIE_CODE_VERIFIER_CALENDARIO)?.value;
 
   try {
-    const profilo = await risolviProfiloCollaboratoreCorrente();
+    const sessione = await richiediSessioneApi();
+    const profilo = await risolviProfiloCollaboratoreCorrente(sessione);
     if (profilo.stato !== "ATTIVO") {
       return esito("negato");
     }
@@ -38,12 +41,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return esito("negato");
     }
 
-    const refreshToken = await scambiaCodiceCalendario(code, codeVerifier);
-    if (!refreshToken) {
+    const consenso = await scambiaCodiceCalendario(code, codeVerifier);
+    if (!consenso) {
       return esito("negato");
     }
 
-    const refreshTokenCifrato = cifraToken(refreshToken);
+    if (!stessoAccountGoogle(consenso.emailAutorizzata, sessione.email)) {
+      return esito("account-diverso");
+    }
+
+    const refreshTokenCifrato = cifraToken(consenso.refreshToken);
     await db.collegamentoCalendarioGoogle.upsert({
       where: { collaboratoreId: profilo.collaboratore.id },
       update: { refreshTokenCifrato },
@@ -60,7 +67,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-function esito(valore: "collegato" | "negato"): NextResponse {
+function esito(valore: "collegato" | "negato" | "account-diverso"): NextResponse {
   const response = NextResponse.redirect(
     new URL(`/attivita?calendario=${valore}`, baseUrl())
   );

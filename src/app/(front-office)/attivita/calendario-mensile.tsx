@@ -13,13 +13,12 @@ import {
   type CellaGiorno,
 } from "@/domain/calendario";
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
-import { useIdratata } from "@/components";
+import { SelettoreMese, useIdratata } from "@/components";
 import {
   ErroreIdentitaSchedaCambiata,
   ErroreSessioneAttivita,
   useCacheCalendario,
 } from "./attivita-cache-provider";
-import { SelettoreMese } from "./selettore-mese";
 
 // ── Helpers ─────────────────────────────────────────────────────
 

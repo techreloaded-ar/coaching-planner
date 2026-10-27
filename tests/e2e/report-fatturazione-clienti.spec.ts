@@ -53,13 +53,13 @@ async function verificaDatasetReport(
     page.getByRole("heading", { name: "Importi da fatturare per cliente" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Mese precedente", exact: true }),
+    page.getByRole("button", { name: "Mese precedente", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Mese successivo", exact: true }),
+    page.getByRole("button", { name: "Mese successivo", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Mese corrente", exact: true }),
+    page.getByRole("button", { name: "Mese corrente", exact: true }),
   ).toBeVisible();
 
   await expect(

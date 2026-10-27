@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Google } from "arctic";
+import { decodeIdToken, Google } from "arctic";
 import { clientId, clientSecret } from "@/lib/google-oauth";
 import {
   finestraRichiestaGiorno,
@@ -12,8 +12,9 @@ import {
 // calendario principale.
 //
 // Con E2E_TEST_MODE=true Google non viene mai contattato: il consenso torna
-// subito al callback e gli eventi sono letti dal token di test scritto da
-// /api/e2e-test/calendario-google (formato `e2e:<json>`).
+// subito al callback con il codice `e2e-consenso:<email autorizzata>` e gli
+// eventi sono letti dal token di test scritto da /api/e2e-test/calendario-google
+// (formato `e2e:<json>`).
 
 export const SCOPE_CALENDARIO_SOLA_LETTURA =
   "https://www.googleapis.com/auth/calendar.readonly";
@@ -21,6 +22,9 @@ export const SCOPE_CALENDARIO_SOLA_LETTURA =
 export const PERCORSO_CALLBACK_CALENDARIO = "/api/calendario-google/callback";
 
 const PREFISSO_TOKEN_E2E = "e2e:";
+
+/** Prefisso del codice di consenso simulato: segue l'email dell'account autorizzato. */
+export const PREFISSO_CODICE_CONSENSO_E2E = "e2e-consenso:";
 
 const TIMEOUT_CALENDARIO_MS = 10000;
 
@@ -47,7 +51,10 @@ function clientCalendario(): Google {
  * URL del consenso Google per la sola lettura del calendario.
  *
  * `access_type=offline` + `prompt=consent` garantiscono il token di rinnovo
- * anche quando il collaboratore ha già autorizzato l'app in passato.
+ * anche quando il collaboratore ha già autorizzato l'app in passato;
+ * `select_account` forza la scelta esplicita dell'account, suggerito da
+ * `login_hint`. Gli scope `openid` ed `email` servono a ricavare l'account
+ * autorizzato dall'id_token.
  */
 export function urlConsensoCalendario(
   state: string,
@@ -56,32 +63,46 @@ export function urlConsensoCalendario(
 ): string {
   if (modalitaTestE2e()) {
     const url = new URL(PERCORSO_CALLBACK_CALENDARIO, baseUrl());
-    url.searchParams.set("code", "e2e-consenso");
+    url.searchParams.set("code", `${PREFISSO_CODICE_CONSENSO_E2E}${emailCollaboratore}`);
     url.searchParams.set("state", state);
     return url.toString();
   }
 
   const url = clientCalendario().createAuthorizationURL(state, codeVerifier, [
+    "openid",
+    "email",
     SCOPE_CALENDARIO_SOLA_LETTURA,
   ]);
   url.searchParams.set("access_type", "offline");
-  url.searchParams.set("prompt", "consent");
+  url.searchParams.set("prompt", "consent select_account");
   url.searchParams.set("login_hint", emailCollaboratore);
   return url.toString();
 }
 
+/** Esito di uno scambio riuscito: token di rinnovo ed email dell'account autorizzato. */
+export interface ConsensoCalendario {
+  refreshToken: string;
+  emailAutorizzata: string;
+}
+
 /**
- * Scambia il codice del consenso con il token di rinnovo.
+ * Scambia il codice del consenso con il token di rinnovo e l'email
+ * dell'account Google autorizzato, letta dall'id_token.
  *
  * Restituisce `null` se lo scambio fallisce, se Google non rilascia un token di
- * rinnovo o se il collaboratore ha deselezionato il permesso sul calendario.
+ * rinnovo o l'email, o se il collaboratore ha deselezionato il permesso sul
+ * calendario.
  */
 export async function scambiaCodiceCalendario(
   code: string,
   codeVerifier: string
-): Promise<string | null> {
+): Promise<ConsensoCalendario | null> {
   if (modalitaTestE2e()) {
-    return code === "e2e-consenso" ? REFRESH_TOKEN_E2E_SENZA_EVENTI : null;
+    if (!code.startsWith(PREFISSO_CODICE_CONSENSO_E2E)) return null;
+    return {
+      refreshToken: REFRESH_TOKEN_E2E_SENZA_EVENTI,
+      emailAutorizzata: code.slice(PREFISSO_CODICE_CONSENSO_E2E.length),
+    };
   }
 
   try {
@@ -91,7 +112,13 @@ export async function scambiaCodiceCalendario(
     );
     if (!tokens.hasRefreshToken()) return null;
     if (!tokens.scopes().includes(SCOPE_CALENDARIO_SOLA_LETTURA)) return null;
-    return tokens.refreshToken();
+    // L'id_token arriva direttamente dal token endpoint di Google via TLS:
+    // non serve verificarne la firma per leggerne l'email.
+    const { email, email_verified: emailVerificata } = decodeIdToken(
+      tokens.idToken()
+    ) as { email?: unknown; email_verified?: unknown };
+    if (typeof email !== "string" || !email || emailVerificata !== true) return null;
+    return { refreshToken: tokens.refreshToken(), emailAutorizzata: email };
   } catch (errore) {
     console.error("Scambio del codice del calendario Google non riuscito:", errore);
     return null;

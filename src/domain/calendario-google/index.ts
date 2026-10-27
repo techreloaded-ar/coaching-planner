@@ -125,3 +125,17 @@ export function proposteDaEventi(
 
   return proposte.sort((a, b) => a.inizio.localeCompare(b.inizio));
 }
+
+/**
+ * Vero se l'account Google autorizzato al consenso è quello con cui il
+ * collaboratore accede al coaching planner: le email sono confrontate senza
+ * distinzione tra maiuscole e minuscole.
+ */
+export function stessoAccountGoogle(
+  emailAutorizzata: string,
+  emailAccesso: string
+): boolean {
+  return (
+    emailAutorizzata.trim().toLowerCase() === emailAccesso.trim().toLowerCase()
+  );
+}
