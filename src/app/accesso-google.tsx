@@ -2,12 +2,17 @@
 
 import { useState } from "react";
 
-export default function AccessoGoogle() {
+interface AccessoGoogleProps {
+  /** Dove avviare l'accesso: il login Google reale o, con i mock e2e, la scelta dell'utente */
+  destinazione: string;
+}
+
+export default function AccessoGoogle({ destinazione }: AccessoGoogleProps) {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = () => {
     setLoading(true);
-    window.location.href = "/api/auth/google";
+    window.location.href = destinazione;
   };
 
   return (

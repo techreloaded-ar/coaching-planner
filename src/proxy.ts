@@ -69,7 +69,13 @@ function classificaRichiesta(pathname: string): ClassificazioneRichiesta {
     return { tipo: "auth-public" };
   }
 
-  if (pathname === "/api/e2e-test" || pathname.startsWith("/api/e2e-test/")) {
+  // API e pagine riservate alla modalità di test e2e: ognuna rifiuta da sé
+  // le richieste quando E2E_TEST_MODE non è attivo.
+  if (
+    pathname === "/api/e2e-test" ||
+    pathname.startsWith("/api/e2e-test/") ||
+    pathname.startsWith("/e2e-test/")
+  ) {
     return { tipo: "e2e-public" };
   }
 

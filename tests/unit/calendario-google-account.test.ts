@@ -44,13 +44,20 @@ describe("urlConsensoCalendario (US-003 AC-1)", () => {
 });
 
 describe("consenso simulato in E2E_TEST_MODE (US-003 AC-6)", () => {
-  it("autorizza l'account di accesso e riporta l'email del codice di test", async () => {
+  it("passa dalla pagina locale di scelta dell'account, con lo state e l'account di accesso", () => {
     vi.stubEnv("E2E_TEST_MODE", "true");
 
-    const code = new URL(urlConsensoCalendario("state", "verifier", "collab@esempio.it"))
-      .searchParams.get("code")!;
+    const url = new URL(urlConsensoCalendario("state", "verifier", "collab@esempio.it"));
 
-    expect(await scambiaCodiceCalendario(code, "verifier")).toEqual({
+    expect(url.pathname).toBe("/e2e-test/consenso-calendario");
+    expect(url.searchParams.get("state")).toBe("state");
+    expect(url.searchParams.get("login_hint")).toBe("collab@esempio.it");
+  });
+
+  it("riporta come autorizzato l'account del codice di test", async () => {
+    vi.stubEnv("E2E_TEST_MODE", "true");
+
+    expect(await scambiaCodiceCalendario("e2e-consenso:collab@esempio.it", "verifier")).toEqual({
       refreshToken: REFRESH_TOKEN_E2E_SENZA_EVENTI,
       emailAutorizzata: "collab@esempio.it",
     });

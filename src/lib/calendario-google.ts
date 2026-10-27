@@ -11,8 +11,9 @@ import {
 // login, scambio del codice per il token di rinnovo e lettura degli eventi del
 // calendario principale.
 //
-// Con E2E_TEST_MODE=true Google non viene mai contattato: il consenso torna
-// subito al callback con il codice `e2e-consenso:<email autorizzata>` e gli
+// Con E2E_TEST_MODE=true Google non viene mai contattato: il consenso passa da
+// una pagina locale che sceglie l'account e torna al callback con il codice
+// `e2e-consenso:<email autorizzata>` (o con `error` se negato), e gli
 // eventi sono letti dal token di test scritto da /api/e2e-test/calendario-google
 // (formato `e2e:<json>`).
 
@@ -22,6 +23,9 @@ export const SCOPE_CALENDARIO_SOLA_LETTURA =
 export const PERCORSO_CALLBACK_CALENDARIO = "/api/calendario-google/callback";
 
 const PREFISSO_TOKEN_E2E = "e2e:";
+
+/** Pagina del consenso simulato, dove si sceglie l'account da «autorizzare». */
+export const PERCORSO_CONSENSO_SIMULATO = "/e2e-test/consenso-calendario";
 
 /** Prefisso del codice di consenso simulato: segue l'email dell'account autorizzato. */
 export const PREFISSO_CODICE_CONSENSO_E2E = "e2e-consenso:";
@@ -62,9 +66,9 @@ export function urlConsensoCalendario(
   emailCollaboratore: string
 ): string {
   if (modalitaTestE2e()) {
-    const url = new URL(PERCORSO_CALLBACK_CALENDARIO, baseUrl());
-    url.searchParams.set("code", `${PREFISSO_CODICE_CONSENSO_E2E}${emailCollaboratore}`);
+    const url = new URL(PERCORSO_CONSENSO_SIMULATO, baseUrl());
     url.searchParams.set("state", state);
+    url.searchParams.set("login_hint", emailCollaboratore);
     return url.toString();
   }
 
