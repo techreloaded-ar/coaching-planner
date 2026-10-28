@@ -3,16 +3,13 @@ import "server-only";
 import { db } from "@/lib/db";
 import { decifraToken } from "@/lib/cifratura-token";
 import { eventiAttornoAlGiorno } from "@/lib/calendario-google";
-import { analizzaEventiCalendario } from "@/lib/gemini";
+import { analizzaEventiCalendario } from "@/lib/jev";
 import { proposteDaEventi, type EventoGoogle } from "@/domain/calendario-google";
 import type { ProposteCalendarioGiornata } from "@/lib/attivita-contract";
 
 // Read model delle proposte di ore dal calendario Google. Riceve il
 // collaboratore già autorizzato dal chiamante, come le altre letture
 // `...PerCollaboratoreAutorizzato` dell'area attività.
-
-/** Righe recenti passate a Gemini come esempi di associazione nota → offerta. */
-const NUMERO_ESEMPI_ASSOCIAZIONE = 30;
 
 /** `true` se il collaboratore ha collegato il proprio calendario. */
 export async function calendarioCollegato(collaboratoreId: string): Promise<boolean> {
@@ -26,10 +23,11 @@ export async function calendarioCollegato(collaboratoreId: string): Promise<bool
 /**
  * Proposte della giornata `YYYY-MM-DD` per il collaboratore indicato.
  *
- * Una sola chiamata a Gemini per invocazione, e solo se ci sono proposte e
- * offerte abilitate: gli eventi che giudica non lavorativi sono esclusi, e
- * cliente e offerta sono precompilati solo con confidenza alta. Un calendario illeggibile produce lo stato `ERRORE` senza
- * eccezioni: la giornata resta utilizzabile per l'inserimento manuale.
+ * Una richiesta a Jev per proposta, e solo se ci sono proposte e offerte
+ * abilitate: gli eventi che giudica non lavorativi sono esclusi, e cliente e
+ * offerta sono precompilati solo con cliente identificato, confidenza sopra
+ * soglia e offerta attiva. Un calendario illeggibile produce lo stato `ERRORE`
+ * senza eccezioni: la giornata resta utilizzabile per l'inserimento manuale.
  */
 export async function proposteCalendarioPerCollaboratoreAutorizzato(
   giorno: string,
@@ -72,9 +70,10 @@ export async function proposteCalendarioPerCollaboratoreAutorizzato(
     return { stato: "COLLEGATO", proposte: [] };
   }
 
+  // Anche le offerte chiuse: servono a Jev per distinguere un rinnovo dal
+  // contratto precedente, ma non vengono mai precompilate.
   const offerte = await db.offerta.findMany({
     where: {
-      attiva: true,
       cliente: { attivo: true },
       abilitazioniCollaboratori: { some: { collaboratoreId } },
     },
@@ -82,32 +81,18 @@ export async function proposteCalendarioPerCollaboratoreAutorizzato(
       id: true,
       codice: true,
       descrizione: true,
+      attiva: true,
+      createdAt: true,
       cliente: { select: { id: true, ragioneSociale: true } },
     },
     orderBy: { codice: "asc" },
   });
   const offertePerId = new Map(offerte.map((o) => [o.id, o]));
-  const righeRecenti =
-    offerte.length === 0
-      ? []
-      : await db.rigaAttivita.findMany({
-          where: {
-            collaboratoreId,
-            nota: { not: "" },
-            offertaId: { in: offerte.map((o) => o.id) },
-          },
-          select: { nota: true, offertaId: true },
-          orderBy: [{ data: "desc" }, { createdAt: "desc" }],
-          take: NUMERO_ESEMPI_ASSOCIAZIONE,
-        });
-  const esempi = righeRecenti.flatMap((r) =>
-    r.nota ? [{ nota: r.nota, offertaId: r.offertaId }] : []
-  );
 
   const { associazioni, nonLavorativi } = await analizzaEventiCalendario(
     proposte,
     offerte,
-    esempi
+    giorno
   );
 
   return {

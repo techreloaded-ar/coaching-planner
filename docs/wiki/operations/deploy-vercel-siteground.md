@@ -131,6 +131,10 @@ vive (Production / Preview / Development) e, per Preview, restringerla a un bran
 | `GOOGLE_REDIRECT_URI` | `https://<dominio-produzione>/api/auth/google/callback` | `https://<dominio-staging>/api/auth/google/callback` |
 | `NEXT_PUBLIC_APP_URL` | `https://<dominio-produzione>` | `https://<dominio-staging>` |
 | `AMMINISTRATORE_INIZIALE_EMAIL` | email dell'amministratore garantito al deploy, es. `admin@agilereloaded.it` | email dell'amministratore garantito al deploy in staging, es. `admin-staging@agilereloaded.it` |
+| `OPENROUTER_API_KEY` | chiave OpenRouter per i suggerimenti di Jev sulle proposte dal calendario | chiave dedicata a staging, o non impostata (proposte senza cliente e offerta) |
+| `JEV_MODEL` | non impostata (`~typesafe/jev-latest`) o una versione fissa, es. `typesafe/jev-1.14` | idem |
+| `JEV_SOGLIA_CONFIDENZA` | non impostata (`0.7`) o la soglia scelta, da 0 a 1 | idem |
+| `DOMINI_INTERNI` | non impostata (`agilereloaded.it`) o i domini dei colleghi separati da virgola | idem |
 | `E2E_TEST_MODE` | non impostata (o `false`) | non impostata (o `false`) — **mai `true` fuori da CI/e2e** |
 
 `E2E_TEST_MODE=true` abilita endpoint riservati ai test che accettano richieste senza autenticazione:
