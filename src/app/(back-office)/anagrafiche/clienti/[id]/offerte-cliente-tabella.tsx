@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useIdratata } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
 import DettaglioAvanzamentoOfferta from "@/app/(back-office)/offerte/dettaglio-avanzamento-offerta";
-import { formattaEuro } from "@/lib/formattazione";
+import { descriviGestioneTrasferta, formattaEuro } from "@/lib/formattazione";
 
 interface OfferteClienteTabellaProps {
   clienteId: string;
@@ -94,6 +94,12 @@ export default function OfferteClienteTabella({
                 </td>
                 <td className="px-4 py-[13px] text-right align-middle font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
                   {formattaEuro(Number(offerta.tariffaGiornaliera))}
+                  <div className="mt-[3px] text-[11.5px] font-medium text-zinc-400 dark:text-zinc-500">
+                    {descriviGestioneTrasferta(
+                      offerta.gestioneTrasferta,
+                      offerta.importoTrasfertaForfettaria,
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-[13px] text-right align-middle tabular-nums text-zinc-800 dark:text-zinc-100">
                   {offerta.giorniPrevisti}

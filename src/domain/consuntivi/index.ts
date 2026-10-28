@@ -7,6 +7,7 @@ import {
   fatturataDalCollaboratore,
   ORE_PER_GIORNATA,
   type CategoriaAttivita,
+  type GestioneTrasferta,
 } from "../types";
 
 export { ORE_PER_GIORNATA };
@@ -240,6 +241,12 @@ export interface RigaReportFatturazione {
   fatturabile: boolean;
   /** Importo del rimborso trasferta fotografato sulla riga (serializzabile) */
   rimborsoTrasfertaImporto: string | number | null;
+  /** Giorno della riga (YYYY-MM-DD): serve a contare i giorni di trasferta */
+  data: string;
+  /** Come l'offerta fattura le trasferte al cliente */
+  gestioneTrasfertaOfferta: GestioneTrasferta;
+  /** Importo per giorno di trasferta dell'offerta; null se inclusa */
+  importoTrasfertaForfettariaOfferta: string | number | null;
 }
 
 /** Dettaglio fatturabile di un collaboratore all'interno di una singola offerta */
@@ -259,6 +266,12 @@ export interface VoceOffertaReport {
   tariffaGiornaliera: string;
   giornateFatturabili: number;
   imponibile: string;
+  /** Combinazioni distinte collaboratore + giorno con rimborso trasferta (solo offerte forfettarie) */
+  giorniTrasferta: number;
+  /** Importo per giorno di trasferta; null se la trasferta è inclusa nella tariffa */
+  importoTrasfertaForfettaria: string | null;
+  /** giorniTrasferta × importoTrasfertaForfettaria */
+  importoTrasferte: string;
   perCollaboratore: VoceCollaboratoreOffertaReport[];
 }
 
@@ -267,7 +280,7 @@ export interface VoceClienteReport {
   clienteId: string;
   clienteRagioneSociale: string;
   perOfferta: VoceOffertaReport[];
-  rimborsiTrasferta: string;
+  trasferteForfettarie: string;
   imponibileManodopera: string;
   importoTotale: string;
 }
@@ -277,7 +290,7 @@ export interface ReportFatturazioneClienti {
   perCliente: VoceClienteReport[];
   totali: {
     imponibileManodopera: string;
-    totaleRimborsi: string;
+    totaleTrasferteForfettarie: string;
     importoTotale: string;
   };
 }
@@ -285,7 +298,9 @@ export interface ReportFatturazioneClienti {
 /**
  * Aggrega le righe attività del mese (di tutti i collaboratori) per cliente e,
  * dentro ogni cliente, per offerta, calcolando l'importo da fatturare con la
- * tariffa dell'offerta e ribaltando i rimborsi trasferta al cliente.
+ * tariffa dell'offerta e le trasferte forfettarie secondo la gestione
+ * trasferte dell'offerta. I rimborsi pagati ai collaboratori non sono
+ * ribaltati al cliente: segnano solo i giorni di trasferta.
  *
  * Funzione pura: nessuna dipendenza da framework o Prisma.
  *
@@ -308,13 +323,15 @@ export function calcolaReportFatturazioneClienti(
     tariffaGiornaliera: number;
     oreFatturabili: number;
     collaboratori: Map<string, AccumulatoreCollaboratoreOfferta>;
+    importoTrasfertaForfettaria: number | null;
+    /** Chiavi "collaboratoreId|data" dei giorni di trasferta */
+    giorniTrasferta: Set<string>;
   }
 
   interface AccumulatoreCliente {
     clienteId: string;
     clienteRagioneSociale: string;
     offerte: Map<string, AccumulatoreOfferta>;
-    rimborsiTrasferta: number;
   }
 
   const clienti = new Map<string, AccumulatoreCliente>();
@@ -326,7 +343,6 @@ export function calcolaReportFatturazioneClienti(
         clienteId: riga.clienteId,
         clienteRagioneSociale: riga.clienteRagioneSociale,
         offerte: new Map(),
-        rimborsiTrasferta: 0,
       };
       clienti.set(riga.clienteId, cliente);
     }
@@ -340,6 +356,12 @@ export function calcolaReportFatturazioneClienti(
         tariffaGiornaliera: Number(riga.tariffaOffertaGiornaliera),
         oreFatturabili: 0,
         collaboratori: new Map(),
+        importoTrasfertaForfettaria:
+          riga.gestioneTrasfertaOfferta === "FORFETTARIA" &&
+          riga.importoTrasfertaForfettariaOfferta != null
+            ? Number(riga.importoTrasfertaForfettariaOfferta)
+            : null,
+        giorniTrasferta: new Set(),
       };
       cliente.offerte.set(riga.offertaId, offerta);
     }
@@ -356,16 +378,17 @@ export function calcolaReportFatturazioneClienti(
       offerta.collaboratori.set(riga.collaboratoreId, collaboratore);
     }
 
-    if (riga.rimborsoTrasfertaImporto != null) {
-      const importoNumerico = Number(riga.rimborsoTrasfertaImporto);
-      if (!Number.isNaN(importoNumerico)) {
-        cliente.rimborsiTrasferta += importoNumerico;
-      }
+    // Qualunque categoria: conta che il collaboratore fosse in trasferta
+    if (
+      riga.rimborsoTrasfertaImporto != null &&
+      offerta.importoTrasfertaForfettaria !== null
+    ) {
+      offerta.giorniTrasferta.add(`${riga.collaboratoreId}|${riga.data}`);
     }
   }
 
   let totaleImponibileManodopera = 0;
-  let totaleRimborsi = 0;
+  let totaleTrasferteForfettarie = 0;
   let totaleImporto = 0;
 
   const perCliente: VoceClienteReport[] = [];
@@ -373,6 +396,7 @@ export function calcolaReportFatturazioneClienti(
   for (const cliente of clienti.values()) {
     const perOfferta: VoceOffertaReport[] = [];
     let imponibileManodoperaCliente = 0;
+    let trasferteForfettarieCliente = 0;
     const imponibileGrezzoPerVoce = new Map<
       VoceCollaboratoreOffertaReport,
       number
@@ -381,9 +405,18 @@ export function calcolaReportFatturazioneClienti(
     for (const offerta of cliente.offerte.values()) {
       const giornateFatturabili = offerta.oreFatturabili / ORE_PER_GIORNATA;
       const imponibile = giornateFatturabili * offerta.tariffaGiornaliera;
+      const giorniTrasferta = offerta.giorniTrasferta.size;
+      // In centesimi interi: giorni × importo senza errori di virgola mobile
+      const importoTrasferte =
+        offerta.importoTrasfertaForfettaria === null
+          ? 0
+          : (Math.round(offerta.importoTrasfertaForfettaria * 100) *
+              giorniTrasferta) /
+            100;
 
-      if (giornateFatturabili > 0) {
+      if (giornateFatturabili > 0 || importoTrasferte > 0) {
         imponibileManodoperaCliente += imponibile;
+        trasferteForfettarieCliente += importoTrasferte;
 
         const perCollaboratore: VoceCollaboratoreOffertaReport[] = Array.from(
           offerta.collaboratori.values(),
@@ -417,14 +450,16 @@ export function calcolaReportFatturazioneClienti(
           tariffaGiornaliera: offerta.tariffaGiornaliera.toFixed(2),
           giornateFatturabili,
           imponibile: imponibile.toFixed(2),
+          giorniTrasferta,
+          importoTrasfertaForfettaria:
+            offerta.importoTrasfertaForfettaria?.toFixed(2) ?? null,
+          importoTrasferte: importoTrasferte.toFixed(2),
           perCollaboratore,
         });
       }
     }
 
-    const rimborsiCliente = cliente.rimborsiTrasferta;
-
-    if (perOfferta.length === 0 && rimborsiCliente <= 0) {
+    if (perOfferta.length === 0) {
       continue;
     }
 
@@ -478,19 +513,20 @@ export function calcolaReportFatturazioneClienti(
       }
     }
 
-    const importoTotaleCliente = imponibileManodoperaCliente + rimborsiCliente;
+    const importoTotaleCliente =
+      imponibileManodoperaCliente + trasferteForfettarieCliente;
 
     perCliente.push({
       clienteId: cliente.clienteId,
       clienteRagioneSociale: cliente.clienteRagioneSociale,
       perOfferta,
-      rimborsiTrasferta: rimborsiCliente.toFixed(2),
+      trasferteForfettarie: trasferteForfettarieCliente.toFixed(2),
       imponibileManodopera: imponibileManodoperaCliente.toFixed(2),
       importoTotale: importoTotaleCliente.toFixed(2),
     });
 
     totaleImponibileManodopera += imponibileManodoperaCliente;
-    totaleRimborsi += rimborsiCliente;
+    totaleTrasferteForfettarie += trasferteForfettarieCliente;
     totaleImporto += importoTotaleCliente;
   }
 
@@ -502,7 +538,7 @@ export function calcolaReportFatturazioneClienti(
     perCliente,
     totali: {
       imponibileManodopera: totaleImponibileManodopera.toFixed(2),
-      totaleRimborsi: totaleRimborsi.toFixed(2),
+      totaleTrasferteForfettarie: totaleTrasferteForfettarie.toFixed(2),
       importoTotale: totaleImporto.toFixed(2),
     },
   };

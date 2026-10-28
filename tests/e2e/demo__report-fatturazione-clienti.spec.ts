@@ -13,7 +13,7 @@ import {
  *
  * L'amministratore apre il report dalla sidebar e verifica, per un mese
  * riservato, il cliente e l'offerta creati dallo scenario con tariffa,
- * giornate, imponibile, rimborsi e totale esatti. Il gate resta indipendente
+ * giornate, imponibile, trasferte forfettarie e totale esatti. Il gate resta indipendente
  * dal seed globale e dagli altri scenari e2e.
  *
  * Registra un video per la review.
@@ -74,13 +74,23 @@ async function verificaDatasetReportDemo(
   await expect(celle.nth(3)).toHaveText(
     formattaEuro(offertaAttesa.totali.imponibile),
   );
+  // Trasferte forfettarie: un forfait per collaboratore e giorno di trasferta
+  const cellaTrasferte = page.getByTestId(
+    `report-offerta-${offertaAttesa.offertaId}-trasferte`,
+  );
+  await expect(cellaTrasferte).toContainText(
+    formattaEuro(offertaAttesa.totali.trasferte),
+  );
+  await expect(cellaTrasferte).toContainText(
+    `${offertaAttesa.giorniTrasferta} gg × ${formattaEuro(dataset.offerta.importoTrasfertaForfettaria!.toString())}`,
+  );
 
   await expect(
     page.getByTestId(`report-client-${clienteAtteso.clienteId}`),
   ).toBeVisible();
   await expect(
-    page.getByTestId(`report-client-${clienteAtteso.clienteId}-rimborsi`),
-  ).toHaveText(formattaEuro(clienteAtteso.totali.rimborsi));
+    page.getByTestId(`report-client-${clienteAtteso.clienteId}-trasferte`),
+  ).toHaveText(formattaEuro(clienteAtteso.totali.trasferte));
   await expect(
     page.getByTestId(`report-client-${clienteAtteso.clienteId}-totale`),
   ).toHaveText(formattaEuro(clienteAtteso.totali.totale));
@@ -88,8 +98,8 @@ async function verificaDatasetReportDemo(
   await expect(page.getByTestId("report-total-imponibile")).toHaveText(
     formattaEuro(dataset.atteso.totali.imponibile),
   );
-  await expect(page.getByTestId("report-total-rimborsi")).toHaveText(
-    formattaEuro(dataset.atteso.totali.rimborsi),
+  await expect(page.getByTestId("report-total-trasferte")).toHaveText(
+    formattaEuro(dataset.atteso.totali.trasferte),
   );
   await expect(page.getByTestId("report-total-importo")).toHaveText(
     formattaEuro(dataset.atteso.totali.totale),

@@ -385,7 +385,7 @@ export default function ReportFatturazioneClienti({
               Nessuna attività da fatturare per questo mese
             </h3>
             <p className="mx-auto max-w-[420px] text-[13px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-              Non risultano giornate fatturabili né rimborsi trasferta registrati
+              Non risultano giornate fatturabili né trasferte forfettarie
               nel mese selezionato. Cambia mese o attendi la registrazione delle
               attività dei collaboratori.
             </p>
@@ -471,6 +471,9 @@ export default function ReportFatturazioneClienti({
                             <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-[10.5px] font-bold uppercase tracking-[0.05em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
                               Imponibile
                             </th>
+                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-[10.5px] font-bold uppercase tracking-[0.05em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                              Trasferte
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -499,6 +502,26 @@ export default function ReportFatturazioneClienti({
                               </td>
                               <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle text-[14px] font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
                                 {formattaEuro(offerta.imponibile)}
+                              </td>
+                              <td
+                                data-testid={`report-offerta-${offerta.offertaId}-trasferte`}
+                                className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums whitespace-nowrap dark:border-zinc-700/50"
+                              >
+                                {offerta.importoTrasfertaForfettaria === null ? (
+                                  <span className="text-[12.5px] text-zinc-400 dark:text-zinc-500">
+                                    Inclusa nella tariffa
+                                  </span>
+                                ) : (
+                                  <div className="flex flex-col items-end gap-[2px]">
+                                    <span className="text-[14px] font-bold text-zinc-800 dark:text-zinc-100">
+                                      {formattaEuro(offerta.importoTrasferte)}
+                                    </span>
+                                    <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
+                                      {offerta.giorniTrasferta} gg ×{" "}
+                                      {formattaEuro(offerta.importoTrasfertaForfettaria)}
+                                    </span>
+                                  </div>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -532,14 +555,18 @@ export default function ReportFatturazioneClienti({
                           Ore erogate per collaboratore
                         </div>
 
-                        {cliente.perOfferta.length === 0 ? (
+                        {cliente.perOfferta.every(
+                          (offerta) => offerta.perCollaboratore.length === 0,
+                        ) ? (
                           <p className="text-[13px] italic text-zinc-400 dark:text-zinc-500">
                             Nessuna ora fatturabile nel mese: il cliente compare
-                            solo per rimborsi trasferta
+                            solo per trasferte forfettarie
                           </p>
                         ) : (
                           <div className="flex flex-col gap-5">
-                            {cliente.perOfferta.map((offerta) => (
+                            {cliente.perOfferta
+                              .filter((offerta) => offerta.perCollaboratore.length > 0)
+                              .map((offerta) => (
                               <div
                                 key={offerta.offertaId}
                                 data-testid={`dettaglio-offerta-${offerta.offertaCodice}`}
@@ -605,7 +632,7 @@ export default function ReportFatturazioneClienti({
                         )}
                     </section>
 
-                    {/* Rimborsi trasferta ribaltati */}
+                    {/* Trasferte forfettarie fatturate al cliente */}
                     <div className="flex items-center justify-between gap-[14px] border-b border-zinc-100 bg-white px-5 py-3 dark:border-zinc-700/50 dark:bg-zinc-800">
                       <div className="flex items-center gap-[9px] text-[13px] font-semibold text-zinc-500 dark:text-zinc-400">
                         <svg
@@ -618,13 +645,13 @@ export default function ReportFatturazioneClienti({
                           <path d="M3 12h18M3 12l4-4M3 12l4 4" />
                           <path d="M21 6v12" />
                         </svg>
-                        Rimborsi trasferta ribaltati
+                        Trasferte forfettarie
                       </div>
                       <span
-                        data-testid={`report-client-${cliente.clienteId}-rimborsi`}
+                        data-testid={`report-client-${cliente.clienteId}-trasferte`}
                         className="text-[14px] font-bold tabular-nums text-zinc-800 dark:text-zinc-100"
                       >
-                        {formattaEuro(cliente.rimborsiTrasferta)}
+                        {formattaEuro(cliente.trasferteForfettarie)}
                       </span>
                     </div>
 
@@ -684,13 +711,13 @@ export default function ReportFatturazioneClienti({
                   </div>
                   <div>
                     <div className="mb-[5px] text-[11.5px] font-semibold text-white/80">
-                      Totale rimborsi
+                      Totale trasferte forfettarie
                     </div>
                     <div
-                      data-testid="report-total-rimborsi"
+                      data-testid="report-total-trasferte"
                       className="text-[19px] font-bold -tracking-[0.02em] tabular-nums"
                     >
-                      {formattaEuro(report.totali.totaleRimborsi)}
+                      {formattaEuro(report.totali.totaleTrasferteForfettarie)}
                     </div>
                   </div>
                 </div>

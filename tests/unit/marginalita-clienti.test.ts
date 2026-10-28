@@ -217,6 +217,9 @@ describe("calcolaMarginalitaClienti", () => {
             ore: r.ore,
             fatturabile: r.categoria === "FATTURABILE",
             rimborsoTrasfertaImporto: null,
+            data: "2026-01-01",
+            gestioneTrasfertaOfferta: "INCLUSA",
+            importoTrasfertaForfettariaOfferta: null,
           }),
         ),
       );

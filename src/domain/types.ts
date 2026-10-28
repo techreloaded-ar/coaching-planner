@@ -54,6 +54,15 @@ export function fatturataDalCollaboratore(categoria: CategoriaAttivita): boolean
   return categoria !== "INVESTIMENTO";
 }
 
+/** Come Agile Reloaded fattura le trasferte al cliente per un'offerta */
+export const GESTIONI_TRASFERTA = ["INCLUSA", "FORFETTARIA"] as const;
+
+export type GestioneTrasferta = (typeof GESTIONI_TRASFERTA)[number];
+
+export function isGestioneTrasferta(valore: unknown): valore is GestioneTrasferta {
+  return GESTIONI_TRASFERTA.includes(valore as GestioneTrasferta);
+}
+
 /** Payload JWT della sessione stateless */
 export interface PayloadSessione {
   utenteId: string;

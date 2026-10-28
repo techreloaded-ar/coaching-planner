@@ -17,3 +17,14 @@ export function inizialiCliente(ragioneSociale: string): string {
     .map((parola) => parola[0]?.toUpperCase() ?? "")
     .join("");
 }
+
+/** Etichetta della gestione trasferte di un'offerta, es. "Trasferta forfettaria · 80,00 €/gg". */
+export function descriviGestioneTrasferta(
+  gestioneTrasferta: "INCLUSA" | "FORFETTARIA",
+  importoTrasfertaForfettaria: string | null,
+): string {
+  if (gestioneTrasferta === "FORFETTARIA" && importoTrasfertaForfettaria !== null) {
+    return `Trasferta forfettaria · ${formattaEuro(importoTrasfertaForfettaria)}/gg`;
+  }
+  return "Trasferta inclusa";
+}

@@ -4,7 +4,11 @@ import { Fragment, useState, useActionState } from "react";
 import Link from "next/link";
 import { PulsanteAttesa, useIdratata } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
-import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
+import {
+  descriviGestioneTrasferta,
+  formattaEuro,
+  inizialiCliente,
+} from "@/lib/formattazione";
 import DettaglioAvanzamentoOfferta from "./dettaglio-avanzamento-offerta";
 import {
   cambiaStatoOfferta,
@@ -281,6 +285,12 @@ function RigaOfferta({
       {/* Tariffa giornaliera */}
       <td className="px-4 py-[13px] text-right align-middle tabular-nums whitespace-nowrap font-semibold text-zinc-700 dark:text-zinc-200">
         {formattaEuro(Number(offerta.tariffaGiornaliera))}
+        <div className="mt-[3px] text-[11.5px] font-medium text-zinc-400 dark:text-zinc-500">
+          {descriviGestioneTrasferta(
+            offerta.gestioneTrasferta,
+            offerta.importoTrasfertaForfettaria,
+          )}
+        </div>
       </td>
 
       {/* Giorni erogati: erogate/previste + mini barra + flag critici */}

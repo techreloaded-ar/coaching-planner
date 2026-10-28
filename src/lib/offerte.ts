@@ -2,7 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
-import { fatturataAlCliente } from "@/domain/types";
+import { fatturataAlCliente, type GestioneTrasferta } from "@/domain/types";
 import type {
   Offerta,
   Cliente,
@@ -39,6 +39,9 @@ export interface VoceElencoOfferta {
   clienteRagioneSociale: string;
   tariffaGiornaliera: string;
   giorniPrevisti: number;
+  gestioneTrasferta: GestioneTrasferta;
+  /** Importo fatturato per giorno di trasferta; null se la trasferta è inclusa */
+  importoTrasfertaForfettaria: string | null;
   attiva: boolean;
   giornateErogate: number;
   residuo: number;
@@ -133,6 +136,9 @@ function costruisciVociElencoOfferte(
       clienteRagioneSociale: offerta.cliente.ragioneSociale,
       tariffaGiornaliera: offerta.tariffaGiornaliera.toString(),
       giorniPrevisti: offerta.giorniPrevisti,
+      gestioneTrasferta: offerta.gestioneTrasferta,
+      importoTrasfertaForfettaria:
+        offerta.importoTrasfertaForfettaria?.toString() ?? null,
       attiva: offerta.attiva,
       giornateErogate: avanzamento?.giornateErogate ?? 0,
       residuo: avanzamento?.residuo ?? offerta.giorniPrevisti,

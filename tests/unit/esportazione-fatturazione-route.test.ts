@@ -40,6 +40,9 @@ function reportConUnCliente(token: string) {
             tariffaGiornaliera: "500.00",
             giornateFatturabili: 1,
             imponibile: "500.00",
+            giorniTrasferta: 0,
+            importoTrasfertaForfettaria: null,
+            importoTrasferte: "0.00",
             perCollaboratore: [
               {
                 collaboratoreId: "k1",
@@ -51,14 +54,14 @@ function reportConUnCliente(token: string) {
             ],
           },
         ],
-        rimborsiTrasferta: "0.00",
+        trasferteForfettarie: "0.00",
         imponibileManodopera: "500.00",
         importoTotale: "500.00",
       },
     ],
     totali: {
       imponibileManodopera: "500.00",
-      totaleRimborsi: "0.00",
+      totaleTrasferteForfettarie: "0.00",
       importoTotale: "500.00",
     },
   };

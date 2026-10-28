@@ -40,10 +40,10 @@ test.describe("Esportazione report fatturazione clienti", () => {
     const testo = async (testId: string) =>
       euroComeNumero(await page.getByTestId(testId).innerText());
     const schermo = {
-      clienteRimborsi: await testo(`report-client-${dataset.cliente.id}-rimborsi`),
+      clienteTrasferte: await testo(`report-client-${dataset.cliente.id}-trasferte`),
       clienteTotale: await testo(`report-client-${dataset.cliente.id}-totale`),
       meseImponibile: await testo("report-total-imponibile"),
-      meseRimborsi: await testo("report-total-rimborsi"),
+      meseTrasferte: await testo("report-total-trasferte"),
       meseTotale: await testo("report-total-importo"),
     };
 
@@ -62,23 +62,26 @@ test.describe("Esportazione report fatturazione clienti", () => {
     ]);
     const [riepilogo, dettaglio] = xlsx.fogli;
 
-    // Colonne: 0 cliente, 1 codice, 4 giornate, 5 imponibile, 6 rimborsi, 7 totale
+    // Colonne: 0 cliente, 1 codice, 4 giornate, 5 imponibile,
+    // 6 giorni trasferta, 7 trasferte forfettarie, 8 totale
     const rigaOfferta = riepilogo.righe.find(
       (r) => r[1] === dataset.offerta.codice,
     );
     expect(rigaOfferta?.[0]).toBe(dataset.cliente.ragioneSociale);
     expect(rigaOfferta?.[5]).toBe(Number(offertaAttesa.totali.imponibile));
+    expect(rigaOfferta?.[6]).toBe(offertaAttesa.giorniTrasferta);
+    expect(rigaOfferta?.[7]).toBe(Number(offertaAttesa.totali.trasferte));
 
     const totaleCliente = riepilogo.righe.find(
       (r) => r[0] === `Totale ${dataset.cliente.ragioneSociale}`,
     );
-    expect(totaleCliente?.[6]).toBe(schermo.clienteRimborsi);
-    expect(totaleCliente?.[7]).toBe(schermo.clienteTotale);
+    expect(totaleCliente?.[7]).toBe(schermo.clienteTrasferte);
+    expect(totaleCliente?.[8]).toBe(schermo.clienteTotale);
 
     const totaleMese = riepilogo.righe.find((r) => r[0] === "Totale mese");
     expect(totaleMese?.[5]).toBe(schermo.meseImponibile);
-    expect(totaleMese?.[6]).toBe(schermo.meseRimborsi);
-    expect(totaleMese?.[7]).toBe(schermo.meseTotale);
+    expect(totaleMese?.[7]).toBe(schermo.meseTrasferte);
+    expect(totaleMese?.[8]).toBe(schermo.meseTotale);
 
     for (const { collaboratore } of dataset.collaboratori) {
       expect(

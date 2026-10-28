@@ -3,7 +3,7 @@ import type { Cella, FoglioXlsx } from "@/lib/xlsx";
 
 // Trasforma il report mensile di fatturazione nei fogli di un file Excel.
 // Nessun ricalcolo: gli importi sono quelli (già arrotondati) del dominio.
-// Le uniche somme sono le giornate di cliente e mese, come fa lo schermo.
+// Le uniche somme sono le giornate (lavorate e di trasferta) di cliente e mese.
 
 function importo(valore: string): Cella {
   return { valore: Number(valore), stile: "importo" };
@@ -44,18 +44,22 @@ export function costruisciFogliFatturazioneClienti(
       "Tariffa/gg",
       "Giornate",
       "Imponibile manodopera",
-      "Rimborsi trasferta",
+      "Giorni trasferta",
+      "Trasferte forfettarie",
       "Totale da fatturare",
     ].map(grassetto),
   ];
 
   let giornateMese = 0;
+  let giorniTrasfertaMese = 0;
 
   for (const cliente of report.perCliente) {
     let giornateCliente = 0;
+    let giorniTrasfertaCliente = 0;
 
     for (const offerta of cliente.perOfferta) {
       giornateCliente += offerta.giornateFatturabili;
+      giorniTrasfertaCliente += offerta.giorniTrasferta;
       righeRiepilogo.push([
         cliente.clienteRagioneSociale,
         offerta.offertaCodice,
@@ -63,12 +67,14 @@ export function costruisciFogliFatturazioneClienti(
         importo(offerta.tariffaGiornaliera),
         giornate(offerta.giornateFatturabili),
         importo(offerta.imponibile),
-        null,
+        giornate(offerta.giorniTrasferta),
+        importo(offerta.importoTrasferte),
         null,
       ]);
     }
 
     giornateMese += giornateCliente;
+    giorniTrasfertaMese += giorniTrasfertaCliente;
     righeRiepilogo.push([
       grassetto(`Totale ${cliente.clienteRagioneSociale}`),
       null,
@@ -76,7 +82,8 @@ export function costruisciFogliFatturazioneClienti(
       null,
       giornate(giornateCliente),
       importoGrassetto(cliente.imponibileManodopera),
-      importoGrassetto(cliente.rimborsiTrasferta),
+      giornate(giorniTrasfertaCliente),
+      importoGrassetto(cliente.trasferteForfettarie),
       importoGrassetto(cliente.importoTotale),
     ]);
   }
@@ -88,7 +95,8 @@ export function costruisciFogliFatturazioneClienti(
     null,
     giornate(giornateMese),
     importoGrassetto(report.totali.imponibileManodopera),
-    importoGrassetto(report.totali.totaleRimborsi),
+    giornate(giorniTrasfertaMese),
+    importoGrassetto(report.totali.totaleTrasferteForfettarie),
     importoGrassetto(report.totali.importoTotale),
   ]);
 
@@ -124,7 +132,7 @@ export function costruisciFogliFatturazioneClienti(
     {
       nome: "Fatturazione clienti",
       righe: righeRiepilogo,
-      larghezzeColonne: [34, 16, 40, 14, 12, 20, 18, 20],
+      larghezzeColonne: [34, 16, 40, 14, 12, 20, 16, 20, 20],
     },
     {
       nome: "Dettaglio collaboratori",
