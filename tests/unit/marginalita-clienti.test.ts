@@ -19,7 +19,7 @@ function riga(modifiche: Partial<RigaMarginalita> = {}): RigaMarginalita {
     tariffaOffertaGiornaliera: 600,
     tariffaCollaboratoreGiornaliera: 400,
     ore: 8,
-    fatturabile: true,
+    categoria: "FATTURABILE",
     ...modifiche,
   };
 }
@@ -101,20 +101,43 @@ describe("calcolaMarginalitaClienti", () => {
     expect(report.totali.margineNegativo).toBe(true);
   });
 
-  it("ignora le righe non fatturabili e omette le offerte senza ore fatturabili", () => {
+  it("conta il costo delle righe Non fatturabile senza ricavo ed esclude l'Investimento", () => {
     const report = calcolaMarginalitaClienti([
-      riga({ ...offertaA, ore: 8 }),
-      riga({ ...offertaA, ore: 4, fatturabile: false }),
-      riga({ ...offertaB, ore: 8, fatturabile: false }),
+      riga({ tariffaOffertaGiornaliera: 800, ore: 8, categoria: "FATTURABILE" }),
+      riga({ tariffaOffertaGiornaliera: 800, ore: 8, categoria: "NON_FATTURABILE" }),
+      riga({ tariffaOffertaGiornaliera: 800, ore: 8, categoria: "INVESTIMENTO" }),
     ]);
 
-    expect(report.perCliente[0].perOfferta).toHaveLength(1);
-    expect(report.perCliente[0].ricavi).toBe("600.00");
-    expect(report.perCliente[0].costi).toBe("400.00");
+    expect(report.perCliente[0].perOfferta[0]).toMatchObject({
+      giornateFatturabili: 1,
+      ricavi: "800.00",
+      costi: "800.00",
+      margine: "0.00",
+      margineNegativo: false,
+    });
   });
 
-  it("omette il cliente con sole righe non fatturabili", () => {
-    const report = calcolaMarginalitaClienti([riga({ fatturabile: false })]);
+  it("mostra con margine negativo l'offerta con sole righe Non fatturabile", () => {
+    const report = calcolaMarginalitaClienti([
+      riga({ ...offertaA, ore: 8 }),
+      riga({ ...offertaB, ore: 4, categoria: "NON_FATTURABILE" }),
+    ]);
+
+    const [, b] = report.perCliente[0].perOfferta;
+    expect(b).toMatchObject({
+      offertaCodice: "OFF-B",
+      giornateFatturabili: 0,
+      ricavi: "0.00",
+      costi: "200.00",
+      margine: "-200.00",
+      marginePercentuale: null,
+      margineNegativo: true,
+    });
+    expect(report.perCliente[0].costi).toBe("600.00");
+  });
+
+  it("omette il cliente con sole righe di Investimento", () => {
+    const report = calcolaMarginalitaClienti([riga({ categoria: "INVESTIMENTO" })]);
     expect(report.perCliente).toEqual([]);
   });
 
@@ -192,7 +215,7 @@ describe("calcolaMarginalitaClienti", () => {
             collaboratoreId: "x",
             collaboratoreNome: "X",
             ore: r.ore,
-            fatturabile: r.fatturabile,
+            fatturabile: r.categoria === "FATTURABILE",
             rimborsoTrasfertaImporto: null,
           }),
         ),
@@ -225,7 +248,7 @@ describe("calcolaMarginalitaClienti", () => {
             offertaDescrizione: r.offertaDescrizione,
             clienteRagioneSociale: r.clienteRagioneSociale,
             ore: r.ore,
-            fatturabile: r.fatturabile,
+            categoria: r.categoria,
             rimborsoTrasfertaImporto: null,
           }),
         ),

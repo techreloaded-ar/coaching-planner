@@ -16,6 +16,7 @@ import type {
 } from "@/lib/attivita-contract";
 import {
   calcolaRiepilogoMese,
+  orePerCategoriaVuote,
   type RigaRiepilogo,
   type VoceRiepilogoOfferta,
   type TotaliRiepilogoMese,
@@ -314,7 +315,7 @@ function serializzaRigaAttivita(
     data: formattaDataISO(riga.data),
     ore: Number(riga.ore),
     nota: riga.nota,
-    fatturabile: riga.fatturabile,
+    categoria: riga.categoria,
     rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta,
     rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
     offerta: {
@@ -492,14 +493,15 @@ function creaRiepilogoVuoto(token: string, tariffaGiornaliera = "0.00"): Risulta
     perOfferta: [],
     totali: {
       oreTotali: 0,
-      oreFatturabili: 0,
+      orePerCategoria: orePerCategoriaVuote(),
+      oreDaFatturare: 0,
       giornateTotali: 0,
-      giornateFatturabili: 0,
+      giornateDaFatturare: 0,
       totaleRimborsi: "0.00",
     },
     importoFattura: "0.00",
     breakdown: {
-      giornateFatturabili: "0.00",
+      giornateDaFatturare: "0.00",
       tariffaGiornaliera,
       imponibileManodopera: "0.00",
       totaleRimborsi: "0.00",
@@ -548,7 +550,7 @@ export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMe
     offertaDescrizione: riga.offerta.descrizione,
     clienteRagioneSociale: riga.cliente.ragioneSociale,
     ore: Number(riga.ore),
-    fatturabile: riga.fatturabile,
+    categoria: riga.categoria,
     rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
   }));
 

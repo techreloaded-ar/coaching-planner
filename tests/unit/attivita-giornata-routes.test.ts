@@ -186,7 +186,7 @@ describe("GET /api/attivita/giornata", () => {
           data: "2026-06-02",
           ore: 8,
           nota: "Analisi requisiti",
-          fatturabile: true,
+          categoria: "FATTURABILE",
           rimborsoTrasfertaEtichetta: "Trasferta Milano",
           rimborsoTrasfertaImporto: "45.00",
           offerta: {

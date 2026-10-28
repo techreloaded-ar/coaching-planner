@@ -1,7 +1,13 @@
 // Modulo di dominio Consuntivi — funzioni pure per calcoli
 // Conversioni, rimborsi, totali saranno implementati nelle spec successive.
 
-import { ORE_PER_GIORNATA } from "../types";
+import {
+  CATEGORIE_ATTIVITA,
+  fatturataAlCliente,
+  fatturataDalCollaboratore,
+  ORE_PER_GIORNATA,
+  type CategoriaAttivita,
+} from "../types";
 
 export { ORE_PER_GIORNATA };
 
@@ -21,36 +27,45 @@ export interface RigaRiepilogo {
   offertaDescrizione: string;
   clienteRagioneSociale: string;
   ore: number;
-  fatturabile: boolean;
+  categoria: CategoriaAttivita;
   /** Importo del rimborso trasferta fotografato sulla riga (serializzabile) */
   rimborsoTrasfertaImporto: string | number | null;
 }
 
-/** Voce aggregata del riepilogo mensile per offerta */
+/** Ore suddivise per categoria di attività */
+export type OrePerCategoria = Record<CategoriaAttivita, number>;
+
+/**
+ * Voce aggregata del riepilogo mensile per offerta.
+ * "Da fatturare" = ore che il collaboratore fattura ad Agile Reloaded
+ * (Fatturabile + Non fatturabile).
+ */
 export interface VoceRiepilogoOfferta {
   offertaId: string;
   offertaCodice: string;
   offertaDescrizione: string;
   clienteRagioneSociale: string;
   oreTotali: number;
-  oreFatturabili: number;
+  orePerCategoria: OrePerCategoria;
+  oreDaFatturare: number;
   giornateTotali: number;
-  giornateFatturabili: number;
+  giornateDaFatturare: number;
   rimborsiTrasferta: string;
 }
 
 /** Totali aggregati del riepilogo mensile */
 export interface TotaliRiepilogoMese {
   oreTotali: number;
-  oreFatturabili: number;
+  orePerCategoria: OrePerCategoria;
+  oreDaFatturare: number;
   giornateTotali: number;
-  giornateFatturabili: number;
+  giornateDaFatturare: number;
   totaleRimborsi: string;
 }
 
 /** Breakdown dell'importo fattura per la UI */
 export interface BreakdownRiepilogoMese {
-  giornateFatturabili: string;
+  giornateDaFatturare: string;
   tariffaGiornaliera: string;
   imponibileManodopera: string;
   totaleRimborsi: string;
@@ -108,9 +123,16 @@ function formattaImporto(valore: number): string {
   return valore.toFixed(2);
 }
 
+export function orePerCategoriaVuote(): OrePerCategoria {
+  return Object.fromEntries(
+    CATEGORIE_ATTIVITA.map((categoria) => [categoria, 0]),
+  ) as OrePerCategoria;
+}
+
 /**
  * Aggrega le righe attività del mese per offerta e calcola il riepilogo
- * economico complessivo del collaboratore.
+ * economico complessivo del collaboratore: il compenso considera le ore
+ * Fatturabile e Non fatturabile, mai quelle di Investimento.
  */
 export function calcolaRiepilogoMese(
   righe: RigaRiepilogo[],
@@ -124,7 +146,8 @@ export function calcolaRiepilogoMese(
   >();
 
   let oreTotali = 0;
-  let oreFatturabili = 0;
+  let oreDaFatturare = 0;
+  const orePerCategoria = orePerCategoriaVuote();
   let totaleRimborsi = 0;
 
   for (const riga of righe) {
@@ -134,18 +157,21 @@ export function calcolaRiepilogoMese(
       offertaDescrizione: riga.offertaDescrizione,
       clienteRagioneSociale: riga.clienteRagioneSociale,
       oreTotali: 0,
-      oreFatturabili: 0,
+      orePerCategoria: orePerCategoriaVuote(),
+      oreDaFatturare: 0,
       giornateTotali: 0,
-      giornateFatturabili: 0,
+      giornateDaFatturare: 0,
       rimborsiTrasferta: 0,
     };
 
     voce.oreTotali += riga.ore;
     oreTotali += riga.ore;
+    voce.orePerCategoria[riga.categoria] += riga.ore;
+    orePerCategoria[riga.categoria] += riga.ore;
 
-    if (riga.fatturabile) {
-      voce.oreFatturabili += riga.ore;
-      oreFatturabili += riga.ore;
+    if (fatturataDalCollaboratore(riga.categoria)) {
+      voce.oreDaFatturare += riga.ore;
+      oreDaFatturare += riga.ore;
     }
 
     if (riga.rimborsoTrasfertaImporto != null) {
@@ -161,13 +187,13 @@ export function calcolaRiepilogoMese(
   }
 
   const giornateTotali = oreTotali / ORE_PER_GIORNATA;
-  const giornateFatturabili = oreFatturabili / ORE_PER_GIORNATA;
-  const imponibileManodopera = giornateFatturabili * tariffaNumerica;
+  const giornateDaFatturare = oreDaFatturare / ORE_PER_GIORNATA;
+  const imponibileManodopera = giornateDaFatturare * tariffaNumerica;
 
   const perOfferta = Array.from(aggregati.values()).map((voce) => ({
     ...voce,
     giornateTotali: voce.oreTotali / ORE_PER_GIORNATA,
-    giornateFatturabili: voce.oreFatturabili / ORE_PER_GIORNATA,
+    giornateDaFatturare: voce.oreDaFatturare / ORE_PER_GIORNATA,
     rimborsiTrasferta: formattaImporto(voce.rimborsiTrasferta),
   }));
 
@@ -175,14 +201,15 @@ export function calcolaRiepilogoMese(
     perOfferta,
     totali: {
       oreTotali,
-      oreFatturabili,
+      orePerCategoria,
+      oreDaFatturare,
       giornateTotali,
-      giornateFatturabili,
+      giornateDaFatturare,
       totaleRimborsi: formattaImporto(totaleRimborsi),
     },
     importoFattura: formattaImporto(imponibileManodopera + totaleRimborsi),
     breakdown: {
-      giornateFatturabili: formattaImporto(giornateFatturabili),
+      giornateDaFatturare: formattaImporto(giornateDaFatturare),
       tariffaGiornaliera: formattaImporto(tariffaNumerica),
       imponibileManodopera: formattaImporto(imponibileManodopera),
       totaleRimborsi: formattaImporto(totaleRimborsi),
@@ -209,6 +236,7 @@ export interface RigaReportFatturazione {
   /** Nome completo del collaboratore autore della riga */
   collaboratoreNome: string;
   ore: number;
+  /** Agile Reloaded fattura la riga al cliente (categoria Fatturabile) */
   fatturabile: boolean;
   /** Importo del rimborso trasferta fotografato sulla riga (serializzabile) */
   rimborsoTrasfertaImporto: string | number | null;
@@ -495,7 +523,7 @@ export interface RigaMarginalita {
   tariffaOffertaGiornaliera: string | number;
   tariffaCollaboratoreGiornaliera: string | number;
   ore: number;
-  fatturabile: boolean;
+  categoria: CategoriaAttivita;
 }
 
 /** Importi economici di una voce di marginalità (importi in euro con 2 decimali) */
@@ -553,9 +581,10 @@ function tariffaNumerica(tariffa: string | number): number {
 }
 
 /**
- * Aggrega le righe attività fatturabili per cliente e offerta calcolando
- * ricavi (giornate × tariffa offerta), costi (giornate × tariffa del
- * collaboratore) e margine. I rimborsi trasferta sono esclusi: sono passanti.
+ * Aggrega le righe attività per cliente e offerta calcolando ricavi (giornate
+ * Fatturabile × tariffa offerta), costi (giornate Fatturabile e Non fatturabile
+ * × tariffa del collaboratore) e margine. Le righe Investimento non generano né
+ * ricavi né costi. I rimborsi trasferta sono esclusi: sono passanti.
  *
  * Gli arrotondamenti seguono `calcolaReportFatturazioneClienti`, così i ricavi
  * coincidono al centesimo con l'imponibile manodopera del report fatturazione.
@@ -583,7 +612,7 @@ export function calcolaMarginalitaClienti(
   const clienti = new Map<string, AccumulatoreCliente>();
 
   for (const riga of righe) {
-    if (!riga.fatturabile) {
+    if (!fatturataDalCollaboratore(riga.categoria)) {
       continue;
     }
 
@@ -609,7 +638,9 @@ export function calcolaMarginalitaClienti(
       cliente.offerte.set(riga.offertaId, offerta);
     }
 
-    offerta.ore += riga.ore;
+    if (fatturataAlCliente(riga.categoria)) {
+      offerta.ore += riga.ore;
+    }
     offerta.costi +=
       (riga.ore / ORE_PER_GIORNATA) *
       tariffaNumerica(riga.tariffaCollaboratoreGiornaliera);
@@ -623,7 +654,7 @@ export function calcolaMarginalitaClienti(
     const perOfferta: VoceOffertaMarginalita[] = [];
 
     for (const [offertaId, offerta] of cliente.offerte) {
-      if (offerta.ore <= 0) {
+      if (offerta.ore <= 0 && offerta.costi <= 0) {
         continue;
       }
       // Stessa formula di calcolaReportFatturazioneClienti: ore totali / 8 × tariffa
@@ -697,6 +728,7 @@ export interface RigaAvanzamento {
   collaboratoreId: string;
   collaboratoreNome: string;
   ore: number;
+  /** Agile Reloaded fattura la riga al cliente (categoria Fatturabile) */
   fatturabile: boolean;
   /** Token mese YYYY-MM della data della riga */
   mese: string;
@@ -942,7 +974,7 @@ export interface RigaStoricoAttivita {
   offertaCodice: string;
   offertaDescrizione: string;
   ore: number;
-  fatturabile: boolean;
+  categoria: CategoriaAttivita;
   nota: string | null;
 }
 

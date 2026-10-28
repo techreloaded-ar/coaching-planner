@@ -100,7 +100,8 @@ async function preparaRigaSorgente(
     data: dataDb(GIORNO_ORIGINE),
     ore: ORE_SORGENTE,
     nota,
-    fatturabile: true,
+    // Categoria non predefinita: la copia deve conservarla, non riportarla a Fatturabile.
+    categoria: "NON_FATTURABILE",
     rimborsoTrasfertaEtichetta: ETICHETTA_RIMBORSO,
     rimborsoTrasfertaImporto: IMPORTO_RIMBORSO,
   });
@@ -322,7 +323,7 @@ test.describe("US-057 Duplicazione di una riga su più giorni scelti", () => {
         clienteConOfferta.offerta.codice,
       );
       await expect(rigaReplicata).toContainText("6.0 h");
-      await expect(rigaReplicata.getByText("Fatt.", { exact: true })).toBeVisible();
+      await expect(rigaReplicata.getByText("Non fatturabile", { exact: true })).toBeVisible();
       await expect(rigaReplicata).toContainText(ETICHETTA_RIMBORSO);
       await expect(rigaReplicata).toContainText(IMPORTO_RIMBORSO_A_SCHERMO);
     }

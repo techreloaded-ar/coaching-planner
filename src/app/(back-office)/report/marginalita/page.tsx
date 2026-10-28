@@ -36,9 +36,10 @@ export default async function ReportMarginalitaPage({
         </h1>
         <p className="mt-[6px] max-w-[640px] text-[13px] text-zinc-400 dark:text-zinc-500">
           Confronto per periodo tra i ricavi dai clienti (tariffe offerta) e i
-          costi dei collaboratori (tariffe collaboratore). Ricavi e costi
-          considerano le sole ore fatturabili; i rimborsi trasferta sono
-          esclusi.
+          costi dei collaboratori (tariffe collaboratore). I ricavi considerano
+          le sole ore Fatturabile; i costi le ore Fatturabile e Non
+          fatturabile, che il collaboratore fattura ad Agile Reloaded. Le ore
+          di Investimento e i rimborsi trasferta sono esclusi.
         </p>
       </div>
 

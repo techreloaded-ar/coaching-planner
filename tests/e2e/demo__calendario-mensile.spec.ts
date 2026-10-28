@@ -114,7 +114,7 @@ test.describe("US-011 Demo", () => {
     ).toBeVisible();
     await expect(page.getByText("Righe registrate")).toBeVisible();
     await expect(page.getByText("Ore totali")).toBeVisible();
-    await expect(page.getByText("Ore fatturabili")).toBeVisible();
+    await expect(page.getByText("Ore da fatturare ad Agile Reloaded")).toBeVisible();
     await expect(page.getByText("Attività della giornata")).toBeVisible();
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();

@@ -68,7 +68,7 @@ function rigaFittizia(
     data,
     ore,
     nota: null,
-    fatturabile: true,
+    categoria: "FATTURABILE",
     rimborsoTrasfertaImporto: null,
     createdAt: data,
     updatedAt: data,
@@ -904,7 +904,7 @@ function rigaConContesto(
     data?: Date;
     ore?: { toString: () => string };
     nota?: string | null;
-    fatturabile?: boolean;
+    categoria?: "FATTURABILE" | "NON_FATTURABILE" | "INVESTIMENTO";
     rimborsoTrasfertaEtichetta?: string | null;
     rimborsoTrasfertaImporto?: { toString: () => string } | null;
     createdAt?: Date;
@@ -927,7 +927,7 @@ function rigaConContesto(
     // Simula il Decimal Prisma con un oggetto dotato di toString()
     ore: modifiche.ore ?? { toString: () => "7.25" },
     nota: modifiche.nota ?? null,
-    fatturabile: modifiche.fatturabile ?? true,
+    categoria: modifiche.categoria ?? "FATTURABILE",
     rimborsoTrasfertaEtichetta: modifiche.rimborsoTrasfertaEtichetta ?? null,
     rimborsoTrasfertaImporto: modifiche.rimborsoTrasfertaImporto ?? null,
     createdAt: modifiche.createdAt ?? data,
@@ -1026,7 +1026,7 @@ describe("righeDelGiornoPerCollaboratoreAutorizzato", () => {
       rigaConContesto({
         id: "riga-pomeriggio",
         ore: { toString: () => "3" },
-        fatturabile: false,
+        categoria: "NON_FATTURABILE",
         clienteId: "cliente-dataflow",
         ragioneSociale: "DataFlow SpA",
         offertaId: "offerta-df-001",
@@ -1049,7 +1049,7 @@ describe("righeDelGiornoPerCollaboratoreAutorizzato", () => {
           data: "2026-06-10",
           ore: 4.5,
           nota: "Analisi requisiti",
-          fatturabile: true,
+          categoria: "FATTURABILE",
           rimborsoTrasfertaEtichetta: "Pranzo",
           rimborsoTrasfertaImporto: "12.50",
           offerta: {
@@ -1067,7 +1067,7 @@ describe("righeDelGiornoPerCollaboratoreAutorizzato", () => {
           data: "2026-06-10",
           ore: 3,
           nota: null,
-          fatturabile: false,
+          categoria: "NON_FATTURABILE",
           rimborsoTrasfertaEtichetta: null,
           rimborsoTrasfertaImporto: null,
           offerta: {

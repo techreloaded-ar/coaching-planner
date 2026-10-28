@@ -86,7 +86,7 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
       }
     );
     const notaNuova = `Test e2e — nuova riga ${seed}`;
-    const notaSeconda = `Test e2e — seconda riga non fatturabile ${seed}`;
+    const notaSeconda = `Test e2e — seconda riga di investimento ${seed}`;
 
     await factory.createAbilitazioneOfferta({
       collaboratore,
@@ -114,12 +114,15 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
 
     await expect(page.getByText("Righe registrate")).toBeVisible();
     await expect(page.getByText("Ore totali")).toBeVisible();
-    await expect(page.getByText("Ore fatturabili")).toBeVisible();
+    await expect(page.getByText("Ore da fatturare ad Agile Reloaded")).toBeVisible();
 
     const selectCliente = page.locator("#cliente");
     const selectOfferta = page.locator("#offerta");
     const inputOre = page.locator("#ore");
-    const checkboxFatturabile = page.locator("input[type='checkbox']");
+    const selectCategoria = page.getByRole("combobox", {
+      name: "Categoria",
+      exact: true,
+    });
     const textareaNota = page.locator("#nota");
     const bottoneAggiungiRiga = page.getByRole("button", {
       name: "Aggiungi riga",
@@ -131,8 +134,18 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
 
     await selezionaClienteEOffertaTest(page, clienteConOfferta);
 
+    // La categoria parte da Fatturabile; la didascalia spiega solo la voce scelta
+    await expect(selectCategoria).toHaveValue("FATTURABILE");
+    await expect(selectCategoria).toHaveAccessibleDescription(
+      "La fatturi ad Agile Reloaded e Agile Reloaded la fattura al cliente."
+    );
+    await selectCategoria.selectOption({ label: "Non fatturabile" });
+    await expect(selectCategoria).toHaveAccessibleDescription(
+      "La fatturi ad Agile Reloaded, ma Agile Reloaded non la fattura al cliente."
+    );
+    await selectCategoria.selectOption({ label: "Fatturabile" });
+
     await inputOre.fill("3,5");
-    await expect(checkboxFatturabile).toBeChecked();
     await textareaNota.fill(notaNuova);
 
     await bottoneAggiungiRiga.click();
@@ -146,12 +159,15 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     await expect(selectOfferta).toBeDisabled();
     await expect(selectOfferta).toHaveValue("");
     await expect(inputOre).toHaveValue("");
-    await expect(checkboxFatturabile).toBeChecked();
+    await expect(selectCategoria).toHaveValue("FATTURABILE");
     await expect(textareaNota).toHaveValue("");
 
     await selezionaClienteEOffertaTest(page, secondaClienteConOfferta);
     await inputOre.fill("6");
-    await checkboxFatturabile.uncheck();
+    await selectCategoria.selectOption({ label: "Investimento" });
+    await expect(selectCategoria).toHaveAccessibleDescription(
+      "Non la fatturi ad Agile Reloaded e Agile Reloaded non la fattura al cliente."
+    );
     await textareaNota.fill(notaSeconda);
 
     await bottoneAggiungiRiga.click();
@@ -164,14 +180,26 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     await expect(secondaRigaCard).toContainText(
       secondaClienteConOfferta.offerta.descrizione
     );
+    await expect(
+      secondaRigaCard.getByText("Investimento", { exact: true })
+    ).toBeVisible();
+    await expect(
+      primaRigaCard.getByText("Fatturabile", { exact: true })
+    ).toBeVisible();
     await expect(bottoneAggiungiRiga).toBeVisible();
     await expect(bottoneAggiungiRiga).toBeEnabled();
     await expect(selectCliente).toHaveValue("");
     await expect(selectOfferta).toBeDisabled();
     await expect(selectOfferta).toHaveValue("");
     await expect(inputOre).toHaveValue("");
-    await expect(checkboxFatturabile).toBeChecked();
+    await expect(selectCategoria).toHaveValue("FATTURABILE");
     await expect(textareaNota).toHaveValue("");
+
+    // In modifica la categoria salvata è quella selezionata
+    await secondaRigaCard.getByRole("button", { name: "Modifica" }).click();
+    await expect(selectCategoria).toHaveValue("INVESTIMENTO");
+    await bottoneAnnulla.click();
+    await expect(selectCategoria).toHaveValue("FATTURABILE");
 
     await primaRigaCard.getByRole("button", { name: "Modifica" }).click();
 

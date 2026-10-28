@@ -107,7 +107,7 @@ test.describe("US-057 Demo", () => {
       data: dataDb(GIORNO_ORIGINE),
       ore: "6.00",
       nota,
-      fatturabile: true,
+      categoria: "FATTURABILE",
       rimborsoTrasfertaEtichetta: ETICHETTA_RIMBORSO,
       rimborsoTrasfertaImporto: IMPORTO_RIMBORSO,
     });
@@ -191,7 +191,7 @@ test.describe("US-057 Demo", () => {
       await expect(rigaReplicata).toContainText(clienteConOfferta.offerta.codice);
       await expect(rigaReplicata).toContainText("6.0 h");
       await expect(
-        rigaReplicata.getByText("Fatt.", { exact: true }),
+        rigaReplicata.getByText("Fatturabile", { exact: true }),
       ).toBeVisible();
       await expect(rigaReplicata).toContainText(ETICHETTA_RIMBORSO);
       await expect(rigaReplicata).toContainText("85.00");

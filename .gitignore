@@ -51,3 +51,6 @@ next-env.d.ts
 docs/test-results
 .pi-subagents
 *.bak
+
+# output degli script di valutazione (scripts/valuta-jev-associazioni.ts)
+/output/

@@ -2,6 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
+import { fatturataAlCliente } from "@/domain/types";
 import { parseTokenMese } from "@/domain/calendario";
 import type {
   RigaAttivita,
@@ -110,7 +111,7 @@ export async function reportFatturazioneClientiMese(
       collaboratoreId: riga.collaboratoreId,
       collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
-      fatturabile: riga.fatturabile,
+      fatturabile: fatturataAlCliente(riga.categoria),
       rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
     }),
   );
@@ -148,7 +149,10 @@ export async function reportMarginalitaPeriodo(
   const fine = new Date(parsedA.anno, parsedA.mese, 0);
 
   const righeDb = await db.rigaAttivita.findMany({
-    where: { fatturabile: true, data: { gte: inizio, lte: fine } },
+    where: {
+      categoria: { in: ["FATTURABILE", "NON_FATTURABILE"] },
+      data: { gte: inizio, lte: fine },
+    },
     include: {
       offerta: true,
       cliente: true,
@@ -166,7 +170,7 @@ export async function reportMarginalitaPeriodo(
     tariffaCollaboratoreGiornaliera:
       riga.collaboratore.tariffaGiornaliera.toString(),
     ore: Number(riga.ore),
-    fatturabile: riga.fatturabile,
+    categoria: riga.categoria,
   }));
 
   return { da, a, ...calcolaMarginalitaClienti(righe) };

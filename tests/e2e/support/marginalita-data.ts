@@ -4,7 +4,7 @@ import {
   dataNelMesePassatoRiservato,
   mesePassatoRiservato,
 } from "./date";
-import type { E2eDataFactory } from "./factory";
+import type { CreateRigaAttivitaOptions, E2eDataFactory } from "./factory";
 
 export const CODICE_SPEC_MARGINALITA = "US-017-REPORT-MARGINALITA";
 
@@ -16,7 +16,8 @@ function dataRiservata(giorno: number, mesiIndietro: number): Date {
 
 /**
  * Cliente con due offerte (A 600 €/gg, B 300 €/gg) e un collaboratore a 400 €/gg.
- * Mese 1 (due mesi fa): A 8h. Mese 2: A 4h, B 8h, più A 6h NON fatturabili.
+ * Mese 1 (due mesi fa): A 8h. Mese 2: A 4h, B 8h, più A 6h di Investimento
+ * (né ricavo né costo) e B 2h Non fatturabile (costo senza ricavo).
  */
 export async function creaDatasetMarginalita(factory: E2eDataFactory) {
   const suffisso = randomUUID().slice(0, 8);
@@ -47,7 +48,7 @@ export async function creaDatasetMarginalita(factory: E2eDataFactory) {
     giorno: number,
     mesiIndietro: number,
     ore: string,
-    fatturabile = true,
+    categoria: CreateRigaAttivitaOptions["categoria"] = "FATTURABILE",
   ) =>
     factory.createRigaAttivita({
       collaboratore,
@@ -55,14 +56,15 @@ export async function creaDatasetMarginalita(factory: E2eDataFactory) {
       offerta,
       data: dataRiservata(giorno, mesiIndietro),
       ore,
-      fatturabile,
+      categoria,
       nota: `Marginalità ${suffisso} ${offerta.codice} ${giorno}`,
     });
 
   await riga(offertaA, 5, 2, "8.00");
   await riga(offertaA, 6, 1, "4.00");
   await riga(offertaB, 7, 1, "8.00");
-  await riga(offertaA, 8, 1, "6.00", false);
+  await riga(offertaA, 8, 1, "6.00", "INVESTIMENTO");
+  await riga(offertaB, 9, 1, "2.00", "NON_FATTURABILE");
 
   return {
     cliente,

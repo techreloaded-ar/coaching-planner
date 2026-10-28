@@ -3,6 +3,10 @@
 import Link from "next/link";
 import type { RisultatoRiepilogoMese } from "@/lib/attivita";
 import type { VoceRiepilogoOfferta } from "@/domain/consuntivi";
+import {
+  CATEGORIE_ATTIVITA,
+  DESCRIZIONE_CATEGORIA_ATTIVITA,
+} from "@/domain/types";
 
 interface RiepilogoMeseProps {
   token: string;
@@ -34,16 +38,14 @@ function formattaEuro(importo: string): string {
   })}`;
 }
 
-function badgeNonFatturabile(voce: VoceRiepilogoOfferta) {
-  if (voce.oreFatturabili === 0) {
-    return "Interamente non fatturabile";
-  }
-
-  if (voce.oreTotali > voce.oreFatturabili) {
-    return "Include ore non fatturabili";
-  }
-
-  return null;
+/** Segnala le ore dell'offerta che non sono nella categoria Fatturabile. */
+function badgeCategorieNonFatturabili(voce: VoceRiepilogoOfferta) {
+  return (["NON_FATTURABILE", "INVESTIMENTO"] as const)
+    .filter((categoria) => voce.orePerCategoria[categoria] > 0)
+    .map(
+      (categoria) =>
+        `${DESCRIZIONE_CATEGORIA_ATTIVITA[categoria].etichetta} ${formattaNumero(voce.orePerCategoria[categoria])} h`,
+    );
 }
 
 export default function RiepilogoMese({
@@ -157,23 +159,35 @@ export default function RiepilogoMese({
           <div className="text-xs text-zinc-400 dark:text-zinc-500">1 giornata = 8 ore</div>
         </div>
 
-        <div data-testid="summary-ore-fatturabili" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-          <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore fatturabili</div>
-          <div data-testid="summary-ore-fatturabili-value" className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
-            {formattaNumero(riepilogo.totali.oreFatturabili)}
+        <div data-testid="summary-ore-da-fatturare" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore da fatturare</div>
+          <div data-testid="summary-ore-da-fatturare-value" className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
+            {formattaNumero(riepilogo.totali.oreDaFatturare)}
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500">{formattaGiornate(riepilogo.totali.giornateFatturabili)} giornate</div>
+          <div className="text-xs text-zinc-400 dark:text-zinc-500">Fatturabili e non fatturabili, da fatturare ad Agile Reloaded</div>
         </div>
 
-        <div data-testid="summary-giornate-fatturabili" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-          <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate fatturabili</div>
+        <div data-testid="summary-giornate-da-fatturare" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate da fatturare</div>
           <div className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
-            {formattaGiornate(riepilogo.totali.giornateFatturabili)}
+            {formattaGiornate(riepilogo.totali.giornateDaFatturare)}
           </div>
           <div className="text-xs text-zinc-400 dark:text-zinc-500">Tariffa giorno: {formattaEuro(riepilogo.tariffaGiornaliera)}</div>
         </div>
 
-        <div data-testid="summary-rimborsi" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900 md:col-span-2 xl:col-span-1">
+        <div data-testid="summary-ore-per-categoria" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore per categoria</div>
+          <dl className="mt-2 space-y-1 text-[13px]">
+            {CATEGORIE_ATTIVITA.map((categoria) => (
+              <div key={categoria} className="flex justify-between gap-3">
+                <dt className="text-zinc-500 dark:text-zinc-400">{DESCRIZIONE_CATEGORIA_ATTIVITA[categoria].etichetta}</dt>
+                <dd className="font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaNumero(riepilogo.totali.orePerCategoria[categoria])} h</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <div data-testid="summary-rimborsi" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
           <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Totale rimborsi trasferta</div>
           <div data-testid="summary-rimborsi-value" className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
             {formattaEuro(riepilogo.totali.totaleRimborsi)}
@@ -186,7 +200,7 @@ export default function RiepilogoMese({
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div data-testid="summary-importo-fattura-value" className="text-[38px] font-bold tabular-nums tracking-tight">{formattaEuro(riepilogo.importoFattura)}</div>
             <div className="flex flex-wrap items-center gap-3 text-[12.5px] font-semibold text-white/85">
-              <span>{riepilogo.breakdown.giornateFatturabili} g × {formattaEuro(riepilogo.breakdown.tariffaGiornaliera)}</span>
+              <span>{riepilogo.breakdown.giornateDaFatturare} g × {formattaEuro(riepilogo.breakdown.tariffaGiornaliera)}</span>
               <span className="h-4 w-px bg-white/25" />
               <span>Compenso {formattaEuro(riepilogo.breakdown.imponibileManodopera)}</span>
               <span className="h-4 w-px bg-white/25" />
@@ -221,14 +235,14 @@ export default function RiepilogoMese({
                   <th className="px-3.5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Offerta</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore totali</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate totali</th>
-                  <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore fatturabili</th>
-                  <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate fatturabili</th>
+                  <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore da fatturare</th>
+                  <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate da fatturare</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Rimborsi trasferta</th>
                 </tr>
               </thead>
               <tbody>
                 {riepilogo.perOfferta.map((voce) => {
-                  const badge = badgeNonFatturabile(voce);
+                  const badge = badgeCategorieNonFatturabili(voce);
 
                   return (
                     <tr
@@ -246,11 +260,11 @@ export default function RiepilogoMese({
                           <span className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
                             {voce.offertaDescrizione}
                           </span>
-                          {badge && (
-                            <span className="mt-1 inline-flex w-fit rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10.5px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                              {badge}
+                          {badge.map((testo) => (
+                            <span key={testo} className="mt-1 inline-flex w-fit rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10.5px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                              {testo}
                             </span>
-                          )}
+                          ))}
                         </div>
                       </td>
                       <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
@@ -260,10 +274,10 @@ export default function RiepilogoMese({
                         {formattaGiornate(voce.giornateTotali)}
                       </td>
                       <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
-                        {voce.oreFatturabili > 0 ? formattaNumero(voce.oreFatturabili) : "—"}
+                        {voce.oreDaFatturare > 0 ? formattaNumero(voce.oreDaFatturare) : "—"}
                       </td>
                       <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
-                        {voce.giornateFatturabili > 0 ? formattaGiornate(voce.giornateFatturabili) : "—"}
+                        {voce.giornateDaFatturare > 0 ? formattaGiornate(voce.giornateDaFatturare) : "—"}
                       </td>
                       <td className="px-3.5 py-3 text-right font-bold tabular-nums text-rose-800 dark:text-rose-300">
                         {Number(voce.rimborsiTrasferta) > 0 ? formattaEuro(voce.rimborsiTrasferta) : "—"}
@@ -278,8 +292,8 @@ export default function RiepilogoMese({
                   <td />
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaNumero(riepilogo.totali.oreTotali)}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaGiornate(riepilogo.totali.giornateTotali)}</td>
-                  <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.oreFatturabili > 0 ? formattaNumero(riepilogo.totali.oreFatturabili) : "—"}</td>
-                  <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.giornateFatturabili > 0 ? formattaGiornate(riepilogo.totali.giornateFatturabili) : "—"}</td>
+                  <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.oreDaFatturare > 0 ? formattaNumero(riepilogo.totali.oreDaFatturare) : "—"}</td>
+                  <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.giornateDaFatturare > 0 ? formattaGiornate(riepilogo.totali.giornateDaFatturare) : "—"}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaEuro(riepilogo.totali.totaleRimborsi)}</td>
                 </tr>
               </tfoot>

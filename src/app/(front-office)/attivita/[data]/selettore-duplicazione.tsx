@@ -5,6 +5,7 @@ import { duplicaRigaSuGiorni } from "@/lib/actions/righe-attivita";
 import { PulsanteAttesa } from "@/components";
 import type { RigaAttivitaClient } from "@/lib/attivita-contract";
 import { etichettaMese, parseDataGiorno } from "@/domain/calendario";
+import { DESCRIZIONE_CATEGORIA_ATTIVITA } from "@/domain/types";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -252,7 +253,7 @@ export function SelettoreDuplicazione({
               <span className="font-normal text-zinc-400">·</span>
               {riga.ore.toFixed(1)} h
               <span className="font-normal text-zinc-400">·</span>
-              {riga.fatturabile ? "fatturabile" : "non fatturabile"}
+              {DESCRIZIONE_CATEGORIA_ATTIVITA[riga.categoria].etichetta.toLowerCase()}
             </div>
             {riga.rimborsoTrasfertaEtichetta != null && (
               <div className="mt-1.5 text-[11.5px] font-semibold text-amber-800 dark:text-amber-300">

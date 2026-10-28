@@ -70,7 +70,7 @@ function rigaConCollaboratore(
 		nome?: string;
 		cognome?: string;
 		ore?: number;
-		fatturabile?: boolean;
+		categoria?: "FATTURABILE" | "NON_FATTURABILE" | "INVESTIMENTO";
 		data?: Date;
 	} = {},
 ) {
@@ -80,7 +80,7 @@ function rigaConCollaboratore(
 		offertaId: modifiche.offertaId ?? "off-1",
 		collaboratoreId,
 		ore: modifiche.ore ?? 8,
-		fatturabile: modifiche.fatturabile ?? true,
+		categoria: modifiche.categoria ?? "FATTURABILE",
 		data: modifiche.data ?? new Date("2026-01-15T00:00:00.000Z"),
 		collaboratore: {
 			id: collaboratoreId,
@@ -129,7 +129,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		]);
 		// 40 ore fatturabili = 5 giornate su 10 previste → residuo 5, IN_CORSO
 		mockRigaAttivita.findMany.mockResolvedValue([
-			rigaConCollaboratore({ offertaId: "off-1", ore: 40, fatturabile: true }),
+			rigaConCollaboratore({ offertaId: "off-1", ore: 40, categoria: "FATTURABILE" }),
 		]);
 
 		const [voce] = await elencaOfferteConAvanzamento();
@@ -145,12 +145,12 @@ describe("elencaOfferteConAvanzamento", () => {
 			offertaConCliente({ id: "off-1", giorniPrevisti: 10 }),
 		]);
 		mockRigaAttivita.findMany.mockResolvedValue([
-			rigaConCollaboratore({ offertaId: "off-1", ore: 8, fatturabile: true }),
+			rigaConCollaboratore({ offertaId: "off-1", ore: 8, categoria: "FATTURABILE" }),
 			rigaConCollaboratore({
 				offertaId: "off-1",
 				collaboratoreId: "collab-2",
 				ore: 80,
-				fatturabile: false,
+				categoria: "NON_FATTURABILE",
 			}),
 		]);
 
@@ -217,7 +217,7 @@ describe("elencaOfferteConAvanzamento", () => {
 				nome: "Anna",
 				cognome: "Bianchi",
 				ore: 16,
-				fatturabile: true,
+				categoria: "FATTURABILE",
 			}),
 			rigaConCollaboratore({
 				offertaId: "off-mista",
@@ -225,7 +225,7 @@ describe("elencaOfferteConAvanzamento", () => {
 				nome: "Bruno",
 				cognome: "Verdi",
 				ore: 80,
-				fatturabile: false,
+				categoria: "NON_FATTURABILE",
 			}),
 		]);
 
@@ -286,18 +286,18 @@ describe("elencaOfferteConAvanzamento", () => {
 			offertaConCliente({ id: "off-1", giorniPrevisti: 10 }),
 		]);
 		mockRigaAttivita.findMany.mockResolvedValue([
-			rigaConCollaboratore({ offertaId: "off-1", ore: 8, fatturabile: true }),
+			rigaConCollaboratore({ offertaId: "off-1", ore: 8, categoria: "FATTURABILE" }),
 			rigaConCollaboratore({
 				offertaId: "off-1",
 				collaboratoreId: "collab-2",
 				ore: 4,
-				fatturabile: false,
+				categoria: "NON_FATTURABILE",
 			}),
 			rigaConCollaboratore({
 				offertaId: "off-1",
 				collaboratoreId: "collab-3",
 				ore: 2,
-				fatturabile: false,
+				categoria: "NON_FATTURABILE",
 			}),
 		]);
 
@@ -545,7 +545,7 @@ describe("elencaOffertePerClienteConAvanzamento", () => {
 			offertaConCliente({ clienteId: "cli-1", giorniPrevisti: 10 }),
 		]);
 		mockRigaAttivita.findMany.mockResolvedValue([
-			rigaConCollaboratore({ offertaId: "off-1", ore: 16, fatturabile: true }),
+			rigaConCollaboratore({ offertaId: "off-1", ore: 16, categoria: "FATTURABILE" }),
 		]);
 
 		const [voce] = await elencaOffertePerClienteConAvanzamento("cli-1");

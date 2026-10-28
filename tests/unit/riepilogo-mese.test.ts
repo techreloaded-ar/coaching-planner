@@ -12,7 +12,7 @@ function riga(parziale: Partial<RigaRiepilogo> = {}): RigaRiepilogo {
     offertaDescrizione: "Percorso coaching",
     clienteRagioneSociale: "Cliente Uno",
     ore: 8,
-    fatturabile: true,
+    categoria: "FATTURABILE",
     rimborsoTrasfertaImporto: null,
     ...parziale,
   };
@@ -26,13 +26,14 @@ describe("calcolaRiepilogoMese", () => {
     expect(result.importoFattura).toBe("0.00");
     expect(result.totali).toEqual({
       oreTotali: 0,
-      oreFatturabili: 0,
+      orePerCategoria: { FATTURABILE: 0, NON_FATTURABILE: 0, INVESTIMENTO: 0 },
+      oreDaFatturare: 0,
       giornateTotali: 0,
-      giornateFatturabili: 0,
+      giornateDaFatturare: 0,
       totaleRimborsi: "0.00",
     });
     expect(result.breakdown).toEqual({
-      giornateFatturabili: "0.00",
+      giornateDaFatturare: "0.00",
       tariffaGiornaliera: "450.00",
       imponibileManodopera: "0.00",
       totaleRimborsi: "0.00",
@@ -45,14 +46,14 @@ describe("calcolaRiepilogoMese", () => {
     expect(result.perOfferta).toHaveLength(1);
     expect(result.perOfferta[0]).toMatchObject({
       oreTotali: 12,
-      oreFatturabili: 12,
+      oreDaFatturare: 12,
       giornateTotali: 1.5,
-      giornateFatturabili: 1.5,
+      giornateDaFatturare: 1.5,
       rimborsiTrasferta: "0.00",
     });
     expect(result.totali.oreTotali).toBe(12);
     expect(result.totali.giornateTotali).toBe(1.5);
-    expect(result.totali.giornateFatturabili).toBe(1.5);
+    expect(result.totali.giornateDaFatturare).toBe(1.5);
     expect(result.importoFattura).toBe("675.00");
   });
 
@@ -77,25 +78,53 @@ describe("calcolaRiepilogoMese", () => {
     expect(result.totali.giornateTotali).toBe(0.9375);
   });
 
-  it("esclude le righe non fatturabili dall'importo ma le include nei totali ore", () => {
-    const resultSoloNonFatturabile = calcolaRiepilogoMese(
-      [riga({ ore: 4, fatturabile: false })],
+  it("include le righe Non fatturabile nell'importo ed esclude quelle di Investimento", () => {
+    const result = calcolaRiepilogoMese(
+      [
+        riga({ ore: 8, categoria: "FATTURABILE" }),
+        riga({ ore: 4, categoria: "NON_FATTURABILE" }),
+        riga({ ore: 4, categoria: "INVESTIMENTO" }),
+      ],
+      400,
+    );
+
+    expect(result.totali.oreTotali).toBe(16);
+    expect(result.totali.orePerCategoria).toEqual({
+      FATTURABILE: 8,
+      NON_FATTURABILE: 4,
+      INVESTIMENTO: 4,
+    });
+    expect(result.totali.oreDaFatturare).toBe(12);
+    expect(result.totali.giornateDaFatturare).toBe(1.5);
+    expect(result.breakdown.imponibileManodopera).toBe("600.00");
+    expect(result.importoFattura).toBe("600.00");
+    expect(result.perOfferta[0]?.orePerCategoria).toEqual({
+      FATTURABILE: 8,
+      NON_FATTURABILE: 4,
+      INVESTIMENTO: 4,
+    });
+  });
+
+  it("conta per intero le righe Non fatturabile", () => {
+    const result = calcolaRiepilogoMese(
+      [riga({ ore: 4, categoria: "NON_FATTURABILE" })],
       450,
     );
 
-    expect(resultSoloNonFatturabile.totali.oreTotali).toBe(4);
-    expect(resultSoloNonFatturabile.totali.oreFatturabili).toBe(0);
-    expect(resultSoloNonFatturabile.importoFattura).toBe("0.00");
+    expect(result.totali.oreDaFatturare).toBe(4);
+    expect(result.importoFattura).toBe("225.00");
+  });
 
-    const resultMisto = calcolaRiepilogoMese(
-      [riga({ ore: 8, fatturabile: true }), riga({ ore: 4, fatturabile: false })],
+  it("esclude le righe di Investimento dall'importo ma mantiene i loro rimborsi", () => {
+    const result = calcolaRiepilogoMese(
+      [riga({ ore: 8, categoria: "INVESTIMENTO", rimborsoTrasfertaImporto: "30.00" })],
       450,
     );
 
-    expect(resultMisto.totali.oreTotali).toBe(12);
-    expect(resultMisto.totali.oreFatturabili).toBe(8);
-    expect(resultMisto.totali.giornateFatturabili).toBe(1);
-    expect(resultMisto.importoFattura).toBe("450.00");
+    expect(result.totali.oreTotali).toBe(8);
+    expect(result.totali.oreDaFatturare).toBe(0);
+    expect(result.breakdown.imponibileManodopera).toBe("0.00");
+    expect(result.importoFattura).toBe("30.00");
   });
 
   it("somma i rimborsi fotografati e ignora le righe senza rimborso", () => {

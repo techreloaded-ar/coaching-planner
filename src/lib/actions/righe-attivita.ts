@@ -8,6 +8,10 @@ import {
 } from "@/lib/dal";
 import type { Collaboratore, RigaAttivita } from "@/generated/prisma/client";
 import { validaOre } from "@/domain/consuntivi";
+import {
+  CATEGORIA_ATTIVITA_PREDEFINITA,
+  isCategoriaAttivita,
+} from "@/domain/types";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -29,7 +33,7 @@ type DatiRigaDiOrigine = Pick<
   | "data"
   | "ore"
   | "nota"
-  | "fatturabile"
+  | "categoria"
   | "rimborsoTrasfertaEtichetta"
   | "rimborsoTrasfertaImporto"
 >;
@@ -75,7 +79,7 @@ async function caricaRigaDelCollaboratore(
       data: true,
       ore: true,
       nota: true,
-      fatturabile: true,
+      categoria: true,
       rimborsoTrasfertaEtichetta: true,
       rimborsoTrasfertaImporto: true,
     },
@@ -102,7 +106,7 @@ async function caricaRigaDelCollaboratore(
       data: riga.data,
       ore: riga.ore,
       nota: riga.nota,
-      fatturabile: riga.fatturabile,
+      categoria: riga.categoria,
       rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta,
       rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto,
     },
@@ -261,7 +265,8 @@ function normalizzaGiorniDestinazione(
  * Crea una nuova riga attività per il collaboratore corrente.
  *
  * Campi attesi nel FormData:
- * - clienteId, offertaId, ore, nota, fatturabile, data (YYYY-MM-DD)
+ * - clienteId, offertaId, ore, nota, data (YYYY-MM-DD)
+ * - categoria? (FATTURABILE | NON_FATTURABILE | INVESTIMENTO), predefinita FATTURABILE
  * - eventoCalendarioId? quando la riga nasce da una proposta del calendario:
  *   l'evento viene segnato come gestito nella stessa transazione, così non
  *   viene più proposto
@@ -278,7 +283,8 @@ export async function creaRiga(
   const offertaId = formData.get("offertaId") as string;
   const oreRaw = formData.get("ore") as string;
   const nota = (formData.get("nota") as string) || null;
-  const fatturabileRaw = formData.get("fatturabile");
+  const categoria =
+    formData.get("categoria") ?? CATEGORIA_ATTIVITA_PREDEFINITA;
   const dataStr = formData.get("data") as string;
   const voceRimborsoTrasfertaIdRaw = formData.get("voceRimborsoTrasfertaId") as
     | string
@@ -305,6 +311,10 @@ export async function creaRiga(
     return { success: false, error: risultatoOre.errore };
   }
 
+  if (!isCategoriaAttivita(categoria)) {
+    return { success: false, error: "Categoria attività non valida" };
+  }
+
   // Fotografia della voce di rimborso trasferta selezionata
   const fotografiaRimborso = await fotografaVoceRimborsoTrasferta(
     voceRimborsoTrasfertaIdRaw
@@ -322,9 +332,6 @@ export async function creaRiga(
   // Mantiene il giorno civile anche quando server e database usano fusi diversi.
   const data = new Date(Date.UTC(anno, mese - 1, giorno, 12));
 
-  // Parsing fatturabile
-  const fatturabile = fatturabileRaw === "on" || fatturabileRaw === "true";
-
   const creazioneRiga = db.rigaAttivita.create({
     data: {
       collaboratoreId: collaboratore.id,
@@ -333,7 +340,7 @@ export async function creaRiga(
       data,
       ore: risultatoOre.valore!,
       nota,
-      fatturabile,
+      categoria,
       rimborsoTrasfertaEtichetta: fotografiaRimborso.etichetta ?? null,
       rimborsoTrasfertaImporto: fotografiaRimborso.importo ?? null,
     },
@@ -371,7 +378,7 @@ export async function creaRiga(
  * Modifica una riga attività esistente.
  *
  * Campi attesi nel FormData:
- * - rigaId, clienteId?, offertaId?, ore?, nota?, fatturabile?, data?
+ * - rigaId, clienteId?, offertaId?, ore?, nota?, categoria?, data?
  */
 export async function modificaRiga(
   formData: FormData
@@ -464,10 +471,12 @@ export async function modificaRiga(
     updateData.nota = nota || null;
   }
 
-  // fatturabile: la checkbox non viene inviata se deselezionata
-  if (formData.has("fatturabile")) {
-    const fatturabileRaw = formData.get("fatturabile");
-    updateData.fatturabile = fatturabileRaw === "on" || fatturabileRaw === "true";
+  if (formData.has("categoria")) {
+    const categoria = formData.get("categoria");
+    if (!isCategoriaAttivita(categoria)) {
+      return { success: false, error: "Categoria attività non valida" };
+    }
+    updateData.categoria = categoria;
   }
 
   const dataStr = formData.get("data") as string;
@@ -656,7 +665,7 @@ export async function duplicaRigaSuGiorni(
         data: new Date(Date.UTC(anno, mese - 1, giorno, 12)),
         ore: riga.ore,
         nota: riga.nota,
-        fatturabile: riga.fatturabile,
+        categoria: riga.categoria,
         rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta,
         rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto,
       };

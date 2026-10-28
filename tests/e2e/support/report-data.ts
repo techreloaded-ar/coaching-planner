@@ -140,7 +140,7 @@ export async function creaDatasetReportFatturazioneClienti(
 		data: dataRiservata(codiceSpec, 4, mesiIndietro),
 		ore: "8.00",
 		nota: `Report fatturabile intera ${suffisso}`,
-		fatturabile: true,
+		categoria: "FATTURABILE",
 	});
 	const rigaFatturabileTrasferta = await factory.createRigaAttivita({
 		collaboratore: collaboratori[1],
@@ -149,7 +149,7 @@ export async function creaDatasetReportFatturazioneClienti(
 		data: dataRiservata(codiceSpec, 11, mesiIndietro),
 		ore: "4.00",
 		nota: `Report fatturabile trasferta ${suffisso}`,
-		fatturabile: true,
+		categoria: "FATTURABILE",
 		rimborsoTrasfertaEtichetta: `Trasferta fatturabile ${suffisso}`,
 		rimborsoTrasfertaImporto: importo(importoTrasfertaFatturabile),
 	});
@@ -160,7 +160,7 @@ export async function creaDatasetReportFatturazioneClienti(
 		data: dataRiservata(codiceSpec, 18, mesiIndietro),
 		ore: "6.00",
 		nota: `Report non fatturabile trasferta ${suffisso}`,
-		fatturabile: false,
+		categoria: "NON_FATTURABILE",
 		rimborsoTrasfertaEtichetta: `Trasferta non fatturabile ${suffisso}`,
 		rimborsoTrasfertaImporto: importo(importoTrasfertaNonFatturabile),
 	});

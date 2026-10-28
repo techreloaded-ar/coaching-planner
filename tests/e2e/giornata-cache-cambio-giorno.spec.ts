@@ -126,22 +126,22 @@ async function attendiCalendarioIdratato(page: Page) {
  * Ore totali della giornata popolata da `creaGiornataConDueRighe`.
  *
  * Il valore non coincide con nessun badge di riga (1.0 h e 3.0 h) né con le ore
- * fatturabili (1.0 h): il testo compare quindi una sola volta nella pagina, ed è
+ * da fatturare (1.0 h): il testo compare quindi una sola volta nella pagina, ed è
  * esattamente il riquadro «Ore totali». È così che il totale viene asserito
  * senza appoggiarsi a classi di stile.
  */
 const ORE_TOTALI_GIORNATA_POPOLATA = "4.0 h";
 
-/** Due righe sullo stesso giorno: 1.0 h fatturabile e 3.0 h non fatturabile. */
+/** Due righe sullo stesso giorno: 1.0 h Fatturabile e 3.0 h di Investimento. */
 async function creaGiornataConDueRighe(
   factory: E2eDataFactory,
   collaboratore: CollaboratoreTestData,
   clienteConOfferta: ClienteConOffertaTestData,
   giorno: string,
 ) {
-  for (const [ore, fatturabile] of [
-    ["1.00", true],
-    ["3.00", false],
+  for (const [ore, categoria] of [
+    ["1.00", "FATTURABILE"],
+    ["3.00", "INVESTIMENTO"],
   ] as const) {
     await factory.createRigaAttivita({
       collaboratore,
@@ -149,7 +149,7 @@ async function creaGiornataConDueRighe(
       offerta: clienteConOfferta.offerta,
       data: dataDb(giorno),
       ore,
-      fatturabile,
+      categoria,
     });
   }
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
+import { fatturataAlCliente } from "@/domain/types";
 import type {
   Offerta,
   Cliente,
@@ -102,7 +103,7 @@ function costruisciVociElencoOfferte(
       collaboratoreId: riga.collaboratoreId,
       collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
-      fatturabile: riga.fatturabile,
+      fatturabile: fatturataAlCliente(riga.categoria),
       mese: riga.data.toISOString().slice(0, 7),
     }),
   );

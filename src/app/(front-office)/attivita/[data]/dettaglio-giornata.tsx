@@ -7,7 +7,14 @@ import {
   eliminaRiga,
   rimuoviRimborsoTrasferta,
 } from "@/lib/actions/righe-attivita";
-import { PulsanteAttesa } from "@/components";
+import { BadgeCategoriaAttivita, PulsanteAttesa } from "@/components";
+import {
+  CATEGORIA_ATTIVITA_PREDEFINITA,
+  CATEGORIE_ATTIVITA,
+  DESCRIZIONE_CATEGORIA_ATTIVITA,
+  fatturataDalCollaboratore,
+  type CategoriaAttivita,
+} from "@/domain/types";
 import { SelettoreDuplicazione } from "./selettore-duplicazione";
 import { SezioneProposteCalendario, useProposteCalendario } from "./proposte-calendario";
 import type {
@@ -197,7 +204,9 @@ export default function DettaglioGiornata({
   const [offertaId, setOffertaId] = useState("");
   const [ore, setOre] = useState("");
   const [erroreOre, setErroreOre] = useState<string | null>(null);
-  const [fatturabile, setFatturabile] = useState(true);
+  const [categoria, setCategoria] = useState<CategoriaAttivita>(
+    CATEGORIA_ATTIVITA_PREDEFINITA,
+  );
   const [nota, setNota] = useState("");
   const [erroreSubmit, setErroreSubmit] = useState<string | null>(null);
 
@@ -260,15 +269,15 @@ export default function DettaglioGiornata({
   const riepilogo = useMemo(() => {
     const nRighe = righe.length;
     const oreTotali = righe.reduce((s, r) => s + r.ore, 0);
-    const oreFatturabili = righe
-      .filter((r) => r.fatturabile)
+    const oreDaFatturare = righe
+      .filter((r) => fatturataDalCollaboratore(r.categoria))
       .reduce((s, r) => s + r.ore, 0);
     const totaleRimborsi = righe.reduce((s, r) => {
       if (r.rimborsoTrasfertaImporto == null) return s;
       const importo = parseFloat(r.rimborsoTrasfertaImporto);
       return s + (isNaN(importo) ? 0 : importo);
     }, 0);
-    return { nRighe, oreTotali, oreFatturabili, totaleRimborsi };
+    return { nRighe, oreTotali, oreDaFatturare, totaleRimborsi };
   }, [righe]);
 
   // ── Assenza di offerte abilitate per il cliente selezionato ─
@@ -397,7 +406,7 @@ export default function DettaglioGiornata({
       fd.append("ore", ore.replace(",", "."));
       fd.append("data", data);
       if (nota) fd.append("nota", nota);
-      if (fatturabile) fd.append("fatturabile", "on");
+      fd.append("categoria", categoria);
       // Il campo viene omesso quando la tendina è su "invariato": è l'assenza
       // stessa del campo a dire a `modificaRiga` di non rifotografare nulla.
       if (selezioneRimborso !== SELEZIONE_RIMBORSO_INVARIATO) {
@@ -440,7 +449,7 @@ export default function DettaglioGiornata({
       setOffertaId("");
       setOre("");
       setErroreOre(null);
-      setFatturabile(true);
+      setCategoria(CATEGORIA_ATTIVITA_PREDEFINITA);
       setNota("");
       setSelezioneRimborso("");
       setModificaId(null);
@@ -449,7 +458,7 @@ export default function DettaglioGiornata({
       setClienteCambiatoDuranteModifica(false);
       setClienteRigaInModifica(null);
     },
-    [clienteId, offertaId, ore, nota, fatturabile, selezioneRimborso, data, modificaId, invalidaDopoMutazione, eventoDaProposta, rimuoviProposta]
+    [clienteId, offertaId, ore, nota, categoria, selezioneRimborso, data, modificaId, invalidaDopoMutazione, eventoDaProposta, rimuoviProposta]
   );
 
   // ── Modifica riga ──────────────────────────────────────────
@@ -463,7 +472,7 @@ export default function DettaglioGiornata({
         id: riga.cliente.id,
         ragioneSociale: riga.cliente.ragioneSociale,
       });
-      setFatturabile(riga.fatturabile);
+      setCategoria(riga.categoria);
       setOre(riga.ore.toString().replace(".", ","));
       setNota(riga.nota ?? "");
       setSelezioneRimborso(SELEZIONE_RIMBORSO_INVARIATO);
@@ -533,7 +542,7 @@ export default function DettaglioGiornata({
   // ── Modifica di una proposta dal calendario ────────────────
   //
   // Apre il form in modalità "nuova riga" precompilato con la proposta: ore,
-  // nota (titolo dell'evento), fatturabile e, se associati, cliente e offerta.
+  // nota (titolo dell'evento), categoria predefinita e, se associati, cliente e offerta.
 
   const handleModificaProposta = useCallback(
     async (proposta: PropostaCalendarioClient) => {
@@ -546,7 +555,7 @@ export default function DettaglioGiornata({
       setOfferte([]);
       setOre(proposta.ore.toString().replace(".", ","));
       setNota(proposta.titolo);
-      setFatturabile(true);
+      setCategoria(CATEGORIA_ATTIVITA_PREDEFINITA);
       setSelezioneRimborso("");
       setErroreOre(null);
       setErroreSubmit(null);
@@ -590,7 +599,7 @@ export default function DettaglioGiornata({
     setOffertaId("");
     setOre("");
     setErroreOre(null);
-    setFatturabile(true);
+    setCategoria(CATEGORIA_ATTIVITA_PREDEFINITA);
     setNota("");
     setSelezioneRimborso("");
     setOfferte([]);
@@ -748,10 +757,10 @@ export default function DettaglioGiornata({
         </div>
         <div className="flex-1 min-w-[120px] rounded-[11px] border border-rose-200 bg-rose-50 p-[14px_16px] dark:border-rose-800 dark:bg-rose-950/40">
           <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
-            Ore fatturabili
+            Ore da fatturare ad Agile Reloaded
           </div>
           <div className="mt-0.5 text-[22px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
-            {riepilogo.oreFatturabili.toFixed(1)} h
+            {riepilogo.oreDaFatturare.toFixed(1)} h
           </div>
         </div>
         <div className="flex-1 min-w-[120px] rounded-[11px] border border-rose-200 bg-rose-50 p-[14px_16px] dark:border-rose-800 dark:bg-rose-950/40">
@@ -830,15 +839,7 @@ export default function DettaglioGiornata({
                   </div>
 
                   <div className="flex flex-none items-center gap-2.5">
-                    <span
-                      className={`inline-flex items-center rounded-full px-[9px] py-[3px] text-[10px] font-bold ${
-                        riga.fatturabile
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
-                          : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                      }`}
-                    >
-                      {riga.fatturabile ? "Fatt." : "Non fatt."}
-                    </span>
+                    <BadgeCategoriaAttivita categoria={riga.categoria} />
                     <span className="whitespace-nowrap text-[15px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
                       {riga.ore.toFixed(1)} h
                     </span>
@@ -1142,17 +1143,35 @@ export default function DettaglioGiornata({
             )}
           </div>
 
-          {/* Fatturabile + Nota */}
           <div className="flex flex-wrap gap-[18px]">
-            <label className="inline-flex items-center gap-2.5 rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13px] font-semibold text-zinc-700 transition dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-              <input
-                type="checkbox"
-                checked={fatturabile}
-                onChange={(e) => setFatturabile(e.target.checked)}
-                className="h-[15px] w-[15px] rounded-[4px] border-zinc-300 text-rose-600 focus:ring-rose-500 dark:border-zinc-600 dark:bg-zinc-700"
-              />
-              Fatturabile
-            </label>
+            {/* Categoria: la didascalia spiega solo la voce selezionata */}
+            <div className="w-full sm:w-[260px]">
+              <label
+                htmlFor="categoria"
+                className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+              >
+                Categoria
+              </label>
+              <select
+                id="categoria"
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value as CategoriaAttivita)}
+                aria-describedby="significato-categoria"
+                className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+              >
+                {CATEGORIE_ATTIVITA.map((opzione) => (
+                  <option key={opzione} value={opzione}>
+                    {DESCRIZIONE_CATEGORIA_ATTIVITA[opzione].etichetta}
+                  </option>
+                ))}
+              </select>
+              <p
+                id="significato-categoria"
+                className="mt-[5px] text-[11.5px] leading-snug text-zinc-500 dark:text-zinc-400"
+              >
+                {DESCRIZIONE_CATEGORIA_ATTIVITA[categoria].significato}
+              </p>
+            </div>
 
             <div className="flex-1 min-w-[200px]">
               <label

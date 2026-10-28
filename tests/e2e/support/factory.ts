@@ -69,7 +69,7 @@ export type CreateRigaAttivitaOptions = {
 	data?: Date;
 	ore?: string | number;
 	nota?: string | null;
-	fatturabile?: boolean;
+	categoria?: "FATTURABILE" | "NON_FATTURABILE" | "INVESTIMENTO";
 	rimborsoTrasfertaEtichetta?: string | null;
 	rimborsoTrasfertaImporto?: string | number | null;
 };
@@ -272,8 +272,8 @@ export class E2eDataFactory {
 
 		return insertReturning<RigaAttivita>(
 			this.prisma,
-			`INSERT INTO "RigaAttivita" ("id", "collaboratoreId", "clienteId", "offertaId", "data", "ore", "nota", "fatturabile", "rimborsoTrasfertaEtichetta", "rimborsoTrasfertaImporto", "createdAt", "updatedAt")
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+			`INSERT INTO "RigaAttivita" ("id", "collaboratoreId", "clienteId", "offertaId", "data", "ore", "nota", "categoria", "rimborsoTrasfertaEtichetta", "rimborsoTrasfertaImporto", "createdAt", "updatedAt")
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8::"CategoriaAttivita", $9, $10, $11, $11)
 			 RETURNING *`,
 			[
 				randomUUID(),
@@ -285,7 +285,7 @@ export class E2eDataFactory {
 				options.nota === undefined
 					? `Riga e2e ${this.namespace}`
 					: options.nota,
-				options.fatturabile ?? true,
+				options.categoria ?? "FATTURABILE",
 				options.rimborsoTrasfertaEtichetta,
 				options.rimborsoTrasfertaImporto,
 				now,
