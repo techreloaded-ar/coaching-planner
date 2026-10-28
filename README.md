@@ -73,10 +73,10 @@ La riga non contiene mai la chiave, titoli, descrizioni, email o domini degli ev
 | `ok` | Jev ha risposto per tutti gli impegni |
 | `chiave-assente` | `OPENROUTER_API_KEY` non arriva al deployment: controlla l'ambiente (Production/Preview) e rifai il deploy |
 | `nessuna-offerta-abilitata` | Il collaboratore non è abilitato su offerte di clienti attivi: Jev non viene chiamato |
-| `errore-http` | OpenRouter ha rifiutato la richiesta: `stato` e `messaggio` indicano la causa (401 = chiave non valida; 402 = credito OpenRouter esaurito; 400/422 = modello o richiesta non validi; 429/5xx = limiti o sovraccarico, già ritentati due volte con backoff) |
+| `errore-http` | OpenRouter ha rifiutato la richiesta: `stato` e `messaggio` indicano la causa (401 = chiave non valida; 402 = credito OpenRouter esaurito; 400/422 = modello o richiesta non validi, senza messaggio perché potrebbe citare i dati dell'evento; 429/5xx = limiti o sovraccarico, già ritentati due volte con backoff) |
 | `errore-rete` | OpenRouter non raggiungibile (`tipoErrore` indica il tipo) |
 | `timeout` | Nessuna risposta entro 10 secondi |
-| `risposta-non-valida` | Jev ha risposto senza le tre risposte attese (`clientIdentified`, `offer`, `notWorkRelated`) |
+| `risposta-non-valida` | Jev ha risposto senza le tre risposte attese (`clientIdentified`, `offer`, `notWorkRelated`) o con un'offerta che non è tra le opzioni |
 
 ### Test end-to-end e database dedicato
 

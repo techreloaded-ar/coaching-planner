@@ -314,13 +314,21 @@ describe("analizzaEventiCalendario con Jev", () => {
 
     mockFetch.mockReset();
     mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({ error: { code: 422, message: `Invalid question. Key ${API_KEY}` } }), { status: 422 })
+      new Response(JSON.stringify({ error: { code: 422, message: "Invalid question: title «Steering»" } }), { status: 422 })
     );
     await analizzaEventiCalendario([proposta("ev", "Steering")], OFFERTE, GIORNO);
     expect(mockFetch).toHaveBeenCalledTimes(1);
+    // Il messaggio di un 422 può citare la richiesta: non finisce nel log.
     expect(righeLog().at(-1)).toMatch(
-      /^Jev: esito=errore-http modello=~typesafe\/jev-latest eventi=1 offerte=3 durataMs=\d+ associazioniAlta=0 associazioniBassa=0 nonLavorativi=0 eventiInErrore=1 stato=422 messaggio="Invalid question. Key \[chiave\]"$/
+      /^Jev: esito=errore-http modello=~typesafe\/jev-latest eventi=1 offerte=3 durataMs=\d+ associazioniAlta=0 associazioniBassa=0 nonLavorativi=0 eventiInErrore=1 stato=422$/
     );
+
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 402, message: `Insufficient credits. Key ${API_KEY}` } }), { status: 402 })
+    );
+    await analizzaEventiCalendario([proposta("ev", "Steering")], OFFERTE, GIORNO);
+    expect(righeLog().at(-1)).toMatch(/ stato=402 messaggio="Insufficient credits. Key \[chiave\]"$/);
   });
 
   it("dopo i tentativi esauriti degrada senza eccezioni, tenendo gli eventi riusciti (AC-10)", async () => {
@@ -361,12 +369,16 @@ describe("analizzaEventiCalendario con Jev", () => {
     mockFetch.mockResolvedValueOnce(new Response("<html>non json</html>", { status: 200 }));
     expect((await analizzaEventiCalendario(eventi, OFFERTE, GIORNO)).associazioni.size).toBe(0);
 
+    mockFetch.mockResolvedValueOnce(rispostaJev("Offerta inventata", 0.99, 0.99));
+    expect((await analizzaEventiCalendario(eventi, OFFERTE, GIORNO)).associazioni.size).toBe(0);
+
     const righe = righeLog();
     expect(righe).toEqual([
       expect.stringMatching(/^Jev: esito=timeout .*eventiInErrore=1$/),
       expect.stringMatching(/^Jev: esito=errore-rete .*eventiInErrore=1 tipoErrore=TypeError$/),
       expect.stringMatching(/^Jev: esito=risposta-non-valida /),
       expect.stringMatching(/^Jev: esito=risposta-non-valida /),
+      expect.stringMatching(/^Jev: esito=risposta-non-valida .*eventiInErrore=1$/),
     ]);
     const tutto = righe.join("\n");
     for (const dato of [API_KEY, "Kickoff", "Sala 3", "bancavaldostana.it", "Banca Valdostana"]) {

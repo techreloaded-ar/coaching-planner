@@ -13,7 +13,8 @@ import { FUSO_GIORNATA, type PropostaEvento } from "@/domain/calendario-google";
 // descrizione, orario e domini degli invitati esterni (mai gli indirizzi; i
 // DOMINI_INTERNI sono tolti qui) e le offerte abilitate per il collaboratore,
 // comprese le chiuse. Forma della richiesta, istruzioni e regola di decisione
-// sono quelle validate con scripts/valuta-jev-associazioni.ts. Qualsiasi errore
+// sono quelle validate con lo script di valutazione offline di Jev sul dataset
+// di prova (valuta-jev-associazioni.ts, fuori dal repository). Qualsiasi errore
 // degrada a «nessuna associazione e nessun evento escluso» per l'evento
 // coinvolto: le proposte restano, da completare a mano.
 //
@@ -125,7 +126,9 @@ export async function analizzaEventiCalendario(
   risultati.forEach((risultato, indice) => {
     const eventoId = proposteEsterne[indice].eventoId;
     const risposte = risultato.esito === "ok" ? risposteValide(risultato.dati) : null;
-    if (!risposte) {
+    // Un'etichetta che non è tra le opzioni è una risposta non valida.
+    const offerta = risposte ? offertePerEtichetta.get(risposte.scelta) : undefined;
+    if (!risposte || !offerta) {
       eventiInErrore++;
       primoErrore ??= risultato.esito === "ok" ? { esito: "risposta-non-valida" } : risultato;
       return;
@@ -134,14 +137,13 @@ export async function analizzaEventiCalendario(
       analisi.nonLavorativi.add(eventoId);
       return;
     }
-    const offerta = offertePerEtichetta.get(risposte.scelta);
     if (
-      offerta?.attiva &&
+      offerta.attiva &&
       risposte.clienteIdentificato >= SOGLIA_PROBABILITA &&
       risposte.confidenza >= sogliaConfidenza
     ) {
       analisi.associazioni.set(eventoId, offerta.id);
-    } else if (offerta) {
+    } else {
       analisi.associazioniBassa++;
     }
   });
@@ -278,7 +280,12 @@ type RisultatoEvento =
   | { esito: "timeout" }
   | { esito: "risposta-non-valida" };
 
-/** Retry con backoff solo su 429 e 5xx; mai eccezioni. */
+/**
+ * Retry con backoff solo su 429 e 5xx; mai eccezioni.
+ * ponytail: nessun tetto complessivo alla giornata (caso peggiore ~33 s per
+ * gruppo di 4 impegni); aggiungere una scadenza globale con AbortSignal.any se
+ * i log mostrano durate vicine al limite della funzione Vercel.
+ */
 async function analizzaEvento(apiKey: string, corpo: unknown): Promise<RisultatoEvento> {
   for (let tentativo = 1; ; tentativo++) {
     try {
@@ -291,11 +298,18 @@ async function analizzaEvento(apiKey: string, corpo: unknown): Promise<Risultato
       });
 
       if ((risposta.status === 429 || risposta.status >= 500) && tentativo < TENTATIVI_MASSIMI) {
+        await risposta.body?.cancel();
         await new Promise((r) => setTimeout(r, 1000 * 2 ** (tentativo - 1)));
         continue;
       }
       if (!risposta.ok) {
-        return { esito: "errore-http", stato: risposta.status, ...(await erroreOpenRouter(risposta, apiKey)) };
+        // 400 e 422 descrivono la richiesta, che contiene i dati dell'evento: niente messaggio.
+        const conMessaggio = risposta.status !== 400 && risposta.status !== 422;
+        return {
+          esito: "errore-http",
+          stato: risposta.status,
+          ...(conMessaggio ? await erroreOpenRouter(risposta, apiKey) : {}),
+        };
       }
       const dati = await risposta.json().catch(() => null);
       return dati === null ? { esito: "risposta-non-valida" } : { esito: "ok", dati };
