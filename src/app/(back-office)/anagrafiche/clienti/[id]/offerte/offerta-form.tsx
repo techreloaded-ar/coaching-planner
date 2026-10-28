@@ -380,6 +380,9 @@ function SelectCliente({ clienti, defaultValue, errore }: SelectClienteProps) {
       <select
         id="clienteId"
         name="clienteId"
+        // React aggiorna il defaultValue di una select solo al mount: la key la
+        // rimonta col cliente inviato, così sopravvive al reset del form.
+        key={defaultValue}
         defaultValue={defaultValue}
         className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition dark:bg-zinc-900 dark:text-zinc-100 ${
           errore
