@@ -191,8 +191,8 @@ async function aggiungiRiga(
   await page.locator("#nota").fill(nota);
 
   await page
-    .getByRole("radio", { name: ETICHETTA_CATEGORIA[categoria], exact: true })
-    .check();
+    .getByRole("combobox", { name: "Categoria", exact: true })
+    .selectOption({ label: ETICHETTA_CATEGORIA[categoria] });
 
   await page.getByRole("button", { name: "Aggiungi riga" }).click();
   await expect(cardRiga(page, nota, categoria)).toBeVisible();

@@ -119,12 +119,8 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     const selectCliente = page.locator("#cliente");
     const selectOfferta = page.locator("#offerta");
     const inputOre = page.locator("#ore");
-    const categoriaFatturabile = page.getByRole("radio", {
-      name: "Fatturabile",
-      exact: true,
-    });
-    const categoriaInvestimento = page.getByRole("radio", {
-      name: "Investimento",
+    const selectCategoria = page.getByRole("combobox", {
+      name: "Categoria",
       exact: true,
     });
     const textareaNota = page.locator("#nota");
@@ -138,19 +134,16 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
 
     await selezionaClienteEOffertaTest(page, clienteConOfferta);
 
-    // La categoria parte da Fatturabile e ogni opzione spiega chi fattura cosa
-    await expect(categoriaFatturabile).toBeChecked();
-    await expect(categoriaFatturabile).toHaveAccessibleDescription(
+    // La categoria parte da Fatturabile; la didascalia spiega solo la voce scelta
+    await expect(selectCategoria).toHaveValue("FATTURABILE");
+    await expect(selectCategoria).toHaveAccessibleDescription(
       "La fatturi ad Agile Reloaded e Agile Reloaded la fattura al cliente."
     );
-    await expect(
-      page.getByRole("radio", { name: "Non fatturabile", exact: true })
-    ).toHaveAccessibleDescription(
+    await selectCategoria.selectOption({ label: "Non fatturabile" });
+    await expect(selectCategoria).toHaveAccessibleDescription(
       "La fatturi ad Agile Reloaded, ma Agile Reloaded non la fattura al cliente."
     );
-    await expect(categoriaInvestimento).toHaveAccessibleDescription(
-      "Non la fatturi ad Agile Reloaded e Agile Reloaded non la fattura al cliente."
-    );
+    await selectCategoria.selectOption({ label: "Fatturabile" });
 
     await inputOre.fill("3,5");
     await textareaNota.fill(notaNuova);
@@ -166,12 +159,15 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     await expect(selectOfferta).toBeDisabled();
     await expect(selectOfferta).toHaveValue("");
     await expect(inputOre).toHaveValue("");
-    await expect(categoriaFatturabile).toBeChecked();
+    await expect(selectCategoria).toHaveValue("FATTURABILE");
     await expect(textareaNota).toHaveValue("");
 
     await selezionaClienteEOffertaTest(page, secondaClienteConOfferta);
     await inputOre.fill("6");
-    await categoriaInvestimento.check();
+    await selectCategoria.selectOption({ label: "Investimento" });
+    await expect(selectCategoria).toHaveAccessibleDescription(
+      "Non la fatturi ad Agile Reloaded e Agile Reloaded non la fattura al cliente."
+    );
     await textareaNota.fill(notaSeconda);
 
     await bottoneAggiungiRiga.click();
@@ -196,14 +192,14 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     await expect(selectOfferta).toBeDisabled();
     await expect(selectOfferta).toHaveValue("");
     await expect(inputOre).toHaveValue("");
-    await expect(categoriaFatturabile).toBeChecked();
+    await expect(selectCategoria).toHaveValue("FATTURABILE");
     await expect(textareaNota).toHaveValue("");
 
     // In modifica la categoria salvata è quella selezionata
     await secondaRigaCard.getByRole("button", { name: "Modifica" }).click();
-    await expect(categoriaInvestimento).toBeChecked();
+    await expect(selectCategoria).toHaveValue("INVESTIMENTO");
     await bottoneAnnulla.click();
-    await expect(categoriaFatturabile).toBeChecked();
+    await expect(selectCategoria).toHaveValue("FATTURABILE");
 
     await primaRigaCard.getByRole("button", { name: "Modifica" }).click();
 

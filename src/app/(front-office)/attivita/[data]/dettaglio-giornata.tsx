@@ -1143,47 +1143,36 @@ export default function DettaglioGiornata({
             )}
           </div>
 
-          {/* Categoria: ogni opzione riporta il proprio significato */}
-          <fieldset>
-            <legend className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400">
-              Categoria
-            </legend>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {CATEGORIE_ATTIVITA.map((opzione) => (
-                <label
-                  key={opzione}
-                  className="flex cursor-pointer items-start gap-2.5 rounded-[8px] border border-zinc-200 bg-white px-3 py-2 transition has-[:checked]:border-rose-500 has-[:checked]:ring-1 has-[:checked]:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800"
-                >
-                  <input
-                    type="radio"
-                    name="categoria"
-                    value={opzione}
-                    checked={categoria === opzione}
-                    onChange={() => setCategoria(opzione)}
-                    aria-labelledby={`etichetta-${opzione}`}
-                    aria-describedby={`significato-${opzione}`}
-                    className="mt-[2px] h-[15px] w-[15px] border-zinc-300 text-rose-600 focus:ring-rose-500 dark:border-zinc-600 dark:bg-zinc-700"
-                  />
-                  <span>
-                    <span
-                      id={`etichetta-${opzione}`}
-                      className="block text-[13px] font-semibold text-zinc-700 dark:text-zinc-300"
-                    >
-                      {DESCRIZIONE_CATEGORIA_ATTIVITA[opzione].etichetta}
-                    </span>
-                    <span
-                      id={`significato-${opzione}`}
-                      className="block text-[11.5px] leading-snug text-zinc-500 dark:text-zinc-400"
-                    >
-                      {DESCRIZIONE_CATEGORIA_ATTIVITA[opzione].significato}
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
           <div className="flex flex-wrap gap-[18px]">
+            {/* Categoria: la didascalia spiega solo la voce selezionata */}
+            <div className="w-full sm:w-[260px]">
+              <label
+                htmlFor="categoria"
+                className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+              >
+                Categoria
+              </label>
+              <select
+                id="categoria"
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value as CategoriaAttivita)}
+                aria-describedby="significato-categoria"
+                className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+              >
+                {CATEGORIE_ATTIVITA.map((opzione) => (
+                  <option key={opzione} value={opzione}>
+                    {DESCRIZIONE_CATEGORIA_ATTIVITA[opzione].etichetta}
+                  </option>
+                ))}
+              </select>
+              <p
+                id="significato-categoria"
+                className="mt-[5px] text-[11.5px] leading-snug text-zinc-500 dark:text-zinc-400"
+              >
+                {DESCRIZIONE_CATEGORIA_ATTIVITA[categoria].significato}
+              </p>
+            </div>
+
             <div className="flex-1 min-w-[200px]">
               <label
                 htmlFor="nota"
