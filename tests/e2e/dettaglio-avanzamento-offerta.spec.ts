@@ -92,14 +92,14 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			offerta,
 			collaboratore: primaCollaboratrice,
 			ore: "16.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 		await factory.createRigaAttivita({
 			cliente,
 			offerta,
 			collaboratore: secondoCollaboratore,
 			ore: "16.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		await apriPaginaOfferte(page);
@@ -178,7 +178,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 				offerta,
 				collaboratore,
 				ore: scenario.ore,
-				fatturabile: true,
+				categoria: "FATTURABILE",
 			});
 		}
 
@@ -222,7 +222,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			offerta,
 			collaboratore,
 			ore: "8.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		await apriPaginaOfferte(page);
@@ -386,7 +386,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			collaboratore: ada,
 			data: dataNelMeseUtc(mesePrecedente, 10),
 			ore: "8.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 		await factory.createRigaAttivita({
 			cliente,
@@ -394,7 +394,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			collaboratore: ada,
 			data: dataNelMeseUtc(meseRiferimento, 5),
 			ore: "4.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 		await factory.createRigaAttivita({
 			cliente,
@@ -402,7 +402,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			collaboratore: alan,
 			data: dataNelMeseUtc(meseRiferimento, 12),
 			ore: "16.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		await apriPaginaOfferte(page);
@@ -506,7 +506,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 					10,
 				),
 				ore: "8.00",
-				fatturabile: true,
+				categoria: "FATTURABILE",
 			});
 		}
 

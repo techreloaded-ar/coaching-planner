@@ -79,7 +79,7 @@ test.describe("US-011 Segregazione dati", () => {
     ).toBeVisible();
     await expect(page.getByText("Righe registrate")).toBeVisible();
     await expect(page.getByText("Ore totali")).toBeVisible();
-    await expect(page.getByText("Ore fatturabili")).toBeVisible();
+    await expect(page.getByText("Ore da fatturare ad Agile Reloaded")).toBeVisible();
     await expect(page.getByText("Attività della giornata")).toBeVisible();
 
     // Tutti i clienti e le offerte nel dettaglio dovrebbero essere

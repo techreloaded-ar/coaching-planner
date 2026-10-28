@@ -1299,7 +1299,7 @@ test.describe("Gestione utenti", () => {
 			data: new Date(`${dataNelMese(meseRiservato("US-046"), 12)}T00:00:00.000Z`),
 			ore: "8",
 			nota,
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		// AC-3: rimozione del ruolo Collaboratore lasciando l'accesso Amministratore.
@@ -1480,7 +1480,7 @@ test.describe("Gestione utenti", () => {
 			data: new Date(`${dataNelMese(meseRiservato("US-046"), 14)}T00:00:00.000Z`),
 			ore: "8",
 			nota: notaStorica,
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		// 1. Aggiunta del ruolo Collaboratore con i dati obbligatori richiesti.

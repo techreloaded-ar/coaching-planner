@@ -133,7 +133,7 @@ export default function ReportMarginalita({
 
       {report.perCliente.length === 0 ? (
         <div className="rounded-[11px] border border-dashed border-zinc-300 bg-white px-5 py-10 text-center text-[14px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-          Nessuna attività fatturabile nel periodo selezionato.
+          Nessuna attività fatturabile o non fatturabile nel periodo selezionato.
         </div>
       ) : (
         <>

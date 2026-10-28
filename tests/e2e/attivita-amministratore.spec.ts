@@ -117,7 +117,7 @@ test.describe("US-030 Attività amministratore", () => {
 		await page.getByRole("link", { name: "Riepilogo mese", exact: true }).click();
 		await page.waitForURL(`**/attivita/riepilogo?mese=${mese}`);
 		await expect(page.getByTestId("summary-ore-totali-value")).toHaveText("7,5");
-		await expect(page.getByTestId("summary-ore-fatturabili-value")).toHaveText(
+		await expect(page.getByTestId("summary-ore-da-fatturare-value")).toHaveText(
 			"7,5",
 		);
 		await expect(page.getByTestId("summary-table")).toContainText(offerta.codice);

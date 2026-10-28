@@ -6,6 +6,7 @@ import { elencaOfferteAbilitate, elencaOfferteAbilitabili } from "@/lib/abilitaz
 import { raggruppaAttivitaPerMese, type RigaStoricoAttivita } from "@/domain/consuntivi";
 import { etichettaMese } from "@/domain/calendario";
 import { formattaEuro } from "@/lib/formattazione";
+import { BadgeCategoriaAttivita } from "@/components";
 import AbilitazioniOfferte from "./abilitazioni-offerte";
 
 // ── Utilità ────────────────────────────────────────────────────
@@ -58,7 +59,7 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
     offertaCodice: riga.offerta.codice,
     offertaDescrizione: riga.offerta.descrizione,
     ore: Number(riga.ore),
-    fatturabile: riga.fatturabile,
+    categoria: riga.categoria,
     nota: riga.nota,
   }));
 
@@ -179,7 +180,7 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
                       Ore
                     </th>
                     <th className="w-[150px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                      Fatturabilità
+                      Categoria
                     </th>
                     <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                       Note
@@ -213,22 +214,7 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
                           {formattaNumero.format(riga.ore)}
                         </td>
                         <td className="px-4 py-[13px] align-middle">
-                          {riga.fatturabile ? (
-                            <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[12px] w-[12px]" strokeWidth={2.4}>
-                                <path d="M20 6 9 17l-5-5" />
-                              </svg>
-                              Fatturabile
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-[5px] rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[12px] w-[12px]" strokeWidth={2}>
-                                <circle cx="12" cy="12" r="9" />
-                                <path d="M5.6 5.6l12.8 12.8" />
-                              </svg>
-                              Non fatturabile
-                            </span>
-                          )}
+                          <BadgeCategoriaAttivita categoria={riga.categoria} />
                         </td>
                         <td className="px-4 py-[13px] align-middle text-[12.5px] text-zinc-500 dark:text-zinc-400">
                           {riga.nota ?? ""}

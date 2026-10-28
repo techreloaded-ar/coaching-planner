@@ -162,8 +162,7 @@ describe("creaRiga", () => {
       nota: "Analisi requisiti",
       data: "2026-07-01",
     });
-    // checkbox fatturabile: quando è checked, viene inviato "on"
-    fd.append("fatturabile", "on");
+    fd.append("categoria", "NON_FATTURABILE");
 
     const result = await creaRiga(fd);
 
@@ -176,7 +175,7 @@ describe("creaRiga", () => {
     expect(chiamata.data.offertaId).toBe("offerta-1");
     expect(chiamata.data.ore).toBe(8);
     expect(chiamata.data.nota).toBe("Analisi requisiti");
-    expect(chiamata.data.fatturabile).toBe(true);
+    expect(chiamata.data.categoria).toBe("NON_FATTURABILE");
     expect(chiamata.data.rimborsoTrasfertaEtichetta).toBeNull();
     expect(chiamata.data.rimborsoTrasfertaImporto).toBeNull();
 
@@ -199,7 +198,7 @@ describe("creaRiga", () => {
         ore: "1.5",
         nota: "Kickoff Acme",
         data: "2026-07-01",
-        fatturabile: "on",
+        categoria: "FATTURABILE",
         voceRimborsoTrasfertaId: "",
         eventoCalendarioId: "evento-google-1",
       })
@@ -210,7 +209,7 @@ describe("creaRiga", () => {
       collaboratoreId: "collab-giulia",
       ore: 1.5,
       nota: "Kickoff Acme",
-      fatturabile: true,
+      categoria: "FATTURABILE",
       rimborsoTrasfertaEtichetta: null,
     });
     expect(mockEventoCalendarioGestito.create).toHaveBeenCalledWith({
@@ -283,7 +282,6 @@ describe("creaRiga", () => {
       data: "2026-07-01",
       voceRimborsoTrasfertaId: "voce-1",
     });
-    fd.append("fatturabile", "on");
 
     const result = await creaRiga(fd);
 
@@ -323,7 +321,7 @@ describe("creaRiga", () => {
     aspettataNessunaInvalidazione();
   });
 
-  it("crea una riga con fatturabile disattivato", async () => {
+  it("crea una riga Fatturabile quando la categoria non è indicata", async () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
       stato: "ATTIVO",
       collaboratore: collaboratoreMock(),
@@ -336,13 +334,35 @@ describe("creaRiga", () => {
       ore: "4",
       data: "2026-07-02",
     });
-    // Non appendere "fatturabile" = deselezionato
 
     const result = await creaRiga(fd);
 
     expect(result.success).toBe(true);
     const chiamata = mockRigaAttivita.create.mock.calls[0][0];
-    expect(chiamata.data.fatturabile).toBe(false);
+    expect(chiamata.data.categoria).toBe("FATTURABILE");
+  });
+
+  it("rifiuta una categoria non valida senza creare la riga", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+
+    const result = await creaRiga(
+      creaFormData({
+        clienteId: "cliente-1",
+        offertaId: "offerta-1",
+        ore: "4",
+        data: "2026-07-02",
+        categoria: "GRATIS",
+      })
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: "Categoria attività non valida",
+    });
+    expect(mockRigaAttivita.create).not.toHaveBeenCalled();
   });
 
   it("rifiuta ore non valide con messaggio di errore", async () => {
@@ -548,7 +568,7 @@ describe("modificaRiga", () => {
       nota: "Nota aggiornata",
       data: "2026-07-01",
     });
-    fd.append("fatturabile", "on");
+    fd.append("categoria", "INVESTIMENTO");
 
     const result = await modificaRiga(fd);
 
@@ -559,9 +579,29 @@ describe("modificaRiga", () => {
     expect(chiamata.where.id).toBe("riga-1");
     expect(chiamata.data.ore).toBe(6.5);
     expect(chiamata.data.nota).toBe("Nota aggiornata");
-    expect(chiamata.data.fatturabile).toBe(true);
+    expect(chiamata.data.categoria).toBe("INVESTIMENTO");
 
     aspettatiPercorsiInvalidati("2026-07-01");
+  });
+
+  it("rifiuta la modifica con una categoria non valida", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+    });
+
+    const result = await modificaRiga(
+      creaFormData({ rigaId: "riga-1", categoria: "GRATIS" })
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: "Categoria attività non valida",
+    });
+    expect(mockRigaAttivita.update).not.toHaveBeenCalled();
   });
 
   it("rifotografa la voce selezionata quando cambia la selezione (AC-4)", async () => {
@@ -1009,7 +1049,7 @@ describe("duplicaRigaSuGiorni", () => {
       data: new Date(Date.UTC(2026, 2, 11, 12)),
       ore: "6.00",
       nota: "Coaching del team",
-      fatturabile: true,
+      categoria: "NON_FATTURABILE",
       rimborsoTrasfertaEtichetta: "Trasferta fuori provincia",
       rimborsoTrasfertaImporto: "85.00",
     };
@@ -1025,7 +1065,7 @@ describe("duplicaRigaSuGiorni", () => {
       data: new Date(Date.UTC(anno, mese - 1, giornoDelMese, 12)),
       ore: "6.00",
       nota: "Coaching del team",
-      fatturabile: true,
+      categoria: "NON_FATTURABILE",
       rimborsoTrasfertaEtichetta: "Trasferta fuori provincia",
       rimborsoTrasfertaImporto: "85.00",
     };

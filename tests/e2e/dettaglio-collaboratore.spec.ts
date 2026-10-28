@@ -71,7 +71,7 @@ test.describe("Dettaglio collaboratore", () => {
 			data: dataNelMeseUtc(meseRecente, 10),
 			ore: "8",
 			nota: notaFatturabile,
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 		await factory.createRigaAttivita({
 			collaboratore: collaboratoreA,
@@ -80,7 +80,7 @@ test.describe("Dettaglio collaboratore", () => {
 			data: dataNelMeseUtc(meseRecente, 12),
 			ore: "4",
 			nota: notaIntegrativa,
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 		// Mese precedente: una riga non fatturabile → "4 ore · 0,5 giornate"
 		await factory.createRigaAttivita({
@@ -90,7 +90,7 @@ test.describe("Dettaglio collaboratore", () => {
 			data: dataNelMeseUtc(mesePrecedente, 15),
 			ore: "4",
 			nota: notaNonFatturabile,
-			fatturabile: false,
+			categoria: "NON_FATTURABILE",
 		});
 
 		// Navigazione dalla riga dell'elenco al dettaglio del collaboratore A

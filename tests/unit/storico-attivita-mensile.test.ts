@@ -16,7 +16,7 @@ function riga(parziale: Partial<RigaStoricoAttivita> = {}): RigaStoricoAttivita 
     offertaCodice: "OFF-001",
     offertaDescrizione: "Percorso coaching",
     ore: 8,
-    fatturabile: true,
+    categoria: "FATTURABILE",
     nota: null,
     ...parziale,
   };
@@ -82,7 +82,7 @@ describe("raggruppaAttivitaPerMese", () => {
       offertaCodice: "OFF-101",
       offertaDescrizione: "Coaching executive",
       ore: 6,
-      fatturabile: true,
+      categoria: "FATTURABILE",
       nota: "Sessione di feedback",
     });
     const senzaNota = riga({
@@ -91,7 +91,7 @@ describe("raggruppaAttivitaPerMese", () => {
       offertaCodice: "OFF-202",
       offertaDescrizione: "Mentoring tecnico",
       ore: 2,
-      fatturabile: false,
+      categoria: "NON_FATTURABILE",
       nota: null,
     });
 

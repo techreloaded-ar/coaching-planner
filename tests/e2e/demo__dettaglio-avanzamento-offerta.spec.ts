@@ -23,7 +23,7 @@ test.describe("Demo US-032 — dettaglio avanzamento nelle Offerte", () => {
       offerta,
       collaboratore,
       ore: "16.00",
-      fatturabile: true,
+      categoria: "FATTURABILE",
     });
 
     // 1. L'amministratore apre l'elenco delle offerte.

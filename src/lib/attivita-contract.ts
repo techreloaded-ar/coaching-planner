@@ -5,6 +5,8 @@
 // handler dell'area attività e alle cache client della scheda, che devono
 // parlare esattamente la stessa lingua.
 
+import type { CategoriaAttivita } from "@/domain/types";
+
 /** Sintesi delle ore di un cliente in un giorno. */
 export interface SintesiClienteGiorno {
   /** Id del cliente */
@@ -58,7 +60,7 @@ export interface RigaAttivitaClient {
   data: string;
   ore: number;
   nota: string | null;
-  fatturabile: boolean;
+  categoria: CategoriaAttivita;
   rimborsoTrasfertaEtichetta: string | null;
   rimborsoTrasfertaImporto: string | null;
   offerta: {

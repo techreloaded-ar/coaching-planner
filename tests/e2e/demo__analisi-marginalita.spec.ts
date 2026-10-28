@@ -63,7 +63,7 @@ test.describe("US-017 Demo", () => {
     await expect(rigaA.getByRole("cell").nth(5)).toHaveText(formattaEuro(300));
     const rigaB = page.getByTestId(`marginalita-offerta-${offertaB.id}`);
     await expect(rigaB.getByRole("cell").nth(5)).toContainText(
-      formattaEuro(-100),
+      formattaEuro(-200),
     );
     await expect(rigaB.getByText("Margine negativo")).toBeVisible();
 

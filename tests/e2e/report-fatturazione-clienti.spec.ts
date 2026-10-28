@@ -244,7 +244,7 @@ test.describe("Report fatturazione clienti", () => {
       offerta: offerta1,
       data: dataRiservataReport(codiceSpec, 5, mesiIndietro),
       ore: "8.00",
-      fatturabile: true,
+      categoria: "FATTURABILE",
     });
     await factory.createRigaAttivita({
       collaboratore: grace,
@@ -252,7 +252,7 @@ test.describe("Report fatturazione clienti", () => {
       offerta: offerta1,
       data: dataRiservataReport(codiceSpec, 6, mesiIndietro),
       ore: "4.00",
-      fatturabile: true,
+      categoria: "FATTURABILE",
     });
     await factory.createRigaAttivita({
       collaboratore: grace,
@@ -260,7 +260,7 @@ test.describe("Report fatturazione clienti", () => {
       offerta: offerta2,
       data: dataRiservataReport(codiceSpec, 12, mesiIndietro),
       ore: "8.00",
-      fatturabile: true,
+      categoria: "FATTURABILE",
     });
 
     await page.goto(`/report/fatturazione-clienti?mese=${mese}`);
@@ -344,7 +344,7 @@ test.describe("Report fatturazione clienti", () => {
       offerta: offertaA,
       data: dataRiservataReport(codiceSpec, 5, mesiIndietro),
       ore: "8.00",
-      fatturabile: true,
+      categoria: "FATTURABILE",
     });
 
     const clienteB = await factory.createCliente({
@@ -364,7 +364,7 @@ test.describe("Report fatturazione clienti", () => {
       offerta: offertaB,
       data: dataRiservataReport(codiceSpec, 6, mesiIndietro),
       ore: "8.00",
-      fatturabile: true,
+      categoria: "FATTURABILE",
     });
 
     await page.goto(`/report/fatturazione-clienti?mese=${mese}`);
@@ -415,7 +415,7 @@ test.describe("Report fatturazione clienti", () => {
       offerta,
       data: dataRiservataReport(codiceSpec, 7, mesiIndietro),
       ore: "4.00",
-      fatturabile: false,
+      categoria: "NON_FATTURABILE",
       rimborsoTrasfertaEtichetta: `US-037 Solo rimborsi ${suffisso}`,
       rimborsoTrasfertaImporto: "27.50",
     });

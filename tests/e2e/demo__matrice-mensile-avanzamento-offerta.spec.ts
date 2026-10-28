@@ -36,7 +36,7 @@ test.describe("Demo US-036 — matrice mensile per collaboratore nel dettaglio a
       collaboratore: ada,
       data: dataNelMeseUtc(mesePrecedente, 10),
       ore: "8.00",
-      fatturabile: true,
+      categoria: "FATTURABILE",
     });
     await factory.createRigaAttivita({
       cliente,
@@ -44,7 +44,7 @@ test.describe("Demo US-036 — matrice mensile per collaboratore nel dettaglio a
       collaboratore: alan,
       data: dataNelMeseUtc(meseRiferimento, 12),
       ore: "16.00",
-      fatturabile: true,
+      categoria: "FATTURABILE",
     });
 
     const codiceSenzaAttivita = `DEMO-MATRICE-VUOTA-${randomUUID().slice(0, 8)}`.toUpperCase();

@@ -69,14 +69,14 @@ test.describe("Dettaglio avanzamento offerta nella pagina cliente", () => {
 			offerta,
 			collaboratore: primaCollaboratrice,
 			ore: "16.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 		await factory.createRigaAttivita({
 			cliente,
 			offerta,
 			collaboratore: secondoCollaboratore,
 			ore: "16.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		await apriDettaglioCliente(page, cliente.id);

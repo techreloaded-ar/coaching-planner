@@ -36,7 +36,7 @@ test.describe("Pagina offerte trasversale", () => {
 		await factory.createRigaAttivita({
 			offerta,
 			ore: "16.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		await apriPaginaOfferte(page);
@@ -79,7 +79,7 @@ test.describe("Pagina offerte trasversale", () => {
 		await factory.createRigaAttivita({
 			offerta: offertaEsaurita,
 			ore: "16.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		const codiceOltreBudget = `OFF-OVR-${token.toUpperCase()}`;
@@ -93,7 +93,7 @@ test.describe("Pagina offerte trasversale", () => {
 		await factory.createRigaAttivita({
 			offerta: offertaOltreBudget,
 			ore: "24.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		await apriPaginaOfferte(page);

@@ -5,3 +5,4 @@ export { useValoriInviati, type MemoriaValoriInviati } from "./use-valori-inviat
 export { SelettoreTema } from "./selettore-tema";
 export { LogoAgileReloaded } from "./logo-agile-reloaded";
 export { SelettoreMese } from "./selettore-mese";
+export { BadgeCategoriaAttivita } from "./badge-categoria-attivita";

@@ -28,7 +28,7 @@ const TARIFFA_OFFERTA = 640;
 
 type RiepilogoLetto = {
   oreTotali: number;
-  oreFatturabili: number;
+  oreDaFatturare: number;
   totaleRimborsi: number;
   imponibileManodopera: number;
 };
@@ -67,13 +67,13 @@ async function leggiNumero(page: Page, testId: string): Promise<number> {
 
 async function leggiRiepilogo(page: Page): Promise<RiepilogoLetto> {
   const oreTotali = await leggiNumero(page, "summary-ore-totali-value");
-  const oreFatturabili = await leggiNumero(page, "summary-ore-fatturabili-value");
+  const oreDaFatturare = await leggiNumero(page, "summary-ore-da-fatturare-value");
   const importoFattura = await leggiNumero(page, "summary-importo-fattura-value");
   const totaleRimborsi = await leggiNumero(page, "summary-rimborsi-value");
 
   return {
     oreTotali,
-    oreFatturabili,
+    oreDaFatturare,
     totaleRimborsi,
     imponibileManodopera: importoFattura - totaleRimborsi,
   };
@@ -128,7 +128,7 @@ async function creaScenarioRiepilogo(
     data: dataDb(dataDelMese(mese, 8)),
     ore: "2.00",
     nota: `Baseline riepilogo ${seed}`,
-    fatturabile: true,
+    categoria: "FATTURABILE",
     rimborsoTrasfertaEtichetta: baselineRimborso?.etichetta ?? null,
     rimborsoTrasfertaImporto: baselineRimborso?.importo ?? null,
   });
@@ -158,12 +158,19 @@ async function apriGiornata(page: Page, data: string, mese: string) {
   await expect(page.getByRole("link", { name: "Torna al calendario" })).toBeVisible();
 }
 
-function cardRiga(page: Page, nota: string, fatturabile: boolean): Locator {
+type Categoria = "FATTURABILE" | "NON_FATTURABILE" | "INVESTIMENTO";
+
+const ETICHETTA_CATEGORIA: Record<Categoria, string> = {
+  FATTURABILE: "Fatturabile",
+  NON_FATTURABILE: "Non fatturabile",
+  INVESTIMENTO: "Investimento",
+};
+
+function cardRiga(page: Page, nota: string, categoria: Categoria): Locator {
   return page
-    .locator("div")
+    .getByTestId("activity-row")
     .filter({ has: page.getByText(nota, { exact: true }) })
-    .filter({ has: page.getByText(fatturabile ? "Fatt." : "Non fatt.", { exact: true }) })
-    .last();
+    .filter({ has: page.getByText(ETICHETTA_CATEGORIA[categoria], { exact: true }) });
 }
 
 async function aggiungiRiga(
@@ -172,26 +179,23 @@ async function aggiungiRiga(
   {
     ore,
     nota,
-    fatturabile,
+    categoria,
   }: {
     ore: string;
     nota: string;
-    fatturabile: boolean;
+    categoria: Categoria;
   },
 ) {
   await selezionaClienteEOffertaTest(page, clienteConOfferta);
   await page.locator("#ore").fill(ore);
   await page.locator("#nota").fill(nota);
 
-  const checkboxFatturabile = page.locator("input[type='checkbox']");
-  if (fatturabile) {
-    await checkboxFatturabile.check();
-  } else {
-    await checkboxFatturabile.uncheck();
-  }
+  await page
+    .getByRole("radio", { name: ETICHETTA_CATEGORIA[categoria], exact: true })
+    .check();
 
   await page.getByRole("button", { name: "Aggiungi riga" }).click();
-  await expect(cardRiga(page, nota, fatturabile)).toBeVisible();
+  await expect(cardRiga(page, nota, categoria)).toBeVisible();
 }
 
 test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
@@ -210,7 +214,8 @@ test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
     await apriRiepilogoDaCalendario(page, scenario.mese);
 
     await expect(page.getByTestId("summary-ore-totali")).toBeVisible();
-    await expect(page.getByTestId("summary-giornate-fatturabili")).toBeVisible();
+    await expect(page.getByTestId("summary-giornate-da-fatturare")).toBeVisible();
+    await expect(page.getByTestId("summary-ore-per-categoria")).toBeVisible();
     await expect(page.getByTestId("summary-rimborsi")).toBeVisible();
     await expect(page.getByTestId("summary-table")).toBeVisible();
     await expect(page.getByTestId("summary-table")).toContainText(
@@ -231,7 +236,7 @@ test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
     await aggiungiRiga(page, scenario.clienteConOfferta, {
       ore: "4",
       nota: notaNuova,
-      fatturabile: true,
+      categoria: "FATTURABILE",
     });
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();
@@ -245,10 +250,10 @@ test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
 
     expectDeltaEsatto(riepilogoDopo.oreTotali, riepilogoPrima.oreTotali, oreAggiunte, "ore totali");
     expectDeltaEsatto(
-      riepilogoDopo.oreFatturabili,
-      riepilogoPrima.oreFatturabili,
+      riepilogoDopo.oreDaFatturare,
+      riepilogoPrima.oreDaFatturare,
       oreAggiunte,
-      "ore fatturabili",
+      "ore da fatturare",
     );
     expectDeltaEsatto(
       riepilogoDopo.imponibileManodopera,
@@ -266,7 +271,7 @@ test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
 });
 
 test.describe("US-014 — scenari complementari", () => {
-  test("una nuova riga non fatturabile aumenta le ore totali ma non l'importo fattura", async ({
+  test("una nuova riga Non fatturabile entra nell'importo fattura del collaboratore", async ({
     page,
     factory,
   }) => {
@@ -289,7 +294,7 @@ test.describe("US-014 — scenari complementari", () => {
     await aggiungiRiga(page, scenario.clienteConOfferta, {
       ore: "4",
       nota: notaNuova,
-      fatturabile: false,
+      categoria: "NON_FATTURABILE",
     });
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();
@@ -301,10 +306,64 @@ test.describe("US-014 — scenari complementari", () => {
 
     expectDeltaEsatto(riepilogoDopo.oreTotali, riepilogoPrima.oreTotali, 4, "ore totali");
     expectDeltaEsatto(
-      riepilogoDopo.oreFatturabili,
-      riepilogoPrima.oreFatturabili,
+      riepilogoDopo.oreDaFatturare,
+      riepilogoPrima.oreDaFatturare,
+      4,
+      "ore da fatturare",
+    );
+    expectDeltaEsatto(
+      riepilogoDopo.imponibileManodopera,
+      riepilogoPrima.imponibileManodopera,
+      (4 / ORE_PER_GIORNATA) * TARIFFA_COLLABORATORE,
+      "imponibile manodopera",
+    );
+    expectDeltaEsatto(
+      riepilogoDopo.totaleRimborsi,
+      riepilogoPrima.totaleRimborsi,
       0,
-      "ore fatturabili",
+      "rimborsi trasferta",
+    );
+  });
+
+  test("una nuova riga di Investimento aumenta le ore totali ma non l'importo fattura", async ({
+    page,
+    factory,
+  }) => {
+    test.setTimeout(60_000);
+
+    const scenario = await creaScenarioRiepilogo(factory, {
+      baselineRimborso: { etichetta: "Baseline riepilogo mensile", importo: "50.00" },
+    });
+    const notaNuova = `US-014 investimento ${randomUUID()}`;
+
+    await accediComeCollaboratore(page, scenario.collaboratore.utente.email);
+    await apriRiepilogoDaCalendario(page, scenario.mese);
+
+    const riepilogoPrima = await leggiRiepilogo(page);
+
+    await page.getByRole("link", { name: "Torna al calendario" }).click();
+    await page.waitForURL("**/attivita**");
+
+    await apriGiornata(page, dataDelMese(scenario.mese, 14), scenario.mese);
+    await aggiungiRiga(page, scenario.clienteConOfferta, {
+      ore: "4",
+      nota: notaNuova,
+      categoria: "INVESTIMENTO",
+    });
+
+    await page.getByRole("link", { name: "Torna al calendario" }).click();
+    await page.waitForURL("**/attivita**");
+    await page.getByRole("link", { name: "Riepilogo mese" }).click();
+    await page.waitForURL("**/attivita/riepilogo**");
+
+    const riepilogoDopo = await leggiRiepilogo(page);
+
+    expectDeltaEsatto(riepilogoDopo.oreTotali, riepilogoPrima.oreTotali, 4, "ore totali");
+    expectDeltaEsatto(
+      riepilogoDopo.oreDaFatturare,
+      riepilogoPrima.oreDaFatturare,
+      0,
+      "ore da fatturare",
     );
     expectDeltaEsatto(
       riepilogoDopo.imponibileManodopera,
@@ -335,7 +394,7 @@ test.describe("US-014 — scenari complementari", () => {
 
     await expect(page.getByText("Nessuna attività registrata per questo mese.")).toBeVisible();
     await expect(page.getByTestId("summary-ore-totali-value")).toHaveText("0");
-    await expect(page.getByTestId("summary-ore-fatturabili-value")).toHaveText("0");
+    await expect(page.getByTestId("summary-ore-da-fatturare-value")).toHaveText("0");
     await expect(page.getByTestId("summary-rimborsi-value")).toHaveText(/€\s*0,00/);
     await expect(page.getByTestId("summary-importo-fattura-value")).toHaveText(/€\s*0,00/);
   });

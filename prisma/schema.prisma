@@ -17,6 +17,15 @@ enum Ruolo {
   COLLABORATORE
 }
 
+// Chi fattura l'attività: FATTURABILE (collaboratore → Agile Reloaded →
+// cliente), NON_FATTURABILE (solo collaboratore → Agile Reloaded),
+// INVESTIMENTO (nessuna fattura).
+enum CategoriaAttivita {
+  FATTURABILE
+  NON_FATTURABILE
+  INVESTIMENTO
+}
+
 model Utente {
   id            String   @id @default(uuid())
   nome          String
@@ -154,7 +163,7 @@ model RigaAttivita {
   data                       DateTime @db.Date
   ore                        Decimal  @db.Decimal(4, 2)
   nota                       String?  @db.Text
-  fatturabile                Boolean  @default(true)
+  categoria                  CategoriaAttivita @default(FATTURABILE)
   rimborsoTrasfertaEtichetta String?
   rimborsoTrasfertaImporto   Decimal? @db.Decimal(10, 2)
   createdAt                  DateTime @default(now())

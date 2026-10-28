@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { creaRiga } from "@/lib/actions/righe-attivita";
 import { rifiutaPropostaCalendario } from "@/lib/actions/calendario-google";
 import { PulsanteAttesa } from "@/components";
+import { CATEGORIA_ATTIVITA_PREDEFINITA } from "@/domain/types";
 import type {
   PropostaCalendarioClient,
   ProposteCalendarioGiornata,
@@ -107,7 +108,7 @@ export function SezioneProposteCalendario({
       fd.append("ore", proposta.ore.toString());
       fd.append("data", data);
       fd.append("nota", proposta.titolo);
-      fd.append("fatturabile", "on");
+      fd.append("categoria", CATEGORIA_ATTIVITA_PREDEFINITA);
       fd.append("voceRimborsoTrasfertaId", "");
       fd.append("eventoCalendarioId", proposta.eventoId);
 

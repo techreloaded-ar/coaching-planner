@@ -59,10 +59,10 @@ test.describe("Report marginalità", () => {
       schedaCliente.getByText(formattaEuro(1200), { exact: true }).first(),
     ).toBeVisible();
     await expect(
-      schedaCliente.getByText(formattaEuro(1000), { exact: true }).first(),
+      schedaCliente.getByText(formattaEuro(1100), { exact: true }).first(),
     ).toBeVisible();
     await expect(
-      schedaCliente.getByText(formattaEuro(200), { exact: true }).first(),
+      schedaCliente.getByText(formattaEuro(100), { exact: true }).first(),
     ).toBeVisible();
 
     // AC-2: offerta A in utile, nessun badge
@@ -76,8 +76,9 @@ test.describe("Report marginalità", () => {
     // AC-2 + AC-4: offerta B in perdita, badge visibile e unico nella scheda
     const rigaB = page.getByTestId(`marginalita-offerta-${offertaB.id}`);
     await expect(celle(rigaB).nth(3)).toHaveText(formattaEuro(300));
-    await expect(celle(rigaB).nth(4)).toHaveText(formattaEuro(400));
-    await expect(celle(rigaB).nth(5)).toContainText(formattaEuro(-100));
+    // 8h Fatturabile (400 €) + 2h Non fatturabile: costo senza ricavo (100 €)
+    await expect(celle(rigaB).nth(4)).toHaveText(formattaEuro(500));
+    await expect(celle(rigaB).nth(5)).toContainText(formattaEuro(-200));
     await expect(rigaB.getByText("Margine negativo")).toBeVisible();
     await expect(schedaCliente.getByText("Margine negativo")).toHaveCount(1);
   });

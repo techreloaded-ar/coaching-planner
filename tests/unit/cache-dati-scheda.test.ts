@@ -66,7 +66,7 @@ function giornataFittizia(
         data,
         ore,
         nota: null,
-        fatturabile: true,
+        categoria: "FATTURABILE",
         rimborsoTrasfertaEtichetta: null,
         rimborsoTrasfertaImporto: null,
         offerta: {

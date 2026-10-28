@@ -27,7 +27,7 @@ test.describe("US-033 Demo", () => {
 			offerta,
 			collaboratore,
 			ore: "16.00",
-			fatturabile: true,
+			categoria: "FATTURABILE",
 		});
 
 		await accediAlBackOfficeComeAdmin(page);
