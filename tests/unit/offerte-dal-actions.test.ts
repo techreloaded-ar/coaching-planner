@@ -177,6 +177,8 @@ describe("Server Actions offerte", () => {
 		formData.set("descrizione", "Analisi");
 		formData.set("tariffaGiornaliera", "650,00");
 		formData.set("giorniPrevisti", "5");
+		formData.set("gestioneTrasferta", "INCLUSA");
+		formData.set("importoTrasfertaForfettaria", "80,00");
 
 		await creaOfferta({ errori: {} }, formData);
 
@@ -187,6 +189,8 @@ describe("Server Actions offerte", () => {
 				descrizione: "Analisi",
 				tariffaGiornaliera: "650.00",
 				giorniPrevisti: 5,
+				gestioneTrasferta: "INCLUSA",
+				importoTrasfertaForfettaria: null,
 				attiva: true,
 			},
 		});
@@ -207,6 +211,11 @@ describe("Server Actions offerte", () => {
 		formData.set("descrizione", "Delivery");
 		formData.set("tariffaGiornaliera", "700,00");
 		formData.set("giorniPrevisti", "8");
+		formData.set("gestioneTrasferta", "FORFETTARIA");
+		formData.set("importoTrasfertaForfettaria", "80,00");
+		mockNormalizzaTariffa.mockImplementation((valore: string) => ({
+			valore: valore.replace(",", "."),
+		}));
 
 		await aggiornaOfferta({ errori: {} }, formData);
 
@@ -215,8 +224,10 @@ describe("Server Actions offerte", () => {
 			data: {
 				codice: "OFF-002",
 				descrizione: "Delivery",
-				tariffaGiornaliera: "650.00",
+				tariffaGiornaliera: "700.00",
 				giorniPrevisti: 8,
+				gestioneTrasferta: "FORFETTARIA",
+				importoTrasfertaForfettaria: "80.00",
 			},
 		});
 		expect(mockRedirect).toHaveBeenCalledWith(

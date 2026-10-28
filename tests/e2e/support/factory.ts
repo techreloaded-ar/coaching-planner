@@ -60,6 +60,8 @@ export type CreateOffertaOptions = {
 	tariffaGiornaliera?: string | number;
 	giorniPrevisti?: number;
 	attiva?: boolean;
+	gestioneTrasferta?: "INCLUSA" | "FORFETTARIA";
+	importoTrasfertaForfettaria?: string | number | null;
 };
 
 export type CreateRigaAttivitaOptions = {
@@ -235,8 +237,8 @@ export class E2eDataFactory {
 
 		return insertReturning<Offerta>(
 			this.prisma,
-			`INSERT INTO "Offerta" ("id", "codice", "descrizione", "clienteId", "tariffaGiornaliera", "giorniPrevisti", "attiva", "createdAt", "updatedAt")
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+			`INSERT INTO "Offerta" ("id", "codice", "descrizione", "clienteId", "tariffaGiornaliera", "giorniPrevisti", "attiva", "createdAt", "updatedAt", "gestioneTrasferta", "importoTrasfertaForfettaria")
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9::"GestioneTrasferta", $10)
 			 RETURNING *`,
 			[
 				randomUUID(),
@@ -247,6 +249,8 @@ export class E2eDataFactory {
 				options.giorniPrevisti ?? 10,
 				options.attiva ?? true,
 				now,
+				options.gestioneTrasferta ?? "INCLUSA",
+				options.importoTrasfertaForfettaria ?? null,
 			],
 		);
 	}

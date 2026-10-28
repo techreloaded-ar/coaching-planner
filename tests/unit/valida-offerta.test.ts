@@ -14,6 +14,8 @@ function baseInput(
 		descrizione: "Percorso di coaching executive",
 		tariffaGiornaliera: "650,00",
 		giorniPrevisti: "10",
+		gestioneTrasferta: "INCLUSA",
+		importoTrasfertaForfettaria: "",
 		...overrides,
 	};
 }
@@ -134,4 +136,64 @@ describe("normalizzaTariffaGiornaliera", () => {
 	it("restituisce null per input non valido", () => {
 		expect(normalizzaTariffaGiornaliera("12,345")).toBeNull();
 	});
+});
+
+describe("validaOfferta — gestione trasferte", () => {
+	it("accetta la trasferta inclusa senza importo", () => {
+		const errori = validaOfferta(baseInput({ gestioneTrasferta: "INCLUSA" }));
+		expect(errori).toEqual({});
+	});
+
+	it("ignora l'importo quando la trasferta è inclusa", () => {
+		const errori = validaOfferta(
+			baseInput({ gestioneTrasferta: "INCLUSA", importoTrasfertaForfettaria: "abc" }),
+		);
+		expect(errori).toEqual({});
+	});
+
+	it("rifiuta una gestione trasferta mancante o sconosciuta", () => {
+		expect(validaOfferta(baseInput({ gestioneTrasferta: "" })).gestioneTrasferta).toBe(
+			"Scegli come gestire le trasferte",
+		);
+		expect(validaOfferta(baseInput({ gestioneTrasferta: "RIMBORSO" })).gestioneTrasferta).toBe(
+			"Scegli come gestire le trasferte",
+		);
+	});
+
+	it("accetta la trasferta forfettaria con importo valido", () => {
+		const errori = validaOfferta(
+			baseInput({ gestioneTrasferta: "FORFETTARIA", importoTrasfertaForfettaria: "80,00" }),
+		);
+		expect(errori).toEqual({});
+	});
+
+	it("richiede l'importo per la trasferta forfettaria", () => {
+		const errori = validaOfferta(
+			baseInput({ gestioneTrasferta: "FORFETTARIA", importoTrasfertaForfettaria: "  " }),
+		);
+		expect(errori.importoTrasfertaForfettaria).toBe(
+			"L'importo forfettario per giorno di trasferta è obbligatorio",
+		);
+	});
+
+	it("rifiuta un importo forfettario pari a zero", () => {
+		const errori = validaOfferta(
+			baseInput({ gestioneTrasferta: "FORFETTARIA", importoTrasfertaForfettaria: "0,00" }),
+		);
+		expect(errori.importoTrasfertaForfettaria).toBe(
+			"L'importo forfettario deve essere maggiore di zero",
+		);
+	});
+
+	it.each(["-10", "80,123", "ottanta"])(
+		"rifiuta l'importo forfettario non valido %s",
+		(importo) => {
+			const errori = validaOfferta(
+				baseInput({ gestioneTrasferta: "FORFETTARIA", importoTrasfertaForfettaria: importo }),
+			);
+			expect(errori.importoTrasfertaForfettaria).toBe(
+				"Importo non valido: usa massimo 2 decimali",
+			);
+		},
+	);
 });

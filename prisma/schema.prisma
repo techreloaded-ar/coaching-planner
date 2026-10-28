@@ -26,6 +26,14 @@ enum CategoriaAttivita {
   INVESTIMENTO
 }
 
+// Come Agile Reloaded fattura le trasferte al cliente per un'offerta:
+// INCLUSA (già compresa nella tariffa), FORFETTARIA (importo fisso per
+// ogni giorno di trasferta di ciascun collaboratore).
+enum GestioneTrasferta {
+  INCLUSA
+  FORFETTARIA
+}
+
 model Utente {
   id            String   @id @default(uuid())
   nome          String
@@ -132,6 +140,9 @@ model Offerta {
   clienteId         String
   tariffaGiornaliera Decimal  @db.Decimal(10, 2)
   giorniPrevisti    Int
+  gestioneTrasferta GestioneTrasferta @default(INCLUSA)
+  /// Importo fatturato al cliente per ogni giorno di trasferta; valorizzato solo se FORFETTARIA
+  importoTrasfertaForfettaria Decimal? @db.Decimal(10, 2)
   attiva            Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

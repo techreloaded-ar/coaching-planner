@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import { PulsanteAttesa, useValoriInviati } from "@/components";
 import {
   creaOfferta,
@@ -9,6 +9,7 @@ import {
   type StatoActionOfferta,
 } from "./actions";
 import { LUNGHEZZA_MASSIMA_CODICE } from "@/domain/anagrafiche/valida-offerta";
+import type { GestioneTrasferta } from "@/domain/types";
 
 interface OffertaFormProps {
   /**
@@ -36,6 +37,9 @@ interface OffertaFormProps {
     descrizione: string;
     tariffaGiornaliera: string;
     giorniPrevisti: number;
+    gestioneTrasferta: GestioneTrasferta;
+    /** Importo con virgola decimale; vuoto se la trasferta è inclusa */
+    importoTrasfertaForfettaria: string;
   };
   /**
    * Origine della navigazione. Con "offerte" il form torna alla pagina
@@ -228,6 +232,25 @@ export default function OffertaForm({
               suffisso="gg"
               hint="Numero intero di giornate"
             />
+
+            <SceltaGestioneTrasferta
+              defaultValue={valoreIniziale("gestioneTrasferta", offerta?.gestioneTrasferta ?? "INCLUSA")}
+              errore={stato.errori.gestioneTrasferta}
+            >
+              <Campo
+                label="Importo forfettario per giorno di trasferta"
+                name="importoTrasfertaForfettaria"
+                placeholder="Es. 80,00"
+                defaultValue={valoreIniziale(
+                  "importoTrasfertaForfettaria",
+                  offerta?.importoTrasfertaForfettaria ?? ""
+                )}
+                errore={stato.errori.importoTrasfertaForfettaria}
+                obbligatorio
+                suffisso="€"
+                hint="Fatturato al cliente per ogni collaboratore in trasferta, per ogni giorno"
+              />
+            </SceltaGestioneTrasferta>
           </div>
         </div>
 
@@ -256,6 +279,85 @@ export default function OffertaForm({
       </form>
 
 
+    </div>
+  );
+}
+
+const OPZIONI_GESTIONE_TRASFERTA: {
+  valore: GestioneTrasferta;
+  etichetta: string;
+  descrizione: string;
+}[] = [
+  {
+    valore: "INCLUSA",
+    etichetta: "Inclusa nella tariffa",
+    descrizione: "Nessuna trasferta addebitata in fattura",
+  },
+  {
+    valore: "FORFETTARIA",
+    etichetta: "Forfettaria",
+    descrizione: "Importo fisso per ogni giorno di trasferta",
+  },
+];
+
+interface SceltaGestioneTrasfertaProps {
+  defaultValue: string;
+  errore?: string;
+  /** Campo importo, mostrato solo quando è scelta la trasferta forfettaria */
+  children: ReactNode;
+}
+
+/**
+ * Radio "Gestione trasferte". Il campo importo si mostra/nasconde via CSS
+ * (`:has(:checked)`), così funziona anche prima dell'idratazione e i campi
+ * restano non controllati. Se nascosto viene comunque inviato, ma l'action lo
+ * ignora quando la trasferta è inclusa.
+ */
+function SceltaGestioneTrasferta({
+  defaultValue,
+  errore,
+  children,
+}: SceltaGestioneTrasfertaProps) {
+  return (
+    <div className="group/trasferta col-span-2 grid grid-cols-2 gap-x-[18px] max-[920px]:col-span-1 max-[920px]:grid-cols-1">
+      <fieldset className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-[6px] text-left max-[920px]:col-span-1">
+        <legend className="mb-[6px] text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400">
+          Gestione trasferte <span className="font-bold text-red-600 dark:text-red-400">*</span>
+        </legend>
+        <div className="grid grid-cols-2 gap-[10px] max-[920px]:grid-cols-1">
+          {OPZIONI_GESTIONE_TRASFERTA.map((opzione) => (
+            <label
+              key={opzione.valore}
+              className="flex cursor-pointer items-start gap-[10px] rounded-[10px] border border-zinc-200 px-[13px] py-[10px] transition has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50 dark:border-zinc-700 dark:has-[:checked]:border-indigo-500/50 dark:has-[:checked]:bg-indigo-500/10"
+            >
+              <input
+                type="radio"
+                id={`gestioneTrasferta-${opzione.valore}`}
+                name="gestioneTrasferta"
+                value={opzione.valore}
+                defaultChecked={defaultValue === opzione.valore}
+                className="mt-[3px] accent-indigo-500"
+              />
+              <span className="flex flex-col gap-[2px]">
+                <span className="text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
+                  {opzione.etichetta}
+                </span>
+                <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
+                  {opzione.descrizione}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+        {errore && (
+          <p className="m-0 inline-flex items-center gap-[5px] text-[12px] font-semibold text-red-600 dark:text-red-400">
+            {errore}
+          </p>
+        )}
+      </fieldset>
+      <div className="hidden group-has-[#gestioneTrasferta-FORFETTARIA:checked]/trasferta:block">
+        {children}
+      </div>
     </div>
   );
 }

@@ -72,7 +72,7 @@ export async function reportFatturazioneClientiMese(
       perCliente: [],
       totali: {
         imponibileManodopera: "0.00",
-        totaleRimborsi: "0.00",
+        totaleTrasferteForfettarie: "0.00",
         importoTotale: "0.00",
       },
     };
@@ -113,6 +113,10 @@ export async function reportFatturazioneClientiMese(
       ore: Number(riga.ore),
       fatturabile: fatturataAlCliente(riga.categoria),
       rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
+      data: riga.data.toISOString().slice(0, 10),
+      gestioneTrasfertaOfferta: riga.offerta.gestioneTrasferta,
+      importoTrasfertaForfettariaOfferta:
+        riga.offerta.importoTrasfertaForfettaria?.toString() ?? null,
     }),
   );
 

@@ -22,6 +22,9 @@ function riga(
     ore: 8,
     fatturabile: true,
     rimborsoTrasfertaImporto: null,
+    data: "2026-03-02",
+    gestioneTrasfertaOfferta: "INCLUSA",
+    importoTrasfertaForfettariaOfferta: null,
     ...modifiche,
   };
 }
@@ -39,7 +42,7 @@ describe("calcolaReportFatturazioneClienti", () => {
     expect(report.perCliente).toEqual([]);
     expect(report.totali).toEqual({
       imponibileManodopera: "0.00",
-      totaleRimborsi: "0.00",
+      totaleTrasferteForfettarie: "0.00",
       importoTotale: "0.00",
     });
   });
@@ -152,89 +155,139 @@ describe("calcolaReportFatturazioneClienti", () => {
     expect(report.totali.imponibileManodopera).toBe("0.00");
   });
 
-  // ── Ribaltamento rimborsi trasferta ────────────────────────
+  // ── Trasferte forfettarie ──────────────────────────────────
 
-  it("ribalta il rimborso trasferta fotografato al cliente corretto", () => {
-    const righe = [riga({ ore: 8, rimborsoTrasfertaImporto: "85.00" })];
+  /** Riga su un'offerta con trasferta forfettaria da 80 €/gg */
+  function rigaForfettaria(
+    modifiche: Partial<RigaReportFatturazione> = {},
+  ): RigaReportFatturazione {
+    return riga({
+      gestioneTrasfertaOfferta: "FORFETTARIA",
+      importoTrasfertaForfettariaOfferta: "80.00",
+      rimborsoTrasfertaImporto: "35.00",
+      ...modifiche,
+    });
+  }
 
-    const report = calcolaReportFatturazioneClienti(righe);
-
-    const cliente = report.perCliente[0];
-    expect(cliente.rimborsiTrasferta).toBe("85.00");
-    expect(cliente.importoTotale).toBe("585.00");
-  });
-
-  it("assegna i rimborsi al cliente della riga, non ad altri clienti", () => {
+  it("fattura un forfait per ogni collaboratore in trasferta nello stesso giorno", () => {
     const righe = [
-      riga({
-        clienteId: "cliente-alfa",
-        clienteRagioneSociale: "Alfa SPA",
-        ore: 8,
-        rimborsoTrasfertaImporto: "85.00",
-      }),
-      riga({
-        clienteId: "cliente-beta",
-        clienteRagioneSociale: "Beta SRL",
-        ore: 8,
-        rimborsoTrasfertaImporto: null,
-      }),
+      rigaForfettaria({ collaboratoreId: "c-1", data: "2026-03-02" }),
+      rigaForfettaria({ collaboratoreId: "c-2", collaboratoreNome: "Anna Bianchi", data: "2026-03-02" }),
+      rigaForfettaria({ collaboratoreId: "c-1", data: "2026-03-03" }),
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe);
+    const offerta = calcolaReportFatturazioneClienti(righe).perCliente[0].perOfferta[0];
 
-    const alfa = report.perCliente.find((c) => c.clienteId === "cliente-alfa")!;
-    const beta = report.perCliente.find((c) => c.clienteId === "cliente-beta")!;
-    expect(alfa.rimborsiTrasferta).toBe("85.00");
-    expect(beta.rimborsiTrasferta).toBe("0.00");
+    expect(offerta.giorniTrasferta).toBe(3);
+    expect(offerta.importoTrasfertaForfettaria).toBe("80.00");
+    expect(offerta.importoTrasferte).toBe("240.00");
   });
 
-  it("somma più rimborsi trasferta validi dello stesso cliente", () => {
+  it("conta una sola volta più righe dello stesso collaboratore nello stesso giorno", () => {
     const righe = [
-      riga({ ore: 8, rimborsoTrasfertaImporto: "85.00" }),
-      riga({ ore: 8, rimborsoTrasfertaImporto: "15.00" }),
+      rigaForfettaria({ ore: 4 }),
+      rigaForfettaria({ ore: 4 }),
     ];
 
-    const report = calcolaReportFatturazioneClienti(righe);
+    const offerta = calcolaReportFatturazioneClienti(righe).perCliente[0].perOfferta[0];
 
-    expect(report.perCliente[0].rimborsiTrasferta).toBe("100.00");
+    expect(offerta.giorniTrasferta).toBe(1);
+    expect(offerta.importoTrasferte).toBe("80.00");
   });
 
-  // ── Totali cliente e report ────────────────────────────────
+  it("conta il giorno di trasferta qualunque sia la categoria dell'attività", () => {
+    const righe = [
+      rigaForfettaria({ fatturabile: true, data: "2026-03-02" }),
+      rigaForfettaria({ fatturabile: false, data: "2026-03-03" }),
+    ];
 
-  it("calcola il totale cliente come imponibile più rimborsi", () => {
-    const righe = [riga({ ore: 8, tariffaOffertaGiornaliera: 500, rimborsoTrasfertaImporto: "85.00" })];
+    const offerta = calcolaReportFatturazioneClienti(righe).perCliente[0].perOfferta[0];
 
-    const report = calcolaReportFatturazioneClienti(righe);
+    expect(offerta.giorniTrasferta).toBe(2);
+  });
 
-    const cliente = report.perCliente[0];
-    expect(cliente.imponibileManodopera).toBe("500.00");
-    expect(cliente.rimborsiTrasferta).toBe("85.00");
-    expect(cliente.importoTotale).toBe("585.00");
+  it("non conta giorni senza rimborso trasferta registrato", () => {
+    const righe = [rigaForfettaria({ rimborsoTrasfertaImporto: null })];
+
+    const offerta = calcolaReportFatturazioneClienti(righe).perCliente[0].perOfferta[0];
+
+    expect(offerta.giorniTrasferta).toBe(0);
+    expect(offerta.importoTrasferte).toBe("0.00");
+  });
+
+  it("non fattura trasferte su un'offerta con trasferta inclusa, anche con rimborsi", () => {
+    const righe = [riga({ rimborsoTrasfertaImporto: "85.00" })];
+
+    const cliente = calcolaReportFatturazioneClienti(righe).perCliente[0];
+
+    expect(cliente.perOfferta[0].giorniTrasferta).toBe(0);
+    expect(cliente.perOfferta[0].importoTrasfertaForfettaria).toBeNull();
+    expect(cliente.trasferteForfettarie).toBe("0.00");
+    expect(cliente.importoTotale).toBe("500.00");
+  });
+
+  it("non ribalta al cliente gli importi dei rimborsi dei collaboratori", () => {
+    const righe = [rigaForfettaria({ rimborsoTrasfertaImporto: "110.00" })];
+
+    const cliente = calcolaReportFatturazioneClienti(righe).perCliente[0];
+
+    expect(cliente.trasferteForfettarie).toBe("80.00");
+    expect(cliente.importoTotale).toBe("580.00");
+  });
+
+  it("calcola il totale cliente come imponibile più trasferte forfettarie delle sue offerte", () => {
+    const righe = [
+      rigaForfettaria({ offertaId: "offerta-a", offertaCodice: "OFF-A" }),
+      riga({ offertaId: "offerta-b", offertaCodice: "OFF-B", rimborsoTrasfertaImporto: "35.00" }),
+    ];
+
+    const cliente = calcolaReportFatturazioneClienti(righe).perCliente[0];
+
+    expect(cliente.imponibileManodopera).toBe("1000.00");
+    expect(cliente.trasferteForfettarie).toBe("80.00");
+    expect(cliente.importoTotale).toBe("1080.00");
   });
 
   it("calcola i totali di report come somma dei valori per cliente", () => {
     const righe = [
-      riga({
+      rigaForfettaria({
         clienteId: "cliente-alfa",
         clienteRagioneSociale: "Alfa SPA",
-        ore: 8,
         tariffaOffertaGiornaliera: 500,
-        rimborsoTrasfertaImporto: "85.00",
       }),
-      riga({
+      rigaForfettaria({
         clienteId: "cliente-beta",
         clienteRagioneSociale: "Beta SRL",
-        ore: 8,
+        offertaId: "offerta-2",
         tariffaOffertaGiornaliera: 400,
-        rimborsoTrasfertaImporto: "15.00",
+        importoTrasfertaForfettariaOfferta: "20.00",
       }),
     ];
 
     const report = calcolaReportFatturazioneClienti(righe);
 
     expect(report.totali.imponibileManodopera).toBe("900.00");
-    expect(report.totali.totaleRimborsi).toBe("100.00");
+    expect(report.totali.totaleTrasferteForfettarie).toBe("100.00");
     expect(report.totali.importoTotale).toBe("1000.00");
+  });
+
+  it("include un cliente con sole trasferte forfettarie e nessuna giornata fatturabile", () => {
+    const righe = [rigaForfettaria({ fatturabile: false })];
+
+    const report = calcolaReportFatturazioneClienti(righe);
+
+    expect(report.perCliente).toHaveLength(1);
+    const cliente = report.perCliente[0];
+    expect(cliente.perOfferta[0].giornateFatturabili).toBe(0);
+    expect(cliente.perOfferta[0].perCollaboratore).toEqual([]);
+    expect(cliente.imponibileManodopera).toBe("0.00");
+    expect(cliente.trasferteForfettarie).toBe("80.00");
+  });
+
+  it("esclude un cliente con soli rimborsi su offerte con trasferta inclusa", () => {
+    const righe = [riga({ fatturabile: false, rimborsoTrasfertaImporto: "85.00" })];
+
+    expect(calcolaReportFatturazioneClienti(righe).perCliente).toEqual([]);
   });
 
   // ── Formattazione importi ──────────────────────────────────
@@ -492,18 +545,24 @@ describe("calcolaReportFatturazioneClienti", () => {
       expect(sommaVoci).not.toBeCloseTo(2.82, 10);
     });
 
-    it("include un cliente con soli rimborsi come voce priva di offerte", () => {
+    it("non altera l'allocazione con un'offerta di sole trasferte forfettarie", () => {
       const righe = [
-        riga({ ore: 8, fatturabile: false, rimborsoTrasfertaImporto: "85.00" }),
+        riga({ ore: 8 }),
+        riga({
+          offertaId: "offerta-solo-trasferte",
+          offertaCodice: "OFF-T",
+          fatturabile: false,
+          gestioneTrasfertaOfferta: "FORFETTARIA",
+          importoTrasfertaForfettariaOfferta: "80.00",
+          rimborsoTrasfertaImporto: "35.00",
+        }),
       ];
 
-      const report = calcolaReportFatturazioneClienti(righe);
+      const cliente = calcolaReportFatturazioneClienti(righe).perCliente[0];
 
-      expect(report.perCliente).toHaveLength(1);
-      const cliente = report.perCliente[0];
-      expect(cliente.perOfferta).toEqual([]);
-      expect(cliente.rimborsiTrasferta).toBe("85.00");
-      expect(cliente.imponibileManodopera).toBe("0.00");
+      expect(cliente.perOfferta.map((o) => o.offertaCodice)).toEqual(["OFF-001", "OFF-T"]);
+      expect(cliente.perOfferta[0].perCollaboratore[0].imponibile).toBe("500.00");
+      expect(cliente.importoTotale).toBe("580.00");
     });
   });
 });

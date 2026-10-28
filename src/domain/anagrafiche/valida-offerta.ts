@@ -1,12 +1,17 @@
 // Modulo di validazione pura per dati offerta (ADR-006)
 // Nessuna dipendenza da framework — funzioni pure.
 
+import { isGestioneTrasferta } from "@/domain/types";
+
 /** Dati in ingresso per la validazione di un'offerta */
 export interface DatiOffertaInput {
 	codice: string;
 	descrizione: string;
 	tariffaGiornaliera: string;
 	giorniPrevisti: string;
+	gestioneTrasferta: string;
+	/** Considerato solo se la gestione trasferta è FORFETTARIA */
+	importoTrasfertaForfettaria: string;
 }
 
 /** Mappa campo → messaggio di errore. Vuota se la validazione passa. */
@@ -89,6 +94,27 @@ export function validaOfferta(
 		} else if (parseInt(giorni, 10) <= 0) {
 			errori.giorniPrevisti =
 				"I giorni previsti devono essere maggiori di zero";
+		}
+	}
+
+	if (!isGestioneTrasferta(dati.gestioneTrasferta)) {
+		errori.gestioneTrasferta = "Scegli come gestire le trasferte";
+	} else if (dati.gestioneTrasferta === "FORFETTARIA") {
+		const importo = dati.importoTrasfertaForfettaria.trim();
+
+		if (importo === "") {
+			errori.importoTrasfertaForfettaria =
+				"L'importo forfettario per giorno di trasferta è obbligatorio";
+		} else {
+			const normalizzato = normalizzaTariffaGiornaliera(importo);
+
+			if (!normalizzato) {
+				errori.importoTrasfertaForfettaria =
+					"Importo non valido: usa massimo 2 decimali";
+			} else if (normalizzato.centesimi <= BigInt(0)) {
+				errori.importoTrasfertaForfettaria =
+					"L'importo forfettario deve essere maggiore di zero";
+			}
 		}
 	}
 

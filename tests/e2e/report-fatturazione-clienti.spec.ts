@@ -87,6 +87,16 @@ async function verificaDatasetReport(
   await expect(celle.nth(3)).toHaveText(
     formattaEuro(offertaAttesa.totali.imponibile),
   );
+  // Trasferte forfettarie: un forfait per collaboratore e giorno di trasferta
+  const cellaTrasferte = page.getByTestId(
+    `report-offerta-${offertaAttesa.offertaId}-trasferte`,
+  );
+  await expect(cellaTrasferte).toContainText(
+    formattaEuro(offertaAttesa.totali.trasferte),
+  );
+  await expect(cellaTrasferte).toContainText(
+    `${offertaAttesa.giorniTrasferta} gg × ${formattaEuro(dataset.offerta.importoTrasfertaForfettaria!.toString())}`,
+  );
 
   const schedaCliente = page.getByTestId(`report-client-${clienteAtteso.clienteId}`);
   await expect(schedaCliente).toContainText(clienteAtteso.clienteRagioneSociale);
@@ -97,8 +107,8 @@ async function verificaDatasetReport(
     ),
   ).toBeVisible();
   await expect(
-    page.getByTestId(`report-client-${clienteAtteso.clienteId}-rimborsi`),
-  ).toHaveText(formattaEuro(clienteAtteso.totali.rimborsi));
+    page.getByTestId(`report-client-${clienteAtteso.clienteId}-trasferte`),
+  ).toHaveText(formattaEuro(clienteAtteso.totali.trasferte));
   await expect(
     page.getByTestId(`report-client-${clienteAtteso.clienteId}-totale`),
   ).toHaveText(formattaEuro(clienteAtteso.totali.totale));
@@ -106,8 +116,8 @@ async function verificaDatasetReport(
   await expect(page.getByTestId("report-total-imponibile")).toHaveText(
     formattaEuro(dataset.atteso.totali.imponibile),
   );
-  await expect(page.getByTestId("report-total-rimborsi")).toHaveText(
-    formattaEuro(dataset.atteso.totali.rimborsi),
+  await expect(page.getByTestId("report-total-trasferte")).toHaveText(
+    formattaEuro(dataset.atteso.totali.trasferte),
   );
   await expect(page.getByTestId("report-total-importo")).toHaveText(
     formattaEuro(dataset.atteso.totali.totale),
@@ -389,7 +399,7 @@ test.describe("Report fatturazione clienti", () => {
     ).toHaveAttribute("aria-expanded", "false");
   });
 
-  test("cliente presente solo per rimborsi mostra il messaggio", async ({
+  test("cliente presente solo per trasferte forfettarie mostra il messaggio", async ({
     page,
     factory,
   }) => {
@@ -399,11 +409,13 @@ test.describe("Report fatturazione clienti", () => {
     const suffisso = randomUUID().slice(0, 8);
 
     const cliente = await factory.createCliente({
-      ragioneSociale: `E2E US-037 Solo rimborsi ${suffisso}`,
+      ragioneSociale: `E2E US-037 Solo trasferte ${suffisso}`,
     });
     const offerta = await factory.createOfferta({
       cliente,
       codice: `US037-SR-${suffisso}`,
+      gestioneTrasferta: "FORFETTARIA",
+      importoTrasfertaForfettaria: "80.00",
     });
     const collaboratore = await factory.createCollaboratore({
       nome: "Radia",
@@ -416,22 +428,86 @@ test.describe("Report fatturazione clienti", () => {
       data: dataRiservataReport(codiceSpec, 7, mesiIndietro),
       ore: "4.00",
       categoria: "NON_FATTURABILE",
-      rimborsoTrasfertaEtichetta: `US-037 Solo rimborsi ${suffisso}`,
+      rimborsoTrasfertaEtichetta: `US-037 Solo trasferte ${suffisso}`,
       rimborsoTrasfertaImporto: "27.50",
     });
 
     await page.goto(`/report/fatturazione-clienti?mese=${mese}`);
     await page.waitForURL(`**/report/fatturazione-clienti?mese=${mese}`);
 
+    await expect(
+      page.getByTestId(`report-client-${cliente.id}-trasferte`),
+    ).toHaveText(formattaEuro("80.00"));
+
     await espandiDettaglio(page, cliente.ragioneSociale);
 
     const region = regionDettaglio(page, cliente.ragioneSociale);
     await expect(
       region.getByText(
-        "Nessuna ora fatturabile nel mese: il cliente compare solo per rimborsi trasferta",
+        "Nessuna ora fatturabile nel mese: il cliente compare solo per trasferte forfettarie",
         { exact: true },
       ),
     ).toBeVisible();
     await expect(region.getByRole("table")).toHaveCount(0);
+  });
+
+  test("le offerte con trasferta inclusa non fatturano i rimborsi dei collaboratori", async ({
+    page,
+    factory,
+  }) => {
+    const codiceSpec = "TRASFERTA-INCLUSA-FATTURAZIONE";
+    const mesiIndietro = mesiIndietroPerTentativo(test.info());
+    const mese = mesePassatoRiservato(codiceSpec, mesiIndietro);
+    const suffisso = randomUUID().slice(0, 8);
+    const collaboratore = await factory.createCollaboratore();
+
+    // Cliente con ore fatturabili e rimborso su un'offerta con trasferta inclusa
+    const { cliente: clienteConOre, offerta: offertaConOre } =
+      await factory.createClienteConOfferta(
+        { ragioneSociale: `E2E Trasferta inclusa ${suffisso}` },
+        { codice: `INC-${suffisso}`, tariffaGiornaliera: "500.00" },
+      );
+    await factory.createRigaAttivita({
+      collaboratore,
+      cliente: clienteConOre,
+      offerta: offertaConOre,
+      data: dataRiservataReport(codiceSpec, 5, mesiIndietro),
+      ore: "8.00",
+      categoria: "FATTURABILE",
+      rimborsoTrasfertaEtichetta: `Trasferta inclusa ${suffisso}`,
+      rimborsoTrasfertaImporto: "60.00",
+    });
+
+    // Cliente con soli rimborsi su un'offerta con trasferta inclusa
+    const { cliente: clienteSoloRimborsi, offerta: offertaSoloRimborsi } =
+      await factory.createClienteConOfferta({
+        ragioneSociale: `E2E Solo rimborsi inclusi ${suffisso}`,
+      });
+    await factory.createRigaAttivita({
+      collaboratore,
+      cliente: clienteSoloRimborsi,
+      offerta: offertaSoloRimborsi,
+      data: dataRiservataReport(codiceSpec, 6, mesiIndietro),
+      ore: "4.00",
+      categoria: "NON_FATTURABILE",
+      rimborsoTrasfertaEtichetta: `Solo rimborsi inclusi ${suffisso}`,
+      rimborsoTrasfertaImporto: "60.00",
+    });
+
+    await page.goto(`/report/fatturazione-clienti?mese=${mese}`);
+    await page.waitForURL(`**/report/fatturazione-clienti?mese=${mese}`);
+
+    await expect(
+      page.getByTestId(`report-offerta-${offertaConOre.id}-trasferte`),
+    ).toHaveText("Inclusa nella tariffa");
+    await expect(
+      page.getByTestId(`report-client-${clienteConOre.id}-trasferte`),
+    ).toHaveText(formattaEuro("0.00"));
+    await expect(
+      page.getByTestId(`report-client-${clienteConOre.id}-totale`),
+    ).toHaveText(formattaEuro("500.00"));
+    await expect(
+      page.getByTestId(`report-client-${clienteSoloRimborsi.id}`),
+    ).toHaveCount(0);
   });
 });

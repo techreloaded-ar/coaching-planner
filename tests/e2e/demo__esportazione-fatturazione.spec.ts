@@ -69,7 +69,7 @@ test.describe("US-018 Demo", () => {
     const totaleCliente = riepilogo.righe.find(
       (r) => r[0] === `Totale ${dataset.cliente.ragioneSociale}`,
     );
-    expect(totaleCliente?.[7]).toBe(Number(clienteAtteso.totali.totale));
+    expect(totaleCliente?.[8]).toBe(Number(clienteAtteso.totali.totale));
     await expect(page.getByTestId("esporta-excel")).toBeVisible();
 
     // ── 5. Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.

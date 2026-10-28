@@ -12,6 +12,7 @@ import {
   type DatiOffertaInput,
   type ErroriValidazioneOfferta,
 } from "@/domain/anagrafiche/valida-offerta";
+import type { GestioneTrasferta } from "@/domain/types";
 
 export interface StatoActionOfferta {
   errori: ErroriValidazioneOfferta;
@@ -23,7 +24,29 @@ function datiDaForm(formData: FormData): DatiOffertaInput {
     descrizione: ((formData.get("descrizione") as string) ?? "").trim(),
     tariffaGiornaliera: ((formData.get("tariffaGiornaliera") as string) ?? "").trim(),
     giorniPrevisti: ((formData.get("giorniPrevisti") as string) ?? "").trim(),
+    gestioneTrasferta: (formData.get("gestioneTrasferta") as string) ?? "",
+    importoTrasfertaForfettaria: (
+      (formData.get("importoTrasfertaForfettaria") as string) ?? ""
+    ).trim(),
   };
+}
+
+/**
+ * Condizioni di trasferta da salvare: con la trasferta inclusa l'importo
+ * forfettario viene azzerato. Da chiamare solo su dati già validati.
+ */
+function condizioniTrasferta(dati: DatiOffertaInput): {
+  gestioneTrasferta: GestioneTrasferta;
+  importoTrasfertaForfettaria: string | null;
+} {
+  if (dati.gestioneTrasferta === "FORFETTARIA") {
+    return {
+      gestioneTrasferta: "FORFETTARIA",
+      importoTrasfertaForfettaria:
+        normalizzaTariffaGiornaliera(dati.importoTrasfertaForfettaria)?.valore ?? null,
+    };
+  }
+  return { gestioneTrasferta: "INCLUSA", importoTrasfertaForfettaria: null };
 }
 
 async function guardiaAmministratore(): Promise<void> {
@@ -98,6 +121,7 @@ export async function creaOfferta(
         descrizione: dati.descrizione,
         tariffaGiornaliera: tariffa.valore,
         giorniPrevisti: parseInt(dati.giorniPrevisti, 10),
+        ...condizioniTrasferta(dati),
         attiva: true,
       },
     });
@@ -163,6 +187,7 @@ export async function aggiornaOfferta(
         descrizione: dati.descrizione,
         tariffaGiornaliera: tariffa.valore,
         giorniPrevisti: parseInt(dati.giorniPrevisti, 10),
+        ...condizioniTrasferta(dati),
       },
     });
   } catch (error) {

@@ -30,7 +30,7 @@ function reportVuoto(token: string) {
   return {
     token,
     perCliente: [],
-    totali: { imponibileManodopera: "0.00", totaleRimborsi: "0.00", importoTotale: "0.00" },
+    totali: { imponibileManodopera: "0.00", totaleTrasferteForfettarie: "0.00", importoTotale: "0.00" },
   };
 }
 

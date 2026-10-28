@@ -25,6 +25,9 @@ function riga(
     ore: 8,
     fatturabile: true,
     rimborsoTrasfertaImporto: null,
+    data: "2026-05-04",
+    gestioneTrasfertaOfferta: "INCLUSA",
+    importoTrasfertaForfettariaOfferta: null,
     ...modifiche,
   };
 }
@@ -49,13 +52,22 @@ describe("costruisciFogliFatturazioneClienti", () => {
       rimborsoTrasfertaImporto: "35.00",
     }),
     riga({ ore: 6, fatturabile: false }),
-    riga({
-      offertaId: "offerta-2",
-      offertaCodice: "OFF-002",
-      offertaDescrizione: "Coaching",
-      tariffaOffertaGiornaliera: 300,
-      ore: 8,
-    }),
+    ...[
+      { collaboratoreId: "collaboratore-1", data: "2026-05-04" },
+      { collaboratoreId: "collaboratore-2", data: "2026-05-04" },
+    ].map((modifiche) =>
+      riga({
+        offertaId: "offerta-2",
+        offertaCodice: "OFF-002",
+        offertaDescrizione: "Coaching",
+        tariffaOffertaGiornaliera: 300,
+        ore: 4,
+        rimborsoTrasfertaImporto: "35.00",
+        gestioneTrasfertaOfferta: "FORFETTARIA",
+        importoTrasfertaForfettariaOfferta: "80.00",
+        ...modifiche,
+      }),
+    ),
     riga({
       clienteId: "cliente-2",
       clienteRagioneSociale: "Beta",
@@ -81,7 +93,8 @@ describe("costruisciFogliFatturazioneClienti", () => {
       "Tariffa/gg",
       "Giornate",
       "Imponibile manodopera",
-      "Rimborsi trasferta",
+      "Giorni trasferta",
+      "Trasferte forfettarie",
       "Totale da fatturare",
     ]);
 
@@ -94,6 +107,8 @@ describe("costruisciFogliFatturazioneClienti", () => {
       num(prima.tariffaGiornaliera),
       prima.giornateFatturabili,
       num(prima.imponibile),
+      0,
+      0,
     ]);
     expect(riepilogo.righe[4]).toEqual([
       "Alfa",
@@ -102,7 +117,10 @@ describe("costruisciFogliFatturazioneClienti", () => {
       num(seconda.tariffaGiornaliera),
       seconda.giornateFatturabili,
       num(seconda.imponibile),
+      2,
+      160,
     ]);
+    expect(seconda.importoTrasferte).toBe("160.00");
   });
 
   it("riporta i totali di ogni cliente e il totale mese uguali al report", () => {
@@ -113,14 +131,16 @@ describe("costruisciFogliFatturazioneClienti", () => {
     expect(totaleAlfa.slice(4)).toEqual([
       alfa.perOfferta.reduce((s, o) => s + o.giornateFatturabili, 0),
       num(alfa.imponibileManodopera),
-      num(alfa.rimborsiTrasferta),
+      2,
+      num(alfa.trasferteForfettarie),
       num(alfa.importoTotale),
     ]);
 
     const totaleBeta = riepilogo.righe.find((r) => r[0] === "Totale Beta")!;
     expect(totaleBeta.slice(5)).toEqual([
       num(beta.imponibileManodopera),
-      num(beta.rimborsiTrasferta),
+      0,
+      num(beta.trasferteForfettarie),
       num(beta.importoTotale),
     ]);
 
@@ -128,7 +148,8 @@ describe("costruisciFogliFatturazioneClienti", () => {
     expect(totaleMese[0]).toBe("Totale mese");
     expect(totaleMese.slice(5)).toEqual([
       num(report.totali.imponibileManodopera),
-      num(report.totali.totaleRimborsi),
+      2,
+      num(report.totali.totaleTrasferteForfettarie),
       num(report.totali.importoTotale),
     ]);
     expect(totaleMese[4]).toBe(
@@ -138,27 +159,31 @@ describe("costruisciFogliFatturazioneClienti", () => {
     );
   });
 
-  it("include un cliente di soli rimborsi con giornate 0 e senza righe offerta", () => {
+  it("include un cliente di sole trasferte forfettarie con giornate 0", () => {
     const { riepilogo } = esporta([
       riga({
-        clienteRagioneSociale: "Solo Rimborsi",
+        clienteRagioneSociale: "Solo Trasferte",
         fatturabile: false,
         rimborsoTrasfertaImporto: "20.00",
+        gestioneTrasfertaOfferta: "FORFETTARIA",
+        importoTrasfertaForfettariaOfferta: "80.00",
       }),
     ]);
 
-    expect(riepilogo.righe.filter((r) => r[1] === "OFF-001")).toEqual([]);
-    expect(riepilogo.righe.find((r) => r[0] === "Totale Solo Rimborsi")!.slice(4)).toEqual(
-      [0, 0, 20, 20],
+    expect(riepilogo.righe.find((r) => r[1] === "OFF-001")!.slice(4)).toEqual(
+      [0, 0, 1, 80],
     );
-    expect(riepilogo.righe.at(-1)!.slice(4)).toEqual([0, 0, 20, 20]);
+    expect(riepilogo.righe.find((r) => r[0] === "Totale Solo Trasferte")!.slice(4)).toEqual(
+      [0, 0, 1, 80, 80],
+    );
+    expect(riepilogo.righe.at(-1)!.slice(4)).toEqual([0, 0, 1, 80, 80]);
   });
 
   it("con report vuoto contiene solo titolo, intestazioni e totale mese a zero", () => {
     const { riepilogo, dettaglio } = esporta([]);
 
     expect(riepilogo.righe).toHaveLength(4);
-    expect(riepilogo.righe[3]).toEqual(["Totale mese", null, null, null, 0, 0, 0, 0]);
+    expect(riepilogo.righe[3]).toEqual(["Totale mese", null, null, null, 0, 0, 0, 0, 0]);
     expect(dettaglio.righe).toHaveLength(3);
   });
 
@@ -179,7 +204,7 @@ describe("costruisciFogliFatturazioneClienti", () => {
       ),
     );
     expect(dettaglio.righe.slice(3)).toEqual(attese);
-    expect(attese).toHaveLength(4);
+    expect(attese).toHaveLength(5);
   });
 
   it("conserva le ragioni sociali con caratteri speciali", () => {

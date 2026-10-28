@@ -17,7 +17,8 @@ const EMAIL_REPORT_E2E_DOMAIN = "report-fatturazione.e2e.invalid";
 export type TotaliReportFatturazioneAttesi = {
 	giornate: number;
 	imponibile: string;
-	rimborsi: string;
+	/** Trasferte forfettarie fatturate al cliente */
+	trasferte: string;
 	totale: string;
 };
 
@@ -25,6 +26,7 @@ export type OffertaReportFatturazioneAttesa = {
 	offertaId: string;
 	offertaCodice: string;
 	offertaDescrizione: string;
+	giorniTrasferta: number;
 	totali: TotaliReportFatturazioneAttesi;
 };
 
@@ -106,6 +108,7 @@ export async function creaDatasetReportFatturazioneClienti(
 	const tariffa = Number(tariffaGiornaliera);
 	const importoTrasfertaFatturabile = 35;
 	const importoTrasfertaNonFatturabile = 22.5;
+	const importoTrasfertaForfettaria = 80;
 
 	const cliente = await factory.createCliente({
 		ragioneSociale: `E2E Report fatturazione ${suffisso}`,
@@ -115,6 +118,8 @@ export async function creaDatasetReportFatturazioneClienti(
 		codice: `RPT-${suffisso}`,
 		descrizione: `Offerta report fatturazione ${suffisso}`,
 		tariffaGiornaliera,
+		gestioneTrasferta: "FORFETTARIA",
+		importoTrasfertaForfettaria: importo(importoTrasfertaForfettaria),
 	});
 	const collaboratori = [
 		await factory.createCollaboratore({
@@ -165,21 +170,40 @@ export async function creaDatasetReportFatturazioneClienti(
 		rimborsoTrasfertaImporto: importo(importoTrasfertaNonFatturabile),
 	});
 
+	// Stesso giorno della trasferta dell'altro collaboratore: secondo forfait
+	const rigaInvestimentoTrasferta = await factory.createRigaAttivita({
+		collaboratore: collaboratori[0],
+		cliente,
+		offerta,
+		data: dataRiservata(codiceSpec, 11, mesiIndietro),
+		ore: "2.00",
+		nota: `Report investimento trasferta ${suffisso}`,
+		categoria: "INVESTIMENTO",
+		rimborsoTrasfertaEtichetta: `Trasferta investimento ${suffisso}`,
+		rimborsoTrasfertaImporto: importo(importoTrasfertaFatturabile),
+	});
+
 	const righeFatturabili = [rigaFatturabileIntera, rigaFatturabileTrasferta];
-	const righeNonFatturabili = [rigaNonFatturabileTrasferta];
+	const righeNonFatturabili = [
+		rigaNonFatturabileTrasferta,
+		rigaInvestimentoTrasferta,
+	];
 	const righeTrasferta = [
 		rigaFatturabileTrasferta,
 		rigaNonFatturabileTrasferta,
+		rigaInvestimentoTrasferta,
 	];
 	const oreFatturabili = 12;
 	const giornate = oreFatturabili / ORE_PER_GIORNATA;
-	const rimborsi = importoTrasfertaFatturabile + importoTrasfertaNonFatturabile;
+	// Collaboratore 2 il giorno 11 e il 18, collaboratore 1 il giorno 11
+	const giorniTrasferta = 3;
+	const trasferte = giorniTrasferta * importoTrasfertaForfettaria;
 	const imponibile = giornate * tariffa;
-	const totale = imponibile + rimborsi;
+	const totale = imponibile + trasferte;
 	const totali = {
 		giornate,
 		imponibile: importo(imponibile),
-		rimborsi: importo(rimborsi),
+		trasferte: importo(trasferte),
 		totale: importo(totale),
 	};
 
@@ -202,6 +226,7 @@ export async function creaDatasetReportFatturazioneClienti(
 							offertaId: offerta.id,
 							offertaCodice: offerta.codice,
 							offertaDescrizione: offerta.descrizione,
+							giorniTrasferta,
 							totali,
 						},
 					],
