@@ -11,14 +11,14 @@ import { test, expect } from "./support/fixtures";
 /**
  * Proposta automatica delle ore dal calendario Google (EP-001).
  *
- * Google Calendar e Gemini sono simulati dal server in E2E_TEST_MODE:
+ * Google Calendar e Jev sono simulati dal server in E2E_TEST_MODE:
  * - `/api/e2e-test/calendario-google` collega al collaboratore un calendario
  *   con gli eventi forniti (formato Calendar API v3) o un calendario in errore;
- * - l'analisi di Gemini, solo tra le offerte abilitate, dà confidenza alta a
- *   codice offerta o ragione sociale nel titolo e ai domini dei partecipanti
- *   contenuti nella ragione sociale, bassa alla sola descrizione dell'offerta,
- *   e marca non lavorativi i titoli con pranzo, palestra, medico, dentista o
- *   personale.
+ * - l'analisi di Jev, solo tra le offerte abilitate, precompila le offerte
+ *   attive il cui codice o cliente è citato in titolo o descrizione, o il cui
+ *   cliente è riconoscibile da un dominio esterno degli invitati; la sola
+ *   descrizione dell'offerta non basta, e i titoli con pranzo, palestra,
+ *   medico, dentista o personale sono non lavorativi.
  */
 
 const MESE = meseRiservato("INC-CALENDARIO-GOOGLE");

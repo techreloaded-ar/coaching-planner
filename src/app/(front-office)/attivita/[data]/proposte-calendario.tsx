@@ -15,7 +15,7 @@ type StatoProposte = ProposteCalendarioGiornata["stato"] | "CARICAMENTO";
  * Proposte dal calendario della giornata, lette una volta al montaggio.
  *
  * Il dettaglio giornata è rimontato a ogni cambio giorno, quindi ogni apertura
- * di una giornata produce una sola lettura (e al più una chiamata a Gemini).
+ * di una giornata produce una sola lettura (e al più una richiesta a Jev per impegno).
  * Senza calendario collegato non parte alcuna richiesta.
  */
 export function useProposteCalendario(data: string, calendarioCollegato: boolean) {
@@ -238,7 +238,7 @@ export function SezioneProposteCalendario({
                           <span className="font-semibold">{proposta.cliente!.ragioneSociale}</span>
                           {" · "}
                           {proposta.offerta!.codice} — {proposta.offerta!.descrizione}
-                          {/* Cliente e offerta arrivano solo da Gemini a confidenza alta. */}
+                          {/* Cliente e offerta arrivano solo da Jev sopra la soglia di confidenza. */}
                           <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10.5px] font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-300">
                             Suggerito dall&apos;AI
                           </span>

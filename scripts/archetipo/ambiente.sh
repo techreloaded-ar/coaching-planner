@@ -17,7 +17,7 @@
 #   probe-database  verifica schema Prisma e raggiungibilità del database
 #   unit | build | e2e  test unitari / build Next.js / suite Playwright con l'ambiente del checkout
 #   anteprima <porta>  next dev sulla porta indicata (strict), con Google
-#                   (login e Calendar) e Gemini simulati (E2E_TEST_MODE) e dati
+#                   (login e Calendar) e Jev simulati (E2E_TEST_MODE) e dati
 #                   sintetici. "Accedi con Google" apre la scelta locale
 #                   dell'utente; "Collega Google Calendar" la scelta dell'account.
 #   esegui <cmd>    esegue un comando arbitrario con l'ambiente del checkout

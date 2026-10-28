@@ -48,33 +48,35 @@ Apri [http://localhost:3000](http://localhost:3000) nel browser.
 | `E2E_DATABASE_URL` | Stringa di connessione PostgreSQL dedicata agli end-to-end (es. `postgresql://user:pass@localhost:5432/coaching_planner_e2e`) |
 | `AUTH_SECRET` | Segreto per Auth.js (genera con `openssl rand -base64 32`) |
 | `SESSION_SECRET` | Chiave obbligatoria per firmare la sessione applicativa; deve essere reale, non vuota, non placeholder e lunga almeno 32 caratteri |
-| `GEMINI_API_KEY` | API key di server di Google Gemini, usata per suggerire cliente e offerta degli impegni del calendario Google ed escludere quelli non lavorativi; se assente le proposte di ore compaiono tutte, senza associazione (vedi «Diagnostica dei suggerimenti Gemini») |
-| `GEMINI_MODEL` | Modello Gemini opzionale (predefinito `gemini-flash-latest`); con i modelli «flash» il ragionamento è ridotto al minimo per restare nel timeout |
+| `OPENROUTER_API_KEY` | Chiave di server di OpenRouter, usata per chiedere a Jev (TypeSafe AI) cliente e offerta degli impegni del calendario Google ed escludere quelli non lavorativi; se assente le proposte di ore compaiono tutte, senza associazione (vedi «Diagnostica dei suggerimenti Jev») |
+| `JEV_MODEL` | Modello Jev opzionale (predefinito `~typesafe/jev-latest`, l'ultima versione) |
+| `JEV_SOGLIA_CONFIDENZA` | Confidenza minima (da 0 a 1, predefinita `0.7`) della scelta dell'offerta per precompilare cliente e offerta; serve anche che Jev ritenga il cliente chiaramente identificato e che l'offerta sia attiva |
+| `DOMINI_INTERNI` | Domini email dei colleghi, separati da virgola (predefinito `agilereloaded.it`): sono tolti dagli invitati inviati a Jev perché non indicano il cliente |
 
 Copia `.env.example` in `.env.local` e personalizza i valori. `.env.local` non viene mai committato.
 
 L'applicazione esegue un fail-fast all'avvio se `SESSION_SECRET` è assente, vuota, troppo corta o ancora impostata al placeholder di esempio.
 
-### Diagnostica dei suggerimenti Gemini
+### Diagnostica dei suggerimenti Jev
 
-Ogni lettura delle proposte dal calendario con almeno un impegno scrive nei log del server (su Vercel: *Logs*, filtro `Gemini:`) una sola riga come:
+Ogni lettura delle proposte dal calendario con almeno un impegno invia a Jev una richiesta per impegno (al più 4 in parallelo) e scrive nei log del server (su Vercel: *Logs*, filtro `Jev:`) una sola riga come:
 
 ```
-Gemini: esito=ok modello=gemini-flash-latest eventi=4 offerte=12 durataMs=812 associazioniAlta=1 associazioniBassa=2 nonLavorativi=1
-Gemini: esito=errore-http modello=gemini-flash-latest eventi=4 offerte=12 durataMs=230 stato=402 statoGoogle=PAYMENT_REQUIRED messaggio="Your prepayment credits are depleted."
+Jev: esito=ok modello=~typesafe/jev-latest eventi=4 offerte=12 durataMs=812 associazioniAlta=1 associazioniBassa=2 nonLavorativi=1
+Jev: esito=errore-http modello=~typesafe/jev-latest eventi=4 offerte=12 durataMs=230 associazioniAlta=0 associazioniBassa=0 nonLavorativi=0 eventiInErrore=4 stato=402 messaggio="Insufficient credits"
 ```
 
-La riga non contiene mai l'API key, titoli, descrizioni, email o domini degli eventi. Gli esiti:
+La riga non contiene mai la chiave, titoli, descrizioni, email o domini degli eventi. `associazioniAlta` sono le proposte precompilate, `associazioniBassa` quelle con un'offerta scelta ma lasciate da scegliere (cliente non identificato, confidenza sotto `JEV_SOGLIA_CONFIDENZA` o offerta chiusa), `nonLavorativi` gli impegni esclusi. Se alcuni impegni falliscono gli altri restano associati: `eventiInErrore` li conta e l'esito è quello del primo errore. Gli esiti:
 
 | Esito | Significato e verifica |
 |---|---|
-| `ok` | Gemini ha risposto: `associazioniAlta` sono le proposte precompilate, `associazioniBassa` quelle lasciate da scegliere, `nonLavorativi` gli impegni esclusi |
-| `chiave-assente` | `GEMINI_API_KEY` non arriva al deployment: controlla l'ambiente (Production/Preview) e rifai il deploy |
-| `nessuna-offerta-abilitata` | Il collaboratore non è abilitato su offerte attive: Gemini non viene chiamato |
-| `errore-http` | Gemini ha rifiutato la richiesta: `stato`, `statoGoogle` e `messaggio` indicano la causa (402 = credito prepagato esaurito in Google AI Studio → *Billing*; 400/403 = chiave o modello non validi; 429 = limiti di utilizzo) |
-| `errore-rete` | Gemini non raggiungibile (`tipoErrore` indica il tipo) |
-| `timeout` | Nessuna risposta entro 15 secondi |
-| `risposta-non-valida` | Gemini ha risposto con un contenuto diverso dal JSON atteso |
+| `ok` | Jev ha risposto per tutti gli impegni |
+| `chiave-assente` | `OPENROUTER_API_KEY` non arriva al deployment: controlla l'ambiente (Production/Preview) e rifai il deploy |
+| `nessuna-offerta-abilitata` | Il collaboratore non è abilitato su offerte di clienti attivi: Jev non viene chiamato |
+| `errore-http` | OpenRouter ha rifiutato la richiesta: `stato` e `messaggio` indicano la causa (401 = chiave non valida; 402 = credito OpenRouter esaurito; 400/422 = modello o richiesta non validi, senza messaggio perché potrebbe citare i dati dell'evento; 429/5xx = limiti o sovraccarico, già ritentati due volte con backoff) |
+| `errore-rete` | OpenRouter non raggiungibile (`tipoErrore` indica il tipo) |
+| `timeout` | Nessuna risposta entro 10 secondi |
+| `risposta-non-valida` | Jev ha risposto senza le tre risposte attese (`clientIdentified`, `offer`, `notWorkRelated`) o con un'offerta che non è tra le opzioni |
 
 ### Test end-to-end e database dedicato
 

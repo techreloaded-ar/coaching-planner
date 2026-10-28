@@ -5,7 +5,6 @@ const { mockDb, mockEventi, mockAssocia, mockDecifra } = vi.hoisted(() => ({
     collegamentoCalendarioGoogle: { findUnique: vi.fn() },
     eventoCalendarioGestito: { findMany: vi.fn() },
     offerta: { findMany: vi.fn() },
-    rigaAttivita: { findMany: vi.fn() },
   },
   mockEventi: vi.fn(),
   mockAssocia: vi.fn(),
@@ -14,7 +13,7 @@ const { mockDb, mockEventi, mockAssocia, mockDecifra } = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 vi.mock("@/lib/calendario-google", () => ({ eventiAttornoAlGiorno: mockEventi }));
-vi.mock("@/lib/gemini", () => ({ analizzaEventiCalendario: mockAssocia }));
+vi.mock("@/lib/jev", () => ({ analizzaEventiCalendario: mockAssocia }));
 vi.mock("@/lib/cifratura-token", () => ({ decifraToken: mockDecifra }));
 
 import {
@@ -28,6 +27,8 @@ const OFFERTA_ACME = {
   id: "off-acme",
   codice: "ACME-01",
   descrizione: "Coaching agile",
+  attiva: true,
+  createdAt: new Date("2026-01-01T00:00:00Z"),
   cliente: { id: "cli-acme", ragioneSociale: "Acme Spa" },
 };
 
@@ -50,11 +51,10 @@ describe("proposteCalendarioPerCollaboratoreAutorizzato", () => {
     mockDecifra.mockReturnValue("refresh-token");
     mockDb.eventoCalendarioGestito.findMany.mockResolvedValue([]);
     mockDb.offerta.findMany.mockResolvedValue([OFFERTA_ACME]);
-    mockDb.rigaAttivita.findMany.mockResolvedValue([]);
     mockAssocia.mockResolvedValue({ associazioni: new Map(), nonLavorativi: new Set() });
   });
 
-  it("senza collegamento non contatta Google né Gemini (US-002 AC-6)", async () => {
+  it("senza collegamento non contatta Google né Jev (US-002 AC-6)", async () => {
     mockDb.collegamentoCalendarioGoogle.findUnique.mockResolvedValue(null);
 
     const risultato = await proposteCalendarioPerCollaboratoreAutorizzato(GIORNO, "collab-1");
@@ -95,7 +95,7 @@ describe("proposteCalendarioPerCollaboratoreAutorizzato", () => {
     );
   });
 
-  it("associa le proposte con una sola chiamata a Gemini sulle offerte abilitate (US-003)", async () => {
+  it("associa le proposte con Jev sulle offerte abilitate, comprese le chiuse", async () => {
     mockEventi.mockResolvedValue([
       eventoGoogle("ev-acme", "Kickoff Acme", "09:00"),
       eventoGoogle("ev-pranzo", "Pausa pranzo", "13:00"),
@@ -111,7 +111,6 @@ describe("proposteCalendarioPerCollaboratoreAutorizzato", () => {
     expect(mockDb.offerta.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          attiva: true,
           cliente: { attivo: true },
           abilitazioniCollaboratori: { some: { collaboratoreId: "collab-1" } },
         },
@@ -142,7 +141,7 @@ describe("proposteCalendarioPerCollaboratoreAutorizzato", () => {
     });
   });
 
-  it("esclude gli eventi già gestiti e non chiama Gemini se non resta nulla (US-004 AC-5)", async () => {
+  it("esclude gli eventi già gestiti e non chiama Jev se non resta nulla (US-004 AC-5)", async () => {
     mockEventi.mockResolvedValue([eventoGoogle("ev-gestito", "Call", "09:00")]);
     mockDb.eventoCalendarioGestito.findMany.mockResolvedValue([
       { eventoCalendarioId: "ev-gestito" },
@@ -159,7 +158,7 @@ describe("proposteCalendarioPerCollaboratoreAutorizzato", () => {
   });
 });
 
-describe("proposteCalendarioPerCollaboratoreAutorizzato con l'analisi di Gemini (incremento)", () => {
+describe("proposteCalendarioPerCollaboratoreAutorizzato con l'analisi di Jev", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDb.collegamentoCalendarioGoogle.findUnique.mockResolvedValue({
@@ -170,14 +169,10 @@ describe("proposteCalendarioPerCollaboratoreAutorizzato con l'analisi di Gemini 
     mockDb.offerta.findMany.mockResolvedValue([OFFERTA_ACME]);
   });
 
-  it("passa a Gemini le righe recenti come esempi ed esclude i non lavorativi", async () => {
+  it("passa a Jev la giornata e le offerte, senza righe di esempio, ed esclude i non lavorativi", async () => {
     mockEventi.mockResolvedValue([
       eventoGoogle("ev-sync", "Sync settimanale", "09:00"),
       eventoGoogle("ev-palestra", "Palestra", "13:00"),
-    ]);
-    mockDb.rigaAttivita.findMany.mockResolvedValue([
-      { nota: "Sync settimanale", offertaId: "off-acme" },
-      { nota: null, offertaId: "off-acme" },
     ]);
     mockAssocia.mockResolvedValue({
       associazioni: new Map([["ev-sync", "off-acme"]]),
@@ -186,34 +181,19 @@ describe("proposteCalendarioPerCollaboratoreAutorizzato con l'analisi di Gemini 
 
     const risultato = await proposteCalendarioPerCollaboratoreAutorizzato(GIORNO, "collab-1");
 
-    expect(mockDb.rigaAttivita.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          collaboratoreId: "collab-1",
-          nota: { not: "" },
-          offertaId: { in: ["off-acme"] },
-        },
-        take: 30,
-      })
-    );
-    expect(mockAssocia).toHaveBeenCalledWith(
-      expect.any(Array),
-      [OFFERTA_ACME],
-      [{ nota: "Sync settimanale", offertaId: "off-acme" }]
-    );
+    expect(mockAssocia).toHaveBeenCalledWith(expect.any(Array), [OFFERTA_ACME], GIORNO);
     expect(risultato.proposte.map((p) => [p.eventoId, p.offerta?.id ?? null])).toEqual([
       ["ev-sync", "off-acme"],
     ]);
   });
 
-  it("senza offerte abilitate non legge le righe e lascia le proposte da completare", async () => {
+  it("senza offerte abilitate lascia le proposte da completare", async () => {
     mockEventi.mockResolvedValue([eventoGoogle("ev-call", "Call", "09:00")]);
     mockDb.offerta.findMany.mockResolvedValue([]);
     mockAssocia.mockResolvedValue({ associazioni: new Map(), nonLavorativi: new Set() });
 
     const risultato = await proposteCalendarioPerCollaboratoreAutorizzato(GIORNO, "collab-1");
 
-    expect(mockDb.rigaAttivita.findMany).not.toHaveBeenCalled();
     expect(risultato.proposte).toHaveLength(1);
     expect(risultato.proposte[0].cliente).toBeNull();
   });
