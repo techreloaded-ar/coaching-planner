@@ -144,7 +144,6 @@ export interface Collaboratore {
   nome: string;
   cognome: string;
   partitaIva: string;
-  tariffaGiornaliera: number; // Decimal
   attivo: boolean;
   createdAt: Date;
   updatedAt: Date;
