@@ -17,7 +17,7 @@ export default function NavigazioneImpostazioni({
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-52 shrink-0 flex-col gap-4 max-sm:w-full">
+    <aside className="flex w-60 shrink-0 flex-col gap-4 border-r border-zinc-200 bg-white px-3 py-5 dark:border-zinc-800 dark:bg-zinc-900 max-sm:w-full max-sm:border-r-0 max-sm:border-b">
       <nav aria-label="Categorie delle impostazioni" className="flex flex-col gap-0.5">
         {CATEGORIE.map(({ href, etichetta }) => (
           <Link
@@ -30,7 +30,7 @@ export default function NavigazioneImpostazioni({
           </Link>
         ))}
       </nav>
-      <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
+      <div className="mt-auto border-t border-zinc-200 pt-4 dark:border-zinc-800">
         <Link
           href={uscita.href}
           className="inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-[13px] font-semibold text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"

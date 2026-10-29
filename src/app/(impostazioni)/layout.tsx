@@ -36,7 +36,8 @@ export default async function ImpostazioniLayout({
           />
         </div>
       </header>
-      <div className="mx-auto flex w-full max-w-[960px] flex-1 gap-8 px-8 py-8 max-sm:flex-col max-sm:gap-4 max-sm:px-4">
+      {/* Barra laterale ancorata al bordo sinistro della vista, contenuto a fianco */}
+      <div className="flex w-full flex-1 max-sm:flex-col">
         <NavigazioneImpostazioni
           uscita={
             tornaAlleAttivita
@@ -44,7 +45,9 @@ export default async function ImpostazioniLayout({
               : { href: "/anagrafiche", etichetta: "Torna alla console" }
           }
         />
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1 px-8 py-8 max-sm:px-4 max-sm:py-5">
+          <div className="max-w-[720px]">{children}</div>
+        </main>
       </div>
     </div>
   );

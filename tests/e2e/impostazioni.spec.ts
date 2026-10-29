@@ -36,6 +36,19 @@ test.describe("Impostazioni per categorie", () => {
 		await expect(page.getByRole("heading", { name: "Connettori", level: 2 })).toHaveCount(0);
 	});
 
+	test("su schermo largo la barra laterale è ancorata al bordo sinistro, il contenuto le sta a fianco", async ({ page }) => {
+		await page.setViewportSize({ width: 1600, height: 900 });
+		await accediComeCollaboratore(page);
+		await apriImpostazioni(page);
+
+		const barraLaterale = (await page.getByRole("complementary").boundingBox())!;
+		const contenuto = (await page.getByRole("main").boundingBox())!;
+		expect(barraLaterale.x).toBe(0);
+		expect(contenuto.x).toBeGreaterThanOrEqual(barraLaterale.x + barraLaterale.width);
+		const larghezzaVista = await page.evaluate(() => document.documentElement.clientWidth);
+		expect(contenuto.x + contenuto.width).toBeCloseTo(larghezzaVista, 0);
+	});
+
 	test("l'indirizzo generico delle Impostazioni apre la categoria Tema", async ({ page }) => {
 		await accediComeCollaboratore(page);
 		await page.goto("/impostazioni");
