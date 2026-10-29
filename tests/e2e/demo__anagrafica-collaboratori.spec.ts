@@ -7,7 +7,8 @@ import { test, expect } from "./support/fixtures";
  * Dimostra il nuovo perimetro della schermata Collaboratori dopo US-047:
  * censimento e stato (attivazione/disattivazione) si governano esclusivamente
  * dalla schermata Utenti, mentre qui restano modificabili solo i dati
- * anagrafici, la partita IVA e la tariffa giornaliera; l'email di accesso è
+ * anagrafici e la partita IVA (le tariffe vivono nello storico tariffe del
+ * dettaglio collaboratore); l'email di accesso è
  * in sola lettura. Il pulsante "Nuovo collaboratore" non esiste più e la
  * vecchia rotta di censimento reindirizza a /anagrafiche/utenti.
  *
@@ -21,7 +22,7 @@ test.use({
 });
 
 test.describe("US-047 Demo", () => {
-  test("collaboratori è sola-modifica: niente censimento, stato in sola lettura, tariffa aggiornabile", async ({
+  test("collaboratori è sola-modifica: niente censimento, stato in sola lettura, partita IVA aggiornabile", async ({
     page,
     collaboratore,
   }) => {
@@ -99,12 +100,13 @@ test.describe("US-047 Demo", () => {
     await expect(campoEmail).toHaveJSProperty("readOnly", true);
     await expect(campoEmail).toHaveValue(collaboratore.utente.email);
 
-    // ── 9. Modifica la tariffa giornaliera ──────────────────────────
+    // ── 9. Modifica la partita IVA: la tariffa non è più nel form ───
 
-    const nuovaTariffa = "610,00";
-    const campoTariffa = page.getByLabel("Tariffa giornaliera");
-    await campoTariffa.clear();
-    await campoTariffa.fill(nuovaTariffa);
+    await expect(page.getByLabel(/tariffa/i)).toHaveCount(0);
+    const nuovaPartitaIva = "61061061061";
+    const campoPartitaIva = page.getByLabel(/^Partita IVA\b/);
+    await campoPartitaIva.clear();
+    await campoPartitaIva.fill(nuovaPartitaIva);
 
     // ── 10. Salva le modifiche ───────────────────────────────────────
 
@@ -117,13 +119,13 @@ test.describe("US-047 Demo", () => {
       page.getByRole("heading", { name: "Collaboratori" })
     ).toBeVisible();
 
-    // ── 12. La nuova tariffa è visibile nell'elenco ─────────────────
+    // ── 12. La nuova partita IVA è visibile nell'elenco ─────────────
 
     const rigaAggiornata = page
       .locator("table[aria-label='Elenco collaboratori'] tbody tr")
       .filter({ hasText: nomeCompleto })
       .first();
-    await expect(rigaAggiornata.getByText(nuovaTariffa)).toBeVisible();
+    await expect(rigaAggiornata.getByText(nuovaPartitaIva)).toBeVisible();
 
     // ── 13. Mantieni lo stato finale visibile per almeno 1.5 secondi ─
 

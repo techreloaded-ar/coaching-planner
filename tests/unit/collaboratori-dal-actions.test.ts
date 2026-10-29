@@ -15,6 +15,10 @@ const mockUtente = vi.hoisted(() => ({
   update: vi.fn(),
 }));
 
+const mockTariffaCollaboratore = vi.hoisted(() => ({
+  findMany: vi.fn(),
+}));
+
 const mockRigaAttivita = vi.hoisted(() => ({
   findMany: vi.fn(),
 }));
@@ -23,6 +27,7 @@ const mockDb = vi.hoisted(() => ({
   collaboratore: mockCollaboratore,
   utente: mockUtente,
   rigaAttivita: mockRigaAttivita,
+  tariffaCollaboratore: mockTariffaCollaboratore,
   $transaction: vi.fn(),
 }));
 
@@ -74,14 +79,12 @@ vi.mock("next/navigation", () => ({
 
 // ── Mock di valida-collaboratore ───────────────────────────────────
 
-const { mockValidaCollaboratore, mockNormalizzaTariffaGiornaliera } = vi.hoisted(() => ({
+const { mockValidaCollaboratore } = vi.hoisted(() => ({
   mockValidaCollaboratore: vi.fn(),
-  mockNormalizzaTariffaGiornaliera: vi.fn(),
 }));
 
 vi.mock("@/domain/anagrafiche/valida-collaboratore", () => ({
   validaCollaboratore: mockValidaCollaboratore,
-  normalizzaTariffaGiornaliera: mockNormalizzaTariffaGiornaliera,
 }));
 
 // ── Import dei moduli sotto test ───────────────────────────────────
@@ -91,6 +94,7 @@ import {
   elencaCollaboratoriSelezionabili,
   collaboratorePerId,
   storicoAttivitaCollaboratore,
+  storicoTariffeCollaboratore,
 } from "@/lib/collaboratori";
 import { aggiornaCollaboratore } from "@/app/(back-office)/anagrafiche/collaboratori/actions";
 
@@ -101,11 +105,6 @@ import { aggiornaCollaboratore } from "@/app/(back-office)/anagrafiche/collabora
 function statoIniziale() {
   return { errori: {} };
 }
-
-const TARIFFA_NORMALIZZATA = {
-  valore: "150.00",
-  centesimi: BigInt(15000),
-};
 
 // ═══════════════════════════════════════════════════════════════════
 // DAL collaboratori
@@ -129,11 +128,15 @@ describe("DAL collaboratori", () => {
           nome: "Mario",
           cognome: "Bianchi",
           partitaIva: "11111111111",
-          tariffaGiornaliera: "100.00",
           attivo: true,
           createdAt: new Date(),
           updatedAt: new Date(),
           utente: { email: "mario.bianchi@example.com" },
+          // Simula il Decimal Prisma con un oggetto dotato di toString()
+          tariffe: [
+            { validaDalMese: "2026-01", modalita: "GIORNALIERA", importo: { toFixed: () => "450.00" } },
+            { validaDalMese: "2026-07", modalita: "FISSO_MENSILE", importo: { toFixed: () => "6500.00" } },
+          ],
         },
         {
           id: "2",
@@ -141,11 +144,11 @@ describe("DAL collaboratori", () => {
           nome: "Luca",
           cognome: "Rossi",
           partitaIva: "22222222222",
-          tariffaGiornaliera: "150.00",
           attivo: false,
           createdAt: new Date(),
           updatedAt: new Date(),
           utente: { email: "luca.rossi@example.com" },
+          tariffe: [],
         },
       ];
       mockCollaboratore.findMany.mockResolvedValue(collaboratori);
@@ -155,10 +158,18 @@ describe("DAL collaboratori", () => {
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
       expect(mockCollaboratore.findMany).toHaveBeenCalledWith({
         orderBy: { cognome: "asc" },
-        include: { utente: { select: { email: true } } },
+        include: {
+          utente: { select: { email: true } },
+          tariffe: { select: { validaDalMese: true, modalita: true, importo: true } },
+        },
       });
-      expect(result).toEqual(collaboratori);
       expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({ id: "1", utente: { email: "mario.bianchi@example.com" } });
+      expect(result[0].tariffe).toEqual([
+        { validaDalMese: "2026-01", modalita: "GIORNALIERA", importo: "450.00" },
+        { validaDalMese: "2026-07", modalita: "FISSO_MENSILE", importo: "6500.00" },
+      ]);
+      expect(result[1].tariffe).toEqual([]);
     });
   });
 
@@ -173,7 +184,6 @@ describe("DAL collaboratori", () => {
           nome: "Mario",
           cognome: "Bianchi",
           partitaIva: "11111111111",
-          tariffaGiornaliera: "100.00",
           attivo: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -184,7 +194,6 @@ describe("DAL collaboratori", () => {
           nome: "Anna",
           cognome: "Verdi",
           partitaIva: "33333333333",
-          tariffaGiornaliera: "120.00",
           attivo: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -217,7 +226,6 @@ describe("DAL collaboratori", () => {
         nome: "Mario",
         cognome: "Bianchi",
         partitaIva: "11111111111",
-        tariffaGiornaliera: "100.00",
         attivo: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -298,6 +306,37 @@ describe("DAL collaboratori", () => {
     });
   });
 
+  // ── storicoTariffeCollaboratore ────────────────────────────────
+
+  describe("storicoTariffeCollaboratore", () => {
+    it("restituisce lo storico tariffe dalla più recente con importi come stringhe", async () => {
+      mockTariffaCollaboratore.findMany.mockResolvedValue([
+        { id: "t2", validaDalMese: "2026-07", modalita: "FISSO_MENSILE", importo: { toFixed: () => "6500.00" } },
+        { id: "t1", validaDalMese: "2026-01", modalita: "GIORNALIERA", importo: { toFixed: () => "450.00" } },
+      ]);
+
+      const result = await storicoTariffeCollaboratore("collab-1");
+
+      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockTariffaCollaboratore.findMany).toHaveBeenCalledWith({
+        where: { collaboratoreId: "collab-1" },
+        orderBy: { validaDalMese: "desc" },
+        select: { id: true, validaDalMese: true, modalita: true, importo: true },
+      });
+      expect(result).toEqual([
+        { id: "t2", validaDalMese: "2026-07", modalita: "FISSO_MENSILE", importo: "6500.00" },
+        { id: "t1", validaDalMese: "2026-01", modalita: "GIORNALIERA", importo: "450.00" },
+      ]);
+    });
+
+    it("propaga l'errore di richiediRuoloApi senza toccare il database", async () => {
+      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+
+      await expect(storicoTariffeCollaboratore("collab-1")).rejects.toThrow("Accesso negato");
+      expect(mockTariffaCollaboratore.findMany).not.toHaveBeenCalled();
+    });
+  });
+
   // ── 1. Guardie di ruolo DAL ────────────────────────────────────
 
   describe("guardie di ruolo — DAL", () => {
@@ -340,7 +379,6 @@ describe("Server Actions collaboratori", () => {
   describe("aggiornaCollaboratore", () => {
     it("con dati validi aggiorna Collaboratore e Utente in transazione, poi redirige", async () => {
       mockValidaCollaboratore.mockReturnValue({});
-      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
       mockCollaboratore.findUnique.mockResolvedValue({ userId: "utente-1" });
 
       const formData = new FormData();
@@ -348,6 +386,7 @@ describe("Server Actions collaboratori", () => {
       formData.set("nome", "Mario");
       formData.set("cognome", "Bianchi");
       formData.set("partitaIva", "11111111111");
+      // Un campo tariffa residuo nel form viene ignorato: la tariffa vive nello storico.
       formData.set("tariffaGiornaliera", "150");
 
       await aggiornaCollaboratore(statoIniziale(), formData);
@@ -364,7 +403,6 @@ describe("Server Actions collaboratori", () => {
           nome: "Mario",
           cognome: "Bianchi",
           partitaIva: "11111111111",
-          tariffaGiornaliera: TARIFFA_NORMALIZZATA.valore,
         },
       });
       expect(mockUtente.update).toHaveBeenCalledWith({
@@ -377,7 +415,6 @@ describe("Server Actions collaboratori", () => {
 
     it("ignora un'email eventualmente presente nel FormData: utente.update riceve solo nome e cognome", async () => {
       mockValidaCollaboratore.mockReturnValue({});
-      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
       mockCollaboratore.findUnique.mockResolvedValue({ userId: "utente-1" });
 
       const formData = new FormData();
@@ -386,7 +423,6 @@ describe("Server Actions collaboratori", () => {
       formData.set("cognome", "Bianchi");
       formData.set("email", "mario.bianchi@example.com");
       formData.set("partitaIva", "11111111111");
-      formData.set("tariffaGiornaliera", "150");
 
       await aggiornaCollaboratore(statoIniziale(), formData);
 
@@ -400,7 +436,6 @@ describe("Server Actions collaboratori", () => {
 
     it("restituisce errore se il collaboratore non esiste", async () => {
       mockValidaCollaboratore.mockReturnValue({});
-      mockNormalizzaTariffaGiornaliera.mockReturnValue(TARIFFA_NORMALIZZATA);
       mockCollaboratore.findUnique.mockResolvedValue(null);
 
       const formData = new FormData();
@@ -408,7 +443,6 @@ describe("Server Actions collaboratori", () => {
       formData.set("nome", "Mario");
       formData.set("cognome", "Bianchi");
       formData.set("partitaIva", "11111111111");
-      formData.set("tariffaGiornaliera", "150");
 
       const result = await aggiornaCollaboratore(statoIniziale(), formData);
 

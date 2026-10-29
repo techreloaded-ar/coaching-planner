@@ -112,7 +112,6 @@ function collaboratoreMock() {
     nome: "Giulia",
     cognome: "Conti",
     partitaIva: "IT12345678901",
-    tariffaGiornaliera: "350.00",
     attivo: true,
     createdAt: new Date(),
     updatedAt: new Date(),

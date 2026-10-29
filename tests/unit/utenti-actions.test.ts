@@ -72,7 +72,9 @@ function formNuovoUtenteConProfilo(): FormData {
   formData.set("ruoloCollaboratore", "on");
   formData.set("cognome", "  Rossi  ");
   formData.set("partitaIva", "  12345678901  ");
-  formData.set("tariffaGiornaliera", "  450,00  ");
+  formData.set("modalitaTariffa", "GIORNALIERA");
+  formData.set("importoTariffa", "  450,00  ");
+  formData.set("tariffaValidaDalMese", "  2026-01  ");
   return formData;
 }
 
@@ -239,8 +241,10 @@ describe("Server Actions utenti", () => {
           nome: "Mario",
           cognome: "Rossi",
           partitaIva: "12345678901",
-          tariffaGiornaliera: "450.00",
           attivo: true,
+          tariffe: {
+            create: { validaDalMese: "2026-01", modalita: "GIORNALIERA", importo: "450.00" },
+          },
         },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
@@ -276,8 +280,10 @@ describe("Server Actions utenti", () => {
           nome: "Mario",
           cognome: "Rossi",
           partitaIva: "12345678901",
-          tariffaGiornaliera: "450.00",
           attivo: true,
+          tariffe: {
+            create: { validaDalMese: "2026-01", modalita: "GIORNALIERA", importo: "450.00" },
+          },
         },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
@@ -287,6 +293,38 @@ describe("Server Actions utenti", () => {
       expect(mockRedirect).toHaveBeenCalledWith(
         "/anagrafiche/utenti?esito=creato",
       );
+    });
+
+    it("crea il profilo collaboratore con una tariffa iniziale a fisso mensile", async () => {
+      mockUtente.findUnique.mockResolvedValue(null);
+      mockUtente.create.mockResolvedValue({ id: "utente-3" });
+      const formData = formNuovoUtenteConProfilo();
+      formData.set("modalitaTariffa", "FISSO_MENSILE");
+      formData.set("importoTariffa", "6500");
+
+      await creaUtente(statoIniziale(), formData);
+
+      expect(mockCollaboratore.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: "utente-3",
+          tariffe: {
+            create: { validaDalMese: "2026-01", modalita: "FISSO_MENSILE", importo: "6500.00" },
+          },
+        }),
+      });
+    });
+
+    it("rifiuta una tariffa iniziale non valida senza toccare il database", async () => {
+      const formData = formNuovoUtenteConProfilo();
+      formData.set("importoTariffa", "0");
+
+      const result = await creaUtente(statoIniziale(), formData);
+
+      expect(result.errori).toEqual({
+        importoTariffa: "L'importo deve essere maggiore di zero",
+      });
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
+      expect(mockCollaboratore.create).not.toHaveBeenCalled();
     });
 
     it("traduce il vincolo unique P2002 in errore email duplicata", async () => {
@@ -484,7 +522,9 @@ describe("Server Actions utenti", () => {
       formData.set("ruoloCollaboratore", "on");
       formData.set("cognome", "  Rossi  ");
       formData.set("partitaIva", "  12345678901  ");
-      formData.set("tariffaGiornaliera", "  450,00  ");
+      formData.set("modalitaTariffa", "GIORNALIERA");
+      formData.set("importoTariffa", "  450,00  ");
+      formData.set("tariffaValidaDalMese", "  2026-01  ");
 
       await aggiornaUtente(statoIniziale(), formData);
 
@@ -504,8 +544,10 @@ describe("Server Actions utenti", () => {
           nome: "Mario",
           cognome: "Rossi",
           partitaIva: "12345678901",
-          tariffaGiornaliera: "450.00",
           attivo: true,
+          tariffe: {
+            create: { validaDalMese: "2026-01", modalita: "GIORNALIERA", importo: "450.00" },
+          },
         },
       });
       expect(mockCollaboratore.update).not.toHaveBeenCalled();
@@ -519,7 +561,7 @@ describe("Server Actions utenti", () => {
       );
     });
 
-    it("AC-1: senza profilo e con Collaboratore selezionato ma campi vuoti segnala i tre errori senza scritture", async () => {
+    it("AC-1: senza profilo e con Collaboratore selezionato ma campi vuoti segnala gli errori dei campi profilo senza scritture", async () => {
       mockUtente.findUnique.mockResolvedValue({
         ruolo: "COLLABORATORE",
         attivo: true,
@@ -536,7 +578,9 @@ describe("Server Actions utenti", () => {
       expect(result.errori).toEqual({
         cognome: "Il cognome è obbligatorio",
         partitaIva: "La partita IVA è obbligatoria",
-        tariffaGiornaliera: "La tariffa giornaliera è obbligatoria",
+        modalitaTariffa: "Scegli la modalità della tariffa",
+        importoTariffa: "L'importo è obbligatorio",
+        tariffaValidaDalMese: "Indica il mese da cui la tariffa è valida",
       });
       expect(mockDb.$transaction).not.toHaveBeenCalled();
       expect(mockUtente.update).not.toHaveBeenCalled();
@@ -719,7 +763,9 @@ describe("Server Actions utenti", () => {
       formData.set("ruoloCollaboratore", "on");
       formData.set("cognome", "  Rossi  ");
       formData.set("partitaIva", "  12345678901  ");
-      formData.set("tariffaGiornaliera", "  450,00  ");
+      formData.set("modalitaTariffa", "GIORNALIERA");
+      formData.set("importoTariffa", "  450,00  ");
+      formData.set("tariffaValidaDalMese", "  2026-01  ");
 
       const result = await aggiornaUtente(statoIniziale(), formData);
 

@@ -6,7 +6,6 @@ export interface DatiCollaboratoreInput {
   nome: string;
   cognome: string;
   partitaIva: string;
-  tariffaGiornaliera: string;
 }
 
 /** Mappa campo → messaggio di errore. Vuota se la validazione passa. */
@@ -72,28 +71,6 @@ export function validaCampoPartitaIva(valore: string): string | null {
   return null;
 }
 
-/**
- * Valida il campo tariffa giornaliera con gli identici controlli e messaggi
- * dell'anagrafica collaboratori.
- *
- * Restituisce `null` se il valore è valido, altrimenti il messaggio di errore.
- */
-export function validaCampoTariffaGiornaliera(valore: string): string | null {
-  if (!valore || valore.trim() === "") {
-    return "La tariffa giornaliera è obbligatoria";
-  }
-
-  const tariffa = normalizzaTariffaGiornaliera(valore);
-
-  if (!tariffa) {
-    return "Importo non valido: usa massimo 2 decimali";
-  }
-  if (tariffa.centesimi <= BigInt(0)) {
-    return "La tariffa giornaliera deve essere maggiore di zero";
-  }
-  return null;
-}
-
 // ---------------------------------------------------------------------------
 // Validazione
 // ---------------------------------------------------------------------------
@@ -120,11 +97,6 @@ export function validaCollaboratore(
   const errorePartitaIva = validaCampoPartitaIva(dati.partitaIva);
   if (errorePartitaIva) {
     errori.partitaIva = errorePartitaIva;
-  }
-
-  const erroreTariffa = validaCampoTariffaGiornaliera(dati.tariffaGiornaliera);
-  if (erroreTariffa) {
-    errori.tariffaGiornaliera = erroreTariffa;
   }
 
   return errori;

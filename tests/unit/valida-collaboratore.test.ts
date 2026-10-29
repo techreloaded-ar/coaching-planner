@@ -14,7 +14,6 @@ function baseInput(
     nome: "Mario",
     cognome: "Rossi",
     partitaIva: "12345678901",
-    tariffaGiornaliera: "650,00",
     ...overrides,
   };
 }
@@ -75,33 +74,6 @@ describe("validaCollaboratore — campi obbligatori", () => {
     });
   });
 
-  describe("tariffaGiornaliera", () => {
-    it("restituisce errore se la tariffa giornaliera è vuota", () => {
-      const errori = validaCollaboratore(
-        baseInput({ tariffaGiornaliera: "" })
-      );
-      expect(errori.tariffaGiornaliera).toBe(
-        "La tariffa giornaliera è obbligatoria"
-      );
-    });
-
-    it("restituisce errore se la tariffa giornaliera è composta solo da spazi", () => {
-      const errori = validaCollaboratore(
-        baseInput({ tariffaGiornaliera: "   " })
-      );
-      expect(errori.tariffaGiornaliera).toBe(
-        "La tariffa giornaliera è obbligatoria"
-      );
-    });
-
-    it("non segnala errore sulla tariffa giornaliera se valorizzata correttamente", () => {
-      const errori = validaCollaboratore(
-        baseInput({ tariffaGiornaliera: "500,00" })
-      );
-      expect(errori.tariffaGiornaliera).toBeUndefined();
-    });
-  });
-
   it("non segnala errori quando tutti i campi obbligatori sono presenti", () => {
     const errori = validaCollaboratore(baseInput());
     expect(errori).toEqual({});
@@ -137,60 +109,6 @@ describe("validaCollaboratore — formato partita IVA", () => {
       baseInput({ partitaIva: "1234567890A" })
     );
     expect(errori.partitaIva).toBe("La partita IVA deve essere di 11 cifre");
-  });
-});
-
-// ── 4. Tariffa giornaliera ──────────────────────────────────────
-
-describe("validaCollaboratore — tariffa giornaliera", () => {
-  it("accetta un importo con virgola", () => {
-    const errori = validaCollaboratore(
-      baseInput({ tariffaGiornaliera: "650,50" })
-    );
-    expect(errori.tariffaGiornaliera).toBeUndefined();
-  });
-
-  it("accetta un importo con punto", () => {
-    const errori = validaCollaboratore(
-      baseInput({ tariffaGiornaliera: "650.50" })
-    );
-    expect(errori.tariffaGiornaliera).toBeUndefined();
-  });
-
-  it("rifiuta zero", () => {
-    const errori = validaCollaboratore(
-      baseInput({ tariffaGiornaliera: "0" })
-    );
-    expect(errori.tariffaGiornaliera).toBe(
-      "La tariffa giornaliera deve essere maggiore di zero"
-    );
-  });
-
-  it("rifiuta un importo negativo", () => {
-    const errori = validaCollaboratore(
-      baseInput({ tariffaGiornaliera: "-12,00" })
-    );
-    expect(errori.tariffaGiornaliera).toBe(
-      "Importo non valido: usa massimo 2 decimali"
-    );
-  });
-
-  it("rifiuta un valore testuale", () => {
-    const errori = validaCollaboratore(
-      baseInput({ tariffaGiornaliera: "abc" })
-    );
-    expect(errori.tariffaGiornaliera).toBe(
-      "Importo non valido: usa massimo 2 decimali"
-    );
-  });
-
-  it("rifiuta più di due cifre decimali", () => {
-    const errori = validaCollaboratore(
-      baseInput({ tariffaGiornaliera: "10,999" })
-    );
-    expect(errori.tariffaGiornaliera).toBe(
-      "Importo non valido: usa massimo 2 decimali"
-    );
   });
 });
 

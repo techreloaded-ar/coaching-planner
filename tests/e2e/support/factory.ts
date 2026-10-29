@@ -4,6 +4,7 @@ import type {
 	AbilitazioneOfferta,
 	Cliente,
 	Collaboratore,
+	ModalitaTariffa,
 	Offerta,
 	RigaAttivita,
 	Ruolo,
@@ -36,9 +37,22 @@ export type CreateCollaboratoreOptions = {
 	nome?: string;
 	cognome?: string;
 	partitaIva?: string;
+	/** Scorciatoia: una sola tariffa giornaliera valida da un mese remoto. */
 	tariffaGiornaliera?: string | number;
+	/** Storico tariffe esplicito; se presente sostituisce `tariffaGiornaliera`. */
+	tariffe?: TariffaCollaboratoreTestData[];
 	attivo?: boolean;
 };
+
+export type TariffaCollaboratoreTestData = {
+	/** Token YYYY-MM */
+	validaDalMese: string;
+	modalita: ModalitaTariffa;
+	importo: string | number;
+};
+
+/** Decorrenza della tariffa predefinita: copre ogni mese riservato, anche gli slot esclusivi (360+ mesi indietro). */
+const MESE_TARIFFA_PREDEFINITA = "1900-01";
 
 export type CreateClienteOptions = {
 	ragioneSociale?: string;
@@ -182,8 +196,8 @@ export class E2eDataFactory {
 
 		const collaboratore = await insertReturning<Collaboratore>(
 			this.prisma,
-			`INSERT INTO "Collaboratore" ("id", "userId", "nome", "cognome", "partitaIva", "tariffaGiornaliera", "attivo", "createdAt", "updatedAt")
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+			`INSERT INTO "Collaboratore" ("id", "userId", "nome", "cognome", "partitaIva", "attivo", "createdAt", "updatedAt")
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
 			 RETURNING *`,
 			[
 				randomUUID(),
@@ -191,11 +205,32 @@ export class E2eDataFactory {
 				options.nome ?? "E2E",
 				options.cognome ?? this.readableName(token),
 				options.partitaIva ?? this.numericCode(`partita-iva-${token}`),
-				options.tariffaGiornaliera ?? "350.00",
 				options.attivo ?? true,
 				now,
 			],
 		);
+
+		const tariffe = options.tariffe ?? [
+			{
+				validaDalMese: MESE_TARIFFA_PREDEFINITA,
+				modalita: "GIORNALIERA" as const,
+				importo: options.tariffaGiornaliera ?? "350.00",
+			},
+		];
+		for (const tariffa of tariffe) {
+			await this.prisma.query(
+				`INSERT INTO "TariffaCollaboratore" ("id", "collaboratoreId", "validaDalMese", "modalita", "importo", "createdAt", "updatedAt")
+				 VALUES ($1, $2, $3, $4::"ModalitaTariffa", $5, $6, $6)`,
+				[
+					randomUUID(),
+					collaboratore.id,
+					tariffa.validaDalMese,
+					tariffa.modalita,
+					tariffa.importo,
+					now,
+				],
+			);
+		}
 
 		return { utente, collaboratore };
 	}

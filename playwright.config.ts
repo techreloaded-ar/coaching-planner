@@ -27,6 +27,11 @@ assertDatabaseE2eDistintoDaDatabaseApplicativo(
 const webServerCommand =
 	process.env.PLAYWRIGHT_WEB_SERVER_COMMAND?.trim() || "npm run dev";
 
+// Porta del web server e2e: E2E_PORT permette di eseguire la suite mentre un
+// altro server di sviluppo occupa la 3000 (next dev legge PORT).
+const portaE2e = process.env.E2E_PORT?.trim() || "3000";
+const urlE2e = `http://localhost:${portaE2e}`;
+
 const E2E_FALLBACK_SESSION_SECRET =
 	"e2e-test-session-secret-not-for-production-1234567890";
 
@@ -44,6 +49,7 @@ const e2eEnvironment = {
 	...costruisciAmbienteE2e(process.env, e2eDatabaseUrl),
 	// Il fallback vale solo per il processo web server lanciato da Playwright.
 	SESSION_SECRET: e2eSessionSecret,
+	PORT: portaE2e,
 };
 
 export default defineConfig({
@@ -54,7 +60,7 @@ export default defineConfig({
 	globalSetup: "./tests/e2e/global-setup.ts",
 	globalTeardown: "./tests/e2e/global-teardown.ts",
 	use: {
-		baseURL: "http://localhost:3000",
+		baseURL: urlE2e,
 		video: "off", // Default off; solo il demo scenario abilita la registrazione
 		trace: "on-first-retry",
 	},
@@ -67,7 +73,7 @@ export default defineConfig({
 	webServer: {
 		command: webServerCommand,
 		env: e2eEnvironment,
-		url: "http://localhost:3000",
+		url: urlE2e,
 		reuseExistingServer: false,
 	},
 });

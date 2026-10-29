@@ -147,7 +147,7 @@ test.describe("Dettaglio collaboratore", () => {
 		await expect(
 			page.getByText(collaboratoreA.utente.email, { exact: true }),
 		).toBeVisible();
-		await expect(page.getByText(/432,50\s*€/)).toBeVisible();
+		await expect(page.getByTestId("tariffa-attuale")).toContainText(/432,50\s*€\s*\/ giorno/);
 
 		// AC-2/AC-3 — due sezioni mese con etichetta italiana, ordinate dalla
 		// più recente, con totali di ore/giornate e badge di fatturabilità

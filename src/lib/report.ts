@@ -3,7 +3,8 @@ import "server-only";
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
 import { fatturataAlCliente } from "@/domain/types";
-import { parseTokenMese } from "@/domain/calendario";
+import { meseSuccessivo, parseTokenMese } from "@/domain/calendario";
+import { tariffaValidaNelMese } from "@/domain/tariffe";
 import type {
   RigaAttivita,
   Offerta,
@@ -15,6 +16,7 @@ import {
   calcolaMarginalitaClienti,
   type RigaReportFatturazione,
   type ReportFatturazioneClienti,
+  type FissoMensileCollaboratore,
   type RigaMarginalita,
   type ReportMarginalita,
 } from "@/domain/consuntivi";
@@ -131,7 +133,8 @@ export async function reportFatturazioneClientiMese(
  * collaboratori.
  *
  * Accesso riservato all'amministratore. I ricavi usano la tariffa
- * dell'OFFERTA, i costi la tariffa del COLLABORATORE autore della riga.
+ * dell'OFFERTA, i costi la tariffa del COLLABORATORE autore della riga valida
+ * nel mese della riga; i fissi mensili si ripartiscono sulle offerte del mese.
  * Se un token non è valido restituisce un report vuoto senza errori.
  *
  * @param da - Primo mese del periodo (YYYY-MM)
@@ -152,30 +155,74 @@ export async function reportMarginalitaPeriodo(
   const inizio = new Date(parsedDa.anno, parsedDa.mese - 1, 1);
   const fine = new Date(parsedA.anno, parsedA.mese, 0);
 
-  const righeDb = await db.rigaAttivita.findMany({
-    where: {
-      categoria: { in: ["FATTURABILE", "NON_FATTURABILE"] },
-      data: { gte: inizio, lte: fine },
-    },
-    include: {
-      offerta: true,
-      cliente: true,
-      collaboratore: { select: { tariffaGiornaliera: true } },
-    },
+  const [righeDb, collaboratori] = await Promise.all([
+    db.rigaAttivita.findMany({
+      where: {
+        categoria: { in: ["FATTURABILE", "NON_FATTURABILE"] },
+        data: { gte: inizio, lte: fine },
+      },
+      include: {
+        offerta: true,
+        cliente: true,
+      },
+    }),
+    db.collaboratore.findMany({
+      select: {
+        id: true,
+        attivo: true,
+        tariffe: {
+          where: { validaDalMese: { lte: a } },
+          select: { validaDalMese: true, modalita: true, importo: true },
+        },
+      },
+    }),
+  ]);
+
+  const tariffePerCollaboratore = new Map(
+    collaboratori.map((collaboratore) => [collaboratore.id, collaboratore.tariffe]),
+  );
+
+  const righe: RigaMarginalita[] = righeDb.map((riga) => {
+    const mese = riga.data.toISOString().slice(0, 7);
+    const tariffa = tariffaValidaNelMese(
+      tariffePerCollaboratore.get(riga.collaboratoreId) ?? [],
+      mese,
+    );
+    return {
+      clienteId: riga.clienteId,
+      clienteRagioneSociale: riga.cliente.ragioneSociale,
+      offertaId: riga.offertaId,
+      offertaCodice: riga.offerta.codice,
+      offertaDescrizione: riga.offerta.descrizione,
+      tariffaOffertaGiornaliera: riga.offerta.tariffaGiornaliera.toString(),
+      collaboratoreId: riga.collaboratoreId,
+      mese,
+      modalitaTariffaCollaboratore: tariffa?.modalita ?? null,
+      importoTariffaCollaboratore: tariffa?.importo.toString() ?? 0,
+      ore: Number(riga.ore),
+      categoria: riga.categoria,
+    };
   });
 
-  const righe: RigaMarginalita[] = righeDb.map((riga) => ({
-    clienteId: riga.clienteId,
-    clienteRagioneSociale: riga.cliente.ragioneSociale,
-    offertaId: riga.offertaId,
-    offertaCodice: riga.offerta.codice,
-    offertaDescrizione: riga.offerta.descrizione,
-    tariffaOffertaGiornaliera: riga.offerta.tariffaGiornaliera.toString(),
-    tariffaCollaboratoreGiornaliera:
-      riga.collaboratore.tariffaGiornaliera.toString(),
-    ore: Number(riga.ore),
-    categoria: riga.categoria,
-  }));
+  // Fissi mensili dovuti nel periodo: collaboratori attivi, più chi ha ore nel
+  // mese anche se oggi disattivato.
+  const conRigheNelMese = new Set(righe.map((riga) => `${riga.collaboratoreId}|${riga.mese}`));
+  const fissiMensili: FissoMensileCollaboratore[] = [];
+  for (let mese = da; mese <= a; mese = meseSuccessivo(mese)) {
+    for (const collaboratore of collaboratori) {
+      const tariffa = tariffaValidaNelMese(collaboratore.tariffe, mese);
+      if (
+        tariffa?.modalita === "FISSO_MENSILE" &&
+        (collaboratore.attivo || conRigheNelMese.has(`${collaboratore.id}|${mese}`))
+      ) {
+        fissiMensili.push({
+          collaboratoreId: collaboratore.id,
+          mese,
+          importo: tariffa.importo.toString(),
+        });
+      }
+    }
+  }
 
-  return { da, a, ...calcolaMarginalitaClienti(righe) };
+  return { da, a, ...calcolaMarginalitaClienti(righe, fissiMensili) };
 }

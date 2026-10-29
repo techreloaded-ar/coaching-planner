@@ -52,7 +52,6 @@ export interface RisultatoRiepilogoMese {
   totali: TotaliRiepilogoMese;
   importoFattura: string;
   breakdown: BreakdownRiepilogoMese;
-  tariffaGiornaliera: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -488,7 +487,7 @@ async function leggiVociRimborsoTrasfertaPerSelezione(): Promise<
   }));
 }
 
-function creaRiepilogoVuoto(token: string, tariffaGiornaliera = "0.00"): RisultatoRiepilogoMese {
+function creaRiepilogoVuoto(token: string): RisultatoRiepilogoMese {
   return {
     token,
     perOfferta: [],
@@ -503,11 +502,12 @@ function creaRiepilogoVuoto(token: string, tariffaGiornaliera = "0.00"): Risulta
     importoFattura: "0.00",
     breakdown: {
       giornateDaFatturare: "0.00",
-      tariffaGiornaliera,
+      modalitaTariffa: null,
+      importoTariffa: "0.00",
+      tariffaValidaDalMese: null,
       imponibileManodopera: "0.00",
       totaleRimborsi: "0.00",
     },
-    tariffaGiornaliera,
   };
 }
 
@@ -529,22 +529,33 @@ export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMe
   const inizio = new Date(anno, mese - 1, 1);
   const fine = new Date(anno, mese, 0);
 
-  const righeDb = await db.rigaAttivita.findMany({
-    where: {
-      collaboratoreId: collaboratore.id,
-      data: {
-        gte: inizio,
-        lte: fine,
+  const [righeDb, tariffe] = await Promise.all([
+    db.rigaAttivita.findMany({
+      where: {
+        collaboratoreId: collaboratore.id,
+        data: {
+          gte: inizio,
+          lte: fine,
+        },
       },
-    },
-    include: {
-      offerta: true,
-      cliente: true,
-    },
-    orderBy: { data: "asc" },
-  });
+      include: {
+        offerta: true,
+        cliente: true,
+      },
+      orderBy: { data: "asc" },
+    }),
+    db.tariffaCollaboratore.findMany({
+      where: { collaboratoreId: collaboratore.id, validaDalMese: { lte: token } },
+      orderBy: { validaDalMese: "desc" },
+      take: 1,
+      select: { validaDalMese: true, modalita: true, importo: true },
+    }),
+  ]);
 
-  const tariffa = collaboratore.tariffaGiornaliera.toString();
+  const tariffaDelMese = tariffe[0];
+  const tariffa = tariffaDelMese
+    ? { ...tariffaDelMese, importo: tariffaDelMese.importo.toString() }
+    : null;
   const righe: RigaRiepilogo[] = righeDb.map((riga) => ({
     offertaId: riga.offerta.id,
     offertaCodice: riga.offerta.codice,
@@ -563,6 +574,5 @@ export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMe
     totali: riepilogo.totali,
     importoFattura: riepilogo.importoFattura,
     breakdown: riepilogo.breakdown,
-    tariffaGiornaliera: tariffa,
   };
 }

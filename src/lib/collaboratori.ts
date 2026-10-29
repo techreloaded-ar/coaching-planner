@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
 import type { Collaboratore } from "@/generated/prisma/client";
 import type { RigaAttivitaConContesto } from "@/lib/attivita";
+import type { TariffaApplicata } from "@/domain/tariffe";
 
 // ── API collaboratori (back office, solo amministratore) ─────────
 
@@ -11,18 +12,56 @@ export interface CollaboratoreConUtente extends Collaboratore {
   utente: { email: string };
 }
 
+export interface CollaboratoreConTariffe extends CollaboratoreConUtente {
+  tariffe: TariffaApplicata[];
+}
+
+/** Voce dello storico tariffe pronta per il client (importo come stringa). */
+export interface VoceStoricoTariffa extends TariffaApplicata {
+  id: string;
+}
+
 /**
  * Elenca tutti i collaboratori (attivi e disattivati), con l'email
- * dell'utente associato.
+ * dell'utente associato e lo storico delle tariffe.
  * Accesso riservato all'amministratore.
  */
-export async function elencaCollaboratori(): Promise<CollaboratoreConUtente[]> {
+export async function elencaCollaboratori(): Promise<CollaboratoreConTariffe[]> {
   await richiediRuoloApi("AMMINISTRATORE");
 
-  return db.collaboratore.findMany({
+  const collaboratori = await db.collaboratore.findMany({
     orderBy: { cognome: "asc" },
-    include: { utente: { select: { email: true } } },
+    include: {
+      utente: { select: { email: true } },
+      tariffe: { select: { validaDalMese: true, modalita: true, importo: true } },
+    },
   });
+
+  return collaboratori.map((collaboratore) => ({
+    ...collaboratore,
+    tariffe: collaboratore.tariffe.map((tariffa) => ({
+      ...tariffa,
+      importo: tariffa.importo.toFixed(2),
+    })),
+  }));
+}
+
+/**
+ * Storico tariffe di un collaboratore, dalla più recente.
+ * Accesso riservato all'amministratore.
+ */
+export async function storicoTariffeCollaboratore(
+  collaboratoreId: string,
+): Promise<VoceStoricoTariffa[]> {
+  await richiediRuoloApi("AMMINISTRATORE");
+
+  const tariffe = await db.tariffaCollaboratore.findMany({
+    where: { collaboratoreId },
+    orderBy: { validaDalMese: "desc" },
+    select: { id: true, validaDalMese: true, modalita: true, importo: true },
+  });
+
+  return tariffe.map((tariffa) => ({ ...tariffa, importo: tariffa.importo.toFixed(2) }));
 }
 
 /**

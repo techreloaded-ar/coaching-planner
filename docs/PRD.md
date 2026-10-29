@@ -138,7 +138,7 @@ Il doppio consuntivo automatico su un unico inserimento dati: la stessa riga di 
 **Back Office (Amministratore)**
 - Anagrafica clienti con dati di fatturazione.
 - Anagrafica offerte per cliente: codice, descrizione, tariffa giornaliera, giorni previsti.
-- Anagrafica collaboratori: dati anagrafici, partita IVA, tariffa giornaliera applicata alla società.
+- Anagrafica collaboratori: dati anagrafici, partita IVA, storico delle tariffe applicate alla società (giornaliera o fisso mensile, valide dal mese indicato).
 - Configurazione degli scaglioni chilometrici per i rimborsi trasferta (es. fino a 100 km → importo X, fino a 200 km → importo Y).
 
 **Reportistica (Amministratore)**
@@ -243,7 +243,7 @@ Sviluppo locale su Windows 11 con Node.js LTS e un'istanza PostgreSQL locale (co
 
 1. **ADR-001 — Unica web app con ruoli invece di due applicazioni separate**: stessa base dati e un solo deploy; le "due applicazioni" delle note diventano due aree con autorizzazioni distinte.
 2. **ADR-002 — Conversione fissa 1 giornata = 8 ore**: confermata dal committente; implementata come costante centralizzata nel modulo di dominio, così un'eventuale futura configurabilità resta un cambiamento locale.
-3. **ADR-003 — Tariffa unica per collaboratore**: confermata dal committente; il modello dati non prevede override per offerta nel MVP.
+3. **ADR-003 — Tariffa unica per collaboratore**: confermata dal committente; il modello dati non prevede override per offerta nel MVP. Evoluzione: la tariffa resta unica per collaboratore *in ogni mese*, ma ha uno storico (`TariffaCollaboratore`: mese di decorrenza, modalità giornaliera o fisso mensile, importo; una voce per mese) e ogni calcolo usa la tariffa valida nel mese dell'attività.
 4. **ADR-004 — PostgreSQL su SiteGround**: vincolo del committente; lo sviluppo locale usa un Postgres equivalente e l'accesso remoto TLS va validato a inizio progetto.
 5. **ADR-005 — Importi come Decimal**: tutti i valori monetari usano tipi decimali (DB e applicazione) per evitare errori di arrotondamento nei consuntivi.
 6. **ADR-006 — Logica di calcolo in funzioni pure**: conversioni, rimborsi e totali vivono in `src/domain/consuntivi`, senza dipendenze dal framework, per essere testabili in isolamento.
@@ -261,7 +261,7 @@ Sviluppo locale su Windows 11 con Node.js LTS e un'istanza PostgreSQL locale (co
 
 - **RF-03** — L'amministratore deve poter creare, modificare e disattivare i clienti, includendo i dati di fatturazione.
 - **RF-04** — L'amministratore deve poter gestire le offerte associate a ciascun cliente, specificando codice, descrizione, tariffa giornaliera e numero di giorni previsti.
-- **RF-05** — L'amministratore deve poter gestire i collaboratori con dati anagrafici, partita IVA e tariffa giornaliera applicata alla società.
+- **RF-05** — L'amministratore deve poter gestire i collaboratori con dati anagrafici, partita IVA e storico delle tariffe applicate alla società: ogni tariffa è giornaliera o fissa mensile e vale dal mese indicato fino alla successiva.
 - **RF-06** — L'amministratore deve poter configurare gli scaglioni chilometrici per i rimborsi trasferta, definendo per ogni soglia di distanza l'importo forfettario corrispondente.
 
 ### Consuntivazione Attività (Front Office)
@@ -275,7 +275,7 @@ Sviluppo locale su Windows 11 con Node.js LTS e un'istanza PostgreSQL locale (co
 ### Calcoli e Regole di Dominio
 
 - **RF-12** — Tutti i calcoli devono applicare la conversione fissa 1 giornata = 8 ore lavorate.
-- **RF-13** — L'importo dovuto al collaboratore deve essere calcolato come giornate fatturabili × tariffa giornaliera del collaboratore, più i rimborsi trasferta del periodo.
+- **RF-13** — L'importo dovuto al collaboratore deve essere calcolato con la tariffa valida nel mese: giornate fatturabili × tariffa giornaliera, oppure il fisso mensile a prescindere dalle ore; in entrambi i casi più i rimborsi trasferta del periodo.
 - **RF-14** — I rimborsi trasferta devono essere ribaltati anche in fattura al cliente: ogni trasferta registrata concorre, con lo stesso importo forfettario, sia alla fattura del collaboratore sia all'importo da fatturare al cliente di riferimento.
 - **RF-15** — Le attività devono rimanere sempre modificabili dal collaboratore, anche per mesi conclusi: il sistema non prevede alcun blocco o chiusura del mese e i report riflettono sempre i dati correnti.
 

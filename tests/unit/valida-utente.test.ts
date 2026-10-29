@@ -16,7 +16,9 @@ function baseCensimentoInput(
     ruoloCollaboratore: true,
     cognome: "Rossi",
     partitaIva: "12345678901",
-    tariffaGiornaliera: "650,00",
+    modalitaTariffa: "GIORNALIERA",
+    importoTariffa: "650,00",
+    tariffaValidaDalMese: "2026-01",
     ...overrides,
   };
 }
@@ -31,7 +33,9 @@ function baseModificaInput(
     ruoloCollaboratore: true,
     cognome: "Rossi",
     partitaIva: "12345678901",
-    tariffaGiornaliera: "650,00",
+    modalitaTariffa: "GIORNALIERA",
+    importoTariffa: "650,00",
+    tariffaValidaDalMese: "2026-01",
     profiloPresente: false,
     ...overrides,
   };
@@ -47,7 +51,9 @@ describe("validaCensimentoUtente", () => {
         ruoloCollaboratore: false,
         cognome: "",
         partitaIva: "",
-        tariffaGiornaliera: "",
+        modalitaTariffa: "",
+        importoTariffa: "",
+        tariffaValidaDalMese: "",
       })
     );
     expect(errori.cognome).toBe("Il cognome è obbligatorio");
@@ -61,7 +67,9 @@ describe("validaCensimentoUtente", () => {
           ruoloCollaboratore: false,
           cognome: "Bianchi",
           partitaIva: "",
-          tariffaGiornaliera: "",
+          modalitaTariffa: "",
+          importoTariffa: "",
+          tariffaValidaDalMese: "",
         })
       )
     ).toEqual({});
@@ -134,33 +142,47 @@ describe("validaCensimentoUtente", () => {
     }
   );
 
-  // ── (e) Tariffa giornaliera — parità con validaCollaboratore ────
+  // ── (e) Tariffa iniziale — parità con validaVoceTariffa ─────────
 
-  it("rifiuta la tariffa vuota con lo stesso messaggio di validaCollaboratore", () => {
+  it("rifiuta l'importo vuoto con lo stesso messaggio dello storico tariffe", () => {
     const errori = validaCensimentoUtente(
-      baseCensimentoInput({ tariffaGiornaliera: "" })
+      baseCensimentoInput({ importoTariffa: "" })
     );
-    expect(errori.tariffaGiornaliera).toBe(
-      "La tariffa giornaliera è obbligatoria"
-    );
+    expect(errori.importoTariffa).toBe("L'importo è obbligatorio");
   });
 
-  it("rifiuta la tariffa con più di 2 decimali con lo stesso messaggio di validaCollaboratore", () => {
+  it("rifiuta l'importo con più di 2 decimali con lo stesso messaggio dello storico tariffe", () => {
     const errori = validaCensimentoUtente(
-      baseCensimentoInput({ tariffaGiornaliera: "10,999" })
+      baseCensimentoInput({ importoTariffa: "10,999" })
     );
-    expect(errori.tariffaGiornaliera).toBe(
+    expect(errori.importoTariffa).toBe(
       "Importo non valido: usa massimo 2 decimali"
     );
   });
 
-  it("rifiuta la tariffa pari a zero con lo stesso messaggio di validaCollaboratore", () => {
+  it("rifiuta l'importo pari a zero con lo stesso messaggio dello storico tariffe", () => {
     const errori = validaCensimentoUtente(
-      baseCensimentoInput({ tariffaGiornaliera: "0" })
+      baseCensimentoInput({ importoTariffa: "0" })
     );
-    expect(errori.tariffaGiornaliera).toBe(
-      "La tariffa giornaliera deve essere maggiore di zero"
+    expect(errori.importoTariffa).toBe("L'importo deve essere maggiore di zero");
+  });
+
+  it("rifiuta modalità e mese di decorrenza non validi con le chiavi dei campi del form utente", () => {
+    const errori = validaCensimentoUtente(
+      baseCensimentoInput({ modalitaTariffa: "ORARIA", tariffaValidaDalMese: "2026-13" })
     );
+    expect(errori).toEqual({
+      modalitaTariffa: "Scegli la modalità della tariffa",
+      tariffaValidaDalMese: "Indica il mese da cui la tariffa è valida",
+    });
+  });
+
+  it("accetta una tariffa iniziale a fisso mensile", () => {
+    expect(
+      validaCensimentoUtente(
+        baseCensimentoInput({ modalitaTariffa: "FISSO_MENSILE", importoTariffa: "6500" })
+      )
+    ).toEqual({});
   });
 
   // ── (f) Solo amministratore ignora i campi profilo ──────────────
@@ -172,12 +194,16 @@ describe("validaCensimentoUtente", () => {
         ruoloCollaboratore: false,
         cognome: "",
         partitaIva: "",
-        tariffaGiornaliera: "",
+        modalitaTariffa: "",
+        importoTariffa: "",
+        tariffaValidaDalMese: "",
       })
     );
     expect(errori.cognome).toBe("Il cognome è obbligatorio");
     expect(errori.partitaIva).toBeUndefined();
-    expect(errori.tariffaGiornaliera).toBeUndefined();
+    expect(errori.modalitaTariffa).toBeUndefined();
+    expect(errori.importoTariffa).toBeUndefined();
+    expect(errori.tariffaValidaDalMese).toBeUndefined();
   });
 
   // ── (g) Nome ed email validati come in validaUtente ─────────────
@@ -223,7 +249,9 @@ describe("validaModificaUtente", () => {
         profiloPresente: false,
         cognome: "",
         partitaIva: "",
-        tariffaGiornaliera: "",
+        modalitaTariffa: "",
+        importoTariffa: "",
+        tariffaValidaDalMese: "",
       })
     );
     expect(errori.cognome).toBe("Il cognome è obbligatorio");
@@ -238,7 +266,9 @@ describe("validaModificaUtente", () => {
           profiloPresente: false,
           cognome: "Bianchi",
           partitaIva: "",
-          tariffaGiornaliera: "",
+          modalitaTariffa: "",
+          importoTariffa: "",
+          tariffaValidaDalMese: "",
         })
       )
     ).toEqual({});
@@ -265,13 +295,17 @@ describe("validaModificaUtente", () => {
         profiloPresente: false,
         cognome: "",
         partitaIva: "",
-        tariffaGiornaliera: "",
+        modalitaTariffa: "",
+        importoTariffa: "",
+        tariffaValidaDalMese: "",
       })
     );
     expect(errori.cognome).toBe("Il cognome è obbligatorio");
     expect(errori.partitaIva).toBe("La partita IVA è obbligatoria");
-    expect(errori.tariffaGiornaliera).toBe(
-      "La tariffa giornaliera è obbligatoria"
+    expect(errori.modalitaTariffa).toBe("Scegli la modalità della tariffa");
+    expect(errori.importoTariffa).toBe("L'importo è obbligatorio");
+    expect(errori.tariffaValidaDalMese).toBe(
+      "Indica il mese da cui la tariffa è valida"
     );
   });
 
@@ -284,12 +318,16 @@ describe("validaModificaUtente", () => {
         profiloPresente: true,
         cognome: "",
         partitaIva: "",
-        tariffaGiornaliera: "",
+        modalitaTariffa: "",
+        importoTariffa: "",
+        tariffaValidaDalMese: "",
       })
     );
     expect(errori.cognome).toBe("Il cognome è obbligatorio");
     expect(errori.partitaIva).toBeUndefined();
-    expect(errori.tariffaGiornaliera).toBeUndefined();
+    expect(errori.modalitaTariffa).toBeUndefined();
+    expect(errori.importoTariffa).toBeUndefined();
+    expect(errori.tariffaValidaDalMese).toBeUndefined();
   });
 
   it("non segnala errori quando il Collaboratore è selezionato, il profilo è già presente e il cognome è valorizzato", () => {
@@ -299,12 +337,16 @@ describe("validaModificaUtente", () => {
         profiloPresente: true,
         cognome: "Bianchi",
         partitaIva: "",
-        tariffaGiornaliera: "",
+        modalitaTariffa: "",
+        importoTariffa: "",
+        tariffaValidaDalMese: "",
       })
     );
     expect(errori.cognome).toBeUndefined();
     expect(errori.partitaIva).toBeUndefined();
-    expect(errori.tariffaGiornaliera).toBeUndefined();
+    expect(errori.modalitaTariffa).toBeUndefined();
+    expect(errori.importoTariffa).toBeUndefined();
+    expect(errori.tariffaValidaDalMese).toBeUndefined();
   });
 
   // ── (e) Nome ed email validati come in validaUtente ─────────────

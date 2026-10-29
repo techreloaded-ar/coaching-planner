@@ -1,5 +1,7 @@
 import { richiediRuolo } from "@/lib/dal";
 import { elencaCollaboratori } from "@/lib/collaboratori";
+import { tokenMeseCorrente } from "@/domain/calendario";
+import { tariffaValidaNelMese } from "@/domain/tariffe";
 import CollaboratoriTabella from "./collaboratori-tabella";
 
 interface CollaboratoriPageProps {
@@ -10,6 +12,7 @@ export default async function CollaboratoriPage({ searchParams }: CollaboratoriP
   await richiediRuolo("AMMINISTRATORE");
   const collaboratori = await elencaCollaboratori();
   const { esito } = await searchParams;
+  const meseCorrente = tokenMeseCorrente();
 
   const messaggioEsito = esito === "salvato" ? "Modifiche al collaboratore salvate" : null;
 
@@ -43,9 +46,9 @@ export default async function CollaboratoriPage({ searchParams }: CollaboratoriP
 
       {/* Tabella collaboratori */}
       <CollaboratoriTabella
-        collaboratori={collaboratori.map((collaboratore) => ({
+        collaboratori={collaboratori.map(({ tariffe, ...collaboratore }) => ({
           ...collaboratore,
-          tariffaGiornaliera: collaboratore.tariffaGiornaliera.toString(),
+          tariffaInVigore: tariffaValidaNelMese(tariffe, meseCorrente),
         }))}
       />
     </div>

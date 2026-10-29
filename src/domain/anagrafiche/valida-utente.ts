@@ -1,10 +1,8 @@
 // Modulo di validazione pura per dati utente.
 // Nessuna dipendenza da framework — funzioni pure.
 
-import {
-  validaCampoPartitaIva,
-  validaCampoTariffaGiornaliera,
-} from "./valida-collaboratore";
+import { validaCampoPartitaIva } from "./valida-collaboratore";
+import { validaVoceTariffa } from "../tariffe";
 
 /** Dati in ingresso per il censimento di un utente con ruoli combinabili */
 export interface DatiCensimentoUtenteInput {
@@ -14,7 +12,10 @@ export interface DatiCensimentoUtenteInput {
   ruoloCollaboratore: boolean;
   cognome: string;
   partitaIva: string;
-  tariffaGiornaliera: string;
+  /** Tariffa iniziale del profilo collaboratore */
+  modalitaTariffa: string;
+  importoTariffa: string;
+  tariffaValidaDalMese: string;
 }
 
 /** Dati in ingresso per la modifica di un utente con ruoli a checkbox */
@@ -25,7 +26,10 @@ export interface DatiModificaUtenteInput {
   ruoloCollaboratore: boolean;
   cognome: string;
   partitaIva: string;
-  tariffaGiornaliera: string;
+  /** Tariffa iniziale del profilo collaboratore */
+  modalitaTariffa: string;
+  importoTariffa: string;
+  tariffaValidaDalMese: string;
   profiloPresente: boolean;
 }
 
@@ -37,13 +41,34 @@ export const RUOLI_AMMESSI = ["AMMINISTRATORE", "COLLABORATORE"] as const;
 const RE_EMAIL =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
+/** Valida la tariffa iniziale del profilo, con chiavi di errore dei campi del form utente. */
+function erroriTariffaIniziale(dati: {
+  modalitaTariffa: string;
+  importoTariffa: string;
+  tariffaValidaDalMese: string;
+}): ErroriValidazione {
+  const errori = validaVoceTariffa({
+    validaDalMese: dati.tariffaValidaDalMese,
+    modalita: dati.modalitaTariffa,
+    importo: dati.importoTariffa,
+  });
+  const campi: Record<string, string> = {
+    validaDalMese: "tariffaValidaDalMese",
+    modalita: "modalitaTariffa",
+    importo: "importoTariffa",
+  };
+  return Object.fromEntries(
+    Object.entries(errori).map(([campo, messaggio]) => [campi[campo], messaggio]),
+  );
+}
+
 /**
  * Valida i dati di censimento di un utente con ruoli combinabili
  * (Amministratore e/o Collaboratore).
  *
  * Il cognome è un campo anagrafico ed è sempre obbligatorio, a prescindere
  * dai ruoli selezionati. Quando il ruolo Collaboratore è selezionato, i campi
- * profilo (partita IVA, tariffa giornaliera) sono validati con gli identici
+ * profilo (partita IVA, tariffa iniziale) sono validati con gli identici
  * controlli e messaggi dell'anagrafica collaboratori. Se il ruolo
  * Collaboratore non è selezionato, i campi profilo vengono ignorati.
  *
@@ -78,12 +103,7 @@ export function validaCensimentoUtente(
       errori.partitaIva = errorePartitaIva;
     }
 
-    const erroreTariffa = validaCampoTariffaGiornaliera(
-      dati.tariffaGiornaliera
-    );
-    if (erroreTariffa) {
-      errori.tariffaGiornaliera = erroreTariffa;
-    }
+    Object.assign(errori, erroriTariffaIniziale(dati));
   }
 
   return errori;
@@ -95,7 +115,7 @@ export function validaCensimentoUtente(
  *
  * Il cognome è un campo anagrafico ed è sempre obbligatorio, a prescindere
  * dai ruoli selezionati e dallo stato del profilo collaboratore. I campi
- * profilo (partita IVA, tariffa giornaliera) sono obbligatori e validati con
+ * profilo (partita IVA, tariffa iniziale) sono obbligatori e validati con
  * gli identici controlli e messaggi dell'anagrafica collaboratori solo
  * quando il ruolo Collaboratore è selezionato E il profilo collaboratore non
  * è ancora presente (`profiloPresente: false`). Se il profilo esiste già
@@ -133,12 +153,7 @@ export function validaModificaUtente(
       errori.partitaIva = errorePartitaIva;
     }
 
-    const erroreTariffa = validaCampoTariffaGiornaliera(
-      dati.tariffaGiornaliera
-    );
-    if (erroreTariffa) {
-      errori.tariffaGiornaliera = erroreTariffa;
-    }
+    Object.assign(errori, erroriTariffaIniziale(dati));
   }
 
   return errori;

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tariffe collaboratori: modalità e storico — mockup</title>
+<style>
+  :root{
+    --bg:#fafafa;--surface:#fff;--surface-2:#f4f4f5;--ink:#27272a;--ink-2:#52525b;--ink-3:#a1a1aa;--line:#e4e4e7;
+    --indigo:#6366f1;--indigo-soft:#eef2ff;--indigo-deep:#4338ca;
+    --rose:#e11d48;--rose-deep:#9f1239;--rose-soft:#fff1f2;
+    --amber:#b45309;--amber-soft:#fffbeb;--green:#059669;--green-soft:#ecfdf5;--red:#dc2626;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans)}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 22px 80px}
+  h1{font-size:24px;margin:0 0 6px}
+  h2{font-size:19px;margin:46px 0 4px;padding-top:18px;border-top:2px solid var(--line)}
+  h3{font-size:15px;margin:0}
+  p.lead{color:var(--ink-2);margin:0 0 14px;max-width:820px}
+  .variant{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 3px rgb(0 0 0/.05);margin:18px 0;overflow:hidden}
+  .variant>header{display:flex;gap:12px;align-items:center;padding:12px 16px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+  .tag{font-weight:800;font-size:13px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--ink);color:#fff;flex:none}
+  .tag.rec{background:var(--indigo)}
+  .variant>header p{margin:2px 0 0;color:var(--ink-2);font-size:12.5px}
+  .badge-rec{margin-left:auto;font-size:11px;font-weight:700;color:var(--indigo-deep);background:var(--indigo-soft);padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .body{padding:18px}
+  .pro-con{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 18px 16px;font-size:12.5px;color:var(--ink-2)}
+  .pro-con div{background:var(--surface-2);border-radius:9px;padding:9px 12px}
+  .pro-con b{color:var(--ink)}
+  /* app-ish */
+  .card{border:1px solid var(--line);border-radius:11px;background:#fff;box-shadow:0 1px 2px rgb(0 0 0/.05)}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .crumb{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+  .name{font-size:21px;font-weight:700;display:flex;gap:10px;align-items:center}
+  .avatar{width:42px;height:42px;border-radius:12px;background:var(--indigo);color:#fff;display:grid;place-items:center;font-weight:700}
+  .pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px}
+  .pill.ok{background:var(--green-soft);color:var(--green)}
+  .pill.cur{background:var(--indigo-soft);color:var(--indigo-deep)}
+  .pill.fix{background:var(--amber-soft);color:var(--amber)}
+  .pill.day{background:var(--surface-2);color:var(--ink-2)}
+  .kpi{padding:9px 15px}
+  .kpi .l{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+  .kpi .v{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+  .kpi .s{font-size:11.5px;color:var(--ink-2)}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  th{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line)}
+  td{padding:10px 12px;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right}
+  tr.now td{background:#fafaff}
+  .btn{display:inline-flex;align-items:center;gap:6px;border-radius:9px;font-weight:600;font-size:13px;padding:7px 12px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+  .btn.primary{background:var(--indigo);border-color:var(--indigo);color:#fff}
+  .btn.ghost{border:none;background:none;color:var(--indigo-deep);padding:4px 6px}
+  .sec-title{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .form{display:grid;grid-template-columns:150px 1fr 160px auto;gap:12px;align-items:end;padding:14px;background:var(--indigo-soft);border-top:1px solid #c7d2fe}
+  label{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:4px}
+  .input{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;font-size:13px;min-height:34px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+  .seg span{padding:7px 12px;font-size:13px;font-weight:600;color:var(--ink-2)}
+  .seg span.on{background:var(--indigo);color:#fff}
+  .hint{font-size:12px;color:var(--ink-2);margin-top:6px}
+  .muted{color:var(--ink-3)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  /* timeline */
+  .tl-year{display:grid;grid-template-columns:52px repeat(12,1fr);gap:3px;align-items:center;margin-bottom:6px}
+  .tl-year .y{font-weight:700;font-size:13px}
+  .m{height:44px;border-radius:7px;font-size:10.5px;display:flex;flex-direction:column;justify-content:center;align-items:center;line-height:1.15;border:1px solid transparent}
+  .m b{font-size:11px}
+  .m.d1{background:#e0e7ff;color:#3730a3}
+  .m.d2{background:#c7d2fe;color:#312e81}
+  .m.f1{background:#fde68a;color:#78350f}
+  .m.none{background:var(--surface-2);color:var(--ink-3)}
+  .m.start{box-shadow:inset 3px 0 0 var(--indigo-deep)}
+  .m.f1.start{box-shadow:inset 3px 0 0 var(--amber)}
+  .m.sel{outline:2px solid var(--indigo);outline-offset:1px}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-top:8px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+  .pop{margin-top:12px;border:1px solid #c7d2fe;border-radius:11px;padding:14px;background:#fff;box-shadow:0 8px 24px rgb(0 0 0/.08);max-width:520px}
+  /* front-office */
+  .fo{background:linear-gradient(135deg,#be123c,#9f1239);color:#fff;border-radius:14px;padding:18px 20px}
+  .fo .l{font-size:11px;letter-spacing:.07em;text-transform:uppercase;opacity:.8;font-weight:700}
+  .fo .big{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums}
+  .fo .br{display:flex;gap:8px;flex-wrap:wrap;font-size:12.5px;opacity:.95}
+  .fo .br span{background:rgb(255 255 255/.14);padding:3px 9px;border-radius:999px}
+  .fo .note{font-size:12px;margin-top:10px;opacity:.85}
+  .neg{color:var(--red);font-weight:600}
+  .alloc{font-size:11px;color:var(--amber);font-weight:600}
+  .row-extra td{background:var(--amber-soft)}
+  .model{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .model .card{padding:14px}
+  code,pre{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  pre{background:var(--surface-2);border-radius:8px;padding:10px;margin:8px 0 0;white-space:pre-wrap}
+  .choice{margin-top:30px;background:var(--indigo-soft);border:1px solid #c7d2fe;border-radius:12px;padding:16px 18px}
+  .choice ol{margin:6px 0 0;padding-left:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Tariffe collaboratori: modalità giornaliera / fisso mensile e storico</h1>
+<p class="lead">
+  Collaboratore d'esempio: <b>Marco Rossi</b>. Storico: <b>€ 400/giorno</b> da gen 2025, <b>€ 450/giorno</b> da gen 2026,
+  <b>fisso € 6.500/mese</b> da lug 2026. Ogni sezione propone delle varianti: scegline una per sezione
+  (in fondo alla pagina il riepilogo delle scelte).
+</p>
+
+<!-- ==================================================================== -->
+<h2>0 · Modello dati</h2>
+<p class="lead">Tre modi di memorizzare lo storico. La scelta qui non cambia l'aspetto delle schermate, ma la robustezza dei calcoli.</p>
+
+<div class="model">
+  <div class="card">
+    <div class="head"><h3>M1 · Tariffe per mese di decorrenza</h3><span class="badge-rec">Consigliato</span></div>
+    <pre>TariffaCollaboratore
+  collaboratoreId
+  validaDalMese  (1° del mese)
+  modalita       GIORNALIERA | FISSA_MENSILE
+  importo        Decimal(10,2)
+  unique(collaboratoreId, validaDalMese)</pre>
+    <p class="hint">La tariffa di un mese è l'ultima con <code>validaDalMese ≤ mese</code>. Niente date di fine: impossibili buchi o sovrapposizioni. Il campo <code>Collaboratore.tariffaGiornaliera</code> sparisce e diventa la prima voce dello storico.</p>
+  </div>
+  <div class="card">
+    <h3>M2 · Periodi con inizio e fine</h3>
+    <pre>TariffaCollaboratore
+  validaDal, validaAl (nullable)
+  modalita, importo</pre>
+    <p class="hint">Più espressivo (può esistere un periodo «senza tariffa»), ma serve validare sovrapposizioni e buchi a ogni modifica e chiudere a mano il periodo precedente.</p>
+  </div>
+  <div class="card">
+    <h3>M3 · Tariffa copiata su ogni riga attività</h3>
+    <pre>RigaAttivita
+  + tariffaCollaboratore</pre>
+    <p class="hint">Congela il costo alla registrazione, ma <b>non funziona col fisso mensile</b> (un mese senza righe non avrebbe costo) e una correzione di tariffa non si propaga. Sconsigliato.</p>
+  </div>
+</div>
+
+<!-- ==================================================================== -->
+<h2>1 · Gestione dello storico nell'anagrafica collaboratore</h2>
+<p class="lead">Dove e come l'amministratore vede e cambia la tariffa.</p>
+
+<!-- A -->
+<section class="variant">
+  <header><div class="tag rec">A</div><div><h3>Sezione «Storico tariffe» nel dettaglio collaboratore</h3><p>Tabella delle tariffe dalla più recente; «Nuova tariffa» apre un modulo in linea con mese di decorrenza, modalità e importo.</p></div><span class="badge-rec">Consigliata</span></header>
+  <div class="body">
+    <div class="head" style="margin-bottom:16px">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div class="avatar">MR</div>
+        <div><div class="crumb">Anagrafiche · Collaboratori</div><div class="name">Marco Rossi <span class="pill ok">● Attivo</span></div></div>
+      </div>
+      <div class="card kpi"><div class="l">Tariffa attuale</div><div class="v">€ 6.500 / mese</div><div class="s">Fisso mensile · da lug 2026</div></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title"><h3>Storico tariffe</h3><span class="btn primary">+ Nuova tariffa</span></div>
+      <table>
+        <thead><tr><th>Valida dal mese</th><th>Modalità</th><th class="num">Importo</th><th>Periodo</th><th></th></tr></thead>
+        <tbody>
+          <tr class="now"><td><b>luglio 2026</b> <span class="pill cur">in vigore</span></td><td><span class="pill fix">Fisso mensile</span></td><td class="num">€ 6.500,00 / mese</td><td class="muted">lug 2026 → oggi</td><td class="num"><span class="btn ghost">Modifica</span><span class="btn ghost">Elimina</span></td></tr>
+          <tr><td>gennaio 2026</td><td><span class="pill day">Giornaliera</span></td><td class="num">€ 450,00 / giorno</td><td class="muted">gen → giu 2026</td><td class="num"><span class="btn ghost">Modifica</span><span class="btn ghost">Elimina</span></td></tr>
+          <tr><td>gennaio 2025</td><td><span class="pill day">Giornaliera</span></td><td class="num">€ 400,00 / giorno</td><td class="muted">gen → dic 2025</td><td class="num"><span class="btn ghost">Modifica</span></td></tr>
+        </tbody>
+      </table>
+      <div class="form">
+        <div><label>Valida dal mese</label><div class="input">novembre 2026 ▾</div></div>
+        <div><label>Modalità</label><div class="seg"><span>Giornaliera</span><span class="on">Fisso mensile</span></div></div>
+        <div><label>Importo (€ / mese)</label><div class="input">7.000,00</div></div>
+        <div><span class="btn primary">Salva</span> <span class="btn">Annulla</span></div>
+      </div>
+      <div class="hint" style="padding:0 14px 12px;background:var(--indigo-soft)">Una sola tariffa per mese. Modificare o inserire una tariffa in un mese passato <b>ricalcola</b> riepiloghi e marginalità di quei mesi. La tariffa più vecchia non si elimina (un collaboratore ha sempre una tariffa).</div>
+    </div>
+  </div>
+  <div class="pro-con"><div><b>Pro:</b> lo storico è visibile e correggibile in un colpo d'occhio; il form anagrafica resta semplice (la tariffa esce dal form «Modifica»).</div><div><b>Contro:</b> lo storico non si gestisce dal form di creazione: lì si inserisce solo la tariffa iniziale.</div></div>
+</section>
+
+<!-- B -->
+<section class="variant">
+  <header><div class="tag">B</div><div><h3>Linea del tempo per anno</h3><p>Una striscia di 12 mesi per anno, colorata per tariffa. Clic su un mese → «Cambia tariffa da questo mese».</p></div></header>
+  <div class="body">
+    <div class="card" style="padding:16px">
+      <div class="sec-title" style="padding:0 0 12px;border:none"><h3>Tariffe nel tempo</h3><span class="muted">◀ 2025 – 2026 ▶</span></div>
+      <div class="tl-year"><div class="y">2025</div>
+        <div class="m d1 start"><b>gen</b>400/g</div><div class="m d1"><b>feb</b></div><div class="m d1"><b>mar</b></div><div class="m d1"><b>apr</b></div><div class="m d1"><b>mag</b></div><div class="m d1"><b>giu</b></div><div class="m d1"><b>lug</b></div><div class="m d1"><b>ago</b></div><div class="m d1"><b>set</b></div><div class="m d1"><b>ott</b></div><div class="m d1"><b>nov</b></div><div class="m d1"><b>dic</b></div>
+      </div>
+      <div class="tl-year"><div class="y">2026</div>
+        <div class="m d2 start"><b>gen</b>450/g</div><div class="m d2"><b>feb</b></div><div class="m d2"><b>mar</b></div><div class="m d2"><b>apr</b></div><div class="m d2"><b>mag</b></div><div class="m d2"><b>giu</b></div><div class="m f1 start"><b>lug</b>6.500/m</div><div class="m f1"><b>ago</b></div><div class="m f1"><b>set</b></div><div class="m f1"><b>ott</b></div><div class="m f1 sel"><b>nov</b></div><div class="m f1"><b>dic</b></div>
+      </div>
+      <div class="legend"><span><i style="background:#e0e7ff"></i>€ 400 / giorno</span><span><i style="background:#c7d2fe"></i>€ 450 / giorno</span><span><i style="background:#fde68a"></i>€ 6.500 / mese (fisso)</span><span>▎ = cambio tariffa</span></div>
+      <div class="pop">
+        <h3>Cambia tariffa da novembre 2026</h3>
+        <div class="hint" style="margin:2px 0 10px">Oggi: fisso € 6.500 / mese (da luglio 2026)</div>
+        <div style="display:flex;gap:12px;align-items:end">
+          <div><label>Modalità</label><div class="seg"><span>Giornaliera</span><span class="on">Fisso mensile</span></div></div>
+          <div><label>Importo</label><div class="input">7.000,00</div></div>
+          <span class="btn primary">Applica</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pro-con"><div><b>Pro:</b> visivamente immediato quale tariffa valeva in un certo mese.</div><div><b>Contro:</b> più costosa da costruire e meno leggibile con molti anni o importi; correggere/eliminare un cambio è meno evidente.</div></div>
+</section>
+
+<!-- C -->
+<section class="variant">
+  <header><div class="tag">C</div><div><h3>Tariffa nel form «Modifica collaboratore» con mese di validità</h3><p>Si cambia la tariffa dove si fa oggi, indicando da quale mese vale; lo storico è in sola lettura sotto il form.</p></div></header>
+  <div class="body">
+    <div class="grid2">
+      <div class="card" style="padding:16px">
+        <h3 style="margin-bottom:12px">Modifica collaboratore</h3>
+        <label>Nome e cognome</label><div class="input" style="margin-bottom:10px">Marco Rossi</div>
+        <label>Partita IVA</label><div class="input" style="margin-bottom:10px">01234567890</div>
+        <label>Modalità tariffa</label><div class="seg" style="margin-bottom:10px"><span>Giornaliera</span><span class="on">Fisso mensile</span></div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1"><label>Importo (€ / mese)</label><div class="input">7.000,00</div></div>
+          <div style="flex:1"><label>Valida dal mese</label><div class="input">novembre 2026 ▾</div></div>
+        </div>
+        <div class="hint">Se cambi modalità o importo, la nuova tariffa si aggiunge allo storico dal mese indicato.</div>
+        <div style="margin-top:12px"><span class="btn primary">Salva</span></div>
+      </div>
+      <div class="card">
+        <div class="sec-title"><h3>Storico (sola lettura)</h3></div>
+        <table><tbody>
+          <tr><td>da lug 2026</td><td>Fisso</td><td class="num">€ 6.500 / mese</td></tr>
+          <tr><td>da gen 2026</td><td>Giornaliera</td><td class="num">€ 450 / giorno</td></tr>
+          <tr><td>da gen 2025</td><td>Giornaliera</td><td class="num">€ 400 / giorno</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+  <div class="pro-con"><div><b>Pro:</b> cambio minimo rispetto a oggi, poca UI nuova.</div><div><b>Contro:</b> correggere un errore su una tariffa passata non è possibile (solo aggiungere); facile salvare per sbaglio una nuova voce modificando solo la partita IVA.</div></div>
+</section>
+
+<!-- ==================================================================== -->
+<h2>2 · Riepilogo mensile del collaboratore (fattura attesa)</h2>
+<p class="lead">Il collaboratore vede l'importo della sua fattura calcolato con la tariffa <b>valida in quel mese</b>. Con il fisso, il compenso non dipende dalle ore; le giornate restano visibili come informazione.</p>
+<section class="variant">
+  <header><div class="tag rec">—</div><div><h3>Proposta unica (due mesi a confronto)</h3><p>Stesso box di oggi; cambia solo la scomposizione.</p></div></header>
+  <div class="body grid2">
+    <div class="fo">
+      <div class="l">Dicembre 2025 · Importo fattura</div>
+      <div class="big">€ 6.880,00</div>
+      <div class="br"><span>16 g × € 400,00</span><span>Compenso € 6.400,00</span><span>Rimborsi € 480,00</span></div>
+      <div class="note">Tariffa giornaliera valida da gen 2025</div>
+    </div>
+    <div class="fo">
+      <div class="l">Luglio 2026 · Importo fattura</div>
+      <div class="big">€ 6.740,00</div>
+      <div class="br"><span>Fisso mensile € 6.500,00</span><span>Rimborsi € 240,00</span></div>
+      <div class="note">12,5 g registrate · il fisso non dipende dalle giornate</div>
+    </div>
+  </div>
+  <div class="pro-con"><div><b>Regola:</b> fisso mensile = dovuto per ogni mese in cui è in vigore, anche con zero ore registrate; i rimborsi trasferta si aggiungono sempre.</div><div><b>Da confermare:</b> un mese senza alcuna attività mostra comunque il fisso (box non vuoto).</div></div>
+</section>
+
+<!-- ==================================================================== -->
+<h2>3 · Marginalità clienti e offerte con il fisso mensile</h2>
+<p class="lead">Il costo giornaliero si attribuisce riga per riga, come oggi, con la tariffa del mese della riga. Il fisso mensile invece non appartiene a nessuna offerta: come lo distribuiamo?<br>
+Esempio luglio 2026: Marco ha 12,5 g su <b>ACME-01</b> (10 g) e <b>BETA-02</b> (2,5 g), fisso € 6.500.</p>
+
+<!-- X -->
+<section class="variant">
+  <header><div class="tag rec">X</div><div><h3>Ripartito sulle offerte in proporzione alle ore del mese</h3><p>Fisso × (ore del collaboratore sull'offerta ÷ ore totali del collaboratore nel mese, Fatturabile + Non fatturabile).</p></div><span class="badge-rec">Consigliata</span></header>
+  <div class="body">
+    <div class="card"><table>
+      <thead><tr><th>Cliente / Offerta</th><th class="num">Giornate</th><th class="num">Ricavi</th><th class="num">Costi</th><th class="num">Margine</th></tr></thead>
+      <tbody>
+        <tr><td><b>ACME S.p.A.</b> · ACME-01</td><td class="num">10,0</td><td class="num">€ 6.000,00</td><td class="num">€ 5.200,00<div class="alloc">di cui fisso ripartito € 5.200</div></td><td class="num">€ 800,00 · 13%</td></tr>
+        <tr><td><b>Beta S.r.l.</b> · BETA-02</td><td class="num">2,5</td><td class="num">€ 1.500,00</td><td class="num">€ 1.300,00<div class="alloc">di cui fisso ripartito € 1.300</div></td><td class="num">€ 200,00 · 13%</td></tr>
+        <tr class="row-extra"><td>Fissi non attribuibili <span class="muted">(collaboratori a fisso senza ore nel mese)</span></td><td class="num">—</td><td class="num">—</td><td class="num">€ 0,00</td><td class="num">—</td></tr>
+        <tr><td><b>Totale</b></td><td class="num"><b>12,5</b></td><td class="num"><b>€ 7.500,00</b></td><td class="num"><b>€ 6.500,00</b></td><td class="num"><b>€ 1.000,00</b></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="pro-con"><div><b>Pro:</b> il margine per offerta e cliente è realistico; il totale costi coincide con quanto pagato ai collaboratori.</div><div><b>Contro:</b> il costo di un'offerta dipende anche dalle ore che il collaboratore ha fatto sulle altre offerte nel mese.</div></div>
+</section>
+
+<!-- Y -->
+<section class="variant">
+  <header><div class="tag">Y</div><div><h3>Fisso in una riga separata, non ripartito</h3><p>Le offerte mostrano solo i costi a giornata; i fissi mensili compaiono in una riga «Costi fissi collaboratori» che pesa solo sul totale.</p></div></header>
+  <div class="body">
+    <div class="card"><table>
+      <thead><tr><th>Cliente / Offerta</th><th class="num">Giornate</th><th class="num">Ricavi</th><th class="num">Costi</th><th class="num">Margine</th></tr></thead>
+      <tbody>
+        <tr><td><b>ACME S.p.A.</b> · ACME-01</td><td class="num">10,0</td><td class="num">€ 6.000,00</td><td class="num">€ 0,00</td><td class="num">€ 6.000,00 · 100%</td></tr>
+        <tr><td><b>Beta S.r.l.</b> · BETA-02</td><td class="num">2,5</td><td class="num">€ 1.500,00</td><td class="num">€ 0,00</td><td class="num">€ 1.500,00 · 100%</td></tr>
+        <tr class="row-extra"><td>Costi fissi collaboratori</td><td class="num">—</td><td class="num">—</td><td class="num">€ 6.500,00</td><td class="num neg">− € 6.500,00</td></tr>
+        <tr><td><b>Totale</b></td><td class="num"><b>12,5</b></td><td class="num"><b>€ 7.500,00</b></td><td class="num"><b>€ 6.500,00</b></td><td class="num"><b>€ 1.000,00</b></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="pro-con"><div><b>Pro:</b> semplice da spiegare, nessuna ipotesi di ripartizione.</div><div><b>Contro:</b> il margine per offerta e per cliente diventa fuorviante (100% sulle offerte seguite da collaboratori a fisso).</div></div>
+</section>
+
+<div class="choice">
+  <h3>Cosa scegliere</h3>
+  <ol>
+    <li><b>Modello dati:</b> M1 / M2 / M3 — consigliato <b>M1</b></li>
+    <li><b>Gestione storico:</b> A / B / C — consigliata <b>A</b></li>
+    <li><b>Marginalità col fisso:</b> X / Y — consigliata <b>X</b></li>
+  </ol>
+  <p class="hint">Il report fatturazione clienti e l'export non cambiano: usano la tariffa dell'<b>offerta</b>, non quella del collaboratore.</p>
+</div>
+
+</div>
+</body>
+</html>

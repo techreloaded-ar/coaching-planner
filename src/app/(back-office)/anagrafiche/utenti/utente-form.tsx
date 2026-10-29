@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { PulsanteAttesa, useValoriInviati } from "@/components";
+import { tokenMeseCorrente } from "@/domain/calendario";
+import { ETICHETTA_MODALITA_TARIFFA, MODALITA_TARIFFA } from "@/domain/tariffe";
 import {
   RUOLI_AMMESSI,
 } from "@/domain/anagrafiche/valida-utente";
@@ -157,7 +159,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
               </svg>
               <span>
                 Questo utente ha un profilo collaboratore. Il profilo operativo
-                (partita IVA, tariffa e attivazione) si gestisce
+                (partita IVA, storico tariffe e attivazione) si gestisce
                 dall&apos;anagrafica collaboratori.
               </span>
             </div>
@@ -295,13 +297,46 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                   errore={stato.errori.partitaIva}
                   hint="Undici cifre numeriche, senza spazi né prefissi."
                 />
+                <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-1.5 max-[640px]:col-span-1">
+                  <label
+                    htmlFor="modalitaTariffa"
+                    className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
+                  >
+                    Modalità tariffa <span className="font-bold text-red-600 dark:text-red-400">*</span>
+                  </label>
+                  <select
+                    id="modalitaTariffa"
+                    name="modalitaTariffa"
+                    defaultValue={valoreIniziale("modalitaTariffa", "GIORNALIERA")}
+                    aria-invalid={!!stato.errori.modalitaTariffa}
+                    className="w-full rounded-[10px] border border-zinc-200 bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition focus:border-indigo-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  >
+                    {MODALITA_TARIFFA.map((modalita) => (
+                      <option key={modalita} value={modalita}>
+                        {ETICHETTA_MODALITA_TARIFFA[modalita]}
+                      </option>
+                    ))}
+                  </select>
+                  {stato.errori.modalitaTariffa && (
+                    <ErroreCampo id="errore-modalitaTariffa">{stato.errori.modalitaTariffa}</ErroreCampo>
+                  )}
+                </div>
                 <Campo
-                  label="Tariffa giornaliera"
-                  name="tariffaGiornaliera"
+                  label="Importo tariffa"
+                  name="importoTariffa"
                   placeholder="Es. 520,00"
-                  defaultValue={valoreIniziale("tariffaGiornaliera", "")}
-                  errore={stato.errori.tariffaGiornaliera}
-                  hint="Importo in euro, virgola per i decimali (massimo 2)."
+                  defaultValue={valoreIniziale("importoTariffa", "")}
+                  errore={stato.errori.importoTariffa}
+                  hint="Euro al giorno o al mese secondo la modalità, virgola per i decimali (massimo 2)."
+                />
+                <Campo
+                  label="Tariffa valida dal mese"
+                  name="tariffaValidaDalMese"
+                  type="month"
+                  placeholder="AAAA-MM"
+                  defaultValue={valoreIniziale("tariffaValidaDalMese", tokenMeseCorrente())}
+                  errore={stato.errori.tariffaValidaDalMese}
+                  hint="Prima voce dello storico tariffe: le successive si gestiscono dal dettaglio collaboratore."
                 />
               </>
             )}

@@ -270,7 +270,7 @@ test.describe("Gestione utenti", () => {
 		).toBeChecked();
 		await page.getByLabel(/^Cognome\b/).fill("Duplicato");
 		await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
-		await page.getByLabel(/^Tariffa giornaliera\b/).fill("400");
+		await page.getByLabel(/^Importo tariffa\b/).fill("400");
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
@@ -312,11 +312,11 @@ test.describe("Gestione utenti", () => {
 		await impostaRuolo(page, "Collaboratore", false);
 		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
-		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Importo tariffa\b/)).toHaveCount(0);
 		await impostaRuolo(page, "Collaboratore", true);
 		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
 		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
-		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Importo tariffa\b/)).toBeVisible();
 
 		// AC-7: entrambi i ruoli selezionati contemporaneamente.
 		await impostaRuolo(page, "Amministratore", true);
@@ -324,7 +324,7 @@ test.describe("Gestione utenti", () => {
 		await page.getByLabel(/^Email di accesso\b/).fill(email);
 		await page.getByLabel(/^Cognome\b/).fill(cognome);
 		await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
-		await page.getByLabel(/^Tariffa giornaliera\b/).fill("450");
+		await page.getByLabel(/^Importo tariffa\b/).fill("450");
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
@@ -397,7 +397,7 @@ test.describe("Gestione utenti", () => {
 		// ruolo Collaboratore; solo i campi di profilo restano assenti.
 		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
-		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Importo tariffa\b/)).toHaveCount(0);
 
 		await page.getByLabel(/^Nome\b/).fill(nome);
 		await page.getByLabel(/^Cognome\b/).fill(cognome);
@@ -480,7 +480,7 @@ test.describe("Gestione utenti", () => {
 		await page.getByLabel(/^Email di accesso\b/).fill(email);
 		await page.getByLabel(/^Cognome\b/).fill("Verdi");
 		await page.getByLabel(/^Partita IVA\b/).fill("123");
-		await page.getByLabel(/^Tariffa giornaliera\b/).fill("300");
+		await page.getByLabel(/^Importo tariffa\b/).fill("300");
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
@@ -571,7 +571,7 @@ test.describe("Gestione utenti", () => {
 		).toBeVisible();
 	});
 
-	test("espone nel profilo collaboratore solo Partita IVA e Tariffa giornaliera, con un solo campo Cognome in pagina (AC-2)", async ({
+	test("espone nel profilo collaboratore Partita IVA e tariffa iniziale, con un solo campo Cognome in pagina (AC-2)", async ({
 		page,
 	}) => {
 		await apriElencoUtenti(page);
@@ -587,10 +587,13 @@ test.describe("Gestione utenti", () => {
 			page.getByRole("checkbox", { name: /^Collaboratore\b/ }),
 		).toBeChecked();
 
-		// AC-2: la sezione profilo collaboratore chiede solo Partita IVA e
-		// Tariffa giornaliera; il Cognome resta unico nella pagina (in Anagrafica).
+		// AC-2: la sezione profilo collaboratore chiede Partita IVA e tariffa
+		// iniziale (modalità, importo, mese di decorrenza); il Cognome resta
+		// unico nella pagina (in Anagrafica).
 		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
-		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Modalità tariffa\b/)).toHaveValue("GIORNALIERA");
+		await expect(page.getByLabel(/^Importo tariffa\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Tariffa valida dal mese\b/)).toBeVisible();
 		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(1);
 	});
 
@@ -696,11 +699,11 @@ test.describe("Gestione utenti", () => {
 		await expect(page.getByLabel(/^Cognome\b/)).toBeVisible();
 
 		// 2. Selezionando il ruolo Collaboratore, la sezione profilo chiede
-		// solo Partita IVA e Tariffa giornaliera (il Cognome resta unico,
+		// Partita IVA e tariffa iniziale (il Cognome resta unico,
 		// nella sezione Anagrafica).
 		await impostaRuolo(page, "Collaboratore", true);
 		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
-		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toBeVisible();
+		await expect(page.getByLabel(/^Importo tariffa\b/)).toBeVisible();
 		await expect(page.getByLabel(/^Cognome\b/)).toHaveCount(1);
 
 		// 3. Censimento di un utente solo-amministratore con Nome e Cognome
@@ -1120,7 +1123,7 @@ test.describe("Gestione utenti", () => {
 		await page.getByLabel(/^Email di accesso\b/).fill(email);
 		await page.getByLabel(/^Cognome\b/).fill(cognome);
 		await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
-		await page.getByLabel(/^Tariffa giornaliera\b/).fill("500");
+		await page.getByLabel(/^Importo tariffa\b/).fill("500");
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
@@ -1193,7 +1196,7 @@ test.describe("Gestione utenti", () => {
 		await page.getByLabel(/^Nome\b/).fill(`${factory.namespace} Demo PIVA vuota`);
 		await page.getByLabel(/^Email di accesso\b/).fill(emailPivaVuota);
 		await page.getByLabel(/^Cognome\b/).fill("Neri");
-		await page.getByLabel(/^Tariffa giornaliera\b/).fill("400");
+		await page.getByLabel(/^Importo tariffa\b/).fill("400");
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
@@ -1227,7 +1230,7 @@ test.describe("Gestione utenti", () => {
 		).toBeVisible();
 
 		// L'aggiunta del ruolo Collaboratore fa comparire la sola sezione profilo
-		// (Partita IVA e Tariffa giornaliera): il Cognome resta in Anagrafica,
+		// (Partita IVA e tariffa iniziale): il Cognome resta in Anagrafica,
 		// sempre presente e già valorizzato dall'utente esistente.
 		await impostaRuolo(page, "Collaboratore", true);
 		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
@@ -1241,7 +1244,7 @@ test.describe("Gestione utenti", () => {
 			page.getByText("La partita IVA è obbligatoria", { exact: true }),
 		).toBeVisible();
 		await expect(
-			page.getByText("La tariffa giornaliera è obbligatoria", {
+			page.getByText("L'importo è obbligatorio", {
 				exact: true,
 			}),
 		).toBeVisible();
@@ -1251,7 +1254,7 @@ test.describe("Gestione utenti", () => {
 		// deselezionando il checkbox Collaboratore: va riportato a selezionato.
 		await impostaRuolo(page, "Collaboratore", true);
 		await page.getByLabel(/^Partita IVA\b/).fill(partitaIva);
-		await page.getByLabel(/^Tariffa giornaliera\b/).fill("420");
+		await page.getByLabel(/^Importo tariffa\b/).fill("420");
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
@@ -1382,7 +1385,7 @@ test.describe("Gestione utenti", () => {
 		await commutaRuolo(page, "Collaboratore", true);
 		// La sezione profilo NON deve comparire: il profilo esiste già.
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
-		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Importo tariffa\b/)).toHaveCount(0);
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
@@ -1428,12 +1431,12 @@ test.describe("Gestione utenti", () => {
 		// AC-5: nessun campo profilo nel form di modifica (il Cognome resta in
 		// Anagrafica, sempre presente, e non è un campo di profilo).
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
-		await expect(page.getByLabel(/^Tariffa giornaliera\b/)).toHaveCount(0);
+		await expect(page.getByLabel(/^Importo tariffa\b/)).toHaveCount(0);
 
 		// AC-5: box informativo che rimanda all'anagrafica collaboratori.
 		await expect(
 			page.getByText(
-				"Questo utente ha un profilo collaboratore. Il profilo operativo (partita IVA, tariffa e attivazione) si gestisce dall'anagrafica collaboratori.",
+				"Questo utente ha un profilo collaboratore. Il profilo operativo (partita IVA, storico tariffe e attivazione) si gestisce dall'anagrafica collaboratori.",
 				{ exact: true },
 			),
 		).toBeVisible();
@@ -1497,7 +1500,7 @@ test.describe("Gestione utenti", () => {
 			page.getByText("La partita IVA è obbligatoria", { exact: true }),
 		).toBeVisible();
 		await expect(
-			page.getByText("La tariffa giornaliera è obbligatoria", {
+			page.getByText("L'importo è obbligatorio", {
 				exact: true,
 			}),
 		).toBeVisible();
@@ -1506,7 +1509,7 @@ test.describe("Gestione utenti", () => {
 		// Il Cognome resta invece in Anagrafica, già valorizzato dalla creazione.
 		await impostaRuolo(page, "Collaboratore", true);
 		await page.getByLabel(/^Partita IVA\b/).fill(partitaIvaNuova);
-		await page.getByLabel(/^Tariffa giornaliera\b/).fill("470");
+		await page.getByLabel(/^Importo tariffa\b/).fill("470");
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();

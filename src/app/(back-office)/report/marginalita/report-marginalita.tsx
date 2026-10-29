@@ -131,7 +131,7 @@ export default function ReportMarginalita({
         </p>
       </div>
 
-      {report.perCliente.length === 0 ? (
+      {report.perCliente.length === 0 && Number(report.fissiNonAttribuibili) === 0 ? (
         <div className="rounded-[11px] border border-dashed border-zinc-300 bg-white px-5 py-10 text-center text-[14px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
           Nessuna attività fatturabile o non fatturabile nel periodo selezionato.
         </div>
@@ -209,6 +209,11 @@ export default function ReportMarginalita({
                         </td>
                         <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
                           {formattaEuro(offerta.costi)}
+                          {Number(offerta.fissoRipartito) > 0 && (
+                            <div className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                              di cui fisso ripartito {formattaEuro(offerta.fissoRipartito)}
+                            </div>
+                          )}
                         </td>
                         <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums dark:border-zinc-700/50">
                           <ImportoMargine importi={offerta} />
@@ -223,6 +228,21 @@ export default function ReportMarginalita({
               </div>
             </section>
           ))}
+
+          {Number(report.fissiNonAttribuibili) > 0 && (
+            <div
+              data-testid="marginalita-fissi-non-attribuibili"
+              className="flex flex-wrap items-center justify-between gap-4 rounded-[11px] border border-amber-200 bg-amber-50 px-5 py-4 dark:border-amber-500/20 dark:bg-amber-500/10"
+            >
+              <div className="leading-[1.35]">
+                <div className="text-[14px] font-bold text-zinc-800 dark:text-zinc-100">Fissi non attribuibili</div>
+                <div className="text-[12px] text-zinc-500 dark:text-zinc-400">
+                  Fissi mensili di collaboratori senza ore nel mese: pesano solo sul totale
+                </div>
+              </div>
+              <Cifra etichetta="Costi">{formattaEuro(report.fissiNonAttribuibili)}</Cifra>
+            </div>
+          )}
 
           <div
             data-testid="marginalita-totali"
