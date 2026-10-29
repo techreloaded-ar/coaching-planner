@@ -4,7 +4,8 @@ import {
 	attendiOfferteCaricate,
 	labelOffertaTest,
 } from "./demo__inserimento-righe-attivita.helpers";
-import { accediComeCollaboratore } from "./support/auth";
+import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
+import { apriCategoriaImpostazioni, apriImpostazioni } from "./support/menu-account";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
 
@@ -78,49 +79,63 @@ async function apriProposte(page: Page, numeroAtteso: number): Promise<void> {
 	await expect(pulsante).toHaveAttribute("aria-expanded", "true");
 }
 
-test.describe("US-001 Collegamento del Google Calendar", () => {
-	test("AC-1/2/5: il collaboratore collega e scollega il proprio calendario", async ({
+/** Riquadro del connettore Google Calendar nella sezione Connettori delle Impostazioni. */
+function connettoreCalendario(page: Page) {
+	return page.getByRole("group", { name: "Calendario Google", exact: true });
+}
+
+/** Indicatore discreto dello stato del collegamento nella pagina attività. */
+function indicatoreCalendario(page: Page) {
+	return page.getByRole("link", { name: /^Google Calendar (non )?collegato$/ });
+}
+
+test.describe("Google Calendar nelle Impostazioni", () => {
+	test("il collaboratore collega e scollega il proprio calendario dalle Impostazioni", async ({
 		page,
 		factory,
 	}) => {
 		const collaboratore = await factory.createCollaboratore();
 		await accediComeCollaboratore(page, collaboratore.utente.email);
-
-		await expect(page.getByText("Calendario Google non collegato")).toBeVisible();
-		await page.getByRole("link", { name: "Collega Google Calendar" }).click();
+		await apriImpostazioni(page);
+		await apriCategoriaImpostazioni(page, "Connettori");
+		await expect(connettoreCalendario(page)).toContainText("Calendario Google non collegato");
+		await connettoreCalendario(page).getByRole("link", { name: "Collega Google Calendar" }).click();
 		await page.waitForURL("**/e2e-test/consenso-calendario**");
 		await expect(
 			page.getByRole("radio", { name: `${collaboratore.utente.email} (account di accesso)` }),
 		).toBeChecked();
 		await page.getByRole("button", { name: "Autorizza" }).click();
 
-		await page.waitForURL("**/attivita?calendario=collegato");
+		await page.waitForURL("**/impostazioni/connettori?calendario=collegato");
 		await expect(page.getByText("Calendario Google collegato", { exact: true })).toBeVisible();
 
-		await page.getByRole("button", { name: "Scollega" }).click();
+		await connettoreCalendario(page).getByRole("button", { name: "Scollega" }).click();
 		await expect(page.getByText("Calendario Google non collegato")).toBeVisible();
-		await expect(page.getByRole("link", { name: "Collega Google Calendar" })).toBeVisible();
+		await expect(
+			connettoreCalendario(page).getByRole("link", { name: "Collega Google Calendar" }),
+		).toBeVisible();
 	});
 
-	test("AC-3: un consenso negato lascia il calendario non collegato con un messaggio", async ({
+	test("un consenso negato torna alle Impostazioni con il calendario non collegato e un messaggio", async ({
 		page,
 		factory,
 	}) => {
 		const collaboratore = await factory.createCollaboratore();
 		await accediComeCollaboratore(page, collaboratore.utente.email);
+		await page.goto("/impostazioni/connettori");
 
 		await page.getByRole("link", { name: "Collega Google Calendar" }).click();
 		await page.waitForURL("**/e2e-test/consenso-calendario**");
 		await page.getByRole("link", { name: "Nega il consenso" }).click();
 
-		await page.waitForURL("**/attivita?calendario=negato");
+		await page.waitForURL("**/impostazioni/connettori?calendario=negato");
 		await expect(
 			page.getByRole("alert").filter({ hasText: "Collegamento non completato" }),
 		).toBeVisible();
 		await expect(page.getByText("Calendario Google non collegato")).toBeVisible();
 	});
 
-	test("AC-6: ogni collaboratore vede solo il proprio collegamento", async ({
+	test("ogni collaboratore vede solo il proprio collegamento", async ({
 		page,
 		browser,
 		factory,
@@ -130,16 +145,31 @@ test.describe("US-001 Collegamento del Google Calendar", () => {
 		await collegaCalendarioSimulato(page, collegato.utente.email, { eventi: [] });
 
 		await accediComeCollaboratore(page, collegato.utente.email);
+		await page.goto("/impostazioni/connettori");
 		await expect(page.getByText("Calendario Google collegato", { exact: true })).toBeVisible();
 
 		const altroContesto = await browser.newContext();
 		const altraPagina = await altroContesto.newPage();
 		try {
 			await accediComeCollaboratore(altraPagina, altro.utente.email);
+			await altraPagina.goto("/impostazioni/connettori");
 			await expect(altraPagina.getByText("Calendario Google non collegato")).toBeVisible();
 		} finally {
 			await altroContesto.close();
 		}
+	});
+
+	test("senza profilo collaboratore il connettore non è disponibile e non offre azioni", async ({
+		page,
+		factory,
+	}) => {
+		const amministratore = await factory.createUtente({ ruolo: "AMMINISTRATORE" });
+		await accediComeAdmin(page, amministratore.email);
+		await page.goto("/impostazioni/connettori");
+
+		await expect(connettoreCalendario(page)).toContainText("Calendario Google non disponibile");
+		await expect(connettoreCalendario(page).getByRole("link")).toHaveCount(0);
+		await expect(connettoreCalendario(page).getByRole("button")).toHaveCount(0);
 	});
 });
 
@@ -150,6 +180,7 @@ test.describe("Verifica dell'account Google al collegamento", () => {
 	}) => {
 		const collaboratore = await factory.createCollaboratore();
 		await accediComeCollaboratore(page, collaboratore.utente.email);
+		await page.goto("/impostazioni/connettori");
 
 		// Nel consenso simulato si sceglie di autorizzare un altro account.
 		await page.getByRole("link", { name: "Collega Google Calendar" }).click();
@@ -160,11 +191,48 @@ test.describe("Verifica dell'account Google al collegamento", () => {
 			.fill("altro-account@esempio.test");
 		await page.getByRole("button", { name: "Autorizza" }).click();
 
-		await page.waitForURL("**/attivita?calendario=account-diverso");
+		await page.waitForURL("**/impostazioni/connettori?calendario=account-diverso");
 		await expect(
 			page.getByRole("alert").filter({ hasText: "account Google diverso" }),
 		).toContainText(collaboratore.utente.email);
 		await expect(page.getByText("Calendario Google non collegato")).toBeVisible();
+	});
+});
+
+test.describe("Indicatore discreto nella pagina attività", () => {
+	test("mostra solo lo stato del collegamento e porta alle Impostazioni", async ({
+		page,
+		factory,
+	}) => {
+		const collaboratore = await factory.createCollaboratore();
+		await collegaCalendarioSimulato(page, collaboratore.utente.email, { eventi: [] });
+		await accediComeCollaboratore(page, collaboratore.utente.email);
+
+		await expect(indicatoreCalendario(page)).toHaveAccessibleName("Google Calendar collegato");
+		await expect(page.getByRole("link", { name: "Collega Google Calendar" })).toHaveCount(0);
+		await expect(page.getByRole("button", { name: "Scollega" })).toHaveCount(0);
+		await expect(page.getByRole("group", { name: "Calendario Google" })).toHaveCount(0);
+
+		await indicatoreCalendario(page).click();
+		await page.waitForURL("**/impostazioni/connettori");
+		await connettoreCalendario(page).getByRole("button", { name: "Scollega" }).click();
+		await expect(page.getByText("Calendario Google non collegato")).toBeVisible();
+
+		await page.goto("/attivita");
+		await expect(indicatoreCalendario(page)).toHaveAccessibleName("Google Calendar non collegato");
+		await expect(page.getByRole("link", { name: "Collega Google Calendar" })).toHaveCount(0);
+		await expect(indicatoreCalendario(page)).toHaveAttribute("href", "/impostazioni/connettori");
+	});
+
+	test("gli esiti del consenso non compaiono più nella pagina attività", async ({ page, factory }) => {
+		const collaboratore = await factory.createCollaboratore();
+		await accediComeCollaboratore(page, collaboratore.utente.email);
+
+		for (const esito of ["negato", "account-diverso"]) {
+			await page.goto(`/attivita?calendario=${esito}`);
+			await expect(indicatoreCalendario(page)).toBeVisible();
+			await expect(page.getByRole("alert").filter({ hasText: "Collegamento non completato" })).toHaveCount(0);
+		}
 	});
 });
 

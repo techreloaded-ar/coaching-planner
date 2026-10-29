@@ -6,6 +6,7 @@ import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { cercaNellElenco } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 import { attendiTabellaOfferteIdratata } from "./support/offerte";
+import { avatarUtente } from "./support/menu-account";
 
 /**
  * Demo scenario — US-026: Gestione delle offerte dalla pagina Offerte.
@@ -103,9 +104,7 @@ test.describe("US-026 Demo", () => {
 
     // ── 1. Login amministratore e apertura "Offerte" dalla sidebar ─
     await accediAlBackOfficeComeAdmin(page);
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded"),
-    ).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
 
     await page.getByRole("link", { name: "Offerte", exact: true }).click();
     await page.waitForURL("**/offerte");

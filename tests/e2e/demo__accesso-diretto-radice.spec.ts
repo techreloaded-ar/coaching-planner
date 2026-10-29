@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { apriMenuAccount, avatarUtente, pannelloAccount } from "./support/menu-account";
 
 /**
  * Demo scenario — US-027: Accesso diretto dalla pagina radice con brand Agile Reloaded
@@ -44,16 +45,12 @@ test.describe("US-027 Demo", () => {
     await accediAlBackOfficeComeAdmin(page);
 
     // 5. Verifica che l'header mostri il nome utente e il ruolo
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded")
-    ).toBeVisible();
-    await expect(
-      page.getByRole("banner").getByText("Amministratore")
-    ).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+    await apriMenuAccount(page);
+    await expect(pannelloAccount(page)).toContainText("Amministratore");
 
-    // 6. Verifica la presenza del pulsante Esci
-    const esciBtn = page.locator("[data-esci]");
-    await expect(esciBtn).toBeVisible();
+    // 6. Verifica la presenza del pulsante Esci nel menu dell'account
+    await expect(pannelloAccount(page).getByRole("button", { name: "Esci" })).toBeVisible();
 
     // 7. Verifica che /login restituisca pagina non trovata
     const response = await page.goto("/login");

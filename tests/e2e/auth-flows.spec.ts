@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
+import { apriMenuAccount, avatarUtente, esci, pannelloAccount } from "./support/menu-account";
 
 /**
  * Test e2e — US-005: Flussi di autenticazione Google
@@ -16,12 +17,12 @@ test.describe("Auth e2e", () => {
   test("accesso collaboratore → Front Office", async ({ page }) => {
     await accediComeCollaboratore(page);
 
-    // Verifica che l'header mostri il nome e il ruolo della collaboratrice
-    await expect(page.getByText("Giulia Conti")).toBeVisible();
-    await expect(page.getByText("Collaboratore")).toBeVisible();
-
-    // Verifica presenza pulsante Esci
-    await expect(page.getByRole("button", { name: "Esci" })).toBeVisible();
+    // Nome, ruolo ed Esci sono nel menu dell'account aperto dall'avatar
+    await expect(avatarUtente(page, "Giulia Conti")).toBeVisible();
+    await apriMenuAccount(page);
+    await expect(pannelloAccount(page)).toContainText("Giulia Conti");
+    await expect(pannelloAccount(page)).toContainText("Collaboratore");
+    await expect(pannelloAccount(page).getByRole("button", { name: "Esci" })).toBeVisible();
   });
 
   test("email non censita → errore generico sulla radice", async ({ page }) => {
@@ -57,10 +58,8 @@ test.describe("Auth e2e", () => {
     // 1. Accedi come amministratore
     await accediComeAdmin(page);
 
-    // 2. Clicca Esci
-    const esciBtn = page.locator("[data-esci]");
-    await expect(esciBtn).toBeVisible();
-    await esciBtn.click();
+    // 2. Clicca Esci dal menu dell'account
+    await esci(page);
 
     // 3. Dovrebbe reindirizzare alla radice con ?logout=1
     await page.waitForURL("**/?logout=1**");

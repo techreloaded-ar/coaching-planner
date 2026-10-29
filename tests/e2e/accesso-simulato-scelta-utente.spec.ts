@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { test, expect } from "./support/fixtures";
+import { esci } from "./support/menu-account";
 
 /**
  * Login simulato delle anteprime (E2E_TEST_MODE=true): «Accedi con Google»
@@ -38,7 +39,7 @@ test.describe("Login simulato con scelta dell'utente", () => {
 			page.getByRole("link", { name: "Console amministrativa", exact: true }),
 		).toHaveCount(0);
 
-		await page.locator("[data-esci]").click();
+		await esci(page);
 		await page.waitForURL("**/?logout=1**");
 
 		await apriSceltaUtente(page);

@@ -1,6 +1,7 @@
 import { decodeJwt } from "jose";
 import { expect, test, type Page } from "@playwright/test";
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
+import { esci } from "./support/menu-account";
 
 const BASE_URL = "http://localhost:3000";
 const COOKIE_SESSIONE = "cp_sessione";
@@ -118,7 +119,7 @@ test.describe("US-029 Proxy e sessione sliding", () => {
     await accediComeAdmin(page);
     expect(await leggiCookieSessione(page)).toBeDefined();
 
-    await page.locator("[data-esci]").click();
+    await esci(page);
 
     await page.waitForURL(
       (url) => url.pathname === "/" && url.searchParams.get("logout") === "1"
