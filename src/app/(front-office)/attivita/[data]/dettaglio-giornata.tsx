@@ -9,6 +9,10 @@ import {
 } from "@/lib/actions/righe-attivita";
 import { BadgeCategoriaAttivita, PulsanteAttesa } from "@/components";
 import {
+  haPiuDiDueDecimali,
+  MESSAGGIO_ORE_TROPPI_DECIMALI,
+} from "@/domain/consuntivi";
+import {
   CATEGORIA_ATTIVITA_PREDEFINITA,
   CATEGORIE_ATTIVITA,
   DESCRIZIONE_CATEGORIA_ATTIVITA,
@@ -130,6 +134,7 @@ function validaOreLocale(input: string): string | null {
   if (isNaN(Number(normalizzato))) return "Valore non valido";
   if (Number(normalizzato) <= 0) return "Inserisci un numero maggiore di zero";
   if (Number(normalizzato) > 24) return "Non può superare 24 ore";
+  if (haPiuDiDueDecimali(normalizzato)) return MESSAGGIO_ORE_TROPPI_DECIMALI;
   return null;
 }
 

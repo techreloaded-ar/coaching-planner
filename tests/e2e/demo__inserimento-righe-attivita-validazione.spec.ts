@@ -52,5 +52,9 @@ test.describe("US-012 Validazione — ore non valide", () => {
     await inputOre.fill("abc");
     await page.getByRole("button", { name: "Aggiungi riga" }).click();
     await expect(page.getByText("Valore non valido")).toBeVisible();
+
+    await inputOre.fill("1,255");
+    await page.getByRole("button", { name: "Aggiungi riga" }).click();
+    await expect(page.getByText("Usa al massimo due decimali per le ore")).toBeVisible();
   });
 });

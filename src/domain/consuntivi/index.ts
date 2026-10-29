@@ -3,9 +3,12 @@
 
 import {
   CATEGORIE_ATTIVITA,
+  CENTESIMI_PER_GIORNATA,
   fatturataAlCliente,
   fatturataDalCollaboratore,
   ORE_PER_GIORNATA,
+  oreInCentesimi,
+  sommaOre,
   type CategoriaAttivita,
   type GestioneTrasferta,
 } from "../types";
@@ -82,6 +85,14 @@ export interface RiepilogoMese {
 
 // ── Validazione ore ─────────────────────────────────────────────
 
+/** Le ore si salvano con due decimali: oltre, il database arrotonderebbe in silenzio. */
+export const MESSAGGIO_ORE_TROPPI_DECIMALI = "Usa al massimo due decimali per le ore";
+
+/** Vero se il valore digitato (con il punto decimale) ha cifre significative oltre la seconda. */
+export function haPiuDiDueDecimali(normalizzato: string): boolean {
+  return /\.\d{2}\d*[1-9]/.test(normalizzato);
+}
+
 /**
  * Valida una stringa di input utente che rappresenta le ore lavorate.
  *
@@ -90,6 +101,7 @@ export interface RiepilogoMese {
  * - Deve rappresentare un numero valido (dopo normalizzazione virgola → punto)
  * - Il valore deve essere > 0
  * - Il valore non deve superare 24 ore
+ * - Al massimo due decimali significativi (la precisione di salvataggio)
  *
  * @param input - La stringa inserita dall'utente
  * @returns RisultatoValidazioneOre con esito e, se valido, il valore numerico
@@ -113,6 +125,10 @@ export function validaOre(input: string): RisultatoValidazioneOre {
 
   if (numero > 24) {
     return { valido: false, errore: "Il valore non può superare 24 ore" };
+  }
+
+  if (haPiuDiDueDecimali(normalizzato)) {
+    return { valido: false, errore: MESSAGGIO_ORE_TROPPI_DECIMALI };
   }
 
   return { valido: true, valore: numero };
@@ -165,14 +181,14 @@ export function calcolaRiepilogoMese(
       rimborsiTrasferta: 0,
     };
 
-    voce.oreTotali += riga.ore;
-    oreTotali += riga.ore;
-    voce.orePerCategoria[riga.categoria] += riga.ore;
-    orePerCategoria[riga.categoria] += riga.ore;
+    voce.oreTotali = sommaOre(voce.oreTotali, riga.ore);
+    oreTotali = sommaOre(oreTotali, riga.ore);
+    voce.orePerCategoria[riga.categoria] = sommaOre(voce.orePerCategoria[riga.categoria], riga.ore);
+    orePerCategoria[riga.categoria] = sommaOre(orePerCategoria[riga.categoria], riga.ore);
 
     if (fatturataDalCollaboratore(riga.categoria)) {
-      voce.oreDaFatturare += riga.ore;
-      oreDaFatturare += riga.ore;
+      voce.oreDaFatturare = sommaOre(voce.oreDaFatturare, riga.ore);
+      oreDaFatturare = sommaOre(oreDaFatturare, riga.ore);
     }
 
     if (riga.rimborsoTrasfertaImporto != null) {
@@ -367,14 +383,14 @@ export function calcolaReportFatturazioneClienti(
     }
 
     if (riga.fatturabile) {
-      offerta.oreFatturabili += riga.ore;
+      offerta.oreFatturabili = sommaOre(offerta.oreFatturabili, riga.ore);
 
       const collaboratore = offerta.collaboratori.get(riga.collaboratoreId) ?? {
         collaboratoreId: riga.collaboratoreId,
         collaboratoreNome: riga.collaboratoreNome,
         oreFatturabili: 0,
       };
-      collaboratore.oreFatturabili += riga.ore;
+      collaboratore.oreFatturabili = sommaOre(collaboratore.oreFatturabili, riga.ore);
       offerta.collaboratori.set(riga.collaboratoreId, collaboratore);
     }
 
@@ -675,7 +691,7 @@ export function calcolaMarginalitaClienti(
     }
 
     if (fatturataAlCliente(riga.categoria)) {
-      offerta.ore += riga.ore;
+      offerta.ore = sommaOre(offerta.ore, riga.ore);
     }
     offerta.costi +=
       (riga.ore / ORE_PER_GIORNATA) *
@@ -695,7 +711,7 @@ export function calcolaMarginalitaClienti(
       }
       // Stessa formula di calcolaReportFatturazioneClienti: ore totali / 8 × tariffa
       offerta.ricavi = (offerta.ore / ORE_PER_GIORNATA) * offerta.tariffaOfferta;
-      sommaCliente.ore += offerta.ore;
+      sommaCliente.ore = sommaOre(sommaCliente.ore, offerta.ore);
       sommaCliente.ricavi += offerta.ricavi;
       sommaCliente.costi += offerta.costi;
       perOfferta.push({
@@ -711,7 +727,7 @@ export function calcolaMarginalitaClienti(
     }
 
     perOfferta.sort((a, b) => a.offertaCodice.localeCompare(b.offertaCodice));
-    totale.ore += sommaCliente.ore;
+    totale.ore = sommaOre(totale.ore, sommaCliente.ore);
     totale.ricavi += sommaCliente.ricavi;
     totale.costi += sommaCliente.costi;
     perCliente.push({
@@ -866,7 +882,7 @@ export function calcolaAvanzamentoOfferte(
       accumulatori.set(riga.offertaId, accumulatoreOfferta);
     }
 
-    accumulatoreOfferta.oreErogateTotali += riga.ore;
+    accumulatoreOfferta.oreErogateTotali = sommaOre(accumulatoreOfferta.oreErogateTotali, riga.ore);
     accumulatoreOfferta.mesi.add(riga.mese);
 
     const accumulatoreCollaboratore = accumulatoreOfferta.collaboratori.get(
@@ -877,10 +893,10 @@ export function calcolaAvanzamentoOfferte(
       oreErogate: 0,
       orePerMese: new Map<string, number>(),
     };
-    accumulatoreCollaboratore.oreErogate += riga.ore;
+    accumulatoreCollaboratore.oreErogate = sommaOre(accumulatoreCollaboratore.oreErogate, riga.ore);
     accumulatoreCollaboratore.orePerMese.set(
       riga.mese,
-      (accumulatoreCollaboratore.orePerMese.get(riga.mese) ?? 0) + riga.ore,
+      sommaOre(accumulatoreCollaboratore.orePerMese.get(riga.mese) ?? 0, riga.ore),
     );
     accumulatoreOfferta.collaboratori.set(riga.collaboratoreId, accumulatoreCollaboratore);
   }
@@ -891,24 +907,30 @@ export function calcolaAvanzamentoOfferte(
 
   const perOfferta: VoceAvanzamentoOfferta[] = offerte.map((offerta) => {
     const accumulatoreOfferta = accumulatori.get(offerta.offertaId);
-    const oreErogate = accumulatoreOfferta?.oreErogateTotali ?? 0;
-    const giornateErogate = oreErogate / ORE_PER_GIORNATA;
+    // Budget, erogato e residuo si confrontano come interi in centesimi di ora:
+    // giornate e residuo decimali sono solo valori derivati da mostrare.
+    const erogateCentesimi = oreInCentesimi(
+      accumulatoreOfferta?.oreErogateTotali ?? 0,
+    );
     const giornatePreviste = offerta.giorniPrevisti;
-    const residuo = giornatePreviste - giornateErogate;
+    const budgetCentesimi = giornatePreviste * CENTESIMI_PER_GIORNATA;
+    const residuoCentesimi = budgetCentesimi - erogateCentesimi;
+    const giornateErogate = erogateCentesimi / CENTESIMI_PER_GIORNATA;
+    const residuo = residuoCentesimi / CENTESIMI_PER_GIORNATA;
 
     const percentualeUtilizzo =
-      giornatePreviste > 0
-        ? giornateErogate / giornatePreviste
-        : giornateErogate > 0
+      budgetCentesimi > 0
+        ? erogateCentesimi / budgetCentesimi
+        : erogateCentesimi > 0
           ? 1.01
           : 0;
 
     let stato: StatoAvanzamentoOfferta;
-    if (residuo < 0) {
+    if (residuoCentesimi < 0) {
       stato = "OLTRE_BUDGET";
-    } else if (residuo === 0 && giornatePreviste > 0) {
+    } else if (residuoCentesimi === 0 && budgetCentesimi > 0) {
       stato = "ESAURITA";
-    } else if (percentualeUtilizzo >= SOGLIA_ALLERTA_UTILIZZO && residuo > 0) {
+    } else if (percentualeUtilizzo >= SOGLIA_ALLERTA_UTILIZZO && residuoCentesimi > 0) {
       stato = "IN_ALLERTA";
     } else {
       stato = "IN_CORSO";
@@ -1054,11 +1076,11 @@ export function raggruppaAttivitaPerMese(
 
   return Array.from(gruppi.entries())
     .map(([token, righeMese]) => {
-      const oreTotali = righeMese.reduce((somma, riga) => somma + riga.ore, 0);
+      const oreTotali = sommaOre(...righeMese.map((riga) => riga.ore));
       return {
         token,
         righe: righeMese,
-        oreTotali: Math.round(oreTotali * 100) / 100,
+        oreTotali,
         giornateTotali:
           Math.round((oreTotali / ORE_PER_GIORNATA) * 100) / 100,
       };

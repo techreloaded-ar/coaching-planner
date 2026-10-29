@@ -177,8 +177,8 @@ function RigaOfferta({
   offertaEspansaId: string | null;
   posizione: PosizioneElenco;
 }) {
-  const oltreBudget = offerta.residuo < 0;
-  const esaurita = offerta.residuo === 0 && offerta.giorniPrevisti > 0;
+  const oltreBudget = offerta.stato === "OLTRE_BUDGET";
+  const esaurita = offerta.stato === "ESAURITA";
   const percentuale =
     offerta.giorniPrevisti > 0
       ? Math.min((offerta.giornateErogate / offerta.giorniPrevisti) * 100, 100)

@@ -578,14 +578,14 @@ describe("elencaOfferteConAvanzamentoPaginate", () => {
 		});
 	}
 
-	it("restituisce 50 offerte per pagina e legge le righe di dettaglio solo per quelle della pagina", async () => {
+	it("restituisce 25 offerte per pagina e legge le righe di dettaglio solo per quelle della pagina", async () => {
 		mockOfferta.findMany.mockResolvedValue(sessantaOfferte());
 		impostaRigheAttivita([]);
 
-		const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca: "", pagina: 2 });
+		const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca: "", pagina: 3 });
 
-		expect(elenco.paginaCorrente).toBe(2);
-		expect(elenco.totalePagine).toBe(2);
+		expect(elenco.paginaCorrente).toBe(3);
+		expect(elenco.totalePagine).toBe(3);
 		expect(elenco.totaleElementi).toBe(60);
 		expect(elenco.offerte.map((v) => v.codice)).toEqual(
 			Array.from({ length: 10 }, (_, i) => `OFF-${51 + i}`),
@@ -607,7 +607,7 @@ describe("elencaOfferteConAvanzamentoPaginate", () => {
 
 		expect(elenco.offerte[0].codice).toBe("OFF-60");
 		expect(elenco.offerte[0].stato).toBe("ESAURITA");
-		expect(elenco.offerte).toHaveLength(50);
+		expect(elenco.offerte).toHaveLength(25);
 	});
 
 	it("conta attive, non attive e critiche sull'intero insieme, non sulla pagina", async () => {
@@ -626,6 +626,25 @@ describe("elencaOfferteConAvanzamentoPaginate", () => {
 		expect(elenco.attive).toBe(59);
 		expect(elenco.nonAttive).toBe(1);
 		expect(elenco.critiche).toBe(2);
+	});
+
+	it("ordinamento, pill e badge concordano su un'offerta esaurita con ore a due decimali", async () => {
+		const offerte = sessantaOfferte();
+		mockOfferta.findMany.mockResolvedValue(offerte);
+		// 80,00 ore esatte in 16 righe: in virgola mobile sommerebbero 79,99999999999999
+		const ore = [7.31, 6.26, 4.8, 6.41, 2.03, 2.65, 1.82, 7.53, 7.61, 4.87, 6.99, 1.01, 5.03, 7.19, 4.46, 4.03];
+		impostaRigheAttivita(
+			ore.map((valore, indice) =>
+				rigaConCollaboratore({ offertaId: "off-60", collaboratoreId: `collab-${indice}`, ore: valore }),
+			),
+		);
+
+		const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca: "", pagina: 1 });
+
+		expect(elenco.critiche).toBe(1);
+		expect(elenco.offerte[0].codice).toBe("OFF-60");
+		expect(elenco.offerte[0].stato).toBe("ESAURITA");
+		expect(elenco.offerte[0].residuo).toBe(0);
 	});
 
 	it("filtra sul server per cliente, codice o descrizione senza distinzione maiuscole/minuscole", async () => {
@@ -657,7 +676,7 @@ describe("elencaOfferteConAvanzamentoPaginate", () => {
 
 		const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca: "", pagina: 9 });
 
-		expect(elenco.paginaCorrente).toBe(2);
+		expect(elenco.paginaCorrente).toBe(3);
 		expect(elenco.offerte).toHaveLength(10);
 	});
 });
