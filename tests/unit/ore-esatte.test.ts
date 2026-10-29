@@ -130,6 +130,14 @@ describe("ore sommate in modo esatto", () => {
       errore: MESSAGGIO_ORE_TROPPI_DECIMALI,
     });
     expect(validaOre("0.333").valido).toBe(false);
+    // Notazioni che Number accetterebbe aggirando il limite dei due decimali
+    for (const input of ["1e-3", "1.25e-1", "0x10", "1e1"]) {
+      expect(validaOre(input)).toEqual({
+        valido: false,
+        errore: "Valore non valido: inserisci un numero",
+      });
+    }
+    expect(validaOre(".5")).toEqual({ valido: true, valore: 0.5 });
     expect(validaOre("1,25")).toEqual({ valido: true, valore: 1.25 });
     expect(validaOre("1.250")).toEqual({ valido: true, valore: 1.25 });
     expect(validaOre("7")).toEqual({ valido: true, valore: 7 });

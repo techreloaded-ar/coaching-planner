@@ -260,7 +260,8 @@ export async function elencaOfferteConAvanzamentoPaginate({
 
   const attive = offerteOrdinate.filter(({ offerta }) => offerta.attiva).length;
   const critiche = offerteOrdinate.filter(
-    ({ offerta, avanzamento }) => offerta.attiva && avanzamento.residuo <= 0,
+    ({ offerta, avanzamento }) =>
+      gruppoOrdinamento(offerta.attiva, avanzamento.stato) === 1,
   ).length;
 
   const paginaElenco = calcolaPaginaElenco(pagina, offerte.length);
