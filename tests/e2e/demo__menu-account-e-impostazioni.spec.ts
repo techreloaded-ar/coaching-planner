@@ -1,6 +1,12 @@
 import { accediComeCollaboratore } from "./support/auth";
 import { test, expect } from "./support/fixtures";
-import { apriImpostazioni, apriMenuAccount, esci, pannelloAccount } from "./support/menu-account";
+import {
+	apriCategoriaImpostazioni,
+	apriImpostazioni,
+	apriMenuAccount,
+	esci,
+	pannelloAccount,
+} from "./support/menu-account";
 import { attendiAspetto, scegliTema } from "./support/tema";
 
 /**
@@ -39,10 +45,11 @@ test.describe("Impostazioni utente Demo", () => {
 		await scegliTema(page, "Scuro");
 		await attendiAspetto(page, "scuro");
 
+		await apriCategoriaImpostazioni(page, "Connettori");
 		await page.getByRole("link", { name: "Collega Google Calendar" }).click();
 		await page.waitForURL("**/e2e-test/consenso-calendario**");
 		await page.getByRole("button", { name: "Autorizza" }).click();
-		await page.waitForURL("**/impostazioni?calendario=collegato");
+		await page.waitForURL("**/impostazioni/connettori?calendario=collegato");
 		await expect(page.getByText("Calendario Google collegato", { exact: true })).toBeVisible();
 
 		await page.goto("/attivita");
@@ -50,7 +57,7 @@ test.describe("Impostazioni utente Demo", () => {
 		await expect(indicatore).toBeVisible();
 		await expect(page.getByRole("button", { name: "Scollega" })).toHaveCount(0);
 		await indicatore.click();
-		await page.waitForURL("**/impostazioni");
+		await page.waitForURL("**/impostazioni/connettori");
 
 		await esci(page);
 		await attendiAspetto(page, "scuro");

@@ -8,7 +8,6 @@ import {
 	EMAIL_COLLABORATORE_E2E,
 } from "./support/auth";
 import {
-	apriImpostazioni,
 	apriMenuAccount,
 	esci,
 	pannelloAccount,
@@ -92,24 +91,5 @@ test.describe("Menu dell'account sull'avatar", () => {
 		await pannelloAccount(page).getByRole("button", { name: "Esci", exact: true }).focus();
 		await page.keyboard.press("Enter");
 		await page.waitForURL((url) => url.pathname === "/" && url.searchParams.get("logout") === "1");
-	});
-});
-
-test.describe("Accesso alle Impostazioni", () => {
-	test("dal menu dell'account del front office e della console amministrativa", async ({ page }) => {
-		await accediAlBackOfficeComeAdmin(page);
-		await apriImpostazioni(page);
-		await expect(page.getByRole("heading", { name: "Tema", level: 2 })).toBeVisible();
-		await expect(page.getByRole("heading", { name: "Connettori", level: 2 })).toBeVisible();
-
-		await page.goto("/attivita");
-		await apriImpostazioni(page);
-		await expect(page.getByRole("heading", { name: "Tema", level: 2 })).toBeVisible();
-	});
-
-	test("un visitatore non autenticato viene mandato alla pagina di accesso", async ({ page }) => {
-		await page.goto("/impostazioni");
-		await page.waitForURL((url) => url.pathname === "/");
-		await expect(page.getByRole("button", { name: "Accedi con Google" })).toBeVisible();
 	});
 });

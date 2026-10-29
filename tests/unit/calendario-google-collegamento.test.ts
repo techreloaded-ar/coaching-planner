@@ -49,7 +49,7 @@ function esito(response: Response): string | null {
   expect(response.status).toBe(307);
   const destinazione = new URL(response.headers.get("location")!);
   // Il ritorno dal consenso porta sempre alle Impostazioni, dove vive il connettore.
-  expect(destinazione.pathname).toBe("/impostazioni");
+  expect(destinazione.pathname).toBe("/impostazioni/connettori");
   return destinazione.searchParams.get("calendario");
 }
 
@@ -162,7 +162,7 @@ describe("azioni del calendario", () => {
     expect(mockCollegamento.deleteMany).toHaveBeenCalledWith({
       where: { collaboratoreId: "collab-1" },
     });
-    expect(mockRevalidate).toHaveBeenCalledWith("/impostazioni");
+    expect(mockRevalidate).toHaveBeenCalledWith("/impostazioni/connettori");
     expect(mockRevalidate).toHaveBeenCalledWith("/attivita");
   });
 

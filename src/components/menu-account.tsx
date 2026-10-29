@@ -105,7 +105,7 @@ export function MenuAccount({ nome, email, ruolo, azioneEsci }: MenuAccountProps
           </div>
           <div role="separator" className="my-1 h-px bg-zinc-200 dark:bg-zinc-700" />
           <Link
-            href="/impostazioni"
+            href="/impostazioni/tema"
             onClick={() => setAperto(false)}
             className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
           >

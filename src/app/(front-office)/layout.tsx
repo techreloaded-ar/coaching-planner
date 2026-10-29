@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { disconnetti, verificaSessione } from "@/lib/dal";
 import { LogoAgileReloaded, MenuAccount } from "@/components";
-import TitoloFrontOffice from "./titolo-front-office";
 
 export default async function FrontOfficeLayout({
   children,
@@ -20,7 +19,9 @@ export default async function FrontOfficeLayout({
             <div className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
               Front office
             </div>
-            <TitoloFrontOffice />
+            <h1 className="mt-0.5 text-[22px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+              Le mie attività
+            </h1>
           </div>
           <div className="flex-1" />
 

@@ -29,10 +29,24 @@ export async function esci(page: Page) {
 	await page.waitForURL((url) => url.pathname === "/" && url.searchParams.get("logout") === "1");
 }
 
-/** Apre la pagina Impostazioni dal menu dell'account. */
+/** Apre le Impostazioni dal menu dell'account: si arriva sulla categoria Tema. */
 export async function apriImpostazioni(page: Page) {
 	await apriMenuAccount(page);
 	await pannelloAccount(page).getByRole("link", { name: "Impostazioni", exact: true }).click();
-	await page.waitForURL("**/impostazioni");
+	await page.waitForURL("**/impostazioni/tema");
 	await expect(page.getByRole("heading", { name: "Impostazioni", level: 1 })).toBeVisible();
+}
+
+/** Barra laterale delle Impostazioni con le categorie. */
+export function categorieImpostazioni(page: Page) {
+	return page.getByRole("navigation", { name: "Categorie delle impostazioni", exact: true });
+}
+
+/** Apre una categoria dalla barra laterale e attende che sia quella evidenziata. */
+export async function apriCategoriaImpostazioni(page: Page, categoria: "Tema" | "Connettori") {
+	const voce = categorieImpostazioni(page).getByRole("link", { name: categoria, exact: true });
+	await voce.click();
+	await page.waitForURL(`**/impostazioni/${categoria.toLowerCase()}`);
+	await expect(voce).toHaveAttribute("aria-current", "page");
+	await expect(page.getByRole("heading", { name: categoria, level: 2 })).toBeVisible();
 }

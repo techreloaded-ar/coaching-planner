@@ -16,7 +16,7 @@ export async function scollegaCalendarioGoogle(): Promise<void> {
     where: { collaboratoreId: collaboratore.id },
   });
 
-  revalidatePath("/impostazioni");
+  revalidatePath("/impostazioni/connettori");
   revalidatePath("/attivita");
 }
 

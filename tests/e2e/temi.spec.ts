@@ -92,7 +92,7 @@ test.describe("Tema nelle Impostazioni", () => {
 		await expect(pannelloAccount(page)).toBeVisible();
 		await pannelloAccount(page).getByRole("link", { name: "Impostazioni", exact: true }).focus();
 		await page.keyboard.press("Enter");
-		await page.waitForURL("**/impostazioni");
+		await page.waitForURL("**/impostazioni/tema");
 		await expect(page.getByRole("heading", { name: "Impostazioni", level: 1 })).toBeVisible();
 
 		await expect(page.getByTestId("selettore-tema")).toHaveAttribute("data-idratata", "true");
