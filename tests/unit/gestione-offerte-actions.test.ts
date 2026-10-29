@@ -71,6 +71,21 @@ describe("cambiaStatoOfferta", () => {
 		);
 	});
 
+	it("riporta alla stessa pagina e ricerca dell'elenco, mantenendo l'offerta espansa", async () => {
+		const formData = new FormData();
+		formData.set("id", "off-1");
+		formData.set("attiva", "false");
+		formData.set("offertaEspansaId", "off-1");
+		formData.set("q", "alfa beta");
+		formData.set("pagina", "2");
+
+		await cambiaStatoOfferta(formData);
+
+		expect(mockRedirect).toHaveBeenCalledWith(
+			"/offerte?esito=stato-offerta-aggiornato&offertaEspansaId=off-1&q=alfa+beta&pagina=2",
+		);
+	});
+
 	it("riattiva l'offerta quando attiva vale 'true'", async () => {
 		const formData = new FormData();
 		formData.set("id", "off-1");
@@ -157,6 +172,19 @@ describe("eliminaOfferta", () => {
 		expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/clienti");
 		expect(mockRedirect).toHaveBeenCalledWith(
 			"/offerte?esito=offerta-eliminata",
+		);
+	});
+
+	it("dopo l'eliminazione riporta alla stessa pagina e ricerca dell'elenco", async () => {
+		const formData = new FormData();
+		formData.set("id", "off-1");
+		formData.set("q", "OFF");
+		formData.set("pagina", "3");
+
+		await eliminaOfferta({}, formData);
+
+		expect(mockRedirect).toHaveBeenCalledWith(
+			"/offerte?esito=offerta-eliminata&q=OFF&pagina=3",
 		);
 	});
 

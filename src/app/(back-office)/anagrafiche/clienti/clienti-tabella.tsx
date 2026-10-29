@@ -1,53 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import type { Cliente } from "@/generated/prisma/client";
-import { PulsanteAttesa } from "@/components";
+import type { ElencoClientiPaginato } from "@/lib/clienti";
+import {
+  CampiPosizioneElenco,
+  PaginazioneElenco,
+  PulsanteAttesa,
+  RicercaElenco,
+} from "@/components";
 import { cambiaStatoAction } from "./cambia-stato-action";
 
 // ── Props ──────────────────────────────────────────────────────
 
 interface ClientiTabellaProps {
-  clienti: Cliente[];
+  elenco: ElencoClientiPaginato;
+  ricerca: string;
 }
 
 // ── Componente ─────────────────────────────────────────────────
 
-export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
-  const [filtro, setFiltro] = useState("");
-
-  const filtroLower = filtro.toLowerCase();
-  const clientiFiltrati = clienti.filter(
-    (c) =>
-      !filtroLower ||
-      c.ragioneSociale.toLowerCase().includes(filtroLower) ||
-      (c.partitaIva ?? "").includes(filtroLower) ||
-      (c.citta ?? "").toLowerCase().includes(filtroLower)
-  );
-
-  const attivi = clienti.filter((c) => c.attivo).length;
-  const disattivati = clienti.length - attivi;
+export default function ClientiTabella({ elenco, ricerca }: ClientiTabellaProps) {
+  const { clienti, attivi, disattivati, totaleElementi, paginaCorrente } = elenco;
 
   return (
     <>
       <section className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-4 py-[14px] dark:border-zinc-800">
-          <label className="flex flex-1 items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-100 px-3 py-2 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 max-w-[320px]">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px] shrink-0" strokeWidth={2}>
-              <circle cx="11" cy="11" r="7" /><path d="m20 20-3.3-3.3" />
-            </svg>
-            <input
-              type="search"
-              placeholder="Cerca per ragione sociale, P.IVA o città…"
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
-              className="w-full border-0 bg-transparent font-[inherit] text-[13.5px] text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
-              aria-label="Cerca cliente"
-            />
-          </label>
+          <RicercaElenco
+            ricerca={ricerca}
+            segnaposto="Cerca per ragione sociale, P.IVA o città…"
+            etichetta="Cerca cliente"
+            className="max-w-[320px]"
+          />
           <span className="ml-auto text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
-            {clienti.length} clienti · {attivi} attivi · {disattivati} disattivati
+            {totaleElementi} clienti · {attivi} attivi · {disattivati} disattivati
           </span>
         </div>
 
@@ -73,14 +59,14 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
             </tr>
           </thead>
           <tbody>
-            {clientiFiltrati.length === 0 ? (
+            {clienti.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
                   Nessun cliente corrisponde alla ricerca.
                 </td>
               </tr>
             ) : (
-              clientiFiltrati.map((cliente) => {
+              clienti.map((cliente) => {
                 const sede = [cliente.citta, cliente.provincia ? `(${cliente.provincia})` : ""]
                   .filter(Boolean)
                   .join(" ");
@@ -159,6 +145,7 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
                         <form action={cambiaStatoAction} className="inline">
                           <input type="hidden" name="id" value={cliente.id} />
                           <input type="hidden" name="attivo" value="false" />
+                          <CampiPosizioneElenco ricerca={ricerca} pagina={paginaCorrente} />
                           <PulsanteAttesa
                             className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                           >
@@ -172,6 +159,7 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
                         <form action={cambiaStatoAction} className="inline">
                           <input type="hidden" name="id" value={cliente.id} />
                           <input type="hidden" name="attivo" value="true" />
+                          <CampiPosizioneElenco ricerca={ricerca} pagina={paginaCorrente} />
                           <PulsanteAttesa
                             className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-zinc-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
                           >
@@ -189,6 +177,11 @@ export default function ClientiTabella({ clienti }: ClientiTabellaProps) {
             )}
           </tbody>
         </table>
+        <PaginazioneElenco
+          percorso="/anagrafiche/clienti"
+          ricerca={ricerca}
+          {...elenco}
+        />
       </section>
 
     </>

@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { richiediRuolo } from "@/lib/dal";
-import { elencaClienti } from "@/lib/clienti";
+import { elencaClientiPaginati } from "@/lib/clienti";
+import { leggiPosizioneElenco } from "@/lib/paginazione";
 import ClientiTabella from "./clienti-tabella";
 
-export default async function ClientiPage() {
+interface ClientiPageProps {
+  searchParams: Promise<{ q?: string | string[]; pagina?: string | string[] }>;
+}
+
+export default async function ClientiPage({ searchParams }: ClientiPageProps) {
   await richiediRuolo("AMMINISTRATORE");
-  const clienti = await elencaClienti();
+  const { ricerca, pagina } = leggiPosizioneElenco(await searchParams);
+  const elenco = await elencaClientiPaginati({ ricerca, pagina });
 
   return (
     <div>
@@ -36,7 +42,7 @@ export default async function ClientiPage() {
       </div>
 
       {/* Tabella clienti */}
-      <ClientiTabella clienti={clienti} />
+      <ClientiTabella elenco={elenco} ricerca={ricerca} />
 
 
     </div>
