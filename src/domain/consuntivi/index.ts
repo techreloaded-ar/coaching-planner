@@ -7,13 +7,16 @@ import {
   fatturataAlCliente,
   fatturataDalCollaboratore,
   ORE_PER_GIORNATA,
+  eNumeroDecimale,
+  haPiuDiDueDecimali,
+  MESSAGGIO_ORE_TROPPI_DECIMALI,
   oreInCentesimi,
   sommaOre,
   type CategoriaAttivita,
   type GestioneTrasferta,
 } from "../types";
 
-export { ORE_PER_GIORNATA };
+export { ORE_PER_GIORNATA, MESSAGGIO_ORE_TROPPI_DECIMALI };
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -84,23 +87,6 @@ export interface RiepilogoMese {
 }
 
 // ── Validazione ore ─────────────────────────────────────────────
-
-/** Le ore si salvano con due decimali: oltre, il database arrotonderebbe in silenzio. */
-export const MESSAGGIO_ORE_TROPPI_DECIMALI = "Usa al massimo due decimali per le ore";
-
-/**
- * Vero se il valore digitato (con il punto decimale) è un numero decimale
- * semplice: niente notazione esponenziale o esadecimale, che `Number`
- * accetterebbe («1e-3», «0x10») aggirando il limite dei due decimali.
- */
-export function eNumeroDecimale(normalizzato: string): boolean {
-  return /^[+-]?(\d+\.?\d*|\.\d+)$/.test(normalizzato);
-}
-
-/** Vero se il valore digitato (con il punto decimale) ha cifre significative oltre la seconda. */
-export function haPiuDiDueDecimali(normalizzato: string): boolean {
-  return /\.\d{2}\d*[1-9]/.test(normalizzato);
-}
 
 /**
  * Valida una stringa di input utente che rappresenta le ore lavorate.

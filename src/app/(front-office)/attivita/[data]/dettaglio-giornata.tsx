@@ -9,16 +9,14 @@ import {
 } from "@/lib/actions/righe-attivita";
 import { BadgeCategoriaAttivita, PulsanteAttesa } from "@/components";
 import {
-  eNumeroDecimale,
-  haPiuDiDueDecimali,
-  MESSAGGIO_ORE_TROPPI_DECIMALI,
-} from "@/domain/consuntivi";
-import { sommaOre } from "@/domain/types";
-import {
   CATEGORIA_ATTIVITA_PREDEFINITA,
   CATEGORIE_ATTIVITA,
   DESCRIZIONE_CATEGORIA_ATTIVITA,
+  eNumeroDecimale,
   fatturataDalCollaboratore,
+  haPiuDiDueDecimali,
+  MESSAGGIO_ORE_TROPPI_DECIMALI,
+  sommaOre,
   type CategoriaAttivita,
 } from "@/domain/types";
 import { SelettoreDuplicazione } from "./selettore-duplicazione";

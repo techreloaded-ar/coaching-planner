@@ -25,6 +25,23 @@ export function sommaOre(...ore: number[]): number {
   );
 }
 
+/** Le ore si salvano con due decimali: oltre, il database arrotonderebbe in silenzio. */
+export const MESSAGGIO_ORE_TROPPI_DECIMALI = "Usa al massimo due decimali per le ore";
+
+/**
+ * Vero se il valore digitato (con il punto decimale) è un numero decimale
+ * semplice: niente notazione esponenziale o esadecimale, che `Number`
+ * accetterebbe («1e-3», «0x10») aggirando il limite dei due decimali.
+ */
+export function eNumeroDecimale(normalizzato: string): boolean {
+  return /^[+-]?(\d+\.?\d*|\.\d+)$/.test(normalizzato);
+}
+
+/** Vero se il valore digitato (con il punto decimale) ha cifre significative oltre la seconda. */
+export function haPiuDiDueDecimali(normalizzato: string): boolean {
+  return /\.\d{2}\d*[1-9]/.test(normalizzato);
+}
+
 /** Ruoli utente */
 export type Ruolo = "AMMINISTRATORE" | "COLLABORATORE";
 
