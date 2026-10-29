@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { apriElencoFiltrato } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 
 /**
@@ -112,7 +113,7 @@ test.describe("Gestione trasferte dell'offerta", () => {
 		});
 		const inclusa = await factory.createOfferta({ cliente });
 
-		await page.goto("/offerte");
+		await apriElencoFiltrato(page, "/offerte", cliente.ragioneSociale);
 		const righe = page.locator("table[aria-label='Elenco offerte'] tbody tr");
 
 		await expect(

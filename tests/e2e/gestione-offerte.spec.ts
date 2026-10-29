@@ -4,7 +4,8 @@ import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
-import { attendiTabellaOfferteIdratata } from "./support/offerte";
+import { apriElencoFiltrato, cercaNellElenco } from "./support/elenchi";
+import { apriPaginaOfferte } from "./support/offerte";
 
 /** Codice offerta univoco per il test, così da localizzare una singola riga. */
 function codiceUnivoco(prefisso: string): string {
@@ -18,6 +19,23 @@ async function vaiAOfferteDallaSidebar(page: Page): Promise<void> {
 	await expect(
 		page.getByRole("heading", { name: "Offerte", level: 1 }),
 	).toBeVisible();
+}
+
+/**
+ * Attende il redirect di un'azione sull'elenco filtrato: l'URL porta l'esito
+ * e conserva la ricerca `q` da cui l'azione è partita.
+ */
+async function attendiEsitoNellElencoFiltrato(
+	page: Page,
+	esito: string,
+	ricerca: string,
+): Promise<void> {
+	await page.waitForURL(
+		(url) =>
+			url.pathname === "/offerte" &&
+			url.searchParams.get("esito") === esito &&
+			url.searchParams.get("q") === ricerca,
+	);
 }
 
 /** Riga della tabella offerte che contiene il codice indicato. */
@@ -60,6 +78,9 @@ test.describe("Gestione offerte", () => {
 			page.getByText("Offerta creata correttamente"),
 		).toBeVisible();
 
+		// Il redirect riporta all'elenco non filtrato, dove la nuova offerta può
+		// stare oltre la prima pagina: la si cerca per codice.
+		await cercaNellElenco(page, "/offerte", codice);
 		const riga = rigaConCodice(page, codice);
 		await expect(riga).toHaveCount(1);
 		await expect(
@@ -102,7 +123,7 @@ test.describe("Gestione offerte", () => {
 			tariffaGiornaliera: "500.00",
 		});
 
-		await page.goto("/offerte");
+		await apriElencoFiltrato(page, "/offerte", offerta.codice);
 		const riga = rigaConCodice(page, offerta.codice);
 		await riga.getByRole("link", { name: "Modifica" }).click();
 		await page.waitForURL(/\/offerte\/[^/]+$/);
@@ -113,6 +134,7 @@ test.describe("Gestione offerte", () => {
 
 		await page.waitForURL(/\/offerte\?esito=offerta-salvata$/);
 		await expect(page.getByText("Modifiche all'offerta salvate")).toBeVisible();
+		await cercaNellElenco(page, "/offerte", offerta.codice);
 
 		const rigaAggiornata = rigaConCodice(page, offerta.codice);
 		await expect(
@@ -135,14 +157,18 @@ test.describe("Gestione offerte", () => {
 		const codice = codiceUnivoco("TOGGLE");
 		const offerta = await factory.createOfferta({ codice, attiva: true });
 
-		await page.goto("/offerte");
+		await apriElencoFiltrato(page, "/offerte", offerta.codice);
 		const riga = rigaConCodice(page, offerta.codice);
 		const indicatoreAttiva = riga.getByRole("button", { name: "Disattiva" });
 		await expect(indicatoreAttiva).toBeVisible();
 		await expect(indicatoreAttiva).toHaveAttribute("title", "Offerta attiva");
 
 		await indicatoreAttiva.click();
-		await page.waitForURL(/\/offerte\?esito=stato-offerta-aggiornato$/);
+		await attendiEsitoNellElencoFiltrato(
+			page,
+			"stato-offerta-aggiornato",
+			offerta.codice,
+		);
 
 		const rigaDisattivata = rigaConCodice(page, offerta.codice);
 		const indicatoreNonAttiva = rigaDisattivata.getByRole("button", {
@@ -155,7 +181,11 @@ test.describe("Gestione offerte", () => {
 		);
 
 		await indicatoreNonAttiva.click();
-		await page.waitForURL(/\/offerte\?esito=stato-offerta-aggiornato$/);
+		await attendiEsitoNellElencoFiltrato(
+			page,
+			"stato-offerta-aggiornato",
+			offerta.codice,
+		);
 
 		const rigaRiattivata = rigaConCodice(page, offerta.codice);
 		const indicatoreRiattivata = rigaRiattivata.getByRole("button", {
@@ -178,9 +208,8 @@ test.describe("Gestione offerte", () => {
 		const codice = codiceUnivoco("DEL");
 		const offerta = await factory.createOfferta({ codice });
 
-		await page.goto("/offerte");
-		// "Elimina" è un handler client: attendere l'idratazione della tabella.
-		await attendiTabellaOfferteIdratata(page);
+		// "Elimina" è un handler client: l'helper attende anche l'idratazione.
+		await apriPaginaOfferte(page, offerta.codice);
 		const riga = rigaConCodice(page, offerta.codice);
 		await expect(riga).toHaveCount(1);
 		await riga.getByRole("button", { name: "Elimina", exact: true }).click();
@@ -191,7 +220,11 @@ test.describe("Gestione offerte", () => {
 		).toBeVisible();
 		await modale.getByRole("button", { name: "Elimina offerta" }).click();
 
-		await page.waitForURL(/\/offerte\?esito=offerta-eliminata$/);
+		await attendiEsitoNellElencoFiltrato(
+			page,
+			"offerta-eliminata",
+			offerta.codice,
+		);
 		await expect(page.getByText("Offerta eliminata")).toBeVisible();
 		await expect(rigaConCodice(page, offerta.codice)).toHaveCount(0);
 	});
@@ -204,9 +237,8 @@ test.describe("Gestione offerte", () => {
 		const offerta = await factory.createOfferta({ codice });
 		await factory.createRigaAttivita({ offerta });
 
-		await page.goto("/offerte");
-		// "Elimina" è un handler client: attendere l'idratazione della tabella.
-		await attendiTabellaOfferteIdratata(page);
+		// "Elimina" è un handler client: l'helper attende anche l'idratazione.
+		await apriPaginaOfferte(page, offerta.codice);
 		const riga = rigaConCodice(page, offerta.codice);
 		await expect(riga).toHaveCount(1);
 		await riga.getByRole("button", { name: "Elimina", exact: true }).click();

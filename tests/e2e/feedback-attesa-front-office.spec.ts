@@ -8,7 +8,7 @@ import {
 } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
-import { attendiTabellaOfferteIdratata } from "./support/offerte";
+import { apriPaginaOfferte } from "./support/offerte";
 import { e2ePrisma } from "./support/prisma";
 
 /**
@@ -430,8 +430,7 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     const offerta = await factory.createOfferta({ codice, attiva: true });
 
     await accediAlBackOfficeComeAdmin(page);
-    await page.goto("/offerte");
-    await attendiTabellaOfferteIdratata(page);
+    await apriPaginaOfferte(page, offerta.codice);
 
     const riga = rigaOffertaConCodice(page, offerta.codice);
     const pallinoStato = riga.getByRole("button", {
@@ -459,7 +458,12 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     gate.rilascia();
 
     // Solo all'esito il pallino cambia stato, e l'attesa è finita.
-    await page.waitForURL(/\/offerte\?esito=stato-offerta-aggiornato$/);
+    await page.waitForURL(
+      (url) =>
+        url.pathname === "/offerte" &&
+        url.searchParams.get("esito") === "stato-offerta-aggiornato" &&
+        url.searchParams.get("q") === offerta.codice,
+    );
     const pallinoDisattivato = rigaOffertaConCodice(
       page,
       offerta.codice,

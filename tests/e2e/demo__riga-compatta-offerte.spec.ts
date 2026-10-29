@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { cercaNellElenco } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 import {
   apriPaginaOfferte,
@@ -97,6 +98,8 @@ test.describe("US-035 Demo", () => {
       page.getByRole("banner").getByText("Tech Reloaded"),
     ).toBeVisible();
     await apriPaginaOfferte(page);
+    // L'elenco è paginato: le offerte della demo si ritrovano con la ricerca.
+    await cercaNellElenco(page, "/offerte", clienteDemo.ragioneSociale);
 
     // ── 2. Layout compatto a 1366px: nessuno scorrimento orizzontale ─
     const contenitore = page.getByTestId("contenitore-tabella-offerte");
@@ -142,7 +145,8 @@ test.describe("US-035 Demo", () => {
       (url) =>
         url.pathname === "/offerte" &&
         url.searchParams.get("esito") === "stato-offerta-aggiornato" &&
-        url.searchParams.get("offertaEspansaId") === offertaAttiva.id,
+        url.searchParams.get("offertaEspansaId") === offertaAttiva.id &&
+        url.searchParams.get("q") === clienteDemo.ragioneSociale,
     );
     // Il redirect della server action ricarica la pagina: riattendere
     // l'idratazione prima di asserire sugli handler client.

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { expect, test } from "./support/fixtures";
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { cercaNellElenco } from "./support/elenchi";
 import { attendiTabellaOfferteIdratata } from "./support/offerte";
 
 test.describe("Demo US-032 — dettaglio avanzamento nelle Offerte", () => {
@@ -34,6 +35,8 @@ test.describe("Demo US-032 — dettaglio avanzamento nelle Offerte", () => {
       .getByRole("link", { name: "Offerte", exact: true })
       .click();
     await attendiTabellaOfferteIdratata(page);
+    // L'elenco è paginato: l'offerta della demo si ritrova con la ricerca.
+    await cercaNellElenco(page, "/offerte", codice);
 
     // 2. Apre il dettaglio dell'offerta appena creata.
     const riga = page.getByRole("row", { name: new RegExp(codice) });

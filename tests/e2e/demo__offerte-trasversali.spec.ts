@@ -1,6 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { cercaNellElenco } from "./support/elenchi";
 
 /**
  * Demo scenario — US-025: Pagina offerte trasversale con stato e avanzamento.
@@ -90,23 +91,17 @@ test.describe("US-025 Demo", () => {
     await page.waitForURL("**/offerte");
     await expect(page.getByRole("heading", { name: "Offerte" })).toBeVisible();
 
-    // ── 2. Presenza delle offerte seed nell'elenco (cliente/codice) ─
+    // L'elenco è paginato e le offerte create dagli altri scenari possono
+    // spingere quelle seed oltre la prima pagina: ognuna si cerca per codice.
+
+    // ── 2. TS-2025-01 (TechSolutions): valori a cifra fissa ────────
+    // Offerta seed stabile, non toccata da altri scenari e2e.
+    await cercaNellElenco(page, "/offerte", "TS-2025-01");
     const rigaTs = rigaOfferta(page, "TS-2025-01");
     await expect(rigaTs).toContainText("TechSolutions Srl");
     await expect(rigaTs).toContainText(
       "Consulenza architetturale cloud migration",
     );
-
-    const rigaDf = rigaOfferta(page, "DF-2025-02");
-    await expect(rigaDf).toContainText("DataFlow SpA");
-    await expect(rigaDf).toContainText("Sviluppo dashboard analytics");
-
-    const rigaGe = rigaOfferta(page, "GE-2024-03");
-    await expect(rigaGe).toContainText("GreenEnergy Srl");
-    await expect(rigaGe).toContainText("Audit energetico — concluso");
-
-    // ── 3. TS-2025-01 (TechSolutions): valori a cifra fissa ────────
-    // Offerta seed stabile, non toccata da altri scenari e2e.
     const giornateTs = await giornateDellaRiga(rigaTs);
     expect(giornateTs.previste).toBe(40);
     expect(giornateTs.erogate).toBeCloseTo(4.1, 1); // 33h → 4,125 gg, display 4,1
@@ -114,20 +109,15 @@ test.describe("US-025 Demo", () => {
     await expect(indicatoreTs).toBeVisible();
     await expect(indicatoreTs).toHaveAttribute("title", "Offerta attiva");
 
-    // ── 4. GE-2024-03 (GreenEnergy, inattiva): valori a cifra fissa ─
-    // Cliente/offerta inattivi, nessuna attività, non selezionabili altrove.
-    const giornateGe = await giornateDellaRiga(rigaGe);
-    expect(giornateGe.previste).toBe(10);
-    expect(giornateGe.erogate).toBe(0);
-    const indicatoreGe = rigaGe.getByRole("button", { name: "Attiva" });
-    await expect(indicatoreGe).toBeVisible();
-    await expect(indicatoreGe).toHaveAttribute("title", "Offerta non attiva");
-
-    // ── 5. DF-2025-02 (DataFlow): soglia minima sull'erogato ───────────
+    // ── 3. DF-2025-02 (DataFlow): soglia minima sull'erogato ───────────
     // Altri scenari e2e (US-012) aggiungono attività fatturabili su questa
     // offerta nel corso dell'intera suite: si verifica quindi solo che le
     // giornate previste siano il valore fisso di seed e che l'erogato non
     // scenda sotto la baseline di seed, invece di cifre assolute.
+    await cercaNellElenco(page, "/offerte", "DF-2025-02");
+    const rigaDf = rigaOfferta(page, "DF-2025-02");
+    await expect(rigaDf).toContainText("DataFlow SpA");
+    await expect(rigaDf).toContainText("Sviluppo dashboard analytics");
     const giornateDf = await giornateDellaRiga(rigaDf);
     expect(giornateDf.previste).toBe(25); // valore fisso di seed
     expect(giornateDf.erogate).toBeGreaterThanOrEqual(0.875 - 0.01); // baseline seed: 7h/8
@@ -135,7 +125,20 @@ test.describe("US-025 Demo", () => {
     await expect(indicatoreDf).toBeVisible();
     await expect(indicatoreDf).toHaveAttribute("title", "Offerta attiva");
 
-    // ── 6. Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
+    // ── 4. GE-2024-03 (GreenEnergy, inattiva): valori a cifra fissa ─
+    // Cliente/offerta inattivi, nessuna attività, non selezionabili altrove.
+    await cercaNellElenco(page, "/offerte", "GE-2024-03");
+    const rigaGe = rigaOfferta(page, "GE-2024-03");
+    await expect(rigaGe).toContainText("GreenEnergy Srl");
+    await expect(rigaGe).toContainText("Audit energetico — concluso");
+    const giornateGe = await giornateDellaRiga(rigaGe);
+    expect(giornateGe.previste).toBe(10);
+    expect(giornateGe.erogate).toBe(0);
+    const indicatoreGe = rigaGe.getByRole("button", { name: "Attiva" });
+    await expect(indicatoreGe).toBeVisible();
+    await expect(indicatoreGe).toHaveAttribute("title", "Offerta non attiva");
+
+    // ── 5. Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);
   });
 });

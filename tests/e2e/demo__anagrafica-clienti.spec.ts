@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { cercaNellElenco } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 
 /**
@@ -50,6 +51,8 @@ test.describe("US-007 Demo", () => {
 
 		await page.waitForURL("**/anagrafiche/clienti?esito=creato");
 		await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
+		// L'elenco è paginato: il nuovo cliente si ritrova con la ricerca.
+		await cercaNellElenco(page, "/anagrafiche/clienti", ragioneSociale);
 
 		const rigaCliente = page
 			.locator("table[aria-label='Elenco clienti'] tbody tr")
@@ -72,6 +75,7 @@ test.describe("US-007 Demo", () => {
 		await page.getByRole("button", { name: "Salva modifiche" }).click();
 		await page.waitForURL("**/anagrafiche/clienti?esito=salvato");
 		await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
+		await cercaNellElenco(page, "/anagrafiche/clienti", ragioneSociale);
 
 		const rigaModificata = page
 			.locator("table[aria-label='Elenco clienti'] tbody tr")
@@ -80,7 +84,12 @@ test.describe("US-007 Demo", () => {
 		await expect(rigaModificata.getByText(nuovaCitta)).toBeVisible();
 
 		await rigaModificata.getByRole("button", { name: "Disattiva" }).click();
-		await page.waitForURL("**/anagrafiche/clienti");
+		// La disattivazione riporta allo stesso elenco filtrato.
+		await expect(page).toHaveURL(
+			(url) =>
+				url.pathname === "/anagrafiche/clienti" &&
+				url.searchParams.get("q") === ragioneSociale,
+		);
 
 		const rigaDisattivata = page
 			.locator("table[aria-label='Elenco clienti'] tbody tr")

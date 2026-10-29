@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
+import { cercaNellElenco } from "./support/elenchi";
 import { dataNelMeseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
 
@@ -145,6 +146,9 @@ test.describe("US-051 Feedback di attesa sulle azioni", () => {
 
     // AC-2: l'esito arriva e la modifica è persistita nell'elenco.
     await page.waitForURL("**/anagrafiche/clienti?esito=salvato");
+    // Il redirect porta all'elenco non filtrato e paginato: il cliente si
+    // ritrova con la ricerca.
+    await cercaNellElenco(page, "/anagrafiche/clienti", cliente.ragioneSociale);
     await expect(
       page
         .locator("table[aria-label='Elenco clienti'] tbody tr")
