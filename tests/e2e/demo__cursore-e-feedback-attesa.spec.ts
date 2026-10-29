@@ -6,6 +6,7 @@ import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/
 import { cercaNellElenco } from "./support/elenchi";
 import { dataNelMeseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { esci } from "./support/menu-account";
 
 /**
  * Demo scenario — US-051: Cursore e feedback di attesa uniformi su pulsanti e azioni
@@ -84,10 +85,7 @@ function cursoreCalcolato(locator: Locator): Promise<string> {
 
 /** Chiude la sessione corrente, condizione necessaria prima di accedere con un altro utente. */
 async function disconnetti(page: Page): Promise<void> {
-  await page.getByRole("banner").getByRole("button", { name: "Esci" }).click();
-  await page.waitForURL(
-    (url) => url.pathname === "/" && url.searchParams.get("logout") === "1",
-  );
+  await esci(page);
 }
 
 test.describe("US-051 Demo", () => {

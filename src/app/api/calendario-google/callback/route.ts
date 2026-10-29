@@ -18,7 +18,7 @@ function baseUrl(): string {
  * GET /api/calendario-google/callback
  *
  * Ritorno dal consenso Google. Salva il token di rinnovo, cifrato, sul
- * collaboratore della sessione corrente e torna all'area attività con l'esito
+ * collaboratore della sessione corrente e torna alle Impostazioni con l'esito
  * in `?calendario=collegato|negato|account-diverso`. Consenso negato, state
  * errato o assente, scambio fallito e account Google diverso da quello di
  * accesso non salvano nulla: un collegamento esistente resta invariato.
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 function esito(valore: "collegato" | "negato" | "account-diverso"): NextResponse {
   const response = NextResponse.redirect(
-    new URL(`/attivita?calendario=${valore}`, baseUrl())
+    new URL(`/impostazioni?calendario=${valore}`, baseUrl())
   );
   response.cookies.set(COOKIE_STATE_CALENDARIO, "", opzioniCookieOAuthCalendario(0));
   response.cookies.set(COOKIE_CODE_VERIFIER_CALENDARIO, "", opzioniCookieOAuthCalendario(0));

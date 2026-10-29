@@ -47,7 +47,10 @@ function richiestaCallback(query: string, cookie = "calendario_oauth_state=state
 
 function esito(response: Response): string | null {
   expect(response.status).toBe(307);
-  return new URL(response.headers.get("location")!).searchParams.get("calendario");
+  const destinazione = new URL(response.headers.get("location")!);
+  // Il ritorno dal consenso porta sempre alle Impostazioni, dove vive il connettore.
+  expect(destinazione.pathname).toBe("/impostazioni");
+  return destinazione.searchParams.get("calendario");
 }
 
 beforeEach(() => {
@@ -159,6 +162,7 @@ describe("azioni del calendario", () => {
     expect(mockCollegamento.deleteMany).toHaveBeenCalledWith({
       where: { collaboratoreId: "collab-1" },
     });
+    expect(mockRevalidate).toHaveBeenCalledWith("/impostazioni");
     expect(mockRevalidate).toHaveBeenCalledWith("/attivita");
   });
 

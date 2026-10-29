@@ -2,6 +2,7 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { cercaNellElenco } from "./support/elenchi";
+import { avatarUtente } from "./support/menu-account";
 
 /**
  * Demo scenario — US-025: Pagina offerte trasversale con stato e avanzamento.
@@ -80,9 +81,7 @@ test.describe("US-025 Demo", () => {
 
     // ── 1. Login amministratore e apertura "Offerte" dalla sidebar ─
     await accediAlBackOfficeComeAdmin(page);
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded"),
-    ).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
 
     await page
       .getByRole("link", { name: "Offerte", exact: true })

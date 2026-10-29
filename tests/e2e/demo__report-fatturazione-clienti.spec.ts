@@ -7,6 +7,7 @@ import {
   creaDatasetReportFatturazioneClienti,
   type DatasetReportFatturazioneClienti,
 } from "./support/report-data";
+import { avatarUtente } from "./support/menu-account";
 
 /**
  * Demo scenario — US-015/US-023: Report mensile degli importi da fatturare per cliente.
@@ -127,9 +128,7 @@ test.describe("US-015 Demo", () => {
 
     // ── 1. Login amministratore tramite endpoint e2e ──────────────
     await accediAlBackOfficeComeAdmin(page);
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded"),
-    ).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
 
     // ── 2. Apre "Fatturazione clienti" dalla sidebar ───────────────
     await page

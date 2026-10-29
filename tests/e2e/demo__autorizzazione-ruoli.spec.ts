@@ -4,6 +4,7 @@ import {
   accediAlBackOfficeComeAdmin,
   accediComeCollaboratore,
 } from "./support/auth";
+import { apriMenuAccount, avatarUtente, esci, pannelloAccount } from "./support/menu-account";
 
 /**
  * Demo scenario — US-006: Autorizzazione per ruolo e segregazione dei dati
@@ -36,8 +37,10 @@ test.describe("US-006 Demo", () => {
 
     await accediComeCollaboratore(page);
 
-    await expect(page.getByText("Giulia Conti")).toBeVisible();
-    await expect(page.getByText("Collaboratore")).toBeVisible();
+    await expect(avatarUtente(page, "Giulia Conti")).toBeVisible();
+    await apriMenuAccount(page);
+    await expect(pannelloAccount(page)).toContainText("Collaboratore");
+    await page.keyboard.press("Escape");
     await expect(
       page.getByRole("heading", { name: "Le mie attività", exact: true })
     ).toBeVisible();
@@ -49,12 +52,7 @@ test.describe("US-006 Demo", () => {
       page.getByRole("heading", { name: "Le mie attività", exact: true })
     ).toBeVisible();
 
-    const esciBtn = page.getByRole("button", { name: "Esci" });
-    await expect(esciBtn).toBeVisible();
-    await esciBtn.click();
-    await page.waitForURL((url) =>
-      url.pathname === "/" && url.searchParams.get("logout") === "1"
-    );
+    await esci(page);
     await expect(
       page.getByText("Ti sei disconnesso. A presto!")
     ).toBeVisible();
@@ -67,12 +65,10 @@ test.describe("US-006 Demo", () => {
 
     await accediAlBackOfficeComeAdmin(page);
 
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded")
-    ).toBeVisible();
-    await expect(
-      page.getByRole("banner").getByText("Amministratore")
-    ).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+    await apriMenuAccount(page);
+    await expect(pannelloAccount(page)).toContainText("Amministratore");
+    await page.keyboard.press("Escape");
     await expect(
       page.getByRole("heading", { name: "Clienti" })
     ).toBeVisible();

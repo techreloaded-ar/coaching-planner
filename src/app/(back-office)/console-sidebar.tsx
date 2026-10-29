@@ -63,17 +63,9 @@ const NAV_ITEMS = [
   { href: "/report/marginalita", label: "Marginalità", icon: IconReport },
 ] as const;
 
-// ── Props ──────────────────────────────────────────────────────
-
-interface SidebarProps {
-  nome: string;
-  ruolo: string;
-  iniziali: string;
-}
-
 // ── Componente ─────────────────────────────────────────────────
 
-export default function ConsoleSidebar({ nome, ruolo, iniziali }: SidebarProps) {
+export default function ConsoleSidebar() {
   const pathname = usePathname();
 
   return (
@@ -139,37 +131,6 @@ export default function ConsoleSidebar({ nome, ruolo, iniziali }: SidebarProps) 
           );
         })}
       </nav>
-
-      {/* Piede sidebar */}
-      <div className="flex flex-col gap-[10px] border-t border-zinc-100 p-3 dark:border-zinc-800 max-[920px]:items-center max-[920px]:p-[10px]">
-        <div className="flex items-center gap-[10px] px-[3px] py-[2px] max-[920px]:flex-col max-[920px]:gap-2 max-[920px]:p-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-[13px] font-bold text-white">
-            {iniziali}
-          </div>
-          <div className="min-w-0 flex-1 leading-[1.25] max-[920px]:hidden">
-            <b className="block overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
-              {nome}
-            </b>
-            <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-              {ruolo}
-            </span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            const el = document.querySelector<HTMLButtonElement>('[data-esci]');
-            el?.click();
-          }}
-          className="inline-flex w-full items-center justify-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750 max-[920px]:w-auto max-[920px]:px-[8px]"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px]" strokeWidth={2}>
-            <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" /><path d="m16 17 5-5-5-5M21 12H9" />
-          </svg>
-          <span className="max-[920px]:hidden">Esci</span>
-        </button>
-      </div>
     </aside>
   );
 }

@@ -6,32 +6,21 @@ export const SFONDO_SCURO = "rgb(10, 10, 10)";
 
 export type EtichettaTema = "Chiaro" | "Scuro" | "Browser";
 
-/** Pulsante-icona del selettore nell'intestazione. */
-export function pulsanteTema(page: Page) {
-	return page.getByRole("button", { name: "Tema", exact: true });
-}
-
-/** Pannello a comparsa con le tre opzioni. */
-export function pannelloTema(page: Page) {
-	return page.getByRole("group", { name: "Scegli il tema" });
+/** Gruppo di opzioni del tema nella pagina Impostazioni. */
+export function selettoreTema(page: Page) {
+	return page.getByRole("radiogroup", { name: "Tema", exact: true });
 }
 
 export function opzioneTema(page: Page, etichetta: EtichettaTema) {
-	return pannelloTema(page).getByRole("button", { name: etichetta, exact: true });
+	return selettoreTema(page).getByRole("radio", { name: etichetta, exact: true });
 }
 
-/** Apre il pannello dopo aver atteso l'idratazione del selettore (click su handler client). */
-export async function apriPannelloTema(page: Page) {
-	await expect(page.getByTestId("selettore-tema")).toHaveAttribute("data-idratata", "true");
-	await pulsanteTema(page).click();
-	await expect(pannelloTema(page)).toBeVisible();
-}
-
-/** Sceglie un tema dal pannello: il pannello si chiude e il documento porta il nuovo tema. */
+/** Sceglie un tema nella pagina Impostazioni già aperta: l'opzione risulta selezionata e il documento porta il nuovo tema. */
 export async function scegliTema(page: Page, etichetta: EtichettaTema) {
-	await apriPannelloTema(page);
-	await opzioneTema(page, etichetta).click();
-	await expect(pannelloTema(page)).toBeHidden();
+	await expect(page.getByTestId("selettore-tema")).toHaveAttribute("data-idratata", "true");
+	// L'input radio è visivamente nascosto: si clicca l'etichetta, come l'utente.
+	await selettoreTema(page).getByText(etichetta, { exact: true }).click();
+	await expect(opzioneTema(page, etichetta)).toBeChecked();
 	await expect(page.locator("html")).toHaveAttribute("data-tema", etichetta.toLowerCase());
 }
 
@@ -57,28 +46,4 @@ export async function attendiAspetto(page: Page, aspetto: "chiaro" | "scuro") {
 			}),
 		)
 		.toBe(aspetto === "scuro" ? "testo-chiaro" : "testo-scuro");
-}
-
-/** L'icona del pulsante segue l'aspetto effettivo: sole se chiaro, luna se scuro. */
-export async function attendiIconaTema(page: Page, icona: "sole" | "luna") {
-	const visibile = page.getByTestId(icona === "sole" ? "icona-tema-sole" : "icona-tema-luna");
-	const nascosta = page.getByTestId(icona === "sole" ? "icona-tema-luna" : "icona-tema-sole");
-	await expect(visibile).toBeVisible();
-	await expect(nascosta).toBeHidden();
-}
-
-/** Il selettore sta subito a sinistra del pulsante Esci, nella stessa riga dell'intestazione. */
-export async function attendiSelettoreAccantoAEsci(page: Page) {
-	const banner = page.getByRole("banner");
-	const selettore = banner.getByTestId("selettore-tema");
-	await expect(selettore).toBeVisible();
-	expect(
-		await selettore.evaluate(
-			(elemento) => elemento.nextElementSibling?.querySelector("[data-esci]") !== null,
-		),
-	).toBe(true);
-	const riquadroSelettore = (await selettore.boundingBox())!;
-	const riquadroEsci = (await banner.locator("[data-esci]").boundingBox())!;
-	expect(riquadroSelettore.x + riquadroSelettore.width).toBeLessThanOrEqual(riquadroEsci.x);
-	expect(riquadroEsci.x - (riquadroSelettore.x + riquadroSelettore.width)).toBeLessThan(40);
 }

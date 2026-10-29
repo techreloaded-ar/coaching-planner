@@ -9,6 +9,7 @@ import {
   apriPaginaOfferte,
   attendiTabellaOfferteIdratata,
 } from "./support/offerte";
+import { avatarUtente } from "./support/menu-account";
 
 /**
  * Demo scenario — US-035: Riga compatta nell'elenco offerte con giorni
@@ -94,9 +95,7 @@ test.describe("US-035 Demo", () => {
 
     // ── 1. Login amministratore e apertura "Offerte" dalla sidebar ─
     await accediAlBackOfficeComeAdmin(page);
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded"),
-    ).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
     await apriPaginaOfferte(page);
     // L'elenco è paginato: le offerte della demo si ritrovano con la ricerca.
     await cercaNellElenco(page, "/offerte", clienteDemo.ragioneSociale);

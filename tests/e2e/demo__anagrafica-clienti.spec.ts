@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { cercaNellElenco } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
+import { apriMenuAccount, avatarUtente, pannelloAccount } from "./support/menu-account";
 
 /**
  * Demo scenario — US-007: Anagrafica clienti — ciclo di vita del cliente
@@ -20,8 +21,10 @@ test.describe("US-007 Demo", () => {
 	test("ciclo di vita cliente: crea → modifica → disattiva", async ({ page }) => {
 		await accediAlBackOfficeComeAdmin(page);
 
-		await expect(page.getByRole("banner").getByText("Tech Reloaded")).toBeVisible();
-		await expect(page.getByRole("banner").getByText("Amministratore")).toBeVisible();
+		await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+		await apriMenuAccount(page);
+		await expect(pannelloAccount(page)).toContainText("Amministratore");
+		await page.keyboard.press("Escape");
 
 		await page.getByRole("link", { name: "Clienti", exact: true }).click();
 		await page.waitForURL("**/anagrafiche/clienti");
