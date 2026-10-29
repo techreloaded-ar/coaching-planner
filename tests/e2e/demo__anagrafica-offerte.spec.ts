@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { cercaNellElenco } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 
 test.use({
@@ -25,6 +26,8 @@ test.describe("US-008 Demo", () => {
 		await page.getByRole("link", { name: "Clienti", exact: true }).click();
 		await page.waitForURL("**/anagrafiche/clienti");
 		await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
+		// L'elenco è paginato: il cliente della demo si ritrova con la ricerca.
+		await cercaNellElenco(page, "/anagrafiche/clienti", cliente.ragioneSociale);
 
 		const rigaCliente = page
 			.locator("table[aria-label='Elenco clienti'] tbody tr")

@@ -9,6 +9,7 @@ import {
 	meseRiservato,
 } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { cercaNellElenco } from "./support/elenchi";
 import {
 	apriPaginaOfferte,
 	attendiTabellaOfferteIdratata,
@@ -102,7 +103,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			categoria: "FATTURABILE",
 		});
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, codice);
 
 		const riga = rigaOfferta(page, codice);
 		const pulsante = pulsanteDettaglio(riga, codice);
@@ -167,11 +168,17 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			},
 		];
 
+		// Un cliente univoco comune alle tre offerte: filtrare per la sua ragione
+		// sociale le porta tutte nella stessa pagina dell'elenco.
+		const cliente = await factory.createCliente({
+			ragioneSociale: `E2E Dettaglio Stati ${randomUUID().slice(0, 8)}`,
+		});
 		for (const scenario of scenari) {
-			const { cliente, offerta } = await factory.createClienteConOfferta(
-				{ ragioneSociale: `E2E Dettaglio ${scenario.codice}` },
-				{ codice: scenario.codice, giorniPrevisti: 10 },
-			);
+			const offerta = await factory.createOfferta({
+				cliente,
+				codice: scenario.codice,
+				giorniPrevisti: 10,
+			});
 			const collaboratore = await factory.createCollaboratore();
 			await factory.createRigaAttivita({
 				cliente,
@@ -182,7 +189,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			});
 		}
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, cliente.ragioneSociale);
 
 		for (const scenario of scenari) {
 			const riga = rigaOfferta(page, scenario.codice);
@@ -225,7 +232,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			categoria: "FATTURABILE",
 		});
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, codice);
 
 		const riga = rigaOfferta(page, codice);
 		await riga.getByText(codice, { exact: true }).click();
@@ -245,7 +252,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			{ codice, giorniPrevisti: 5 },
 		);
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, codice);
 		await rigaOfferta(page, codice).getByText(codice, { exact: true }).click();
 
 		const dettaglio = dettaglioOfferta(page, codice);
@@ -268,19 +275,21 @@ test.describe("Dettaglio avanzamento offerta", () => {
 		const offertaA = await factory.createOfferta({ cliente, codice: codiceA });
 		await factory.createOfferta({ cliente, codice: codiceB });
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, cliente.ragioneSociale);
 
 		const rigaA = rigaOfferta(page, codiceA);
 		await rigaA.getByText(codiceA, { exact: true }).click();
 		const dettaglioA = dettaglioOfferta(page, codiceA);
 		await expect(dettaglioA).toBeVisible();
 
-		const ricerca = page.getByLabel("Cerca offerta");
-		await ricerca.fill(codiceB);
+		// La ricerca è lato server: l'espansione è stato client e sopravvive al
+		// cambio di `q`, anche quando la riga espansa esce e rientra nell'elenco.
+		await cercaNellElenco(page, "/offerte", codiceB);
 		await expect(rigaOfferta(page, codiceB)).toBeVisible();
+		await expect(rigaOfferta(page, codiceA)).toHaveCount(0);
 		await expect(dettaglioOfferta(page, codiceA)).toHaveCount(0);
 
-		await ricerca.clear();
+		await cercaNellElenco(page, "/offerte", cliente.ragioneSociale);
 		await expect(dettaglioA).toBeVisible();
 
 		const rigaB = rigaOfferta(page, codiceB);
@@ -289,7 +298,8 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			(url) =>
 				url.pathname === "/offerte" &&
 				url.searchParams.get("esito") === "stato-offerta-aggiornato" &&
-				url.searchParams.get("offertaEspansaId") === offertaA.id,
+				url.searchParams.get("offertaEspansaId") === offertaA.id &&
+				url.searchParams.get("q") === cliente.ragioneSociale,
 		);
 		// Il redirect della server action ricarica la pagina: la tabella va
 		// ri-attesa idratata prima di cliccare handler client come "Elimina".
@@ -328,7 +338,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			{ codice, attiva: true, giorniPrevisti: 8 },
 		);
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, codice);
 
 		const riga = rigaOfferta(page, codice);
 		await riga.getByText(codice, { exact: true }).click();
@@ -405,7 +415,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			categoria: "FATTURABILE",
 		});
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, codice);
 
 		const riga = rigaOfferta(page, codice);
 		await riga.getByText(codice, { exact: true }).click();
@@ -459,7 +469,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			{ codice, giorniPrevisti: 5 },
 		);
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, codice);
 		await rigaOfferta(page, codice).getByText(codice, { exact: true }).click();
 
 		const dettaglio = dettaglioOfferta(page, codice);
@@ -510,7 +520,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			});
 		}
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, codice);
 		await rigaOfferta(page, codice).getByText(codice, { exact: true }).click();
 
 		const dettaglio = dettaglioOfferta(page, codice);

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { expect, test } from "./support/fixtures";
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { cercaNellElenco } from "./support/elenchi";
 import { dataNelMese, mesePassatoRiservato, meseRiservato } from "./support/date";
 import { apriPaginaOfferte } from "./support/offerte";
 
@@ -17,7 +18,9 @@ test.describe("Demo US-036 — matrice mensile per collaboratore nel dettaglio a
     page,
     factory,
   }) => {
-    const codiceConAttivita = `DEMO-MATRICE-${randomUUID().slice(0, 8)}`.toUpperCase();
+    // Token comune ai codici delle due offerte: la ricerca le mostra insieme.
+    const token = randomUUID().slice(0, 8).toUpperCase();
+    const codiceConAttivita = `DEMO-MATRICE-${token}`;
     const { cliente, offerta } = await factory.createClienteConOfferta(
       { ragioneSociale: `Demo matrice ${codiceConAttivita}` },
       { codice: codiceConAttivita, giorniPrevisti: 10 },
@@ -47,7 +50,7 @@ test.describe("Demo US-036 — matrice mensile per collaboratore nel dettaglio a
       categoria: "FATTURABILE",
     });
 
-    const codiceSenzaAttivita = `DEMO-MATRICE-VUOTA-${randomUUID().slice(0, 8)}`.toUpperCase();
+    const codiceSenzaAttivita = `DEMO-MATRICE-VUOTA-${token}`;
     await factory.createClienteConOfferta(
       { ragioneSociale: `Demo matrice vuota ${codiceSenzaAttivita}` },
       { codice: codiceSenzaAttivita, giorniPrevisti: 5 },
@@ -57,6 +60,8 @@ test.describe("Demo US-036 — matrice mensile per collaboratore nel dettaglio a
     await accediAlBackOfficeComeAdmin(page);
     await expect(page.getByRole("banner")).toBeVisible();
     await apriPaginaOfferte(page);
+    // L'elenco è paginato: le offerte della demo si ritrovano con la ricerca.
+    await cercaNellElenco(page, "/offerte", token);
 
     // 2. Espande l'offerta con attività di due collaboratori su due mesi.
     const rigaConAttivita = page.getByRole("row", { name: new RegExp(codiceConAttivita) });

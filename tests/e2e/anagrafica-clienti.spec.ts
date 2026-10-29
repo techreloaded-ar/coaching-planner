@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Page } from "@playwright/test";
 
 import { accediComeAdmin } from "./support/auth";
+import { apriElencoFiltrato, cercaNellElenco } from "./support/elenchi";
 import { test, expect, type E2eDataFactory } from "./support/fixtures";
 
 /**
@@ -22,6 +23,14 @@ async function creaClienteProprio(factory: E2eDataFactory) {
 		ragioneSociale: `E2E Cliente Anagrafica ${token}`,
 		citta: "Torino",
 	});
+}
+
+/** URL dell'elenco clienti filtrato esattamente per `ricerca`, senza altri parametri. */
+function urlConRicerca(ricerca: string): (url: URL) => boolean {
+	return (url) =>
+		url.pathname === "/anagrafiche/clienti" &&
+		url.searchParams.get("q") === ricerca &&
+		[...url.searchParams.keys()].length === 1;
 }
 
 function rigaCliente(page: Page, ragioneSociale: string) {
@@ -54,7 +63,7 @@ test.describe("Anagrafica clienti", () => {
 
 	test("modifica persistita dopo reload", async ({ page, factory }) => {
 		const cliente = await creaClienteProprio(factory);
-		await page.goto("/anagrafiche/clienti");
+		await apriElencoFiltrato(page, "/anagrafiche/clienti", cliente.ragioneSociale);
 		await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
 
 		await rigaCliente(page, cliente.ragioneSociale)
@@ -71,6 +80,9 @@ test.describe("Anagrafica clienti", () => {
 		await page.getByRole("button", { name: "Salva modifiche" }).click();
 
 		await page.waitForURL("**/anagrafiche/clienti?esito=salvato");
+		// Il redirect riporta all'elenco non filtrato: il cliente può stare oltre
+		// la prima pagina, quindi lo si cerca.
+		await cercaNellElenco(page, "/anagrafiche/clienti", cliente.ragioneSociale);
 		await expect(rigaCliente(page, cliente.ragioneSociale).getByText(nuovaCitta)).toBeVisible();
 
 		await page.reload();
@@ -80,14 +92,17 @@ test.describe("Anagrafica clienti", () => {
 
 	test("cliente disattivato distinguibile nell'elenco", async ({ page, factory }) => {
 		const cliente = await creaClienteProprio(factory);
-		await page.goto("/anagrafiche/clienti");
+		await apriElencoFiltrato(page, "/anagrafiche/clienti", cliente.ragioneSociale);
 		await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
 
 		const rigaAttiva = rigaCliente(page, cliente.ragioneSociale);
 		await expect(rigaAttiva.getByText("Attivo")).toBeVisible();
 		await rigaAttiva.getByRole("button", { name: "Disattiva" }).click();
 
-		await page.waitForURL("**/anagrafiche/clienti");
+		// L'azione riporta allo stesso elenco filtrato.
+		await expect(page).toHaveURL(
+			urlConRicerca(cliente.ragioneSociale),
+		);
 		const rigaDisattivata = rigaCliente(page, cliente.ragioneSociale);
 		await expect(rigaDisattivata.getByText("Disattivato")).toBeVisible();
 		await expect(
@@ -95,7 +110,7 @@ test.describe("Anagrafica clienti", () => {
 		).toBeVisible();
 
 		await rigaDisattivata.getByRole("button", { name: "Riattiva" }).click();
-		await page.waitForURL("**/anagrafiche/clienti");
+		await expect(page).toHaveURL(urlConRicerca(cliente.ragioneSociale));
 		await expect(rigaCliente(page, cliente.ragioneSociale).getByText("Attivo")).toBeVisible();
 	});
 

@@ -12,7 +12,11 @@ import {
   CATEGORIA_ATTIVITA_PREDEFINITA,
   CATEGORIE_ATTIVITA,
   DESCRIZIONE_CATEGORIA_ATTIVITA,
+  eNumeroDecimale,
   fatturataDalCollaboratore,
+  haPiuDiDueDecimali,
+  MESSAGGIO_ORE_TROPPI_DECIMALI,
+  sommaOre,
   type CategoriaAttivita,
 } from "@/domain/types";
 import { SelettoreDuplicazione } from "./selettore-duplicazione";
@@ -127,9 +131,10 @@ function dataEstesa(dataStr: string): string {
 function validaOreLocale(input: string): string | null {
   const normalizzato = input.trim().replace(",", ".");
   if (normalizzato === "") return "Inserisci un valore";
-  if (isNaN(Number(normalizzato))) return "Valore non valido";
+  if (isNaN(Number(normalizzato)) || !eNumeroDecimale(normalizzato)) return "Valore non valido";
   if (Number(normalizzato) <= 0) return "Inserisci un numero maggiore di zero";
   if (Number(normalizzato) > 24) return "Non può superare 24 ore";
+  if (haPiuDiDueDecimali(normalizzato)) return MESSAGGIO_ORE_TROPPI_DECIMALI;
   return null;
 }
 
@@ -268,10 +273,12 @@ export default function DettaglioGiornata({
 
   const riepilogo = useMemo(() => {
     const nRighe = righe.length;
-    const oreTotali = righe.reduce((s, r) => s + r.ore, 0);
-    const oreDaFatturare = righe
-      .filter((r) => fatturataDalCollaboratore(r.categoria))
-      .reduce((s, r) => s + r.ore, 0);
+    const oreTotali = sommaOre(...righe.map((r) => r.ore));
+    const oreDaFatturare = sommaOre(
+      ...righe
+        .filter((r) => fatturataDalCollaboratore(r.categoria))
+        .map((r) => r.ore),
+    );
     const totaleRimborsi = righe.reduce((s, r) => {
       if (r.rimborsoTrasfertaImporto == null) return s;
       const importo = parseFloat(r.rimborsoTrasfertaImporto);

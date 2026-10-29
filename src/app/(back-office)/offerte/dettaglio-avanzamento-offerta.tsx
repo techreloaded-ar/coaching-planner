@@ -119,8 +119,8 @@ export default function DettaglioAvanzamentoOfferta({
   offerta,
 }: DettaglioAvanzamentoOffertaProps) {
   const config = CONFIG_STATO[offerta.stato];
-  const oltreBudget = offerta.residuo < 0;
-  const esaurita = offerta.residuo === 0 && offerta.giorniPrevisti > 0;
+  const oltreBudget = offerta.stato === "OLTRE_BUDGET";
+  const esaurita = offerta.stato === "ESAURITA";
   const percentualeReale = Math.round(offerta.percentualeUtilizzo * 100);
   const percentualeVisibile = Math.min(offerta.percentualeUtilizzo * 100, 100);
 

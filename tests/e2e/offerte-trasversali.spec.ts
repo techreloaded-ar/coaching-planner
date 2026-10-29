@@ -39,7 +39,7 @@ test.describe("Pagina offerte trasversale", () => {
 			categoria: "FATTURABILE",
 		});
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, codice);
 
 		const riga = page.getByRole("row", { name: comeRegExp(codice) });
 		await expect(riga).toBeVisible();
@@ -96,7 +96,8 @@ test.describe("Pagina offerte trasversale", () => {
 			categoria: "FATTURABILE",
 		});
 
-		await apriPaginaOfferte(page);
+		// Il token è comune ai codici delle tre offerte del test.
+		await apriPaginaOfferte(page, token);
 
 		const rigaNonAttiva = page.getByRole("row", {
 			name: comeRegExp(codiceNonAttiva),
@@ -164,7 +165,7 @@ test.describe("Layout compatto a 1366px", () => {
 			},
 		);
 
-		await apriPaginaOfferte(page);
+		await apriPaginaOfferte(page, codice);
 
 		await expect(
 			page.getByRole("columnheader", { name: "Giorni erogati" }),

@@ -1,5 +1,5 @@
 import { accediComeAdmin } from "./support/auth";
-import { attendiTabellaOfferteIdratata } from "./support/offerte";
+import { apriPaginaOfferte } from "./support/offerte";
 import { test, expect } from "./support/fixtures";
 
 /**
@@ -49,14 +49,9 @@ test.describe("Ingaggi collaboratori su offerta", () => {
 		});
 
 		await accediComeAdmin(page);
-		await page.goto("/offerte");
-
-		// Il filtro di ricerca è un handler client: attendiamo l'idratazione della
-		// tabella prima di digitare, altrimenti il testo va perso.
-		await attendiTabellaOfferteIdratata(page);
-		await page
-			.getByRole("searchbox", { name: "Cerca offerta" })
-			.fill(codiceOfferta);
+		// La ricerca è lato server: l'elenco filtrato per codice contiene la riga
+		// anche quando le offerte create in parallelo superano la prima pagina.
+		await apriPaginaOfferte(page, codiceOfferta);
 
 		const tabellaOfferte = page.getByRole("table", {
 			name: "Elenco offerte",

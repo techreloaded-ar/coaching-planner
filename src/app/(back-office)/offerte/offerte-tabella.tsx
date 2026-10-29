@@ -2,8 +2,15 @@
 
 import { Fragment, useState, useActionState } from "react";
 import Link from "next/link";
-import { PulsanteAttesa, useIdratata } from "@/components";
-import type { VoceElencoOfferta } from "@/lib/offerte";
+import {
+  CampiPosizioneElenco,
+  PaginazioneElenco,
+  PulsanteAttesa,
+  RicercaElenco,
+  useIdratata,
+} from "@/components";
+import type { ElencoOffertePaginato, VoceElencoOfferta } from "@/lib/offerte";
+import type { PosizioneElenco } from "@/lib/paginazione";
 import {
   descriviGestioneTrasferta,
   formattaEuro,
@@ -30,25 +37,23 @@ function formattaGiornate(valore: number): string {
   return formattatoreGiornate.format(valore);
 }
 
-/** Un'offerta attiva è critica quando ha esaurito o superato il budget. */
-function eCritica(offerta: VoceElencoOfferta): boolean {
-  return offerta.attiva && offerta.residuo <= 0;
-}
-
 // ── Props ───────────────────────────────────────────────────────
 
 interface OfferteTabellaProps {
-  offerte: VoceElencoOfferta[];
+  elenco: ElencoOffertePaginato;
+  ricerca: string;
   offertaEspansaIdIniziale?: string;
 }
 
 // ── Componente ──────────────────────────────────────────────────
 
 export default function OfferteTabella({
-  offerte,
+  elenco,
+  ricerca,
   offertaEspansaIdIniziale,
 }: OfferteTabellaProps) {
-  const [filtro, setFiltro] = useState("");
+  const { offerte, attive, nonAttive, critiche, totaleElementi } = elenco;
+  const posizione: PosizioneElenco = { ricerca, pagina: elenco.paginaCorrente };
   const [offertaEspansaId, setOffertaEspansaId] = useState<string | null>(
     offertaEspansaIdIniziale ?? null,
   );
@@ -56,42 +61,21 @@ export default function OfferteTabella({
     useState<VoceElencoOfferta | null>(null);
   const idratata = useIdratata();
 
-  if (offerte.length === 0) {
+  if (totaleElementi === 0 && !ricerca) {
     return <StatoVuoto />;
   }
-
-  const filtroLower = filtro.trim().toLowerCase();
-  const offerteFiltrate = offerte.filter(
-    (offerta) =>
-      !filtroLower ||
-      offerta.clienteRagioneSociale.toLowerCase().includes(filtroLower) ||
-      offerta.codice.toLowerCase().includes(filtroLower) ||
-      offerta.descrizione.toLowerCase().includes(filtroLower),
-  );
-
-  const attive = offerteFiltrate.filter((o) => o.attiva).length;
-  const nonAttive = offerteFiltrate.length - attive;
-  const critiche = offerteFiltrate.filter(eCritica).length;
 
   return (
     <>
     <section className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       {/* Toolbar: ricerca + pill critiche + contatore riepilogo */}
       <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-4 py-[14px] dark:border-zinc-800">
-        <label className="flex flex-1 items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-100 px-3 py-2 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 max-w-[360px]">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px] shrink-0" strokeWidth={2}>
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.3-3.3" />
-          </svg>
-          <input
-            type="search"
-            placeholder="Cerca per cliente, codice o descrizione…"
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
-            className="w-full border-0 bg-transparent font-[inherit] text-[13.5px] text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
-            aria-label="Cerca offerta"
-          />
-        </label>
+        <RicercaElenco
+          ricerca={ricerca}
+          segnaposto="Cerca per cliente, codice o descrizione…"
+          etichetta="Cerca offerta"
+          className="max-w-[360px]"
+        />
         {critiche > 0 && (
           <span className="inline-flex items-center gap-[7px] rounded-full border border-red-200 bg-red-50 px-[12px] py-[5px] text-[12px] font-semibold text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
@@ -104,8 +88,8 @@ export default function OfferteTabella({
           </span>
         )}
         <span className="ml-auto text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
-          {offerteFiltrate.length}{" "}
-          {offerteFiltrate.length === 1 ? "offerta" : "offerte"} · {attive} attive ·{" "}
+          {totaleElementi}{" "}
+          {totaleElementi === 1 ? "offerta" : "offerte"} · {attive} attive ·{" "}
           {nonAttive} non attive
         </span>
       </div>
@@ -137,14 +121,14 @@ export default function OfferteTabella({
             </tr>
           </thead>
           <tbody>
-            {offerteFiltrate.length === 0 ? (
+            {offerte.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
                   Nessuna offerta corrisponde alla ricerca.
                 </td>
               </tr>
             ) : (
-              offerteFiltrate.map((offerta) => (
+              offerte.map((offerta) => (
                 <RigaOfferta
                   key={offerta.offertaId}
                   offerta={offerta}
@@ -156,17 +140,20 @@ export default function OfferteTabella({
                   }
                   onElimina={() => setOffertaDaEliminare(offerta)}
                   offertaEspansaId={offertaEspansaId}
+                  posizione={posizione}
                 />
               ))
             )}
           </tbody>
         </table>
       </div>
+      <PaginazioneElenco percorso="/offerte" ricerca={ricerca} {...elenco} />
     </section>
 
     <ModaleElimina
       offerta={offertaDaEliminare}
       offertaEspansaId={offertaEspansaId}
+      posizione={posizione}
       onChiudi={() => setOffertaDaEliminare(null)}
     />
     </>
@@ -181,15 +168,17 @@ function RigaOfferta({
   onToggleEspansione,
   onElimina,
   offertaEspansaId,
+  posizione,
 }: {
   offerta: VoceElencoOfferta;
   espansa: boolean;
   onToggleEspansione: () => void;
   onElimina: () => void;
   offertaEspansaId: string | null;
+  posizione: PosizioneElenco;
 }) {
-  const oltreBudget = offerta.residuo < 0;
-  const esaurita = offerta.residuo === 0 && offerta.giorniPrevisti > 0;
+  const oltreBudget = offerta.stato === "OLTRE_BUDGET";
+  const esaurita = offerta.stato === "ESAURITA";
   const percentuale =
     offerta.giorniPrevisti > 0
       ? Math.min((offerta.giornateErogate / offerta.giorniPrevisti) * 100, 100)
@@ -235,6 +224,7 @@ function RigaOfferta({
                 name="offertaEspansaId"
                 value={offertaEspansaId ?? ""}
               />
+              <CampiPosizioneElenco {...posizione} />
               {/* Il pallino di stato è troppo piccolo per una rotellina: l'attesa
                   si legge dalla pulsazione comandata da aria-busy. */}
               <PulsanteAttesa
@@ -395,10 +385,12 @@ function RigaOfferta({
 function ModaleElimina({
   offerta,
   offertaEspansaId,
+  posizione,
   onChiudi,
 }: {
   offerta: VoceElencoOfferta | null;
   offertaEspansaId: string | null;
+  posizione: PosizioneElenco;
   onChiudi: () => void;
 }) {
   // Nessuna chiusura comandata dal client: `eliminaOfferta` torna `{ errore }`
@@ -512,6 +504,7 @@ function ModaleElimina({
                         name="offertaEspansaId"
                         value={offertaEspansaId ?? ""}
                       />
+                      <CampiPosizioneElenco {...posizione} />
                       <PulsanteAttesa
                         etichettaAttesa="Disattivazione…"
                         className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
@@ -559,6 +552,7 @@ function ModaleElimina({
                   </button>
                   <form action={azione}>
                     <input type="hidden" name="id" value={offerta.offertaId} />
+                    <CampiPosizioneElenco {...posizione} />
                     <PulsanteAttesa
                       etichettaAttesa="Eliminazione…"
                       className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:brightness-[.92]"

@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockCliente = vi.hoisted(() => ({
   findMany: vi.fn(),
+  count: vi.fn(),
   findUnique: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
@@ -68,7 +69,7 @@ vi.mock("@/domain/anagrafiche/valida-cliente", () => ({
 // ── Import dei moduli sotto test ───────────────────────────────────
 
 import {
-  elencaClienti,
+  elencaClientiPaginati,
   elencaClientiSelezionabili,
   clientePerId,
 } from "@/lib/clienti";
@@ -96,52 +97,64 @@ describe("DAL clienti", () => {
     mockRichiediRuoloApi.mockResolvedValue(undefined);
   });
 
-  // ── 1. elencaClienti ──────────────────────────────────────────
+  // ── 1. elencaClientiPaginati ──────────────────────────────────
 
-  describe("elencaClienti", () => {
-    it("restituisce tutti i clienti ordinati per ragioneSociale", async () => {
-      const clienti = [
-        {
-          id: "1",
-          ragioneSociale: "Alfa SPA",
-          attivo: true,
-          partitaIva: "11111111111",
-          codiceFiscale: null,
-          indirizzo: null,
-          citta: null,
-          cap: null,
-          provincia: null,
-          pec: null,
-          codiceDestinatario: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: "2",
-          ragioneSociale: "Beta SRL",
-          attivo: false,
-          partitaIva: "22222222222",
-          codiceFiscale: null,
-          indirizzo: null,
-          citta: null,
-          cap: null,
-          provincia: null,
-          pec: null,
-          codiceDestinatario: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-      mockCliente.findMany.mockResolvedValue(clienti);
+  describe("elencaClientiPaginati", () => {
+    it("legge solo la pagina richiesta, 25 clienti per pagina in ordine alfabetico", async () => {
+      mockCliente.count.mockResolvedValueOnce(120).mockResolvedValueOnce(100);
+      mockCliente.findMany.mockResolvedValue([]);
 
-      const result = await elencaClienti();
+      const result = await elencaClientiPaginati({ ricerca: "", pagina: 2 });
 
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
       expect(mockCliente.findMany).toHaveBeenCalledWith({
-        orderBy: { ragioneSociale: "asc" },
+        where: {},
+        orderBy: [{ ragioneSociale: "asc" }, { id: "asc" }],
+        skip: 25,
+        take: 25,
       });
-      expect(result).toEqual(clienti);
-      expect(result).toHaveLength(2);
+      expect(result).toMatchObject({
+        paginaCorrente: 2,
+        totalePagine: 5,
+        totaleElementi: 120,
+        attivi: 100,
+        disattivati: 20,
+      });
+    });
+
+    it("cerca sul server per ragione sociale, P.IVA o città e conta l'insieme filtrato", async () => {
+      mockCliente.count.mockResolvedValue(0);
+      mockCliente.findMany.mockResolvedValue([]);
+
+      await elencaClientiPaginati({ ricerca: "rossi", pagina: 1 });
+
+      const filtro = { contains: "rossi", mode: "insensitive" };
+      const where = {
+        OR: [
+          { ragioneSociale: filtro },
+          { partitaIva: filtro },
+          { citta: filtro },
+        ],
+      };
+      expect(mockCliente.count).toHaveBeenCalledWith({ where });
+      expect(mockCliente.count).toHaveBeenCalledWith({
+        where: { AND: [where, { attivo: true }] },
+      });
+      expect(mockCliente.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where, skip: 0 }),
+      );
+    });
+
+    it("una pagina oltre l'ultima restituisce l'ultima pagina valida", async () => {
+      mockCliente.count.mockResolvedValue(60);
+      mockCliente.findMany.mockResolvedValue([]);
+
+      const result = await elencaClientiPaginati({ ricerca: "", pagina: 7 });
+
+      expect(result.paginaCorrente).toBe(3);
+      expect(mockCliente.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 50, take: 25 }),
+      );
     });
   });
 
@@ -245,10 +258,12 @@ describe("DAL clienti", () => {
   // ── 5. Guardie di ruolo DAL ───────────────────────────────────
 
   describe("guardie di ruolo — DAL", () => {
-    it("elencaClienti propaga l'errore di richiediRuoloApi", async () => {
+    it("elencaClientiPaginati propaga l'errore di richiediRuoloApi", async () => {
       mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
 
-      await expect(elencaClienti()).rejects.toThrow("Accesso negato");
+      await expect(
+        elencaClientiPaginati({ ricerca: "", pagina: 1 }),
+      ).rejects.toThrow("Accesso negato");
       expect(mockCliente.findMany).not.toHaveBeenCalled();
     });
 

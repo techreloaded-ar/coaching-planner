@@ -14,6 +14,7 @@ import {
 } from "@/domain/calendario";
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
 import { SelettoreMese, useIdratata } from "@/components";
+import { sommaOre } from "@/domain/types";
 import {
   ErroreIdentitaSchedaCambiata,
   ErroreSessioneAttivita,
@@ -318,9 +319,7 @@ export default function CalendarioMensile({
   }, [sintesi]);
 
   const totaleOre = useMemo(() => {
-    let o = 0;
-    for (const s of Object.values(sintesi)) o += s.oreTotali;
-    return o;
+    return sommaOre(...Object.values(sintesi).map((s) => s.oreTotali));
   }, [sintesi]);
 
   // Giorni della settimana

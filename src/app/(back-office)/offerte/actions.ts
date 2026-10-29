@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
+import {
+  leggiPosizioneElencoDaForm,
+  urlPosizioneElenco,
+} from "@/lib/paginazione";
 
 const MESSAGGIO_BLOCCO_ELIMINAZIONE =
   "Impossibile eliminare l'offerta: esistono righe attività collegate. Disattiva l'offerta invece di eliminarla.";
@@ -44,13 +48,19 @@ export async function cambiaStatoOfferta(formData: FormData): Promise<void> {
 
   revalidatePath("/offerte");
 
-  const parametriRedirect = new URLSearchParams({
+  const altriParametri: Record<string, string> = {
     esito: "stato-offerta-aggiornato",
-  });
+  };
   if (typeof offertaEspansaId === "string" && offertaEspansaId) {
-    parametriRedirect.set("offertaEspansaId", offertaEspansaId);
+    altriParametri.offertaEspansaId = offertaEspansaId;
   }
-  redirect(`/offerte?${parametriRedirect.toString()}`);
+  redirect(
+    urlPosizioneElenco(
+      "/offerte",
+      leggiPosizioneElencoDaForm(formData),
+      altriParametri,
+    ),
+  );
 }
 
 export interface StatoEliminazioneOfferta {
@@ -92,5 +102,9 @@ export async function eliminaOfferta(
 
   revalidatePath("/offerte");
   revalidatePath("/anagrafiche/clienti");
-  redirect("/offerte?esito=offerta-eliminata");
+  redirect(
+    urlPosizioneElenco("/offerte", leggiPosizioneElencoDaForm(formData), {
+      esito: "offerta-eliminata",
+    }),
+  );
 }

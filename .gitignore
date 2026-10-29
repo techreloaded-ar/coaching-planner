@@ -47,7 +47,7 @@ next-env.d.ts
 /src/generated/prisma
 .claude/skills
 .agents/skills
-.claude/transcripts
+**/.claude/transcripts
 docs/test-results
 .pi-subagents
 *.bak

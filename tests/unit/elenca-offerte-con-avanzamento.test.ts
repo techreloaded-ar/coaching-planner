@@ -7,6 +7,7 @@ const { mockOfferta, mockRigaAttivita } = vi.hoisted(() => ({
 	},
 	mockRigaAttivita: {
 		findMany: vi.fn(),
+		groupBy: vi.fn(),
 	},
 }));
 
@@ -23,9 +24,18 @@ vi.mock("@/lib/dal", () => ({
 }));
 
 import {
-	elencaOfferteConAvanzamento,
+	elencaOfferteConAvanzamentoPaginate,
 	elencaOffertePerClienteConAvanzamento,
 } from "@/lib/offerte";
+
+/** Prima pagina senza ricerca: le voci dell'elenco trasversale. */
+async function elencaOfferteConAvanzamento() {
+	const { offerte } = await elencaOfferteConAvanzamentoPaginate({
+		ricerca: "",
+		pagina: 1,
+	});
+	return offerte;
+}
 
 // ── Builder di supporto ─────────────────────────────────────────
 
@@ -90,12 +100,34 @@ function rigaConCollaboratore(
 	};
 }
 
+/**
+ * Imposta le righe attività restituite da Prisma sia come righe di dettaglio
+ * (`findMany`) sia come somme per offerta e categoria (`groupBy`).
+ */
+function impostaRigheAttivita(righe: ReturnType<typeof rigaConCollaboratore>[]) {
+	mockRigaAttivita.findMany.mockResolvedValue(righe);
+	const somme = new Map<string, { offertaId: string; categoria: string; ore: number }>();
+	for (const riga of righe) {
+		const chiave = `${riga.offertaId}|${riga.categoria}`;
+		const somma = somme.get(chiave) ?? { offertaId: riga.offertaId, categoria: riga.categoria, ore: 0 };
+		somma.ore += riga.ore;
+		somme.set(chiave, somma);
+	}
+	mockRigaAttivita.groupBy.mockResolvedValue(
+		[...somme.values()].map(({ offertaId, categoria, ore }) => ({
+			offertaId,
+			categoria,
+			_sum: { ore },
+		})),
+	);
+}
+
 describe("elencaOfferteConAvanzamento", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockRichiediRuoloApi.mockResolvedValue(undefined);
 		mockOfferta.findMany.mockResolvedValue([]);
-		mockRigaAttivita.findMany.mockResolvedValue([]);
+		impostaRigheAttivita([]);
 	});
 
 	// (a) guardia di ruolo ──────────────────────────────────────────
@@ -105,11 +137,11 @@ describe("elencaOfferteConAvanzamento", () => {
 
 		expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
 		expect(mockOfferta.findMany).toHaveBeenCalledWith({
+			where: {},
 			include: { cliente: true },
 		});
-		expect(mockRigaAttivita.findMany).toHaveBeenCalledWith({
-			include: { collaboratore: true },
-		});
+		// Nessuna offerta nella pagina: nessuna riga di dettaglio da leggere
+		expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
 	});
 
 	it("propaga l'errore della guardia senza leggere le offerte", async () => {
@@ -128,7 +160,7 @@ describe("elencaOfferteConAvanzamento", () => {
 			offertaConCliente({ id: "off-1", codice: "OFF-001", giorniPrevisti: 10 }),
 		]);
 		// 40 ore fatturabili = 5 giornate su 10 previste → residuo 5, IN_CORSO
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			rigaConCollaboratore({ offertaId: "off-1", ore: 40, categoria: "FATTURABILE" }),
 		]);
 
@@ -144,7 +176,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ id: "off-1", giorniPrevisti: 10 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			rigaConCollaboratore({ offertaId: "off-1", ore: 8, categoria: "FATTURABILE" }),
 			rigaConCollaboratore({
 				offertaId: "off-1",
@@ -164,7 +196,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ id: "off-ripartita", giorniPrevisti: 10 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			rigaConCollaboratore({
 				offertaId: "off-ripartita",
 				collaboratoreId: "collab-anna",
@@ -210,7 +242,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ id: "off-mista", giorniPrevisti: 10 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			rigaConCollaboratore({
 				offertaId: "off-mista",
 				collaboratoreId: "collab-anna",
@@ -250,7 +282,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ id: "off-senza-attivita", giorniPrevisti: 10 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([]);
+		impostaRigheAttivita([]);
 
 		const [voce] = await elencaOfferteConAvanzamento();
 
@@ -270,7 +302,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ id: "off-vuota", giorniPrevisti: 7 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([]);
+		impostaRigheAttivita([]);
 
 		const [voce] = await elencaOfferteConAvanzamento();
 
@@ -285,7 +317,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ id: "off-1", giorniPrevisti: 10 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			rigaConCollaboratore({ offertaId: "off-1", ore: 8, categoria: "FATTURABILE" }),
 			rigaConCollaboratore({
 				offertaId: "off-1",
@@ -310,7 +342,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ id: "off-vuota", giorniPrevisti: 7 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([]);
+		impostaRigheAttivita([]);
 
 		const [voce] = await elencaOfferteConAvanzamento();
 
@@ -322,7 +354,7 @@ describe("elencaOfferteConAvanzamento", () => {
 			offertaConCliente({ id: "off-1", codice: "OFF-001", giorniPrevisti: 10 }),
 			offertaConCliente({ id: "off-2", codice: "OFF-002", giorniPrevisti: 10 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			rigaConCollaboratore({ offertaId: "off-1", ore: 8 }),
 			rigaConCollaboratore({
 				offertaId: "off-1",
@@ -417,7 +449,7 @@ describe("elencaOfferteConAvanzamento", () => {
 			}),
 		];
 		mockOfferta.findMany.mockResolvedValue(offerte);
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			// off-esaurita: 80 ore = 10 giornate su 10 → ESAURITA
 			rigaConCollaboratore({ offertaId: "off-esaurita", ore: 80 }),
 			// off-oltre: 48 ore = 6 giornate su 5 → OLTRE_BUDGET
@@ -453,7 +485,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		]);
 		// Stesso collaboratore, due mesi distinti; 2026-03 inserito prima di 2025-12
 		// per provare che l'ordinamento è per token e non per ordine di inserimento.
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			rigaConCollaboratore({
 				offertaId: "off-1",
 				ore: 8,
@@ -477,7 +509,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		]);
 		// 8h a marzo 2026 (1 giornata) e 4h a dicembre 2025 (0.5 giornate)
 		// dello stesso collaboratore → totale 1.5 giornate.
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			rigaConCollaboratore({
 				offertaId: "off-1",
 				collaboratoreId: "collab-1",
@@ -519,7 +551,7 @@ describe("elencaOfferteConAvanzamento", () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ id: "off-vuota", giorniPrevisti: 7 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([]);
+		impostaRigheAttivita([]);
 
 		const [voce] = await elencaOfferteConAvanzamento();
 
@@ -532,19 +564,136 @@ describe("elencaOfferteConAvanzamento", () => {
 	});
 });
 
+describe("elencaOfferteConAvanzamentoPaginate", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockRichiediRuoloApi.mockResolvedValue(undefined);
+	});
+
+	/** 60 offerte attive dello stesso cliente, codici OFF-01 … OFF-60. */
+	function sessantaOfferte() {
+		return Array.from({ length: 60 }, (_, indice) => {
+			const numero = String(indice + 1).padStart(2, "0");
+			return offertaConCliente({ id: `off-${numero}`, codice: `OFF-${numero}` });
+		});
+	}
+
+	it("restituisce 25 offerte per pagina e legge le righe di dettaglio solo per quelle della pagina", async () => {
+		mockOfferta.findMany.mockResolvedValue(sessantaOfferte());
+		impostaRigheAttivita([]);
+
+		const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca: "", pagina: 3 });
+
+		expect(elenco.paginaCorrente).toBe(3);
+		expect(elenco.totalePagine).toBe(3);
+		expect(elenco.totaleElementi).toBe(60);
+		expect(elenco.offerte.map((v) => v.codice)).toEqual(
+			Array.from({ length: 10 }, (_, i) => `OFF-${51 + i}`),
+		);
+		expect(mockRigaAttivita.findMany).toHaveBeenCalledWith({
+			where: {
+				offertaId: { in: Array.from({ length: 10 }, (_, i) => `off-${51 + i}`) },
+			},
+			include: { collaboratore: true },
+		});
+	});
+
+	it("ordina sull'intero insieme: un'offerta critica in coda alfabetica finisce in prima pagina", async () => {
+		mockOfferta.findMany.mockResolvedValue(sessantaOfferte());
+		// OFF-60: 80 ore fatturabili su 10 giornate previste → ESAURITA
+		impostaRigheAttivita([rigaConCollaboratore({ offertaId: "off-60", ore: 80 })]);
+
+		const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca: "", pagina: 1 });
+
+		expect(elenco.offerte[0].codice).toBe("OFF-60");
+		expect(elenco.offerte[0].stato).toBe("ESAURITA");
+		expect(elenco.offerte).toHaveLength(25);
+	});
+
+	it("conta attive, non attive e critiche sull'intero insieme, non sulla pagina", async () => {
+		const offerte = sessantaOfferte();
+		offerte[0].attiva = false;
+		mockOfferta.findMany.mockResolvedValue(offerte);
+		impostaRigheAttivita([
+			rigaConCollaboratore({ offertaId: "off-59", ore: 80 }),
+			rigaConCollaboratore({ offertaId: "off-60", ore: 96 }),
+			// Le ore non fatturabili non consumano budget
+			rigaConCollaboratore({ offertaId: "off-58", ore: 200, categoria: "NON_FATTURABILE" }),
+		]);
+
+		const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca: "", pagina: 2 });
+
+		expect(elenco.attive).toBe(59);
+		expect(elenco.nonAttive).toBe(1);
+		expect(elenco.critiche).toBe(2);
+	});
+
+	it("ordinamento, pill e badge concordano su un'offerta esaurita con ore a due decimali", async () => {
+		const offerte = sessantaOfferte();
+		mockOfferta.findMany.mockResolvedValue(offerte);
+		// 80,00 ore esatte in 16 righe: in virgola mobile sommerebbero 79,99999999999999
+		const ore = [7.31, 6.26, 4.8, 6.41, 2.03, 2.65, 1.82, 7.53, 7.61, 4.87, 6.99, 1.01, 5.03, 7.19, 4.46, 4.03];
+		impostaRigheAttivita(
+			ore.map((valore, indice) =>
+				rigaConCollaboratore({ offertaId: "off-60", collaboratoreId: `collab-${indice}`, ore: valore }),
+			),
+		);
+
+		const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca: "", pagina: 1 });
+
+		expect(elenco.critiche).toBe(1);
+		expect(elenco.offerte[0].codice).toBe("OFF-60");
+		expect(elenco.offerte[0].stato).toBe("ESAURITA");
+		expect(elenco.offerte[0].residuo).toBe(0);
+	});
+
+	it("filtra sul server per cliente, codice o descrizione senza distinzione maiuscole/minuscole", async () => {
+		mockOfferta.findMany.mockResolvedValue([]);
+		impostaRigheAttivita([]);
+
+		await elencaOfferteConAvanzamentoPaginate({ ricerca: "alfa", pagina: 1 });
+
+		const filtro = { contains: "alfa", mode: "insensitive" };
+		const where = {
+			OR: [
+				{ codice: filtro },
+				{ descrizione: filtro },
+				{ cliente: { ragioneSociale: filtro } },
+			],
+		};
+		expect(mockOfferta.findMany).toHaveBeenCalledWith({
+			where,
+			include: { cliente: true },
+		});
+		expect(mockRigaAttivita.groupBy).toHaveBeenCalledWith(
+			expect.objectContaining({ where: { offerta: where } }),
+		);
+	});
+
+	it("una pagina oltre l'ultima restituisce l'ultima pagina valida", async () => {
+		mockOfferta.findMany.mockResolvedValue(sessantaOfferte());
+		impostaRigheAttivita([]);
+
+		const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca: "", pagina: 9 });
+
+		expect(elenco.paginaCorrente).toBe(3);
+		expect(elenco.offerte).toHaveLength(10);
+	});
+});
+
 describe("elencaOffertePerClienteConAvanzamento", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockRichiediRuoloApi.mockResolvedValue(undefined);
 		mockOfferta.findMany.mockResolvedValue([]);
-		mockRigaAttivita.findMany.mockResolvedValue([]);
+		impostaRigheAttivita([]);
 	});
 
 	it("filtra offerte e attività per cliente e restituisce l'avanzamento calcolato", async () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ clienteId: "cli-1", giorniPrevisti: 10 }),
 		]);
-		mockRigaAttivita.findMany.mockResolvedValue([
+		impostaRigheAttivita([
 			rigaConCollaboratore({ offertaId: "off-1", ore: 16, categoria: "FATTURABILE" }),
 		]);
 

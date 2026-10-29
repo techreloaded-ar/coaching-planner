@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { richiediCollaboratoreCorrente, ErroreAutorizzazione } from "@/lib/dal";
 import { parseDataGiorno, parseTokenMese } from "@/domain/calendario";
+import { sommaOre } from "@/domain/types";
 import type { RigaAttivita, Offerta, Cliente } from "@/generated/prisma/client";
 import type {
   ClienteSelect,
@@ -107,13 +108,13 @@ function aggregaSintesiPerGiorno(
     }
 
     esistente.righe += 1;
-    esistente.oreTotali += ore;
+    esistente.oreTotali = sommaOre(esistente.oreTotali, ore);
 
     const sintesiCliente = esistente.clienti.find(
       (c) => c.clienteId === riga.cliente.id
     );
     if (sintesiCliente) {
-      sintesiCliente.ore += ore;
+      sintesiCliente.ore = sommaOre(sintesiCliente.ore, ore);
     } else {
       esistente.clienti.push({
         clienteId: riga.cliente.id,

@@ -4,19 +4,28 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
+import {
+  leggiPosizioneElencoDaForm,
+  urlPosizioneElenco,
+} from "@/lib/paginazione";
 
 /**
  * Server action per cambiare lo stato attivo/disattivo di un cliente.
- * Chiamata direttamente dai form nella tabella clienti.
+ * Chiamata direttamente dai form nella tabella clienti; riporta alla stessa
+ * pagina e ricerca dell'elenco.
  */
 export async function cambiaStatoAction(formData: FormData) {
   await richiediRuoloApi("AMMINISTRATORE");
 
   const id = formData.get("id") as string;
   const attivo = formData.get("attivo") === "true";
+  const urlElenco = urlPosizioneElenco(
+    "/anagrafiche/clienti",
+    leggiPosizioneElencoDaForm(formData),
+  );
 
   if (!id) {
-    redirect("/anagrafiche/clienti");
+    redirect(urlElenco);
   }
 
   await db.cliente.update({
@@ -25,5 +34,5 @@ export async function cambiaStatoAction(formData: FormData) {
   });
 
   revalidatePath("/anagrafiche/clienti");
-  redirect("/anagrafiche/clienti");
+  redirect(urlElenco);
 }

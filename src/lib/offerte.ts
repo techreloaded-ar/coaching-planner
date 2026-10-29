@@ -3,7 +3,15 @@ import "server-only";
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
 import { fatturataAlCliente, type GestioneTrasferta } from "@/domain/types";
+import {
+  ELEMENTI_PER_PAGINA,
+  calcolaPaginaElenco,
+  inizioPagina,
+  type PaginaElenco,
+  type PosizioneElenco,
+} from "@/lib/paginazione";
 import type {
+  Prisma,
   Offerta,
   Cliente,
   Collaboratore,
@@ -84,21 +92,24 @@ function gruppoOrdinamento(
   return 2;
 }
 
+/** Metadati di un'offerta come attesi dal calcolo di dominio dell'avanzamento. */
+function offertaPerAvanzamento(offerta: OffertaConCliente): OffertaAvanzamento {
+  return {
+    offertaId: offerta.id,
+    offertaCodice: offerta.codice,
+    offertaDescrizione: offerta.descrizione,
+    clienteId: offerta.clienteId,
+    clienteRagioneSociale: offerta.cliente.ragioneSociale,
+    giorniPrevisti: offerta.giorniPrevisti,
+  };
+}
+
 /** Costruisce voci serializzabili di avanzamento a partire da offerte e attività. */
 function costruisciVociElencoOfferte(
   offerte: OffertaConCliente[],
   righe: RigaAttivitaConCollaboratore[],
 ): VoceElencoOfferta[] {
-  const offerteMappate: OffertaAvanzamento[] = offerte.map(
-    (offerta: OffertaConCliente) => ({
-      offertaId: offerta.id,
-      offertaCodice: offerta.codice,
-      offertaDescrizione: offerta.descrizione,
-      clienteId: offerta.clienteId,
-      clienteRagioneSociale: offerta.cliente.ragioneSociale,
-      giorniPrevisti: offerta.giorniPrevisti,
-    }),
-  );
+  const offerteMappate = offerte.map(offertaPerAvanzamento);
 
   const righeMappate: RigaAvanzamento[] = righe.map(
     (riga: RigaAttivitaConCollaboratore) => ({
@@ -156,53 +167,124 @@ function costruisciVociElencoOfferte(
   });
 }
 
+/** Pagina dell'elenco trasversale offerte con i contatori dell'intero insieme filtrato. */
+export interface ElencoOffertePaginato extends PaginaElenco {
+  offerte: VoceElencoOfferta[];
+  attive: number;
+  nonAttive: number;
+  /** Offerte attive con residuo esaurito o negativo («da presidiare»). */
+  critiche: number;
+}
+
 /**
- * Elenca in modo trasversale TUTTE le offerte di TUTTI i clienti con il loro
- * avanzamento (giornate erogate, residuo, stato), riusando il calcolo di
+ * Elenca in modo trasversale le offerte di tutti i clienti, a pagine, con il
+ * loro avanzamento (giornate erogate, residuo, stato), riusando il calcolo di
  * dominio `calcolaAvanzamentoOfferte` senza duplicare alcuna logica.
  *
  * Accesso riservato all'amministratore (`richiediRuoloApi("AMMINISTRATORE")`).
- * Ogni offerta esistente compare nell'elenco, anche quelle senza righe attività
- * (in tal caso: giornate erogate 0 e residuo pari alle giornate previste).
+ * La ricerca, senza distinzione maiuscole/minuscole, filtra per ragione sociale
+ * del cliente, codice o descrizione su tutto l'archivio. Le offerte senza righe
+ * attività compaiono con giornate erogate 0 e residuo pari alle previste.
  *
- * Il risultato è interamente serializzabile: la tariffa è una stringa, non sono
- * esposti valori Decimal o Date grezzi.
+ * Ordinamento sull'intero insieme filtrato: prima le offerte attive
+ * esaurite/oltre budget, poi le altre attive, infine quelle non attive; dentro
+ * ogni gruppo per ragione sociale cliente e poi per codice offerta.
  *
- * Ordinamento: prima le offerte attive esaurite/oltre budget, poi le altre
- * attive, infine quelle non attive; dentro ogni gruppo per ragione sociale
- * cliente e poi per codice offerta.
+ * Per ordinare e contare basta la somma delle ore per offerta e categoria;
+ * le righe attività di dettaglio (per collaboratore, matrice mensile) sono
+ * lette solo per le offerte della pagina restituita.
  */
-export async function elencaOfferteConAvanzamento(): Promise<
-  VoceElencoOfferta[]
-> {
+export async function elencaOfferteConAvanzamentoPaginate({
+  ricerca,
+  pagina,
+}: PosizioneElenco): Promise<ElencoOffertePaginato> {
   await richiediRuoloApi("AMMINISTRATORE");
 
+  const filtro = { contains: ricerca, mode: "insensitive" } as const;
+  const where: Prisma.OffertaWhereInput = ricerca
+    ? {
+        OR: [
+          { codice: filtro },
+          { descrizione: filtro },
+          { cliente: { ragioneSociale: filtro } },
+        ],
+      }
+    : {};
+
+  // ponytail: ordinamento in memoria sulle intestazioni delle offerte filtrate
+  // (senza righe attività); con decine di migliaia di offerte spostarlo in SQL.
   const offerte = await db.offerta.findMany({
+    where,
     include: { cliente: true },
   });
 
-  const righe = await db.rigaAttivita.findMany({
-    include: { collaboratore: true },
+  const orePerOffertaECategoria = await db.rigaAttivita.groupBy({
+    by: ["offertaId", "categoria"],
+    where: ricerca ? { offerta: where } : undefined,
+    _sum: { ore: true },
   });
 
-  const voci = costruisciVociElencoOfferte(offerte, righe);
+  const { perOfferta } = calcolaAvanzamentoOfferte(
+    offerte.map(offertaPerAvanzamento),
+    orePerOffertaECategoria.map(
+      (gruppo): RigaAvanzamento => ({
+        offertaId: gruppo.offertaId,
+        collaboratoreId: "",
+        collaboratoreNome: "",
+        ore: Number(gruppo._sum.ore ?? 0),
+        fatturabile: fatturataAlCliente(gruppo.categoria),
+        mese: "",
+      }),
+    ),
+  );
+  const avanzamentoPerOfferta = new Map(
+    perOfferta.map((voce) => [voce.offertaId, voce]),
+  );
 
-  voci.sort((a, b) => {
-    const gruppoA = gruppoOrdinamento(a.attiva, a.stato);
-    const gruppoB = gruppoOrdinamento(b.attiva, b.stato);
-    if (gruppoA !== gruppoB) {
-      return gruppoA - gruppoB;
-    }
-    const perCliente = a.clienteRagioneSociale.localeCompare(
-      b.clienteRagioneSociale,
-    );
-    if (perCliente !== 0) {
-      return perCliente;
-    }
-    return a.codice.localeCompare(b.codice);
-  });
+  const offerteOrdinate = offerte
+    .map((offerta) => ({ offerta, avanzamento: avanzamentoPerOfferta.get(offerta.id)! }))
+    .sort((a, b) => {
+      const gruppoA = gruppoOrdinamento(a.offerta.attiva, a.avanzamento.stato);
+      const gruppoB = gruppoOrdinamento(b.offerta.attiva, b.avanzamento.stato);
+      if (gruppoA !== gruppoB) {
+        return gruppoA - gruppoB;
+      }
+      const perCliente = a.offerta.cliente.ragioneSociale.localeCompare(
+        b.offerta.cliente.ragioneSociale,
+      );
+      if (perCliente !== 0) {
+        return perCliente;
+      }
+      return a.offerta.codice.localeCompare(b.offerta.codice);
+    });
 
-  return voci;
+  const attive = offerteOrdinate.filter(({ offerta }) => offerta.attiva).length;
+  const critiche = offerteOrdinate.filter(
+    ({ offerta, avanzamento }) =>
+      gruppoOrdinamento(offerta.attiva, avanzamento.stato) === 1,
+  ).length;
+
+  const paginaElenco = calcolaPaginaElenco(pagina, offerte.length);
+  const inizio = inizioPagina(paginaElenco.paginaCorrente);
+  const offertePagina = offerteOrdinate
+    .slice(inizio, inizio + ELEMENTI_PER_PAGINA)
+    .map(({ offerta }) => offerta);
+
+  const righe =
+    offertePagina.length > 0
+      ? await db.rigaAttivita.findMany({
+          where: { offertaId: { in: offertePagina.map((offerta) => offerta.id) } },
+          include: { collaboratore: true },
+        })
+      : [];
+
+  return {
+    ...paginaElenco,
+    offerte: costruisciVociElencoOfferte(offertePagina, righe),
+    attive,
+    nonAttive: offerte.length - attive,
+    critiche,
+  };
 }
 
 /**

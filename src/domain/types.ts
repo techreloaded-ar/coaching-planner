@@ -3,6 +3,45 @@
 /** Conversione fissa: 1 giornata = 8 ore */
 export const ORE_PER_GIORNATA = 8;
 
+/**
+ * Le ore sono salvate con due decimali (`Decimal(4,2)`): il dominio le somma
+ * e le confronta come interi in centesimi di ora, mai come somme in virgola
+ * mobile, che su valori come 7,3 accumulano errori (80 ore che diventano
+ * 80,00000000000001 e un'offerta esaurita che risulta oltre budget).
+ */
+export const CENTESIMI_PER_ORA = 100;
+export const CENTESIMI_PER_GIORNATA = ORE_PER_GIORNATA * CENTESIMI_PER_ORA;
+
+/** Unica conversione al confine: ore a due decimali → centesimi di ora interi. */
+export function oreInCentesimi(ore: number): number {
+  return Math.round(ore * CENTESIMI_PER_ORA);
+}
+
+/** Somma esatta di ore: avviene sugli interi in centesimi di ora. */
+export function sommaOre(...ore: number[]): number {
+  return (
+    ore.reduce((totale, valore) => totale + oreInCentesimi(valore), 0) /
+    CENTESIMI_PER_ORA
+  );
+}
+
+/** Le ore si salvano con due decimali: oltre, il database arrotonderebbe in silenzio. */
+export const MESSAGGIO_ORE_TROPPI_DECIMALI = "Usa al massimo due decimali per le ore";
+
+/**
+ * Vero se il valore digitato (con il punto decimale) è un numero decimale
+ * semplice: niente notazione esponenziale o esadecimale, che `Number`
+ * accetterebbe («1e-3», «0x10») aggirando il limite dei due decimali.
+ */
+export function eNumeroDecimale(normalizzato: string): boolean {
+  return /^[+-]?(\d+\.?\d*|\.\d+)$/.test(normalizzato);
+}
+
+/** Vero se il valore digitato (con il punto decimale) ha cifre significative oltre la seconda. */
+export function haPiuDiDueDecimali(normalizzato: string): boolean {
+  return /\.\d{2}\d*[1-9]/.test(normalizzato);
+}
+
 /** Ruoli utente */
 export type Ruolo = "AMMINISTRATORE" | "COLLABORATORE";
 

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
+import { cercaNellElenco } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 import { attendiTabellaOfferteIdratata } from "./support/offerte";
 
@@ -44,6 +45,20 @@ import { attendiTabellaOfferteIdratata } from "./support/offerte";
  * Individua la riga della tabella "Elenco offerte" relativa a un'offerta,
  * filtrando per il suo codice (univoco, mostrato nel badge della prima cella).
  */
+/**
+ * URL del redirect di un'azione partita dall'elenco filtrato: porta l'esito e
+ * conserva la ricerca `q`.
+ */
+function esitoNellElencoFiltrato(
+  esito: string,
+  ricerca: string,
+): (url: URL) => boolean {
+  return (url) =>
+    url.pathname === "/offerte" &&
+    url.searchParams.get("esito") === esito &&
+    url.searchParams.get("q") === ricerca;
+}
+
 function rigaOfferta(page: Page, codiceOfferta: string): Locator {
   return page
     .getByRole("table", { name: "Elenco offerte" })
@@ -119,6 +134,8 @@ test.describe("US-026 Demo", () => {
     await expect(
       page.getByText("Offerta creata correttamente"),
     ).toBeVisible();
+    // L'elenco è paginato: le offerte del cliente demo si ritrovano cercandolo.
+    await cercaNellElenco(page, "/offerte", clienteDemo.ragioneSociale);
 
     const rigaNuova = rigaOfferta(page, codiceNuova);
     await expect(rigaNuova).toContainText(clienteDemo.ragioneSociale);
@@ -146,6 +163,7 @@ test.describe("US-026 Demo", () => {
     await expect(
       page.getByText("Modifiche all'offerta salvate"),
     ).toBeVisible();
+    await cercaNellElenco(page, "/offerte", clienteDemo.ragioneSociale);
     await expect(rigaOfferta(page, codiceNuova)).toContainText(
       "Percorso di coaching executive — esteso",
     );
@@ -154,7 +172,12 @@ test.describe("US-026 Demo", () => {
     await rigaOfferta(page, codiceNuova)
       .getByRole("button", { name: "Disattiva", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/offerte\?esito=stato-offerta-aggiornato$/);
+    await expect(page).toHaveURL(
+      esitoNellElencoFiltrato(
+        "stato-offerta-aggiornato",
+        clienteDemo.ragioneSociale,
+      ),
+    );
     await expect(
       page.getByText("Stato dell'offerta aggiornato"),
     ).toBeVisible();
@@ -173,7 +196,12 @@ test.describe("US-026 Demo", () => {
     await rigaDisattivata
       .getByRole("button", { name: "Attiva", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/offerte\?esito=stato-offerta-aggiornato$/);
+    await expect(page).toHaveURL(
+      esitoNellElencoFiltrato(
+        "stato-offerta-aggiornato",
+        clienteDemo.ragioneSociale,
+      ),
+    );
 
     const rigaRiattivata = rigaOfferta(page, codiceNuova);
     await expect(
@@ -196,7 +224,9 @@ test.describe("US-026 Demo", () => {
       .getByRole("button", { name: "Elimina offerta", exact: true })
       .click();
 
-    await expect(page).toHaveURL(/\/offerte\?esito=offerta-eliminata$/);
+    await expect(page).toHaveURL(
+      esitoNellElencoFiltrato("offerta-eliminata", clienteDemo.ragioneSociale),
+    );
     await expect(page.getByText("Offerta eliminata")).toBeVisible();
     await expect(
       rigaOfferta(page, offertaSenzaAttivita.codice),
