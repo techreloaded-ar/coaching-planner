@@ -181,7 +181,7 @@ test.describe("US-030 Attività amministratore", () => {
 		await impostaRuoloCollaboratore(page, true);
 		await page.getByLabel(/^Cognome\b/).fill("E2E");
 		await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
-		await page.getByLabel(/^Tariffa giornaliera\b/).fill("450,00");
+		await page.getByLabel(/^Importo tariffa\b/).fill("450,00");
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();

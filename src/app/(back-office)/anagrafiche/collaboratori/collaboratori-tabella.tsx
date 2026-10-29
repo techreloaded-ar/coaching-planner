@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CollaboratoreConUtente } from "@/lib/collaboratori";
 import { formattaEuro } from "@/lib/formattazione";
+import { UNITA_TARIFFA, type TariffaApplicata } from "@/domain/tariffe";
 
 // ── Props ──────────────────────────────────────────────────────
 
-type CollaboratoreVista = Omit<CollaboratoreConUtente, "tariffaGiornaliera"> & {
-  tariffaGiornaliera: string;
+type CollaboratoreVista = CollaboratoreConUtente & {
+  /** Tariffa in vigore nel mese corrente; null se decorre da un mese futuro */
+  tariffaInVigore: TariffaApplicata | null;
 };
 
 interface CollaboratoriTabellaProps {
@@ -72,7 +74,7 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
               P.IVA
             </th>
             <th className="w-[170px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-              Tariffa giornaliera
+              Tariffa in vigore
             </th>
             <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
               Stato
@@ -141,7 +143,16 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
                   </td>
                   <td className="px-4 py-[13px] align-middle tabular-nums">{collaboratore.partitaIva}</td>
                   <td className="px-4 py-[13px] text-right align-middle tabular-nums">
-                    {formattaEuro(collaboratore.tariffaGiornaliera)}
+                    {collaboratore.tariffaInVigore ? (
+                      <>
+                        {formattaEuro(collaboratore.tariffaInVigore.importo)}{" "}
+                        <span className="text-zinc-400 dark:text-zinc-500">
+                          {UNITA_TARIFFA[collaboratore.tariffaInVigore.modalita]}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-zinc-400 dark:text-zinc-500">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-[13px] align-middle">
                     {collaboratore.attivo ? (

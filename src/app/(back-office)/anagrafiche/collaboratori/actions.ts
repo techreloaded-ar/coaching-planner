@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
 import {
-  normalizzaTariffaGiornaliera,
   validaCollaboratore,
   type DatiCollaboratoreInput,
   type ErroriValidazione,
@@ -28,7 +27,6 @@ function datiDaForm(formData: FormData): DatiCollaboratoreInput {
     nome: ((formData.get("nome") as string) ?? "").trim(),
     cognome: ((formData.get("cognome") as string) ?? "").trim(),
     partitaIva: ((formData.get("partitaIva") as string) ?? "").trim(),
-    tariffaGiornaliera: ((formData.get("tariffaGiornaliera") as string) ?? "").trim(),
   };
 }
 
@@ -44,7 +42,8 @@ async function guardiaAmministratore(): Promise<void> {
 
 /**
  * Aggiorna un collaboratore esistente, sincronizzando anche il nome
- * dell'utente associato. Il censimento e l'email di accesso sono
+ * dell'utente associato. La tariffa si gestisce nello storico tariffe del
+ * dettaglio collaboratore. Il censimento e l'email di accesso sono
  * governati dalla schermata utenti (US-045/US-046).
  *
  * Usabile con useActionState.
@@ -67,15 +66,6 @@ export async function aggiornaCollaboratore(
     return { errori };
   }
 
-  const tariffa = normalizzaTariffaGiornaliera(dati.tariffaGiornaliera);
-  if (!tariffa) {
-    return {
-      errori: {
-        tariffaGiornaliera: "Importo non valido: usa massimo 2 decimali",
-      },
-    };
-  }
-
   const collaboratoreEsistente = await db.collaboratore.findUnique({
     where: { id },
     select: { userId: true },
@@ -92,7 +82,6 @@ export async function aggiornaCollaboratore(
         nome: dati.nome,
         cognome: dati.cognome,
         partitaIva: dati.partitaIva,
-        tariffaGiornaliera: tariffa.valore,
       },
     });
 

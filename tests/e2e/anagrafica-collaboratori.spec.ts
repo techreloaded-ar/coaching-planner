@@ -10,7 +10,8 @@ import { test, expect } from "./support/fixtures";
  * - AC-1: il censimento non è più disponibile dall'anagrafica collaboratori
  * - AC-2/AC-3: lo stato attivo/disattivato è in sola lettura, senza controlli
  *   Disattiva/Riattiva
- * - AC-4: la modifica dei dati anagrafici e della tariffa viene persistita
+ * - AC-4: la modifica dei dati anagrafici viene persistita (la tariffa si
+ *   gestisce nello storico tariffe del dettaglio collaboratore)
  * - AC-5: l'email di accesso è in sola lettura e non viene alterata dal salvataggio
  */
 
@@ -98,14 +99,14 @@ test.describe("Anagrafica collaboratori", () => {
 		).toHaveCount(0);
 	});
 
-	test("modifica persistita: nome e tariffa aggiornati restano dopo il reload", async ({
+	test("modifica persistita: nome e partita IVA aggiornati restano dopo il reload", async ({
 		page,
 		factory,
 	}) => {
 		const { collaboratore } = await factory.createCollaboratore();
 		const nomeCompletoOriginale = `${collaboratore.nome} ${collaboratore.cognome}`;
 		const nuovoNome = `${collaboratore.nome} Aggiornato`;
-		const nuovaTariffa = "777,50";
+		const nuovaPartitaIva = "77777777750";
 
 		await page.goto("/anagrafiche/collaboratori");
 		const riga = rigaCollaboratore(page, nomeCompletoOriginale);
@@ -117,9 +118,10 @@ test.describe("Anagrafica collaboratori", () => {
 		).toBeVisible();
 
 		await page.getByLabel(/^Nome\b/).fill(nuovoNome);
-		const campoTariffa = page.getByLabel("Tariffa giornaliera");
-		await campoTariffa.clear();
-		await campoTariffa.fill(nuovaTariffa);
+		await expect(page.getByLabel(/tariffa/i)).toHaveCount(0);
+		const campoPartitaIva = page.getByLabel(/^Partita IVA\b/);
+		await campoPartitaIva.clear();
+		await campoPartitaIva.fill(nuovaPartitaIva);
 
 		await page.getByRole("button", { name: "Salva modifiche" }).click();
 		await page.waitForURL("**/anagrafiche/collaboratori?esito=salvato");
@@ -129,14 +131,14 @@ test.describe("Anagrafica collaboratori", () => {
 		await expect(
 			rigaAggiornata.getByText(nomeCompletoAggiornato, { exact: true }),
 		).toBeVisible();
-		await expect(rigaAggiornata.getByText("777,50")).toBeVisible();
+		await expect(rigaAggiornata.getByText(nuovaPartitaIva)).toBeVisible();
 
 		await page.reload();
 		const rigaRicaricata = rigaCollaboratore(page, nomeCompletoAggiornato);
 		await expect(
 			rigaRicaricata.getByText(nomeCompletoAggiornato, { exact: true }),
 		).toBeVisible();
-		await expect(rigaRicaricata.getByText("777,50")).toBeVisible();
+		await expect(rigaRicaricata.getByText(nuovaPartitaIva)).toBeVisible();
 	});
 
 	test("email in sola lettura: campo readOnly e invariata dopo il salvataggio", async ({

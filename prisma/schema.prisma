@@ -34,6 +34,14 @@ enum GestioneTrasferta {
   FORFETTARIA
 }
 
+// Come Agile Reloaded compensa il collaboratore: GIORNALIERA (importo per
+// giornata da fatturare), FISSO_MENSILE (importo fisso per ogni mese in cui
+// la tariffa è in vigore, a prescindere dalle ore).
+enum ModalitaTariffa {
+  GIORNALIERA
+  FISSO_MENSILE
+}
+
 model Utente {
   id            String   @id @default(uuid())
   nome          String
@@ -97,17 +105,34 @@ model Collaboratore {
   nome              String
   cognome           String
   partitaIva        String
-  tariffaGiornaliera Decimal  @db.Decimal(10, 2)
   attivo            Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   utente          Utente          @relation(fields: [userId], references: [id])
+  tariffe         TariffaCollaboratore[]
   righeAttivita    RigaAttivita[]
   abilitazioniOfferte AbilitazioneOfferta[]
   collegamentoCalendarioGoogle CollegamentoCalendarioGoogle?
   eventiCalendarioGestiti      EventoCalendarioGestito[]
   promemoriaFineMeseInviati    PromemoriaFineMeseInviato[]
+}
+
+// Storico tariffe: ogni voce vale dal mese indicato fino alla voce successiva.
+// La tariffa di un mese è la voce con il mese di decorrenza più recente non
+// successivo a quel mese; prima della prima voce il collaboratore non ha tariffa.
+model TariffaCollaboratore {
+  id              String          @id @default(uuid())
+  collaboratoreId String
+  validaDalMese   String // YYYY-MM
+  modalita        ModalitaTariffa
+  importo         Decimal         @db.Decimal(10, 2)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
+
+  @@unique([collaboratoreId, validaDalMese])
 }
 
 // ── Clienti ─────────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { RisultatoRiepilogoMese } from "@/lib/attivita";
 import type { VoceRiepilogoOfferta } from "@/domain/consuntivi";
+import { ETICHETTA_MODALITA_TARIFFA, etichettaMeseTariffa } from "@/domain/tariffe";
 import {
   CATEGORIE_ATTIVITA,
   DESCRIZIONE_CATEGORIA_ATTIVITA,
@@ -172,7 +173,13 @@ export default function RiepilogoMese({
           <div className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
             {formattaGiornate(riepilogo.totali.giornateDaFatturare)}
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500">Tariffa giorno: {formattaEuro(riepilogo.tariffaGiornaliera)}</div>
+          <div className="text-xs text-zinc-400 dark:text-zinc-500">
+            {riepilogo.breakdown.modalitaTariffa === "GIORNALIERA"
+              ? `Tariffa giorno: ${formattaEuro(riepilogo.breakdown.importoTariffa)}`
+              : riepilogo.breakdown.modalitaTariffa === "FISSO_MENSILE"
+                ? "Il fisso mensile non dipende dalle giornate"
+                : "Nessuna tariffa in vigore"}
+          </div>
         </div>
 
         <div data-testid="summary-ore-per-categoria" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
@@ -199,13 +206,26 @@ export default function RiepilogoMese({
           <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-white/80">Importo fattura</div>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div data-testid="summary-importo-fattura-value" className="text-[38px] font-bold tabular-nums tracking-tight">{formattaEuro(riepilogo.importoFattura)}</div>
-            <div className="flex flex-wrap items-center gap-3 text-[12.5px] font-semibold text-white/85">
-              <span>{riepilogo.breakdown.giornateDaFatturare} g × {formattaEuro(riepilogo.breakdown.tariffaGiornaliera)}</span>
-              <span className="h-4 w-px bg-white/25" />
-              <span>Compenso {formattaEuro(riepilogo.breakdown.imponibileManodopera)}</span>
+            <div data-testid="summary-importo-fattura-breakdown" className="flex flex-wrap items-center gap-3 text-[12.5px] font-semibold text-white/85">
+              {riepilogo.breakdown.modalitaTariffa === "FISSO_MENSILE" ? (
+                <span>Fisso mensile {formattaEuro(riepilogo.breakdown.importoTariffa)}</span>
+              ) : (
+                <>
+                  <span>{riepilogo.breakdown.giornateDaFatturare} g × {formattaEuro(riepilogo.breakdown.importoTariffa)}</span>
+                  <span className="h-4 w-px bg-white/25" />
+                  <span>Compenso {formattaEuro(riepilogo.breakdown.imponibileManodopera)}</span>
+                </>
+              )}
               <span className="h-4 w-px bg-white/25" />
               <span>Rimborsi {formattaEuro(riepilogo.breakdown.totaleRimborsi)}</span>
             </div>
+          </div>
+          <div data-testid="summary-importo-fattura-tariffa" className="mt-2 text-[12px] text-white/80">
+            {riepilogo.breakdown.modalitaTariffa && riepilogo.breakdown.tariffaValidaDalMese
+              ? `Tariffa ${ETICHETTA_MODALITA_TARIFFA[riepilogo.breakdown.modalitaTariffa].toLowerCase()} valida da ${etichettaMeseTariffa(riepilogo.breakdown.tariffaValidaDalMese)}`
+              : "Nessuna tariffa in vigore in questo mese"}
+            {riepilogo.breakdown.modalitaTariffa === "FISSO_MENSILE" &&
+              ` · ${riepilogo.breakdown.giornateDaFatturare} g registrate: il fisso non dipende dalle giornate`}
           </div>
         </div>
       </div>

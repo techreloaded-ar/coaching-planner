@@ -15,6 +15,7 @@ import {
   type ErroriValidazione,
 } from "@/domain/anagrafiche/valida-utente";
 import { normalizzaTariffaGiornaliera } from "@/domain/anagrafiche/valida-collaboratore";
+import type { ModalitaTariffa } from "@/domain/tariffe";
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
 
@@ -31,7 +32,9 @@ function datiCensimentoDaForm(formData: FormData): DatiCensimentoUtenteInput {
     ruoloCollaboratore: formData.get("ruoloCollaboratore") === "on",
     cognome: ((formData.get("cognome") as string) ?? "").trim(),
     partitaIva: ((formData.get("partitaIva") as string) ?? "").trim(),
-    tariffaGiornaliera: ((formData.get("tariffaGiornaliera") as string) ?? "")
+    modalitaTariffa: ((formData.get("modalitaTariffa") as string) ?? "").trim(),
+    importoTariffa: ((formData.get("importoTariffa") as string) ?? "").trim(),
+    tariffaValidaDalMese: ((formData.get("tariffaValidaDalMese") as string) ?? "")
       .trim(),
   };
 }
@@ -46,8 +49,23 @@ function datiModificaDaForm(
     ruoloCollaboratore: formData.get("ruoloCollaboratore") === "on",
     cognome: ((formData.get("cognome") as string) ?? "").trim(),
     partitaIva: ((formData.get("partitaIva") as string) ?? "").trim(),
-    tariffaGiornaliera: ((formData.get("tariffaGiornaliera") as string) ?? "")
+    modalitaTariffa: ((formData.get("modalitaTariffa") as string) ?? "").trim(),
+    importoTariffa: ((formData.get("importoTariffa") as string) ?? "").trim(),
+    tariffaValidaDalMese: ((formData.get("tariffaValidaDalMese") as string) ?? "")
       .trim(),
+  };
+}
+
+/** Prima voce dello storico tariffe dai campi già validati del form utente. */
+function primaVoceTariffa(dati: {
+  modalitaTariffa: string;
+  importoTariffa: string;
+  tariffaValidaDalMese: string;
+}) {
+  return {
+    validaDalMese: dati.tariffaValidaDalMese,
+    modalita: dati.modalitaTariffa as ModalitaTariffa,
+    importo: normalizzaTariffaGiornaliera(dati.importoTariffa)!.valore,
   };
 }
 
@@ -137,12 +155,9 @@ export async function creaUtente(
     return { errori };
   }
 
-  // validaCensimentoUtente ha già validato la tariffa (validaCampoTariffaGiornaliera):
-  // per un utente Collaboratore normalizzaTariffaGiornaliera non può restituire null qui.
-  // Manteniamo la chiamata solo per ottenere il valore normalizzato usato più sotto.
-  const tariffa = dati.ruoloCollaboratore
-    ? normalizzaTariffaGiornaliera(dati.tariffaGiornaliera)
-    : null;
+  // validaCensimentoUtente ha già validato la tariffa iniziale: per un utente
+  // Collaboratore la voce dello storico è sempre costruibile qui.
+  const tariffaIniziale = dati.ruoloCollaboratore ? primaVoceTariffa(dati) : null;
 
   try {
     const esito = await db.$transaction(async (tx) => {
@@ -170,8 +185,8 @@ export async function creaUtente(
             nome: dati.nome,
             cognome: dati.cognome,
             partitaIva: dati.partitaIva,
-            tariffaGiornaliera: tariffa!.valore,
             attivo: true,
+            tariffe: { create: tariffaIniziale! },
           },
         });
       }
@@ -290,9 +305,7 @@ export async function aggiornaUtente(
           // validazione, quindi i campi profilo erano già stati richiesti e
           // validati quando serve crearlo.
           const creaProfilo = dati.ruoloCollaboratore && profiloAttuale === null;
-          const tariffa = creaProfilo
-            ? normalizzaTariffaGiornaliera(dati.tariffaGiornaliera)
-            : null;
+          const tariffaIniziale = creaProfilo ? primaVoceTariffa(dati) : null;
 
           await tx.utente.update({
             where: { id },
@@ -313,8 +326,8 @@ export async function aggiornaUtente(
                 nome: dati.nome,
                 cognome: dati.cognome,
                 partitaIva: dati.partitaIva,
-                tariffaGiornaliera: tariffa!.valore,
                 attivo: true,
+                tariffe: { create: tariffaIniziale! },
               },
             });
             profiloModificato = true;

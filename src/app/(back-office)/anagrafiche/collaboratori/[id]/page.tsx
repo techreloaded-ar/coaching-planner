@@ -1,13 +1,24 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { richiediRuolo } from "@/lib/dal";
-import { collaboratorePerId, storicoAttivitaCollaboratore } from "@/lib/collaboratori";
+import {
+  collaboratorePerId,
+  storicoAttivitaCollaboratore,
+  storicoTariffeCollaboratore,
+} from "@/lib/collaboratori";
 import { elencaOfferteAbilitate, elencaOfferteAbilitabili } from "@/lib/abilitazioni";
 import { raggruppaAttivitaPerMese, type RigaStoricoAttivita } from "@/domain/consuntivi";
-import { etichettaMese } from "@/domain/calendario";
+import { etichettaMese, tokenMeseCorrente } from "@/domain/calendario";
+import {
+  ETICHETTA_MODALITA_TARIFFA,
+  UNITA_TARIFFA,
+  etichettaMeseTariffa,
+  tariffaValidaNelMese,
+} from "@/domain/tariffe";
 import { formattaEuro } from "@/lib/formattazione";
 import { BadgeCategoriaAttivita } from "@/components";
 import AbilitazioniOfferte from "./abilitazioni-offerte";
+import StoricoTariffe from "./storico-tariffe";
 
 // ── Utilità ────────────────────────────────────────────────────
 
@@ -46,11 +57,14 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
     notFound();
   }
 
-  const [storico, abilitate, abilitabili] = await Promise.all([
+  const [storico, abilitate, abilitabili, tariffe] = await Promise.all([
     storicoAttivitaCollaboratore(id),
     elencaOfferteAbilitate(id),
     elencaOfferteAbilitabili(id),
+    storicoTariffeCollaboratore(id),
   ]);
+  const meseCorrente = tokenMeseCorrente();
+  const tariffaAttuale = tariffaValidaNelMese(tariffe, meseCorrente);
 
   const righe: RigaStoricoAttivita[] = storico.map((riga) => ({
     id: riga.id,
@@ -114,15 +128,32 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
           </div>
         </div>
 
-        <div className="mt-1 shrink-0 rounded-[11px] border border-zinc-200 bg-white px-[16px] py-[10px] shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div
+          data-testid="tariffa-attuale"
+          className="mt-1 shrink-0 rounded-[11px] border border-zinc-200 bg-white px-[16px] py-[10px] shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+        >
           <div className="text-[10.5px] font-bold uppercase tracking-[.07em] text-zinc-400 dark:text-zinc-500">
-            Tariffa giornaliera
+            Tariffa attuale
           </div>
-          <div className="mt-[2px] text-[16px] font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
-            {formattaEuro(Number(collaboratore.tariffaGiornaliera))}
-          </div>
+          {tariffaAttuale ? (
+            <>
+              <div className="mt-[2px] text-[16px] font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
+                {formattaEuro(tariffaAttuale.importo)} {UNITA_TARIFFA[tariffaAttuale.modalita]}
+              </div>
+              <div className="text-[11.5px] text-zinc-500 dark:text-zinc-400">
+                {ETICHETTA_MODALITA_TARIFFA[tariffaAttuale.modalita]} · da{" "}
+                {etichettaMeseTariffa(tariffaAttuale.validaDalMese)}
+              </div>
+            </>
+          ) : (
+            <div className="mt-[2px] text-[13px] text-zinc-500 dark:text-zinc-400">
+              Nessuna tariffa in vigore
+            </div>
+          )}
         </div>
       </div>
+
+      <StoricoTariffe collaboratoreId={id} voci={tariffe} meseCorrente={meseCorrente} />
 
       {/* Offerte abilitate */}
       <AbilitazioniOfferte

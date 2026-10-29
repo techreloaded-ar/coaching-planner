@@ -17,7 +17,6 @@ interface CollaboratoreFormProps {
     nome: string;
     cognome: string;
     partitaIva: string;
-    tariffaGiornaliera: { toString(): string } | string | number;
     attivo: boolean;
     utente: { email: string };
   };
@@ -30,11 +29,6 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
     aggiornaCollaboratore,
     statoIniziale
   );
-
-  const tariffaIniziale = new Intl.NumberFormat("it-IT", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(collaboratore.tariffaGiornaliera));
 
   // I campi restano non controllati: solo così quanto digitato prima
   // dell'idratazione sopravvive. I defaultValue sono ripopolati con i valori
@@ -63,7 +57,8 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
           Modifica collaboratore
         </h1>
         <p className="mt-[6px] max-w-[560px] text-[13px] text-zinc-400 dark:text-zinc-500">
-          Dati anagrafici, partita IVA e tariffa giornaliera; l&apos;email è la credenziale con cui il
+          Dati anagrafici e partita IVA (le tariffe si gestiscono nello storico tariffe del
+          dettaglio collaboratore); l&apos;email è la credenziale con cui il
           collaboratore accede al front office.
         </p>
       </div>
@@ -147,12 +142,12 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               </span>
             </div>
 
-            {/* ── Dati fiscali e tariffa ── */}
+            {/* ── Dati fiscali ── */}
             <div className="col-span-2 mt-2 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px] text-indigo-500" strokeWidth={2}>
                 <circle cx="12" cy="12" r="9" /><path d="M14.8 8.6a3.4 3.4 0 0 0-5.6 2.6 3.4 3.4 0 0 0 5.6 2.6M7.6 10.4h4.6M7.6 13h4.6" />
               </svg>
-              Dati fiscali e tariffa
+              Dati fiscali
             </div>
 
             <Campo
@@ -166,17 +161,6 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               obbligatorio
             />
 
-            <Campo
-              label="Tariffa giornaliera"
-              name="tariffaGiornaliera"
-              placeholder="Es. 520,00"
-              inputMode="decimal"
-              autoComplete="off"
-              defaultValue={valoreIniziale("tariffaGiornaliera", tariffaIniziale)}
-              errore={stato.errori.tariffaGiornaliera}
-              hint="Importo in euro, virgola per i decimali: valorizza i consuntivi del collaboratore"
-              obbligatorio
-            />
           </div>
         </div>
 

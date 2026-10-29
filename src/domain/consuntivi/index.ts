@@ -15,6 +15,7 @@ import {
   type CategoriaAttivita,
   type GestioneTrasferta,
 } from "../types";
+import type { ModalitaTariffa, TariffaApplicata } from "../tariffe";
 
 export { ORE_PER_GIORNATA, MESSAGGIO_ORE_TROPPI_DECIMALI };
 
@@ -73,7 +74,12 @@ export interface TotaliRiepilogoMese {
 /** Breakdown dell'importo fattura per la UI */
 export interface BreakdownRiepilogoMese {
   giornateDaFatturare: string;
-  tariffaGiornaliera: string;
+  /** Modalità della tariffa valida nel mese; null se il mese precede la prima tariffa */
+  modalitaTariffa: ModalitaTariffa | null;
+  /** Importo della tariffa: euro al giorno (giornaliera) o al mese (fisso) */
+  importoTariffa: string;
+  /** Mese YYYY-MM da cui vale la tariffa applicata */
+  tariffaValidaDalMese: string | null;
   imponibileManodopera: string;
   totaleRimborsi: string;
 }
@@ -143,15 +149,17 @@ export function orePerCategoriaVuote(): OrePerCategoria {
 
 /**
  * Aggrega le righe attività del mese per offerta e calcola il riepilogo
- * economico complessivo del collaboratore: il compenso considera le ore
- * Fatturabile e Non fatturabile, mai quelle di Investimento.
+ * economico complessivo del collaboratore con la tariffa valida nel mese.
+ * Giornaliera: il compenso considera le ore Fatturabile e Non fatturabile,
+ * mai quelle di Investimento. Fisso mensile: il compenso è il fisso, a
+ * prescindere dalle ore. Senza tariffa il compenso è zero.
  */
 export function calcolaRiepilogoMese(
   righe: RigaRiepilogo[],
-  tariffaGiornaliera: string | number,
+  tariffa: TariffaApplicata | null,
 ): RiepilogoMese {
-  const tariffa = Number(tariffaGiornaliera);
-  const tariffaNumerica = Number.isFinite(tariffa) ? tariffa : 0;
+  const importo = Number(tariffa?.importo);
+  const tariffaNumerica = Number.isFinite(importo) ? importo : 0;
   const aggregati = new Map<
     string,
     Omit<VoceRiepilogoOfferta, "rimborsiTrasferta"> & { rimborsiTrasferta: number }
@@ -200,7 +208,10 @@ export function calcolaRiepilogoMese(
 
   const giornateTotali = oreTotali / ORE_PER_GIORNATA;
   const giornateDaFatturare = oreDaFatturare / ORE_PER_GIORNATA;
-  const imponibileManodopera = giornateDaFatturare * tariffaNumerica;
+  const imponibileManodopera =
+    tariffa?.modalita === "FISSO_MENSILE"
+      ? tariffaNumerica
+      : giornateDaFatturare * tariffaNumerica;
 
   const perOfferta = Array.from(aggregati.values()).map((voce) => ({
     ...voce,
@@ -222,7 +233,9 @@ export function calcolaRiepilogoMese(
     importoFattura: formattaImporto(imponibileManodopera + totaleRimborsi),
     breakdown: {
       giornateDaFatturare: formattaImporto(giornateDaFatturare),
-      tariffaGiornaliera: formattaImporto(tariffaNumerica),
+      modalitaTariffa: tariffa?.modalita ?? null,
+      importoTariffa: formattaImporto(tariffaNumerica),
+      tariffaValidaDalMese: tariffa?.validaDalMese ?? null,
       imponibileManodopera: formattaImporto(imponibileManodopera),
       totaleRimborsi: formattaImporto(totaleRimborsi),
     },
@@ -559,7 +572,8 @@ export function calcolaReportFatturazioneClienti(
 
 /**
  * Riga elementare di attività per l'analisi di marginalità (dipendenza-zero).
- * Porta sia la tariffa dell'offerta (ricavo) sia quella del collaboratore (costo).
+ * Porta la tariffa dell'offerta (ricavo) e quella del collaboratore valida nel
+ * mese della riga (costo).
  */
 export interface RigaMarginalita {
   clienteId: string;
@@ -568,9 +582,23 @@ export interface RigaMarginalita {
   offertaCodice: string;
   offertaDescrizione: string;
   tariffaOffertaGiornaliera: string | number;
-  tariffaCollaboratoreGiornaliera: string | number;
+  collaboratoreId: string;
+  /** Token YYYY-MM della data della riga */
+  mese: string;
+  /** Modalità della tariffa del collaboratore valida nel mese; null se nessuna */
+  modalitaTariffaCollaboratore: ModalitaTariffa | null;
+  /** Importo della tariffa del collaboratore valida nel mese (giornaliera: €/giorno) */
+  importoTariffaCollaboratore: string | number;
   ore: number;
   categoria: CategoriaAttivita;
+}
+
+/** Fisso mensile di un collaboratore in vigore in un mese del periodo. */
+export interface FissoMensileCollaboratore {
+  collaboratoreId: string;
+  /** Token YYYY-MM */
+  mese: string;
+  importo: string | number;
 }
 
 /** Importi economici di una voce di marginalità (importi in euro con 2 decimali) */
@@ -588,6 +616,8 @@ export interface VoceOffertaMarginalita extends ImportiMarginalita {
   offertaId: string;
   offertaCodice: string;
   offertaDescrizione: string;
+  /** Quota dei costi che viene da fissi mensili ripartiti sull'offerta */
+  fissoRipartito: string;
 }
 
 export interface VoceClienteMarginalita extends ImportiMarginalita {
@@ -598,6 +628,8 @@ export interface VoceClienteMarginalita extends ImportiMarginalita {
 
 export interface ReportMarginalita {
   perCliente: VoceClienteMarginalita[];
+  /** Fissi mensili di collaboratori senza ore nel mese: pesano solo sul totale */
+  fissiNonAttribuibili: string;
   totali: ImportiMarginalita;
 }
 
@@ -628,18 +660,53 @@ function tariffaNumerica(tariffa: string | number): number {
 }
 
 /**
+ * Ripartisce `totaleCentesimi` in proporzione ai `pesi` (interi positivi)
+ * con il metodo dei resti più grandi: la somma delle quote è esattamente il
+ * totale.
+ */
+export function ripartisciInProporzione(
+  totaleCentesimi: number,
+  pesi: number[],
+): number[] {
+  const sommaPesi = pesi.reduce((somma, peso) => somma + peso, 0);
+  if (sommaPesi <= 0) return pesi.map(() => 0);
+
+  const quote = pesi.map((peso) => Math.floor((totaleCentesimi * peso) / sommaPesi));
+  const resti = pesi.map((peso, indice) => ({
+    indice,
+    resto: (totaleCentesimi * peso) % sommaPesi,
+  }));
+  let daAssegnare = totaleCentesimi - quote.reduce((somma, quota) => somma + quota, 0);
+  resti.sort((a, b) => b.resto - a.resto || a.indice - b.indice);
+  for (const { indice } of resti) {
+    if (daAssegnare <= 0) break;
+    quote[indice] += 1;
+    daAssegnare -= 1;
+  }
+  return quote;
+}
+
+/**
  * Aggrega le righe attività per cliente e offerta calcolando ricavi (giornate
- * Fatturabile × tariffa offerta), costi (giornate Fatturabile e Non fatturabile
- * × tariffa del collaboratore) e margine. Le righe Investimento non generano né
- * ricavi né costi. I rimborsi trasferta sono esclusi: sono passanti.
+ * Fatturabile × tariffa offerta), costi e margine. Le righe Investimento non
+ * generano né ricavi né costi. I rimborsi trasferta sono esclusi: sono
+ * passanti.
  *
- * Gli arrotondamenti seguono `calcolaReportFatturazioneClienti`, così i ricavi
- * coincidono al centesimo con l'imponibile manodopera del report fatturazione.
+ * Costi, sempre con la tariffa del collaboratore valida nel mese della riga:
+ * - Giornaliera: giornate Fatturabile e Non fatturabile × tariffa.
+ * - Fisso mensile: ogni fisso di `fissiMensili` si ripartisce sulle offerte in
+ *   proporzione alle ore Fatturabile e Non fatturabile del collaboratore in
+ *   quel mese; senza ore finisce in `fissiNonAttribuibili`.
+ *
+ * Gli arrotondamenti dei ricavi seguono `calcolaReportFatturazioneClienti`,
+ * così coincidono al centesimo con l'imponibile manodopera del report
+ * fatturazione.
  *
  * Funzione pura: nessuna dipendenza da framework o Prisma.
  */
 export function calcolaMarginalitaClienti(
   righe: RigaMarginalita[],
+  fissiMensili: FissoMensileCollaboratore[] = [],
 ): ReportMarginalita {
   interface Accumulatore {
     ore: number;
@@ -650,6 +717,7 @@ export function calcolaMarginalitaClienti(
     tariffaOfferta: number;
     offertaCodice: string;
     offertaDescrizione: string;
+    fissoRipartitoCentesimi: number;
   }
   interface AccumulatoreCliente {
     clienteRagioneSociale: string;
@@ -657,6 +725,8 @@ export function calcolaMarginalitaClienti(
   }
 
   const clienti = new Map<string, AccumulatoreCliente>();
+  // collaboratoreId|mese → offerta → ore (in centesimi) svolte a fisso mensile
+  const oreAFisso = new Map<string, Map<AccumulatoreOfferta, number>>();
 
   for (const riga of righe) {
     if (!fatturataDalCollaboratore(riga.categoria)) {
@@ -681,6 +751,7 @@ export function calcolaMarginalitaClienti(
         ore: 0,
         ricavi: 0,
         costi: 0,
+        fissoRipartitoCentesimi: 0,
       };
       cliente.offerte.set(riga.offertaId, offerta);
     }
@@ -688,9 +759,36 @@ export function calcolaMarginalitaClienti(
     if (fatturataAlCliente(riga.categoria)) {
       offerta.ore = sommaOre(offerta.ore, riga.ore);
     }
-    offerta.costi +=
-      (riga.ore / ORE_PER_GIORNATA) *
-      tariffaNumerica(riga.tariffaCollaboratoreGiornaliera);
+
+    if (riga.modalitaTariffaCollaboratore === "FISSO_MENSILE") {
+      const chiave = `${riga.collaboratoreId}|${riga.mese}`;
+      const perOfferta = oreAFisso.get(chiave) ?? new Map<AccumulatoreOfferta, number>();
+      perOfferta.set(offerta, (perOfferta.get(offerta) ?? 0) + oreInCentesimi(riga.ore));
+      oreAFisso.set(chiave, perOfferta);
+    } else if (riga.modalitaTariffaCollaboratore === "GIORNALIERA") {
+      offerta.costi +=
+        (riga.ore / ORE_PER_GIORNATA) *
+        tariffaNumerica(riga.importoTariffaCollaboratore);
+    }
+  }
+
+  let fissiNonAttribuibiliCentesimi = 0;
+  for (const fisso of fissiMensili) {
+    const fissoCentesimi = Math.round(tariffaNumerica(fisso.importo) * 100);
+    const perOfferta = oreAFisso.get(`${fisso.collaboratoreId}|${fisso.mese}`);
+    if (!perOfferta) {
+      fissiNonAttribuibiliCentesimi += fissoCentesimi;
+      continue;
+    }
+    const offerte = [...perOfferta.keys()];
+    const quote = ripartisciInProporzione(
+      fissoCentesimi,
+      offerte.map((offerta) => perOfferta.get(offerta)!),
+    );
+    offerte.forEach((offerta, indice) => {
+      offerta.costi += quote[indice] / 100;
+      offerta.fissoRipartitoCentesimi += quote[indice];
+    });
   }
 
   const totale: Accumulatore = { ore: 0, ricavi: 0, costi: 0 };
@@ -713,6 +811,7 @@ export function calcolaMarginalitaClienti(
         offertaId,
         offertaCodice: offerta.offertaCodice,
         offertaDescrizione: offerta.offertaDescrizione,
+        fissoRipartito: (offerta.fissoRipartitoCentesimi / 100).toFixed(2),
         ...importiMarginalita(offerta.ore, offerta.ricavi, offerta.costi),
       });
     }
@@ -741,8 +840,11 @@ export function calcolaMarginalitaClienti(
     a.clienteRagioneSociale.localeCompare(b.clienteRagioneSociale),
   );
 
+  totale.costi += fissiNonAttribuibiliCentesimi / 100;
+
   return {
     perCliente,
+    fissiNonAttribuibili: (fissiNonAttribuibiliCentesimi / 100).toFixed(2),
     totali: importiMarginalita(totale.ore, totale.ricavi, totale.costi),
   };
 }

@@ -17,7 +17,10 @@ function riga(modifiche: Partial<RigaMarginalita> = {}): RigaMarginalita {
     offertaCodice: "OFF-001",
     offertaDescrizione: "Sviluppo software",
     tariffaOffertaGiornaliera: 600,
-    tariffaCollaboratoreGiornaliera: 400,
+    collaboratoreId: "collab-1",
+    mese: "2026-01",
+    modalitaTariffaCollaboratore: "GIORNALIERA",
+    importoTariffaCollaboratore: 400,
     ore: 8,
     categoria: "FATTURABILE",
     ...modifiche,
@@ -162,7 +165,7 @@ describe("calcolaMarginalitaClienti", () => {
       riga({
         ore: 1,
         tariffaOffertaGiornaliera: 333.35,
-        tariffaCollaboratoreGiornaliera: 111.15,
+        importoTariffaCollaboratore: 111.15,
       }),
     ]).perCliente;
 
@@ -180,7 +183,7 @@ describe("calcolaMarginalitaClienti", () => {
         offertaCodice: "O-1",
         tariffaOffertaGiornaliera: "512.50",
         ore: 2.5,
-        tariffaCollaboratoreGiornaliera: "333.33",
+        importoTariffaCollaboratore: "333.33",
       }),
       riga({
         clienteId: "c1",
@@ -189,7 +192,7 @@ describe("calcolaMarginalitaClienti", () => {
         offertaCodice: "O-1",
         tariffaOffertaGiornaliera: "512.50",
         ore: 5.75,
-        tariffaCollaboratoreGiornaliera: "410.10",
+        importoTariffaCollaboratore: "410.10",
       }),
       riga({
         clienteId: "c2",
@@ -198,7 +201,7 @@ describe("calcolaMarginalitaClienti", () => {
         offertaCodice: "O-2",
         tariffaOffertaGiornaliera: 777.77,
         ore: 7.25,
-        tariffaCollaboratoreGiornaliera: "410.10",
+        importoTariffaCollaboratore: "410.10",
       }),
     ];
 
@@ -241,7 +244,7 @@ describe("calcolaMarginalitaClienti", () => {
     it("i costi di un collaboratore coincidono con l'imponibile del riepilogo mensile", () => {
       const tariffa = "410.10";
       const righeCollaboratore = righe.filter(
-        (r) => r.tariffaCollaboratoreGiornaliera === tariffa,
+        (r) => r.importoTariffaCollaboratore === tariffa,
       );
       const riepilogo = calcolaRiepilogoMese(
         righeCollaboratore.map(
@@ -255,13 +258,99 @@ describe("calcolaMarginalitaClienti", () => {
             rimborsoTrasfertaImporto: null,
           }),
         ),
-        tariffa,
+        { modalita: "GIORNALIERA", importo: tariffa, validaDalMese: "2026-01" },
       );
 
       expect(calcolaMarginalitaClienti(righeCollaboratore).totali.costi).toBe(
         riepilogo.breakdown.imponibileManodopera,
       );
     });
+  });
+});
+
+describe("calcolaMarginalitaClienti — storico tariffe del collaboratore", () => {
+  const offertaC = {
+    offertaId: "offerta-c",
+    offertaCodice: "OFF-C",
+    tariffaOffertaGiornaliera: 300,
+  };
+  const aFisso = {
+    collaboratoreId: "collab-fisso",
+    mese: "2026-03",
+    modalitaTariffaCollaboratore: "FISSO_MENSILE" as const,
+    importoTariffaCollaboratore: 6500,
+  };
+
+  it("il costo giornaliero usa la tariffa valida nel mese di ogni riga", () => {
+    const report = calcolaMarginalitaClienti([
+      riga({ mese: "2026-01", importoTariffaCollaboratore: 400, ore: 8 }),
+      riga({ mese: "2026-02", importoTariffaCollaboratore: "500.00", ore: 8 }),
+    ]);
+
+    expect(report.perCliente[0].perOfferta[0]).toMatchObject({
+      ricavi: "1200.00",
+      costi: "900.00",
+      fissoRipartito: "0.00",
+    });
+    expect(report.fissiNonAttribuibili).toBe("0.00");
+  });
+
+  it("ripartisce il fisso mensile sulle offerte in proporzione alle ore Fatturabile e Non fatturabile", () => {
+    const report = calcolaMarginalitaClienti(
+      [
+        riga({ ...aFisso, ...offertaA, ore: 80 }),
+        riga({ ...aFisso, ...offertaB, ore: 16 }),
+        riga({ ...aFisso, ...offertaB, ore: 4, categoria: "NON_FATTURABILE" }),
+        riga({ ...aFisso, ...offertaB, ore: 40, categoria: "INVESTIMENTO" }),
+      ],
+      [{ collaboratoreId: "collab-fisso", mese: "2026-03", importo: "6500.00" }],
+    );
+
+    const [a, b] = report.perCliente[0].perOfferta;
+    expect(a).toMatchObject({ offertaCodice: "OFF-A", costi: "5200.00", fissoRipartito: "5200.00" });
+    expect(b).toMatchObject({ offertaCodice: "OFF-B", costi: "1300.00", fissoRipartito: "1300.00" });
+    expect(report.totali.costi).toBe("6500.00");
+    expect(report.fissiNonAttribuibili).toBe("0.00");
+  });
+
+  it("arrotonda le quote al centesimo con somma esattamente pari al fisso", () => {
+    const report = calcolaMarginalitaClienti(
+      [
+        riga({ ...aFisso, ...offertaA, ore: 8 }),
+        riga({ ...aFisso, ...offertaB, ore: 8 }),
+        riga({ ...aFisso, ...offertaC, ore: 8 }),
+      ],
+      [{ collaboratoreId: "collab-fisso", mese: "2026-03", importo: 100 }],
+    );
+
+    const quote = report.perCliente[0].perOfferta.map((o) => o.fissoRipartito);
+    expect(quote).toEqual(["33.34", "33.33", "33.33"]);
+    expect(report.perCliente[0].costi).toBe("100.00");
+    expect(report.totali.costi).toBe("100.00");
+  });
+
+  it("un fisso senza ore nel mese è non attribuibile ma pesa sui costi totali", () => {
+    const report = calcolaMarginalitaClienti(
+      [riga({ ore: 8 })],
+      [{ collaboratoreId: "collab-fisso", mese: "2026-03", importo: "1000.00" }],
+    );
+
+    expect(report.perCliente[0].costi).toBe("400.00");
+    expect(report.perCliente[0].perOfferta[0].fissoRipartito).toBe("0.00");
+    expect(report.fissiNonAttribuibili).toBe("1000.00");
+    expect(report.totali.costi).toBe("1400.00");
+    expect(report.totali.margine).toBe("-800.00");
+  });
+
+  it("le sole ore di Investimento di un collaboratore a fisso non attribuiscono il fisso", () => {
+    const report = calcolaMarginalitaClienti(
+      [riga({ ...aFisso, ore: 8, categoria: "INVESTIMENTO" })],
+      [{ collaboratoreId: "collab-fisso", mese: "2026-03", importo: "6500.00" }],
+    );
+
+    expect(report.perCliente).toEqual([]);
+    expect(report.fissiNonAttribuibili).toBe("6500.00");
+    expect(report.totali.costi).toBe("6500.00");
   });
 });
 

@@ -80,7 +80,7 @@ describe("ore sommate in modo esatto", () => {
         categoria: "FATTURABILE" as const,
         rimborsoTrasfertaImporto: null,
       })),
-      400,
+      { modalita: "GIORNALIERA", importo: "400", validaDalMese: "2026-01" },
     );
     expect(riepilogo.totali.oreTotali).toBe(80);
     expect(riepilogo.totali.giornateDaFatturare).toBe(10);
@@ -116,12 +116,16 @@ describe("ore sommate in modo esatto", () => {
         offertaCodice: "OFF-1",
         offertaDescrizione: "Percorso",
         tariffaOffertaGiornaliera: 500,
-        tariffaCollaboratoreGiornaliera: 300,
+        collaboratoreId: "collab-1",
+        mese: "2026-01",
+        modalitaTariffaCollaboratore: "GIORNALIERA" as const,
+        importoTariffaCollaboratore: 300,
         ore,
         categoria: "FATTURABILE" as const,
       })),
     );
     expect(marginalita.totali.giornateFatturabili).toBe(10);
+    expect(marginalita.totali.costi).toBe("3000.00");
   });
 
   it("le ore con più di due decimali sono rifiutate, non arrotondate in silenzio", () => {

@@ -18,11 +18,6 @@ export default async function ModificaCollaboratorePage({ params }: ModificaColl
   }
 
   return (
-    <CollaboratoreForm
-      collaboratore={{
-        ...collaboratore,
-        tariffaGiornaliera: collaboratore.tariffaGiornaliera.toString(),
-      }}
-    />
+    <CollaboratoreForm collaboratore={collaboratore} />
   );
 }

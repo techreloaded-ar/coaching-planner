@@ -15,6 +15,7 @@ async function main() {
   await prisma.rigaAttivita.deleteMany();
   await prisma.offerta.deleteMany();
   await prisma.cliente.deleteMany();
+  await prisma.tariffaCollaboratore.deleteMany();
   await prisma.collaboratore.deleteMany();
   await prisma.session.deleteMany();
   await prisma.account.deleteMany();
@@ -87,11 +88,14 @@ async function main() {
       nome: "Giulia",
       cognome: "Conti",
       partitaIva: "12345678901",
-      tariffaGiornaliera: "350.00",
+      // Valida da un mese remoto: copre tutte le attività dimostrative.
+      tariffe: {
+        create: { validaDalMese: "2020-01", modalita: "GIORNALIERA", importo: "350.00" },
+      },
     },
   });
   console.log(
-    `✓ Creato profilo collaboratore: ${collaboratore.nome} ${collaboratore.cognome} (tariffa €${collaboratore.tariffaGiornaliera}/giorno)`
+    `✓ Creato profilo collaboratore: ${collaboratore.nome} ${collaboratore.cognome} (tariffa €350.00/giorno)`
   );
 
   // ── Secondo Utente Collaboratore (Marco Bianchi) ─────────────
@@ -116,11 +120,13 @@ async function main() {
       nome: "Marco",
       cognome: "Bianchi",
       partitaIva: "23456789012",
-      tariffaGiornaliera: "300.00",
+      tariffe: {
+        create: { validaDalMese: "2020-01", modalita: "GIORNALIERA", importo: "300.00" },
+      },
     },
   });
   console.log(
-    `✓ Creato profilo collaboratore: ${secondoCollaboratore.nome} ${secondoCollaboratore.cognome} (tariffa €${secondoCollaboratore.tariffaGiornaliera}/giorno)`
+    `✓ Creato profilo collaboratore: ${secondoCollaboratore.nome} ${secondoCollaboratore.cognome} (tariffa €300.00/giorno)`
   );
 
   // ── Cliente 1 ────────────────────────────────────────────────
