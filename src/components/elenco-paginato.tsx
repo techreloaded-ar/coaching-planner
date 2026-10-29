@@ -33,7 +33,19 @@ export function RicercaElenco({
   const router = useRouter();
   const percorso = usePathname();
   const [testo, setTesto] = useState(ricerca);
+  const [ricercaOsservata, setRicercaOsservata] = useState(ricerca);
+  const [ultimaRicercaInviata, setUltimaRicercaInviata] = useState(ricerca);
   const timerRicerca = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Indietro o un link possono cambiare `q` senza rimontare il componente:
+  // il campo si riallinea all'URL, salvo quando è l'eco della ricerca appena
+  // inviata (l'utente potrebbe aver già digitato altro nel frattempo).
+  if (ricerca !== ricercaOsservata) {
+    setRicercaOsservata(ricerca);
+    if (ricerca !== ultimaRicercaInviata) {
+      setTesto(ricerca);
+    }
+  }
 
   useEffect(() => () => clearTimeout(timerRicerca.current), []);
 
@@ -41,6 +53,7 @@ export function RicercaElenco({
     setTesto(valore);
     clearTimeout(timerRicerca.current);
     timerRicerca.current = setTimeout(() => {
+      setUltimaRicercaInviata(valore.trim());
       router.replace(
         urlPosizioneElenco(percorso, { ricerca: valore.trim(), pagina: 1 }),
         { scroll: false },

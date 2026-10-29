@@ -119,6 +119,27 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		await expect(rigaCliente(54)).toBeVisible();
 		await expect(page.getByText("Mostrati 1–1 di 1")).toBeVisible();
 		await expect(paginazione(page)).toHaveCount(0);
+
+		// Indietro ripristina la vista precedente, campo di ricerca compreso.
+		const campoRicerca = page.getByRole("searchbox", { name: "Cerca cliente" });
+		await apriElencoFiltrato(page, "/anagrafiche/clienti", prefisso);
+		await paginazione(page).getByRole("link", { name: "Successiva" }).click();
+		await page.waitForURL(urlPosizione("/anagrafiche/clienti", prefisso, 2));
+		await cercaNellElenco(page, "/anagrafiche/clienti", `${prefisso} 54`);
+		await page.goBack();
+		await page.waitForURL(urlPosizione("/anagrafiche/clienti", prefisso, null));
+		await expect(campoRicerca).toHaveValue(prefisso);
+		await expect(righe).toHaveCount(50);
+
+		// Il link di menu riporta all'elenco completo e svuota la ricerca.
+		await page
+			.getByRole("navigation", { name: "Navigazione principale" })
+			.getByRole("link", { name: "Clienti", exact: true })
+			.click();
+		await page.waitForURL(
+			(url) => url.pathname === "/anagrafiche/clienti" && !url.searchParams.has("q"),
+		);
+		await expect(campoRicerca).toHaveValue("");
 	});
 });
 
