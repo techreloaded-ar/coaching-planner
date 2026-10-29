@@ -1,7 +1,24 @@
 import { expect, type Page } from "@playwright/test";
+import { NOME_COOKIE_SESSIONE } from "../../../src/lib/session-config";
 
 export const EMAIL_ADMIN_E2E = "info@techreloaded.it";
 export const EMAIL_COLLABORATORE_E2E = "giulia.conti@agilereloaded.it";
+
+/** Setup dei test di business: crea la stessa sessione del login simulato,
+ * senza navigazioni alla landing non pertinenti allo scenario. Richiede un
+ * BrowserContext nuovo: non va usato per cambiare identità su una pagina aperta.
+ */
+export async function preparaSessioneE2e(page: Page, email: string): Promise<void> {
+	if ((await page.context().cookies()).some((cookie) => cookie.name === NOME_COOKIE_SESSIONE)) {
+		throw new Error("preparaSessioneE2e richiede un BrowserContext nuovo");
+	}
+	// page.request condivide il cookie jar con il BrowserContext: Set-Cookie
+	// viene applicato prima di aprire la destinazione protetta dello scenario.
+	const risposta = await page.request.post("/api/e2e-test/sessione", {
+		data: { email },
+	});
+	await expect(risposta).toBeOK();
+}
 
 export async function accediCome(page: Page, email: string): Promise<void> {
 	await page.goto("/");

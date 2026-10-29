@@ -1,7 +1,8 @@
 import type { Page } from "@playwright/test";
 
 import {
-	accediAlBackOfficeComeAdmin,
+	EMAIL_ADMIN_E2E,
+	preparaSessioneE2e,
 	accediCome,
 } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
@@ -27,8 +28,25 @@ function rigaCollaboratore(page: Page, email: string) {
 		.filter({ has: page.getByText(email, { exact: true }) });
 }
 
+/** Attende la navigazione RSC della Server Action prima delle assertion sul
+ * risultato. Un 303 può arrivare prima della fine dello stream: l'assertion
+ * da sola avviava prematuramente la propria finestra di 5 secondi.
+ * waitForURL usa il budget del test già configurato, senza introdurre retry.
+ */
+async function attendiEsitoUtente(
+	page: Page,
+	esito: "creato" | "salvato" | "invalidato" | "riattivato",
+): Promise<void> {
+	await test.step(`Attende redirect utenti: ${esito}`, async () => {
+		await page.waitForURL((url) =>
+			url.pathname === "/anagrafiche/utenti" && url.searchParams.get("esito") === esito,
+		);
+	});
+}
+
 async function apriElencoUtenti(page: Page): Promise<void> {
 	await page.getByRole("link", { name: "Utenti", exact: true }).click();
+	await page.waitForURL(/\/anagrafiche\/utenti$/);
 	await expect(page).toHaveURL(/\/anagrafiche\/utenti$/);
 	await expect(page.getByRole("heading", { name: "Utenti" })).toBeVisible();
 }
@@ -138,7 +156,8 @@ async function filtraUtenti(page: Page, valore: string): Promise<void> {
 
 test.describe("Gestione utenti", () => {
 	test.beforeEach(async ({ page }) => {
-		await accediAlBackOfficeComeAdmin(page);
+		await preparaSessioneE2e(page, EMAIL_ADMIN_E2E);
+		await page.goto("/anagrafiche");
 	});
 
 	test("elenca gli utenti censiti con ruolo, stato e profilo collaboratore", async ({
@@ -218,6 +237,7 @@ test.describe("Gestione utenti", () => {
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
 
+		await attendiEsitoUtente(page, "creato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
 		await expect(page.getByRole("status")).toContainText(
 			"Utente censito: può accedere all'applicazione con il suo account Google",
@@ -329,6 +349,7 @@ test.describe("Gestione utenti", () => {
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
 
+		await attendiEsitoUtente(page, "creato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
 
 		// AC-1, AC-7: la riga utente mostra entrambi i badge di ruolo.
@@ -406,6 +427,7 @@ test.describe("Gestione utenti", () => {
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
 
+		await attendiEsitoUtente(page, "creato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
 
 		// AC-1: solo il badge Amministratore, nessun badge Collaboratore.
@@ -561,6 +583,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "creato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
 
 		await filtraUtenti(page, email);
@@ -628,6 +651,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "salvato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 
 		// AC-3: il nominativo aggiornato compare in elenco.
@@ -716,6 +740,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "creato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
 
 		// 4. L'utente compare in elenco con il nominativo completo.
@@ -772,6 +797,7 @@ test.describe("Gestione utenti", () => {
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
 
+		await attendiEsitoUtente(page, "salvato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 		await expect(page.getByRole("status")).toContainText(
 			"Modifiche all'utente salvate",
@@ -821,6 +847,7 @@ test.describe("Gestione utenti", () => {
 				.getByRole("button", { name: "Invalida utente", exact: true })
 				.click();
 
+			await attendiEsitoUtente(page, "invalidato");
 			await expect(page).toHaveURL(
 				/\/anagrafiche\/utenti\?esito=invalidato$/,
 			);
@@ -875,9 +902,11 @@ test.describe("Gestione utenti", () => {
 		await modale
 			.getByRole("button", { name: "Invalida utente", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "invalidato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=invalidato$/);
 
 		await riga.getByRole("button", { name: "Riattiva", exact: true }).click();
+		await attendiEsitoUtente(page, "riattivato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=riattivato$/);
 		await expect(page.getByRole("status")).toContainText(
 			"Utente riattivato: può accedere di nuovo all'applicazione",
@@ -937,6 +966,7 @@ test.describe("Gestione utenti", () => {
 			await page
 				.getByRole("button", { name: "Salva modifiche", exact: true })
 				.click();
+			await attendiEsitoUtente(page, "salvato");
 			await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 			await filtraUtenti(page, utente.email);
 			await expect(
@@ -992,6 +1022,7 @@ test.describe("Gestione utenti", () => {
 			await page
 				.getByRole("button", { name: "Salva modifiche", exact: true })
 				.click();
+			await attendiEsitoUtente(page, "salvato");
 			await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 
 			await paginaUtente.goto("/anagrafiche");
@@ -1032,6 +1063,7 @@ test.describe("Gestione utenti", () => {
 			await modale
 				.getByRole("button", { name: "Invalida utente", exact: true })
 				.click();
+			await attendiEsitoUtente(page, "invalidato");
 			await expect(page.getByRole("status")).toContainText(
 				"Utente invalidato: l'accesso è revocato e il record resta in elenco",
 			);
@@ -1059,6 +1091,7 @@ test.describe("Gestione utenti", () => {
 			await riga
 				.getByRole("button", { name: "Riattiva", exact: true })
 				.click();
+			await attendiEsitoUtente(page, "riattivato");
 			await expect(page.getByRole("status")).toContainText(
 				"Utente riattivato: può accedere di nuovo all'applicazione",
 			);
@@ -1075,6 +1108,7 @@ test.describe("Gestione utenti", () => {
 			await page
 				.getByRole("button", { name: "Salva modifiche", exact: true })
 				.click();
+			await attendiEsitoUtente(page, "salvato");
 			await expect(page.getByRole("status")).toContainText(
 				"Modifiche all'utente salvate",
 			);
@@ -1127,6 +1161,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "creato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
 
 		// 2. Verifica nei due elenchi.
@@ -1180,6 +1215,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "creato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=creato$/);
 		await filtraUtenti(page, emailSoloAdmin);
 		await expect(
@@ -1258,6 +1294,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "salvato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 
 		// Il nuovo profilo è presente e attivo in anagrafica collaboratori.
@@ -1323,6 +1360,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "salvato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 
 		// AC-3: il profilo risulta disattivato nell'anagrafica collaboratori.
@@ -1389,6 +1427,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "salvato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 
 		// AC-2: il profilo torna attivo con partita IVA e tariffa originarie.
@@ -1513,6 +1552,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "salvato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 
 		// Verifica del nuovo profilo attivo nell'anagrafica collaboratori.
@@ -1534,6 +1574,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "salvato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 
 		// Il profilo risulta disattivato in anagrafica, con storico ancora leggibile.
@@ -1581,6 +1622,7 @@ test.describe("Gestione utenti", () => {
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "salvato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=salvato$/);
 
 		await apriElencoCollaboratori(page, emailCollaboratore);

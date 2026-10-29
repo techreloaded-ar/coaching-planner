@@ -224,9 +224,34 @@ describe("cambiaStatoUtenteAction", () => {
     );
   });
 
-  it("usa l'isolamento serializzabile e ritenta un conflitto P2034", async () => {
+  it("dopo un conflitto rilegge il numero di amministratori e blocca l'invalidazione dell'ultimo", async () => {
+    mockDb.utente.findUnique.mockResolvedValue({
+      ruolo: "AMMINISTRATORE", attivo: true, collaboratore: null,
+    });
+    mockDb.utente.count.mockResolvedValueOnce(1).mockResolvedValueOnce(0);
+    mockDb.utente.update.mockRejectedValueOnce({
+      name: "DriverAdapterError",
+      cause: { originalCode: "40001", kind: "TransactionWriteConflict" },
+    });
+
+    await cambiaStatoUtenteAction(formCambioStato(false));
+
+    expect(mockDb.$transaction).toHaveBeenCalledTimes(2);
+    expect(mockDb.utente.count).toHaveBeenCalledTimes(2);
+    expect(mockDb.utente.update).toHaveBeenCalledTimes(1);
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/utenti?errore=ultimo-amministratore");
+  });
+
+  it.each([
+      ["P2034", { code: "P2034" }],
+      ["PrismaPg al commit", {
+        name: "DriverAdapterError",
+        cause: { originalCode: "40001", kind: "TransactionWriteConflict" },
+      }],
+    ])("usa Serializable e ritenta il conflitto %s", async (_, conflitto) => {
     mockDb.$transaction
-      .mockRejectedValueOnce({ code: "P2034" })
+      .mockRejectedValueOnce(conflitto)
       .mockImplementationOnce(
         async (callback: (tx: typeof mockDb) => unknown) => callback(mockDb),
       );

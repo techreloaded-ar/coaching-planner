@@ -83,7 +83,35 @@ Le tabelle offerte espongono il contratto osservabile `data-idratata` (hook `use
 
 Regola: ogni click su handler client (espansione riga, "Elimina") che è la **prima interazione client dopo una navigazione documentale** (goto, click da menu, redirect post-server-action) va preceduto dagli helper di `support/offerte.ts` — `apriPaginaOfferte` o `attendiTabellaOfferteIdratata`/`attendiTabellaOfferteClienteIdratata`. Non servono per: submit di form server-action (progressive enhancement), link `<a>`, o click successivi a interazioni client già riuscite nella stessa pagina.
 
-Misura complementare (non sostitutiva) per CI: lanciare la suite contro una build di produzione con `PLAYWRIGHT_WEB_SERVER_COMMAND="npm run build && npm run start"`, che elimina la compilazione on-demand delle route.
+La suite avvia per default `npm run build && npm run start`, anche in locale:
+la build di produzione elimina HMR e compilazione on-demand delle route dal gate.
+La CI esegue già il build in uno step precedente e mantiene l'override
+`PLAYWRIGHT_WEB_SERVER_COMMAND="npm run start"`.
+
+Per diagnosticare problemi specifici di sviluppo si può usare
+`PLAYWRIGHT_WEB_SERVER_COMMAND="npm run dev"`; questa misura va tenuta distinta
+dal gate su produzione. Il contratto di idratazione resta necessario anche in
+produzione.
+
+### Sessioni indipendenti
+
+Per verificare utenti o ruoli diversi usa test distinti (ognuno ha il proprio
+BrowserContext) o context separati. `context.clearCookies()` non è un logout e
+non impedisce a una risposta protetta già in volo di ripristinare il cookie di
+sessione tramite `Set-Cookie`. I test del logout devono usare il pulsante Esci.
+
+Per il setup di scenari di business è disponibile `preparaSessioneE2e` in
+`support/auth.ts`: su un BrowserContext nuovo usa la stessa API del login
+simulato e condivide il cookie jar della pagina. Lo scenario apre poi la propria
+destinazione protetta. I test che verificano il percorso di accesso continuano a
+usare `accediCome` e i suoi wrapper.
+
+Dopo una Server Action con redirect, attendi la destinazione osservabile con
+`waitForURL` prima delle assertion su messaggi e righe: gli header `303` possono
+precedere la fine dello stream RSC. `attendiEsitoUtente` in
+`gestione-utenti.spec.ts` applica questa sincronizzazione usando il budget del
+test già configurato, senza attese fisse o retry dell'azione.
+
 
 ## Gate locale
 

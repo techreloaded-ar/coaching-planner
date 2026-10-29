@@ -24,8 +24,10 @@ assertDatabaseE2eDistintoDaDatabaseApplicativo(
 	process.env.DATABASE_URL,
 );
 
+// Il gate deve osservare lo stesso runtime di produzione usato dalla CI.
 const webServerCommand =
-	process.env.PLAYWRIGHT_WEB_SERVER_COMMAND?.trim() || "npm run dev";
+	process.env.PLAYWRIGHT_WEB_SERVER_COMMAND?.trim() ||
+	"npm run build && npm run start";
 
 // Porta del web server e2e: E2E_PORT permette di eseguire la suite mentre un
 // altro server di sviluppo occupa la 3000 (next dev legge PORT).

@@ -4,6 +4,9 @@ import { validaSessionSecret } from "./src/lib/session-config";
 validaSessionSecret();
 
 const nextConfig: NextConfig = {
+  // Il checkout è autonomo anche quando vive dentro una worktree annidata.
+  turbopack: { root: __dirname },
+  outputFileTracingRoot: __dirname,
   experimental: {
     serverActions: {
       // Con Google simulato (anteprime) l'app è servita anche dietro il proxy

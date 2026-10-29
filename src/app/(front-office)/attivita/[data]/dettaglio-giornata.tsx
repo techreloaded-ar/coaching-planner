@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useTransition, type ReactNode } from "react";
+import { useState, useCallback, useMemo, useTransition, useRef, type ReactNode } from "react";
 import {
   creaRiga,
   modificaRiga,
@@ -254,6 +254,9 @@ export default function DettaglioGiornata({
   // Cascade select: offerte del cliente selezionato
   const [offerte, setOfferte] = useState<OffertaSelect[]>([]);
   const [offerteLoading, setOfferteLoading] = useState(false);
+  // Una risposta di una modifica annullata o di un cliente precedente non
+  // deve sovrascrivere il form corrente, né terminarne il caricamento.
+  const revisioneLetturaOfferte = useRef(0);
   // Lettura delle offerte non riuscita: l'elenco vuoto non basta a spiegarlo.
   const [erroreOfferte, setErroreOfferte] = useState<string | null>(null);
   const letturaOfferteCliente = useLetturaOfferteCliente();
@@ -343,6 +346,8 @@ export default function DettaglioGiornata({
 
   const handleCambioCliente = useCallback(
     async (nuovoClienteId: string) => {
+      const revisioneRichiesta = ++revisioneLetturaOfferte.current;
+      setRigaInAttesaId(null);
       setClienteId(nuovoClienteId);
       setOffertaId("");
       setOfferte([]);
@@ -351,14 +356,18 @@ export default function DettaglioGiornata({
       // (a differenza del caricamento iniziale della riga in handleModifica)
       setClienteCambiatoDuranteModifica(modificaId !== null);
 
-      if (!nuovoClienteId) return;
+      if (!nuovoClienteId) {
+        setOfferteLoading(false);
+        return;
+      }
 
       setOfferteLoading(true);
       try {
-        setOfferte(
-          await leggiOffertePerCliente(nuovoClienteId, letturaOfferteCliente)
-        );
+        const offerteCaricate = await leggiOffertePerCliente(nuovoClienteId, letturaOfferteCliente);
+        if (revisioneRichiesta !== revisioneLetturaOfferte.current) return;
+        setOfferte(offerteCaricate);
       } catch (causa) {
+        if (revisioneRichiesta !== revisioneLetturaOfferte.current) return;
         // La sessione decaduta è già stata riconosciuta dal canale di sessione
         // della scheda, che porta a una navigazione completa: qui non c'è nulla
         // da mostrare, la pagina sta per essere abbandonata.
@@ -370,7 +379,9 @@ export default function DettaglioGiornata({
           "Non è stato possibile caricare le offerte di questo cliente."
         );
       } finally {
-        setOfferteLoading(false);
+        if (revisioneRichiesta === revisioneLetturaOfferte.current) {
+          setOfferteLoading(false);
+        }
       }
     },
     [letturaOfferteCliente, modificaId]
@@ -472,9 +483,12 @@ export default function DettaglioGiornata({
 
   const handleModifica = useCallback(
     async (riga: RigaAttivitaClient) => {
+      const revisioneRichiesta = ++revisioneLetturaOfferte.current;
       setEventoDaProposta(null);
       setModificaId(riga.id);
       setClienteId(riga.cliente.id);
+      setOffertaId("");
+      setOfferte([]);
       setClienteRigaInModifica({
         id: riga.cliente.id,
         ragioneSociale: riga.cliente.ragioneSociale,
@@ -499,6 +513,7 @@ export default function DettaglioGiornata({
           riga.cliente.id,
           letturaOfferteCliente
         );
+        if (revisioneRichiesta !== revisioneLetturaOfferte.current) return;
         const offertaPresente = offerteCaricate.some(
           (o) => o.id === riga.offerta.id
         );
@@ -516,6 +531,7 @@ export default function DettaglioGiornata({
         );
         setOffertaId(riga.offerta.id);
       } catch (causa) {
+        if (revisioneRichiesta !== revisioneLetturaOfferte.current) return;
         // Sessione decaduta: la navigazione completa è già in corso.
         if (causa instanceof ErroreSessioneAttivita) return;
 
@@ -533,8 +549,10 @@ export default function DettaglioGiornata({
           "Non è stato possibile caricare le offerte di questo cliente."
         );
       } finally {
-        setOfferteLoading(false);
-        setRigaInAttesaId(null);
+        if (revisioneRichiesta === revisioneLetturaOfferte.current) {
+          setOfferteLoading(false);
+          setRigaInAttesaId(null);
+        }
       }
 
       // Scroll al form
@@ -553,6 +571,9 @@ export default function DettaglioGiornata({
 
   const handleModificaProposta = useCallback(
     async (proposta: PropostaCalendarioClient) => {
+      const revisioneRichiesta = ++revisioneLetturaOfferte.current;
+      setRigaInAttesaId(null);
+      setOfferteLoading(false);
       setModificaId(null);
       setEventoDaProposta(proposta.eventoId);
       setClienteId(proposta.cliente?.id ?? "");
@@ -581,17 +602,21 @@ export default function DettaglioGiornata({
           proposta.cliente.id,
           letturaOfferteCliente
         );
+        if (revisioneRichiesta !== revisioneLetturaOfferte.current) return;
         setOfferte(offerteCaricate);
         if (proposta.offerta && offerteCaricate.some((o) => o.id === proposta.offerta!.id)) {
           setOffertaId(proposta.offerta.id);
         }
       } catch (causa) {
+        if (revisioneRichiesta !== revisioneLetturaOfferte.current) return;
         if (causa instanceof ErroreSessioneAttivita) return;
         setErroreOfferte(
           "Non è stato possibile caricare le offerte di questo cliente."
         );
       } finally {
-        setOfferteLoading(false);
+        if (revisioneRichiesta === revisioneLetturaOfferte.current) {
+          setOfferteLoading(false);
+        }
       }
     },
     [letturaOfferteCliente]
@@ -600,6 +625,9 @@ export default function DettaglioGiornata({
   // ── Annulla modifica ───────────────────────────────────────
 
   const handleAnnulla = useCallback(() => {
+    revisioneLetturaOfferte.current += 1;
+    setOfferteLoading(false);
+    setRigaInAttesaId(null);
     setEventoDaProposta(null);
     setModificaId(null);
     setClienteId("");
@@ -1221,7 +1249,7 @@ export default function DettaglioGiornata({
               type="submit"
               attesaEsterna={salvataggioInCorso || isPending}
               etichettaAttesa="Salvataggio…"
-              disabled={nessunaOffertaAbilitata || nessunClienteAbilitato}
+              disabled={offerteLoading || nessunaOffertaAbilitata || nessunClienteAbilitato}
               className="inline-flex items-center gap-[7px] rounded-[10px] bg-rose-600 px-[18px] py-[9px] text-[13.5px] font-bold text-white shadow-sm transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
             >
               <svg

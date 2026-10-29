@@ -123,31 +123,33 @@ test.describe("Logo Agile Reloaded nelle intestazioni", () => {
 		});
 	}
 
-	test("schermi piccoli: logo compatto visibile e non sovrapposto a Esci", async ({ page }) => {
-		await page.setViewportSize({ width: 375, height: 800 });
-
-		await accediComeCollaboratore(page);
-		await expect(logo(page)).toBeVisible();
-		expect((await boxTarga(page)).width).toBeLessThanOrEqual(32);
-		expect(await immagineCaricata(page)).toBe(true);
-		// Il front office a 375 px ha già un overflow orizzontale dell'intestazione
-		// (≈ 110 px) indipendente dal logo: nessuna asserzione sull'overflow qui.
-
-		await page.context().clearCookies();
-		await accediAlBackOfficeComeAdmin(page);
-		await expect(logo(page)).toBeVisible();
-		const box = await boxTarga(page);
-		expect(box.width).toBeLessThanOrEqual(32);
-		expect(await immagineCaricata(page)).toBe(true);
-		expect((await misuraIntestazione(page)).overflow).toBe(0);
-
-		const esci = await page.getByRole("button", { name: "Esci", exact: true }).boundingBox();
-		expect(esci).not.toBeNull();
-		const sovrapposto =
-			box.x < esci!.x + esci!.width && box.x + box.width > esci!.x &&
-			box.y < esci!.y + esci!.height && box.y + box.height > esci!.y;
-		expect(sovrapposto).toBe(false);
-	});
+	for (const area of ["front office", "back office"] as const) {
+		test(`schermi piccoli, ${area}: logo compatto visibile e non sovrapposto a Esci`, async ({ page }) => {
+			await page.setViewportSize({ width: 375, height: 800 });
+			// Ogni area usa il proprio BrowserContext della fixture: clearCookies
+			// non isola una sessione dalle risposte protette ancora in volo.
+			if (area === "front office") {
+				await accediComeCollaboratore(page);
+			} else {
+				await accediAlBackOfficeComeAdmin(page);
+			}
+			await expect(logo(page)).toBeVisible();
+			const box = await boxTarga(page);
+			expect(box.width).toBeLessThanOrEqual(32);
+			expect(await immagineCaricata(page)).toBe(true);
+			if (area === "back office") {
+				expect((await misuraIntestazione(page)).overflow).toBe(0);
+			}
+			// Il front office a 375 px ha già un overflow orizzontale
+			// dell'intestazione indipendente dal logo (≈ 110 px).
+			const esci = await page.getByRole("button", { name: "Esci", exact: true }).boundingBox();
+			expect(esci).not.toBeNull();
+			const sovrapposto =
+				box.x < esci!.x + esci!.width && box.x + box.width > esci!.x &&
+				box.y < esci!.y + esci!.height && box.y + box.height > esci!.y;
+			expect(sovrapposto).toBe(false);
+		});
+	}
 
 	test("il logo è servito dall'applicazione, senza host esterni", async ({ page }) => {
 		const urlImmagini: string[] = [];
