@@ -14,13 +14,13 @@ import {
  * Test e2e — paginazione e ricerca lato server degli elenchi back-office
  * (US-001 clienti, US-002 offerte).
  *
- * Ogni test crea più di 50 righe con un prefisso univoco e filtra l'elenco per
+ * Ogni test crea più di 25 righe con un prefisso univoco e filtra l'elenco per
  * quel prefisso: conteggi e pagine riguardano solo dati propri, indipendenti
  * da quanto creano in parallelo gli altri worker.
  */
 
 const RIGHE_PAGINA_2 = 5;
-const TOTALE = 50 + RIGHE_PAGINA_2;
+const TOTALE = 25 + RIGHE_PAGINA_2;
 
 function numero(indice: number): string {
 	return String(indice).padStart(2, "0");
@@ -46,7 +46,7 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		await accediAlBackOfficeComeAdmin(page);
 	});
 
-	test("50 clienti per pagina, navigazione, ricerca e ritorno alla pagina dopo la disattivazione", async ({
+	test("25 clienti per pagina, navigazione, ricerca e ritorno alla pagina dopo la disattivazione", async ({
 		page,
 		factory,
 	}) => {
@@ -62,15 +62,15 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		const rigaCliente = (indice: number) =>
 			tabella.getByRole("row").filter({ hasText: `${prefisso} ${numero(indice)}` });
 
-		// Pagina 1: le prime 50 righe in ordine alfabetico.
+		// Pagina 1: le prime 25 righe in ordine alfabetico.
 		await apriElencoFiltrato(page, "/anagrafiche/clienti", prefisso);
-		await expect(righe).toHaveCount(50);
-		await expect(page.getByText(`Mostrati 1–50 di ${TOTALE}`)).toBeVisible();
+		await expect(righe).toHaveCount(25);
+		await expect(page.getByText(`Mostrati 1–25 di ${TOTALE}`)).toBeVisible();
 		await expect(
 			page.getByText(`${TOTALE} clienti · ${TOTALE} attivi · 0 disattivati`),
 		).toBeVisible();
 		await expect(rigaCliente(1)).toBeVisible();
-		await expect(rigaCliente(51)).toHaveCount(0);
+		await expect(rigaCliente(26)).toHaveCount(0);
 		await expect(paginazione(page).getByText("Precedente")).toHaveAttribute(
 			"aria-disabled",
 			"true",
@@ -81,7 +81,7 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		await page.waitForURL(urlPosizione("/anagrafiche/clienti", prefisso, 2));
 		await expect(righe).toHaveCount(RIGHE_PAGINA_2);
 		await expect(
-			page.getByText(`Mostrati 51–${TOTALE} di ${TOTALE}`),
+			page.getByText(`Mostrati 26–${TOTALE} di ${TOTALE}`),
 		).toBeVisible();
 		await expect(paginazione(page).locator('[aria-current="page"]')).toHaveText("2");
 		await expect(paginazione(page).getByText("Successiva")).toHaveAttribute(
@@ -89,11 +89,11 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 			"true",
 		);
 		await expect(rigaCliente(1)).toHaveCount(0);
-		await expect(rigaCliente(53)).toBeVisible();
+		await expect(rigaCliente(28)).toBeVisible();
 
 		// Disattivare da pagina 2 riporta a pagina 2 con la stessa ricerca.
-		await rigaCliente(53).getByRole("button", { name: "Disattiva" }).click();
-		await expect(rigaCliente(53).getByText("Disattivato")).toBeVisible();
+		await rigaCliente(28).getByRole("button", { name: "Disattiva" }).click();
+		await expect(rigaCliente(28).getByText("Disattivato")).toBeVisible();
 		await expect(page).toHaveURL(urlPosizione("/anagrafiche/clienti", prefisso, 2));
 		await expect(righe).toHaveCount(RIGHE_PAGINA_2);
 		await expect(
@@ -106,17 +106,17 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		);
 		await expect(righe).toHaveCount(RIGHE_PAGINA_2);
 		await expect(
-			page.getByText(`Mostrati 51–${TOTALE} di ${TOTALE}`),
+			page.getByText(`Mostrati 26–${TOTALE} di ${TOTALE}`),
 		).toBeVisible();
 		await expect(paginazione(page).locator('[aria-current="page"]')).toHaveText("2");
 
 		// La ricerca trova un cliente di pagina 2 e torna a una sola pagina.
-		await cercaNellElenco(page, "/anagrafiche/clienti", `${prefisso} 54`);
+		await cercaNellElenco(page, "/anagrafiche/clienti", `${prefisso} 29`);
 		await expect(page).toHaveURL(
-			urlPosizione("/anagrafiche/clienti", `${prefisso} 54`, null),
+			urlPosizione("/anagrafiche/clienti", `${prefisso} 29`, null),
 		);
 		await expect(righe).toHaveCount(1);
-		await expect(rigaCliente(54)).toBeVisible();
+		await expect(rigaCliente(29)).toBeVisible();
 		await expect(page.getByText("Mostrati 1–1 di 1")).toBeVisible();
 		await expect(paginazione(page)).toHaveCount(0);
 
@@ -125,11 +125,11 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		await apriElencoFiltrato(page, "/anagrafiche/clienti", prefisso);
 		await paginazione(page).getByRole("link", { name: "Successiva" }).click();
 		await page.waitForURL(urlPosizione("/anagrafiche/clienti", prefisso, 2));
-		await cercaNellElenco(page, "/anagrafiche/clienti", `${prefisso} 54`);
+		await cercaNellElenco(page, "/anagrafiche/clienti", `${prefisso} 29`);
 		await page.goBack();
 		await page.waitForURL(urlPosizione("/anagrafiche/clienti", prefisso, null));
 		await expect(campoRicerca).toHaveValue(prefisso);
-		await expect(righe).toHaveCount(50);
+		await expect(righe).toHaveCount(25);
 
 		// Il link di menu riporta all'elenco completo e svuota la ricerca.
 		await page
@@ -148,7 +148,7 @@ test.describe("Paginazione elenco offerte (US-002)", () => {
 		await accediAlBackOfficeComeAdmin(page);
 	});
 
-	test("50 offerte per pagina con le critiche in testa e ritorno alla pagina dopo un'azione", async ({
+	test("25 offerte per pagina con le critiche in testa e ritorno alla pagina dopo un'azione", async ({
 		page,
 		factory,
 	}) => {
@@ -190,13 +190,13 @@ test.describe("Paginazione elenco offerte (US-002)", () => {
 
 		// Pagina 1: l'offerta critica è la prima, i contatori coprono tutto il filtro.
 		await apriPaginaOfferte(page, cliente.ragioneSociale);
-		await expect(pulsantiDettaglio).toHaveCount(50);
+		await expect(pulsantiDettaglio).toHaveCount(25);
 		await expect(pulsantiDettaglio.first()).toHaveAttribute(
 			"aria-label",
 			`Dettaglio avanzamento ${codice("99")}`,
 		);
 		await expect(
-			page.getByText(`Mostrati 1–50 di ${totaleOfferte}`),
+			page.getByText(`Mostrati 1–25 di ${totaleOfferte}`),
 		).toBeVisible();
 		await expect(page.getByText("1 da presidiare", { exact: true })).toBeVisible();
 		await expect(
@@ -204,37 +204,37 @@ test.describe("Paginazione elenco offerte (US-002)", () => {
 				`${totaleOfferte} offerte · ${totaleOfferte} attive · 0 non attive`,
 			),
 		).toBeVisible();
-		await expect(rigaOfferta("53")).toHaveCount(0);
+		await expect(rigaOfferta("28")).toHaveCount(0);
 
 		// Pagina 2: le offerte restanti.
 		await paginazione(page).getByRole("link", { name: "Successiva" }).click();
 		await page.waitForURL(urlPosizione("/offerte", cliente.ragioneSociale, 2));
-		await expect(pulsantiDettaglio).toHaveCount(totaleOfferte - 50);
+		await expect(pulsantiDettaglio).toHaveCount(totaleOfferte - 25);
 		await expect(
-			page.getByText(`Mostrati 51–${totaleOfferte} di ${totaleOfferte}`),
+			page.getByText(`Mostrati 26–${totaleOfferte} di ${totaleOfferte}`),
 		).toBeVisible();
-		await expect(rigaOfferta("53")).toBeVisible();
+		await expect(rigaOfferta("28")).toBeVisible();
 
 		// Da pagina 2: espande il dettaglio e disattiva l'offerta.
-		const offerta53 = rigaOfferta("53");
-		await offerta53.getByText(codice("53"), { exact: true }).click();
+		const offerta28 = rigaOfferta("28");
+		await offerta28.getByText(codice("28"), { exact: true }).click();
 		const dettaglio = page.getByRole("region", {
-			name: `Dettaglio avanzamento ${codice("53")}`,
+			name: `Dettaglio avanzamento ${codice("28")}`,
 		});
 		await expect(dettaglio).toBeVisible();
 
-		await offerta53.getByRole("button", { name: "Disattiva" }).click();
+		await offerta28.getByRole("button", { name: "Disattiva" }).click();
 		await page.waitForURL(
 			(url) =>
 				urlPosizione("/offerte", cliente.ragioneSociale, 2)(url) &&
 				url.searchParams.get("esito") === "stato-offerta-aggiornato" &&
-				url.searchParams.get("offertaEspansaId") === idPerSuffisso.get("53"),
+				url.searchParams.get("offertaEspansaId") === idPerSuffisso.get("28"),
 		);
 		await attendiTabellaOfferteIdratata(page);
 		await expect(page.getByText("Stato dell'offerta aggiornato")).toBeVisible();
 		await expect(dettaglio).toBeVisible();
 		await expect(
-			rigaOfferta("53").getByRole("button", { name: "Attiva", exact: true }),
+			rigaOfferta("28").getByRole("button", { name: "Attiva", exact: true }),
 		).toHaveAttribute("title", "Offerta non attiva");
 		await expect(
 			page.getByText(
@@ -243,9 +243,9 @@ test.describe("Paginazione elenco offerte (US-002)", () => {
 		).toBeVisible();
 
 		// La ricerca per codice trova un'offerta di pagina 2 in una sola pagina.
-		await cercaNellElenco(page, "/offerte", codice("54"));
+		await cercaNellElenco(page, "/offerte", codice("29"));
 		await expect(pulsantiDettaglio).toHaveCount(1);
-		await expect(rigaOfferta("54")).toBeVisible();
+		await expect(rigaOfferta("29")).toBeVisible();
 		await expect(page.getByText("Mostrati 1–1 di 1")).toBeVisible();
 		await expect(paginazione(page)).toHaveCount(0);
 	});

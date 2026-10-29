@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
 /**
- * Elenchi paginati del back-office (clienti, offerte): mostrano 50 righe per
+ * Elenchi paginati del back-office (clienti, offerte): mostrano 25 righe per
  * pagina e cercano lato server con il parametro `q`. Con la suite in parallelo
  * le righe create dalla factory possono finire oltre la prima pagina, quindi
  * un test che cerca una propria riga deve sempre filtrare l'elenco.

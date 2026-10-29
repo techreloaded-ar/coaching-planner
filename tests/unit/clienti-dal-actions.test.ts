@@ -100,7 +100,7 @@ describe("DAL clienti", () => {
   // ── 1. elencaClientiPaginati ──────────────────────────────────
 
   describe("elencaClientiPaginati", () => {
-    it("legge solo la pagina richiesta, 50 clienti per pagina in ordine alfabetico", async () => {
+    it("legge solo la pagina richiesta, 25 clienti per pagina in ordine alfabetico", async () => {
       mockCliente.count.mockResolvedValueOnce(120).mockResolvedValueOnce(100);
       mockCliente.findMany.mockResolvedValue([]);
 
@@ -110,12 +110,12 @@ describe("DAL clienti", () => {
       expect(mockCliente.findMany).toHaveBeenCalledWith({
         where: {},
         orderBy: [{ ragioneSociale: "asc" }, { id: "asc" }],
-        skip: 50,
-        take: 50,
+        skip: 25,
+        take: 25,
       });
       expect(result).toMatchObject({
         paginaCorrente: 2,
-        totalePagine: 3,
+        totalePagine: 5,
         totaleElementi: 120,
         attivi: 100,
         disattivati: 20,
@@ -151,9 +151,9 @@ describe("DAL clienti", () => {
 
       const result = await elencaClientiPaginati({ ricerca: "", pagina: 7 });
 
-      expect(result.paginaCorrente).toBe(2);
+      expect(result.paginaCorrente).toBe(3);
       expect(mockCliente.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ skip: 50, take: 50 }),
+        expect.objectContaining({ skip: 50, take: 25 }),
       );
     });
   });

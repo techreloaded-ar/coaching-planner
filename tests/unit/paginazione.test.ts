@@ -14,10 +14,10 @@ describe("paginazione degli elenchi", () => {
     expect(leggiPosizioneElenco({ q: ["primo", "secondo"] }).ricerca).toBe("primo");
   });
 
-  it("riduce la pagina all'intervallo valido con 50 elementi per pagina", () => {
+  it("riduce la pagina all'intervallo valido con 25 elementi per pagina", () => {
     expect(calcolaPaginaElenco(1, 0)).toEqual({ paginaCorrente: 1, totalePagine: 1, totaleElementi: 0 });
-    expect(calcolaPaginaElenco(2, 50)).toMatchObject({ paginaCorrente: 1, totalePagine: 1 });
-    expect(calcolaPaginaElenco(5, 101)).toMatchObject({ paginaCorrente: 3, totalePagine: 3 });
+    expect(calcolaPaginaElenco(2, 25)).toMatchObject({ paginaCorrente: 1, totalePagine: 1 });
+    expect(calcolaPaginaElenco(5, 51)).toMatchObject({ paginaCorrente: 3, totalePagine: 3 });
   });
 
   it("costruisce URL puliti omettendo ricerca vuota e pagina 1", () => {

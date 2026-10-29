@@ -1,7 +1,7 @@
 // Regole condivise di paginazione degli elenchi del back-office (clienti,
 // offerte). Funzioni pure: utilizzabili da server, client e test.
 
-export const ELEMENTI_PER_PAGINA = 50;
+export const ELEMENTI_PER_PAGINA = 25;
 
 /** Posizione nell'elenco espressa dai parametri URL `q` e `pagina`. */
 export interface PosizioneElenco {
