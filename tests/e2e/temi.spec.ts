@@ -1,30 +1,21 @@
 import { test, expect } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
-import {
-	apriPannelloTema,
-	attendiAspetto,
-	attendiIconaTema,
-	attendiSelettoreAccantoAEsci,
-	opzioneTema,
-	pannelloTema,
-	pulsanteTema,
-	scegliTema,
-} from "./support/tema";
+import { apriImpostazioni, esci, pannelloAccount, pulsanteMenuAccount } from "./support/menu-account";
+import { attendiAspetto, opzioneTema, scegliTema, selettoreTema } from "./support/tema";
 
 /**
- * Test e2e — Temi Chiaro, Scuro e Browser (US-001, US-002 dell'incremento).
+ * Test e2e — Temi Chiaro, Scuro e Browser, scelti dalla pagina Impostazioni.
  *
  * Scenari read-only: la preferenza vive solo nel cookie del contesto browser
  * di ciascun test, nessun dato applicativo viene scritto.
  */
 
-test.describe("Selettore del tema", () => {
+test.describe("Tema nelle Impostazioni", () => {
 	test("pagina di accesso: nessun selettore, ma usa il tema già scelto", async ({ page, context, baseURL }) => {
 		await page.emulateMedia({ colorScheme: "light" });
 		await page.goto("/");
 		await expect(page.getByRole("heading", { name: "Coaching Planner" })).toBeVisible();
-		await expect(pulsanteTema(page)).toHaveCount(0);
 		await expect(page.getByTestId("selettore-tema")).toHaveCount(0);
 		await attendiAspetto(page, "chiaro");
 
@@ -39,46 +30,35 @@ test.describe("Selettore del tema", () => {
 		expect(await risposta.text()).toMatch(/<html[^>]*data-tema="scuro"/);
 	});
 
-	test("front office: pulsante-icona, menu, scelta persistente tra reload e logout", async ({ page }) => {
+	test("front office: niente pulsante tema nell'intestazione, scelta dalle Impostazioni persistente tra reload e logout", async ({ page }) => {
 		await page.emulateMedia({ colorScheme: "light" });
 		await accediComeCollaboratore(page);
 
-		const pulsante = page.getByRole("banner").getByRole("button", { name: "Tema", exact: true });
-		await expect(pulsante).toBeVisible();
-		// Compatto: solo icona, nessuna etichetta testuale visibile.
-		await expect(pulsante).toHaveText("");
-		await expect(pannelloTema(page)).toBeHidden();
-		await attendiSelettoreAccantoAEsci(page);
-		await attendiIconaTema(page, "sole");
+		// US-001 AC-2: il pulsante-icona del tema non è più nell'intestazione.
+		await expect(page.getByRole("banner").getByRole("button", { name: "Tema", exact: true })).toHaveCount(0);
+		await expect(page.getByTestId("selettore-tema")).toHaveCount(0);
 
-		await apriPannelloTema(page);
-		await expect(pulsante).toHaveAttribute("aria-expanded", "true");
+		await apriImpostazioni(page);
 		for (const etichetta of ["Chiaro", "Scuro", "Browser"] as const) {
-			await expect(opzioneTema(page, etichetta)).toBeVisible();
+			await expect(opzioneTema(page, etichetta)).toBeAttached();
 		}
-		await expect(opzioneTema(page, "Browser")).toHaveAttribute("aria-pressed", "true");
-		await opzioneTema(page, "Scuro").click();
-		await expect(pannelloTema(page)).toBeHidden();
+		await expect(opzioneTema(page, "Browser")).toBeChecked();
+
+		const urlPrimaDellaScelta = page.url();
+		await scegliTema(page, "Scuro");
 		await attendiAspetto(page, "scuro");
-		await attendiIconaTema(page, "luna");
+		// Applicato subito, senza navigazione.
+		expect(page.url()).toBe(urlPrimaDellaScelta);
 
 		await page.reload();
 		await expect(page.locator("html")).toHaveAttribute("data-tema", "scuro");
 		await attendiAspetto(page, "scuro");
-		await attendiIconaTema(page, "luna");
-		await apriPannelloTema(page);
-		await expect(opzioneTema(page, "Scuro")).toHaveAttribute("aria-pressed", "true");
+		await expect(opzioneTema(page, "Scuro")).toBeChecked();
 
-		// Esc e click fuori chiudono il pannello senza cambiare tema.
-		await page.keyboard.press("Escape");
-		await expect(pannelloTema(page)).toBeHidden();
-		await apriPannelloTema(page);
-		await page.getByRole("heading", { level: 1 }).first().click();
-		await expect(pannelloTema(page)).toBeHidden();
-		await expect(page.locator("html")).toHaveAttribute("data-tema", "scuro");
+		await page.goto("/attivita");
+		await attendiAspetto(page, "scuro");
 
-		await page.locator("[data-esci]").click();
-		await page.waitForURL("**/?logout=1");
+		await esci(page);
 		await attendiAspetto(page, "scuro");
 	});
 
@@ -86,47 +66,42 @@ test.describe("Selettore del tema", () => {
 		await page.emulateMedia({ colorScheme: "dark" });
 		await accediComeCollaboratore(page);
 		await attendiAspetto(page, "scuro");
-
-		await attendiIconaTema(page, "luna");
+		await apriImpostazioni(page);
 
 		await scegliTema(page, "Chiaro");
 		await attendiAspetto(page, "chiaro");
-		await attendiIconaTema(page, "sole");
 
 		await page.emulateMedia({ colorScheme: "light" });
 		await scegliTema(page, "Scuro");
 		await attendiAspetto(page, "scuro");
-		await attendiIconaTema(page, "luna");
 
-		// Con Browser l'icona segue il sistema: sole se chiaro, luna se scuro.
 		await scegliTema(page, "Browser");
 		await attendiAspetto(page, "chiaro");
-		await attendiIconaTema(page, "sole");
 		await page.emulateMedia({ colorScheme: "dark" });
 		await attendiAspetto(page, "scuro");
-		await attendiIconaTema(page, "luna");
 	});
 
-	test("console amministrativa: pulsante accanto a Esci, utilizzabile da tastiera", async ({ page }) => {
+	test("console amministrativa: Impostazioni dal menu dell'account, tutto da tastiera", async ({ page }) => {
 		await page.emulateMedia({ colorScheme: "light" });
 		await accediAlBackOfficeComeAdmin(page);
-		await attendiSelettoreAccantoAEsci(page);
-		await attendiIconaTema(page, "sole");
+		await expect(page.getByRole("banner").getByRole("button", { name: "Tema", exact: true })).toHaveCount(0);
 
-		const pulsante = page.getByRole("banner").getByRole("button", { name: "Tema", exact: true });
+		await expect(page.getByTestId("menu-account")).toHaveAttribute("data-idratata", "true");
+		await pulsanteMenuAccount(page).focus();
+		await page.keyboard.press("Enter");
+		await expect(pannelloAccount(page)).toBeVisible();
+		await pannelloAccount(page).getByRole("link", { name: "Impostazioni", exact: true }).focus();
+		await page.keyboard.press("Enter");
+		await page.waitForURL("**/impostazioni/tema");
+		await expect(page.getByRole("heading", { name: "Impostazioni", level: 1 })).toBeVisible();
+
 		await expect(page.getByTestId("selettore-tema")).toHaveAttribute("data-idratata", "true");
-		await pulsante.focus();
-		await page.keyboard.press("Enter");
-		await expect(pannelloTema(page)).toBeVisible();
-		// All'apertura il fuoco va sull'opzione attiva.
-		await expect(opzioneTema(page, "Browser")).toBeFocused();
-
-		await opzioneTema(page, "Scuro").focus();
-		await page.keyboard.press("Enter");
-		await expect(pannelloTema(page)).toBeHidden();
-		await expect(pulsante).toBeFocused();
+		await opzioneTema(page, "Browser").focus();
+		// Nel gruppo radio le frecce spostano la scelta: Browser → Scuro.
+		await page.keyboard.press("ArrowLeft");
+		await expect(opzioneTema(page, "Scuro")).toBeChecked();
+		await expect(selettoreTema(page)).toBeVisible();
 		await attendiAspetto(page, "scuro");
-		await attendiIconaTema(page, "luna");
 	});
 });
 
@@ -141,6 +116,7 @@ test.describe("Tutta l'interfaccia rispetta il tema scelto", () => {
 		"/report/avanzamento-offerte",
 		"/attivita",
 		"/attivita/riepilogo",
+		"/impostazioni",
 		"/pagina-che-non-esiste",
 	];
 

@@ -125,7 +125,6 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               maxLength={11}
               defaultValue={valoreIniziale("partitaIva", cliente?.partitaIva ?? "")}
               errore={stato.errori.partitaIva}
-              obbligatorio
             />
 
             <Campo

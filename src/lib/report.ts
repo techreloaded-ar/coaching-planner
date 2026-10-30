@@ -113,7 +113,8 @@ export async function reportFatturazioneClientiMese(
       offertaId: riga.offertaId,
       offertaCodice: riga.offerta?.codice ?? ETICHETTA_SENZA_OFFERTA,
       offertaDescrizione: riga.offerta?.descrizione ?? DESCRIZIONE_SENZA_OFFERTA,
-      tariffaOffertaGiornaliera: riga.offerta?.tariffaGiornaliera.toString() ?? 0,
+      tariffaOffertaGiornaliera:
+        riga.offerta === null ? 0 : (riga.offerta.tariffaGiornaliera?.toString() ?? null),
       collaboratoreId: riga.collaboratoreId,
       collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
@@ -198,7 +199,7 @@ export async function reportMarginalitaPeriodo(
       offertaId: riga.offertaId,
       offertaCodice: riga.offerta?.codice ?? ETICHETTA_SENZA_OFFERTA,
       offertaDescrizione: riga.offerta?.descrizione ?? DESCRIZIONE_SENZA_OFFERTA,
-      tariffaOffertaGiornaliera: riga.offerta?.tariffaGiornaliera.toString() ?? 0,
+      tariffaOffertaGiornaliera: riga.offerta?.tariffaGiornaliera?.toString() ?? 0,
       collaboratoreId: riga.collaboratoreId,
       mese,
       modalitaTariffaCollaboratore: tariffa?.modalita ?? null,

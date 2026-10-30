@@ -4,7 +4,7 @@
 /** Dati in ingresso per la validazione di un cliente */
 export interface DatiClienteInput {
   ragioneSociale: string;
-  partitaIva: string;
+  partitaIva?: string;
   codiceFiscale?: string;
   indirizzo?: string;
   citta?: string;
@@ -48,13 +48,13 @@ export function validaCliente(dati: DatiClienteInput): ErroriValidazione {
     errori.ragioneSociale = "La ragione sociale è obbligatoria";
   }
 
-  if (!dati.partitaIva || dati.partitaIva.trim() === "") {
-    errori.partitaIva = "La partita IVA è obbligatoria";
-  } else if (!RE_CIFRE_11.test(dati.partitaIva.trim())) {
-    errori.partitaIva = "La partita IVA deve essere di 11 cifre";
-  }
-
   // --- Campi opzionali (validati solo se valorizzati) ---
+
+  if (dati.partitaIva && dati.partitaIva.trim() !== "") {
+    if (!RE_CIFRE_11.test(dati.partitaIva.trim())) {
+      errori.partitaIva = "La partita IVA deve essere di 11 cifre";
+    }
+  }
 
   if (dati.codiceFiscale && dati.codiceFiscale.trim() !== "") {
     const cf = dati.codiceFiscale.trim().toUpperCase();

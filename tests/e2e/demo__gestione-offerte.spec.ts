@@ -3,9 +3,10 @@ import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
-import { cercaNellElenco } from "./support/elenchi";
+import { barraSelezione, cercaNellElenco, selezionaRighe } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 import { attendiTabellaOfferteIdratata } from "./support/offerte";
+import { avatarUtente } from "./support/menu-account";
 
 /**
  * Demo scenario — US-026: Gestione delle offerte dalla pagina Offerte.
@@ -17,8 +18,8 @@ import { attendiTabellaOfferteIdratata } from "./support/offerte";
  *     codice, descrizione, tariffa giornaliera e giorni previsti;
  *  2. modifica quella stessa offerta (descrizione e giorni previsti) e vede le
  *     modifiche riflesse nell'elenco;
- *  3. la disattiva e poi la riattiva tramite il flag di stato in riga, con il
- *     cambiamento immediatamente visibile;
+ *  3. la disattiva (con conferma) e poi la riattiva selezionandola e usando la
+ *     barra azioni, con il cambiamento immediatamente visibile nella chip di stato;
  *  4. elimina una seconda offerta priva di attività collegate;
  *  5. tenta di eliminare una terza offerta con una riga di attività registrata
  *     e riceve il messaggio di blocco che lo invita a disattivarla.
@@ -103,9 +104,7 @@ test.describe("US-026 Demo", () => {
 
     // ── 1. Login amministratore e apertura "Offerte" dalla sidebar ─
     await accediAlBackOfficeComeAdmin(page);
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded"),
-    ).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
 
     await page.getByRole("link", { name: "Offerte", exact: true }).click();
     await page.waitForURL("**/offerte");
@@ -141,13 +140,12 @@ test.describe("US-026 Demo", () => {
     await expect(rigaNuova).toContainText(clienteDemo.ragioneSociale);
     await expect(rigaNuova).toContainText("Percorso di coaching executive");
     await expect(rigaNuova).toContainText(/680,00\s*€/);
-    // Appena creata è attiva: la riga espone l'azione "Disattiva".
-    await expect(
-      rigaNuova.getByRole("button", { name: "Disattiva", exact: true }),
-    ).toBeVisible();
+    // Appena creata è attiva.
+    await expect(rigaNuova.getByText("Attiva", { exact: true })).toBeVisible();
 
     // ── 3. Modifica dell'offerta appena creata ─────────────────────
-    await rigaNuova.getByRole("link", { name: "Modifica" }).click();
+    const barraModifica = await selezionaRighe(page, [codiceNuova]);
+    await barraModifica.getByRole("link", { name: "Modifica", exact: true }).click();
     await page.waitForURL(/\/offerte\/[^/]+$/);
     await expect(
       page.getByRole("heading", { name: "Modifica offerta" }),
@@ -169,7 +167,12 @@ test.describe("US-026 Demo", () => {
     );
 
     // ── 4. Disattivazione e successiva riattivazione ───────────────
-    await rigaOfferta(page, codiceNuova)
+    const barraDisattiva = await selezionaRighe(page, [codiceNuova]);
+    await barraDisattiva
+      .getByRole("button", { name: "Disattiva", exact: true })
+      .click();
+    await page
+      .getByRole("dialog", { name: `Disattivare «${codiceNuova}»?` })
       .getByRole("button", { name: "Disattiva", exact: true })
       .click();
     await expect(page).toHaveURL(
@@ -181,20 +184,14 @@ test.describe("US-026 Demo", () => {
     await expect(
       page.getByText("Stato dell'offerta aggiornato"),
     ).toBeVisible();
+    await expect(
+      rigaOfferta(page, codiceNuova).getByText("Disattivata", { exact: true }),
+    ).toBeVisible();
+    await expect(barraSelezione(page)).toBeHidden();
 
-    const rigaDisattivata = rigaOfferta(page, codiceNuova);
-    const indicatoreDisattivato = rigaDisattivata.getByRole("button", {
-      name: "Attiva",
-      exact: true,
-    });
-    await expect(indicatoreDisattivato).toBeVisible();
-    await expect(indicatoreDisattivato).toHaveAttribute(
-      "title",
-      "Offerta non attiva",
-    );
-
-    await rigaDisattivata
-      .getByRole("button", { name: "Attiva", exact: true })
+    const barraRiattiva = await selezionaRighe(page, [codiceNuova]);
+    await barraRiattiva
+      .getByRole("button", { name: "Riattiva", exact: true })
       .click();
     await expect(page).toHaveURL(
       esitoNellElencoFiltrato(
@@ -202,17 +199,15 @@ test.describe("US-026 Demo", () => {
         clienteDemo.ragioneSociale,
       ),
     );
-
-    const rigaRiattivata = rigaOfferta(page, codiceNuova);
     await expect(
-      rigaRiattivata.getByRole("button", { name: "Disattiva", exact: true }),
+      rigaOfferta(page, codiceNuova).getByText("Attiva", { exact: true }),
     ).toBeVisible();
 
     // ── 5. Eliminazione di un'offerta priva di attività collegate ──
     // Il redirect post-riattivazione ricarica la pagina: "Elimina" è un
     // handler client, quindi la tabella va ri-attesa idratata.
     await attendiTabellaOfferteIdratata(page);
-    await rigaOfferta(page, offertaSenzaAttivita.codice)
+    await (await selezionaRighe(page, [offertaSenzaAttivita.codice]))
       .getByRole("button", { name: "Elimina", exact: true })
       .click();
 
@@ -235,7 +230,7 @@ test.describe("US-026 Demo", () => {
     // ── 6. Eliminazione bloccata per offerta con attività collegate ─
     // Anche qui la pagina è appena stata ricaricata dal redirect post-eliminazione.
     await attendiTabellaOfferteIdratata(page);
-    await rigaOfferta(page, offertaConAttivita.codice)
+    await (await selezionaRighe(page, [offertaConAttivita.codice]))
       .getByRole("button", { name: "Elimina", exact: true })
       .click();
 

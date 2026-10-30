@@ -104,7 +104,7 @@ model Collaboratore {
   userId            String   @unique
   nome              String
   cognome           String
-  partitaIva        String
+  partitaIva        String?
   attivo            Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -161,10 +161,10 @@ model Cliente {
 model Offerta {
   id                String   @id @default(uuid())
   codice            String
-  descrizione       String
+  descrizione       String   @default("")
   clienteId         String
-  tariffaGiornaliera Decimal  @db.Decimal(10, 2)
-  giorniPrevisti    Int
+  tariffaGiornaliera Decimal?  @db.Decimal(10, 2)
+  giorniPrevisti    Int?
   gestioneTrasferta GestioneTrasferta @default(INCLUSA)
   /// Importo fatturato al cliente per ogni giorno di trasferta; valorizzato solo se FORFETTARIA
   importoTrasfertaForfettaria Decimal? @db.Decimal(10, 2)

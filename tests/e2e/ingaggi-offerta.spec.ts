@@ -1,5 +1,6 @@
 import { accediComeAdmin } from "./support/auth";
 import { apriPaginaOfferte } from "./support/offerte";
+import { selezionaRighe } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 
 /**
@@ -53,13 +54,9 @@ test.describe("Ingaggi collaboratori su offerta", () => {
 		// anche quando le offerte create in parallelo superano la prima pagina.
 		await apriPaginaOfferte(page, codiceOfferta);
 
-		const tabellaOfferte = page.getByRole("table", {
-			name: "Elenco offerte",
-			exact: true,
-		});
-		await tabellaOfferte
-			.getByRole("row", { name: codiceOfferta })
-			.getByRole("link", { name: "Collaboratori", exact: true })
+		const barra = await selezionaRighe(page, [codiceOfferta]);
+		await barra
+			.getByRole("link", { name: "Collaboratori abilitati", exact: true })
 			.click();
 		await page.waitForURL(`**/offerte/${offerta.id}/collaboratori`);
 

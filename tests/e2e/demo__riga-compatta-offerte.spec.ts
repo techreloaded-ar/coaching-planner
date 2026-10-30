@@ -3,12 +3,13 @@ import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
-import { cercaNellElenco } from "./support/elenchi";
+import { barraSelezione, cercaNellElenco, selezionaRighe } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 import {
   apriPaginaOfferte,
   attendiTabellaOfferteIdratata,
 } from "./support/offerte";
+import { avatarUtente } from "./support/menu-account";
 
 /**
  * Demo scenario — US-035: Riga compatta nell'elenco offerte con giorni
@@ -16,11 +17,11 @@ import {
  *
  * Ripercorre la Dimostrazione della spec: l'amministratore apre "Offerte"
  * dalla sidebar a una larghezza desktop di 1366px e osserva che tutte le
- * colonne, inclusi i pulsanti Modifica ed Elimina, sono visibili senza
- * scorrimento orizzontale, con la colonna unica "Giorni erogati" nel formato
- * "erogate/previste". Espande poi un'offerta attiva e clicca il suo
- * indicatore circolare di stato: l'offerta diventa non attiva (indicatore
- * grigio) e la riga resta espansa.
+ * colonne, inclusa la chip di stato, sono visibili senza scorrimento
+ * orizzontale, con la colonna unica "Giorni erogati" nel formato
+ * "erogate/previste". Espande poi un'offerta attiva, la seleziona (la casella
+ * non chiude l'espansione) e la disattiva dalla barra azioni: la chip diventa
+ * «Disattivata» e la riga resta espansa.
  *
  * Il flusso MUTA dati (cambia lo stato di un'offerta): per il contratto e2e
  * (AGENTS.md) usa quindi esclusivamente entità create dalla factory, mai i
@@ -94,9 +95,7 @@ test.describe("US-035 Demo", () => {
 
     // ── 1. Login amministratore e apertura "Offerte" dalla sidebar ─
     await accediAlBackOfficeComeAdmin(page);
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded"),
-    ).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
     await apriPaginaOfferte(page);
     // L'elenco è paginato: le offerte della demo si ritrovano con la ricerca.
     await cercaNellElenco(page, "/offerte", clienteDemo.ragioneSociale);
@@ -110,27 +109,18 @@ test.describe("US-035 Demo", () => {
       .toBeLessThanOrEqual(0);
 
     const rigaAttiva = rigaOfferta(page, offertaAttiva.codice);
-    await expect(
-      rigaAttiva.getByRole("link", { name: "Modifica" }),
-    ).toBeVisible();
-    await expect(
-      rigaAttiva.getByRole("button", { name: "Elimina", exact: true }),
-    ).toBeVisible();
+    await expect(rigaAttiva.getByText("Attiva", { exact: true })).toBeVisible();
 
     // ── 3. Colonna unica "Giorni erogati" nel formato erogate/previste ─
-    await expect(rigaAttiva.getByRole("cell").nth(3)).toHaveText(
+    // La prima cella è la casella di selezione.
+    await expect(rigaAttiva.getByRole("cell").nth(4)).toHaveText(
       /^2\/23\s*gg$/,
     );
 
-    const indicatoreAttiva = rigaAttiva.getByRole("button", {
-      name: "Disattiva",
-    });
-    await expect(indicatoreAttiva).toHaveAttribute("title", "Offerta attiva");
-
     const rigaInattiva = rigaOfferta(page, offertaInattiva.codice);
     await expect(
-      rigaInattiva.getByRole("button", { name: "Attiva", exact: true }),
-    ).toHaveAttribute("title", "Offerta non attiva");
+      rigaInattiva.getByText("Disattivata", { exact: true }),
+    ).toBeVisible();
 
     // ── 4. Espansione della riga attiva (click sul codice) ──────────
     await rigaAttiva.getByText(offertaAttiva.codice, { exact: true }).click();
@@ -139,8 +129,16 @@ test.describe("US-035 Demo", () => {
       pulsanteDettaglio(rigaAttiva, offertaAttiva.codice),
     ).toHaveAttribute("aria-expanded", "true");
 
-    // ── 5. Click sull'indicatore: disattiva senza chiudere la riga ──
-    await rigaAttiva.getByRole("button", { name: "Disattiva" }).click();
+    // ── 5. Selezione e disattivazione senza chiudere la riga ────────
+    const barra = await selezionaRighe(page, [offertaAttiva.codice]);
+    await expect(
+      pulsanteDettaglio(rigaAttiva, offertaAttiva.codice),
+    ).toHaveAttribute("aria-expanded", "true");
+    await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: `Disattivare «${offertaAttiva.codice}»?` })
+      .getByRole("button", { name: "Disattiva", exact: true })
+      .click();
     await page.waitForURL(
       (url) =>
         url.pathname === "/offerte" &&
@@ -160,8 +158,9 @@ test.describe("US-035 Demo", () => {
       dettaglioOfferta(page, offertaAttiva.codice),
     ).toBeVisible();
     await expect(
-      rigaDisattivata.getByRole("button", { name: "Attiva", exact: true }),
-    ).toHaveAttribute("title", "Offerta non attiva");
+      rigaDisattivata.getByText("Disattivata", { exact: true }),
+    ).toBeVisible();
+    await expect(barraSelezione(page)).toBeHidden();
 
     // Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);

@@ -16,7 +16,7 @@ interface CollaboratoreFormProps {
     id: string;
     nome: string;
     cognome: string;
-    partitaIva: string;
+    partitaIva: string | null;
     attivo: boolean;
     utente: { email: string };
   };
@@ -156,9 +156,8 @@ export default function CollaboratoreForm({ collaboratore }: CollaboratoreFormPr
               placeholder="11 cifre, es. 03481920457"
               inputMode="numeric"
               maxLength={11}
-              defaultValue={valoreIniziale("partitaIva", collaboratore.partitaIva)}
+              defaultValue={valoreIniziale("partitaIva", collaboratore.partitaIva ?? "")}
               errore={stato.errori.partitaIva}
-              obbligatorio
             />
 
           </div>

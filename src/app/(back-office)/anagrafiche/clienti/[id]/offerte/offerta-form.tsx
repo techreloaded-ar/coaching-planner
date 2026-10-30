@@ -36,7 +36,7 @@ interface OffertaFormProps {
     codice: string;
     descrizione: string;
     tariffaGiornaliera: string;
-    giorniPrevisti: number;
+    giorniPrevisti: number | null;
     gestioneTrasferta: GestioneTrasferta;
     /** Importo con virgola decimale; vuoto se la trasferta è inclusa */
     importoTrasfertaForfettaria: string;
@@ -200,7 +200,6 @@ export default function OffertaForm({
               placeholder="Es. Percorso di coaching executive"
               defaultValue={valoreIniziale("descrizione", offerta?.descrizione ?? "")}
               errore={stato.errori.descrizione}
-              obbligatorio
             />
 
             <div className="col-span-2 mt-2 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500 max-[920px]:col-span-1">
@@ -217,7 +216,6 @@ export default function OffertaForm({
               placeholder="Es. 650,00"
               defaultValue={valoreIniziale("tariffaGiornaliera", offerta?.tariffaGiornaliera ?? "")}
               errore={stato.errori.tariffaGiornaliera}
-              obbligatorio
               suffisso="€"
               hint="Importo in euro, accetta virgola o punto come separatore decimale"
             />
@@ -226,9 +224,8 @@ export default function OffertaForm({
               label="Giorni previsti"
               name="giorniPrevisti"
               placeholder="Es. 10"
-              defaultValue={valoreIniziale("giorniPrevisti", offerta ? String(offerta.giorniPrevisti) : "")}
+              defaultValue={valoreIniziale("giorniPrevisti", offerta?.giorniPrevisti?.toString() ?? "")}
               errore={stato.errori.giorniPrevisti}
-              obbligatorio
               suffisso="gg"
               hint="Numero intero di giornate"
             />

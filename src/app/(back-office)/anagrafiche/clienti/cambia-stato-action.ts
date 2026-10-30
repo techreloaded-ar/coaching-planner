@@ -8,28 +8,29 @@ import {
   leggiPosizioneElencoDaForm,
   urlPosizioneElenco,
 } from "@/lib/paginazione";
+import { leggiIdSelezionati } from "@/lib/selezione-elenco";
 
 /**
- * Server action per cambiare lo stato attivo/disattivo di un cliente.
- * Chiamata direttamente dai form nella tabella clienti; riporta alla stessa
- * pagina e ricerca dell'elenco.
+ * Server action per disattivare o riattivare uno o più clienti (un campo `id`
+ * per cliente). Chiamata dalla barra azioni dell'elenco clienti; riporta alla
+ * stessa pagina e ricerca dell'elenco.
  */
 export async function cambiaStatoAction(formData: FormData) {
   await richiediRuoloApi("AMMINISTRATORE");
 
-  const id = formData.get("id") as string;
+  const idClienti = leggiIdSelezionati(formData);
   const attivo = formData.get("attivo") === "true";
   const urlElenco = urlPosizioneElenco(
     "/anagrafiche/clienti",
     leggiPosizioneElencoDaForm(formData),
   );
 
-  if (!id) {
+  if (idClienti.length === 0) {
     redirect(urlElenco);
   }
 
-  await db.cliente.update({
-    where: { id },
+  await db.cliente.updateMany({
+    where: { id: { in: idClienti } },
     data: { attivo },
   });
 

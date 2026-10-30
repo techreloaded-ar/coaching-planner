@@ -20,8 +20,8 @@ const formattatoreMese = new Intl.DateTimeFormat("it-IT", {
   timeZone: "UTC",
 });
 
-function formattaGiornate(valore: number): string {
-  return formattatoreGiornate.format(valore);
+function formattaGiornate(valore: number | null): string {
+  return valore === null ? "—" : formattatoreGiornate.format(valore);
 }
 
 function etichettaMese(mese: string): string {
@@ -121,8 +121,10 @@ export default function DettaglioAvanzamentoOfferta({
   const config = CONFIG_STATO[offerta.stato];
   const oltreBudget = offerta.stato === "OLTRE_BUDGET";
   const esaurita = offerta.stato === "ESAURITA";
-  const percentualeReale = Math.round(offerta.percentualeUtilizzo * 100);
-  const percentualeVisibile = Math.min(offerta.percentualeUtilizzo * 100, 100);
+  // Senza giorni previsti non c'è budget: percentuale e residuo restano «—».
+  const senzaBudget = offerta.percentualeUtilizzo === null;
+  const percentualeReale = Math.round((offerta.percentualeUtilizzo ?? 0) * 100);
+  const percentualeVisibile = Math.min((offerta.percentualeUtilizzo ?? 0) * 100, 100);
 
   return (
     <section
@@ -162,7 +164,9 @@ export default function DettaglioAvanzamentoOfferta({
               <span className="ml-[3px] text-[11px] font-semibold opacity-80">gg</span>
             </span>
             <span className="mt-[5px] block text-[10.5px] tabular-nums opacity-80">
-              {oltreBudget
+              {senzaBudget
+                ? "giorni previsti non indicati"
+                : oltreBudget
                 ? "oltre il previsto"
                 : esaurita
                   ? "nessun giorno"
@@ -175,7 +179,7 @@ export default function DettaglioAvanzamentoOfferta({
           <div className="mb-[7px] flex items-baseline justify-between gap-3">
             <span className="text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">Avanzamento erogato sul previsto</span>
             <span className={`text-[15px] font-extrabold tracking-[-.02em] tabular-nums ${config.percentualeClassi}`}>
-              {percentualeReale}%
+              {senzaBudget ? "—" : `${percentualeReale}%`}
             </span>
           </div>
           <div className="relative h-[11px] overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-700/50">
@@ -194,7 +198,7 @@ export default function DettaglioAvanzamentoOfferta({
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-[13px] w-[13px]">
                   <path d="M12 5v14M5 12l7-7 7 7" />
                 </svg>
-                {formattaGiornate(Math.abs(offerta.residuo))} gg oltre il previsto
+                {formattaGiornate(Math.abs(offerta.residuo ?? 0))} gg oltre il previsto
               </span>
             )}
           </div>
@@ -331,7 +335,7 @@ export default function DettaglioAvanzamentoOfferta({
   );
 }
 
-function Kpi({ etichetta, valore }: { etichetta: string; valore: number }) {
+function Kpi({ etichetta, valore }: { etichetta: string; valore: number | null }) {
   return (
     <div className="border-r border-zinc-200 px-4 py-3 text-center dark:border-zinc-700">
       <span className="mb-[5px] block text-[10px] font-bold uppercase tracking-[.05em] text-zinc-400 dark:text-zinc-500">{etichetta}</span>

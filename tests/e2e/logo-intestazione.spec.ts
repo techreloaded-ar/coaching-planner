@@ -5,6 +5,7 @@ import {
 	accediComeCollaboratore,
 } from "./support/auth";
 import { SFONDO_SCURO } from "./support/tema";
+import { pulsanteMenuAccount } from "./support/menu-account";
 
 /**
  * Test e2e — US-028: logo Agile Reloaded nelle intestazioni delle aree interne.
@@ -64,8 +65,7 @@ test.describe("Logo Agile Reloaded nelle intestazioni", () => {
 		expect(await immagineCaricata(page)).toBe(true);
 
 		await expect(page.getByRole("heading", { name: "Le mie attività" })).toBeVisible();
-		await expect(page.getByRole("button", { name: "Tema", exact: true })).toBeVisible();
-		await expect(page.getByRole("button", { name: "Esci", exact: true })).toBeVisible();
+		await expect(pulsanteMenuAccount(page)).toBeVisible();
 
 		let misura = await misuraIntestazione(page);
 		expect(misura.overflow).toBe(0);
@@ -124,7 +124,7 @@ test.describe("Logo Agile Reloaded nelle intestazioni", () => {
 	}
 
 	for (const area of ["front office", "back office"] as const) {
-		test(`schermi piccoli, ${area}: logo compatto visibile e non sovrapposto a Esci`, async ({ page }) => {
+		test(`schermi piccoli, ${area}: logo compatto visibile e non sovrapposto al menu dell'account`, async ({ page }) => {
 			await page.setViewportSize({ width: 375, height: 800 });
 			// Ogni area usa il proprio BrowserContext della fixture: clearCookies
 			// non isola una sessione dalle risposte protette ancora in volo.
@@ -142,11 +142,11 @@ test.describe("Logo Agile Reloaded nelle intestazioni", () => {
 			}
 			// Il front office a 375 px ha già un overflow orizzontale
 			// dell'intestazione indipendente dal logo (≈ 110 px).
-			const esci = await page.getByRole("button", { name: "Esci", exact: true }).boundingBox();
-			expect(esci).not.toBeNull();
+			const avatar = await pulsanteMenuAccount(page).boundingBox();
+			expect(avatar).not.toBeNull();
 			const sovrapposto =
-				box.x < esci!.x + esci!.width && box.x + box.width > esci!.x &&
-				box.y < esci!.y + esci!.height && box.y + box.height > esci!.y;
+				box.x < avatar!.x + avatar!.width && box.x + box.width > avatar!.x &&
+				box.y < avatar!.y + avatar!.height && box.y + box.height > avatar!.y;
 			expect(sovrapposto).toBe(false);
 		});
 	}

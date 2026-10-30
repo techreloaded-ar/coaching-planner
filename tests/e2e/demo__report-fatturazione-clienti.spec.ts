@@ -7,6 +7,7 @@ import {
   creaDatasetReportFatturazioneClienti,
   type DatasetReportFatturazioneClienti,
 } from "./support/report-data";
+import { avatarUtente } from "./support/menu-account";
 
 /**
  * Demo scenario — US-015/US-023: Report mensile degli importi da fatturare per cliente.
@@ -66,7 +67,7 @@ async function verificaDatasetReportDemo(
 
   const celle = rigaOfferta.locator("td");
   await expect(celle.nth(1)).toHaveText(
-    formattaEuro(dataset.offerta.tariffaGiornaliera.toString()),
+    formattaEuro(String(dataset.offerta.tariffaGiornaliera)),
   );
   await expect(celle.nth(2)).toHaveText(
     formattaGiornate(offertaAttesa.totali.giornate),
@@ -127,9 +128,7 @@ test.describe("US-015 Demo", () => {
 
     // ── 1. Login amministratore tramite endpoint e2e ──────────────
     await accediAlBackOfficeComeAdmin(page);
-    await expect(
-      page.getByRole("banner").getByText("Tech Reloaded"),
-    ).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
 
     // ── 2. Apre "Fatturazione clienti" dalla sidebar ───────────────
     await page

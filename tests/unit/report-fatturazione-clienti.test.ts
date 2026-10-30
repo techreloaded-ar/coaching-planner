@@ -47,6 +47,25 @@ describe("calcolaReportFatturazioneClienti", () => {
     });
   });
 
+  // ── Offerta senza tariffa ──────────────────────────────────
+
+  it("un'offerta senza tariffa mostra le giornate con imponibile 0 e tariffa null", () => {
+    const report = calcolaReportFatturazioneClienti([
+      riga({ tariffaOffertaGiornaliera: null, ore: 16 }),
+      riga({ offertaId: "offerta-2", offertaCodice: "OFF-002", ore: 8 }),
+    ]);
+
+    const [senzaTariffa, conTariffa] = report.perCliente[0].perOfferta;
+    expect(senzaTariffa).toMatchObject({
+      tariffaGiornaliera: null,
+      giornateFatturabili: 2,
+      imponibile: "0.00",
+    });
+    expect(senzaTariffa.perCollaboratore[0].imponibile).toBe("0.00");
+    expect(conTariffa.imponibile).toBe("500.00");
+    expect(report.totali.imponibileManodopera).toBe("500.00");
+  });
+
   // ── Conversione ore → giornate e tariffa offerta ───────────
 
   it("converte 8 ore in una giornata applicando la tariffa dell'offerta", () => {

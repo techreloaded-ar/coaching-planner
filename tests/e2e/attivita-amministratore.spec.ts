@@ -2,7 +2,9 @@ import type { Page } from "@playwright/test";
 
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
+import { selezionaRighe } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
+import { apriMenuAccount, pannelloAccount } from "./support/menu-account";
 
 const CODICE_SPEC = "US-030-TASK-08-ATTIVITA-AMMINISTRATORE";
 
@@ -70,7 +72,9 @@ test.describe("US-030 Attività amministratore", () => {
 		await expect(
 			page.getByRole("heading", { name: "Le mie attività", exact: true }),
 		).toBeVisible();
-		await expect(page.getByText(/^Amministratore · .+$/)).toBeVisible();
+		await apriMenuAccount(page);
+		await expect(pannelloAccount(page)).toContainText("Amministratore");
+		await page.keyboard.press("Escape");
 		await expect(
 			page.getByRole("link", {
 				name: "Console amministrativa",
@@ -171,9 +175,10 @@ test.describe("US-030 Attività amministratore", () => {
 		await page.goto("/anagrafiche/utenti");
 		await page.waitForURL("**/anagrafiche/utenti");
 		await expect(page.getByRole("heading", { name: "Utenti" })).toBeVisible();
-		await rigaUtente(page, amministratore.email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		const barra = await selezionaRighe(page, [
+			rigaUtente(page, amministratore.email).getByRole("checkbox"),
+		]);
+		await barra.getByRole("link", { name: "Modifica", exact: true }).click();
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
@@ -192,7 +197,9 @@ test.describe("US-030 Attività amministratore", () => {
 		await expect(
 			page.getByRole("heading", { name: "Le mie attività", exact: true }),
 		).toBeVisible();
-		await expect(page.getByText(/^Amministratore · .+$/)).toBeVisible();
+		await apriMenuAccount(page);
+		await expect(pannelloAccount(page)).toContainText("Amministratore");
+		await page.keyboard.press("Escape");
 		await page
 			.getByRole("link", { name: "Console amministrativa", exact: true })
 			.click();

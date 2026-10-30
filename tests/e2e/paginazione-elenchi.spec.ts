@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
-import { apriElencoFiltrato, cercaNellElenco } from "./support/elenchi";
+import {
+	apriElencoFiltrato,
+	cercaNellElenco,
+	selezionaRighe,
+} from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 import {
 	apriPaginaOfferte,
@@ -57,8 +61,8 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 			});
 		}
 		const tabella = page.getByRole("table", { name: "Elenco clienti" });
-		// Una sola azione "Modifica" per riga cliente.
-		const righe = tabella.getByRole("link", { name: "Modifica" });
+		// Righe dei clienti del test (esclude intestazione e riga "nessun risultato").
+		const righe = tabella.getByRole("row").filter({ hasText: prefisso });
 		const rigaCliente = (indice: number) =>
 			tabella.getByRole("row").filter({ hasText: `${prefisso} ${numero(indice)}` });
 
@@ -92,8 +96,15 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		await expect(rigaCliente(28)).toBeVisible();
 
 		// Disattivare da pagina 2 riporta a pagina 2 con la stessa ricerca.
-		await rigaCliente(28).getByRole("button", { name: "Disattiva" }).click();
-		await expect(rigaCliente(28).getByText("Disattivato")).toBeVisible();
+		const barra = await selezionaRighe(page, [`${prefisso} 28`]);
+		await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
+		await page
+			.getByRole("dialog", { name: `Disattivare «${prefisso} 28»?` })
+			.getByRole("button", { name: "Disattiva", exact: true })
+			.click();
+		await expect(
+			rigaCliente(28).getByText("Disattivato", { exact: true }),
+		).toBeVisible();
 		await expect(page).toHaveURL(urlPosizione("/anagrafiche/clienti", prefisso, 2));
 		await expect(righe).toHaveCount(RIGHE_PAGINA_2);
 		await expect(
@@ -201,7 +212,7 @@ test.describe("Paginazione elenco offerte (US-002)", () => {
 		await expect(page.getByText("1 da presidiare", { exact: true })).toBeVisible();
 		await expect(
 			page.getByText(
-				`${totaleOfferte} offerte · ${totaleOfferte} attive · 0 non attive`,
+				`${totaleOfferte} offerte · ${totaleOfferte} attive · 0 disattivate`,
 			),
 		).toBeVisible();
 		await expect(rigaOfferta("28")).toHaveCount(0);
@@ -223,7 +234,12 @@ test.describe("Paginazione elenco offerte (US-002)", () => {
 		});
 		await expect(dettaglio).toBeVisible();
 
-		await offerta28.getByRole("button", { name: "Disattiva" }).click();
+		const barra = await selezionaRighe(page, [codice("28")]);
+		await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
+		await page
+			.getByRole("dialog", { name: `Disattivare «${codice("28")}»?` })
+			.getByRole("button", { name: "Disattiva", exact: true })
+			.click();
 		await page.waitForURL(
 			(url) =>
 				urlPosizione("/offerte", cliente.ragioneSociale, 2)(url) &&
@@ -234,11 +250,11 @@ test.describe("Paginazione elenco offerte (US-002)", () => {
 		await expect(page.getByText("Stato dell'offerta aggiornato")).toBeVisible();
 		await expect(dettaglio).toBeVisible();
 		await expect(
-			rigaOfferta("28").getByRole("button", { name: "Attiva", exact: true }),
-		).toHaveAttribute("title", "Offerta non attiva");
+			rigaOfferta("28").getByText("Disattivata", { exact: true }),
+		).toBeVisible();
 		await expect(
 			page.getByText(
-				`${totaleOfferte} offerte · ${totaleOfferte - 1} attive · 1 non attive`,
+				`${totaleOfferte} offerte · ${totaleOfferte - 1} attive · 1 disattivate`,
 			),
 		).toBeVisible();
 

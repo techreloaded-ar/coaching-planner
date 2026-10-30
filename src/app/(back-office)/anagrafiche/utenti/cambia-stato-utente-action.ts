@@ -7,30 +7,37 @@ import { violaProtezioneUltimoAmministratore } from "@/domain/anagrafiche/protez
 import { db } from "@/lib/db";
 import { eseguiConRetrySerializzazione } from "@/lib/retry-serializzazione";
 import { richiediRuoloApi } from "@/lib/dal";
+import { leggiIdSelezionati } from "@/lib/selezione-elenco";
 
+/**
+ * Disattiva o riattiva uno o più utenti (un campo `id` per utente) insieme ai
+ * profili collaboratore collegati. La disattivazione è rifiutata per intero se
+ * non resterebbe alcun amministratore attivo.
+ */
 export async function cambiaStatoUtenteAction(formData: FormData) {
   await richiediRuoloApi("AMMINISTRATORE");
 
-  const id = formData.get("id") as string;
+  const idUtenti = leggiIdSelezionati(formData);
   const attivo = formData.get("attivo") === "true";
 
-  if (!id) {
+  if (idUtenti.length === 0) {
     redirect("/anagrafiche/utenti");
   }
 
   const esito = await eseguiConRetrySerializzazione(() =>
     db.$transaction(
       async (tx) => {
-        const utente = await tx.utente.findUnique({
-          where: { id },
+        const utentiSelezionati = await tx.utente.findMany({
+          where: { id: { in: idUtenti } },
           select: {
+            id: true,
             ruolo: true,
             attivo: true,
             collaboratore: { select: { id: true } },
           },
         });
 
-        if (!utente) {
+        if (utentiSelezionati.length === 0) {
           return "NON_TROVATO" as const;
         }
 
@@ -39,34 +46,39 @@ export async function cambiaStatoUtenteAction(formData: FormData) {
             where: {
               ruolo: "AMMINISTRATORE",
               attivo: true,
-              id: { not: id },
+              id: { notIn: idUtenti },
             },
           });
 
           if (
-            violaProtezioneUltimoAmministratore(
-              { ruolo: utente.ruolo, attivo: utente.attivo },
-              { tipo: "INVALIDAZIONE" },
-              altriAmministratoriAttivi,
+            utentiSelezionati.some((utente) =>
+              violaProtezioneUltimoAmministratore(
+                { ruolo: utente.ruolo, attivo: utente.attivo },
+                { tipo: "INVALIDAZIONE" },
+                altriAmministratoriAttivi,
+              ),
             )
           ) {
             return "ULTIMO_AMMINISTRATORE" as const;
           }
         }
 
-        await tx.utente.update({
-          where: { id },
+        await tx.utente.updateMany({
+          where: { id: { in: utentiSelezionati.map((utente) => utente.id) } },
           data: { attivo },
         });
 
-        if (utente.collaboratore) {
-          await tx.collaboratore.update({
-            where: { id: utente.collaboratore.id },
+        const idProfiliCollaboratore = utentiSelezionati.flatMap((utente) =>
+          utente.collaboratore ? [utente.collaboratore.id] : [],
+        );
+        if (idProfiliCollaboratore.length > 0) {
+          await tx.collaboratore.updateMany({
+            where: { id: { in: idProfiliCollaboratore } },
             data: { attivo },
           });
         }
 
-        return attivo ? ("RIATTIVATO" as const) : ("INVALIDATO" as const);
+        return attivo ? ("RIATTIVATO" as const) : ("DISATTIVATO" as const);
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     ),
@@ -80,8 +92,8 @@ export async function cambiaStatoUtenteAction(formData: FormData) {
     revalidatePath("/anagrafiche/utenti");
     revalidatePath("/anagrafiche/collaboratori");
     redirect(
-      esito === "INVALIDATO"
-        ? "/anagrafiche/utenti?esito=invalidato"
+      esito === "DISATTIVATO"
+        ? "/anagrafiche/utenti?esito=disattivato"
         : "/anagrafiche/utenti?esito=riattivato",
     );
   }

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { avatarUtente } from "./support/menu-account";
 
 /**
  * Demo scenario — US-011: Calendario mensile delle proprie attività
@@ -48,7 +49,7 @@ test.describe("US-011 Demo", () => {
     await expect(
       page.getByRole("heading", { name: "Le mie attività", exact: true })
     ).toBeVisible();
-    await expect(page.getByText("Giulia Conti")).toBeVisible();
+    await expect(avatarUtente(page, "Giulia Conti")).toBeVisible();
 
     // ── 3. Verifica che la barra di navigazione mostri il mese corrente ──
 

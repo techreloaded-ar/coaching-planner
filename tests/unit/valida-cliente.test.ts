@@ -32,14 +32,14 @@ describe("validaCliente — campi obbligatori", () => {
   });
 
   describe("partitaIva", () => {
-    it("restituisce errore se partitaIva è vuota", () => {
+    it("accetta partitaIva vuota: il campo è facoltativo", () => {
       const errori = validaCliente(baseInput({ partitaIva: "" }));
-      expect(errori.partitaIva).toBe("La partita IVA è obbligatoria");
+      expect(errori).toEqual({});
     });
 
-    it("restituisce errore se partitaIva è composta solo da spazi", () => {
+    it("accetta partitaIva composta solo da spazi come assente", () => {
       const errori = validaCliente(baseInput({ partitaIva: "   " }));
-      expect(errori.partitaIva).toBe("La partita IVA è obbligatoria");
+      expect(errori).toEqual({});
     });
 
     it("non segnala errore su partitaIva se valorizzata con 11 cifre", () => {

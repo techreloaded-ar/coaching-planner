@@ -2,7 +2,8 @@ import { scollegaCalendarioGoogle } from "@/lib/actions/calendario-google";
 import { PulsanteAttesa } from "@/components";
 
 interface CollegamentoCalendarioProps {
-  collegato: boolean;
+  /** `null` quando l'utente non ha un profilo collaboratore attivo: il connettore non è disponibile */
+  collegato: boolean | null;
   /** Esito del ritorno dal consenso Google (`?calendario=`) */
   esito?: string;
   /** Email con cui il collaboratore accede: è l'account Google da autorizzare */
@@ -10,9 +11,10 @@ interface CollegamentoCalendarioProps {
 }
 
 /**
- * Stato del collegamento al Google Calendar del collaboratore, con l'azione
- * coerente: «Collega Google Calendar» avvia il consenso in sola lettura,
- * «Scollega» rimuove il token salvato.
+ * Connettore Google Calendar nelle Impostazioni: stato del collegamento con
+ * l'azione coerente. «Collega Google Calendar» avvia il consenso in sola
+ * lettura, «Scollega» rimuove il token salvato. Senza profilo collaboratore
+ * attivo il connettore non è disponibile e non offre azioni.
  */
 export default function CollegamentoCalendario({
   collegato,
@@ -20,10 +22,7 @@ export default function CollegamentoCalendario({
   emailAccesso,
 }: CollegamentoCalendarioProps) {
   return (
-    <section
-      aria-label="Calendario Google"
-      className="mx-auto w-full max-w-[1080px] px-8 pt-6"
-    >
+    <div aria-label="Calendario Google" role="group">
       {esito === "negato" && !collegato && (
         <p
           role="alert"
@@ -50,17 +49,21 @@ export default function CollegamentoCalendario({
         />
         <div className="min-w-0 flex-1">
           <p className="text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
-            {collegato
-              ? "Calendario Google collegato"
-              : "Calendario Google non collegato"}
+            {collegato === null
+              ? "Calendario Google non disponibile"
+              : collegato
+                ? "Calendario Google collegato"
+                : "Calendario Google non collegato"}
           </p>
           <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-            {collegato
-              ? "Aprendo una giornata ti proponiamo le ore dai tuoi impegni. Accesso in sola lettura."
-              : "Collegalo in sola lettura per ricevere le proposte di ore dai tuoi impegni."}
+            {collegato === null
+              ? "Il connettore serve a proporre le ore dagli impegni: è disponibile solo con un profilo collaboratore attivo."
+              : collegato
+                ? "Aprendo una giornata ti proponiamo le ore dai tuoi impegni. Accesso in sola lettura."
+                : "Collegalo in sola lettura per ricevere le proposte di ore dai tuoi impegni."}
           </p>
         </div>
-        {collegato ? (
+        {collegato === null ? null : collegato ? (
           <form action={scollegaCalendarioGoogle}>
             <PulsanteAttesa
               etichettaAttesa="Scollegamento…"
@@ -79,6 +82,6 @@ export default function CollegamentoCalendario({
           </a>
         )}
       </div>
-    </section>
+    </div>
   );
 }

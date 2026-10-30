@@ -1,5 +1,6 @@
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import { avatarUtente } from "./support/menu-account";
 
 /**
  * Demo scenario — US-047: Anagrafica collaboratori sola-modifica
@@ -36,7 +37,7 @@ test.describe("US-047 Demo", () => {
 
     // ── 2. Naviga a Collaboratori dalla sidebar ────────────────────
 
-    await expect(page.getByRole("banner").getByText("Tech Reloaded")).toBeVisible();
+    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
 
     await page
       .getByRole("link", { name: "Collaboratori", exact: true })

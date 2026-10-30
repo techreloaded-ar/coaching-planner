@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const { mockOfferta, mockRigaAttivita } = vi.hoisted(() => ({
 	mockOfferta: {
 		update: vi.fn(),
+		updateMany: vi.fn(),
 		delete: vi.fn(),
 	},
 	mockRigaAttivita: {
@@ -50,19 +51,19 @@ describe("cambiaStatoOfferta", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockRichiediRuoloApi.mockResolvedValue(undefined);
-		mockOfferta.update.mockResolvedValue(undefined);
+		mockOfferta.updateMany.mockResolvedValue({ count: 1 });
 	});
 
 	// (a) toggle aggiorna `attiva` e rivalida/redirige
 	it("disattiva l'offerta, rivalida /offerte e redirige con esito", async () => {
 		const formData = new FormData();
 		formData.set("id", "off-1");
-		formData.set("attiva", "false");
+		formData.set("attivo", "false");
 
 		await cambiaStatoOfferta(formData);
 
-		expect(mockOfferta.update).toHaveBeenCalledWith({
-			where: { id: "off-1" },
+		expect(mockOfferta.updateMany).toHaveBeenCalledWith({
+			where: { id: { in: ["off-1"] } },
 			data: { attiva: false },
 		});
 		expect(mockRevalidatePath).toHaveBeenCalledWith("/offerte");
@@ -74,7 +75,7 @@ describe("cambiaStatoOfferta", () => {
 	it("riporta alla stessa pagina e ricerca dell'elenco, mantenendo l'offerta espansa", async () => {
 		const formData = new FormData();
 		formData.set("id", "off-1");
-		formData.set("attiva", "false");
+		formData.set("attivo", "false");
 		formData.set("offertaEspansaId", "off-1");
 		formData.set("q", "alfa beta");
 		formData.set("pagina", "2");
@@ -89,12 +90,12 @@ describe("cambiaStatoOfferta", () => {
 	it("riattiva l'offerta quando attiva vale 'true'", async () => {
 		const formData = new FormData();
 		formData.set("id", "off-1");
-		formData.set("attiva", "true");
+		formData.set("attivo", "true");
 
 		await cambiaStatoOfferta(formData);
 
-		expect(mockOfferta.update).toHaveBeenCalledWith({
-			where: { id: "off-1" },
+		expect(mockOfferta.updateMany).toHaveBeenCalledWith({
+			where: { id: { in: ["off-1"] } },
 			data: { attiva: true },
 		});
 	});
@@ -107,14 +108,30 @@ describe("cambiaStatoOfferta", () => {
 		});
 
 		const formData = new FormData();
-		formData.set("attiva", "true");
+		formData.set("attivo", "true");
 
 		await expect(cambiaStatoOfferta(formData)).rejects.toThrow(
 			"NEXT_REDIRECT",
 		);
 
 		expect(mockRedirect).toHaveBeenCalledWith("/offerte");
-		expect(mockOfferta.update).not.toHaveBeenCalled();
+		expect(mockOfferta.updateMany).not.toHaveBeenCalled();
+	});
+
+	it("disattiva più offerte selezionate in un'unica operazione", async () => {
+		const formData = new FormData();
+		formData.append("id", "off-1");
+		formData.append("id", "off-2");
+		formData.append("id", "off-1");
+		formData.set("attivo", "false");
+
+		await cambiaStatoOfferta(formData);
+
+		expect(mockOfferta.updateMany).toHaveBeenCalledTimes(1);
+		expect(mockOfferta.updateMany).toHaveBeenCalledWith({
+			where: { id: { in: ["off-1", "off-2"] } },
+			data: { attiva: false },
+		});
 	});
 
 	// (e) guardia di ruolo
@@ -123,13 +140,13 @@ describe("cambiaStatoOfferta", () => {
 
 		const formData = new FormData();
 		formData.set("id", "off-1");
-		formData.set("attiva", "false");
+		formData.set("attivo", "false");
 
 		await expect(cambiaStatoOfferta(formData)).rejects.toThrow(
 			"Accesso negato",
 		);
 		expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
-		expect(mockOfferta.update).not.toHaveBeenCalled();
+		expect(mockOfferta.updateMany).not.toHaveBeenCalled();
 	});
 });
 

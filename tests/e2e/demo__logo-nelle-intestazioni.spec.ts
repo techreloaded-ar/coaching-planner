@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 import { accediComeAdmin } from "./support/auth";
+import { pulsanteMenuAccount } from "./support/menu-account";
 
 /**
  * Demo scenario — US-028: logo Agile Reloaded nelle intestazioni delle aree interne.
@@ -33,6 +34,6 @@ test.describe("US-028 Demo", () => {
 		await page.getByRole("link", { name: "Clienti", exact: true }).click();
 		await page.waitForURL("**/clienti");
 		await expect(logo(page)).toBeVisible();
-		await expect(page.getByRole("banner").getByRole("button", { name: "Esci", exact: true })).toBeVisible();
+		await expect(pulsanteMenuAccount(page)).toBeVisible();
 	});
 });

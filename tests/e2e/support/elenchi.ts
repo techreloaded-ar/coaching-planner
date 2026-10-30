@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
  * Elenchi paginati del back-office (clienti, offerte): mostrano 25 righe per
@@ -60,4 +60,35 @@ export async function cercaNellElenco(
 		);
 	}).toPass();
 	await expect(campo).toHaveValue(testo);
+}
+
+/**
+ * Elenchi con selezione (clienti, offerte, utenti): ogni riga ha una checkbox
+ * «Seleziona <nome>» e, con almeno un elemento selezionato, la barra di
+ * ricerca è sostituita da quella delle azioni sulla selezione.
+ */
+export function barraSelezione(page: Page): Locator {
+	return page.getByRole("group", { name: "Azioni sulla selezione" });
+}
+
+export function casellaSelezione(page: Page, nome: string): Locator {
+	return page.getByRole("checkbox", { name: `Seleziona ${nome}`, exact: true });
+}
+
+/**
+ * Seleziona le righe indicate (per nome, o direttamente con il locator della
+ * loro casella) e restituisce la barra delle azioni.
+ * Le caselle sono disabilitate fino all'idratazione: `check()` attende che
+ * siano abilitate, quindi il click arriva sempre a React.
+ */
+export async function selezionaRighe(
+	page: Page,
+	righe: Array<string | Locator>,
+): Promise<Locator> {
+	for (const riga of righe) {
+		await (typeof riga === "string" ? casellaSelezione(page, riga) : riga).check();
+	}
+	const barra = barraSelezione(page);
+	await expect(barra).toBeVisible();
+	return barra;
 }

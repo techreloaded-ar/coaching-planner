@@ -25,7 +25,7 @@ export interface StatoAction {
 function datiDaForm(formData: FormData): DatiClienteInput {
   return {
     ragioneSociale: (formData.get("ragioneSociale") as string) ?? "",
-    partitaIva: (formData.get("partitaIva") as string) ?? "",
+    partitaIva: (formData.get("partitaIva") as string)?.trim() || "",
     codiceFiscale:
       (formData.get("codiceFiscale") as string)?.trim().toUpperCase() || "",
     indirizzo: (formData.get("indirizzo") as string)?.trim() || "",
@@ -70,7 +70,7 @@ export async function creaCliente(
   await db.cliente.create({
     data: {
       ragioneSociale: dati.ragioneSociale.trim(),
-      partitaIva: dati.partitaIva.trim(),
+      partitaIva: dati.partitaIva || null,
       codiceFiscale: dati.codiceFiscale || null,
       indirizzo: dati.indirizzo || null,
       citta: dati.citta || null,
@@ -113,7 +113,7 @@ export async function aggiornaCliente(
     where: { id },
     data: {
       ragioneSociale: dati.ragioneSociale.trim(),
-      partitaIva: dati.partitaIva.trim(),
+      partitaIva: dati.partitaIva || null,
       codiceFiscale: dati.codiceFiscale || null,
       indirizzo: dati.indirizzo || null,
       citta: dati.citta || null,

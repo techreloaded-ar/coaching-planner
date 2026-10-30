@@ -18,10 +18,10 @@ export default async function UtentiPage({ searchParams }: UtentiPageProps) {
       ? "Utente censito: può accedere all'applicazione con il suo account Google"
       : esito === "salvato"
         ? "Modifiche all'utente salvate"
-        : esito === "invalidato"
-          ? "Utente invalidato: l'accesso è revocato e il record resta in elenco"
+        : esito === "disattivato"
+          ? "Disattivazione completata: l'accesso è revocato e gli utenti restano in elenco"
           : esito === "riattivato"
-            ? "Utente riattivato: può accedere di nuovo all'applicazione"
+            ? "Riattivazione completata: gli utenti possono accedere di nuovo all'applicazione"
             : null;
   const erroreUltimoAmministratore = errore === "ultimo-amministratore";
 

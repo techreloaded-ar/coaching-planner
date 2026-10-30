@@ -253,7 +253,7 @@ export function SelettoreDuplicazione({
               {riga.cliente.ragioneSociale}
               <span className="font-normal text-zinc-400">·</span>
               {riga.offerta
-                ? `${riga.offerta.codice} — ${riga.offerta.descrizione}`
+                ? [riga.offerta.codice, riga.offerta.descrizione].filter(Boolean).join(" — ")
                 : ETICHETTA_OFFERTA_DA_DEFINIRE}
               <span className="font-normal text-zinc-400">·</span>
               {riga.ore.toFixed(1)} h
