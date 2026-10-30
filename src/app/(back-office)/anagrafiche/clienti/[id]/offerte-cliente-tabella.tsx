@@ -90,10 +90,10 @@ export default function OfferteClienteTabella({
                   className="max-w-[420px] truncate px-4 py-[13px] align-middle text-zinc-800 dark:text-zinc-100"
                   title={offerta.descrizione}
                 >
-                  {offerta.descrizione}
+                  {offerta.descrizione || "—"}
                 </td>
                 <td className="px-4 py-[13px] text-right align-middle font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
-                  {formattaEuro(Number(offerta.tariffaGiornaliera))}
+                  {formattaEuro(offerta.tariffaGiornaliera)}
                   <div className="mt-[3px] text-[11.5px] font-medium text-zinc-400 dark:text-zinc-500">
                     {descriviGestioneTrasferta(
                       offerta.gestioneTrasferta,
@@ -102,7 +102,7 @@ export default function OfferteClienteTabella({
                   </div>
                 </td>
                 <td className="px-4 py-[13px] text-right align-middle tabular-nums text-zinc-800 dark:text-zinc-100">
-                  {offerta.giorniPrevisti}
+                  {offerta.giorniPrevisti ?? "—"}
                 </td>
                 <td
                   className="px-4 py-[13px] text-right align-middle"

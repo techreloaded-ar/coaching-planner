@@ -41,12 +41,20 @@ export const RUOLI_AMMESSI = ["AMMINISTRATORE", "COLLABORATORE"] as const;
 const RE_EMAIL =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
+/** La tariffa iniziale è facoltativa: si considera indicata solo se c'è un importo. */
+export function tariffaInizialeIndicata(dati: { importoTariffa: string }): boolean {
+  return dati.importoTariffa.trim() !== "";
+}
+
 /** Valida la tariffa iniziale del profilo, con chiavi di errore dei campi del form utente. */
 function erroriTariffaIniziale(dati: {
   modalitaTariffa: string;
   importoTariffa: string;
   tariffaValidaDalMese: string;
 }): ErroriValidazione {
+  if (!tariffaInizialeIndicata(dati)) {
+    return {};
+  }
   const errori = validaVoceTariffa({
     validaDalMese: dati.tariffaValidaDalMese,
     modalita: dati.modalitaTariffa,
@@ -68,8 +76,8 @@ function erroriTariffaIniziale(dati: {
  *
  * Il cognome è un campo anagrafico ed è sempre obbligatorio, a prescindere
  * dai ruoli selezionati. Quando il ruolo Collaboratore è selezionato, i campi
- * profilo (partita IVA, tariffa iniziale) sono validati con gli identici
- * controlli e messaggi dell'anagrafica collaboratori. Se il ruolo
+ * profilo (partita IVA, tariffa iniziale) sono facoltativi e, se valorizzati,
+ * validati con gli identici controlli e messaggi dell'anagrafica collaboratori. Se il ruolo
  * Collaboratore non è selezionato, i campi profilo vengono ignorati.
  *
  * Restituisce `{}` se tutti i controlli passano.
@@ -115,8 +123,8 @@ export function validaCensimentoUtente(
  *
  * Il cognome è un campo anagrafico ed è sempre obbligatorio, a prescindere
  * dai ruoli selezionati e dallo stato del profilo collaboratore. I campi
- * profilo (partita IVA, tariffa iniziale) sono obbligatori e validati con
- * gli identici controlli e messaggi dell'anagrafica collaboratori solo
+ * profilo (partita IVA, tariffa iniziale) sono facoltativi e, se valorizzati,
+ * validati con gli identici controlli e messaggi dell'anagrafica collaboratori solo
  * quando il ruolo Collaboratore è selezionato E il profilo collaboratore non
  * è ancora presente (`profiloPresente: false`). Se il profilo esiste già
  * (`profiloPresente: true`) i campi profilo vengono sempre ignorati, così

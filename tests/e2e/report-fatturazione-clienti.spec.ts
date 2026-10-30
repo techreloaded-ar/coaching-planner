@@ -79,7 +79,7 @@ async function verificaDatasetReport(
 
   const celle = rigaOfferta.locator("td");
   await expect(celle.nth(1)).toHaveText(
-    formattaEuro(dataset.offerta.tariffaGiornaliera.toString()),
+    formattaEuro(String(dataset.offerta.tariffaGiornaliera)),
   );
   await expect(celle.nth(2)).toHaveText(
     formattaGiornate(offertaAttesa.totali.giornate),
@@ -179,6 +179,37 @@ function dataRiservataReport(
 test.describe("Report fatturazione clienti", () => {
   test.beforeEach(async ({ page }) => {
     await accediComeAdmin(page);
+  });
+
+  test("un'offerta senza tariffa mostra le giornate, imponibile 0 e l'avviso tariffa da definire", async ({
+    page,
+    factory,
+  }) => {
+    const codiceSpec = "CAMPI-FACOLTATIVI-OFFERTA-SENZA-TARIFFA";
+    const mesiIndietro = mesiIndietroPerTentativo(test.info());
+    const mese = mesePassatoRiservato(codiceSpec, mesiIndietro);
+    const { cliente, offerta } = await factory.createClienteConOfferta(
+      {},
+      { tariffaGiornaliera: null, giorniPrevisti: null },
+    );
+    await factory.createRigaAttivita({
+      cliente,
+      offerta,
+      data: dataRiservataReport(codiceSpec, 5, mesiIndietro),
+      ore: "16.00",
+      categoria: "FATTURABILE",
+    });
+
+    await page.goto(`/report/fatturazione-clienti?mese=${mese}`);
+
+    const rigaOfferta = page.getByRole("row").filter({
+      has: page.getByText(offerta.codice, { exact: true }),
+    });
+    await expect(rigaOfferta).toHaveCount(1);
+    const celle = rigaOfferta.locator("td");
+    await expect(celle.nth(1)).toHaveText("—tariffa da definire");
+    await expect(celle.nth(2)).toHaveText(formattaGiornate(2));
+    await expect(celle.nth(3)).toHaveText(formattaEuro(0));
   });
 
   test("mostra cliente, offerta e totali esatti del mese riservato", async ({

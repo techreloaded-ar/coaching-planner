@@ -56,14 +56,14 @@ describe("validaCollaboratore — campi obbligatori", () => {
   });
 
   describe("partitaIva", () => {
-    it("restituisce errore se la partita IVA è vuota", () => {
+    it("accetta la partita IVA vuota: il campo è facoltativo", () => {
       const errori = validaCollaboratore(baseInput({ partitaIva: "" }));
-      expect(errori.partitaIva).toBe("La partita IVA è obbligatoria");
+      expect(errori.partitaIva).toBeUndefined();
     });
 
-    it("restituisce errore se la partita IVA è composta solo da spazi", () => {
+    it("accetta la partita IVA composta solo da spazi come assente", () => {
       const errori = validaCollaboratore(baseInput({ partitaIva: "   " }));
-      expect(errori.partitaIva).toBe("La partita IVA è obbligatoria");
+      expect(errori.partitaIva).toBeUndefined();
     });
 
     it("non segnala errore sulla partita IVA se valorizzata con 11 cifre", () => {

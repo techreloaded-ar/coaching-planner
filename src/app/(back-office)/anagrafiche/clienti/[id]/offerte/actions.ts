@@ -49,6 +49,21 @@ function condizioniTrasferta(dati: DatiOffertaInput): {
   return { gestioneTrasferta: "INCLUSA", importoTrasfertaForfettaria: null };
 }
 
+/**
+ * Tariffa giornaliera e giorni previsti: null se non valorizzati.
+ * Da chiamare solo su dati già validati.
+ */
+function valoriFacoltativi(dati: DatiOffertaInput): {
+  tariffaGiornaliera: string | null;
+  giorniPrevisti: number | null;
+} {
+  return {
+    tariffaGiornaliera:
+      normalizzaTariffaGiornaliera(dati.tariffaGiornaliera)?.valore ?? null,
+    giorniPrevisti: dati.giorniPrevisti ? parseInt(dati.giorniPrevisti, 10) : null,
+  };
+}
+
 async function guardiaAmministratore(): Promise<void> {
   await richiediRuoloApi("AMMINISTRATORE");
 }
@@ -104,23 +119,13 @@ export async function creaOfferta(
     return { errori };
   }
 
-  const tariffa = normalizzaTariffaGiornaliera(dati.tariffaGiornaliera);
-  if (!tariffa) {
-    return {
-      errori: {
-        tariffaGiornaliera: "Importo non valido: usa massimo 2 decimali",
-      },
-    };
-  }
-
   try {
     await db.offerta.create({
       data: {
         clienteId,
         codice: dati.codice,
         descrizione: dati.descrizione,
-        tariffaGiornaliera: tariffa.valore,
-        giorniPrevisti: parseInt(dati.giorniPrevisti, 10),
+        ...valoriFacoltativi(dati),
         ...condizioniTrasferta(dati),
         attiva: true,
       },
@@ -170,23 +175,13 @@ export async function aggiornaOfferta(
     return { errori };
   }
 
-  const tariffa = normalizzaTariffaGiornaliera(dati.tariffaGiornaliera);
-  if (!tariffa) {
-    return {
-      errori: {
-        tariffaGiornaliera: "Importo non valido: usa massimo 2 decimali",
-      },
-    };
-  }
-
   try {
     await db.offerta.update({
       where: { id },
       data: {
         codice: dati.codice,
         descrizione: dati.descrizione,
-        tariffaGiornaliera: tariffa.valore,
-        giorniPrevisti: parseInt(dati.giorniPrevisti, 10),
+        ...valoriFacoltativi(dati),
         ...condizioniTrasferta(dati),
       },
     });

@@ -57,13 +57,13 @@ export function normalizzaTariffaGiornaliera(
 
 /**
  * Valida il campo partita IVA con gli identici controlli e messaggi
- * dell'anagrafica collaboratori.
+ * dell'anagrafica collaboratori. Il campo è facoltativo: vuoto è valido.
  *
  * Restituisce `null` se il valore è valido, altrimenti il messaggio di errore.
  */
 export function validaCampoPartitaIva(valore: string): string | null {
   if (!valore || valore.trim() === "") {
-    return "La partita IVA è obbligatoria";
+    return null;
   }
   if (!RE_CIFRE_11.test(valore.trim())) {
     return "La partita IVA deve essere di 11 cifre";

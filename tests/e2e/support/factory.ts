@@ -71,8 +71,10 @@ export type CreateOffertaOptions = {
 	cliente?: Cliente;
 	codice?: string;
 	descrizione?: string;
-	tariffaGiornaliera?: string | number;
-	giorniPrevisti?: number;
+	/** null crea un'offerta senza tariffa */
+	tariffaGiornaliera?: string | number | null;
+	/** null crea un'offerta senza giorni previsti */
+	giorniPrevisti?: number | null;
 	attiva?: boolean;
 	gestioneTrasferta?: "INCLUSA" | "FORFETTARIA";
 	importoTrasfertaForfettaria?: string | number | null;
@@ -280,8 +282,8 @@ export class E2eDataFactory {
 				options.codice ?? `E2E-${token.toUpperCase()}`,
 				options.descrizione ?? `Offerta e2e ${this.readableName(token)}`,
 				cliente.id,
-				options.tariffaGiornaliera ?? "500.00",
-				options.giorniPrevisti ?? 10,
+				options.tariffaGiornaliera === undefined ? "500.00" : options.tariffaGiornaliera,
+				options.giorniPrevisti === undefined ? 10 : options.giorniPrevisti,
 				options.attiva ?? true,
 				now,
 				options.gestioneTrasferta ?? "INCLUSA",

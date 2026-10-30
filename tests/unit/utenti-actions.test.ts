@@ -257,6 +257,31 @@ describe("Server Actions utenti", () => {
       );
     });
 
+    it("crea il profilo collaboratore senza partita IVA né tariffa iniziale quando non sono indicate", async () => {
+      mockUtente.findUnique.mockResolvedValue(null);
+      mockUtente.create.mockResolvedValue({ id: "utente-3" });
+      const formData = new FormData();
+      formData.set("nome", "Anna");
+      formData.set("cognome", "Neri");
+      formData.set("email", "anna.neri@example.com");
+      formData.set("ruoloCollaboratore", "on");
+      formData.set("modalitaTariffa", "GIORNALIERA");
+      formData.set("importoTariffa", "");
+      formData.set("tariffaValidaDalMese", "2026-10");
+
+      await creaUtente(statoIniziale(), formData);
+
+      expect(mockCollaboratore.create).toHaveBeenCalledWith({
+        data: {
+          userId: "utente-3",
+          nome: "Anna",
+          cognome: "Neri",
+          partitaIva: null,
+          attivo: true,
+        },
+      });
+    });
+
     it("con solo il ruolo collaboratore crea utente collaboratore e relativo profilo", async () => {
       mockUtente.findUnique.mockResolvedValue(null);
       mockUtente.create.mockResolvedValue({ id: "utente-2" });
@@ -561,7 +586,7 @@ describe("Server Actions utenti", () => {
       );
     });
 
-    it("AC-1: senza profilo e con Collaboratore selezionato ma campi vuoti segnala gli errori dei campi profilo senza scritture", async () => {
+    it("AC-1: senza profilo e con Collaboratore selezionato ma cognome vuoto segnala solo il cognome senza scritture", async () => {
       mockUtente.findUnique.mockResolvedValue({
         ruolo: "COLLABORATORE",
         attivo: true,
@@ -577,10 +602,6 @@ describe("Server Actions utenti", () => {
 
       expect(result.errori).toEqual({
         cognome: "Il cognome è obbligatorio",
-        partitaIva: "La partita IVA è obbligatoria",
-        modalitaTariffa: "Scegli la modalità della tariffa",
-        importoTariffa: "L'importo è obbligatorio",
-        tariffaValidaDalMese: "Indica il mese da cui la tariffa è valida",
       });
       expect(mockDb.$transaction).not.toHaveBeenCalled();
       expect(mockUtente.update).not.toHaveBeenCalled();

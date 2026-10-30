@@ -494,6 +494,11 @@ export default function ReportFatturazioneClienti({
                               </td>
                               <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-500 dark:border-zinc-700/50 dark:text-zinc-400">
                                 {formattaEuro(offerta.tariffaGiornaliera)}
+                                {offerta.tariffaGiornaliera === null && (
+                                  <span className="mt-[3px] block text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                    tariffa da definire
+                                  </span>
+                                )}
                               </td>
                               <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
                                 {formattatoreGiornate.format(

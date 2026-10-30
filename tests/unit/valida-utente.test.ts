@@ -123,11 +123,11 @@ describe("validaCensimentoUtente", () => {
 
   // ── (d) Partita IVA — parità con validaCollaboratore ────────────
 
-  it("rifiuta la partita IVA vuota con lo stesso messaggio di validaCollaboratore", () => {
+  it("accetta la partita IVA vuota: il campo è facoltativo", () => {
     const errori = validaCensimentoUtente(
       baseCensimentoInput({ partitaIva: "" })
     );
-    expect(errori.partitaIva).toBe("La partita IVA è obbligatoria");
+    expect(errori.partitaIva).toBeUndefined();
   });
 
   it.each(["1234567890", "123456789012", "1234567890A"])(
@@ -144,11 +144,29 @@ describe("validaCensimentoUtente", () => {
 
   // ── (e) Tariffa iniziale — parità con validaVoceTariffa ─────────
 
-  it("rifiuta l'importo vuoto con lo stesso messaggio dello storico tariffe", () => {
+  it("senza importo la tariffa iniziale non è indicata: modalità e mese sono ignorati", () => {
     const errori = validaCensimentoUtente(
-      baseCensimentoInput({ importoTariffa: "" })
+      baseCensimentoInput({
+        importoTariffa: "",
+        modalitaTariffa: "",
+        tariffaValidaDalMese: "",
+      })
     );
-    expect(errori.importoTariffa).toBe("L'importo è obbligatorio");
+    expect(errori).toEqual({});
+  });
+
+  it("con l'importo indicato valida anche modalità e mese della tariffa", () => {
+    const errori = validaCensimentoUtente(
+      baseCensimentoInput({
+        importoTariffa: "500",
+        modalitaTariffa: "",
+        tariffaValidaDalMese: "",
+      })
+    );
+    expect(errori.modalitaTariffa).toBe("Scegli la modalità della tariffa");
+    expect(errori.tariffaValidaDalMese).toBe(
+      "Indica il mese da cui la tariffa è valida"
+    );
   });
 
   it("rifiuta l'importo con più di 2 decimali con lo stesso messaggio dello storico tariffe", () => {
@@ -288,7 +306,7 @@ describe("validaModificaUtente", () => {
 
   // ── (c) Collaboratore con profilo assente: campi obbligatori ────
 
-  it("rifiuta i campi profilo vuoti quando il Collaboratore è selezionato e il profilo è assente", () => {
+  it("accetta i campi profilo vuoti ma richiede il cognome quando il Collaboratore è selezionato e il profilo è assente", () => {
     const errori = validaModificaUtente(
       baseModificaInput({
         ruoloCollaboratore: true,
@@ -300,13 +318,7 @@ describe("validaModificaUtente", () => {
         tariffaValidaDalMese: "",
       })
     );
-    expect(errori.cognome).toBe("Il cognome è obbligatorio");
-    expect(errori.partitaIva).toBe("La partita IVA è obbligatoria");
-    expect(errori.modalitaTariffa).toBe("Scegli la modalità della tariffa");
-    expect(errori.importoTariffa).toBe("L'importo è obbligatorio");
-    expect(errori.tariffaValidaDalMese).toBe(
-      "Indica il mese da cui la tariffa è valida"
-    );
+    expect(errori).toEqual({ cognome: "Il cognome è obbligatorio" });
   });
 
   // ── (d) Collaboratore con profilo presente: campi ignorati ──────

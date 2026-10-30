@@ -90,7 +90,7 @@ export default async function CollaboratoriOffertaPage({
               <span className="inline-flex items-center gap-[7px]">
                 Tariffa giornaliera
                 <b className="font-semibold tabular-nums text-zinc-700 dark:text-zinc-200">
-                  {formattaEuro(Number(offerta.tariffaGiornaliera))}
+                  {formattaEuro(offerta.tariffaGiornaliera?.toString() ?? null)}
                 </b>
               </span>
             </div>

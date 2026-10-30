@@ -238,7 +238,7 @@ export function SezioneProposteCalendario({
                         <>
                           <span className="font-semibold">{proposta.cliente!.ragioneSociale}</span>
                           {" · "}
-                          {proposta.offerta!.codice} — {proposta.offerta!.descrizione}
+                          {[proposta.offerta!.codice, proposta.offerta!.descrizione].filter(Boolean).join(" — ")}
                           {/* Cliente e offerta arrivano solo da Jev sopra la soglia di confidenza. */}
                           <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10.5px] font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-300">
                             Suggerito dall&apos;AI

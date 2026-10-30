@@ -131,8 +131,8 @@ export interface Offerta {
   codice: string;
   descrizione: string;
   clienteId: string;
-  tariffaGiornaliera: number; // Decimal
-  giorniPrevisti: number;
+  tariffaGiornaliera: number | null; // Decimal
+  giorniPrevisti: number | null;
   attiva: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -143,7 +143,7 @@ export interface Collaboratore {
   id: string;
   nome: string;
   cognome: string;
-  partitaIva: string;
+  partitaIva: string | null;
   attivo: boolean;
   createdAt: Date;
   updatedAt: Date;

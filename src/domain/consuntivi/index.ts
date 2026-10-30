@@ -255,7 +255,8 @@ export interface RigaReportFatturazione {
   offertaCodice: string;
   offertaDescrizione: string;
   /** Tariffa giornaliera dell'offerta (serializzabile come stringa o numero) */
-  tariffaOffertaGiornaliera: string | number;
+  /** null se l'offerta non ha ancora una tariffa: le sue giornate valgono 0 € */
+  tariffaOffertaGiornaliera: string | number | null;
   /** Identificativo del collaboratore autore della riga */
   collaboratoreId: string;
   /** Nome completo del collaboratore autore della riga */
@@ -287,7 +288,8 @@ export interface VoceOffertaReport {
   offertaId: string;
   offertaCodice: string;
   offertaDescrizione: string;
-  tariffaGiornaliera: string;
+  /** null se l'offerta non ha una tariffa: imponibile 0, «tariffa da definire» */
+  tariffaGiornaliera: string | null;
   giornateFatturabili: number;
   imponibile: string;
   /** Combinazioni distinte collaboratore + giorno con rimborso trasferta (solo offerte forfettarie) */
@@ -344,7 +346,7 @@ export function calcolaReportFatturazioneClienti(
     offertaId: string;
     offertaCodice: string;
     offertaDescrizione: string;
-    tariffaGiornaliera: number;
+    tariffaGiornaliera: number | null;
     oreFatturabili: number;
     collaboratori: Map<string, AccumulatoreCollaboratoreOfferta>;
     importoTrasfertaForfettaria: number | null;
@@ -377,7 +379,10 @@ export function calcolaReportFatturazioneClienti(
         offertaId: riga.offertaId,
         offertaCodice: riga.offertaCodice,
         offertaDescrizione: riga.offertaDescrizione,
-        tariffaGiornaliera: Number(riga.tariffaOffertaGiornaliera),
+        tariffaGiornaliera:
+          riga.tariffaOffertaGiornaliera == null
+            ? null
+            : Number(riga.tariffaOffertaGiornaliera),
         oreFatturabili: 0,
         collaboratori: new Map(),
         importoTrasfertaForfettaria:
@@ -428,7 +433,8 @@ export function calcolaReportFatturazioneClienti(
 
     for (const offerta of cliente.offerte.values()) {
       const giornateFatturabili = offerta.oreFatturabili / ORE_PER_GIORNATA;
-      const imponibile = giornateFatturabili * offerta.tariffaGiornaliera;
+      const tariffa = offerta.tariffaGiornaliera ?? 0;
+      const imponibile = giornateFatturabili * tariffa;
       const giorniTrasferta = offerta.giorniTrasferta.size;
       // In centesimi interi: giorni × importo senza errori di virgola mobile
       const importoTrasferte =
@@ -449,7 +455,7 @@ export function calcolaReportFatturazioneClienti(
             const giornateCollaboratore =
               collaboratore.oreFatturabili / ORE_PER_GIORNATA;
             const imponibileGrezzo =
-              giornateCollaboratore * offerta.tariffaGiornaliera;
+              giornateCollaboratore * tariffa;
             const voce: VoceCollaboratoreOffertaReport = {
               collaboratoreId: collaboratore.collaboratoreId,
               collaboratoreNome: collaboratore.collaboratoreNome,
@@ -471,7 +477,7 @@ export function calcolaReportFatturazioneClienti(
           offertaId: offerta.offertaId,
           offertaCodice: offerta.offertaCodice,
           offertaDescrizione: offerta.offertaDescrizione,
-          tariffaGiornaliera: offerta.tariffaGiornaliera.toFixed(2),
+          tariffaGiornaliera: offerta.tariffaGiornaliera?.toFixed(2) ?? null,
           giornateFatturabili,
           imponibile: imponibile.toFixed(2),
           giorniTrasferta,
@@ -868,7 +874,8 @@ export interface OffertaAvanzamento {
   offertaDescrizione: string;
   clienteId: string;
   clienteRagioneSociale: string;
-  giorniPrevisti: number;
+  /** null se l'offerta non ha un budget in giornate */
+  giorniPrevisti: number | null;
 }
 
 /** Riga elementare di attività ai fini del calcolo dell'avanzamento */
@@ -914,10 +921,11 @@ export interface VoceAvanzamentoOfferta {
   offertaDescrizione: string;
   clienteId: string;
   clienteRagioneSociale: string;
-  giornatePreviste: number;
+  /** null (come residuo e percentuale) se l'offerta non ha giorni previsti */
+  giornatePreviste: number | null;
   giornateErogate: number;
-  residuo: number;
-  percentualeUtilizzo: number;
+  residuo: number | null;
+  percentualeUtilizzo: number | null;
   stato: StatoAvanzamentoOfferta;
   perCollaboratore: VoceCollaboratoreAvanzamento[];
   matriceMensile: MatriceMensileAvanzamento;
@@ -1010,20 +1018,28 @@ export function calcolaAvanzamentoOfferte(
       accumulatoreOfferta?.oreErogateTotali ?? 0,
     );
     const giornatePreviste = offerta.giorniPrevisti;
-    const budgetCentesimi = giornatePreviste * CENTESIMI_PER_GIORNATA;
-    const residuoCentesimi = budgetCentesimi - erogateCentesimi;
     const giornateErogate = erogateCentesimi / CENTESIMI_PER_GIORNATA;
-    const residuo = residuoCentesimi / CENTESIMI_PER_GIORNATA;
+    // Senza giorni previsti non c'è budget: niente residuo, percentuale né allerta.
+    const budgetCentesimi =
+      giornatePreviste === null ? null : giornatePreviste * CENTESIMI_PER_GIORNATA;
+    const residuoCentesimi =
+      budgetCentesimi === null ? null : budgetCentesimi - erogateCentesimi;
+    const residuo =
+      residuoCentesimi === null ? null : residuoCentesimi / CENTESIMI_PER_GIORNATA;
 
     const percentualeUtilizzo =
-      budgetCentesimi > 0
-        ? erogateCentesimi / budgetCentesimi
-        : erogateCentesimi > 0
-          ? 1.01
-          : 0;
+      budgetCentesimi === null
+        ? null
+        : budgetCentesimi > 0
+          ? erogateCentesimi / budgetCentesimi
+          : erogateCentesimi > 0
+            ? 1.01
+            : 0;
 
     let stato: StatoAvanzamentoOfferta;
-    if (residuoCentesimi < 0) {
+    if (budgetCentesimi === null || residuoCentesimi === null || percentualeUtilizzo === null) {
+      stato = "IN_CORSO";
+    } else if (residuoCentesimi < 0) {
       stato = "OLTRE_BUDGET";
     } else if (residuoCentesimi === 0 && budgetCentesimi > 0) {
       stato = "ESAURITA";
@@ -1082,9 +1098,9 @@ export function calcolaAvanzamentoOfferte(
       totaleGiornate: giornateErogate,
     };
 
-    giornatePrevisteTotali += giornatePreviste;
+    giornatePrevisteTotali += giornatePreviste ?? 0;
     giornateErogateTotali += giornateErogate;
-    residuoTotale += residuo;
+    residuoTotale += residuo ?? 0;
 
     return {
       offertaId: offerta.offertaId,
@@ -1103,8 +1119,11 @@ export function calcolaAvanzamentoOfferte(
   });
 
   perOfferta.sort((a, b) => {
-    if (b.percentualeUtilizzo !== a.percentualeUtilizzo) {
-      return b.percentualeUtilizzo - a.percentualeUtilizzo;
+    // Le offerte senza giorni previsti seguono quelle con un budget.
+    const percentualeA = a.percentualeUtilizzo ?? -1;
+    const percentualeB = b.percentualeUtilizzo ?? -1;
+    if (percentualeB !== percentualeA) {
+      return percentualeB - percentualeA;
     }
     return a.offertaCodice.localeCompare(b.offertaCodice);
   });

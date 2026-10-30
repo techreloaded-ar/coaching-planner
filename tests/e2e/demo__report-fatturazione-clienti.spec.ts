@@ -66,7 +66,7 @@ async function verificaDatasetReportDemo(
 
   const celle = rigaOfferta.locator("td");
   await expect(celle.nth(1)).toHaveText(
-    formattaEuro(dataset.offerta.tariffaGiornaliera.toString()),
+    formattaEuro(String(dataset.offerta.tariffaGiornaliera)),
   );
   await expect(celle.nth(2)).toHaveText(
     formattaGiornate(offertaAttesa.totali.giornate),

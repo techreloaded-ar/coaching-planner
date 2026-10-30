@@ -26,9 +26,23 @@ describe("validaOfferta — campi obbligatori", () => {
 		expect(errori.codice).toBe("Il codice offerta è obbligatorio");
 	});
 
-	it("restituisce errore se la descrizione è vuota", () => {
-		const errori = validaOfferta(baseInput({ descrizione: "" }));
-		expect(errori.descrizione).toBe("La descrizione è obbligatoria");
+	it("accetta un'offerta con il solo codice: descrizione, tariffa e giorni sono facoltativi", () => {
+		const errori = validaOfferta(
+			baseInput({ descrizione: "", tariffaGiornaliera: "", giorniPrevisti: "" }),
+		);
+		expect(errori).toEqual({});
+	});
+
+	it("se indicati, valida ancora tariffa e giorni previsti", () => {
+		const errori = validaOfferta(
+			baseInput({ tariffaGiornaliera: "0", giorniPrevisti: "0" }),
+		);
+		expect(errori.tariffaGiornaliera).toBe(
+			"La tariffa giornaliera deve essere maggiore di zero",
+		);
+		expect(errori.giorniPrevisti).toBe(
+			"I giorni previsti devono essere maggiori di zero",
+		);
 	});
 });
 

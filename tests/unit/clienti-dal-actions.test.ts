@@ -318,6 +318,23 @@ describe("Server Actions clienti", () => {
       expect(mockRedirect).not.toHaveBeenCalled();
     });
 
+    it("senza partita IVA salva il campo come null", async () => {
+      mockValidaCliente.mockReturnValue({});
+
+      const formData = new FormData();
+      formData.set("ragioneSociale", "Solo Ragione SRL");
+      formData.set("partitaIva", "  ");
+
+      await creaCliente(statoIniziale(), formData);
+
+      expect(mockCliente.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          ragioneSociale: "Solo Ragione SRL",
+          partitaIva: null,
+        }),
+      });
+    });
+
     it("con dati validi crea il record e redirige", async () => {
       mockValidaCliente.mockReturnValue({});
 

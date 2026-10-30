@@ -104,7 +104,7 @@ describe("costruisciFogliFatturazioneClienti", () => {
       "Alfa",
       prima.offertaCodice,
       prima.offertaDescrizione,
-      num(prima.tariffaGiornaliera),
+      num(prima.tariffaGiornaliera!),
       prima.giornateFatturabili,
       num(prima.imponibile),
       0,
@@ -114,7 +114,7 @@ describe("costruisciFogliFatturazioneClienti", () => {
       "Alfa",
       seconda.offertaCodice,
       seconda.offertaDescrizione,
-      num(seconda.tariffaGiornaliera),
+      num(seconda.tariffaGiornaliera!),
       seconda.giornateFatturabili,
       num(seconda.imponibile),
       2,
@@ -177,6 +177,14 @@ describe("costruisciFogliFatturazioneClienti", () => {
       [0, 0, 1, 80, 80],
     );
     expect(riepilogo.righe.at(-1)!.slice(4)).toEqual([0, 0, 1, 80, 80]);
+  });
+
+  it("un'offerta senza tariffa ha la cella tariffa vuota e imponibile 0", () => {
+    const { riepilogo } = esporta([riga({ tariffaOffertaGiornaliera: null, ore: 16 })]);
+
+    const rigaOfferta = riepilogo.righe.find((r) => r[1] === "OFF-001")!;
+    expect(rigaOfferta[3] ?? null).toBeNull();
+    expect(rigaOfferta.slice(4, 6)).toEqual([2, 0]);
   });
 
   it("con report vuoto contiene solo titolo, intestazioni e totale mese a zero", () => {
