@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { PulsanteAttesa } from "./pulsante-attesa";
+import { useIdratata } from "./use-idratata";
 
 // Componente unico per gli elenchi delle anagrafiche (clienti, offerte, utenti):
 // selezione delle righe tramite checkbox e barra contestuale con le azioni.
@@ -127,11 +128,14 @@ export function ElencoSelezionabile<T>({
 
 // ── Checkbox ───────────────────────────────────────────────────
 
+// Le caselle restano disabilitate fino all'idratazione: spuntate prima, apparirebbero
+// selezionate senza che la barra delle azioni compaia.
 const classeCasella =
   "h-4 w-4 cursor-pointer rounded-[4px] accent-indigo-500 align-middle";
 
 export function CasellaSelezioneTutti() {
   const { elementi, idElemento, selezionati, impostaSelezione } = useContestoSelezione();
+  const idratata = useIdratata();
   const riferimento = useRef<HTMLInputElement>(null);
   const tutti = elementi.length > 0 && selezionati.size === elementi.length;
   const parziale = selezionati.size > 0 && !tutti;
@@ -147,7 +151,7 @@ export function CasellaSelezioneTutti() {
       aria-label="Seleziona tutti"
       className={classeCasella}
       checked={tutti}
-      disabled={elementi.length === 0}
+      disabled={!idratata || elementi.length === 0}
       onChange={() =>
         impostaSelezione(tutti ? new Set() : new Set(elementi.map(idElemento)))
       }
@@ -157,12 +161,14 @@ export function CasellaSelezioneTutti() {
 
 export function CasellaSelezione({ id, nome }: { id: string; nome: string }) {
   const { selezionati, impostaSelezione } = useContestoSelezione();
+  const idratata = useIdratata();
   return (
     <input
       type="checkbox"
       aria-label={`Seleziona ${nome}`}
       className={classeCasella}
       checked={selezionati.has(id)}
+      disabled={!idratata}
       onClick={(evento) => evento.stopPropagation()}
       onChange={() => {
         const nuovi = new Set(selezionati);

@@ -78,28 +78,17 @@ export function casellaSelezione(page: Page, nome: string): Locator {
 /**
  * Seleziona le righe indicate (per nome, o direttamente con il locator della
  * loro casella) e restituisce la barra delle azioni.
- * La selezione è stato client: un click sull'HTML server-rendered non arriva a
- * React (la casella risulta spuntata ma la barra non compare), quindi la prima
- * casella si clicca finché la barra non c'è (polling su stato osservabile,
- * nessuna attesa fissa). Le successive sono interazioni client già idratate.
+ * Le caselle sono disabilitate fino all'idratazione: `check()` attende che
+ * siano abilitate, quindi il click arriva sempre a React.
  */
 export async function selezionaRighe(
 	page: Page,
 	righe: Array<string | Locator>,
 ): Promise<Locator> {
-	const barra = barraSelezione(page);
-	const [primo, ...altri] = righe.map((riga) =>
-		typeof riga === "string" ? casellaSelezione(page, riga) : riga,
-	);
-	await expect(async () => {
-		if (!(await barra.isVisible()) || !(await primo.isChecked())) {
-			await primo.click();
-		}
-		await expect(barra).toBeVisible({ timeout: 2_000 });
-		await expect(primo).toBeChecked({ timeout: 1_000 });
-	}).toPass();
-	for (const casella of altri) {
-		await casella.check();
+	for (const riga of righe) {
+		await (typeof riga === "string" ? casellaSelezione(page, riga) : riga).check();
 	}
+	const barra = barraSelezione(page);
+	await expect(barra).toBeVisible();
 	return barra;
 }
