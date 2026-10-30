@@ -45,7 +45,9 @@ export interface ClientBackfillAbilitazioni {
 			where: { offerta: { attiva: true } };
 			select: { collaboratoreId: true; offertaId: true };
 			distinct: ["collaboratoreId", "offertaId"];
-		}): Promise<CoppiaAbilitazione[]>;
+			// L'offerta della riga è facoltativa nello schema; il filtro su
+			// offerta attiva esclude comunque le righe senza offerta.
+		}): Promise<{ collaboratoreId: string; offertaId: string | null }[]>;
 	};
 }
 
@@ -63,11 +65,13 @@ export async function eseguiBackfillAbilitazioniIniziali(
 		return { esito: "gia-popolato", inserite: 0 };
 	}
 
-	const coppie = await client.rigaAttivita.findMany({
-		where: { offerta: { attiva: true } },
-		select: { collaboratoreId: true, offertaId: true },
-		distinct: ["collaboratoreId", "offertaId"],
-	});
+	const coppie = (
+		await client.rigaAttivita.findMany({
+			where: { offerta: { attiva: true } },
+			select: { collaboratoreId: true, offertaId: true },
+			distinct: ["collaboratoreId", "offertaId"],
+		})
+	).filter((coppia): coppia is CoppiaAbilitazione => coppia.offertaId !== null);
 
 	if (coppie.length === 0) {
 		return { esito: "nessuna-attivita", inserite: 0 };

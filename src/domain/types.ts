@@ -173,3 +173,10 @@ export interface RigaAttivita {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/** Etichetta di una riga attività registrata sul cliente senza offerta */
+export const ETICHETTA_OFFERTA_DA_DEFINIRE = "Offerta da definire";
+
+/** Voce dei report che raccoglie le ore di un cliente registrate senza offerta */
+export const ETICHETTA_SENZA_OFFERTA = "Senza offerta";
+export const DESCRIZIONE_SENZA_OFFERTA = "da assegnare a un'offerta";

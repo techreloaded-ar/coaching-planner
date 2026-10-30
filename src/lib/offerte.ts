@@ -115,7 +115,8 @@ function costruisciVociElencoOfferte(
 
   const righeMappate: RigaAvanzamento[] = righe.map(
     (riga: RigaAttivitaConCollaboratore) => ({
-      offertaId: riga.offertaId,
+      // Le righe sono lette per offerta: l'id è sempre valorizzato.
+      offertaId: riga.offertaId ?? "",
       collaboratoreId: riga.collaboratoreId,
       collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
@@ -132,6 +133,7 @@ function costruisciVociElencoOfferte(
 
   const numeroRighePerOfferta = new Map<string, number>();
   for (const riga of righe) {
+    if (riga.offertaId === null) continue;
     numeroRighePerOfferta.set(
       riga.offertaId,
       (numeroRighePerOfferta.get(riga.offertaId) ?? 0) + 1,
@@ -222,7 +224,8 @@ export async function elencaOfferteConAvanzamentoPaginate({
 
   const orePerOffertaECategoria = await db.rigaAttivita.groupBy({
     by: ["offertaId", "categoria"],
-    where: ricerca ? { offerta: where } : undefined,
+    // Le ore senza offerta non avanzano alcuna offerta.
+    where: ricerca ? { offerta: where } : { offertaId: { not: null } },
     _sum: { ore: true },
   });
 
@@ -230,7 +233,7 @@ export async function elencaOfferteConAvanzamentoPaginate({
     offerte.map(offertaPerAvanzamento),
     orePerOffertaECategoria.map(
       (gruppo): RigaAvanzamento => ({
-        offertaId: gruppo.offertaId,
+        offertaId: gruppo.offertaId ?? "",
         collaboratoreId: "",
         collaboratoreNome: "",
         ore: Number(gruppo._sum.ore ?? 0),

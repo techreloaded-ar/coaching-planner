@@ -29,6 +29,10 @@ const mockAbilitazioneOfferta = vi.hoisted(() => ({
   findUnique: vi.fn(),
 }));
 
+const mockCliente = vi.hoisted(() => ({
+  findUnique: vi.fn(),
+}));
+
 const mockEventoCalendarioGestito = vi.hoisted(() => ({
   create: vi.fn(),
 }));
@@ -41,6 +45,7 @@ vi.mock("@/lib/db", () => ({
     voceRimborsoTrasferta: mockVoceRimborsoTrasferta,
     offerta: mockOfferta,
     abilitazioneOfferta: mockAbilitazioneOfferta,
+    cliente: mockCliente,
     eventoCalendarioGestito: mockEventoCalendarioGestito,
     $transaction: mockTransaction,
   },
@@ -429,8 +434,8 @@ describe("creaRiga", () => {
     });
 
     const fd = creaFormData({
-      clienteId: "cliente-1",
-      // offertaId mancante
+      // clienteId mancante
+      offertaId: "offerta-1",
       ore: "8",
       data: "2026-07-01",
     });
@@ -439,6 +444,45 @@ describe("creaRiga", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBe("Compila tutti i campi obbligatori");
+  });
+
+  it("crea una riga con offerta da definire su un cliente attivo, senza consultare offerta e abilitazione", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockCliente.findUnique.mockResolvedValue({ attivo: true });
+    mockRigaAttivita.create.mockResolvedValue({ id: "riga-1" });
+
+    const result = await creaRiga(
+      creaFormData({ clienteId: "cliente-nuovo", offertaId: "", ore: "4", data: "2026-07-01" })
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockCliente.findUnique).toHaveBeenCalledWith({
+      where: { id: "cliente-nuovo" },
+      select: { attivo: true },
+    });
+    expect(mockOfferta.findUnique).not.toHaveBeenCalled();
+    expect(mockAbilitazioneOfferta.findUnique).not.toHaveBeenCalled();
+    const chiamata = mockRigaAttivita.create.mock.calls[0][0];
+    expect(chiamata.data.clienteId).toBe("cliente-nuovo");
+    expect(chiamata.data.offertaId).toBeNull();
+  });
+
+  it("rifiuta una riga senza offerta su un cliente non più attivo", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockCliente.findUnique.mockResolvedValue({ attivo: false });
+
+    const result = await creaRiga(
+      creaFormData({ clienteId: "cliente-chiuso", ore: "4", data: "2026-07-01" })
+    );
+
+    expect(result).toEqual({ success: false, error: "Il cliente non è più attivo" });
+    expect(mockRigaAttivita.create).not.toHaveBeenCalled();
   });
 
   it("rifiuta offerta non appartenente al cliente", async () => {
@@ -781,6 +825,68 @@ describe("modificaRiga", () => {
     expect(result.success).toBe(true);
     const chiamata = mockRigaAttivita.update.mock.calls[0][0];
     expect(chiamata.data.offertaId).toBe("offerta-2");
+  });
+
+  it("riporta la riga a offerta da definire quando l'offerta è inviata vuota", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: "offerta-1",
+      clienteId: "cliente-1",
+    });
+    mockRigaAttivita.update.mockResolvedValue({ id: "riga-1" });
+
+    const result = await modificaRiga(
+      creaFormData({ rigaId: "riga-1", clienteId: "cliente-1", offertaId: "", data: "2026-07-01" })
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockRigaAttivita.update.mock.calls[0][0].data.offertaId).toBeNull();
+    expect(mockOfferta.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("assegna un'offerta abilitata a una riga che ne era priva", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: null,
+      clienteId: "cliente-1",
+    });
+    mockRigaAttivita.update.mockResolvedValue({ id: "riga-1" });
+
+    const result = await modificaRiga(
+      creaFormData({ rigaId: "riga-1", clienteId: "cliente-1", offertaId: "offerta-2", data: "2026-07-01" })
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockAbilitazioneOfferta.findUnique).toHaveBeenCalled();
+    expect(mockRigaAttivita.update.mock.calls[0][0].data.offertaId).toBe("offerta-2");
+  });
+
+  it("rifiuta di spostare una riga senza offerta su un cliente non più attivo", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-giulia",
+      offertaId: null,
+      clienteId: "cliente-1",
+    });
+    mockCliente.findUnique.mockResolvedValue({ attivo: false });
+
+    const result = await modificaRiga(
+      creaFormData({ rigaId: "riga-1", clienteId: "cliente-chiuso", offertaId: "", data: "2026-07-01" })
+    );
+
+    expect(result).toEqual({ success: false, error: "Il cliente non è più attivo" });
+    expect(mockRigaAttivita.update).not.toHaveBeenCalled();
   });
 
   it("rifiuta il cambio verso un'offerta non abilitata (AC-5)", async () => {
@@ -1162,6 +1268,19 @@ describe("duplicaRigaSuGiorni", () => {
     expect(result.error).toBeTruthy();
     expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
     aspettataNessunaInvalidazione();
+  });
+
+  it("duplica una riga con offerta da definire verificando solo che il cliente sia attivo", async () => {
+    mockRigaAttivita.findUnique.mockResolvedValue({ ...rigaSorgenteMock(), offertaId: null });
+    mockCliente.findUnique.mockResolvedValue({ attivo: true });
+
+    const result = await duplicaRigaSuGiorni("riga-1", ["2026-03-17"]);
+
+    expect(result.success).toBe(true);
+    expect(mockOfferta.findUnique).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createMany).toHaveBeenCalledWith({
+      data: [{ ...copiaAttesaPer("2026-03-17"), offertaId: null }],
+    });
   });
 
   it("rifiuta la duplicazione quando l'offerta non è più attiva", async () => {

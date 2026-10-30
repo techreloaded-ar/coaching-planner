@@ -759,7 +759,11 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
     // su quale giorno atterri la ricarica, perché dipende da quando la risposta
     // arriva rispetto al commit dell'URL.
     await expect(
-      page.getByText(clienteDelPrimo.cliente.ragioneSociale),
+      // Solo le righe attività: il nome resta tra le opzioni della select,
+      // che elenca tutti i clienti attivi.
+      page
+        .getByTestId("activity-row")
+        .filter({ hasText: clienteDelPrimo.cliente.ragioneSociale }),
     ).toHaveCount(0);
 
     // Il nuovo collaboratore vede le proprie righe sul giorno condiviso.
@@ -769,7 +773,11 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
       clienteDelSecondo.cliente.ragioneSociale,
     );
     await expect(
-      page.getByText(clienteDelPrimo.cliente.ragioneSociale),
+      // Solo le righe attività: il nome resta tra le opzioni della select,
+      // che elenca tutti i clienti attivi.
+      page
+        .getByTestId("activity-row")
+        .filter({ hasText: clienteDelPrimo.cliente.ragioneSociale }),
     ).toHaveCount(0);
   });
 
@@ -855,7 +863,11 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
     // Il giorno lontano è vuoto: nessuna riga del giorno di partenza.
     await expect(page.getByTestId("activity-row")).toHaveCount(0);
     await expect(
-      page.getByText(clienteConOfferta.cliente.ragioneSociale),
+      // Solo le righe attività: il nome resta tra le opzioni della select,
+      // che elenca tutti i clienti attivi.
+      page
+        .getByTestId("activity-row")
+        .filter({ hasText: clienteConOfferta.cliente.ragioneSociale }),
     ).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "Torna al calendario" }),

@@ -30,9 +30,11 @@ export interface RisultatoValidazioneOre {
 
 /** Riga di input per il riepilogo mensile del collaboratore */
 export interface RigaRiepilogo {
-  offertaId: string;
+  /** null: ore registrate sul cliente con offerta ancora da definire */
+  offertaId: string | null;
   offertaCodice: string;
   offertaDescrizione: string;
+  clienteId: string;
   clienteRagioneSociale: string;
   ore: number;
   categoria: CategoriaAttivita;
@@ -49,9 +51,11 @@ export type OrePerCategoria = Record<CategoriaAttivita, number>;
  * (Fatturabile + Non fatturabile).
  */
 export interface VoceRiepilogoOfferta {
-  offertaId: string;
+  /** null: voce «Offerta da definire» del cliente */
+  offertaId: string | null;
   offertaCodice: string;
   offertaDescrizione: string;
+  clienteId: string;
   clienteRagioneSociale: string;
   oreTotali: number;
   orePerCategoria: OrePerCategoria;
@@ -171,10 +175,13 @@ export function calcolaRiepilogoMese(
   let totaleRimborsi = 0;
 
   for (const riga of righe) {
-    const voce = aggregati.get(riga.offertaId) ?? {
+    // Le ore senza offerta si aggregano per cliente in una voce dedicata.
+    const chiave = riga.offertaId ?? `senza-offerta|${riga.clienteId}`;
+    const voce = aggregati.get(chiave) ?? {
       offertaId: riga.offertaId,
       offertaCodice: riga.offertaCodice,
       offertaDescrizione: riga.offertaDescrizione,
+      clienteId: riga.clienteId,
       clienteRagioneSociale: riga.clienteRagioneSociale,
       oreTotali: 0,
       orePerCategoria: orePerCategoriaVuote(),
@@ -203,7 +210,7 @@ export function calcolaRiepilogoMese(
       }
     }
 
-    aggregati.set(riga.offertaId, voce);
+    aggregati.set(chiave, voce);
   }
 
   const giornateTotali = oreTotali / ORE_PER_GIORNATA;
@@ -242,6 +249,17 @@ export function calcolaRiepilogoMese(
   };
 }
 
+/** Ordina le voci per codice offerta, con la voce senza offerta in fondo. */
+function confrontaVociPerOfferta(
+  a: { offertaId: string | null; offertaCodice: string },
+  b: { offertaId: string | null; offertaCodice: string },
+): number {
+  if ((a.offertaId === null) !== (b.offertaId === null)) {
+    return a.offertaId === null ? 1 : -1;
+  }
+  return a.offertaCodice.localeCompare(b.offertaCodice);
+}
+
 // ── Report fatturazione clienti ─────────────────────────────────
 
 /**
@@ -251,7 +269,8 @@ export function calcolaRiepilogoMese(
 export interface RigaReportFatturazione {
   clienteId: string;
   clienteRagioneSociale: string;
-  offertaId: string;
+  /** null: ore senza offerta, riportate nella voce «Senza offerta» a importo zero */
+  offertaId: string | null;
   offertaCodice: string;
   offertaDescrizione: string;
   /** Tariffa giornaliera dell'offerta (serializzabile come stringa o numero) */
@@ -285,7 +304,8 @@ export interface VoceCollaboratoreOffertaReport {
 
 /** Voce di dettaglio di una singola offerta nel report cliente */
 export interface VoceOffertaReport {
-  offertaId: string;
+  /** null: voce «Senza offerta», ore da assegnare a un'offerta */
+  offertaId: string | null;
   offertaCodice: string;
   offertaDescrizione: string;
   /** null se l'offerta non ha una tariffa: imponibile 0, «tariffa da definire» */
@@ -343,7 +363,7 @@ export function calcolaReportFatturazioneClienti(
   }
 
   interface AccumulatoreOfferta {
-    offertaId: string;
+    offertaId: string | null;
     offertaCodice: string;
     offertaDescrizione: string;
     tariffaGiornaliera: number | null;
@@ -373,26 +393,31 @@ export function calcolaReportFatturazioneClienti(
       clienti.set(riga.clienteId, cliente);
     }
 
-    let offerta = cliente.offerte.get(riga.offertaId);
+    // Chiave "" = ore senza offerta del cliente: nessuna tariffa, nessuna
+    // trasferta forfettaria, quindi importo zero finché l'offerta non c'è.
+    let offerta = cliente.offerte.get(riga.offertaId ?? "");
     if (!offerta) {
       offerta = {
         offertaId: riga.offertaId,
         offertaCodice: riga.offertaCodice,
         offertaDescrizione: riga.offertaDescrizione,
         tariffaGiornaliera:
-          riga.tariffaOffertaGiornaliera == null
-            ? null
-            : Number(riga.tariffaOffertaGiornaliera),
+          riga.offertaId === null
+            ? 0
+            : riga.tariffaOffertaGiornaliera == null
+              ? null
+              : Number(riga.tariffaOffertaGiornaliera),
         oreFatturabili: 0,
         collaboratori: new Map(),
         importoTrasfertaForfettaria:
+          riga.offertaId !== null &&
           riga.gestioneTrasfertaOfferta === "FORFETTARIA" &&
           riga.importoTrasfertaForfettariaOfferta != null
             ? Number(riga.importoTrasfertaForfettariaOfferta)
             : null,
         giorniTrasferta: new Set(),
       };
-      cliente.offerte.set(riga.offertaId, offerta);
+      cliente.offerte.set(riga.offertaId ?? "", offerta);
     }
 
     if (riga.fatturabile) {
@@ -493,7 +518,7 @@ export function calcolaReportFatturazioneClienti(
       continue;
     }
 
-    perOfferta.sort((a, b) => a.offertaCodice.localeCompare(b.offertaCodice));
+    perOfferta.sort(confrontaVociPerOfferta);
 
     // Allocazione a resto massimo (largest remainder) in centesimi interi
     // sull'elenco piatto di tutte le voci collaboratore del cliente, ancorata
@@ -584,7 +609,8 @@ export function calcolaReportFatturazioneClienti(
 export interface RigaMarginalita {
   clienteId: string;
   clienteRagioneSociale: string;
-  offertaId: string;
+  /** null: ore senza offerta, ricavi zero ma costi del collaboratore conteggiati */
+  offertaId: string | null;
   offertaCodice: string;
   offertaDescrizione: string;
   tariffaOffertaGiornaliera: string | number;
@@ -619,7 +645,8 @@ export interface ImportiMarginalita {
 }
 
 export interface VoceOffertaMarginalita extends ImportiMarginalita {
-  offertaId: string;
+  /** null: voce «Senza offerta», ore da assegnare a un'offerta */
+  offertaId: string | null;
   offertaCodice: string;
   offertaDescrizione: string;
   /** Quota dei costi che viene da fissi mensili ripartiti sull'offerta */
@@ -727,7 +754,7 @@ export function calcolaMarginalitaClienti(
   }
   interface AccumulatoreCliente {
     clienteRagioneSociale: string;
-    offerte: Map<string, AccumulatoreOfferta>;
+    offerte: Map<string | null, AccumulatoreOfferta>;
   }
 
   const clienti = new Map<string, AccumulatoreCliente>();
@@ -753,7 +780,8 @@ export function calcolaMarginalitaClienti(
       offerta = {
         offertaCodice: riga.offertaCodice,
         offertaDescrizione: riga.offertaDescrizione,
-        tariffaOfferta: tariffaNumerica(riga.tariffaOffertaGiornaliera),
+        tariffaOfferta:
+          riga.offertaId === null ? 0 : tariffaNumerica(riga.tariffaOffertaGiornaliera),
         ore: 0,
         ricavi: 0,
         costi: 0,
@@ -826,7 +854,7 @@ export function calcolaMarginalitaClienti(
       continue;
     }
 
-    perOfferta.sort((a, b) => a.offertaCodice.localeCompare(b.offertaCodice));
+    perOfferta.sort(confrontaVociPerOfferta);
     totale.ore = sommaOre(totale.ore, sommaCliente.ore);
     totale.ricavi += sommaCliente.ricavi;
     totale.costi += sommaCliente.costi;

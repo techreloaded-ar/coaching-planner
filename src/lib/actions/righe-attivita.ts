@@ -142,6 +142,50 @@ async function verificaOffertaCliente(
 }
 
 /**
+ * Verifica che il cliente esista e sia attivo: è l'unico vincolo di una riga
+ * senza offerta, perché ogni cliente attivo è selezionabile.
+ * Restituisce null se ok, altrimenti un ActionResult con errore.
+ */
+async function verificaClienteAttivo(
+  clienteId: string
+): Promise<ActionResult | null> {
+  const cliente = await db.cliente.findUnique({
+    where: { id: clienteId },
+    select: { attivo: true },
+  });
+
+  if (!cliente) {
+    return { success: false, error: "Cliente non trovato" };
+  }
+
+  if (!cliente.attivo) {
+    return { success: false, error: "Il cliente non è più attivo" };
+  }
+
+  return null;
+}
+
+/**
+ * Verifica l'ammissibilità di una coppia cliente/offerta per una riga nuova:
+ * con offerta valgono le regole dell'offerta (attiva, del cliente, abilitata),
+ * senza offerta basta un cliente attivo.
+ */
+async function verificaClienteEOffertaPerNuovaRiga(
+  collaboratoreId: string,
+  clienteId: string,
+  offertaId: string | null
+): Promise<ActionResult | null> {
+  if (!offertaId) {
+    return verificaClienteAttivo(clienteId);
+  }
+
+  const erroreOfferta = await verificaOffertaCliente(offertaId, clienteId);
+  if (erroreOfferta) return erroreOfferta;
+
+  return verificaAbilitazioneOfferta(collaboratoreId, offertaId);
+}
+
+/**
  * Verifica che il collaboratore sia abilitato a registrare attività
  * sull'offerta indicata.
  * Restituisce null se ok, altrimenti un ActionResult con errore.
@@ -265,7 +309,8 @@ function normalizzaGiorniDestinazione(
  * Crea una nuova riga attività per il collaboratore corrente.
  *
  * Campi attesi nel FormData:
- * - clienteId, offertaId, ore, nota, data (YYYY-MM-DD)
+ * - clienteId, ore, nota, data (YYYY-MM-DD)
+ * - offertaId? facoltativa: vuota = offerta da definire
  * - categoria? (FATTURABILE | NON_FATTURABILE | INVESTIMENTO), predefinita FATTURABILE
  * - eventoCalendarioId? quando la riga nasce da una proposta del calendario:
  *   l'evento viene segnato come gestito nella stessa transazione, così non
@@ -280,7 +325,7 @@ export async function creaRiga(
   }
 
   const clienteId = formData.get("clienteId") as string;
-  const offertaId = formData.get("offertaId") as string;
+  const offertaId = (formData.get("offertaId") as string | null) || null;
   const oreRaw = formData.get("ore") as string;
   const nota = (formData.get("nota") as string) || null;
   const categoria =
@@ -293,17 +338,16 @@ export async function creaRiga(
     (formData.get("eventoCalendarioId") as string | null)?.trim() || null;
 
   // Validazione campi obbligatori
-  if (!clienteId || !offertaId || !oreRaw || !dataStr) {
+  if (!clienteId || !oreRaw || !dataStr) {
     return { success: false, error: "Compila tutti i campi obbligatori" };
   }
 
-  // Verifica offerta-cliente
-  const erroreOfferta = await verificaOffertaCliente(offertaId, clienteId);
-  if (erroreOfferta) return erroreOfferta;
-
-  // Verifica abilitazione del collaboratore sull'offerta
-  const erroreAbilitazione = await verificaAbilitazioneOfferta(collaboratore.id, offertaId);
-  if (erroreAbilitazione) return erroreAbilitazione;
+  const erroreAmmissibilita = await verificaClienteEOffertaPerNuovaRiga(
+    collaboratore.id,
+    clienteId,
+    offertaId
+  );
+  if (erroreAmmissibilita) return erroreAmmissibilita;
 
   // Validazione ore
   const risultatoOre = validaOre(oreRaw);
@@ -379,6 +423,7 @@ export async function creaRiga(
  *
  * Campi attesi nel FormData:
  * - rigaId, clienteId?, offertaId?, ore?, nota?, categoria?, data?
+ * - offertaId presente ma vuota = offerta da definire; assente = invariata
  */
 export async function modificaRiga(
   formData: FormData
@@ -410,14 +455,16 @@ export async function modificaRiga(
   const updateData: Record<string, unknown> = {};
 
   const clienteId = formData.get("clienteId") as string;
-  const offertaId = formData.get("offertaId") as string;
+  const offertaId = formData.has("offertaId")
+    ? (formData.get("offertaId") as string) || null
+    : undefined;
 
   if (clienteId) updateData.clienteId = clienteId;
-  if (offertaId) updateData.offertaId = offertaId;
+  if (offertaId !== undefined) updateData.offertaId = offertaId;
 
   // Valori risultanti dopo l'eventuale aggiornamento (quelli inviati dal form,
   // altrimenti quelli già presenti sulla riga).
-  const offertaFinale = offertaId || riga.offertaId;
+  const offertaFinale = offertaId === undefined ? riga.offertaId : offertaId;
   const clienteFinale = clienteId || riga.clienteId;
 
   // Se la coppia offerta-cliente risultante differisce da quella attuale della
@@ -427,7 +474,13 @@ export async function modificaRiga(
   // invariata. La verifica di ABILITAZIONE invece resta legata al solo
   // cambio di offerta: righe storiche su offerte non più abilitate restano
   // modificabili finché l'offerta non cambia (AC-4/AC-5).
-  if (offertaFinale !== riga.offertaId || clienteFinale !== riga.clienteId) {
+  // Senza offerta l'unico vincolo è che il cliente, se cambiato, sia attivo.
+  if (offertaFinale === null) {
+    if (clienteFinale !== riga.clienteId) {
+      const erroreCliente = await verificaClienteAttivo(clienteFinale);
+      if (erroreCliente) return erroreCliente;
+    }
+  } else if (offertaFinale !== riga.offertaId || clienteFinale !== riga.clienteId) {
     const erroreOfferta = await verificaOffertaCliente(offertaFinale, clienteFinale);
     if (erroreOfferta) return erroreOfferta;
 
@@ -602,7 +655,8 @@ export async function rimuoviRimborsoTrasferta(
  * cambiati dopo il salvataggio della riga sorgente.
  *
  * L'ammissibilità applicata è quella della **creazione** (offerta attiva,
- * coerente col cliente e abilitata per il collaboratore), non quella più
+ * coerente col cliente e abilitata per il collaboratore, oppure cliente
+ * attivo per una riga con offerta da definire), non quella più
  * clemente di `modificaRiga`: qui non si aggiorna una riga storica, si creano
  * righe nuove, che devono rispettare le regole valide oggi.
  *
@@ -643,15 +697,13 @@ export async function duplicaRigaSuGiorni(
     return { success: false, error: "Scegli almeno un giorno di destinazione" };
   }
 
-  // Riverifica dell'ammissibilità sull'offerta della riga di origine
-  const erroreOfferta = await verificaOffertaCliente(riga.offertaId, riga.clienteId);
-  if (erroreOfferta) return erroreOfferta;
-
-  const erroreAbilitazione = await verificaAbilitazioneOfferta(
+  // Riverifica dell'ammissibilità sulla coppia cliente/offerta di origine
+  const erroreAmmissibilita = await verificaClienteEOffertaPerNuovaRiga(
     collaboratore.id,
+    riga.clienteId,
     riga.offertaId
   );
-  if (erroreAbilitazione) return erroreAbilitazione;
+  if (erroreAmmissibilita) return erroreAmmissibilita;
 
   await db.rigaAttivita.createMany({
     data: giorniDestinazione.map((giornoDestinazione) => {

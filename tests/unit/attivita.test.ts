@@ -822,7 +822,7 @@ describe("clientiAttiviPerSelezione", () => {
     vi.clearAllMocks();
   });
 
-  it("interroga il DB filtrando sui clienti attivi con almeno un'offerta attiva abilitata per il collaboratore corrente", async () => {
+  it("restituisce tutti i clienti attivi, consigliati quelli con un'offerta attiva abilitata per il collaboratore corrente", async () => {
     mockRichiediCollaboratoreCorrente.mockResolvedValue({
       id: "collab-giulia",
       userId: "user-giulia",
@@ -834,33 +834,34 @@ describe("clientiAttiviPerSelezione", () => {
       updatedAt: new Date(),
     });
 
-    const clientiAttesi = [
-      { id: "cliente-techsolutions", ragioneSociale: "TechSolutions" },
-    ];
-    mockCliente.findMany.mockResolvedValue(clientiAttesi);
+    mockCliente.findMany.mockResolvedValue([
+      { id: "cliente-nuovo", ragioneSociale: "Nuovo Cliente", offerte: [] },
+      { id: "cliente-techsolutions", ragioneSociale: "TechSolutions", offerte: [{ id: "offerta-1" }] },
+    ]);
 
     const result = await clientiAttiviPerSelezione();
 
     expect(mockCliente.findMany).toHaveBeenCalledTimes(1);
     expect(mockCliente.findMany).toHaveBeenCalledWith({
-      where: {
-        attivo: true,
-        offerte: {
-          some: {
-            attiva: true,
-            abilitazioniCollaboratori: {
-              some: { collaboratoreId: "collab-giulia" },
-            },
-          },
-        },
-      },
+      where: { attivo: true },
       select: {
         id: true,
         ragioneSociale: true,
+        offerte: {
+          where: {
+            attiva: true,
+            abilitazioniCollaboratori: { some: { collaboratoreId: "collab-giulia" } },
+          },
+          select: { id: true },
+          take: 1,
+        },
       },
       orderBy: { ragioneSociale: "asc" },
     });
-    expect(result).toBe(clientiAttesi);
+    expect(result).toEqual([
+      { id: "cliente-nuovo", ragioneSociale: "Nuovo Cliente", consigliato: false },
+      { id: "cliente-techsolutions", ragioneSociale: "TechSolutions", consigliato: true },
+    ]);
   });
 
   it("lancia ErroreAutorizzazione se non c'è un collaboratore corrente", async () => {
@@ -1124,25 +1125,23 @@ describe("contestoInserimentoPerCollaboratoreAutorizzato", () => {
 
   // ── Payload Prisma delle due letture ────────────────────────
 
-  it("interroga i clienti attivi con almeno un'offerta attiva abilitata per il collaboratore ricevuto", async () => {
+  it("interroga tutti i clienti attivi, leggendo le offerte attive abilitate per il collaboratore ricevuto", async () => {
     await contestoInserimentoPerCollaboratoreAutorizzato("collab-autorizzato");
 
     expect(mockCliente.findMany).toHaveBeenCalledTimes(1);
     expect(mockCliente.findMany).toHaveBeenCalledWith({
-      where: {
-        attivo: true,
-        offerte: {
-          some: {
-            attiva: true,
-            abilitazioniCollaboratori: {
-              some: { collaboratoreId: "collab-autorizzato" },
-            },
-          },
-        },
-      },
+      where: { attivo: true },
       select: {
         id: true,
         ragioneSociale: true,
+        offerte: {
+          where: {
+            attiva: true,
+            abilitazioniCollaboratori: { some: { collaboratoreId: "collab-autorizzato" } },
+          },
+          select: { id: true },
+          take: 1,
+        },
       },
       orderBy: { ragioneSociale: "asc" },
     });
@@ -1167,8 +1166,8 @@ describe("contestoInserimentoPerCollaboratoreAutorizzato", () => {
 
   it("restituisce clienti e voci in un solo DTO, con l'importo convertito in stringa e l'identità ricevuta", async () => {
     mockCliente.findMany.mockResolvedValue([
-      { id: "cliente-dataflow", ragioneSociale: "DataFlow SpA" },
-      { id: "cliente-techsolutions", ragioneSociale: "TechSolutions Srl" },
+      { id: "cliente-dataflow", ragioneSociale: "DataFlow SpA", offerte: [{ id: "o-1" }] },
+      { id: "cliente-techsolutions", ragioneSociale: "TechSolutions Srl", offerte: [] },
     ]);
     mockVoceRimborsoTrasferta.findMany.mockResolvedValue([
       {
@@ -1195,8 +1194,8 @@ describe("contestoInserimentoPerCollaboratoreAutorizzato", () => {
     expect(risultato).toEqual({
       collaboratoreId: "collab-solo-questo",
       clienti: [
-        { id: "cliente-dataflow", ragioneSociale: "DataFlow SpA" },
-        { id: "cliente-techsolutions", ragioneSociale: "TechSolutions Srl" },
+        { id: "cliente-dataflow", ragioneSociale: "DataFlow SpA", consigliato: true },
+        { id: "cliente-techsolutions", ragioneSociale: "TechSolutions Srl", consigliato: false },
       ],
       vociRimborso: [
         { id: "voce-pranzo", etichetta: "Pranzo", importo: "12.50" },

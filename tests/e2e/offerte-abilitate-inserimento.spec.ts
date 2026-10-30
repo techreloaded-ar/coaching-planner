@@ -69,7 +69,7 @@ test.describe("US-043 Inserimento ore consentito solo sulle offerte abilitate", 
     await expect(selectOfferta).not.toContainText(labelNonAbilitata);
   });
 
-  test("AC-3: tornando in modifica su un cliente senza offerte abilitate compare l'avviso e il salvataggio è bloccato", async ({
+  test("AC-3: tornando in modifica su un cliente senza offerte abilitate compare l'avviso e il salvataggio resta possibile", async ({
     page,
     factory,
   }) => {
@@ -129,9 +129,10 @@ test.describe("US-043 Inserimento ore consentito solo sulle offerte abilitate", 
     await expect(selectCliente).toHaveValue(clienteNonAbilitato.cliente.id);
 
     await expect(page.getByTestId("nessuna-offerta-abilitata")).toBeVisible();
+    await expect(selectOfferta).toHaveValue("");
     await expect(
       page.getByRole("button", { name: "Salva modifiche" }),
-    ).toBeDisabled();
+    ).toBeEnabled();
   });
 
   test("AC-4: una riga su offerta non abilitata resta modificabile ed eliminabile", async ({
