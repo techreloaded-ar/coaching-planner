@@ -209,7 +209,9 @@ model RigaAttivita {
 
   collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
   cliente       Cliente       @relation(fields: [clienteId], references: [id])
-  offerta       Offerta?      @relation(fields: [offertaId], references: [id])
+  // Restrict esplicito: un'offerta con righe non si cancella, le righe non
+  // tornano "da definire" (il default di una relazione facoltativa è SetNull).
+  offerta       Offerta?      @relation(fields: [offertaId], references: [id], onDelete: Restrict)
 
   // Sostiene la lettura del calendario mensile: filtro per collaboratore +
   // intervallo di date, con ordinamento stabile per data e creazione.

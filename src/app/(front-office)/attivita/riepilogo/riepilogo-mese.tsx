@@ -269,7 +269,7 @@ export default function RiepilogoMese({
 
                   return (
                     <tr
-                      key={voce.offertaId ?? `senza-offerta|${voce.clienteRagioneSociale}`}
+                      key={voce.offertaId ?? `senza-offerta|${voce.clienteId}`}
                       className="border-b border-zinc-100 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60"
                     >
                       <td className="px-3.5 py-3 align-top text-[13.5px] font-bold text-zinc-800 dark:text-zinc-100">

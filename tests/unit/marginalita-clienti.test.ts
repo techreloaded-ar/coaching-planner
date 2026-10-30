@@ -252,6 +252,7 @@ describe("calcolaMarginalitaClienti", () => {
             offertaId: r.offertaId,
             offertaCodice: r.offertaCodice,
             offertaDescrizione: r.offertaDescrizione,
+            clienteId: r.clienteId,
             clienteRagioneSociale: r.clienteRagioneSociale,
             ore: r.ore,
             categoria: r.categoria,

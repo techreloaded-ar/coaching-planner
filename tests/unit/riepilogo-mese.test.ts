@@ -19,6 +19,7 @@ function riga(parziale: Partial<RigaRiepilogo> = {}): RigaRiepilogo {
     offertaId: "off-1",
     offertaCodice: "OFF-001",
     offertaDescrizione: "Percorso coaching",
+    clienteId: "cliente-1",
     clienteRagioneSociale: "Cliente Uno",
     ore: 8,
     categoria: "FATTURABILE",
@@ -244,9 +245,11 @@ describe("calcolaRiepilogoMese — ore con offerta da definire", () => {
     const result = calcolaRiepilogoMese(
       [
         riga({ ore: 8 }),
-        riga({ ...senzaOfferta, clienteRagioneSociale: "Cliente Nuovo", ore: 3 }),
-        riga({ ...senzaOfferta, clienteRagioneSociale: "Cliente Nuovo", ore: 1, categoria: "INVESTIMENTO" }),
-        riga({ ...senzaOfferta, clienteRagioneSociale: "Altro Cliente", ore: 2 }),
+        riga({ ...senzaOfferta, clienteId: "cliente-nuovo", clienteRagioneSociale: "Cliente Nuovo", ore: 3 }),
+        riga({ ...senzaOfferta, clienteId: "cliente-nuovo", clienteRagioneSociale: "Cliente Nuovo", ore: 1, categoria: "INVESTIMENTO" }),
+        riga({ ...senzaOfferta, clienteId: "cliente-altro", clienteRagioneSociale: "Altro Cliente", ore: 2 }),
+        // Omonimo di un altro cliente: resta una voce separata.
+        riga({ ...senzaOfferta, clienteId: "cliente-omonimo", clienteRagioneSociale: "Altro Cliente", ore: 1 }),
       ],
       giornaliera("400"),
     );
@@ -255,9 +258,10 @@ describe("calcolaRiepilogoMese — ore con offerta da definire", () => {
       ["off-1", "Cliente Uno", 8],
       [null, "Cliente Nuovo", 4],
       [null, "Altro Cliente", 2],
+      [null, "Altro Cliente", 1],
     ]);
     expect(result.perOfferta[1].oreDaFatturare).toBe(3);
-    expect(result.totali.oreTotali).toBe(14);
-    expect(result.totali.oreDaFatturare).toBe(13);
+    expect(result.totali.oreTotali).toBe(15);
+    expect(result.totali.oreDaFatturare).toBe(14);
   });
 });

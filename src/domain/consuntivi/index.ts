@@ -34,6 +34,7 @@ export interface RigaRiepilogo {
   offertaId: string | null;
   offertaCodice: string;
   offertaDescrizione: string;
+  clienteId: string;
   clienteRagioneSociale: string;
   ore: number;
   categoria: CategoriaAttivita;
@@ -54,6 +55,7 @@ export interface VoceRiepilogoOfferta {
   offertaId: string | null;
   offertaCodice: string;
   offertaDescrizione: string;
+  clienteId: string;
   clienteRagioneSociale: string;
   oreTotali: number;
   orePerCategoria: OrePerCategoria;
@@ -174,11 +176,12 @@ export function calcolaRiepilogoMese(
 
   for (const riga of righe) {
     // Le ore senza offerta si aggregano per cliente in una voce dedicata.
-    const chiave = riga.offertaId ?? `senza-offerta|${riga.clienteRagioneSociale}`;
+    const chiave = riga.offertaId ?? `senza-offerta|${riga.clienteId}`;
     const voce = aggregati.get(chiave) ?? {
       offertaId: riga.offertaId,
       offertaCodice: riga.offertaCodice,
       offertaDescrizione: riga.offertaDescrizione,
+      clienteId: riga.clienteId,
       clienteRagioneSociale: riga.clienteRagioneSociale,
       oreTotali: 0,
       orePerCategoria: orePerCategoriaVuote(),

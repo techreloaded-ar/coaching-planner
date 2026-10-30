@@ -565,6 +565,7 @@ export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMe
     offertaId: riga.offerta?.id ?? null,
     offertaCodice: riga.offerta?.codice ?? "",
     offertaDescrizione: riga.offerta?.descrizione ?? "",
+    clienteId: riga.clienteId,
     clienteRagioneSociale: riga.cliente.ragioneSociale,
     ore: Number(riga.ore),
     categoria: riga.categoria,

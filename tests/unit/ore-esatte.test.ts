@@ -75,6 +75,7 @@ describe("ore sommate in modo esatto", () => {
         offertaId: "off-1",
         offertaCodice: "OFF-1",
         offertaDescrizione: "Percorso",
+        clienteId: "cliente-1",
         clienteRagioneSociale: "Cliente",
         ore,
         categoria: "FATTURABILE" as const,
