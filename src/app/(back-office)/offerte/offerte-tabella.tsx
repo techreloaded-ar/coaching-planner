@@ -3,11 +3,17 @@
 import { Fragment, useState, useActionState } from "react";
 import Link from "next/link";
 import {
+  BarraElencoSelezionabile,
   CampiPosizioneElenco,
+  CasellaSelezione,
+  CasellaSelezioneTutti,
+  ChipStato,
+  ElencoSelezionabile,
   PaginazioneElenco,
   PulsanteAttesa,
   RicercaElenco,
   useIdratata,
+  useSelezioneElenco,
 } from "@/components";
 import type { ElencoOffertePaginato, VoceElencoOfferta } from "@/lib/offerte";
 import type { PosizioneElenco } from "@/lib/paginazione";
@@ -66,10 +72,35 @@ export default function OfferteTabella({
   }
 
   return (
-    <>
+    <ElencoSelezionabile
+      elementi={offerte}
+      idElemento={(offerta) => offerta.offertaId}
+      nomeElemento={(offerta) => offerta.codice}
+      nomi={{ singolare: "offerta", plurale: "offerte", femminile: true }}
+      azioni={[
+        { tipo: "modifica", href: (offerta) => `/offerte/${offerta.offertaId}` },
+        {
+          tipo: "collaboratori-abilitati",
+          href: (offerta) => `/offerte/${offerta.offertaId}/collaboratori`,
+        },
+        { tipo: "elimina", esegui: setOffertaDaEliminare },
+      ]}
+      stato={{
+        attivo: (offerta) => offerta.attiva,
+        azione: cambiaStatoOfferta,
+        campiNascosti: (
+          <>
+            <input type="hidden" name="offertaEspansaId" value={offertaEspansaId ?? ""} />
+            <CampiPosizioneElenco {...posizione} />
+          </>
+        ),
+        descrizioneDisattivazione: () =>
+          "Le offerte disattivate non concorrono più al lavoro in corso ma restano nello storico. Potrai riattivarle in qualsiasi momento.",
+      }}
+    >
     <section className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      {/* Toolbar: ricerca + pill critiche + contatore riepilogo */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-4 py-[14px] dark:border-zinc-800">
+      {/* Toolbar: ricerca + pill critiche + contatore riepilogo, oppure azioni sulla selezione */}
+      <BarraElencoSelezionabile>
         <RicercaElenco
           ricerca={ricerca}
           segnaposto="Cerca per cliente, codice o descrizione…"
@@ -90,9 +121,9 @@ export default function OfferteTabella({
         <span className="ml-auto text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
           {totaleElementi}{" "}
           {totaleElementi === 1 ? "offerta" : "offerte"} · {attive} attive ·{" "}
-          {nonAttive} non attive
+          {nonAttive} disattivate
         </span>
-      </div>
+      </BarraElencoSelezionabile>
 
       {/* Tabella trasversale */}
       <div className="overflow-x-auto" data-testid="contenitore-tabella-offerte">
@@ -103,6 +134,9 @@ export default function OfferteTabella({
         >
           <thead>
             <tr>
+              <th className="w-[44px] px-4 py-[11px] text-left">
+                <CasellaSelezioneTutti />
+              </th>
               <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Offerta
               </th>
@@ -115,15 +149,15 @@ export default function OfferteTabella({
               <th className="w-[140px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Giorni erogati
               </th>
-              <th className="w-[360px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                Azioni
+              <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                Stato
               </th>
             </tr>
           </thead>
           <tbody>
             {offerte.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
+                <td colSpan={6} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
                   Nessuna offerta corrisponde alla ricerca.
                 </td>
               </tr>
@@ -138,9 +172,6 @@ export default function OfferteTabella({
                       id === offerta.offertaId ? null : offerta.offertaId,
                     )
                   }
-                  onElimina={() => setOffertaDaEliminare(offerta)}
-                  offertaEspansaId={offertaEspansaId}
-                  posizione={posizione}
                 />
               ))
             )}
@@ -156,7 +187,7 @@ export default function OfferteTabella({
       posizione={posizione}
       onChiudi={() => setOffertaDaEliminare(null)}
     />
-    </>
+    </ElencoSelezionabile>
   );
 }
 
@@ -166,17 +197,12 @@ function RigaOfferta({
   offerta,
   espansa,
   onToggleEspansione,
-  onElimina,
-  offertaEspansaId,
-  posizione,
 }: {
   offerta: VoceElencoOfferta;
   espansa: boolean;
   onToggleEspansione: () => void;
-  onElimina: () => void;
-  offertaEspansaId: string | null;
-  posizione: PosizioneElenco;
 }) {
+  const { isSelezionato } = useSelezioneElenco();
   const oltreBudget = offerta.stato === "OLTRE_BUDGET";
   const esaurita = offerta.stato === "ESAURITA";
   const percentuale =
@@ -190,8 +216,13 @@ function RigaOfferta({
         onClick={onToggleEspansione}
         className={`cursor-pointer border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 ${
           !offerta.attiva ? "opacity-60" : ""
-        }`}
+        } ${isSelezionato(offerta.offertaId) ? "bg-indigo-50/60 dark:bg-indigo-500/10" : ""}`}
       >
+        {/* Selezione: il click sulla casella non espande la riga */}
+        <td className="px-4 py-[13px] align-middle" onClick={(e) => e.stopPropagation()}>
+          <CasellaSelezione id={offerta.offertaId} nome={offerta.codice} />
+        </td>
+
         {/* Offerta: controllo espansione, badge codice + descrizione */}
         <td className="px-4 py-[13px] align-middle">
           <div className="flex min-w-0 items-start gap-[9px] leading-[1.3]">
@@ -216,30 +247,6 @@ function RigaOfferta({
                 <path d="m9 6 6 6-6 6" />
               </svg>
             </button>
-            <form action={cambiaStatoOfferta} className="contents">
-              <input type="hidden" name="id" value={offerta.offertaId} />
-              <input type="hidden" name="attiva" value={offerta.attiva ? "false" : "true"} />
-              <input
-                type="hidden"
-                name="offertaEspansaId"
-                value={offertaEspansaId ?? ""}
-              />
-              <CampiPosizioneElenco {...posizione} />
-              {/* Il pallino di stato è troppo piccolo per una rotellina: l'attesa
-                  si legge dalla pulsazione comandata da aria-busy. */}
-              <PulsanteAttesa
-                mostraRotellina={false}
-                aria-label={offerta.attiva ? "Disattiva" : "Attiva"}
-                aria-pressed={offerta.attiva}
-                title={offerta.attiva ? "Offerta attiva" : "Offerta non attiva"}
-                onClick={(e) => e.stopPropagation()}
-                className={`mt-[4px] h-4 w-4 shrink-0 rounded-full transition aria-busy:animate-pulse focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
-                  offerta.attiva
-                    ? "bg-emerald-500 hover:bg-emerald-600"
-                    : "bg-zinc-300 hover:bg-zinc-400 dark:bg-zinc-600 dark:hover:bg-zinc-500"
-                }`}
-              />
-            </form>
             <div className="flex min-w-0 flex-col gap-[5px]">
               <span
                 className="block max-w-full truncate rounded-[6px] border border-zinc-200 bg-white px-2 py-[2px] text-[11px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
@@ -330,48 +337,14 @@ function RigaOfferta({
         </div>
       </td>
 
-      {/* Azioni: collaboratori, modifica, elimina */}
-      <td
-        className="px-4 py-[13px] text-right align-middle whitespace-nowrap"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="inline-flex items-center gap-[2px]">
-          <Link
-            href={`/offerte/${offerta.offertaId}/collaboratori`}
-            className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
-              <path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.4 4.3a3.5 3.5 0 0 1 0 6.8" />
-            </svg>
-            Collaboratori
-          </Link>
-
-          <Link
-            href={`/offerte/${offerta.offertaId}`}
-            className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
-              <path d="M16.5 3.7a2.2 2.2 0 0 1 3.1 3.1L7.5 18.9 3 20l1.1-4.5L16.5 3.7Z" />
-            </svg>
-            Modifica
-          </Link>
-
-          <button
-            type="button"
-            onClick={onElimina}
-            className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
-              <path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
-            </svg>
-            Elimina
-          </button>
-        </div>
+      {/* Stato */}
+      <td className="px-4 py-[13px] align-middle">
+        <ChipStato attivo={offerta.attiva} femminile />
       </td>
       </tr>
       {espansa && (
         <tr>
-          <td colSpan={5} className="bg-zinc-100 p-0 dark:bg-zinc-800/50">
+          <td colSpan={6} className="bg-zinc-100 p-0 dark:bg-zinc-800/50">
             <DettaglioAvanzamentoOfferta offerta={offerta} />
           </td>
         </tr>
@@ -498,7 +471,7 @@ function ModaleElimina({
                   {offerta.attiva && (
                     <form action={cambiaStatoOfferta}>
                       <input type="hidden" name="id" value={offerta.offertaId} />
-                      <input type="hidden" name="attiva" value="false" />
+                      <input type="hidden" name="attivo" value="false" />
                       <input
                         type="hidden"
                         name="offertaEspansaId"

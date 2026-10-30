@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import { selezionaRighe } from "./support/elenchi";
 import { apriPaginaOfferte } from "./support/offerte";
 
 /** Escape per usare un valore come frammento letterale in una RegExp. */
@@ -48,11 +49,9 @@ test.describe("Pagina offerte trasversale", () => {
 		await expect(riga).toContainText("750,00");
 
 		const celle = riga.getByRole("cell");
-		await expect(celle.nth(3)).toHaveText(/^2\/10\s*gg$/); // erogate/previste
-
-		const indicatore = riga.getByRole("button", { name: "Disattiva" });
-		await expect(indicatore).toBeVisible();
-		await expect(indicatore).toHaveAttribute("title", "Offerta attiva");
+		// La prima cella è la casella di selezione.
+		await expect(celle.nth(4)).toHaveText(/^2\/10\s*gg$/); // erogate/previste
+		await expect(celle.nth(5)).toHaveText("Attiva");
 	});
 
 	test("evidenzia offerte non attive, esaurite e oltre budget nella riga compatta", async ({
@@ -103,15 +102,9 @@ test.describe("Pagina offerte trasversale", () => {
 			name: comeRegExp(codiceNonAttiva),
 		});
 		await expect(rigaNonAttiva).toBeVisible();
-		const indicatoreNonAttiva = rigaNonAttiva.getByRole("button", {
-			name: "Attiva",
-			exact: true,
-		});
-		await expect(indicatoreNonAttiva).toBeVisible();
-		await expect(indicatoreNonAttiva).toHaveAttribute(
-			"title",
-			"Offerta non attiva",
-		);
+		await expect(
+			rigaNonAttiva.getByText("Disattivata", { exact: true }),
+		).toBeVisible();
 
 		const rigaEsaurita = page.getByRole("row", {
 			name: comeRegExp(codiceEsaurita),
@@ -120,11 +113,7 @@ test.describe("Pagina offerte trasversale", () => {
 		await expect(
 			rigaEsaurita.getByText("Esaurita", { exact: true }),
 		).toBeVisible();
-		const indicatoreEsaurita = rigaEsaurita.getByRole("button", {
-			name: "Disattiva",
-		});
-		await expect(indicatoreEsaurita).toBeVisible();
-		await expect(indicatoreEsaurita).toHaveAttribute("title", "Offerta attiva");
+		await expect(rigaEsaurita.getByText("Attiva", { exact: true })).toBeVisible();
 		await expect(
 			rigaEsaurita.getByRole("img", { name: "Erogato 100% del previsto" }),
 		).toBeVisible();
@@ -173,8 +162,15 @@ test.describe("Layout compatto a 1366px", () => {
 
 		const riga = page.getByRole("row", { name: comeRegExp(codice) });
 		await expect(riga).toBeVisible();
-		await expect(riga.getByRole("link", { name: "Modifica" })).toBeVisible();
-		await expect(riga.getByRole("button", { name: "Elimina" })).toBeVisible();
+		await expect(riga.getByText("Attiva", { exact: true })).toBeVisible();
+		await expect(
+			page.getByRole("columnheader", { name: "Stato", exact: true }),
+		).toBeVisible();
+
+		// Anche con la barra azioni aperta la tabella non scorre in orizzontale.
+		const barra = await selezionaRighe(page, [codice]);
+		await expect(barra.getByRole("link", { name: "Modifica", exact: true })).toBeVisible();
+		await expect(barra.getByRole("button", { name: "Elimina", exact: true })).toBeVisible();
 
 		const contenitore = page.getByTestId("contenitore-tabella-offerte");
 		await expect

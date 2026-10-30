@@ -7,3 +7,13 @@ export { LogoAgileReloaded } from "./logo-agile-reloaded";
 export { SelettoreMese } from "./selettore-mese";
 export { BadgeCategoriaAttivita } from "./badge-categoria-attivita";
 export { RicercaElenco, CampiPosizioneElenco, PaginazioneElenco } from "./elenco-paginato";
+export {
+  ElencoSelezionabile,
+  BarraElencoSelezionabile,
+  CasellaSelezioneTutti,
+  CasellaSelezione,
+  ChipStato,
+  useSelezioneElenco,
+  type AzioneElencoSelezionabile,
+  type StatoElencoSelezionabile,
+} from "./elenco-selezionabile";

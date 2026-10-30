@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
-import { cercaNellElenco } from "./support/elenchi";
+import { barraSelezione, cercaNellElenco, selezionaRighe } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 
 /**
@@ -61,7 +61,8 @@ test.describe("US-007 Demo", () => {
 		await expect(rigaCliente.getByText(ragioneSociale)).toBeVisible();
 		await expect(rigaCliente.getByText("Attivo")).toBeVisible();
 
-		await rigaCliente.getByRole("link", { name: "Modifica" }).click();
+		const barra = await selezionaRighe(page, [ragioneSociale]);
+		await barra.getByRole("link", { name: "Modifica", exact: true }).click();
 		await page.waitForURL(/\/anagrafiche\/clienti\/[^/]+\/modifica$/);
 		await expect(
 			page.getByRole("heading", { name: "Modifica cliente" }),
@@ -83,7 +84,12 @@ test.describe("US-007 Demo", () => {
 			.first();
 		await expect(rigaModificata.getByText(nuovaCitta)).toBeVisible();
 
-		await rigaModificata.getByRole("button", { name: "Disattiva" }).click();
+		const barraDisattiva = await selezionaRighe(page, [ragioneSociale]);
+		await barraDisattiva.getByRole("button", { name: "Disattiva", exact: true }).click();
+		await page
+			.getByRole("dialog", { name: `Disattivare «${ragioneSociale}»?` })
+			.getByRole("button", { name: "Disattiva", exact: true })
+			.click();
 		// La disattivazione riporta allo stesso elenco filtrato.
 		await expect(page).toHaveURL(
 			(url) =>
@@ -95,7 +101,8 @@ test.describe("US-007 Demo", () => {
 			.locator("table[aria-label='Elenco clienti'] tbody tr")
 			.filter({ hasText: ragioneSociale })
 			.first();
-		await expect(rigaDisattivata.getByText("Disattivato")).toBeVisible();
+		await expect(rigaDisattivata.getByText("Disattivato", { exact: true })).toBeVisible();
+		await expect(barraSelezione(page)).toBeHidden();
 
 		// Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
 		await page.waitForTimeout(1500);

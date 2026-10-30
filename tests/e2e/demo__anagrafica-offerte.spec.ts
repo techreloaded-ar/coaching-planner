@@ -33,7 +33,8 @@ test.describe("US-008 Demo", () => {
 			.locator("table[aria-label='Elenco clienti'] tbody tr")
 			.filter({ hasText: cliente.ragioneSociale })
 			.first();
-		await rigaCliente.locator("td").first().getByRole("link").click();
+		// L'unico link della riga è la ragione sociale, che apre il dettaglio.
+		await rigaCliente.getByRole("link").click();
 		await page.waitForURL(/\/anagrafiche\/clienti\/[^/]+$/);
 		await expect(page.getByRole("link", { name: "Nuova offerta" })).toBeVisible();
 

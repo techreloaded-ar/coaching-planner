@@ -2,10 +2,15 @@
 
 import type { ElencoClientiPaginato } from "@/lib/clienti";
 import {
+  BarraElencoSelezionabile,
   CampiPosizioneElenco,
+  CasellaSelezione,
+  CasellaSelezioneTutti,
+  ChipStato,
+  ElencoSelezionabile,
   PaginazioneElenco,
-  PulsanteAttesa,
   RicercaElenco,
+  useSelezioneElenco,
 } from "@/components";
 import { cambiaStatoAction } from "./cambia-stato-action";
 
@@ -22,10 +27,23 @@ export default function ClientiTabella({ elenco, ricerca }: ClientiTabellaProps)
   const { clienti, attivi, disattivati, totaleElementi, paginaCorrente } = elenco;
 
   return (
-    <>
+    <ElencoSelezionabile
+      elementi={clienti}
+      idElemento={(cliente) => cliente.id}
+      nomeElemento={(cliente) => cliente.ragioneSociale}
+      nomi={{ singolare: "cliente", plurale: "clienti" }}
+      azioni={[{ tipo: "modifica", href: (cliente) => `/anagrafiche/clienti/${cliente.id}/modifica` }]}
+      stato={{
+        attivo: (cliente) => cliente.attivo,
+        azione: cambiaStatoAction,
+        campiNascosti: <CampiPosizioneElenco ricerca={ricerca} pagina={paginaCorrente} />,
+        descrizioneDisattivazione: () =>
+          "I clienti disattivati restano nello storico ma non sono selezionabili per nuove attività e offerte. Potrai riattivarli in qualsiasi momento.",
+      }}
+    >
       <section className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-4 py-[14px] dark:border-zinc-800">
+        {/* Toolbar: ricerca e contatori, oppure azioni sulla selezione */}
+        <BarraElencoSelezionabile>
           <RicercaElenco
             ricerca={ricerca}
             segnaposto="Cerca per ragione sociale, P.IVA o città…"
@@ -35,12 +53,15 @@ export default function ClientiTabella({ elenco, ricerca }: ClientiTabellaProps)
           <span className="ml-auto text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
             {totaleElementi} clienti · {attivi} attivi · {disattivati} disattivati
           </span>
-        </div>
+        </BarraElencoSelezionabile>
 
         {/* Tabella */}
         <table className="w-full border-collapse text-[13.5px]" aria-label="Elenco clienti">
           <thead>
             <tr>
+              <th className="w-[44px] px-4 py-[11px] text-left">
+                <CasellaSelezioneTutti />
+              </th>
               <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Ragione sociale
               </th>
@@ -53,9 +74,6 @@ export default function ClientiTabella({ elenco, ricerca }: ClientiTabellaProps)
               <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                 Stato
               </th>
-              <th className="w-[200px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                <span className="sr-only">Azioni</span>
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -66,114 +84,9 @@ export default function ClientiTabella({ elenco, ricerca }: ClientiTabellaProps)
                 </td>
               </tr>
             ) : (
-              clienti.map((cliente) => {
-                const sede = [cliente.citta, cliente.provincia ? `(${cliente.provincia})` : ""]
-                  .filter(Boolean)
-                  .join(" ");
-                const iniziali = cliente.ragioneSociale
-                  .split(/\s+/)
-                  .map((p) => p[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2);
-
-                return (
-                  <tr
-                    key={cliente.id}
-                    className={`transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 ${
-                      !cliente.attivo ? "text-zinc-400 dark:text-zinc-500" : ""
-                    }`}
-                  >
-                    <td className="px-4 py-[13px] align-middle">
-                      <a
-                        href={`/anagrafiche/clienti/${cliente.id}`}
-                        className="flex min-w-0 items-center gap-[11px] rounded-[10px] no-underline outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-indigo-400 dark:hover:bg-zinc-800/40"
-                      >
-                        <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-[11.5px] font-bold text-white ${
-                            cliente.attivo
-                              ? "bg-indigo-500"
-                              : "border border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
-                          }`}
-                        >
-                          {iniziali}
-                        </div>
-                        <div className="min-w-0 leading-[1.3]">
-                          <b
-                            className={`block overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold ${
-                              cliente.attivo
-                                ? "text-zinc-800 dark:text-zinc-100"
-                                : "text-zinc-400 line-through decoration-zinc-300/50 dark:text-zinc-500 dark:decoration-zinc-600/50"
-                            }`}
-                          >
-                            {cliente.ragioneSociale}
-                          </b>
-                          <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
-                            {cliente.pec || cliente.codiceDestinatario
-                              ? "Fatturazione elettronica configurata"
-                              : "Dati fatturazione da completare"}
-                          </span>
-                        </div>
-                      </a>
-                    </td>
-                    <td className="px-4 py-[13px] align-middle tabular-nums">{cliente.partitaIva ?? "—"}</td>
-                    <td className="px-4 py-[13px] align-middle">{sede || "—"}</td>
-                    <td className="px-4 py-[13px] align-middle">
-                      {cliente.attivo ? (
-                        <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                          <span className="h-[6px] w-[6px] rounded-full bg-current" />
-                          Attivo
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-[5px] rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
-                          <span className="h-[6px] w-[6px] rounded-full bg-current" />
-                          Disattivato
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
-                      <a
-                        href={`/anagrafiche/clienti/${cliente.id}/modifica`}
-                        className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
-                          <path d="M16.5 3.7a2.2 2.2 0 0 1 3.1 3.1L7.5 18.9 3 20l1.1-4.5L16.5 3.7Z" />
-                        </svg>
-                        Modifica
-                      </a>
-                      {cliente.attivo ? (
-                        <form action={cambiaStatoAction} className="inline">
-                          <input type="hidden" name="id" value={cliente.id} />
-                          <input type="hidden" name="attivo" value="false" />
-                          <CampiPosizioneElenco ricerca={ricerca} pagina={paginaCorrente} />
-                          <PulsanteAttesa
-                            className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
-                              <circle cx="12" cy="12" r="8.6" /><path d="M6 6l12 12" />
-                            </svg>
-                            Disattiva
-                          </PulsanteAttesa>
-                        </form>
-                      ) : (
-                        <form action={cambiaStatoAction} className="inline">
-                          <input type="hidden" name="id" value={cliente.id} />
-                          <input type="hidden" name="attivo" value="true" />
-                          <CampiPosizioneElenco ricerca={ricerca} pagina={paginaCorrente} />
-                          <PulsanteAttesa
-                            className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-zinc-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
-                              <path d="M4.5 12a7.5 7.5 0 1 1 2.2 5.3" /><path d="M4.5 17.5V12H10" />
-                            </svg>
-                            Riattiva
-                          </PulsanteAttesa>
-                        </form>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
+              clienti.map((cliente) => (
+                <RigaCliente key={cliente.id} cliente={cliente} />
+              ))
             )}
           </tbody>
         </table>
@@ -183,7 +96,70 @@ export default function ClientiTabella({ elenco, ricerca }: ClientiTabellaProps)
           {...elenco}
         />
       </section>
+    </ElencoSelezionabile>
+  );
+}
 
-    </>
+// ── Riga ───────────────────────────────────────────────────────
+
+function RigaCliente({ cliente }: { cliente: ElencoClientiPaginato["clienti"][number] }) {
+  const { isSelezionato } = useSelezioneElenco();
+  const sede = [cliente.citta, cliente.provincia ? `(${cliente.provincia})` : ""]
+    .filter(Boolean)
+    .join(" ");
+  const iniziali = cliente.ragioneSociale
+    .split(/\s+/)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <tr
+      className={`transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 ${
+        !cliente.attivo ? "text-zinc-400 dark:text-zinc-500" : ""
+      } ${isSelezionato(cliente.id) ? "bg-indigo-50/60 dark:bg-indigo-500/10" : ""}`}
+    >
+      <td className="px-4 py-[13px] align-middle">
+        <CasellaSelezione id={cliente.id} nome={cliente.ragioneSociale} />
+      </td>
+      <td className="px-4 py-[13px] align-middle">
+        <a
+          href={`/anagrafiche/clienti/${cliente.id}`}
+          className="flex min-w-0 items-center gap-[11px] rounded-[10px] no-underline outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-indigo-400 dark:hover:bg-zinc-800/40"
+        >
+          <div
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-[11.5px] font-bold text-white ${
+              cliente.attivo
+                ? "bg-indigo-500"
+                : "border border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+            }`}
+          >
+            {iniziali}
+          </div>
+          <div className="min-w-0 leading-[1.3]">
+            <b
+              className={`block overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold ${
+                cliente.attivo
+                  ? "text-zinc-800 dark:text-zinc-100"
+                  : "text-zinc-400 line-through decoration-zinc-300/50 dark:text-zinc-500 dark:decoration-zinc-600/50"
+              }`}
+            >
+              {cliente.ragioneSociale}
+            </b>
+            <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
+              {cliente.pec || cliente.codiceDestinatario
+                ? "Fatturazione elettronica configurata"
+                : "Dati fatturazione da completare"}
+            </span>
+          </div>
+        </a>
+      </td>
+      <td className="px-4 py-[13px] align-middle tabular-nums">{cliente.partitaIva ?? "—"}</td>
+      <td className="px-4 py-[13px] align-middle">{sede || "—"}</td>
+      <td className="px-4 py-[13px] align-middle">
+        <ChipStato attivo={cliente.attivo} />
+      </td>
+    </tr>
   );
 }

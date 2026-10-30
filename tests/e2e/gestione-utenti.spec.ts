@@ -6,6 +6,7 @@ import {
 	accediCome,
 } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
+import { barraSelezione, selezionaRighe } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 
 function tabellaUtenti(page: Page) {
@@ -16,6 +17,20 @@ function rigaUtente(page: Page, email: string) {
 	return tabellaUtenti(page)
 		.getByRole("row")
 		.filter({ has: page.getByText(email, { exact: true }) });
+}
+
+/** Seleziona la riga dell'utente e restituisce la barra delle azioni. */
+function selezionaUtenti(page: Page, email: string[]) {
+	return selezionaRighe(
+		page,
+		email.map((valore) => rigaUtente(page, valore).getByRole("checkbox")),
+	);
+}
+
+/** Apre la modifica dell'utente dalla barra azioni della selezione. */
+async function apriModificaUtente(page: Page, email: string): Promise<void> {
+	const barra = await selezionaUtenti(page, [email]);
+	await barra.getByRole("link", { name: "Modifica", exact: true }).click();
 }
 
 function tabellaCollaboratori(page: Page) {
@@ -35,7 +50,7 @@ function rigaCollaboratore(page: Page, email: string) {
  */
 async function attendiEsitoUtente(
 	page: Page,
-	esito: "creato" | "salvato" | "invalidato" | "riattivato",
+	esito: "creato" | "salvato" | "disattivato" | "riattivato",
 ): Promise<void> {
 	await test.step(`Attende redirect utenti: ${esito}`, async () => {
 		await page.waitForURL((url) =>
@@ -142,7 +157,11 @@ async function apriElencoCollaboratori(
 	await expect(rigaCollaboratore(page, email)).toHaveCount(1);
 }
 
-async function filtraUtenti(page: Page, valore: string): Promise<void> {
+async function filtraUtenti(
+	page: Page,
+	valore: string,
+	righeAttese = 1,
+): Promise<void> {
 	const ricerca = page.getByRole("searchbox", { name: "Cerca utente" });
 
 	await expect
@@ -151,7 +170,7 @@ async function filtraUtenti(page: Page, valore: string): Promise<void> {
 			await ricerca.fill(valore);
 			return tabellaUtenti(page).getByRole("row").count();
 		})
-		.toBe(2);
+		.toBe(righeAttese + 1);
 }
 
 test.describe("Gestione utenti", () => {
@@ -636,9 +655,7 @@ test.describe("Gestione utenti", () => {
 
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, utente.email);
-		await rigaUtente(page, utente.email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, utente.email);
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
@@ -663,9 +680,7 @@ test.describe("Gestione utenti", () => {
 		).toBeVisible();
 
 		// AC-3: riaprendo il form, i due campi restano distinti e aggiornati.
-		await rigaUtente(page, utente.email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, utente.email);
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
@@ -755,9 +770,7 @@ test.describe("Gestione utenti", () => {
 		// Cognome compaiono già separati e popolati (sola lettura, nessun
 		// salvataggio: l'utente seed non viene mutato).
 		await filtraUtenti(page, "giulia.conti@agilereloaded.it");
-		await rigaUtente(page, "giulia.conti@agilereloaded.it")
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, "giulia.conti@agilereloaded.it");
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
@@ -781,9 +794,7 @@ test.describe("Gestione utenti", () => {
 
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, utente.email);
-		await rigaUtente(page, utente.email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, utente.email);
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
@@ -815,15 +826,15 @@ test.describe("Gestione utenti", () => {
 		).toBeVisible();
 	});
 
-	test("invalida un collaboratore: elenco, profilo operativo e sessione aperta", async ({
+	test("disattiva un collaboratore: elenco, profilo operativo e sessione aperta", async ({
 		page,
 		browser,
 		factory,
 	}) => {
 		const collaboratore = await factory.createCollaboratore({
 			utenteOptions: {
-				nome: `${factory.namespace} Collaboratore da invalidare`,
-				email: `${factory.namespace}-da-invalidare@e2e.invalid`,
+				nome: `${factory.namespace} Collaboratore da disattivare`,
+				email: `${factory.namespace}-da-disattivare@e2e.invalid`,
 				ruolo: "COLLABORATORE",
 			},
 		});
@@ -837,25 +848,30 @@ test.describe("Gestione utenti", () => {
 			await apriElencoUtenti(page);
 			await filtraUtenti(page, collaboratore.utente.email);
 			const riga = rigaUtente(page, collaboratore.utente.email);
-			await riga.getByRole("button", { name: "Invalida", exact: true }).click();
+			const barra = await selezionaUtenti(page, [collaboratore.utente.email]);
+			await expect(barra).toContainText("1 utente selezionato");
+			await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
 
 			const modale = page.getByRole("dialog", {
-				name: `Invalidare «${collaboratore.utente.nome} ${collaboratore.utente.cognome}»?`,
+				name: `Disattivare «${collaboratore.utente.nome} ${collaboratore.utente.cognome}»?`,
 			});
 			await expect(modale).toBeVisible();
+			// Il dialog avvisa che anche il profilo collaboratore viene disattivato.
+			await expect(modale).toContainText("Anche il profilo operativo verrà disattivato");
 			await modale
-				.getByRole("button", { name: "Invalida utente", exact: true })
+				.getByRole("button", { name: "Disattiva", exact: true })
 				.click();
 
-			await attendiEsitoUtente(page, "invalidato");
+			await attendiEsitoUtente(page, "disattivato");
 			await expect(page).toHaveURL(
-				/\/anagrafiche\/utenti\?esito=invalidato$/,
+				/\/anagrafiche\/utenti\?esito=disattivato$/,
 			);
 			await expect(page.getByRole("status")).toContainText(
-				"Utente invalidato: l'accesso è revocato e il record resta in elenco",
+				"Disattivazione completata: l'accesso è revocato e gli utenti restano in elenco",
 			);
 			await expect(riga).toHaveCount(1);
-			await expect(riga.getByText("Invalidato", { exact: true })).toBeVisible();
+			await expect(riga.getByText("Disattivato", { exact: true })).toBeVisible();
+			await expect(barraSelezione(page)).toBeHidden();
 
 			await page.getByRole("link", { name: "Collaboratori", exact: true }).click();
 			await expect(page).toHaveURL(/\/anagrafiche\/collaboratori$/);
@@ -878,7 +894,59 @@ test.describe("Gestione utenti", () => {
 		}
 	});
 
-	test("riattiva un utente invalidato: accesso e profilo ripristinati", async ({
+	test("disattiva e riattiva più utenti insieme dalla barra azioni", async ({
+		page,
+		factory,
+	}) => {
+		const nome = `${factory.namespace} Selezione multipla`;
+		const primo = await factory.createUtente({
+			nome,
+			cognome: "Uno",
+			email: `${factory.namespace}-multipla-uno@e2e.invalid`,
+		});
+		const secondo = await factory.createUtente({
+			nome,
+			cognome: "Due",
+			email: `${factory.namespace}-multipla-due@e2e.invalid`,
+		});
+
+		await apriElencoUtenti(page);
+		await filtraUtenti(page, nome, 2);
+		const barra = await selezionaUtenti(page, [primo.email, secondo.email]);
+		await expect(barra).toContainText("2 utenti selezionati");
+		await expect(barra.getByRole("link", { name: "Modifica" })).toHaveCount(0);
+		await barra.getByRole("button", { name: "Disattiva (2)", exact: true }).click();
+
+		const modale = page.getByRole("dialog", { name: "Disattivare 2 utenti?" });
+		await expect(modale).toBeVisible();
+		// Nessuno dei due ha un profilo collaboratore: niente avviso sul profilo.
+		await expect(modale).not.toContainText("profil");
+		await modale.getByRole("button", { name: "Disattiva", exact: true }).click();
+		await attendiEsitoUtente(page, "disattivato");
+		for (const utente of [primo, secondo]) {
+			await expect(
+				rigaUtente(page, utente.email).getByText("Disattivato", { exact: true }),
+			).toBeVisible();
+		}
+
+		const barraRiattiva = await selezionaUtenti(page, [primo.email, secondo.email]);
+		await expect(
+			barraRiattiva.getByRole("button", { name: /^Disattiva/ }),
+		).toHaveCount(0);
+		await barraRiattiva.getByRole("button", { name: "Riattiva (2)", exact: true }).click();
+		await attendiEsitoUtente(page, "riattivato");
+		await expect(page.getByRole("status")).toContainText(
+			"Riattivazione completata: gli utenti possono accedere di nuovo all'applicazione",
+		);
+		for (const utente of [primo, secondo]) {
+			await expect(
+				rigaUtente(page, utente.email).getByText("Attivo", { exact: true }),
+			).toBeVisible();
+		}
+		await expect(barraSelezione(page)).toBeHidden();
+	});
+
+	test("riattiva un utente disattivato: accesso e profilo ripristinati", async ({
 		page,
 		browser,
 		factory,
@@ -894,22 +962,25 @@ test.describe("Gestione utenti", () => {
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, collaboratore.utente.email);
 		const riga = rigaUtente(page, collaboratore.utente.email);
-		await riga.getByRole("button", { name: "Invalida", exact: true }).click();
+		const barra = await selezionaUtenti(page, [collaboratore.utente.email]);
+		await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
 		const modale = page.getByRole("dialog", {
-			name: `Invalidare «${collaboratore.utente.nome} ${collaboratore.utente.cognome}»?`,
+			name: `Disattivare «${collaboratore.utente.nome} ${collaboratore.utente.cognome}»?`,
 		});
 		await expect(modale).toBeVisible();
 		await modale
-			.getByRole("button", { name: "Invalida utente", exact: true })
+			.getByRole("button", { name: "Disattiva", exact: true })
 			.click();
-		await attendiEsitoUtente(page, "invalidato");
-		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=invalidato$/);
+		await attendiEsitoUtente(page, "disattivato");
+		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=disattivato$/);
 
-		await riga.getByRole("button", { name: "Riattiva", exact: true }).click();
+		// La riattivazione parte dalla barra senza conferma.
+		const barraRiattiva = await selezionaUtenti(page, [collaboratore.utente.email]);
+		await barraRiattiva.getByRole("button", { name: "Riattiva", exact: true }).click();
 		await attendiEsitoUtente(page, "riattivato");
 		await expect(page).toHaveURL(/\/anagrafiche\/utenti\?esito=riattivato$/);
 		await expect(page.getByRole("status")).toContainText(
-			"Utente riattivato: può accedere di nuovo all'applicazione",
+			"Riattivazione completata: gli utenti possono accedere di nuovo all'applicazione",
 		);
 		await expect(riga.getByText("Attivo", { exact: true })).toBeVisible();
 
@@ -955,9 +1026,7 @@ test.describe("Gestione utenti", () => {
 
 			await apriElencoUtenti(page);
 			await filtraUtenti(page, utente.email);
-			await rigaUtente(page, utente.email)
-				.getByRole("link", { name: "Modifica", exact: true })
-				.click();
+			await apriModificaUtente(page, utente.email);
 			await expect(
 				page.getByRole("heading", { name: "Modifica utente" }),
 			).toBeVisible();
@@ -1007,9 +1076,7 @@ test.describe("Gestione utenti", () => {
 
 			await apriElencoUtenti(page);
 			await filtraUtenti(page, utente.email);
-			await rigaUtente(page, utente.email)
-				.getByRole("link", { name: "Modifica", exact: true })
-				.click();
+			await apriModificaUtente(page, utente.email);
 			await expect(
 				page.getByRole("heading", { name: "Modifica utente" }),
 			).toBeVisible();
@@ -1032,7 +1099,7 @@ test.describe("Gestione utenti", () => {
 		}
 	});
 
-	test("demo__invalida-riattiva-e-promuove-un-collaboratore", async ({
+	test("demo__disattiva-riattiva-e-promuove-un-collaboratore", async ({
 		page,
 		browser,
 		factory,
@@ -1055,19 +1122,20 @@ test.describe("Gestione utenti", () => {
 			await filtraUtenti(page, collaboratore.utente.email);
 			const riga = rigaUtente(page, collaboratore.utente.email);
 			await expect(riga).toBeVisible();
-			await riga.getByRole("button", { name: "Invalida", exact: true }).click();
+			const barra = await selezionaUtenti(page, [collaboratore.utente.email]);
+			await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
 			const modale = page.getByRole("dialog", {
-				name: `Invalidare «${collaboratore.utente.nome} ${collaboratore.utente.cognome}»?`,
+				name: `Disattivare «${collaboratore.utente.nome} ${collaboratore.utente.cognome}»?`,
 			});
 			await expect(modale).toBeVisible();
 			await modale
-				.getByRole("button", { name: "Invalida utente", exact: true })
+				.getByRole("button", { name: "Disattiva", exact: true })
 				.click();
-			await attendiEsitoUtente(page, "invalidato");
+			await attendiEsitoUtente(page, "disattivato");
 			await expect(page.getByRole("status")).toContainText(
-				"Utente invalidato: l'accesso è revocato e il record resta in elenco",
+				"Disattivazione completata: l'accesso è revocato e gli utenti restano in elenco",
 			);
-			await expect(riga.getByText("Invalidato", { exact: true })).toBeVisible();
+			await expect(riga.getByText("Disattivato", { exact: true })).toBeVisible();
 
 			await page.getByRole("link", { name: "Collaboratori", exact: true }).click();
 			await expect(page.getByRole("heading", { name: "Collaboratori" })).toBeVisible();
@@ -1088,16 +1156,16 @@ test.describe("Gestione utenti", () => {
 
 			await apriElencoUtenti(page);
 			await filtraUtenti(page, collaboratore.utente.email);
-			await riga
+			await (await selezionaUtenti(page, [collaboratore.utente.email]))
 				.getByRole("button", { name: "Riattiva", exact: true })
 				.click();
 			await attendiEsitoUtente(page, "riattivato");
 			await expect(page.getByRole("status")).toContainText(
-				"Utente riattivato: può accedere di nuovo all'applicazione",
+				"Riattivazione completata: gli utenti possono accedere di nuovo all'applicazione",
 			);
 			await expect(riga.getByText("Attivo", { exact: true })).toBeVisible();
 
-			await riga.getByRole("link", { name: "Modifica", exact: true }).click();
+			await apriModificaUtente(page, collaboratore.utente.email);
 			await expect(
 				page.getByRole("heading", { name: "Modifica utente" }),
 			).toBeVisible();
@@ -1258,9 +1326,7 @@ test.describe("Gestione utenti", () => {
 
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, utente.email);
-		await rigaUtente(page, utente.email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, utente.email);
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
@@ -1345,9 +1411,7 @@ test.describe("Gestione utenti", () => {
 		// AC-3: rimozione del ruolo Collaboratore lasciando l'accesso Amministratore.
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, email);
-		await rigaUtente(page, email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, email);
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
@@ -1411,9 +1475,7 @@ test.describe("Gestione utenti", () => {
 		// AC-2: ri-aggiunta del ruolo senza che partita IVA e tariffa siano richieste.
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, email);
-		await rigaUtente(page, email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, email);
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
@@ -1457,9 +1519,7 @@ test.describe("Gestione utenti", () => {
 
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, email);
-		await rigaUtente(page, email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, email);
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
@@ -1528,9 +1588,7 @@ test.describe("Gestione utenti", () => {
 		// 1. Aggiunta del ruolo Collaboratore con i dati obbligatori richiesti.
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, utenteDaPromuovere.email);
-		await rigaUtente(page, utenteDaPromuovere.email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, utenteDaPromuovere.email);
 		await impostaRuolo(page, "Collaboratore", true);
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
@@ -1566,9 +1624,7 @@ test.describe("Gestione utenti", () => {
 		// 2. Rimozione del ruolo Collaboratore dall'utente con attività.
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, emailCollaboratore);
-		await rigaUtente(page, emailCollaboratore)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, emailCollaboratore);
 		await commutaRuolo(page, "Collaboratore", false);
 		await commutaRuolo(page, "Amministratore", true);
 		await page
@@ -1614,9 +1670,7 @@ test.describe("Gestione utenti", () => {
 		// 4. Ri-aggiunta del ruolo: nessun dato richiesto, profilo riattivato.
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, emailCollaboratore);
-		await rigaUtente(page, emailCollaboratore)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		await apriModificaUtente(page, emailCollaboratore);
 		await commutaRuolo(page, "Collaboratore", true);
 		await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
 		await page
