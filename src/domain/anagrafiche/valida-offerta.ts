@@ -67,13 +67,9 @@ export function validaOfferta(
 		errori.codice = `Il codice offerta non può superare ${LUNGHEZZA_MASSIMA_CODICE} caratteri`;
 	}
 
-	if (!dati.descrizione || dati.descrizione.trim() === "") {
-		errori.descrizione = "La descrizione è obbligatoria";
-	}
-
-	if (!dati.tariffaGiornaliera || dati.tariffaGiornaliera.trim() === "") {
-		errori.tariffaGiornaliera = "La tariffa giornaliera è obbligatoria";
-	} else {
+	// Descrizione, tariffa giornaliera e giorni previsti sono facoltativi:
+	// validati solo se valorizzati.
+	if (dati.tariffaGiornaliera && dati.tariffaGiornaliera.trim() !== "") {
 		const tariffa = normalizzaTariffaGiornaliera(dati.tariffaGiornaliera);
 
 		if (!tariffa) {
@@ -84,9 +80,7 @@ export function validaOfferta(
 		}
 	}
 
-	if (!dati.giorniPrevisti || dati.giorniPrevisti.trim() === "") {
-		errori.giorniPrevisti = "I giorni previsti sono obbligatori";
-	} else {
+	if (dati.giorniPrevisti && dati.giorniPrevisti.trim() !== "") {
 		const giorni = dati.giorniPrevisti.trim();
 
 		if (!RE_INTERO.test(giorni)) {

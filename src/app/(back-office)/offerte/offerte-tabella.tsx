@@ -33,8 +33,8 @@ const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
 });
 
 /** Formatta un numero di giornate con al massimo un decimale, stile it-IT. */
-function formattaGiornate(valore: number): string {
-  return formattatoreGiornate.format(valore);
+function formattaGiornate(valore: number | null): string {
+  return valore === null ? "—" : formattatoreGiornate.format(valore);
 }
 
 // ── Props ───────────────────────────────────────────────────────
@@ -180,7 +180,7 @@ function RigaOfferta({
   const oltreBudget = offerta.stato === "OLTRE_BUDGET";
   const esaurita = offerta.stato === "ESAURITA";
   const percentuale =
-    offerta.giorniPrevisti > 0
+    offerta.giorniPrevisti !== null && offerta.giorniPrevisti > 0
       ? Math.min((offerta.giornateErogate / offerta.giorniPrevisti) * 100, 100)
       : 0;
 
@@ -251,7 +251,7 @@ function RigaOfferta({
                 className="max-w-[340px] truncate text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100"
                 title={offerta.descrizione}
               >
-                {offerta.descrizione}
+                {offerta.descrizione || "—"}
               </span>
             </div>
           </div>
@@ -274,7 +274,7 @@ function RigaOfferta({
 
       {/* Tariffa giornaliera */}
       <td className="px-4 py-[13px] text-right align-middle tabular-nums whitespace-nowrap font-semibold text-zinc-700 dark:text-zinc-200">
-        {formattaEuro(Number(offerta.tariffaGiornaliera))}
+        {formattaEuro(offerta.tariffaGiornaliera)}
         <div className="mt-[3px] text-[11.5px] font-medium text-zinc-400 dark:text-zinc-500">
           {descriviGestioneTrasferta(
             offerta.gestioneTrasferta,
@@ -294,6 +294,7 @@ function RigaOfferta({
               gg
             </span>
           </span>
+          {offerta.giorniPrevisti !== null && (
           <span
             className="relative h-[5px] w-[72px] overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-700/50"
             role="img"
@@ -310,6 +311,7 @@ function RigaOfferta({
               style={{ width: `${percentuale}%` }}
             />
           </span>
+          )}
           {oltreBudget && (
             <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-red-600 dark:text-red-400">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[12px] w-[12px]" strokeWidth={2.2}>
@@ -441,9 +443,9 @@ function ModaleElimina({
                 </span>
                 <span
                   className="block truncate text-[12px] text-zinc-500 dark:text-zinc-400"
-                  title={`${offerta.clienteRagioneSociale} · ${offerta.descrizione}`}
+                  title={[offerta.clienteRagioneSociale, offerta.descrizione].filter(Boolean).join(" · ")}
                 >
-                  {offerta.clienteRagioneSociale} · {offerta.descrizione}
+                  {[offerta.clienteRagioneSociale, offerta.descrizione].filter(Boolean).join(" · ")}
                 </span>
               </div>
             </div>

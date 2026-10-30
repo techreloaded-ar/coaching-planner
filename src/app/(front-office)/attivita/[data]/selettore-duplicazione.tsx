@@ -249,7 +249,7 @@ export function SelettoreDuplicazione({
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] font-bold text-zinc-800 dark:text-zinc-100">
               {riga.cliente.ragioneSociale}
               <span className="font-normal text-zinc-400">·</span>
-              {riga.offerta.codice} — {riga.offerta.descrizione}
+              {[riga.offerta.codice, riga.offerta.descrizione].filter(Boolean).join(" — ")}
               <span className="font-normal text-zinc-400">·</span>
               {riga.ore.toFixed(1)} h
               <span className="font-normal text-zinc-400">·</span>

@@ -13,6 +13,7 @@ import {
   type DatiCensimentoUtenteInput,
   type DatiModificaUtenteInput,
   type ErroriValidazione,
+  tariffaInizialeIndicata,
 } from "@/domain/anagrafiche/valida-utente";
 import { normalizzaTariffaGiornaliera } from "@/domain/anagrafiche/valida-collaboratore";
 import type { ModalitaTariffa } from "@/domain/tariffe";
@@ -57,12 +58,18 @@ function datiModificaDaForm(
   };
 }
 
-/** Prima voce dello storico tariffe dai campi già validati del form utente. */
+/**
+ * Prima voce dello storico tariffe dai campi già validati del form utente;
+ * null se la tariffa iniziale non è stata indicata.
+ */
 function primaVoceTariffa(dati: {
   modalitaTariffa: string;
   importoTariffa: string;
   tariffaValidaDalMese: string;
 }) {
+  if (!tariffaInizialeIndicata(dati)) {
+    return null;
+  }
   return {
     validaDalMese: dati.tariffaValidaDalMese,
     modalita: dati.modalitaTariffa as ModalitaTariffa,
@@ -130,8 +137,7 @@ export async function creaUtente(
     return { errori };
   }
 
-  // validaCensimentoUtente ha già validato la tariffa iniziale: per un utente
-  // Collaboratore la voce dello storico è sempre costruibile qui.
+  // validaCensimentoUtente ha già validato la tariffa iniziale, se indicata.
   const tariffaIniziale = dati.ruoloCollaboratore ? primaVoceTariffa(dati) : null;
 
   try {
@@ -159,9 +165,9 @@ export async function creaUtente(
             userId: utente.id,
             nome: dati.nome,
             cognome: dati.cognome,
-            partitaIva: dati.partitaIva,
+            partitaIva: dati.partitaIva || null,
             attivo: true,
-            tariffe: { create: tariffaIniziale! },
+            ...(tariffaIniziale && { tariffe: { create: tariffaIniziale } }),
           },
         });
       }
@@ -300,9 +306,9 @@ export async function aggiornaUtente(
                 userId: id,
                 nome: dati.nome,
                 cognome: dati.cognome,
-                partitaIva: dati.partitaIva,
+                partitaIva: dati.partitaIva || null,
                 attivo: true,
-                tariffe: { create: tariffaIniziale! },
+                ...(tariffaIniziale && { tariffe: { create: tariffaIniziale } }),
               },
             });
             profiloModificato = true;

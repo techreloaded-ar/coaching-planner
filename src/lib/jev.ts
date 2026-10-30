@@ -462,7 +462,7 @@ function analisiSimulataE2e(
       continue;
     }
 
-    if (offerte.some((o) => testo.includes(o.descrizione.toLowerCase()))) {
+    if (offerte.some((o) => o.descrizione && testo.includes(o.descrizione.toLowerCase()))) {
       analisi.associazioniBassa++;
     }
   }

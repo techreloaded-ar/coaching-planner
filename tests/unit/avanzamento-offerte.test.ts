@@ -52,6 +52,30 @@ describe("calcolaAvanzamentoOfferte", () => {
     });
   });
 
+  // ── Offerta senza giorni previsti ──────────────────────────
+
+  it("senza giorni previsti mostra solo l'erogato: niente residuo, percentuale né allerta", () => {
+    const report = calcolaAvanzamentoOfferte(
+      [offerta({ giorniPrevisti: null }), offerta({ offertaId: "offerta-2", offertaCodice: "OFF-002" })],
+      [riga({ ore: 16 }), riga({ offertaId: "offerta-2", ore: 8 })],
+    );
+
+    const [conBudget, senzaBudget] = report.perOfferta;
+    expect(conBudget.offertaId).toBe("offerta-2");
+    expect(senzaBudget).toMatchObject({
+      giornatePreviste: null,
+      giornateErogate: 2,
+      residuo: null,
+      percentualeUtilizzo: null,
+      stato: "IN_CORSO",
+    });
+    expect(report.totali).toEqual({
+      giornatePrevisteTotali: 10,
+      giornateErogateTotali: 3,
+      residuoTotale: 9,
+    });
+  });
+
   // ── Conversione ore → giornate ──────────────────────────────
 
   it("converte 8 ore fatturabili in 1 giornata erogata", () => {

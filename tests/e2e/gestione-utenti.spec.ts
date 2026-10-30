@@ -1224,7 +1224,8 @@ test.describe("Gestione utenti", () => {
 			}),
 		).toHaveCount(0);
 
-		// 5. Tentativo con partita IVA vuota rifiutato sul campo.
+		// 5. Collaboratore censito con soli nome, cognome ed email: partita IVA
+		// e tariffa iniziale sono facoltative.
 		const emailPivaVuota = `${factory.namespace}-demo-piva-vuota@e2e.invalid`;
 		await page
 			.getByRole("link", { name: "Nuovo utente", exact: true })
@@ -1232,17 +1233,18 @@ test.describe("Gestione utenti", () => {
 		await page.getByLabel(/^Nome\b/).fill(`${factory.namespace} Demo PIVA vuota`);
 		await page.getByLabel(/^Email di accesso\b/).fill(emailPivaVuota);
 		await page.getByLabel(/^Cognome\b/).fill("Neri");
-		await page.getByLabel(/^Importo tariffa\b/).fill("400");
 		await page
 			.getByRole("button", { name: "Censisci utente", exact: true })
 			.click();
+		await attendiEsitoUtente(page, "creato");
+		await apriElencoCollaboratori(page, emailPivaVuota);
+		// Colonna P.IVA
 		await expect(
-			page.getByText("La partita IVA è obbligatoria", { exact: true }),
-		).toBeVisible();
-		await expect(page).toHaveURL(/\/anagrafiche\/utenti\/nuovo$/);
+			rigaCollaboratore(page, emailPivaVuota).getByRole("cell").nth(2),
+		).toHaveText("—");
 	});
 
-	test("aggiunge il ruolo Collaboratore a un amministratore: campi obbligatori e profilo attivo", async ({
+	test("aggiunge il ruolo Collaboratore a un amministratore: campi profilo validati e profilo attivo", async ({
 		page,
 		factory,
 	}) => {
@@ -1272,17 +1274,13 @@ test.describe("Gestione utenti", () => {
 		await expect(page.getByLabel(/^Partita IVA\b/)).toBeVisible();
 		await expect(page.getByLabel(/^Cognome\b/)).toHaveValue(cognome);
 
-		// Senza dati profilo il salvataggio è rifiutato con i due obblighi.
+		// Partita IVA e tariffa sono facoltative ma, se indicate, sono validate.
+		await page.getByLabel(/^Partita IVA\b/).fill("12345");
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
 		await expect(
-			page.getByText("La partita IVA è obbligatoria", { exact: true }),
-		).toBeVisible();
-		await expect(
-			page.getByText("L'importo è obbligatorio", {
-				exact: true,
-			}),
+			page.getByText("La partita IVA deve essere di 11 cifre", { exact: true }),
 		).toBeVisible();
 
 		// Compilati i campi, il salvataggio crea il profilo collaboratore.
@@ -1525,23 +1523,19 @@ test.describe("Gestione utenti", () => {
 			categoria: "FATTURABILE",
 		});
 
-		// 1. Aggiunta del ruolo Collaboratore con i dati obbligatori richiesti.
+		// 1. Aggiunta del ruolo Collaboratore: i dati profilo indicati sono validati.
 		await apriElencoUtenti(page);
 		await filtraUtenti(page, utenteDaPromuovere.email);
 		await rigaUtente(page, utenteDaPromuovere.email)
 			.getByRole("link", { name: "Modifica", exact: true })
 			.click();
 		await impostaRuolo(page, "Collaboratore", true);
+		await page.getByLabel(/^Partita IVA\b/).fill("12345");
 		await page
 			.getByRole("button", { name: "Salva modifiche", exact: true })
 			.click();
 		await expect(
-			page.getByText("La partita IVA è obbligatoria", { exact: true }),
-		).toBeVisible();
-		await expect(
-			page.getByText("L'importo è obbligatorio", {
-				exact: true,
-			}),
+			page.getByText("La partita IVA deve essere di 11 cifre", { exact: true }),
 		).toBeVisible();
 		// Il submit fallito resetta i campi non controllati del form (React 19),
 		// deselezionando il checkbox Collaboratore: va riportato a selezionato.

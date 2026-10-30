@@ -57,8 +57,37 @@ test.describe("Anagrafica clienti", () => {
 		await expect(
 			page.getByText("La ragione sociale è obbligatoria"),
 		).toBeVisible();
-		await expect(page.getByText("La partita IVA è obbligatoria")).toBeVisible();
+		await expect(page.getByText(/La partita IVA/)).toHaveCount(0);
 		await expect(page).toHaveURL(/\/anagrafiche\/clienti\/nuovo/);
+	});
+
+	test("crea un cliente con la sola ragione sociale", async ({ page, factory }) => {
+		const ragioneSociale = `${factory.namespace} Solo Ragione Sociale`;
+		await page.goto("/anagrafiche/clienti/nuovo");
+		await page.getByLabel(/^Ragione sociale\b/).fill(ragioneSociale);
+		await page.getByLabel(/^Partita IVA\b/).fill("12345");
+		await page.getByRole("button", { name: "Crea cliente" }).click();
+		await expect(
+			page.getByText("La partita IVA deve essere di 11 cifre"),
+		).toBeVisible();
+
+		await page.getByLabel(/^Partita IVA\b/).fill("");
+		await page.getByRole("button", { name: "Crea cliente" }).click();
+		await expect(page).toHaveURL(/\/anagrafiche\/clienti\?esito=creato$/);
+
+		await apriElencoFiltrato(page, "/anagrafiche/clienti", ragioneSociale);
+		// Colonna P.IVA
+		await expect(
+			rigaCliente(page, ragioneSociale).getByRole("cell").nth(1),
+		).toHaveText("—");
+
+		// Anche il dettaglio cliente mostra «—» per la partita IVA assente.
+		await rigaCliente(page, ragioneSociale)
+			.getByRole("link", { name: ragioneSociale })
+			.click();
+		await expect(
+			page.getByText("Partita IVA", { exact: true }).locator(".."),
+		).toHaveText("Partita IVA—");
 	});
 
 	test("modifica persistita dopo reload", async ({ page, factory }) => {

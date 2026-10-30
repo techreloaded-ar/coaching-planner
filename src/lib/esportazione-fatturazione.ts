@@ -64,7 +64,7 @@ export function costruisciFogliFatturazioneClienti(
         cliente.clienteRagioneSociale,
         offerta.offertaCodice,
         offerta.offertaDescrizione,
-        importo(offerta.tariffaGiornaliera),
+        offerta.tariffaGiornaliera === null ? null : importo(offerta.tariffaGiornaliera),
         giornate(offerta.giornateFatturabili),
         importo(offerta.imponibile),
         giornate(offerta.giorniTrasferta),

@@ -81,7 +81,7 @@ export async function aggiornaCollaboratore(
       data: {
         nome: dati.nome,
         cognome: dati.cognome,
-        partitaIva: dati.partitaIva,
+        partitaIva: dati.partitaIva || null,
       },
     });
 

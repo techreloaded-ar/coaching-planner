@@ -295,6 +295,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                   placeholder="11 cifre, es. 03481920457"
                   defaultValue={valoreIniziale("partitaIva", "")}
                   errore={stato.errori.partitaIva}
+                  facoltativo
                   hint="Undici cifre numeriche, senza spazi né prefissi."
                 />
                 <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-1.5 max-[640px]:col-span-1">
@@ -302,7 +303,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                     htmlFor="modalitaTariffa"
                     className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
                   >
-                    Modalità tariffa <span className="font-bold text-red-600 dark:text-red-400">*</span>
+                    Modalità tariffa
                   </label>
                   <select
                     id="modalitaTariffa"
@@ -327,7 +328,8 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                   placeholder="Es. 520,00"
                   defaultValue={valoreIniziale("importoTariffa", "")}
                   errore={stato.errori.importoTariffa}
-                  hint="Euro al giorno o al mese secondo la modalità, virgola per i decimali (massimo 2)."
+                  facoltativo
+                  hint="Facoltativa. Euro al giorno o al mese secondo la modalità, virgola per i decimali (massimo 2)."
                 />
                 <Campo
                   label="Tariffa valida dal mese"
@@ -336,6 +338,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                   placeholder="AAAA-MM"
                   defaultValue={valoreIniziale("tariffaValidaDalMese", tokenMeseCorrente())}
                   errore={stato.errori.tariffaValidaDalMese}
+                  facoltativo
                   hint="Prima voce dello storico tariffe: le successive si gestiscono dal dettaglio collaboratore."
                 />
               </>
@@ -400,6 +403,7 @@ interface CampoProps {
   defaultValue: string;
   errore?: string;
   hint?: string;
+  facoltativo?: boolean;
 }
 
 function Campo({
@@ -411,6 +415,7 @@ function Campo({
   defaultValue,
   errore,
   hint,
+  facoltativo,
 }: CampoProps) {
   const erroreId = `errore-${name}`;
   const hintId = `hint-${name}`;
@@ -421,7 +426,7 @@ function Campo({
         htmlFor={name}
         className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
       >
-        {label} <span className="font-bold text-red-600 dark:text-red-400">*</span>
+        {label} {!facoltativo && <span className="font-bold text-red-600 dark:text-red-400">*</span>}
       </label>
       <input
         id={name}

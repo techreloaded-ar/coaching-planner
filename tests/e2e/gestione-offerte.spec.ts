@@ -89,27 +89,41 @@ test.describe("Gestione offerte", () => {
 		await expect(riga.getByText(cliente.ragioneSociale)).toBeVisible();
 	});
 
-	test("la creazione con tariffa mancante mostra un errore inline", async ({
+	test("la creazione con soli codice e cliente riesce e mostra «—» per i dati mancanti", async ({
 		page,
 		factory,
 	}) => {
 		const cliente = await factory.createCliente({
 			ragioneSociale: `E2E Gestione Cliente ${randomUUID().slice(0, 8)}`,
 		});
+		const codice = codiceUnivoco("MIN");
 
 		await page.goto("/offerte/nuova");
 		await page
 			.getByLabel("Cliente")
 			.selectOption({ label: cliente.ragioneSociale });
-		await page.getByLabel("Codice").fill(codiceUnivoco("VAL"));
-		await page.getByLabel("Descrizione").fill("Offerta senza tariffa");
-		await page.getByLabel("Giorni previsti").fill("8");
+		await page.getByLabel("Codice").fill(codice);
+		await page.getByLabel("Giorni previsti").fill("0");
 		await page.getByRole("button", { name: "Crea offerta" }).click();
-
 		await expect(
-			page.getByText("La tariffa giornaliera è obbligatoria"),
+			page.getByText("I giorni previsti devono essere maggiori di zero"),
 		).toBeVisible();
-		await expect(page).toHaveURL(/\/offerte\/nuova$/);
+
+		await page.getByLabel("Codice").fill(codice);
+		await page.getByLabel("Giorni previsti").fill("");
+		await page
+			.getByLabel("Cliente")
+			.selectOption({ label: cliente.ragioneSociale });
+		await page.getByRole("button", { name: "Crea offerta" }).click();
+		await page.waitForURL(/\/offerte\?esito=offerta-creata$/);
+
+		await cercaNellElenco(page, "/offerte", codice);
+		const riga = rigaConCodice(page, codice);
+		await expect(riga).toHaveCount(1);
+		const celle = riga.locator("td");
+		await expect(celle.nth(0)).toContainText("—");
+		await expect(celle.nth(2)).toContainText("—");
+		await expect(celle.nth(3)).toContainText("—");
 	});
 
 	test("modifica di descrizione e tariffa persistita nell'elenco", async ({

@@ -31,7 +31,7 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
     return (
       nomeCompleto.includes(filtroLower) ||
       c.utente.email.toLowerCase().includes(filtroLower) ||
-      c.partitaIva.includes(filtroLower)
+      (c.partitaIva ?? "").includes(filtroLower)
     );
   });
 
@@ -141,7 +141,7 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
                       <span className="overflow-hidden text-ellipsis whitespace-nowrap">{collaboratore.utente.email}</span>
                     </span>
                   </td>
-                  <td className="px-4 py-[13px] align-middle tabular-nums">{collaboratore.partitaIva}</td>
+                  <td className="px-4 py-[13px] align-middle tabular-nums">{collaboratore.partitaIva ?? "—"}</td>
                   <td className="px-4 py-[13px] text-right align-middle tabular-nums">
                     {collaboratore.tariffaInVigore ? (
                       <>

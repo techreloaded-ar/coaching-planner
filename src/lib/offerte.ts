@@ -45,16 +45,18 @@ export interface VoceElencoOfferta {
   descrizione: string;
   clienteId: string;
   clienteRagioneSociale: string;
-  tariffaGiornaliera: string;
-  giorniPrevisti: number;
+  /** null se la tariffa non è ancora definita */
+  tariffaGiornaliera: string | null;
+  /** null (come residuo e percentuale) se l'offerta non ha giorni previsti */
+  giorniPrevisti: number | null;
   gestioneTrasferta: GestioneTrasferta;
   /** Importo fatturato per giorno di trasferta; null se la trasferta è inclusa */
   importoTrasfertaForfettaria: string | null;
   attiva: boolean;
   giornateErogate: number;
-  residuo: number;
+  residuo: number | null;
   /** Percentuale di utilizzo del budget previsto dall'offerta. */
-  percentualeUtilizzo: number;
+  percentualeUtilizzo: number | null;
   stato: StatoAvanzamentoOfferta;
   /** Dettaglio delle giornate erogate per ciascun collaboratore. */
   perCollaboratore: VoceCollaboratoreAvanzamento[];
@@ -145,7 +147,7 @@ function costruisciVociElencoOfferte(
       descrizione: offerta.descrizione,
       clienteId: offerta.clienteId,
       clienteRagioneSociale: offerta.cliente.ragioneSociale,
-      tariffaGiornaliera: offerta.tariffaGiornaliera.toString(),
+      tariffaGiornaliera: offerta.tariffaGiornaliera?.toString() ?? null,
       giorniPrevisti: offerta.giorniPrevisti,
       gestioneTrasferta: offerta.gestioneTrasferta,
       importoTrasfertaForfettaria:
@@ -153,7 +155,7 @@ function costruisciVociElencoOfferte(
       attiva: offerta.attiva,
       giornateErogate: avanzamento?.giornateErogate ?? 0,
       residuo: avanzamento?.residuo ?? offerta.giorniPrevisti,
-      percentualeUtilizzo: avanzamento?.percentualeUtilizzo ?? 0,
+      percentualeUtilizzo: avanzamento ? avanzamento.percentualeUtilizzo : 0,
       stato: avanzamento?.stato ?? "IN_CORSO",
       perCollaboratore: avanzamento?.perCollaboratore ?? [],
       matriceMensile: avanzamento?.matriceMensile ?? {

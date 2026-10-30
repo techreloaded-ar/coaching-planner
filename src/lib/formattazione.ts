@@ -3,9 +3,9 @@ const formattatoreEuro = new Intl.NumberFormat("it-IT", {
   currency: "EUR",
 });
 
-/** Formatta un importo in euro con il formato valuta italiano. */
-export function formattaEuro(valore: number | string): string {
-  return formattatoreEuro.format(Number(valore));
+/** Formatta un importo in euro con il formato valuta italiano; «—» se assente. */
+export function formattaEuro(valore: number | string | null): string {
+  return valore === null ? "—" : formattatoreEuro.format(Number(valore));
 }
 
 /** Iniziali della ragione sociale di un cliente per avatar quadrati. */
