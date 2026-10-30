@@ -4,9 +4,9 @@ import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { apriMenuAccount, avatarUtente, pannelloAccount } from "./support/menu-account";
 
 /**
- * Demo scenario — US-027: Accesso diretto dalla pagina radice con brand Agile Reloaded
+ * Demo scenario — US-027: Accesso diretto dalla pagina radice con brand Coaching Planner
  *
- * Dimostra il flusso completo: un utente apre la radice, vede logo Agile Reloaded,
+ * Dimostra il flusso completo: un utente apre la radice, vede logo Coaching Planner,
  * nome app, payoff e pulsante "Accedi con Google"; completa l'autenticazione
  * (simulata) e atterra nell'area del proprio ruolo; quindi verifica che /login
  * restituisca pagina non trovata.
@@ -28,7 +28,7 @@ test.describe("US-027 Demo", () => {
     await page.goto("/");
 
     // 2. Verifica la presenza di logo, nome app, payoff e pulsante Google
-    await expect(page.getByAltText("Agile Reloaded")).toBeVisible();
+    await expect(page.getByAltText("Coaching Planner")).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Coaching Planner" })
     ).toBeVisible();

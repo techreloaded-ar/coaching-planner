@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#171717" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Coaching Planner">
+<rect x="10" y="18" width="66" height="65" rx="11" fill="#ACDEEB"/>
+<path d="M10 37H76" fill="none"/>
+<path d="M27 11V25M59 11V25" fill="none" stroke-width="6"/>
+<rect x="22" y="47" width="10" height="10" rx="2" fill="#fff" stroke-width="2.5"/>
+<rect x="40" y="47" width="10" height="10" rx="2" fill="#fff" stroke-width="2.5"/>
+<rect x="22" y="65" width="10" height="10" rx="2" fill="#fff" stroke-width="2.5"/>
+<path d="M42 75H54Q68 75 68 59V53H59L76 36L92 53H83V59Q83 89 54 89H42Z" fill="#F68B2C"/>
+</svg>

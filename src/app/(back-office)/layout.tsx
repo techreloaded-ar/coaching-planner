@@ -1,6 +1,6 @@
 import { disconnetti, richiediRuolo } from "@/lib/dal";
 import ConsoleSidebar from "@/app/(back-office)/console-sidebar";
-import { LogoAgileReloaded, MenuAccount } from "@/components";
+import { MenuAccount } from "@/components";
 
 export default async function BackOfficeLayout({
   children,
@@ -16,9 +16,8 @@ export default async function BackOfficeLayout({
 
       {/* Area contenuto — margin-left = larghezza sidebar */}
       <div className="ml-[248px] max-[920px]:ml-[66px] flex min-h-screen flex-col">
-        {/* Header sottile con logo e menu dell'account */}
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-zinc-200 bg-white/80 px-8 py-2.5 max-sm:gap-2 max-sm:px-4 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
-          <LogoAgileReloaded />
+        {/* Il brand resta nella sidebar; l'header ospita il menu dell'account. */}
+        <header className="sticky top-0 z-10 flex min-h-[57px] items-center justify-end gap-4 border-b border-zinc-200 bg-white/80 px-8 py-2.5 max-sm:gap-2 max-sm:px-4 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
           <MenuAccount
             nome={sessione.nome}
             email={sessione.email}

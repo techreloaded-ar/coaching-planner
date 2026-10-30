@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import Image from "next/image";
+import { LogoCoachingPlanner } from "@/components/logo-coaching-planner";
 import { utenteCorrente } from "@/lib/dal";
 import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 import AccessoGoogle from "./accesso-google";
@@ -28,17 +28,7 @@ export default async function Home({
       </div>
 
       <main className="relative z-10 flex w-full max-w-[420px] flex-col items-center px-5 py-12 text-center">
-        {/* Logo Agile Reloaded su targa bianca */}
-        <div className="rounded-[18px] border border-zinc-200 bg-white px-6 py-4 shadow-sm dark:border-white/15 dark:shadow-lg">
-          <Image
-            src="/agile-reloaded-logo.png"
-            alt="Agile Reloaded"
-            width={200}
-            height={58}
-            className="h-[46px] w-auto max-w-full"
-            priority
-          />
-        </div>
+        <LogoCoachingPlanner mostraNome={false} grande />
 
         {/* Titolo e filo brand */}
         <h1 className="mt-[26px] text-[38px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">

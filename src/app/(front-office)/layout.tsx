@@ -5,7 +5,7 @@ import {
   verificaSessione,
 } from "@/lib/dal";
 import { collaboratoriDelSelettore } from "@/lib/foglio-attivita";
-import { LogoAgileReloaded, MenuAccount } from "@/components";
+import { LogoCoachingPlanner, MenuAccount } from "@/components";
 import SelettoreFoglioAttivita from "./selettore-foglio-attivita";
 
 export default async function FrontOfficeLayout({
@@ -28,13 +28,10 @@ export default async function FrontOfficeLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div className="flex items-center gap-5 px-8 py-3.5 max-sm:gap-3 max-sm:px-4">
-          <LogoAgileReloaded />
-          <div aria-hidden="true" className="h-[26px] w-px shrink-0 bg-zinc-200 max-lg:hidden dark:bg-zinc-700" />
-          <div>
-            <div className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
-              Front office
-            </div>
+        <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 md:flex md:gap-5 md:px-8">
+          <LogoCoachingPlanner />
+          <div aria-hidden="true" className="hidden h-[26px] w-px shrink-0 bg-zinc-200 md:block dark:bg-zinc-700" />
+          <div className="col-span-2 row-start-2">
             {amministratore ? (
               <SelettoreFoglioAttivita
                 collaboratori={collaboratori}
@@ -44,20 +41,21 @@ export default async function FrontOfficeLayout({
                 nomeUtente={sessione.nome}
               />
             ) : (
-              <h1 className="mt-0.5 text-[22px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+              <h1 className="text-[22px] font-bold tracking-tight text-zinc-800 md:text-lg md:font-medium dark:text-zinc-100">
                 Le mie attività
               </h1>
             )}
           </div>
-          <div className="flex-1" />
-
-          <div className="flex items-center gap-3.5">
+          <div className="col-start-2 row-start-1 flex items-center gap-3.5 md:ml-auto">
             {amministratore && (
               <Link
                 href="/anagrafiche"
                 className="inline-flex items-center rounded-[10px] border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[12.5px] font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 dark:hover:bg-indigo-500/25"
               >
-                Console amministrativa
+                <span className="max-lg:sr-only">Console amministrativa</span>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4 lg:hidden">
+                  <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" />
+                </svg>
               </Link>
             )}
             <MenuAccount

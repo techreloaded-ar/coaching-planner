@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoCoachingPlanner } from "@/components/logo-coaching-planner";
 
 // ── Icone SVG inline ───────────────────────────────────────────
 
@@ -72,15 +73,13 @@ export default function ConsoleSidebar() {
     <aside className="fixed inset-y-0 left-0 z-20 flex w-[248px] flex-col border-r border-zinc-200 bg-white transition-colors dark:border-zinc-800 dark:bg-zinc-900 max-[920px]:w-[66px]">
       {/* Brand */}
       <div className="flex items-center gap-[11px] border-b border-zinc-100 px-4 py-[18px] dark:border-zinc-800 max-[920px]:justify-center max-[920px]:px-0">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-indigo-500 to-indigo-600 text-[13px] font-extrabold text-white shadow-sm">
-          CP
-        </div>
+        <LogoCoachingPlanner mostraNome={false} />
         <div className="min-w-0 leading-[1.25] max-[920px]:hidden">
           <b className="block text-[14px] font-bold tracking-tight whitespace-nowrap text-zinc-800 dark:text-zinc-100">
             Coaching Planner
           </b>
           <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-            Console gestionale
+            Amministrazione
           </span>
         </div>
       </div>

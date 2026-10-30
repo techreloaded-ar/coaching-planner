@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Test e2e — US-027: Pagina radice come pagina di accesso con brand Agile Reloaded
+ * Test e2e — US-027: Pagina radice come pagina di accesso con brand Coaching Planner
  *
  * Scenari read-only (nessuna fixture, nessuna mutazione di dati, nessuna
  * entità seed toccata): compatibili con `fullyParallel: true`.
  *
  * Copre:
- * - heading "Coaching Planner", payoff, logo Agile Reloaded e pulsante Google;
+ * - heading "Coaching Planner", payoff, logo Coaching Planner e pulsante Google;
  * - leggibilità su viewport mobile 375×667.
  */
 
@@ -27,8 +27,8 @@ test.describe("US-027 Pagina radice", () => {
       )
     ).toBeVisible();
 
-    // Logo Agile Reloaded
-    await expect(page.getByAltText("Agile Reloaded")).toBeVisible();
+    // Logo Coaching Planner
+    await expect(page.getByAltText("Coaching Planner")).toBeVisible();
 
     // Pulsante Accedi con Google
     const googleBtn = page.getByRole("button", {
@@ -49,7 +49,7 @@ test.describe("US-027 Pagina radice", () => {
       await expect(
         page.getByRole("heading", { name: "Coaching Planner" })
       ).toBeVisible();
-      await expect(page.getByAltText("Agile Reloaded")).toBeVisible();
+      await expect(page.getByAltText("Coaching Planner")).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Accedi con Google" })
       ).toBeVisible();

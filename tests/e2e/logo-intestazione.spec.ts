@@ -1,178 +1,122 @@
 import { test, expect, type Page } from "@playwright/test";
 
 import {
-	accediAlBackOfficeComeAdmin,
-	accediComeCollaboratore,
+  accediAlBackOfficeComeAdmin,
+  accediComeAdmin,
+  accediComeCollaboratore,
 } from "./support/auth";
 import { SFONDO_SCURO } from "./support/tema";
 import { pulsanteMenuAccount } from "./support/menu-account";
 
-/**
- * Test e2e — US-028: logo Agile Reloaded nelle intestazioni delle aree interne.
- *
- * Scenari read-only: gli utenti seed servono solo ad accedere, nessun dato
- * applicativo viene scritto. Il logo completo (≥ 1024 px) è alto 24 px; sotto
- * 1024 px si mostra solo la mascotte (≈ 23 px di larghezza).
- */
-
-const ALTEZZA_MASSIMA_INTESTAZIONE_FRONT_OFFICE = 84; // baseline 83 px
-const ALTEZZA_MASSIMA_INTESTAZIONE_BACK_OFFICE = 58; // baseline 57 px
-
+// Scenari read-only: gli utenti seed servono solo ad accedere.
+// Il simbolo resta intero a ogni viewport; il titolo va sotto il brand su mobile.
 function logo(page: Page) {
-	return page.getByRole("banner").getByRole("img", { name: "Agile Reloaded" });
+  return page.getByRole("img", { name: "Coaching Planner", exact: true });
 }
 
-function targa(page: Page) {
-	return page.getByRole("banner").getByTestId("logo-agile-reloaded");
+async function verificaIntestazione(page: Page, altezzaMassima: number) {
+  await expect(logo(page)).toHaveCount(1);
+  await expect(logo(page)).toBeVisible();
+  await expect(logo(page)).toHaveAttribute("src", "/coaching-planner-logo.svg");
+  await expect.poll(() => logo(page).evaluate(
+    (immagine) => (immagine as HTMLImageElement).complete && (immagine as HTMLImageElement).naturalWidth > 0,
+  )).toBe(true);
+  await expect(pulsanteMenuAccount(page)).toBeVisible();
+  await expect.poll(() => page.getByRole("banner").evaluate((header) => header.scrollWidth - header.clientWidth)).toBe(0);
+
+  const intestazione = await page.getByRole("banner").boundingBox();
+  expect(intestazione).not.toBeNull();
+  expect(intestazione!.height).toBeLessThanOrEqual(altezzaMassima);
+  const simbolo = await logo(page).boundingBox();
+  expect(simbolo).not.toBeNull();
+  expect(simbolo!.width).toBe(36);
+  expect(simbolo!.height).toBe(36);
+  const marchio = await page.getByTestId("logo-coaching-planner").boundingBox();
+  const account = await pulsanteMenuAccount(page).boundingBox();
+  expect(marchio).not.toBeNull();
+  expect(account).not.toBeNull();
+  expect(marchio!.x + marchio!.width).toBeLessThanOrEqual(account!.x);
 }
 
-async function misuraIntestazione(page: Page) {
-	return page.locator("header").first().evaluate((header) => ({
-		overflow: header.scrollWidth - header.clientWidth,
-		altezza: Math.round(header.getBoundingClientRect().height),
-	}));
-}
+test.describe("Logo Coaching Planner nelle intestazioni", () => {
+  test("le attività mostrano logo, nome del prodotto e titolo senza Front office", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await accediComeCollaboratore(page);
+    const intestazione = page.getByRole("banner");
+    await expect(intestazione.getByText("Coaching Planner", { exact: true })).toBeVisible();
+    await expect(intestazione.getByRole("heading", { name: "Le mie attività", exact: true })).toBeVisible();
+    await expect(intestazione.getByText("Front office", { exact: true })).toHaveCount(0);
+    await verificaIntestazione(page, 84);
 
-async function immagineCaricata(page: Page) {
-	return logo(page).evaluate(
-		(img) => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0,
-	);
-}
+    await page.setViewportSize({ width: 768, height: 800 });
+    await verificaIntestazione(page, 84);
+  });
 
-async function boxLogo(page: Page) {
-	const box = await logo(page).boundingBox();
-	expect(box).not.toBeNull();
-	return box!;
-}
+  test("la console mostra un solo logo nella sidebar anche dopo la navigazione", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await accediAlBackOfficeComeAdmin(page);
+    await verificaIntestazione(page, 58);
+    await expect(page.getByRole("banner").getByRole("img", { name: "Coaching Planner", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("complementary").getByRole("img", { name: "Coaching Planner", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Offerte", exact: true }).click();
+    await page.waitForURL("**/offerte");
+    await verificaIntestazione(page, 58);
 
-/** Riquadro visibile del logo: nella versione compatta l'immagine è ritagliata dalla targa. */
-async function boxTarga(page: Page) {
-	const box = await targa(page).boundingBox();
-	expect(box).not.toBeNull();
-	return box!;
-}
+    await page.setViewportSize({ width: 768, height: 800 });
+    await verificaIntestazione(page, 58);
+  });
 
-test.describe("Logo Agile Reloaded nelle intestazioni", () => {
-	test("front office: logo accanto al titolo, elementi esistenti invariati", async ({ page }) => {
-		await page.setViewportSize({ width: 1280, height: 800 });
-		await accediComeCollaboratore(page);
+  for (const tema of ["scuro", "chiaro"] as const) {
+    test(`tema ${tema}: simbolo intero e fondo leggibile`, async ({ page, context, baseURL }) => {
+      await context.addCookies([{ name: "tema", value: tema, url: baseURL! }]);
+      await accediComeCollaboratore(page);
+      await expect(page.locator("html")).toHaveAttribute("data-tema", tema);
+      if (tema === "scuro") {
+        await expect(page.locator("body")).toHaveCSS("background-color", SFONDO_SCURO);
+      }
+      await expect(page.getByRole("banner").getByTestId("simbolo-coaching-planner")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+      await verificaIntestazione(page, 84);
+    });
+  }
 
-		await expect(logo(page)).toBeVisible();
-		const box = await boxLogo(page);
-		expect(box.height).toBeGreaterThanOrEqual(23);
-		expect(box.height).toBeLessThanOrEqual(25);
-		expect(box.width).toBeGreaterThan(70);
-		expect(await immagineCaricata(page)).toBe(true);
+  for (const area of ["collaboratore", "amministratore", "console", "impostazioni"] as const) {
+    test(`mobile, ${area}: brand e account non si sovrappongono`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 800 });
+      if (area === "console") {
+        await accediAlBackOfficeComeAdmin(page);
+      } else if (area === "amministratore") {
+        await accediComeAdmin(page);
+      } else {
+        await accediComeCollaboratore(page);
+        if (area === "impostazioni") await page.goto("/impostazioni/tema");
+      }
+      await verificaIntestazione(page, area === "console" ? 58 : 116);
+      if (area !== "console") {
+        const intestazione = page.getByRole("banner");
+        await expect(intestazione.getByText("Coaching Planner", { exact: true })).toBeVisible();
+        const titolo = intestazione.getByRole("heading", { name: area === "impostazioni" ? "Impostazioni" : "Le mie attività", exact: true });
+        await expect(titolo).toBeVisible();
+        const boxTitolo = await titolo.boundingBox();
+        const boxSimbolo = await logo(page).boundingBox();
+        expect(boxTitolo!.y).toBeGreaterThanOrEqual(boxSimbolo!.y + boxSimbolo!.height);
+      }
+      if (area === "amministratore") {
+        await expect(page.getByRole("link", { name: "Console amministrativa", exact: true })).toBeVisible();
+      }
+      await page.setViewportSize({ width: 320, height: 800 });
+      await verificaIntestazione(page, area === "console" ? 58 : 116);
+    });
+  }
 
-		await expect(page.getByRole("heading", { name: "Le mie attività" })).toBeVisible();
-		await expect(pulsanteMenuAccount(page)).toBeVisible();
-
-		let misura = await misuraIntestazione(page);
-		expect(misura.overflow).toBe(0);
-		expect(misura.altezza).toBeLessThanOrEqual(ALTEZZA_MASSIMA_INTESTAZIONE_FRONT_OFFICE);
-
-		await page.setViewportSize({ width: 768, height: 800 });
-		await expect(logo(page)).toBeVisible();
-		expect((await boxTarga(page)).width).toBeLessThanOrEqual(45);
-		misura = await misuraIntestazione(page);
-		expect(misura.overflow).toBe(0);
-		expect(misura.altezza).toBeLessThanOrEqual(ALTEZZA_MASSIMA_INTESTAZIONE_FRONT_OFFICE);
-	});
-
-	test("back office: stesso logo, persistente dopo la navigazione", async ({ page }) => {
-		await page.setViewportSize({ width: 1280, height: 800 });
-		await accediAlBackOfficeComeAdmin(page);
-
-		await expect(logo(page)).toBeVisible();
-		const box = await boxLogo(page);
-		expect(box.height).toBeGreaterThanOrEqual(23);
-		expect(box.height).toBeLessThanOrEqual(25);
-		expect(await immagineCaricata(page)).toBe(true);
-		const src = await logo(page).getAttribute("src");
-
-		let misura = await misuraIntestazione(page);
-		expect(misura.overflow).toBe(0);
-		expect(misura.altezza).toBeLessThanOrEqual(ALTEZZA_MASSIMA_INTESTAZIONE_BACK_OFFICE);
-
-		await page.getByRole("link", { name: "Offerte", exact: true }).click();
-		await page.waitForURL("**/offerte");
-		await expect(logo(page)).toBeVisible();
-		expect(await logo(page).getAttribute("src")).toBe(src);
-		expect((await boxLogo(page)).height).toBeGreaterThanOrEqual(23);
-
-		await page.setViewportSize({ width: 768, height: 800 });
-		await expect(logo(page)).toBeVisible();
-		misura = await misuraIntestazione(page);
-		expect(misura.overflow).toBe(0);
-		expect(misura.altezza).toBeLessThanOrEqual(ALTEZZA_MASSIMA_INTESTAZIONE_BACK_OFFICE);
-	});
-
-	for (const tema of ["scuro", "chiaro"] as const) {
-		test(`tema ${tema}: la targa resta bianca e il logo leggibile`, async ({ page, context, baseURL }) => {
-			await context.addCookies([{ name: "tema", value: tema, url: baseURL! }]);
-			await page.setViewportSize({ width: 1280, height: 800 });
-			await accediComeCollaboratore(page);
-
-			await expect(page.locator("html")).toHaveAttribute("data-tema", tema);
-			if (tema === "scuro") {
-				await expect(page.locator("body")).toHaveCSS("background-color", SFONDO_SCURO);
-			}
-			await expect(logo(page)).toBeVisible();
-			await expect(targa(page)).toHaveCSS("background-color", "rgb(255, 255, 255)");
-			expect(await immagineCaricata(page)).toBe(true);
-		});
-	}
-
-	for (const area of ["front office", "back office"] as const) {
-		test(`schermi piccoli, ${area}: logo compatto visibile e non sovrapposto al menu dell'account`, async ({ page }) => {
-			await page.setViewportSize({ width: 375, height: 800 });
-			// Ogni area usa il proprio BrowserContext della fixture: clearCookies
-			// non isola una sessione dalle risposte protette ancora in volo.
-			if (area === "front office") {
-				await accediComeCollaboratore(page);
-			} else {
-				await accediAlBackOfficeComeAdmin(page);
-			}
-			await expect(logo(page)).toBeVisible();
-			const box = await boxTarga(page);
-			expect(box.width).toBeLessThanOrEqual(32);
-			expect(await immagineCaricata(page)).toBe(true);
-			if (area === "back office") {
-				expect((await misuraIntestazione(page)).overflow).toBe(0);
-			}
-			// Il front office a 375 px ha già un overflow orizzontale
-			// dell'intestazione indipendente dal logo (≈ 110 px).
-			const avatar = await pulsanteMenuAccount(page).boundingBox();
-			expect(avatar).not.toBeNull();
-			const sovrapposto =
-				box.x < avatar!.x + avatar!.width && box.x + box.width > avatar!.x &&
-				box.y < avatar!.y + avatar!.height && box.y + box.height > avatar!.y;
-			expect(sovrapposto).toBe(false);
-		});
-	}
-
-	test("il logo è servito dall'applicazione, senza host esterni", async ({ page }) => {
-		const urlImmagini: string[] = [];
-		page.on("request", (richiesta) => {
-			if (richiesta.resourceType() === "image") urlImmagini.push(richiesta.url());
-		});
-
-		await accediComeCollaboratore(page);
-		await expect(logo(page)).toBeVisible();
-		expect(await immagineCaricata(page)).toBe(true);
-
-		const src = await logo(page).getAttribute("src");
-		expect(src).not.toBeNull();
-		expect(src!).not.toContain("http");
-		expect(src!).not.toContain("agilereloaded");
-
-		const risposta = await page.request.get(new URL(src!, page.url()).href);
-		expect(risposta.status()).toBe(200);
-
-		expect(urlImmagini.length).toBeGreaterThan(0);
-		const host = new URL(page.url()).host;
-		for (const url of urlImmagini) {
-			expect(new URL(url).host).toBe(host);
-		}
-	});
+  test("logo e icona del browser sono serviti localmente", async ({ page }) => {
+    await accediComeCollaboratore(page);
+    await expect(logo(page)).toHaveAttribute("src", "/coaching-planner-logo.svg");
+    const rispostaLogo = await page.request.get("/coaching-planner-logo.svg");
+    expect(rispostaLogo.status()).toBe(200);
+    expect(rispostaLogo.headers()["content-type"]).toContain("image/svg+xml");
+    const icona = page.locator('link[rel="icon"][type="image/svg+xml"]');
+    await expect(icona).toHaveAttribute("href", /^\/icon\.svg/);
+    const rispostaIcona = await page.request.get((await icona.getAttribute("href"))!);
+    expect(rispostaIcona.status()).toBe(200);
+  });
 });

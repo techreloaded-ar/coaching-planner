@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 import { accediComeCollaboratore } from "./support/auth";
 
 /**
- * Test e2e — US-027: Accesso diretto dalla pagina radice con brand Agile Reloaded
+ * Test e2e — US-027: Accesso diretto dalla pagina radice con brand Coaching Planner
  *
  * Scenari read-only (nessuna fixture, nessuna mutazione di dati):
  * compatibili con `fullyParallel: true`.
@@ -33,8 +33,8 @@ test.describe("US-027 Accesso diretto dalla radice", () => {
       )
     ).toBeVisible();
 
-    // Logo Agile Reloaded
-    const logo = page.getByAltText("Agile Reloaded");
+    // Logo Coaching Planner
+    const logo = page.getByAltText("Coaching Planner");
     await expect(logo).toBeVisible();
 
     // Pulsante Accedi con Google (unico)
@@ -48,7 +48,7 @@ test.describe("US-027 Accesso diretto dalla radice", () => {
   test("logo servito localmente (nessun host esterno)", async ({ page }) => {
     await page.goto("/");
 
-    const logo = page.getByAltText("Agile Reloaded");
+    const logo = page.getByAltText("Coaching Planner");
     await expect(logo).toBeVisible();
 
     // L'attributo src non deve contenere host esterni
@@ -109,7 +109,7 @@ test.describe("US-027 Accesso diretto dalla radice", () => {
     }) => {
       await page.goto("/");
 
-      await expect(page.getByAltText("Agile Reloaded")).toBeVisible();
+      await expect(page.getByAltText("Coaching Planner")).toBeVisible();
       await expect(
         page.getByRole("heading", { name: "Coaching Planner" })
       ).toBeVisible();

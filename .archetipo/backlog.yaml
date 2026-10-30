@@ -17,6 +17,34 @@ epics:
     title: voglio fare in modo che il coaching planner possa essere collegato al ca…
   - code: EP-007
     title: Voglio fare in modo che il coaching-planner gestisca i temi Dark, Light …
+  - code: EP-008
+    title: |-
+      Dobbiamo fare un paio di miglioramenti sul coaching planner:
+      1. Nella sc…
+  - code: EP-009
+    title: Vorrei rendere più comoda la prova delle preview del coaching planner qu…
+  - code: EP-010
+    title: voglio potenziare la funzionalità di integrazione con google calendar, i…
+  - code: EP-011
+    title: Sostituire Google Gemini con Jev (TypeSafe AI), raggiunto via OpenRouter…
+  - code: EP-012
+    title: Attualmente, quando un collaboratore segna un'attività, può solo segnare…
+  - code: EP-013
+    title: Quando definiamo un'offerta, dobbiamo aggiungere l'informazione su come …
+  - code: EP-014
+    title: Nella parte amministrativa vorrei modificare la visualizzazione delle pa…
+  - code: EP-015
+    title: Dobbiamo migliorare molto come gestiamo le tariffe dei collaboratori. Ad…
+  - code: EP-016
+    title: Vorrei creare una sezione di settings dell'utente. Attualmente nei setti…
+  - code: EP-017
+    title: dobbiamo rilassare i vincoli dei campi obbligatori per collaboratori, cl…
+  - code: EP-018
+    title: Vorrei rivedere la user experience per le azioni che si possono fare nel…
+  - code: EP-019
+    title: dobbiamo modificare come vengono censite le attività. Ad oggi per censir…
+  - code: EP-020
+    title: Manca una funzionalità importante per gli amministratori. Gli amministra…
 order:
   - US-001
   - US-004
@@ -83,3 +111,42 @@ order:
   - US-017
   - US-018
   - US-028
+  - US-066
+  - US-067
+  - US-068
+  - US-069
+  - US-070
+  - US-071
+  - US-072
+  - US-073
+  - US-074
+  - US-075
+  - US-076
+  - US-077
+  - US-078
+  - US-079
+  - US-080
+  - US-081
+  - US-082
+  - US-083
+  - US-084
+  - US-085
+  - US-086
+  - US-087
+  - US-088
+  - US-089
+  - US-090
+  - US-091
+  - US-092
+  - US-093
+  - US-094
+  - US-095
+  - US-096
+  - US-097
+  - US-098
+  - US-099
+  - US-100
+  - US-101
+  - US-102
+  - US-103
+  - US-104
