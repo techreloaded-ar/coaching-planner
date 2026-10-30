@@ -1,0 +1,43 @@
+schema: archetipo/spec/v2
+code: US-103
+title: Modificare il foglio attività per conto di un collaboratore
+epic:
+  code: EP-020
+  title: Manca una funzionalità importante per gli amministratori. Gli amministra…
+priority: HIGH
+points: 5
+status: DONE
+blocked_by:
+  - US-102
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** inserire, modificare, eliminare e duplicare le righe del foglio attività di un collaboratore
+  **così che** possa correggere il suo consuntivo senza dover passare da lui.
+
+  ### Demonstrates
+  1. Dal foglio di un collaboratore aperto dalla scheda, l'amministratore apre un giorno e inserisce una riga su un cliente e un'offerta a cui il collaboratore è abilitato: la riga compare nel giorno e nel calendario del collaboratore.
+  2. Modifica le ore della riga e poi la duplica su un altro giorno.
+  3. Elimina una riga del collaboratore.
+  4. Accede come quel collaboratore e trova nel proprio foglio le modifiche fatte dall'amministratore; il foglio dell'amministratore non è cambiato.
+
+  ### Acceptance criteria
+  - [ ] Sul foglio di un collaboratore attivo l'amministratore può creare, modificare, eliminare e duplicare righe con lo stesso form del front office; le righe sono intestate al collaboratore consultato.
+  - [ ] Il form propone clienti consigliati e offerte in base alle abilitazioni del collaboratore consultato, non a quelle dell'amministratore.
+  - [ ] Valgono le stesse regole del collaboratore: cliente attivo e, se indicata, offerta attiva, del cliente e abilitata per il collaboratore consultato; in caso contrario il salvataggio è rifiutato con il messaggio consueto.
+  - [ ] Il foglio di un collaboratore disattivato è in sola lettura: il form e le azioni di modifica non sono disponibili e il server rifiuta le modifiche.
+  - [ ] Il server consente di operare sulle righe di un altro collaboratore solo a un amministratore; un collaboratore non può creare, modificare o eliminare righe di altri.
+  - [ ] Dopo ogni modifica calendario, dettaglio giornata e riepilogo del collaboratore consultato mostrano i dati aggiornati, e il foglio personale dell'amministratore resta invariato.
+
+  <!-- archetipo-increment:inc-6832d6e151001000:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/15
+history:
+  - status: TODO
+    at: "2026-10-30T17:35:20Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T17:35:20Z"
+  - status: REVIEW
+    at: "2026-10-30T18:26:58Z"
+  - status: DONE
+    at: "2026-10-30T18:30:11Z"

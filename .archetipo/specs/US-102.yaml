@@ -1,0 +1,45 @@
+schema: archetipo/spec/v2
+code: US-102
+title: Consultare il foglio attività di un collaboratore
+epic:
+  code: EP-020
+  title: Manca una funzionalità importante per gli amministratori. Gli amministra…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** aprire il foglio attività di un collaboratore e consultarlo nel dettaglio
+  **così che** possa verificare cosa ha registrato senza chiederglielo.
+
+  ### Demonstrates
+  1. L'amministratore apre la scheda di un collaboratore nel back office e clicca «Apri foglio attività».
+  2. Si apre il calendario mensile con le ore del collaboratore; l'header mostra «Attività di Nome Cognome» e un banner con «Torna alla scheda».
+  3. Cambia mese, apre il dettaglio di un giorno e vede le righe del collaboratore; apre il riepilogo mese e vede i totali del collaboratore.
+  4. Clicca «Torna alla scheda» e rientra nella scheda del collaboratore.
+  5. Un collaboratore che prova ad aprire lo stesso link per un altro collaboratore non vede quei dati.
+
+  ### Acceptance criteria
+  - [ ] La scheda collaboratore del back office mostra il pulsante «Apri foglio attività» che apre il foglio attività di quel collaboratore.
+  - [ ] Il collaboratore consultato è indicato nell'URL e resta tale navigando tra mesi, giorni e riepilogo mese.
+  - [ ] Calendario mensile, dettaglio giornata e riepilogo mese mostrano i dati del collaboratore consultato, con gli stessi contenuti e calcoli che vede il collaboratore stesso.
+  - [ ] Quando si consulta il foglio di un collaboratore, l'header mostra «Attività di Nome Cognome» al posto di «Le mie attività» e un banner indica che si sta consultando il foglio di un collaboratore, con il link «Torna alla scheda».
+  - [ ] Il foglio è consultabile anche se l'amministratore non ha un proprio profilo collaboratore attivo, e anche per un collaboratore disattivato.
+  - [ ] Le proposte e l'indicatore di Google Calendar non sono mostrati quando si consulta il foglio di un altro collaboratore.
+  - [ ] Un utente non amministratore che indica un altro collaboratore non ottiene i suoi dati (né dalle pagine né dalle API); il proprio foglio resta invariato per tutti.
+  - [ ] Un collaboratore inesistente produce una pagina non trovata.
+  - [ ] Le cache del foglio attività non mescolano i dati di collaboratori diversi né quelli del proprio foglio.
+
+  <!-- archetipo-increment:inc-6832d6e151001000:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/15
+history:
+  - status: TODO
+    at: "2026-10-30T17:35:20Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T17:35:20Z"
+  - status: REVIEW
+    at: "2026-10-30T18:26:58Z"
+  - status: DONE
+    at: "2026-10-30T18:30:11Z"

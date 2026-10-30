@@ -1,0 +1,45 @@
+schema: archetipo/spec/v2
+code: US-104
+title: Cambiare velocemente collaboratore dal titolo del foglio attività
+epic:
+  code: EP-020
+  title: Manca una funzionalità importante per gli amministratori. Gli amministra…
+priority: MEDIUM
+points: 3
+status: DONE
+blocked_by:
+  - US-102
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** cambiare collaboratore direttamente dal titolo del foglio attività
+  **così che** possa passare dal foglio di una persona a quello di un'altra senza tornare al back office.
+
+  ### Demonstrates
+  1. L'amministratore apre il front office: il titolo «Le mie attività ▾» è cliccabile.
+  2. Clicca il titolo, digita parte di un nome nel campo di ricerca e sceglie «Mario Rossi»: il calendario dello stesso mese mostra le attività di Mario Rossi e il titolo diventa «Attività di Mario Rossi ▾».
+  3. Apre il dettaglio di un giorno, dal titolo sceglie un altro collaboratore: vede lo stesso giorno per il nuovo collaboratore.
+  4. Dal titolo sceglie «Le mie attività» e torna al proprio foglio.
+  5. Un collaboratore non amministratore vede il titolo «Le mie attività» come testo semplice, senza selettore.
+
+  ### Acceptance criteria
+  - [ ] Solo per gli amministratori il titolo dell'header del front office («Le mie attività» o «Attività di Nome Cognome») mostra un indicatore ▾ e apre un elenco di scelta; per i collaboratori resta testo semplice.
+  - [ ] L'elenco contiene: «Le mie attività», solo se l'amministratore ha un profilo collaboratore attivo; i collaboratori attivi ordinati per cognome e nome; un gruppo «Disattivati» con i collaboratori disattivati marcati «sola lettura». Il foglio attualmente mostrato è evidenziato.
+  - [ ] Un campo di ricerca filtra l'elenco per nome e cognome, senza distinzione tra maiuscole e minuscole.
+  - [ ] Scegliendo una voce si apre il foglio del collaboratore scelto restando sulla stessa vista: stesso mese nel calendario, stesso giorno nel dettaglio giornata, stesso mese nel riepilogo.
+  - [ ] Scegliere «Le mie attività» riporta al foglio personale dell'amministratore, senza banner.
+  - [ ] L'elenco è utilizzabile da tastiera (apertura, navigazione, scelta, chiusura con Esc) ed è associato al titolo per le tecnologie assistive.
+  - [ ] L'elenco dei collaboratori è fornito dal server solo agli amministratori.
+
+  <!-- archetipo-increment:inc-6832d6e151001000:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/15
+history:
+  - status: TODO
+    at: "2026-10-30T17:35:20Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T17:35:20Z"
+  - status: REVIEW
+    at: "2026-10-30T18:26:58Z"
+  - status: DONE
+    at: "2026-10-30T18:30:11Z"
