@@ -31,6 +31,7 @@ import type {
 } from "@/lib/attivita-contract";
 import {
   ErroreSessioneAttivita,
+  useCollaboratoreConsultato,
   useLetturaOfferteCliente,
   type ApiOfferteCliente,
   type OffertaAbilitataCliente,
@@ -51,6 +52,8 @@ interface DettaglioGiornataProps {
   vociRimborso: VoceRimborsoTrasfertaSelezionabile[];
   /** Il collaboratore ha collegato il calendario Google: mostra le proposte */
   calendarioCollegato?: boolean;
+  /** Foglio di un collaboratore disattivato: righe visibili, nessuna modifica. */
+  solaLettura?: boolean;
   /**
    * Notifica all'isola che una riga della giornata è stata creata, modificata
    * o eliminata, così le cache della scheda possano rileggere il dato.
@@ -187,9 +190,13 @@ export default function DettaglioGiornata({
   clienti,
   vociRimborso,
   calendarioCollegato = false,
+  solaLettura = false,
   onMutazioneCompletata,
 }: DettaglioGiornataProps) {
   const [isPending, startTransition] = useTransition();
+  // Foglio di un altro collaboratore aperto da un amministratore: le Server
+  // Action lo ricevono e ne verificano l'autorizzazione.
+  const collaboratoreConsultatoId = useCollaboratoreConsultato();
 
   /**
    * Notifica la mutazione all'isola, che possiede le cache della scheda.
@@ -426,6 +433,9 @@ export default function DettaglioGiornata({
       }
 
       const fd = new FormData();
+      if (collaboratoreConsultatoId) {
+        fd.append("collaboratoreConsultatoId", collaboratoreConsultatoId);
+      }
       fd.append("clienteId", clienteId);
       fd.append("offertaId", offertaId);
       fd.append("ore", ore.replace(",", "."));
@@ -483,7 +493,7 @@ export default function DettaglioGiornata({
       setClienteCambiatoDuranteModifica(false);
       setClienteRigaInModifica(null);
     },
-    [clienteId, offertaId, ore, nota, categoria, selezioneRimborso, data, modificaId, invalidaDopoMutazione, eventoDaProposta, rimuoviProposta]
+    [clienteId, offertaId, ore, nota, categoria, selezioneRimborso, data, modificaId, invalidaDopoMutazione, eventoDaProposta, rimuoviProposta, collaboratoreConsultatoId]
   );
 
   // ── Modifica riga ──────────────────────────────────────────
@@ -656,7 +666,7 @@ export default function DettaglioGiornata({
 
       setRigaInAttesaId(rigaId);
       try {
-        const result = await eliminaRiga(rigaId);
+        const result = await eliminaRiga(rigaId, collaboratoreConsultatoId);
         if (result.success) {
           invalidaDopoMutazione();
         }
@@ -664,7 +674,7 @@ export default function DettaglioGiornata({
         setRigaInAttesaId(null);
       }
     },
-    [invalidaDopoMutazione]
+    [collaboratoreConsultatoId, invalidaDopoMutazione]
   );
 
   // ── Rimuovi rimborso ───────────────────────────────────────
@@ -675,7 +685,10 @@ export default function DettaglioGiornata({
 
       setRigaInAttesaId(rigaId);
       try {
-        const result = await rimuoviRimborsoTrasferta(rigaId);
+        const result = await rimuoviRimborsoTrasferta(
+          rigaId,
+          collaboratoreConsultatoId
+        );
         if (result.success) {
           invalidaDopoMutazione();
         }
@@ -683,7 +696,7 @@ export default function DettaglioGiornata({
         setRigaInAttesaId(null);
       }
     },
-    [invalidaDopoMutazione]
+    [collaboratoreConsultatoId, invalidaDopoMutazione]
   );
 
   // ── Duplicazione su più giorni ─────────────────────────────
@@ -911,6 +924,7 @@ export default function DettaglioGiornata({
                 )}
 
                 {/* Pulsanti azione */}
+                {!solaLettura && (
                 <div className="mt-[10px] flex items-center gap-2 border-t border-zinc-100 pt-[10px] dark:border-zinc-700">
                   <PulsanteAttesa
                     type="button"
@@ -989,6 +1003,7 @@ export default function DettaglioGiornata({
                     Elimina
                   </PulsanteAttesa>
                 </div>
+                )}
               </div>
             ))}
           </div>
@@ -996,6 +1011,7 @@ export default function DettaglioGiornata({
       </section>
 
       {/* ── Form aggiunta / modifica ── */}
+      {!solaLettura && (
       <section
         id="form-riga"
         className="rounded-[11px] border border-zinc-200 bg-white p-[18px_20px_22px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
@@ -1297,12 +1313,14 @@ export default function DettaglioGiornata({
           </div>
         </form>
       </section>
+      )}
 
       {/* ── Selettore di duplicazione su più giorni ── */}
       {rigaDaDuplicare && (
         <SelettoreDuplicazione
           riga={rigaDaDuplicare}
           giornoOrigine={data}
+          collaboratoreConsultatoId={collaboratoreConsultatoId}
           onChiudi={() => setRigaDaDuplicare(null)}
           onDuplicata={gestisciDuplicazione}
         />

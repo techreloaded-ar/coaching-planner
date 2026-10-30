@@ -1,16 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ErroreAutorizzazione, risolviProfiloCollaboratoreCorrente } from "@/lib/dal";
+import { ErroreAutorizzazione } from "@/lib/dal";
+import { risolviCollaboratoreDelFoglio } from "@/lib/foglio-attivita";
+import { PARAMETRO_COLLABORATORE_CONSULTATO } from "@/lib/url-foglio-attivita";
 import { datiCalendarioMesePerCollaboratoreAutorizzato } from "@/lib/attivita";
 import { parseTokenMese } from "@/domain/calendario";
 import { rispostaDatiPrivati } from "@/lib/risposta-dati-privati";
 
 /**
- * GET /api/attivita/calendario?mese=YYYY-MM
+ * GET /api/attivita/calendario?mese=YYYY-MM&collaboratore=<id>
  *
- * Restituisce la sintesi mensile del calendario per il **solo** collaboratore
- * autenticato. Il collaboratore è sempre derivato dalla sessione server: la
- * route non accetta alcun identificativo dal browser, quindi non esiste un
- * parametro con cui chiedere i dati di un altro collaboratore.
+ * Restituisce la sintesi mensile del calendario del collaboratore autenticato
+ * oppure, solo per un amministratore, del collaboratore indicato con il
+ * parametro facoltativo `collaboratore`. L'autorizzazione è decisa dal server
+ * in `@/lib/foglio-attivita`: per un non amministratore il parametro produce
+ * un `403`, mai i dati di un altro collaboratore.
  *
  * Le intestazioni delle risposte vivono in `@/lib/risposta-dati-privati` e sono
  * condivise con gli altri confini dati dell'area attività, così le route non
@@ -19,7 +22,9 @@ import { rispostaDatiPrivati } from "@/lib/risposta-dati-privati";
  * Esiti:
  * - `400` token `mese` assente o non nel formato `YYYY-MM`
  * - `401` sessione assente o non valida
- * - `403` profilo Collaboratore assente o disattivato
+ * - `403` profilo Collaboratore assente o disattivato, oppure `collaboratore`
+ *   indicato da un non amministratore
+ * - `404` collaboratore indicato inesistente
  * - `200` DTO `DatiCalendarioMese` del mese richiesto
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -33,18 +38,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const profilo = await risolviProfiloCollaboratoreCorrente();
+    const collaboratore = await risolviCollaboratoreDelFoglio(
+      request.nextUrl.searchParams.get(PARAMETRO_COLLABORATORE_CONSULTATO)
+    );
 
-    if (profilo.stato !== "ATTIVO") {
-      return rispostaDatiPrivati(
-        { errore: "Profilo collaboratore non operativo" },
-        403
-      );
+    if (!collaboratore) {
+      return rispostaDatiPrivati({ errore: "Collaboratore non trovato" }, 404);
     }
 
     const dati = await datiCalendarioMesePerCollaboratoreAutorizzato(
       mese,
-      profilo.collaboratore.id
+      collaboratore.id
     );
 
     return rispostaDatiPrivati(dati, 200);

@@ -7,14 +7,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  *
  * Le tre route trasportano dati della scheda giornata verso il browser. Come
  * per `/api/attivita/calendario`, la sicurezza è provata sul confine che la
- * applica: nessuna delle tre espone un parametro di identità, quindi il test
- * non «prova» a passare un id altrui — verifica invece che l'unico id che
- * raggiunge la lettura sia quello del profilo risolto dal DAL, ispezionando
- * l'argomento effettivamente passato.
+ * applica: senza il parametro `collaboratore` l'unico id che raggiunge la
+ * lettura è quello del profilo risolto dal DAL, ispezionando l'argomento
+ * effettivamente passato. Il parametro `collaboratore` (foglio consultato da
+ * un amministratore) è autorizzato da `@/lib/foglio-attivita`, coperto da
+ * `tests/unit/foglio-attivita.test.ts`.
  *
- * Per `offerte-cliente` il browser sceglie soltanto **quale cliente** guardare:
- * l'identità del collaboratore non compare fra gli argomenti della lettura,
- * perché è la lettura stessa a derivarla dalla sessione server.
+ * Per `offerte-cliente` il browser sceglie **quale cliente** guardare; le
+ * abilitazioni sono quelle del collaboratore risolto lato server.
  *
  * Il test di non regressione delle intestazioni condivise resta
  * `tests/unit/attivita-calendario-route.test.ts`, che non viene toccato.
@@ -58,6 +58,10 @@ const BASE_URL = "https://coaching-planner.test";
 
 function richiestaGiornata(query = ""): NextRequest {
   return new NextRequest(`${BASE_URL}/api/attivita/giornata${query}`);
+}
+
+function richiestaContestoInserimento(query = ""): NextRequest {
+  return new NextRequest(`${BASE_URL}/api/attivita/contesto-inserimento${query}`);
 }
 
 function richiestaOfferteCliente(query = ""): NextRequest {
@@ -278,7 +282,7 @@ describe("GET /api/attivita/contesto-inserimento", () => {
       new ErroreAutorizzazione(401, "Non autenticato")
     );
 
-    const risposta = await getContestoInserimento();
+    const risposta = await getContestoInserimento(richiestaContestoInserimento());
 
     expect(risposta.status).toBe(401);
     await expect(risposta.json()).resolves.toEqual({ errore: "Non autenticato" });
@@ -293,7 +297,7 @@ describe("GET /api/attivita/contesto-inserimento", () => {
     async (stato) => {
       mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({ stato });
 
-      const risposta = await getContestoInserimento();
+      const risposta = await getContestoInserimento(richiestaContestoInserimento());
 
       expect(risposta.status).toBe(403);
       await expect(risposta.json()).resolves.toEqual({
@@ -311,7 +315,7 @@ describe("GET /api/attivita/contesto-inserimento", () => {
       new ErroreAutorizzazione(403, "Accesso negato")
     );
 
-    const risposta = await getContestoInserimento();
+    const risposta = await getContestoInserimento(richiestaContestoInserimento());
 
     expect(risposta.status).toBe(403);
     await expect(risposta.json()).resolves.toEqual({ errore: "Accesso negato" });
@@ -334,17 +338,11 @@ describe("GET /api/attivita/contesto-inserimento", () => {
     );
     mockContestoInserimentoPerCollaboratoreAutorizzato.mockResolvedValue(dto);
 
-    const risposta = await getContestoInserimento();
+    const risposta = await getContestoInserimento(richiestaContestoInserimento());
 
     expect(risposta.status).toBe(200);
     await expect(risposta.json()).resolves.toEqual(dto);
     aspettatiHeaderPrivati(risposta);
-  });
-
-  it("non dichiara alcun parametro di richiesta", () => {
-    // Il gestore non riceve nemmeno la richiesta: non esiste una superficie da
-    // cui un identificativo del browser possa entrare.
-    expect(getContestoInserimento).toHaveLength(0);
   });
 
   it("legge il contesto esclusivamente con l'id del profilo risolto dal DAL", async () => {
@@ -357,7 +355,7 @@ describe("GET /api/attivita/contesto-inserimento", () => {
       vociRimborso: [],
     });
 
-    await getContestoInserimento();
+    await getContestoInserimento(richiestaContestoInserimento());
 
     expect(mockContestoInserimentoPerCollaboratoreAutorizzato).toHaveBeenCalledTimes(1);
     expect(mockContestoInserimentoPerCollaboratoreAutorizzato).toHaveBeenCalledWith(
@@ -380,7 +378,7 @@ describe("GET /api/attivita/contesto-inserimento", () => {
       new Error("connect ECONNREFUSED 10.0.0.7:5432")
     );
 
-    const risposta = await getContestoInserimento();
+    const risposta = await getContestoInserimento(richiestaContestoInserimento());
 
     expect(risposta.status).toBe(500);
     await expect(risposta.json()).resolves.toEqual({ errore: "Errore interno" });
@@ -453,7 +451,10 @@ describe("GET /api/attivita/offerte-cliente", () => {
     );
 
     expect(risposta.status).toBe(200);
-    expect(mockOfferteAbilitatePerCliente).toHaveBeenCalledWith("cliente-ts");
+    expect(mockOfferteAbilitatePerCliente).toHaveBeenCalledWith(
+      "cliente-ts",
+      "collab-1"
+    );
   });
 
   // ── Autenticazione e autorizzazione ──────────────────────────
@@ -576,7 +577,7 @@ describe("GET /api/attivita/offerte-cliente", () => {
     aspettatiHeaderPrivati(risposta);
   });
 
-  it("legge le offerte con il solo id cliente della query, senza alcuna identità proveniente dal browser", async () => {
+  it("legge le offerte con l'id del profilo risolto dal DAL, ignorando identità non riconosciute nella query", async () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue(
       profiloAttivo("collab-del-profilo")
     );
@@ -591,16 +592,15 @@ describe("GET /api/attivita/offerte-cliente", () => {
     );
 
     expect(mockOfferteAbilitatePerCliente).toHaveBeenCalledTimes(1);
-    expect(mockOfferteAbilitatePerCliente).toHaveBeenCalledWith("cliente-ts");
+    expect(mockOfferteAbilitatePerCliente).toHaveBeenCalledWith(
+      "cliente-ts",
+      "collab-del-profilo"
+    );
 
-    // Un solo argomento: nessun identificativo di collaboratore raggiunge la
-    // lettura, né dalla query string né dal profilo — è la lettura stessa a
-    // ricavare il collaboratore dalla sessione server.
+    // Parametri di identità non riconosciuti non raggiungono la lettura.
     const argomentiLettura = mockOfferteAbilitatePerCliente.mock.calls[0];
-    expect(argomentiLettura).toHaveLength(1);
     expect(argomentiLettura).not.toContain("collab-di-un-altro");
     expect(argomentiLettura).not.toContain("altro-utente");
-    expect(argomentiLettura).not.toContain("collab-del-profilo");
   });
 
   it("non espone dettagli interni quando la lettura falla in modo inatteso", async () => {

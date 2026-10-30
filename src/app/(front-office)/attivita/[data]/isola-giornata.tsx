@@ -9,12 +9,14 @@ import type {
   DatiGiornataAttivita,
 } from "@/lib/attivita-contract";
 import { useIdratata } from "@/components";
+import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
   ErroreIdentitaSchedaCambiata,
   ErroreSessioneAttivita,
   useCacheCalendario,
   useCacheContestoInserimento,
   useCacheGiornate,
+  useCollaboratoreConsultato,
 } from "../attivita-cache-provider";
 import DettaglioGiornata from "./dettaglio-giornata";
 
@@ -72,6 +74,8 @@ interface IsolaGiornataProps {
   meseToken?: string;
   /** Il collaboratore ha collegato il calendario Google (invariante per giorno). */
   calendarioCollegato?: boolean;
+  /** Foglio di un collaboratore disattivato: consultabile, non modificabile. */
+  solaLettura?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -92,8 +96,10 @@ export default function IsolaGiornata({
   contestoIniziale,
   meseToken,
   calendarioCollegato = false,
+  solaLettura = false,
 }: IsolaGiornataProps) {
   const router = useRouter();
+  const collaboratoreConsultatoId = useCollaboratoreConsultato();
   const pathname = usePathname();
   const cacheGiornate = useCacheGiornate();
   const cacheContesto = useCacheContestoInserimento();
@@ -158,10 +164,13 @@ export default function IsolaGiornata({
    */
   const urlDelGiorno = useCallback(
     (data: string) =>
-      meseToken
-        ? `${pathnameDelGiorno(data)}?mese=${data.slice(0, 7)}`
-        : pathnameDelGiorno(data),
-    [meseToken]
+      urlDelFoglio(
+        meseToken
+          ? `${pathnameDelGiorno(data)}?mese=${data.slice(0, 7)}`
+          : pathnameDelGiorno(data),
+        collaboratoreConsultatoId
+      ),
+    [meseToken, collaboratoreConsultatoId]
   );
 
   const commit = useCallback(
@@ -559,9 +568,10 @@ export default function IsolaGiornata({
 
   // ── Breadcrumb ───────────────────────────────────────────────
   // Il ritorno al calendario segue il giorno mostrato, non quello di apertura.
-  const ritornoHref = meseToken
-    ? `/attivita?mese=${giornoVisualizzato.slice(0, 7)}`
-    : "/attivita";
+  const ritornoHref = urlDelFoglio(
+    meseToken ? `/attivita?mese=${giornoVisualizzato.slice(0, 7)}` : "/attivita",
+    collaboratoreConsultatoId
+  );
 
   return (
     <>
@@ -702,6 +712,7 @@ export default function IsolaGiornata({
             clienti={contesto.clienti}
             vociRimborso={contesto.vociRimborso}
             calendarioCollegato={calendarioCollegato}
+            solaLettura={solaLettura}
             onMutazioneCompletata={invalidaDopoMutazione}
           />
         </div>

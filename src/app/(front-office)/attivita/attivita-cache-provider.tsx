@@ -8,6 +8,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  PARAMETRO_COLLABORATORE_CONSULTATO,
+  urlDelFoglio,
+} from "@/lib/url-foglio-attivita";
 import type {
   ContestoInserimentoGiornata,
   DatiCalendarioMese,
@@ -145,6 +150,8 @@ export interface ApiOfferteCliente extends ApiSessioneScheda {
 
 /** Le letture della scheda, esposte insieme da un solo contesto React. */
 interface ApiCacheAttivita {
+  /** Collaboratore il cui foglio è consultato da un amministratore, o `null`. */
+  collaboratoreConsultatoId: string | null;
   calendario: ApiCacheCalendario;
   giornate: ApiCacheGiornate;
   contestoInserimento: ApiCacheContestoInserimento;
@@ -194,10 +201,21 @@ export function useLetturaOfferteCliente(): ApiOfferteCliente | null {
   return useContext(ContestoCacheAttivita)?.offerteCliente ?? null;
 }
 
+/**
+ * Collaboratore il cui foglio è consultato da un amministratore, `null` sul
+ * proprio foglio o fuori dal provider. Le viste lo usano per costruire i link
+ * (`urlDelFoglio`) e per indicarlo alle Server Action: l'autorizzazione resta
+ * al server.
+ */
+export function useCollaboratoreConsultato(): string | null {
+  return useContext(ContestoCacheAttivita)?.collaboratoreConsultatoId ?? null;
+}
+
 // ── Contenitore delle cache della scheda ────────────────────────
 
 export interface Contenitore {
   chiave: string;
+  collaboratoreConsultatoId: string | null;
   guardia: GuardiaIdentitaScheda;
   cacheMesi: CacheCalendarioMesi;
   cacheGiornate: CacheGiornateAttivita;
@@ -215,7 +233,8 @@ export interface Contenitore {
  * sul contenitore reale, non su una sua ricostruzione nel test.
  */
 export function creaContenitoreCacheAttivita(
-  chiaveSessione: string
+  chiaveSessione: string,
+  collaboratoreConsultatoId: string | null = null
 ): Contenitore {
   const ascoltatoriSessione = new Set<() => void>();
 
@@ -233,6 +252,7 @@ export function creaContenitoreCacheAttivita(
 
   const contenitore: Contenitore = {
     chiave: chiaveSessione,
+    collaboratoreConsultatoId,
     guardia,
     ascoltatoriSessione,
     // Sostituite subito sotto: i caricatori devono poter riferire il
@@ -312,7 +332,10 @@ function leggiMeseDaEndpoint(
   contenitore: Contenitore
 ): Promise<DatiCalendarioMese> {
   return leggiDaEndpoint<DatiCalendarioMese>(
-    `/api/attivita/calendario?mese=${encodeURIComponent(token)}`,
+    urlDelFoglio(
+      `/api/attivita/calendario?mese=${encodeURIComponent(token)}`,
+      contenitore.collaboratoreConsultatoId
+    ),
     contenitore,
     `Lettura del mese ${token}`
   );
@@ -323,7 +346,10 @@ function leggiGiornataDaEndpoint(
   contenitore: Contenitore
 ): Promise<DatiGiornataAttivita> {
   return leggiDaEndpoint<DatiGiornataAttivita>(
-    `/api/attivita/giornata?data=${encodeURIComponent(data)}`,
+    urlDelFoglio(
+      `/api/attivita/giornata?data=${encodeURIComponent(data)}`,
+      contenitore.collaboratoreConsultatoId
+    ),
     contenitore,
     `Lettura della giornata ${data}`
   );
@@ -334,7 +360,10 @@ async function leggiOfferteClienteDaEndpoint(
   contenitore: Contenitore
 ): Promise<OffertaAbilitataCliente[]> {
   const dati = await leggiDaEndpoint<{ offerte: OffertaAbilitataCliente[] }>(
-    `/api/attivita/offerte-cliente?cliente=${encodeURIComponent(clienteId)}`,
+    urlDelFoglio(
+      `/api/attivita/offerte-cliente?cliente=${encodeURIComponent(clienteId)}`,
+      contenitore.collaboratoreConsultatoId
+    ),
     contenitore,
     "Lettura delle offerte del cliente"
   );
@@ -346,7 +375,10 @@ function leggiContestoInserimentoDaEndpoint(
   contenitore: Contenitore
 ): Promise<ContestoInserimentoGiornata> {
   return leggiDaEndpoint<ContestoInserimentoGiornata>(
-    "/api/attivita/contesto-inserimento",
+    urlDelFoglio(
+      "/api/attivita/contesto-inserimento",
+      contenitore.collaboratoreConsultatoId
+    ),
     contenitore,
     "Lettura del contesto di inserimento"
   );
@@ -375,8 +407,34 @@ export default function AttivitaCacheProvider({
   chiaveSessione: string;
   children: ReactNode;
 }) {
+  // Il foglio consultato fa parte dell'identità delle cache: cambiandolo,
+  // l'istanza viene smontata e ricreata vuota, così i dati di un collaboratore
+  // non restano leggibili sul foglio di un altro.
+  const collaboratoreConsultatoId =
+    useSearchParams()?.get(PARAMETRO_COLLABORATORE_CONSULTATO) || null;
+
+  return (
+    <CacheFoglioAttivita
+      key={collaboratoreConsultatoId ?? ""}
+      chiaveSessione={chiaveSessione}
+      collaboratoreConsultatoId={collaboratoreConsultatoId}
+    >
+      {children}
+    </CacheFoglioAttivita>
+  );
+}
+
+function CacheFoglioAttivita({
+  chiaveSessione,
+  collaboratoreConsultatoId,
+  children,
+}: {
+  chiaveSessione: string;
+  collaboratoreConsultatoId: string | null;
+  children: ReactNode;
+}) {
   const [contenitore] = useState(() =>
-    creaContenitoreCacheAttivita(chiaveSessione)
+    creaContenitoreCacheAttivita(chiaveSessione, collaboratoreConsultatoId)
   );
 
   // Metodi stabili: le route figlie non si ridisegnano per colpa del contesto.
@@ -394,6 +452,7 @@ export default function AttivitaCacheProvider({
     };
 
     return {
+      collaboratoreConsultatoId: contenitore.collaboratoreConsultatoId,
       calendario: {
         seed: (dati) => cacheMesi.seed(dati),
         read: (token) => cacheMesi.read(token),

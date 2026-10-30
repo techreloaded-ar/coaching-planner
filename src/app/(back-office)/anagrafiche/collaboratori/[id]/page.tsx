@@ -16,6 +16,7 @@ import {
   tariffaValidaNelMese,
 } from "@/domain/tariffe";
 import { formattaEuro } from "@/lib/formattazione";
+import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import { BadgeCategoriaAttivita } from "@/components";
 import { ETICHETTA_OFFERTA_DA_DEFINIRE } from "@/domain/types";
 import AbilitazioniOfferte from "./abilitazioni-offerte";
@@ -125,6 +126,18 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
                 <path d="m3 7 9 6 9-6" />
               </svg>
               {collaboratore.utente.email}
+            </div>
+            <div className="mt-3">
+              <Link
+                href={urlDelFoglio("/attivita", collaboratore.id)}
+                className="inline-flex items-center gap-[7px] rounded-[10px] border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[12.5px] font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 dark:hover:bg-indigo-500/25"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
+                Apri foglio attività
+              </Link>
             </div>
           </div>
         </div>
