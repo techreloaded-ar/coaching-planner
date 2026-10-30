@@ -4,7 +4,13 @@ import type { Locator, Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
-import { apriElencoFiltrato, cercaNellElenco } from "./support/elenchi";
+import {
+	apriElencoFiltrato,
+	barraSelezione,
+	casellaSelezione,
+	cercaNellElenco,
+	selezionaRighe,
+} from "./support/elenchi";
 import { apriPaginaOfferte } from "./support/offerte";
 
 /** Codice offerta univoco per il test, così da localizzare una singola riga. */
@@ -138,8 +144,8 @@ test.describe("Gestione offerte", () => {
 		});
 
 		await apriElencoFiltrato(page, "/offerte", offerta.codice);
-		const riga = rigaConCodice(page, offerta.codice);
-		await riga.getByRole("link", { name: "Modifica" }).click();
+		const barra = await selezionaRighe(page, [offerta.codice]);
+		await barra.getByRole("link", { name: "Modifica", exact: true }).click();
 		await page.waitForURL(/\/offerte\/[^/]+$/);
 
 		await page.getByLabel("Descrizione").fill("Descrizione aggiornata");
@@ -164,55 +170,97 @@ test.describe("Gestione offerte", () => {
 		await expect(rigaDopoReload.getByText(/725,50\s*€/)).toBeVisible();
 	});
 
-	test("toggle stato: disattivazione e riattivazione dal pulsante di riga", async ({
+	test("disattivazione con conferma e riattivazione dalla barra azioni", async ({
 		page,
 		factory,
 	}) => {
 		const codice = codiceUnivoco("TOGGLE");
 		const offerta = await factory.createOfferta({ codice, attiva: true });
 
-		await apriElencoFiltrato(page, "/offerte", offerta.codice);
+		await apriPaginaOfferte(page, offerta.codice);
 		const riga = rigaConCodice(page, offerta.codice);
-		const indicatoreAttiva = riga.getByRole("button", { name: "Disattiva" });
-		await expect(indicatoreAttiva).toBeVisible();
-		await expect(indicatoreAttiva).toHaveAttribute("title", "Offerta attiva");
+		await expect(riga.getByText("Attiva", { exact: true })).toBeVisible();
 
-		await indicatoreAttiva.click();
+		const barra = await selezionaRighe(page, [offerta.codice]);
+		await expect(barra).toContainText("1 offerta selezionata");
+		await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
+		const dialog = page.getByRole("dialog", { name: `Disattivare «${offerta.codice}»?` });
+		await dialog.getByRole("button", { name: "Disattiva", exact: true }).click();
 		await attendiEsitoNellElencoFiltrato(
 			page,
 			"stato-offerta-aggiornato",
 			offerta.codice,
 		);
 
-		const rigaDisattivata = rigaConCodice(page, offerta.codice);
-		const indicatoreNonAttiva = rigaDisattivata.getByRole("button", {
-			name: "Attiva",
-		});
-		await expect(indicatoreNonAttiva).toBeVisible();
-		await expect(indicatoreNonAttiva).toHaveAttribute(
-			"title",
-			"Offerta non attiva",
-		);
+		await expect(riga.getByText("Disattivata", { exact: true })).toBeVisible();
+		await expect(barraSelezione(page)).toBeHidden();
 
-		await indicatoreNonAttiva.click();
-		await attendiEsitoNellElencoFiltrato(
-			page,
-			"stato-offerta-aggiornato",
-			offerta.codice,
-		);
+		// La riattivazione parte subito, senza conferma.
+		const barraRiattiva = await selezionaRighe(page, [offerta.codice]);
+		await expect(
+			barraRiattiva.getByRole("button", { name: "Disattiva", exact: true }),
+		).toHaveCount(0);
+		await barraRiattiva.getByRole("button", { name: "Riattiva", exact: true }).click();
+		await expect(riga.getByText("Attiva", { exact: true })).toBeVisible();
+		await expect(barraSelezione(page)).toBeHidden();
+	});
 
-		const rigaRiattivata = rigaConCodice(page, offerta.codice);
-		const indicatoreRiattivata = rigaRiattivata.getByRole("button", {
-			name: "Disattiva",
-		});
-		await expect(indicatoreRiattivata).toBeVisible();
-		await expect(indicatoreRiattivata).toHaveAttribute(
-			"title",
-			"Offerta attiva",
+	test("barra azioni: una offerta selezionata espone tutte le azioni", async ({
+		page,
+		factory,
+	}) => {
+		const codice = codiceUnivoco("BARRA");
+		const offerta = await factory.createOfferta({ codice });
+
+		await apriPaginaOfferte(page, offerta.codice);
+		const barra = await selezionaRighe(page, [offerta.codice]);
+		await expect(barra.getByRole("link", { name: "Modifica", exact: true })).toHaveAttribute(
+			"href",
+			`/offerte/${offerta.id}`,
 		);
 		await expect(
-			rigaRiattivata.getByRole("button", { name: "Attiva", exact: true }),
-		).toHaveCount(0);
+			barra.getByRole("link", { name: "Collaboratori abilitati", exact: true }),
+		).toHaveAttribute("href", `/offerte/${offerta.id}/collaboratori`);
+		await expect(barra.getByRole("button", { name: "Disattiva", exact: true })).toBeVisible();
+		await expect(barra.getByRole("button", { name: "Elimina", exact: true })).toBeVisible();
+		await expect(barra.getByRole("button", { name: "Riattiva" })).toHaveCount(0);
+
+		// Il click sulla casella seleziona senza espandere il dettaglio della riga.
+		await expect(
+			page.getByRole("button", { name: `Dettaglio avanzamento ${offerta.codice}` }),
+		).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("disattivazione multipla di due offerte", async ({ page, factory }) => {
+		const token = randomUUID().slice(0, 8).toUpperCase();
+		const prima = await factory.createOfferta({ codice: `E2E-MULTI-${token}-A` });
+		const seconda = await factory.createOfferta({ codice: `E2E-MULTI-${token}-B` });
+
+		await apriPaginaOfferte(page, `E2E-MULTI-${token}`);
+		const barra = await selezionaRighe(page, [prima.codice, seconda.codice]);
+		await expect(barra).toContainText("2 offerte selezionate");
+		await expect(barra.getByRole("link", { name: "Modifica" })).toHaveCount(0);
+		await expect(barra.getByRole("button", { name: "Elimina" })).toHaveCount(0);
+
+		await barra.getByRole("button", { name: "Disattiva (2)", exact: true }).click();
+		await page
+			.getByRole("dialog", { name: "Disattivare 2 offerte?" })
+			.getByRole("button", { name: "Disattiva", exact: true })
+			.click();
+		await attendiEsitoNellElencoFiltrato(
+			page,
+			"stato-offerta-aggiornato",
+			`E2E-MULTI-${token}`,
+		);
+
+		for (const offerta of [prima, seconda]) {
+			await expect(
+				rigaConCodice(page, offerta.codice).getByText("Disattivata", { exact: true }),
+			).toBeVisible();
+			await expect(casellaSelezione(page, offerta.codice)).not.toBeChecked();
+		}
+		await expect(barraSelezione(page)).toBeHidden();
+		await expect(page.getByRole("searchbox", { name: "Cerca offerta" })).toBeVisible();
 	});
 
 	test("eliminazione riuscita di un'offerta senza attività collegate", async ({
@@ -224,9 +272,9 @@ test.describe("Gestione offerte", () => {
 
 		// "Elimina" è un handler client: l'helper attende anche l'idratazione.
 		await apriPaginaOfferte(page, offerta.codice);
-		const riga = rigaConCodice(page, offerta.codice);
-		await expect(riga).toHaveCount(1);
-		await riga.getByRole("button", { name: "Elimina", exact: true }).click();
+		await expect(rigaConCodice(page, offerta.codice)).toHaveCount(1);
+		const barra = await selezionaRighe(page, [offerta.codice]);
+		await barra.getByRole("button", { name: "Elimina", exact: true }).click();
 
 		const modale = page.getByTestId("modale-elimina-offerta");
 		await expect(
@@ -253,9 +301,9 @@ test.describe("Gestione offerte", () => {
 
 		// "Elimina" è un handler client: l'helper attende anche l'idratazione.
 		await apriPaginaOfferte(page, offerta.codice);
-		const riga = rigaConCodice(page, offerta.codice);
-		await expect(riga).toHaveCount(1);
-		await riga.getByRole("button", { name: "Elimina", exact: true }).click();
+		await expect(rigaConCodice(page, offerta.codice)).toHaveCount(1);
+		const barra = await selezionaRighe(page, [offerta.codice]);
+		await barra.getByRole("button", { name: "Elimina", exact: true }).click();
 
 		const modale = page.getByTestId("modale-elimina-offerta");
 		await expect(

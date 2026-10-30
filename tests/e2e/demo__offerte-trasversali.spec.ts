@@ -11,7 +11,7 @@ import { avatarUtente } from "./support/menu-account";
  * navigazione, non navigazione diretta via URL) e verifica l'elenco
  * trasversale di tutte le offerte di tutti i clienti, con cliente, codice,
  * giornate erogate/previste aggregate nella colonna "Giorni erogati" e stato
- * espresso dall'indicatore circolare accanto al codice, con valori coerenti
+ * espresso dalla chip «Attiva»/«Disattivata» nella colonna "Stato", con valori coerenti
  * con i dati seed (prisma/seed.ts).
  *
  * Non registra video: la registrazione per la review è a cura della fase
@@ -50,13 +50,13 @@ function rigaOfferta(page: Page, codiceOfferta: string): Locator {
 
 /**
  * Legge le giornate erogate/previste dalla cella unica "Giorni erogati"
- * (4ª cella, indice 3) nel formato "erogate/previste gg" (it-IT).
+ * (5ª cella, indice 4: la prima è la casella di selezione) nel formato "erogate/previste gg" (it-IT).
  */
 async function giornateDellaRiga(riga: Locator): Promise<{
   previste: number;
   erogate: number;
 }> {
-  const testo = (await riga.getByRole("cell").nth(3).innerText()).trim();
+  const testo = (await riga.getByRole("cell").nth(4).innerText()).trim();
   const corrispondenza = testo.match(/^(-?\d+(?:,\d+)?)\/(-?\d+(?:,\d+)?)/);
   if (!corrispondenza) {
     throw new Error(
@@ -104,9 +104,7 @@ test.describe("US-025 Demo", () => {
     const giornateTs = await giornateDellaRiga(rigaTs);
     expect(giornateTs.previste).toBe(40);
     expect(giornateTs.erogate).toBeCloseTo(4.1, 1); // 33h → 4,125 gg, display 4,1
-    const indicatoreTs = rigaTs.getByRole("button", { name: "Disattiva" });
-    await expect(indicatoreTs).toBeVisible();
-    await expect(indicatoreTs).toHaveAttribute("title", "Offerta attiva");
+    await expect(rigaTs.getByText("Attiva", { exact: true })).toBeVisible();
 
     // ── 3. DF-2025-02 (DataFlow): soglia minima sull'erogato ───────────
     // Altri scenari e2e (US-012) aggiungono attività fatturabili su questa
@@ -120,9 +118,7 @@ test.describe("US-025 Demo", () => {
     const giornateDf = await giornateDellaRiga(rigaDf);
     expect(giornateDf.previste).toBe(25); // valore fisso di seed
     expect(giornateDf.erogate).toBeGreaterThanOrEqual(0.875 - 0.01); // baseline seed: 7h/8
-    const indicatoreDf = rigaDf.getByRole("button", { name: "Disattiva" });
-    await expect(indicatoreDf).toBeVisible();
-    await expect(indicatoreDf).toHaveAttribute("title", "Offerta attiva");
+    await expect(rigaDf.getByText("Attiva", { exact: true })).toBeVisible();
 
     // ── 4. GE-2024-03 (GreenEnergy, inattiva): valori a cifra fissa ─
     // Cliente/offerta inattivi, nessuna attività, non selezionabili altrove.
@@ -133,9 +129,7 @@ test.describe("US-025 Demo", () => {
     const giornateGe = await giornateDellaRiga(rigaGe);
     expect(giornateGe.previste).toBe(10);
     expect(giornateGe.erogate).toBe(0);
-    const indicatoreGe = rigaGe.getByRole("button", { name: "Attiva" });
-    await expect(indicatoreGe).toBeVisible();
-    await expect(indicatoreGe).toHaveAttribute("title", "Offerta non attiva");
+    await expect(rigaGe.getByText("Disattivata", { exact: true })).toBeVisible();
 
     // ── 5. Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
     await page.waitForTimeout(1500);

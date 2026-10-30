@@ -8,6 +8,7 @@ import {
 } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { barraSelezione, selezionaRighe } from "./support/elenchi";
 import { apriPaginaOfferte } from "./support/offerte";
 import { e2ePrisma } from "./support/prisma";
 
@@ -24,10 +25,9 @@ import { e2ePrisma } from "./support/prisma";
  *   al pulsante di restare disabilitato per sempre;
  * - dettaglio giornata, `rigaInAttesaId`: il lock riguarda la sola riga su cui
  *   è in corso l'azione, non l'intero elenco;
- * - elenco offerte, pallino di stato: `PulsanteAttesa` con
- *   `mostraRotellina={false}`, dove il feedback passa solo da `aria-busy` e i
- *   contratti `aria-label`/`aria-pressed` dei locator esistenti devono restare
- *   invariati durante l'attesa.
+ * - elenco offerte, conferma della disattivazione dalla barra azioni: il
+ *   `PulsanteAttesa` del dialog si disabilita, espone `aria-busy` e mostra
+ *   «Disattivazione…» fino all'esito.
  *
  * Nessuna attesa a tempo: la POST della server action è trattenuta da una route
  * registrata sulla pagina e sbloccata esplicitamente dal test dopo le
@@ -422,7 +422,7 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     await gate.smetti();
   });
 
-  test("AC-2 — il pallino di stato offerta espone l'attesa senza rotellina e senza perdere i suoi contratti", async ({
+  test("AC-2 — la conferma di disattivazione offerta espone l'attesa fino all'esito", async ({
     page,
     factory,
   }) => {
@@ -432,49 +432,50 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     await accediAlBackOfficeComeAdmin(page);
     await apriPaginaOfferte(page, offerta.codice);
 
-    const riga = rigaOffertaConCodice(page, offerta.codice);
-    const pallinoStato = riga.getByRole("button", {
+    const barra = await selezionaRighe(page, [offerta.codice]);
+    await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
+    const dialog = page.getByRole("dialog", {
+      name: `Disattivare «${offerta.codice}»?`,
+    });
+    const conferma = dialog.getByRole("button", {
       name: "Disattiva",
       exact: true,
     });
-    await expect(pallinoStato).toBeEnabled();
-    await expect(pallinoStato).toHaveAttribute("aria-busy", "false");
-    await expect(pallinoStato).toHaveAttribute("aria-pressed", "true");
+    await expect(conferma).toBeEnabled();
+    await expect(conferma).toHaveAttribute("aria-busy", "false");
 
     const gate = await trattieniPostDellaPagina(page, "/offerte");
-    await pallinoStato.click();
+    await conferma.click();
 
-    // Il pallino è largo 16px: l'attesa si legge solo da `aria-busy`, che pilota
-    // la pulsazione. La rotellina non deve comparire.
-    await expect(pallinoStato).toBeDisabled();
-    await expect(pallinoStato).toHaveAttribute("aria-busy", "true");
-    await expect(pallinoStato.locator("span")).toHaveCount(0);
-
-    // Contratti dei locator e2e esistenti: restano quelli di prima dell'esito.
-    await expect(pallinoStato).toHaveAttribute("aria-label", "Disattiva");
-    await expect(pallinoStato).toHaveAttribute("aria-pressed", "true");
-    await expect(pallinoStato).toHaveAttribute("title", "Offerta attiva");
+    const inAttesa = dialog.getByRole("button", {
+      name: "Disattivazione…",
+      exact: true,
+    });
+    await expect(inAttesa).toBeDisabled();
+    await expect(inAttesa).toHaveAttribute("aria-busy", "true");
+    // Prima dell'esito la riga non cambia stato.
+    await expect(
+      rigaOffertaConCodice(page, offerta.codice).getByText("Attiva", {
+        exact: true,
+      }),
+    ).toBeVisible();
 
     gate.rilascia();
 
-    // Solo all'esito il pallino cambia stato, e l'attesa è finita.
+    // Solo all'esito la chip cambia stato, il dialog si chiude e la selezione si azzera.
     await page.waitForURL(
       (url) =>
         url.pathname === "/offerte" &&
         url.searchParams.get("esito") === "stato-offerta-aggiornato" &&
         url.searchParams.get("q") === offerta.codice,
     );
-    const pallinoDisattivato = rigaOffertaConCodice(
-      page,
-      offerta.codice,
-    ).getByRole("button", { name: "Attiva", exact: true });
-    await expect(pallinoDisattivato).toBeEnabled();
-    await expect(pallinoDisattivato).toHaveAttribute("aria-busy", "false");
-    await expect(pallinoDisattivato).toHaveAttribute("aria-pressed", "false");
-    await expect(pallinoDisattivato).toHaveAttribute(
-      "title",
-      "Offerta non attiva",
-    );
+    await expect(
+      rigaOffertaConCodice(page, offerta.codice).getByText("Disattivata", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(dialog).toBeHidden();
+    await expect(barraSelezione(page)).toBeHidden();
 
     expect(gate.conteggioPost()).toBe(1);
     await gate.smetti();

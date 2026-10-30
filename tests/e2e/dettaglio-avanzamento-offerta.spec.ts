@@ -9,7 +9,7 @@ import {
 	meseRiservato,
 } from "./support/date";
 import { test, expect } from "./support/fixtures";
-import { cercaNellElenco } from "./support/elenchi";
+import { cercaNellElenco, selezionaRighe } from "./support/elenchi";
 import {
 	apriPaginaOfferte,
 	attendiTabellaOfferteIdratata,
@@ -293,7 +293,17 @@ test.describe("Dettaglio avanzamento offerta", () => {
 		await expect(dettaglioA).toBeVisible();
 
 		const rigaB = rigaOfferta(page, codiceB);
-		await rigaB.getByRole("button", { name: "Disattiva" }).click();
+		// La casella di selezione non espande la riga.
+		const barra = await selezionaRighe(page, [codiceB]);
+		await expect(pulsanteDettaglio(rigaB, codiceB)).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
+		await page
+			.getByRole("dialog", { name: `Disattivare «${codiceB}»?` })
+			.getByRole("button", { name: "Disattiva", exact: true })
+			.click();
 		await page.waitForURL(
 			(url) =>
 				url.pathname === "/offerte" &&
@@ -307,15 +317,15 @@ test.describe("Dettaglio avanzamento offerta", () => {
 
 		const rigaBDisattivata = rigaOfferta(page, codiceB);
 		await expect(
-			rigaBDisattivata.getByRole("button", { name: "Attiva", exact: true }),
-		).toHaveAttribute("title", "Offerta non attiva");
+			rigaBDisattivata.getByText("Disattivata", { exact: true }),
+		).toBeVisible();
 		await expect(pulsanteDettaglio(rigaBDisattivata, codiceB)).toHaveAttribute(
 			"aria-expanded",
 			"false",
 		);
 		await expect(dettaglioA).toBeVisible();
 
-		await rigaBDisattivata
+		await (await selezionaRighe(page, [codiceB]))
 			.getByRole("button", { name: "Elimina", exact: true })
 			.click();
 		const modale = page.getByTestId("modale-elimina-offerta");
@@ -328,7 +338,7 @@ test.describe("Dettaglio avanzamento offerta", () => {
 		await expect(dettaglioA).toBeVisible();
 	});
 
-	test("il click sull'indicatore conserva l'espansione della stessa riga", async ({
+	test("selezione e disattivazione conservano l'espansione della stessa riga", async ({
 		page,
 		factory,
 	}) => {
@@ -348,9 +358,18 @@ test.describe("Dettaglio avanzamento offerta", () => {
 			"true",
 		);
 
-		// L'indicatore di stato ha stopPropagation: il submit non deve
-		// chiudere la riga espansa.
-		await riga.getByRole("button", { name: "Disattiva" }).click();
+		// La casella di selezione ha stopPropagation: né la selezione né il
+		// submit devono chiudere la riga espansa.
+		const barra = await selezionaRighe(page, [codice]);
+		await expect(pulsanteDettaglio(riga, codice)).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+		await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
+		await page
+			.getByRole("dialog", { name: `Disattivare «${codice}»?` })
+			.getByRole("button", { name: "Disattiva", exact: true })
+			.click();
 		await page.waitForURL(
 			(url) =>
 				url.pathname === "/offerte" &&
@@ -368,8 +387,8 @@ test.describe("Dettaglio avanzamento offerta", () => {
 		);
 		await expect(dettaglioOfferta(page, codice)).toBeVisible();
 		await expect(
-			rigaDisattivata.getByRole("button", { name: "Attiva", exact: true }),
-		).toHaveAttribute("title", "Offerta non attiva");
+			rigaDisattivata.getByText("Disattivata", { exact: true }),
+		).toBeVisible();
 	});
 
 	test("mostra la matrice mensile per collaboratore con totali coerenti", async ({

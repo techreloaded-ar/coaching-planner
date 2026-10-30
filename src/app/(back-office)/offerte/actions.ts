@@ -9,6 +9,7 @@ import {
   leggiPosizioneElencoDaForm,
   urlPosizioneElenco,
 } from "@/lib/paginazione";
+import { leggiIdSelezionati } from "@/lib/selezione-elenco";
 
 const MESSAGGIO_BLOCCO_ELIMINAZIONE =
   "Impossibile eliminare l'offerta: esistono righe attività collegate. Disattiva l'offerta invece di eliminarla.";
@@ -27,22 +28,23 @@ function isPrismaForeignKeyConstraintError(error: unknown): boolean {
 }
 
 /**
- * Server action per attivare/disattivare un'offerta.
- * Chiamata direttamente dai form nella pagina offerte.
+ * Server action per disattivare o riattivare una o più offerte (un campo `id`
+ * per offerta, `attivo` "true"/"false"). Chiamata dalla barra azioni e dal
+ * modale di eliminazione bloccata nella pagina offerte.
  */
 export async function cambiaStatoOfferta(formData: FormData): Promise<void> {
   await guardiaAmministratore();
 
-  const id = formData.get("id") as string;
-  const attiva = formData.get("attiva") === "true";
+  const idOfferte = leggiIdSelezionati(formData);
+  const attiva = formData.get("attivo") === "true";
   const offertaEspansaId = formData.get("offertaEspansaId");
 
-  if (!id) {
+  if (idOfferte.length === 0) {
     redirect("/offerte");
   }
 
-  await db.offerta.update({
-    where: { id },
+  await db.offerta.updateMany({
+    where: { id: { in: idOfferte } },
     data: { attiva },
   });
 

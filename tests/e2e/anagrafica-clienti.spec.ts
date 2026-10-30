@@ -3,7 +3,13 @@ import { randomUUID } from "node:crypto";
 import type { Page } from "@playwright/test";
 
 import { accediComeAdmin } from "./support/auth";
-import { apriElencoFiltrato, cercaNellElenco } from "./support/elenchi";
+import {
+	apriElencoFiltrato,
+	barraSelezione,
+	casellaSelezione,
+	cercaNellElenco,
+	selezionaRighe,
+} from "./support/elenchi";
 import { test, expect, type E2eDataFactory } from "./support/fixtures";
 
 /**
@@ -17,11 +23,14 @@ function suffissoUnivoco(): string {
 	return randomUUID().slice(0, 8);
 }
 
-async function creaClienteProprio(factory: E2eDataFactory) {
-	const token = suffissoUnivoco();
+async function creaClienteProprio(
+	factory: E2eDataFactory,
+	{ token = suffissoUnivoco(), attivo = true }: { token?: string; attivo?: boolean } = {},
+) {
 	return factory.createCliente({
-		ragioneSociale: `E2E Cliente Anagrafica ${token}`,
+		ragioneSociale: `E2E Cliente Anagrafica ${token} ${suffissoUnivoco()}`,
 		citta: "Torino",
+		attivo,
 	});
 }
 
@@ -95,9 +104,9 @@ test.describe("Anagrafica clienti", () => {
 		await apriElencoFiltrato(page, "/anagrafiche/clienti", cliente.ragioneSociale);
 		await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
 
-		await rigaCliente(page, cliente.ragioneSociale)
-			.getByRole("link", { name: "Modifica" })
-			.click();
+		const barra = await selezionaRighe(page, [cliente.ragioneSociale]);
+		await expect(barra).toContainText("1 cliente selezionato");
+		await barra.getByRole("link", { name: "Modifica", exact: true }).click();
 
 		await page.waitForURL(/\/anagrafiche\/clienti\/[^/]+\/modifica$/);
 		await expect(
@@ -124,23 +133,98 @@ test.describe("Anagrafica clienti", () => {
 		await apriElencoFiltrato(page, "/anagrafiche/clienti", cliente.ragioneSociale);
 		await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
 
-		const rigaAttiva = rigaCliente(page, cliente.ragioneSociale);
-		await expect(rigaAttiva.getByText("Attivo")).toBeVisible();
-		await rigaAttiva.getByRole("button", { name: "Disattiva" }).click();
+		const riga = rigaCliente(page, cliente.ragioneSociale);
+		await expect(riga.getByText("Attivo", { exact: true })).toBeVisible();
 
-		// L'azione riporta allo stesso elenco filtrato.
-		await expect(page).toHaveURL(
-			urlConRicerca(cliente.ragioneSociale),
-		);
-		const rigaDisattivata = rigaCliente(page, cliente.ragioneSociale);
-		await expect(rigaDisattivata.getByText("Disattivato")).toBeVisible();
+		const barra = await selezionaRighe(page, [cliente.ragioneSociale]);
+		await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
+		const dialog = page.getByRole("dialog", {
+			name: `Disattivare «${cliente.ragioneSociale}»?`,
+		});
+		await expect(dialog).toBeVisible();
+		await dialog.getByRole("button", { name: "Disattiva", exact: true }).click();
+
+		// L'azione riporta allo stesso elenco filtrato e azzera la selezione.
+		await expect(page).toHaveURL(urlConRicerca(cliente.ragioneSociale));
+		await expect(riga.getByText("Disattivato", { exact: true })).toBeVisible();
+		await expect(barraSelezione(page)).toBeHidden();
+		await expect(page.getByRole("searchbox", { name: "Cerca cliente" })).toBeVisible();
+		await expect(casellaSelezione(page, cliente.ragioneSociale)).not.toBeChecked();
+
+		// La riattivazione non chiede conferma.
+		const barraRiattiva = await selezionaRighe(page, [cliente.ragioneSociale]);
+		await barraRiattiva.getByRole("button", { name: "Riattiva", exact: true }).click();
+		await expect(page).toHaveURL(urlConRicerca(cliente.ragioneSociale));
+		await expect(riga.getByText("Attivo", { exact: true })).toBeVisible();
+		await expect(barraSelezione(page)).toBeHidden();
+	});
+
+	test("selezione mista: azioni con conteggio, conferma e annullamento", async ({
+		page,
+		factory,
+	}) => {
+		const token = suffissoUnivoco();
+		const primo = await creaClienteProprio(factory, { token });
+		const secondo = await creaClienteProprio(factory, { token });
+		const disattivato = await creaClienteProprio(factory, { token, attivo: false });
+		const ricerca = `E2E Cliente Anagrafica ${token}`;
+		await apriElencoFiltrato(page, "/anagrafiche/clienti", ricerca);
+
+		const barra = await selezionaRighe(page, [
+			primo.ragioneSociale,
+			secondo.ragioneSociale,
+			disattivato.ragioneSociale,
+		]);
+		await expect(barra).toContainText("3 clienti selezionati");
+		await expect(barra.getByRole("button", { name: "Disattiva (2)", exact: true })).toBeVisible();
+		await expect(barra.getByRole("button", { name: "Riattiva (1)", exact: true })).toBeVisible();
+		await expect(barra.getByRole("link", { name: "Modifica" })).toHaveCount(0);
+
+		// Annulla nel dialog: nessun cambiamento, la selezione resta.
+		await barra.getByRole("button", { name: "Disattiva (2)", exact: true }).click();
+		const dialog = page.getByRole("dialog", { name: "Disattivare 2 clienti?" });
+		await expect(dialog).toBeVisible();
+		await dialog.getByRole("button", { name: "Annulla", exact: true }).click();
+		await expect(dialog).toBeHidden();
+		await expect(barra).toContainText("3 clienti selezionati");
 		await expect(
-			rigaDisattivata.getByRole("button", { name: "Riattiva" }),
+			rigaCliente(page, primo.ragioneSociale).getByText("Attivo", { exact: true }),
 		).toBeVisible();
 
-		await rigaDisattivata.getByRole("button", { name: "Riattiva" }).click();
-		await expect(page).toHaveURL(urlConRicerca(cliente.ragioneSociale));
-		await expect(rigaCliente(page, cliente.ragioneSociale).getByText("Attivo")).toBeVisible();
+		// Conferma: disattiva solo i due clienti attivi.
+		await barra.getByRole("button", { name: "Disattiva (2)", exact: true }).click();
+		await dialog.getByRole("button", { name: "Disattiva", exact: true }).click();
+		await expect(page).toHaveURL(urlConRicerca(ricerca));
+		for (const cliente of [primo, secondo, disattivato]) {
+			await expect(
+				rigaCliente(page, cliente.ragioneSociale).getByText("Disattivato", { exact: true }),
+			).toBeVisible();
+		}
+		await expect(barraSelezione(page)).toBeHidden();
+	});
+
+	test("Seleziona tutti e Annulla selezione", async ({ page, factory }) => {
+		const token = suffissoUnivoco();
+		const primo = await creaClienteProprio(factory, { token });
+		const secondo = await creaClienteProprio(factory, { token });
+		await apriElencoFiltrato(page, "/anagrafiche/clienti", `E2E Cliente Anagrafica ${token}`);
+
+		// La prima selezione passa dall'helper (idratazione), poi si deseleziona.
+		await selezionaRighe(page, [primo.ragioneSociale]);
+		await casellaSelezione(page, primo.ragioneSociale).uncheck();
+		await expect(barraSelezione(page)).toBeHidden();
+
+		await page.getByRole("checkbox", { name: "Seleziona tutti", exact: true }).check();
+		const barra = barraSelezione(page);
+		await expect(barra).toContainText("2 clienti selezionati");
+		await expect(casellaSelezione(page, primo.ragioneSociale)).toBeChecked();
+		await expect(casellaSelezione(page, secondo.ragioneSociale)).toBeChecked();
+
+		await barra.getByRole("button", { name: "Annulla selezione", exact: true }).click();
+		await expect(barra).toBeHidden();
+		await expect(page.getByRole("searchbox", { name: "Cerca cliente" })).toBeVisible();
+		await expect(casellaSelezione(page, primo.ragioneSociale)).not.toBeChecked();
+		await expect(casellaSelezione(page, secondo.ragioneSociale)).not.toBeChecked();
 	});
 
 	test("sidebar navigazione", async ({ page }) => {

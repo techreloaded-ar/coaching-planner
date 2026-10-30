@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
+import { selezionaRighe } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 import { apriMenuAccount, pannelloAccount } from "./support/menu-account";
 
@@ -174,9 +175,10 @@ test.describe("US-030 Attività amministratore", () => {
 		await page.goto("/anagrafiche/utenti");
 		await page.waitForURL("**/anagrafiche/utenti");
 		await expect(page.getByRole("heading", { name: "Utenti" })).toBeVisible();
-		await rigaUtente(page, amministratore.email)
-			.getByRole("link", { name: "Modifica", exact: true })
-			.click();
+		const barra = await selezionaRighe(page, [
+			rigaUtente(page, amministratore.email).getByRole("checkbox"),
+		]);
+		await barra.getByRole("link", { name: "Modifica", exact: true }).click();
 		await expect(
 			page.getByRole("heading", { name: "Modifica utente" }),
 		).toBeVisible();
