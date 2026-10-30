@@ -1,0 +1,35 @@
+schema: archetipo/spec/v2
+code: US-073
+title: Esclusione degli impegni fuori sede e non lavorativi
+epic:
+  code: EP-010
+  title: voglio potenziare la funzionalità di integrazione con google calendar, i…
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **Come** collaboratore, **voglio** che non mi vengano proposti eventi «Fuori sede» o palesemente non lavorativi, **così** da vedere solo impegni che ha senso consuntivare.
+
+  **Demonstrates:** in una giornata con un evento di lavoro, un evento «Fuori sede» di Google Calendar e un evento «Pranzo», compare solo la proposta dell'evento di lavoro.
+
+  ### Criteri di accettazione
+  - [ ] Gli eventi Google Calendar di tipo «Fuori sede» (eventType outOfOffice) non vengono mai proposti, anche senza Gemini
+  - [ ] Gemini indica per ogni evento se è palesemente non lavorativo (es. pranzo, palestra, visita medica, impegno personale); questi eventi non vengono proposti
+  - [ ] Nel dubbio l'evento resta proposto: l'esclusione AI vale solo per i casi palesi indicati da Gemini
+  - [ ] Senza Gemini o con errore di Gemini non si applica il filtro AI e gli altri eventi restano proposti
+  - [ ] Se tutti gli eventi sono esclusi compare il messaggio «Nessun impegno da proporre per questa giornata»
+  - [ ] L'esclusione «Fuori sede» e quella AI simulata in e2e sono coperte da test
+
+  <!-- archetipo-increment:inc-b262b9534cbff76d:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/5
+history:
+  - status: TODO
+    at: "2026-10-27T16:13:04Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T16:13:04Z"
+  - status: REVIEW
+    at: "2026-10-27T17:15:42Z"
+  - status: DONE
+    at: "2026-10-27T17:29:12Z"

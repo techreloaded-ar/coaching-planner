@@ -1,0 +1,39 @@
+schema: archetipo/spec/v2
+code: US-101
+title: Segnalare le ore senza offerta nei report di fatturazione e marginalità
+epic:
+  code: EP-019
+  title: dobbiamo modificare come vengono censite le attività. Ad oggi per censir…
+priority: MEDIUM
+points: 3
+status: REVIEW
+blocked_by:
+  - US-099
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** vedere nei report le ore registrate senza offerta, separate e segnalate
+  **così che** non vengano dimenticate e possano essere assegnate prima della fatturazione.
+
+  ### Demonstrates
+  1. Con una riga fatturabile senza offerta nel mese, l'amministratore apre il report fatturazione clienti: sotto il cliente compare la voce «Senza offerta» con le ore, l'importo a zero e la segnalazione «da assegnare a un'offerta».
+  2. Nel report marginalità dello stesso periodo la voce «Senza offerta» mostra ricavi a zero e il costo del collaboratore conteggiato.
+  3. Dopo che il collaboratore assegna l'offerta alla riga, la voce scompare e le ore sono valorizzate con la tariffa dell'offerta.
+
+  ### Acceptance criteria
+  - [ ] Il report fatturazione clienti mostra, sotto ciascun cliente interessato, una voce «Senza offerta» con ore fatturabili e collaboratori coinvolti, importo da fatturare pari a zero e la segnalazione «da assegnare a un'offerta»; le trasferte forfettarie non si applicano a questa voce.
+  - [ ] Il totale da fatturare del cliente e del report non cambia per effetto delle ore senza offerta.
+  - [ ] Il report marginalità mostra la voce «Senza offerta» con ricavi pari a zero e costi calcolati con la tariffa del collaboratore valida nel mese; i fissi mensili vengono ripartiti considerando anche queste ore.
+  - [ ] Il report «Avanzamento offerte» non include le ore senza offerta.
+  - [ ] Senza righe prive di offerta i report sono identici a quelli attuali.
+
+  <!-- archetipo-increment:inc-ed02bdaae34cce26:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/14
+history:
+  - status: TODO
+    at: "2026-10-30T14:29:18Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T14:29:18Z"
+  - status: REVIEW
+    at: "2026-10-30T15:15:06Z"

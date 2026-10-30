@@ -1,0 +1,35 @@
+schema: archetipo/spec/v2
+code: US-074
+title: Pannello delle proposte chiuso con il numero di proposte
+epic:
+  code: EP-010
+  title: voglio potenziare la funzionalità di integrazione con google calendar, i…
+priority: MEDIUM
+points: 2
+status: DONE
+scope: MVP
+body: |-
+  **Come** collaboratore, **voglio** che le proposte dal calendario siano raccolte in un pannello chiuso con il loro numero, **così** che la giornata resti leggibile e le apra solo quando servono.
+
+  **Demonstrates:** aprendo una giornata con 3 proposte compare un pannello chiuso «Proposte dal calendario · 3 da proporre»; cliccandolo si espande l'elenco; confermando o rifiutando una proposta il numero scende a 2.
+
+  ### Criteri di accettazione
+  - [ ] All'apertura della giornata il pannello delle proposte è chiuso e mostra il numero di proposte
+  - [ ] Il pannello si apre e si richiude con un controllo accessibile da tastiera che ne espone lo stato aperto/chiuso
+  - [ ] Aperto, il pannello mostra le proposte con le azioni «Conferma», «Modifica» e «Rifiuta» di oggi
+  - [ ] Il numero si aggiorna quando una proposta viene confermata o rifiutata
+  - [ ] Lettura in corso, errore del calendario e assenza di proposte restano visibili senza dover aprire il pannello
+  - [ ] Senza calendario collegato il pannello non compare, come oggi
+
+  <!-- archetipo-increment:inc-b262b9534cbff76d:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/5
+history:
+  - status: TODO
+    at: "2026-10-27T16:13:04Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T16:13:04Z"
+  - status: REVIEW
+    at: "2026-10-27T17:15:42Z"
+  - status: DONE
+    at: "2026-10-27T17:29:12Z"

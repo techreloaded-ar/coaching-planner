@@ -1,0 +1,38 @@
+schema: archetipo/spec/v2
+code: US-078
+title: La fattura mensile del collaboratore include le attività non fatturabili
+epic:
+  code: EP-012
+  title: Attualmente, quando un collaboratore segna un'attività, può solo segnare…
+priority: HIGH
+points: 3
+status: DONE
+blocked_by:
+  - US-077
+scope: MVP
+body: |-
+  **Come** collaboratore, **voglio** che il riepilogo mensile calcoli la mia fattura su attività fatturabili e non fatturabili ed escluda gli investimenti, **così che** l'importo che fatturo ad Agile Reloaded sia corretto.
+
+  ### Demonstrates
+  In un mese con 8 h Fatturabile, 4 h Non fatturabile e 4 h Investimento, con tariffa 400 €/giornata, il riepilogo mensile mostra 12 h (1,5 giornate) da fatturare ad Agile Reloaded, imponibile 600,00 € più i rimborsi, e indica separatamente le ore per categoria.
+
+  ### Criteri di accettazione
+  - [ ] Imponibile manodopera = (ore Fatturabile + ore Non fatturabile) / 8 × tariffa del collaboratore; le ore Investimento sono escluse.
+  - [ ] I rimborsi trasferta restano inclusi nell'importo fattura come oggi, qualunque sia la categoria della riga.
+  - [ ] Il riepilogo mostra il totale ore per ciascuna categoria e le ore/giornate da fatturare ad Agile Reloaded, con etichette coerenti con la didascalia.
+  - [ ] Il dettaglio per offerta segnala le offerte con ore Non fatturabile o Investimento.
+  - [ ] Il riepilogo ore della giornata distingue le ore che il collaboratore fattura ad Agile Reloaded.
+  - [ ] Test unitari del calcolo per i tre casi e il caso misto; e2e del riepilogo aggiornato.
+
+  <!-- archetipo-increment:inc-f99252df7ce0354d:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/7
+history:
+  - status: TODO
+    at: "2026-10-28T12:29:18Z"
+  - status: IN PROGRESS
+    at: "2026-10-28T12:29:18Z"
+  - status: REVIEW
+    at: "2026-10-28T15:33:40Z"
+  - status: DONE
+    at: "2026-10-28T15:40:43Z"

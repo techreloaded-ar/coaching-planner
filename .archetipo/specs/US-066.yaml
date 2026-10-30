@@ -1,0 +1,37 @@
+schema: archetipo/spec/v2
+code: US-066
+title: Selezione diretta di mese e anno nella Fatturazione Clienti
+epic:
+  code: EP-008
+  title: |-
+    Dobbiamo fare un paio di miglioramenti sul coaching planner:
+    1. Nella sc…
+priority: HIGH
+points: 2
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore **voglio** scegliere direttamente mese e anno nel report Fatturazione Clienti **così da** raggiungere un mese lontano senza scorrere avanti e indietro un mese alla volta.
+
+  **Demonstrates:** come amministratore apro `/report/fatturazione-clienti`, clicco sull'etichetta del mese, passo all'anno precedente nel pannello e scelgo marzo. Il report mostra i dati di marzo dell'anno precedente, l'URL contiene `?mese=AAAA-03` e il link «Esporta Excel» esporta quel mese.
+
+  ## Criteri di accettazione
+  - [ ] L'etichetta del mese nella barra di navigazione della Fatturazione Clienti apre lo stesso selettore compatto usato in `/attivita` (`SelettoreMese`): anno con frecce precedente/successivo e griglia dei dodici mesi.
+  - [ ] Scegliendo un mese il report mostra i dati di quel mese e l'URL riporta `?mese=AAAA-MM`. Il pulsante Indietro del browser riporta al mese precedentemente mostrato.
+  - [ ] Restano disponibili le frecce mese precedente/successivo e il pulsante «Mese corrente».
+  - [ ] Il selettore ha lo stesso comportamento da tastiera di `/attivita`: frecce per spostarsi, Invio per scegliere, Esc per chiudere.
+  - [ ] Il link «Esporta Excel» esporta sempre il mese mostrato.
+  - [ ] Un test e2e copre il salto diretto a un mese di un altro anno, usando mesi riservati e dati creati da factory.
+
+  <!-- archetipo-increment:inc-800bf08708b20f44:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/3
+history:
+  - status: TODO
+    at: "2026-10-27T10:21:08Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T10:21:08Z"
+  - status: REVIEW
+    at: "2026-10-27T12:04:01Z"
+  - status: DONE
+    at: "2026-10-27T12:06:08Z"

@@ -1,0 +1,37 @@
+schema: archetipo/spec/v2
+code: US-092
+title: Censire un cliente indicando solo la ragione sociale
+epic:
+  code: EP-017
+  title: dobbiamo rilassare i vincoli dei campi obbligatori per collaboratori, cl…
+priority: HIGH
+points: 1
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** creare e modificare un cliente indicando solo la ragione sociale
+  **così da** censirlo subito anche senza conoscerne la partita IVA.
+
+  ### Demonstrates
+  In Anagrafiche > Clienti creare un nuovo cliente compilando solo la ragione sociale: il salvataggio riesce e il cliente compare in elenco con la partita IVA «—». Riaprirlo, inserire una partita IVA di 5 cifre: il form segnala che deve essere di 11 cifre. Svuotare la ragione sociale: il form segnala che è obbligatoria.
+
+  ### Acceptance Criteria
+  - [ ] Un cliente si salva (creazione e modifica) con la sola ragione sociale valorizzata
+  - [ ] La ragione sociale resta obbligatoria con il messaggio attuale
+  - [ ] La partita IVA è facoltativa; se valorizzata deve essere di 11 cifre
+  - [ ] Il form non indica più la partita IVA come obbligatoria
+  - [ ] Elenco e dettaglio cliente mostrano «—» per la partita IVA assente
+
+  <!-- archetipo-increment:inc-271d782d46c2329a:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/12
+history:
+  - status: TODO
+    at: "2026-10-30T09:10:48Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T09:10:48Z"
+  - status: REVIEW
+    at: "2026-10-30T09:37:22Z"
+  - status: DONE
+    at: "2026-10-30T09:38:34Z"

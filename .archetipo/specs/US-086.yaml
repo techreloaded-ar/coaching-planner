@@ -1,0 +1,41 @@
+schema: archetipo/spec/v2
+code: US-086
+title: Calcolare la fattura mensile del collaboratore con la tariffa valida in quel mese
+epic:
+  code: EP-015
+  title: Dobbiamo migliorare molto come gestiamo le tariffe dei collaboratori. Ad…
+priority: HIGH
+points: 3
+status: DONE
+blocked_by:
+  - US-085
+scope: MVP
+body: |-
+  **Come** collaboratore **voglio** che il riepilogo mensile calcoli la mia fattura con la tariffa valida in quel mese, giornaliera o fissa, **per** emettere l'importo corretto anche per i mesi passati.
+
+  ### Demonstrates
+  1. Per un collaboratore di prova con *Giornaliera € 400* da gennaio 2025 e *Fisso mensile € 6.500* da luglio 2026, apri il riepilogo di un mese del 2025 con attività: l'importo è «giornate × € 400 + rimborsi», con la nota «Tariffa giornaliera valida da gen 2025».
+  2. Apri luglio 2026 con alcune ore e un rimborso: l'importo è «Fisso mensile € 6.500 + rimborsi». Le giornate registrate sono visibili, con la nota che il fisso non dipende dalle giornate.
+  3. Apri un mese con il fisso in vigore ma senza attività: l'importo mostra comunque € 6.500.
+
+  ### Criteri di accettazione
+  - [ ] Con una tariffa *Giornaliera* valida nel mese, l'importo fattura è uguale a quello di oggi: giornate Fatturabile e Non fatturabile × tariffa del mese, più i rimborsi trasferta.
+  - [ ] Con una tariffa *Fisso mensile* valida nel mese, l'importo fattura è il fisso più i rimborsi trasferta, indipendentemente dalle ore registrate.
+  - [ ] Un mese senza attività ma con il fisso in vigore mostra comunque l'importo del fisso.
+  - [ ] La scomposizione sotto l'importo distingue le due modalità: per la giornaliera «N g × € tariffa · Compenso · Rimborsi», per il fisso «Fisso mensile € X · Rimborsi». Mostra inoltre da quale mese vale la tariffa applicata.
+  - [ ] Un mese precedente alla prima tariffa del collaboratore mostra un compenso di € 0 e la nota «Nessuna tariffa in vigore in questo mese».
+  - [ ] Cambiare una tariffa futura non modifica il riepilogo dei mesi precedenti alla sua decorrenza.
+  - [ ] I test unitari coprono entrambe le modalità, il mese senza attività e il mese senza tariffa. Gli e2e usano dati della factory e mesi riservati.
+
+  <!-- archetipo-increment:inc-685207a88e2c3c86:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/10
+history:
+  - status: TODO
+    at: "2026-10-29T10:10:39Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T10:10:39Z"
+  - status: REVIEW
+    at: "2026-10-29T11:21:44Z"
+  - status: DONE
+    at: "2026-10-29T11:33:18Z"

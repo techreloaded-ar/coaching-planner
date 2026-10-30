@@ -1,0 +1,41 @@
+schema: archetipo/spec/v2
+code: US-087
+title: Calcolare la marginalità con la tariffa del mese e ripartire il fisso mensile sulle offerte
+epic:
+  code: EP-015
+  title: Dobbiamo migliorare molto come gestiamo le tariffe dei collaboratori. Ad…
+priority: MEDIUM
+points: 5
+status: DONE
+blocked_by:
+  - US-085
+scope: MVP
+body: |-
+  **Come** amministratore **voglio** che la marginalità calcoli i costi dei collaboratori con la tariffa valida in ogni mese, e ripartisca il fisso mensile sulle offerte lavorate, **per** leggere margini corretti per cliente e offerta anche su periodi in cui le tariffe sono cambiate.
+
+  ### Demonstrates
+  1. Un collaboratore di prova a *Giornaliera € 400* nel 2025 e *€ 450* nel 2026 lavora sulla stessa offerta in dicembre 2025 e in gennaio 2026. La marginalità del periodo dic 2025 – gen 2026 somma i costi a 400 e a 450 secondo il mese di ogni riga.
+  2. Un collaboratore a *Fisso mensile € 6.500* in luglio 2026 ha 10 g sull'offerta A e 2,5 g sull'offerta B. La marginalità di luglio 2026 attribuisce € 5.200 ad A e € 1.300 a B, con l'indicazione «di cui fisso ripartito».
+  3. Lo stesso collaboratore in agosto 2026 non ha ore: la marginalità di agosto mostra € 6.500 nella riga «Fissi non attribuibili» e il totale costi lo include.
+
+  ### Criteri di accettazione
+  - [ ] Il costo di una riga con tariffa *Giornaliera* usa la tariffa valida nel mese della riga, non quella attuale.
+  - [ ] Per ogni collaboratore e mese del periodo con tariffa *Fisso mensile*, il fisso si ripartisce sulle offerte in proporzione alle ore Fatturabile e Non fatturabile del collaboratore in quel mese. Gli arrotondamenti al centesimo fanno sì che la somma delle quote sia uguale al fisso.
+  - [ ] Un collaboratore attivo a fisso senza ore Fatturabile o Non fatturabile in un mese del periodo genera un costo nella riga «Fissi non attribuibili», sotto i clienti e sopra il totale. La riga compare solo se l'importo è maggiore di zero.
+  - [ ] Nelle offerte con una quota di fisso, la cella costi mostra «di cui fisso ripartito € X».
+  - [ ] Il totale costi del periodo è uguale alla somma dei compensi dei collaboratori, rimborsi esclusi. I ricavi restano invariati.
+  - [ ] Le righe Investimento restano escluse da costi e ripartizione, come oggi.
+  - [ ] I test unitari coprono la tariffa per mese, la ripartizione proporzionale con arrotondamento e il mese senza ore. Gli e2e usano dati della factory e mesi riservati.
+
+  <!-- archetipo-increment:inc-685207a88e2c3c86:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/10
+history:
+  - status: TODO
+    at: "2026-10-29T10:10:39Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T10:10:39Z"
+  - status: REVIEW
+    at: "2026-10-29T11:21:44Z"
+  - status: DONE
+    at: "2026-10-29T11:33:18Z"

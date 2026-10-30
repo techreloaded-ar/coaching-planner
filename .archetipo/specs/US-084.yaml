@@ -1,0 +1,36 @@
+schema: archetipo/spec/v2
+code: US-084
+title: Sommare le ore in modo esatto perché stato e residuo delle offerte siano affidabili
+epic:
+  code: EP-014
+  title: Nella parte amministrativa vorrei modificare la visualizzazione delle pa…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore, **voglio** che le ore siano sommate in modo esatto, **così da** vedere «Esaurita» un'offerta che ha consumato esattamente il budget, e non «Oltre budget» o «In allerta» per un errore di calcolo, con ordinamento, contatori e badge sempre concordi.
+
+  ### Demonstrates
+  In anteprima, un'offerta demo da 10 giornate con righe fatturabili a due decimali (es. 0,86 + 2,3 + 1,38 + …) che sommano esattamente 80 ore: in Offerte compare fra le critiche in testa, conta nella pill «da presidiare» e mostra il badge «Esaurita» con 10/10 gg, uguale nella scheda del cliente. Aggiungendo 0,01 ore diventa «Oltre budget». Nel front-office, inserire 1,255 ore mostra il messaggio che consente al massimo due decimali.
+
+  ### Criteri di accettazione
+  - [ ] Il dominio somma e confronta le ore come interi in centesimi di ora, con un'unica conversione al confine (valore dal database o dall'input); nessun confronto di stato avviene su somme in virgola mobile.
+  - [ ] Offerta da 10 giornate con righe che sommano esattamente 80,00 ore → stato «Esaurita» e residuo 0; 80,01 ore → «Oltre budget»; 79,99 ore → non esaurita. Vale nell'elenco trasversale, nella scheda cliente e nel dettaglio avanzamento.
+  - [ ] Ordinamento, pill «da presidiare» e badge di un'offerta coincidono sempre, perché derivano dagli stessi valori esatti.
+  - [ ] Riepilogo mensile, report fatturazione e marginalità e sintesi giornaliere sommano le ore allo stesso modo: totali identici a oggi quando non c'era deriva e nessun residuo del tipo 7,9999999.
+  - [ ] Ore con più di due decimali sono rifiutate con il messaggio «Usa al massimo due decimali per le ore», sia in inserimento sia in modifica e duplicazione delle righe, e nel controllo immediato del front-office.
+  - [ ] Test unitari con casi reali di deriva (es. 20 righe a due decimali che sommano 80,00) per avanzamento e riepiloghi; e2e sullo stato «Esaurita» di un'offerta creata dalle factory.
+
+  <!-- archetipo-increment:inc-e7a0e18a6d3648a9:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/9
+history:
+  - status: TODO
+    at: "2026-10-29T08:17:18Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T08:17:18Z"
+  - status: REVIEW
+    at: "2026-10-29T09:42:11Z"
+  - status: DONE
+    at: "2026-10-29T09:48:19Z"

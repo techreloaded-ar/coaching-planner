@@ -1,0 +1,49 @@
+schema: archetipo/spec/v2
+code: US-089
+title: Pagina Impostazioni con la scelta del tema grafico
+epic:
+  code: EP-016
+  title: Vorrei creare una sezione di settings dell'utente. Attualmente nei setti…
+priority: HIGH
+points: 5
+status: DONE
+blocked_by:
+  - US-088
+scope: MVP
+body: |-
+  **User Story**
+  Come collaboratore o amministratore,
+  voglio una pagina Impostazioni personale organizzata per categorie, raggiungibile dal menu dell'account, da cui scegliere il tema grafico e da cui tornare al punto di partenza,
+  così che le mie preferenze siano raccolte in un unico posto ordinato e l'header resti pulito.
+
+  **Demonstrates**
+  Partendo da un collaboratore collegato sulla pagina attività con tema chiaro, il reviewer nota che nell'header non c'è più il pulsante tema; clicca l'avatar e sceglie «Impostazioni». Vede a sinistra una barra laterale con le categorie «Tema» e «Connettori», con «Tema» evidenziata, e a destra solo le opzioni del tema; seleziona «Scuro» e l'interfaccia diventa subito scura. Ricarica e il tema scuro resta, con «Scuro» selezionato. Apre «Connettori» e il contenuto mostra solo i connettori. Preme «Torna alle attività» nella barra laterale e arriva alla pagina attività. Ripete con un amministratore senza profilo collaboratore partendo dalla console: il pulsante è «Torna alla console» e lo riporta alla console amministrativa. Con un amministratore che ha anche un profilo collaboratore attivo il pulsante è «Torna alle attività».
+
+  **Acceptance Criteria**
+  - [ ] AC-1 — Nel menu dell'account, sia nel front office sia nella console amministrativa, è presente la voce «Impostazioni» che apre la pagina Impostazioni dell'utente collegato.
+  - [ ] AC-2 — Il pulsante-icona del tema non compare più in nessuna delle due intestazioni.
+  - [ ] AC-3 — La pagina Impostazioni ha una barra laterale con le categorie «Tema» e «Connettori», e la categoria aperta è evidenziata.
+  - [ ] AC-4 — Aprendo le Impostazioni dal menu dell'account si vede la categoria «Tema».
+  - [ ] AC-5 — Selezionando una categoria nella barra laterale, il contenuto mostra solo le impostazioni di quella categoria.
+  - [ ] AC-6 — La categoria «Tema» mostra le tre opzioni Chiaro, Scuro e Browser, e l'opzione attualmente in uso è indicata come selezionata.
+  - [ ] AC-7 — Scegliendo un'opzione, l'aspetto dell'interfaccia cambia subito senza ricaricare la pagina.
+  - [ ] AC-8 — Dopo un ricaricamento o una nuova navigazione nello stesso browser, il tema scelto resta applicato e selezionato nelle Impostazioni.
+  - [ ] AC-9 — Per un utente con profilo collaboratore attivo (collaboratore, oppure amministratore che è anche collaboratore) la barra laterale mostra «Torna alle attività», che porta alla pagina attività.
+  - [ ] AC-10 — Per un amministratore senza profilo collaboratore attivo la barra laterale mostra «Torna alla console», che porta alla console amministrativa.
+  - [ ] AC-11 — Un visitatore non autenticato che apre la pagina Impostazioni viene mandato alla pagina di accesso.
+
+  **Out of Scope**
+  Salvataggio del tema sul profilo utente lato server o sincronizzazione tra dispositivi; nuove opzioni di tema; altre categorie oltre Tema e Connettori; modifica dei dati anagrafici del profilo.
+
+  <!-- archetipo-increment:inc-59927d9d6b724648:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/11
+history:
+  - status: TODO
+    at: "2026-10-29T13:37:09Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T13:37:09Z"
+  - status: REVIEW
+    at: "2026-10-29T15:52:31Z"
+  - status: DONE
+    at: "2026-10-30T09:42:47Z"

@@ -1,0 +1,38 @@
+schema: archetipo/spec/v2
+code: US-083
+title: Sfogliare e cercare le offerte a pagine caricando l'avanzamento solo della pagina
+epic:
+  code: EP-014
+  title: Nella parte amministrativa vorrei modificare la visualizzazione delle pa…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore, **voglio** che l'elenco Offerte mostri le offerte a pagine da 25 con ricerca su tutto l'archivio, mantenendo in testa quelle da presidiare, **così da** aprirlo velocemente anche con molte offerte e righe attività senza perdere di vista le criticità.
+
+  ### Demonstrates
+  Con più di 25 offerte: aprire /offerte → 25 righe, le critiche per prime, pill «da presidiare» con il totale complessivo e «Mostrati 1–25 di N»; andare a pagina 2, espandere il dettaglio di un'offerta e disattivarla → si resta su pagina 2 con il messaggio «Stato dell'offerta aggiornato»; cercare per codice un'offerta di pagina 2 → compare nei risultati.
+
+  ### Criteri di accettazione
+  - [ ] Ordinamento invariato su tutto l'insieme: attive esaurite/oltre budget, poi altre attive, poi non attive; dentro ogni gruppo per ragione sociale cliente e codice.
+  - [ ] Le righe attività di dettaglio (giornate per collaboratore, matrice mensile) sono lette solo per le offerte della pagina mostrata; per ordinare e contare si usa un'aggregazione delle ore per offerta e categoria, riusando il calcolo di dominio esistente (stessi valori di giornate erogate, residuo e stato di oggi).
+  - [ ] 25 offerte per pagina con «Mostrati X–Y di N» e controlli Precedente / numeri di pagina / Successiva, con lo stesso comportamento dei Clienti.
+  - [ ] La ricerca per cliente, codice o descrizione (senza distinzione maiuscole/minuscole) avviene sul server su tutte le offerte, aggiorna l'URL (`q`) e riporta a pagina 1.
+  - [ ] Il riepilogo «N offerte · X attive · Y non attive» e la pill «da presidiare» contano l'intero insieme filtrato.
+  - [ ] Dopo attiva/disattiva o eliminazione, e con il dettaglio avanzamento espanso, l'amministratore resta sulla stessa pagina e ricerca (l'offerta espansa resta aperta se ancora presente nella pagina).
+  - [ ] Pagina oltre l'ultima → ultima pagina valida; nessun risultato → «Nessuna offerta corrisponde alla ricerca»; nessuna offerta in archivio → stato vuoto attuale.
+  - [ ] Test unitari dell'elenco paginato (ordinamento, conteggi, pagina) ed e2e su dati creati dalle factory, aggiornati dove si appoggiavano all'elenco completo.
+
+  <!-- archetipo-increment:inc-e7a0e18a6d3648a9:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/9
+history:
+  - status: TODO
+    at: "2026-10-29T07:07:52Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T07:07:52Z"
+  - status: REVIEW
+    at: "2026-10-29T09:42:11Z"
+  - status: DONE
+    at: "2026-10-29T09:48:19Z"

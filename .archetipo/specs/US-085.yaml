@@ -1,0 +1,43 @@
+schema: archetipo/spec/v2
+code: US-085
+title: Gestire lo storico delle tariffe di un collaboratore, giornaliere o a fisso mensile
+epic:
+  code: EP-015
+  title: Dobbiamo migliorare molto come gestiamo le tariffe dei collaboratori. Ad…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore **voglio** registrare per ogni collaboratore le tariffe nel tempo, scegliendo tra tariffa giornaliera e fisso mensile, **per** avere sempre la tariffa corretta per ogni mese.
+
+  ### Demonstrates
+  1. Apri il dettaglio di un collaboratore creato per la prova: la card «Tariffa attuale» e la sezione «Storico tariffe» mostrano la tariffa iniziale.
+  2. Con «Nuova tariffa» aggiungi *Giornaliera € 450* valida da gennaio 2026 e *Fisso mensile € 6.500* valida da luglio 2026. Lo storico le elenca dalla più recente, con il periodo di validità; la voce di luglio 2026 è marcata «in vigore» e la card mostra «€ 6.500 / mese · Fisso mensile · da lug 2026».
+  3. Prova ad aggiungere un'altra tariffa a luglio 2026: viene rifiutata con un messaggio chiaro.
+  4. Modifica l'importo della voce di gennaio 2026, poi eliminala; la voce più vecchia non offre «Elimina».
+  5. Nell'elenco collaboratori la colonna tariffa mostra la tariffa in vigore oggi, con la sua unità (€/giorno o €/mese).
+
+  ### Criteri di accettazione
+  - [ ] Esiste uno storico delle tariffe per collaboratore. Ogni voce ha il mese da cui è valida, la modalità (Giornaliera o Fisso mensile) e un importo maggiore di zero. Il database impedisce due voci per lo stesso collaboratore nello stesso mese.
+  - [ ] La tariffa valida in un mese è la voce con il mese di decorrenza più recente non successivo a quel mese. Prima della prima voce il collaboratore non ha tariffa.
+  - [ ] Una migrazione trasferisce la tariffa giornaliera attuale di ogni collaboratore esistente in una voce *Giornaliera*, valida dal mese più vecchio tra la creazione del collaboratore e la sua prima riga attività. Nessun importo viene perso e il vecchio campo viene rimosso.
+  - [ ] Il dettaglio collaboratore mostra la card «Tariffa attuale» (importo, unità, modalità, mese di decorrenza) e la sezione «Storico tariffe», ordinata dalla più recente, con mese, modalità, importo, periodo di validità e il badge «in vigore» sulla tariffa del mese corrente.
+  - [ ] L'amministratore può aggiungere, modificare ed eliminare le voci. Se il mese è già occupato da un'altra voce, il salvataggio viene rifiutato con un messaggio sul campo del mese. La voce più vecchia non è eliminabile: un collaboratore ha sempre almeno una tariffa.
+  - [ ] Alla creazione di un collaboratore, sia dall'anagrafica collaboratori sia dalla creazione di un utente con ruolo collaboratore, si indicano modalità, importo e mese di decorrenza (predefinito: il mese corrente), che diventano la prima voce. Il form «Modifica collaboratore» non contiene più la tariffa.
+  - [ ] L'elenco collaboratori mostra la tariffa in vigore oggi, con l'unità «/ giorno» o «/ mese».
+  - [ ] Solo l'amministratore può vedere e modificare lo storico: le azioni lato server verificano il ruolo.
+  - [ ] I test unitari coprono la scelta della tariffa valida per mese e le validazioni. Gli e2e usano un collaboratore creato dalla factory, non i collaboratori del seed.
+
+  <!-- archetipo-increment:inc-685207a88e2c3c86:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/10
+history:
+  - status: TODO
+    at: "2026-10-29T10:10:39Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T10:10:39Z"
+  - status: REVIEW
+    at: "2026-10-29T11:21:44Z"
+  - status: DONE
+    at: "2026-10-29T11:33:18Z"

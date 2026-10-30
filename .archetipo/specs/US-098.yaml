@@ -1,0 +1,41 @@
+schema: archetipo/spec/v2
+code: US-098
+title: Selezionare utenti e disattivarli o riattivarli dalla barra azioni
+epic:
+  code: EP-018
+  title: Vorrei rivedere la user experience per le azioni che si possono fare nel…
+priority: HIGH
+points: 5
+status: DONE
+blocked_by:
+  - US-096
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** gestire gli utenti con la stessa barra azioni e la stessa terminologia delle altre anagrafiche
+  **così da** non dover distinguere fra «invalidare» e «disattivare».
+
+  ### Demonstrates
+  In Anagrafiche > Utenti spuntare un utente collaboratore attivo: la barra mostra Modifica e Disattiva. Premere Disattiva: il dialog avvisa che l'accesso sarà revocato e che anche il profilo collaboratore verrà disattivato; confermare: la chip diventa grigia «Disattivato» e in Collaboratori il profilo risulta disattivato. Selezionare due utenti disattivati e premere «Riattiva (2)»: tornano «Attivo». Selezionare tutti gli amministratori attivi e premere Disattiva: l'operazione è rifiutata per intero con il messaggio sull'ultimo amministratore e nessun utente cambia stato.
+
+  ### Acceptance Criteria
+  - [ ] L'elenco utenti usa il componente condiviso di US-001 con Modifica (selezione singola), Disattiva e Riattiva (anche multiple)
+  - [ ] «Invalida», «Invalidato» e «Invalidazione» non compaiono più nell'elenco utenti: si usano Disattiva, Disattivato, Disattivazione
+  - [ ] Il dialog di conferma della disattivazione mantiene gli avvisi attuali (accesso revocato, profilo collaboratore disattivato quando presente, nessun dato eliminato) adattati al numero di utenti
+  - [ ] La disattivazione/riattivazione multipla avviene in un'unica transazione lato server riservata agli amministratori e aggiorna anche i profili collaboratore collegati
+  - [ ] Se dopo la disattivazione non resterebbe alcun amministratore attivo l'intera operazione è rifiutata, nessun utente cambia stato e compare il messaggio esplicito
+  - [ ] La riga utente non ha più azioni in linea; resta la chip di stato verde «Attivo» / grigia «Disattivato»
+  - [ ] Modificare il testo di ricerca azzera la selezione
+
+  <!-- archetipo-increment:inc-8edf57414347c123:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/13
+history:
+  - status: TODO
+    at: "2026-10-30T13:36:29Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T13:36:29Z"
+  - status: REVIEW
+    at: "2026-10-30T14:08:07Z"
+  - status: DONE
+    at: "2026-10-30T14:11:19Z"

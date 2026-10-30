@@ -1,0 +1,44 @@
+schema: archetipo/spec/v2
+code: US-080
+title: Definire nell'offerta come si fatturano le trasferte
+epic:
+  code: EP-013
+  title: Quando definiamo un'offerta, dobbiamo aggiungere l'informazione su come …
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **User Story**
+  Come amministratore di Agile Reloaded,
+  voglio indicare in ogni offerta se le trasferte sono incluse nella tariffa o fatturate a forfait con un importo giornaliero,
+  così da sapere come addebitare le trasferte al cliente.
+
+  **Demonstrates**
+  Partendo da un cliente attivo, il revisore apre *Nuova offerta*, compila i dati e nella sezione *Condizioni economiche* sceglie «Trasferta forfettaria» senza importo: al salvataggio vede l'errore «L'importo forfettario per giorno di trasferta è obbligatorio». Inserisce 80,00, salva e nell'elenco offerte vede «Trasferta forfettaria · 80,00 €/gg». Riapre la modifica, sceglie «Trasferta inclusa nella tariffa», salva e nell'elenco vede «Trasferta inclusa»; riaprendo la modifica il campo importo non è presente/valorizzato.
+
+  **Acceptance Criteria**
+  - [ ] AC-1 — Il form di creazione e modifica offerta mostra nella sezione *Condizioni economiche* la scelta obbligatoria «Gestione trasferte» con le opzioni «Inclusa nella tariffa» e «Forfettaria»; in creazione è preselezionata «Inclusa nella tariffa».
+  - [ ] AC-2 — Con «Forfettaria» il form mostra il campo «Importo forfettario per giorno di trasferta» (€, virgola o punto, massimo 2 decimali); con «Inclusa nella tariffa» il campo non è mostrato.
+  - [ ] AC-3 — Salvando un'offerta forfettaria con importo vuoto compare l'errore «L'importo forfettario per giorno di trasferta è obbligatorio» e l'offerta non viene salvata.
+  - [ ] AC-4 — Salvando un'offerta forfettaria con importo zero, negativo o con più di 2 decimali compare un errore sul campo importo e l'offerta non viene salvata.
+  - [ ] AC-5 — Dopo un errore di validazione i valori inseriti (modalità e importo) restano nel form.
+  - [ ] AC-6 — Passando un'offerta da «Forfettaria» a «Inclusa nella tariffa» e salvando, l'importo forfettario viene azzerato: riportandola a «Forfettaria» il campo importo è vuoto.
+  - [ ] AC-7 — Nell'elenco offerte (/offerte) e nella tabella offerte della scheda cliente ogni offerta mostra «Trasferta inclusa» oppure «Trasferta forfettaria · <importo> €/gg».
+  - [ ] AC-8 — Le offerte già esistenti prima del rilascio risultano «Inclusa nella tariffa» senza importo.
+
+  **Out of Scope**
+  Voci di rimborso e soglie trasferta dei collaboratori; uso del dato nei report (coperto da US-002); storico delle modifiche alle condizioni economiche.
+
+  <!-- archetipo-increment:inc-f0c31174f5973140:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/8
+history:
+  - status: TODO
+    at: "2026-10-28T16:29:30Z"
+  - status: IN PROGRESS
+    at: "2026-10-28T16:29:30Z"
+  - status: REVIEW
+    at: "2026-10-28T17:03:11Z"
+  - status: DONE
+    at: "2026-10-28T17:08:13Z"

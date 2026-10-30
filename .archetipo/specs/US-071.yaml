@@ -1,0 +1,40 @@
+schema: archetipo/spec/v2
+code: US-071
+title: In anteprima scelgo quale account Google autorizzare per il calendario
+epic:
+  code: EP-009
+  title: Vorrei rendere più comoda la prova delle preview del coaching planner qu…
+priority: MEDIUM
+points: 2
+status: DONE
+blocked_by:
+  - US-070
+scope: MVP
+body: |-
+  **Come** chi prova una preview con le integrazioni Google simulate
+  **voglio** scegliere quale account Google «autorizzare» al collegamento del calendario
+  **così da** provare a mano anche i casi «account Google diverso» e «consenso negato».
+
+  ### Demonstrates
+  In preview, entrare come Giulia Conti e premere «Collega Google Calendar»: si apre la pagina «Scegli l'account Google» con l'email di accesso proposta. Autorizzare un'altra email: si torna su /attivita con l'avviso «account Google diverso» e il calendario resta non collegato. Riprovare scegliendo «Nega il consenso»: compare l'avviso di consenso negato. Riprovare con l'email di accesso: il calendario risulta collegato. Senza mock, l'URL della pagina risponde 404 e il collegamento porta al consenso Google reale come oggi.
+
+  ### Acceptance Criteria
+  - [ ] Con `E2E_TEST_MODE=true` «Collega Google Calendar» porta alla pagina locale «Scegli l'account Google» invece di tornare subito al callback
+  - [ ] La pagina permette di autorizzare l'email di accesso (proposta come scelta predefinita) oppure un'altra email digitata, e di negare il consenso
+  - [ ] Autorizzare torna al callback con il codice simulato `e2e-consenso:<email scelta>` e lo state ricevuto; gli esiti `collegato`, `account-diverso` e `negato` sono quelli già gestiti oggi
+  - [ ] Senza `E2E_TEST_MODE=true` la pagina risponde 404 e il collegamento porta al consenso Google reale invariato
+  - [ ] La pagina sta sotto il prefisso `e2e-test`, con la stessa protezione e classificazione nel proxy della storia US-001
+  - [ ] Un test unitario verifica il 404 senza mock e i test e2e del collegamento passano dalla nuova pagina (account di accesso, account diverso), con collaboratori creati dalle factory
+
+  <!-- archetipo-increment:inc-c54eddc338f3dadb:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/4
+history:
+  - status: TODO
+    at: "2026-10-27T12:13:00Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T12:13:00Z"
+  - status: REVIEW
+    at: "2026-10-27T13:27:53Z"
+  - status: DONE
+    at: "2026-10-27T13:36:34Z"

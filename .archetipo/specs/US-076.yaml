@@ -1,0 +1,49 @@
+schema: archetipo/spec/v2
+code: US-076
+title: Associazione degli impegni del calendario a cliente e offerta tramite Jev
+epic:
+  code: EP-011
+  title: Sostituire Google Gemini con Jev (TypeSafe AI), raggiunto via OpenRouter…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  **Storia Utente**
+  Come collaboratore,
+  voglio che le proposte dal calendario siano associate a cliente e offerta da Jev, solo quando il cliente è chiaramente riconoscibile,
+  così da confermare in un clic gli impegni dei clienti senza ricevere proposte sbagliate per quelli generici o di terzi.
+
+  **Dimostrazione**
+  Nell'anteprima, con Jev simulato, un collaboratore abilitato a offerte di due clienti apre una giornata con quattro impegni. «Allineamento» con un invitato del dominio del cliente compare con cliente e offerta precompilati. «Preparazione workshop per <Cliente>» tra soli colleghi è precompilato anche lui. «Call con fornitore», con invitati gmail.com e di un fornitore, resta «Cliente e offerta da scegliere». «Pausa pranzo» non viene proposto. I test unitari mostrano la richiesta inviata a Jev: solo domini, nessun dominio interno (anche quando l'impegno ha solo colleghi), offerte chiuse con status closed. Mostrano anche le decisioni sotto soglia, con offerta chiusa e in caso di errore, e la riga di log «Jev:».
+
+  **Criteri di Accettazione**
+  - [ ] AC-1 — Un evento con un invitato del dominio del cliente porta cliente e offerta precompilati
+  - [ ] AC-2 — Un evento tra soli colleghi con il nome del cliente nel titolo porta cliente e offerta precompilati: Jev viene chiamato anche senza domini esterni
+  - [ ] AC-3 — Un evento con soli domini di terzi (gmail.com, fornitori, prospect) e titolo generico resta «Cliente e offerta da scegliere»
+  - [ ] AC-4 — I domini configurati in `DOMINI_INTERNI` (predefinito `agilereloaded.it`) e il dominio del collaboratore sono tolti dagli invitati prima della chiamata: un dominio interno non cambia mai l'esito
+  - [ ] AC-5 — A Jev arrivano solo domini, mai indirizzi email completi, e nessuna riga attività come esempio
+  - [ ] AC-6 — Le opzioni di `offer` sono le offerte abilitate per il collaboratore su clienti attivi, comprese quelle chiuse, con client, offerCode, offerDescription, status e createdOn
+  - [ ] AC-7 — Si precompila solo con `clientIdentified` ≥ 0.5 e confidenza di `offer` ≥ `JEV_SOGLIA_CONFIDENZA` (predefinita 0.7); sotto soglia, o se l'offerta scelta è chiusa, la proposta resta «Cliente e offerta da scegliere»
+  - [ ] AC-8 — Gli eventi con `notWorkRelated` ≥ 0.5 non vengono proposti
+  - [ ] AC-9 — Le richieste partono una per evento, in parallelo con un tetto alla concorrenza, con timeout e retry con backoff solo su 429 e 5xx
+  - [ ] AC-10 — Con chiave assente, errore HTTP, timeout o risposta non valida le proposte restano senza cliente e offerta, senza eccezioni; una sola riga di log per giornata con prefisso «Jev:», esito (`chiave-assente`, `nessuna-offerta-abilitata`, `errore-http`, `timeout`, `risposta-non-valida`, `ok`), modello, conteggi e durata, mai chiave né contenuti degli eventi
+  - [ ] AC-11 — La chiave `OPENROUTER_API_KEY` resta solo lato server; `JEV_MODEL` è predefinito a `~typesafe/jev-latest`
+  - [ ] AC-12 — Con `E2E_TEST_MODE` Jev non viene contattato; la simulazione associa per dominio del cliente o nome citato, e gli scenari e2e esistenti delle proposte dal calendario continuano a passare
+  - [ ] AC-13 — Gemini è rimosso del tutto (codice, test, variabili d'ambiente, ricetta d'ambiente e documentazione); le nuove variabili sono documentate in `.env.example`, nel README e nella pagina di deploy su Vercel
+
+  **Out of Scope**
+  Esclusione delle offerte del cliente interno dalle opzioni; filtro in codice delle offerte create dopo l'evento (la valutazione non ha mostrato errori di questo tipo), scelta di modello o soglia da interfaccia, modifiche alla UI della giornata.
+
+  <!-- archetipo-increment:inc-f96f25c0d320e943:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/6
+history:
+  - status: TODO
+    at: "2026-10-28T10:43:20Z"
+  - status: IN PROGRESS
+    at: "2026-10-28T10:43:21Z"
+  - status: REVIEW
+    at: "2026-10-28T11:30:14Z"
+  - status: DONE
+    at: "2026-10-28T11:35:43Z"

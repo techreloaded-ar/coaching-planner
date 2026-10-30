@@ -1,0 +1,38 @@
+schema: archetipo/spec/v2
+code: US-077
+title: Scegliere la categoria di un'attività con spiegazione delle tre categorie
+epic:
+  code: EP-012
+  title: Attualmente, quando un collaboratore segna un'attività, può solo segnare…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  **Come** collaboratore, **voglio** classificare ogni attività come Fatturabile, Non fatturabile o Investimento capendo cosa significa ciascuna, **così che** la fatturazione sia corretta.
+
+  ### Demonstrates
+  Nella pagina della giornata il collaboratore apre il form di una nuova attività: la combo "Categoria" è preimpostata su "Fatturabile" e sotto compare una riga di didascalia con il suo significato; scegliendo "Investimento" la didascalia cambia nel significato dell'Investimento. Salva una riga "Investimento" e una "Non fatturabile": l'elenco della giornata mostra la categoria di ciascuna; riaprendo la riga in modifica la categoria salvata è selezionata. Nel dettaglio collaboratore del back-office la colonna mostra la categoria.
+
+  ### Criteri di accettazione
+  - [ ] La riga attività memorizza una categoria tra Fatturabile, Non fatturabile e Investimento al posto del flag fatturabile, con migrazione del database: le righe esistenti fatturabili diventano Fatturabile, quelle non fatturabili diventano Investimento.
+  - [ ] Il form della giornata permette di scegliere una sola delle tre categorie tramite una combo box compatta (un solo controllo su una riga, senza riquadri per ogni opzione); in creazione è sempre preimpostata "Fatturabile", anche dopo un salvataggio o un annullamento.
+  - [ ] Sotto la combo è sempre visibile una piccola didascalia che spiega solo la categoria selezionata e si aggiorna al cambio: Fatturabile = fatturata dal collaboratore ad Agile Reloaded e da Agile Reloaded al cliente; Non fatturabile = fatturata dal collaboratore ad Agile Reloaded ma non al cliente; Investimento = non fatturata né dal collaboratore né al cliente.
+  - [ ] La modifica di una riga mostra e salva la categoria corrente; una categoria non valida inviata al server viene rifiutata con un messaggio di errore.
+  - [ ] Le attività create dalle proposte del calendario sono Fatturabile; la duplicazione su più giorni mantiene la categoria della riga di origine e il selettore di duplicazione ne mostra il nome.
+  - [ ] Elenco della giornata e dettaglio collaboratore del back-office mostrano la categoria di ogni riga con tre etichette distinte.
+  - [ ] Report fatturazione clienti, esportazione e avanzamento offerte continuano a considerare solo le righe Fatturabile (nessuna variazione degli importi).
+  - [ ] Test unitari ed e2e aggiornati alla categoria; `npm run lint` e la suite e2e passano.
+
+  <!-- archetipo-increment:inc-f99252df7ce0354d:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/7
+history:
+  - status: TODO
+    at: "2026-10-28T12:29:18Z"
+  - status: IN PROGRESS
+    at: "2026-10-28T12:29:18Z"
+  - status: REVIEW
+    at: "2026-10-28T15:33:40Z"
+  - status: DONE
+    at: "2026-10-28T15:40:43Z"

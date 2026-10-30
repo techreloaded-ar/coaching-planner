@@ -1,0 +1,630 @@
+schema: archetipo/plan/v2
+spec_code: US-020
+body: "# US-020: Override della tariffa collaboratore per offerta — Piano di implementazione\n\n**Generato da:** ARchetipo Planning Team\n**Data:** 2026-10-27\n\n---\n\n## Spec\n\n**Epic:** EP-005 — Evoluzioni Post-MVP\n**Priorità:** LOW | **Punti:** 3\n\n**Storia Utente**\nCome Stefano, amministratore, voglio poter definire, quando serve, una tariffa specifica per la coppia collaboratore-offerta che prevale sulla tariffa standard, così da gestire accordi particolari senza alterare la tariffa generale del collaboratore.\n\n**Criteri di Accettazione**\n- AC-1 — L'amministratore definisce una tariffa specifica per la combinazione collaboratore-offerta\n- AC-2 — I calcoli di riepilogo e report usano la tariffa in override quando presente, altrimenti la tariffa standard del collaboratore\n- AC-3 — La rimozione dell'override ripristina la tariffa standard nei calcoli correnti\n- AC-4 — L'override è tracciato e visibile nell'anagrafica dell'offerta\n\n---\n\n## Soluzione tecnica\n\nL'override diventa una nuova entità persistita `TariffaCollaboratoreOfferta` (coppia unica collaboratore-offerta + `tariffaGiornaliera` Decimal + `createdAt`/`updatedAt`), gestita dall'amministratore in una nuova sezione **\"Tariffe personalizzate\"** della pagina `/offerte/[offertaId]/collaboratori` (l'anagrafica operativa dell'offerta, dove già vivono gli ingaggi). I due soli calcoli che oggi usano la tariffa del collaboratore risolvono la tariffa applicabile come `override ?? tariffa standard`:\n\n- **Riepilogo mensile del collaboratore** (`riepilogoMese` in `src/lib/attivita.ts` → `calcolaRiepilogoMese` in `src/domain/consuntivi/index.ts`): la funzione pura riceve una mappa `offertaId → tariffa personalizzata`; l'imponibile manodopera è la somma, per tariffa distinta, di `ore fatturabili / 8 × tariffa`. Con una sola tariffa la formula e l'ordine delle somme restano identici a oggi (nessuna regressione al centesimo). Ogni voce per offerta espone `tariffaGiornaliera` e `tariffaPersonalizzata`; il breakdown espone `tariffeDifferenziate`.\n- **Report marginalità** (`reportMarginalitaPeriodo` in `src/lib/report.ts`): il loader carica gli override delle offerte coinvolte e valorizza `tariffaCollaboratoreGiornaliera` di ogni riga con l'override della coppia, se presente. `calcolaMarginalitaClienti` non cambia.\n- Report fatturazione clienti, avanzamento ed esportazione usano la tariffa dell'**offerta** e restano invariati (fuori perimetro).\n- La rimozione cancella la riga (`deleteMany` idempotente): tutti i calcoli successivi tornano alla tariffa standard. I calcoli sono \"correnti\" come oggi: nessuna storicizzazione per periodo (AC-3 chiede esplicitamente i calcoli correnti).\n- \"Tracciato\" (AC-4) = persistito con data di creazione e di ultimo aggiornamento, mostrati nella sezione (\"Aggiornata il … · creata il …\"). Assunzione: non serve registrare l'autore, perché l'unico attore che può scrivere è l'amministratore (guardia `richiediRuoloApi(\"AMMINISTRATORE\")`).\n- Nuovi override si impostano solo per collaboratori **attualmente ingaggiati** sull'offerta (sono gli unici che possono consuntivare); un override il cui ingaggio viene poi revocato resta valido per le righe già registrate e resta visibile con badge \"Non più ingaggiato\" e la sola azione \"Rimuovi\".\n- Validazione importo: riuso di `validaCampoTariffaGiornaliera` e `normalizzaTariffaGiornaliera` (stessi messaggi della tariffa del collaboratore).\n\n### Decisioni architetturali\n\nLa scelta del modello dati supera la soglia ADR (modello dati persistito, alternative valide, effetti su semantica di consistenza dei calcoli) e **sostituisce** la decisione esistente `decisions/tariffa-unica-collaboratore`, che documentava la tariffa unica e rimandava gli override alla crescita.\n\n- **Scelta:** tabella dedicata `TariffaCollaboratoreOfferta` con `@@unique([collaboratoreId, offertaId])`, indipendente da `AbilitazioneOfferta`.\n- **Alternativa scartata 1 — colonna nullable su `AbilitazioneOfferta`:** diff minimo, ma la revoca di un ingaggio (`revocaIngaggioCollaboratore` fa `deleteMany` della riga) cancellerebbe l'override e altererebbe in silenzio riepiloghi e marginalità dei mesi già consuntivati, tipicamente a fine progetto. Inaccettabile per importi economici.\n- **Alternativa scartata 2 — override storicizzato con validità da/a:** risolverebbe la retroattività, ma la spec chiede solo i calcoli correnti e la tariffa standard stessa non è storicizzata: complessità non richiesta.\n- **Compromessi:** come la tariffa standard, modificare o rimuovere un override ricalcola retroattivamente i mesi passati; documentato nelle conseguenze dell'ADR.\n- **Verifica prevista:** unit test sulla funzione pura e sui loader, unit test delle action, e2e del flusso completo.\n- Nuovo ADR: `decisions/tariffa-collaboratore-per-offerta` (accepted); `decisions/tariffa-unica-collaboratore` passa a `decision_status: superseded` con link al nuovo.\n\n---\n\n## Baseline\n\nEseguita il 2026-10-27 su `main` (`/Users/smarello/repo/coaching-planner`), database locale raggiungibile.\n\n| Check | Risultato prima dell'implementazione | Conseguenza per il piano |\n|---|---|---|\n| `npx vitest run tests/unit/riepilogo-mese.test.ts tests/unit/marginalita-clienti.test.ts tests/unit/ingaggi-offerta-dal-actions.test.ts` | Passa (3 file, 37 test) | I task devono lasciarli verdi, aggiornando le aspettative solo dove il contratto cambia intenzionalmente |\n| `npm test` | Passa (56 file, 838 test) | Regressione completa nel gate finale: atteso verde |\n| `npx tsc --noEmit` | Passa, nessuna diagnostica | Nessuna nuova diagnostica nei file toccati |\n| `npm run lint` | Passa; 3 avvisi `⚠️ chiave riservata non risolvibile staticamente` preesistenti (`tests/e2e/support/date.ts:179`, `tests/e2e/support/report-data.ts:80`, `:103`) e `✅ Guardrail e2e anti-flakiness passed` | Atteso verde con gli stessi 3 avvisi, nessuno nuovo |\n| `npx prisma validate` | Schema valido | Atteso valido dopo la nuova entità |\n| `npx prisma migrate status` | 9 migrazioni, \"Database schema is up to date!\" | La migrazione si genera con `npx prisma migrate dev` sul DB locale |\n\n**Prerequisiti di ambiente:** PostgreSQL locale attivo (`docker compose up -d` se spento) per `prisma migrate dev` e per gli e2e; `npm run db:generate` dopo ogni modifica allo schema per rigenerare `src/generated/prisma`; Chromium di Playwright installato (`npx playwright install chromium`). Non leggere né modificare `.env`.\n\n**Difetto preesistente fuori perimetro:** `prisma/seed.ts` cancella `offerta` senza cancellare prima `abilitazioneOfferta` (FK `RESTRICT`); in CI non emerge perché il DB è vuoto. Il piano aggiunge solo la cancellazione della nuova tabella, senza correggere quella esistente.\n\n---\n\n## Mappa delle evidenze di accettazione\n\n| Criterio | Stato iniziale / fixture | Livello di test | Oracolo osservabile | Task |\n|---|---|---|---|---|\n| AC-1 | Offerta e collaboratore da factory, collaboratore ingaggiato | Unit (action) + E2E | Action: `upsert` sulla chiave `collaboratoreId_offertaId` con tariffa normalizzata `\"520.00\"`, rifiuto di importi invalidi e di collaboratori non ingaggiati senza scritture. E2E: dopo \"Salva tariffa\" e reload, la riga del collaboratore nella sezione \"Tariffe personalizzate\" mostra `520,00 €` | TASK-07, TASK-10 |\n| AC-2 | Collaboratore tariffa 400,00, due offerte A/B, 8 h fatturabili per offerta nel mese riservato, override 520,00 su A | Unit (dominio + loader) + E2E | Dominio: imponibile `920.00`, voce A `tariffaGiornaliera \"520.00\"`/`tariffaPersonalizzata true`, voce B `\"400.00\"`/`false`, `tariffeDifferenziate true`. Loader marginalità: riga A con `tariffaCollaboratoreGiornaliera \"520.00\"`. E2E: riepilogo del collaboratore mostra importo fattura `€ 920,00` e badge \"Personalizzata\" solo su A; marginalità mostra costi `520,00 €` su A e `400,00 €` su B | TASK-03, TASK-05, TASK-10 |\n| AC-3 | Stesso dataset con override rimosso | Unit (action + dominio) + E2E | Action: `deleteMany` sulla sola coppia. Dominio: con mappa vuota l'imponibile torna `800.00` e il breakdown mostra la tariffa standard. E2E: dopo \"Rimuovi\" e conferma compare lo stato vuoto; il riepilogo mostra `€ 800,00` senza badge e la marginalità costi `400,00 €` su A | TASK-03, TASK-07, TASK-10 |\n| AC-4 | Override appena creato | Unit (DAL) + E2E | DAL: `elencaTariffePersonalizzateOfferta` restituisce tariffa standard, personalizzata, `creataIl`/`aggiornataIl` ISO e `ingaggiato`. E2E: la riga mostra \"Aggiornata il {data odierna gg/mm/aaaa}\" | TASK-07, TASK-10 |\n\n---\n\n## Strategia di test\n\nTest sul risultato specificato, a più livelli, senza mock che nascondano l'oracolo.\n\n- **Dominio puro** (`tests/unit/riepilogo-mese.test.ts`): imponibile con tariffe miste, assenza di override identica al comportamento attuale, override su offerta senza ore fatturabili che non attiva `tariffeDifferenziate`; coerenza costi marginalità = imponibile riepilogo anche con override (`tests/unit/marginalita-clienti.test.ts`).\n- **Loader** (nuovo `tests/unit/tariffe-personalizzate-calcoli.test.ts`): mock di `db` che restituisce righe e override; si asserisce sul risultato restituito da `riepilogoMese`/`reportMarginalitaPeriodo` (importi), non solo sulle chiamate.\n- **Action e DAL** (nuovo `tests/unit/tariffe-personalizzate-actions.test.ts`, stile di `ingaggi-offerta-dal-actions.test.ts`): payload esatti, guardia di ruolo, rifiuti senza scritture, revalidate.\n- **E2E browser obbligatorio:** il percorso attraversa autenticazione con due ruoli, persistenza, Server Action e più schermate (back office → front office → report).\n\n### Test E2E — Simulazione utente\n\n**Framework:** Playwright (già presente: `playwright.config.ts`, `tests/e2e/support/fixtures.ts`)\n**Video demo:** atteso, filmabile (registrato in seguito da `archetipo-review`, non durante l'implementazione)\n\n| Scenario | Flusso utente |\n|---|---|\n| Override applicato e rimosso | L'amministratore apre `/offerte/{A}/collaboratori`, imposta 520,00 € per il collaboratore, vede tariffa e data di aggiornamento; il collaboratore (secondo browser context) apre il riepilogo del mese riservato e vede € 920,00 con badge \"Personalizzata\" solo su A; l'amministratore verifica i costi in marginalità; rimuove l'override e il collaboratore, ricaricando, vede € 800,00 |\n\nDati solo da factory (cliente, due offerte, collaboratore con tariffa 400,00, ingaggi, righe), mese da `meseRiservato(\"US-020-TARIFFA-PERSONALIZZATA\")`, nessuna entità del seed toccata.\n\n---\n\n## Impatto sulla Wiki\n\n```yaml\nwiki_impact:\n  read: [decisions/tariffa-unica-collaboratore, decisions/abilitazioni-offerte-esplicite, decisions/calcoli-puri, decisions/importi-decimali, domains/collaboratori, domains/attivita, domains/offerte]\n  update: [decisions/tariffa-unica-collaboratore, domains/collaboratori, domains/attivita]\n  create: [decisions/tariffa-collaboratore-per-offerta]\n```\n\n`domains/offerte` e `engineering/code-map` sono candidati di `wiki affected` per co-citazione di file, ma il loro contenuto resta accurato: da riconciliare in accettazione, non nel contratto.\n\n---\n\n> \U0001F3A8 I mockup di questa spec sono disponibili in `docs/mockups/US-020/`\n\n_Piano generato con ARchetipo Planning — 2026-10-27_"
+tasks:
+  - id: TASK-01
+    title: Modello TariffaCollaboratoreOfferta, migrazione e pulizia nel seed
+    type: Impl
+    status: TODO
+    body: |-
+      ## Objective
+      Esiste a database la tabella `TariffaCollaboratoreOfferta` (coppia unica collaboratore-offerta con tariffa Decimal e timestamp) e il client Prisma generato la espone come `db.tariffaCollaboratoreOfferta`.
+
+      ## Read
+      - prisma/schema.prisma — modelli `Collaboratore`, `Offerta`, `AbilitazioneOfferta` (stile di commenti, naming e `@@unique`)
+      - prisma/migrations/20260722133929_aggiungi_abilitazione_offerta/migration.sql — forma attesa dell'SQL generato (FK `RESTRICT`)
+      - prisma/seed.ts — righe 13-23, ordine dei `deleteMany`
+
+      ## Change
+      - prisma/schema.prisma — aggiungere il modello `TariffaCollaboratoreOfferta` e le due relazioni inverse; nessun'altra modifica ai modelli esistenti
+      - prisma/migrations/<timestamp>_tariffa_collaboratore_offerta/migration.sql — generata da Prisma, non scritta a mano
+      - prisma/seed.ts — aggiungere solo `await prisma.tariffaCollaboratoreOfferta.deleteMany();` prima di `await prisma.rigaAttivita.deleteMany();`. Non correggere altri `deleteMany` (fuori perimetro)
+
+      ## Steps
+      1. In `prisma/schema.prisma`, dopo il blocco `AbilitazioneOfferta`, aggiungere la sezione:
+         ```prisma
+         // ── Tariffa personalizzata Collaboratore su Offerta ─────────────
+
+         // Tariffa giornaliera concordata per la coppia collaboratore-offerta: prevale
+         // sulla tariffa standard del collaboratore nei calcoli correnti. È
+         // indipendente dall'ingaggio: la revoca dell'ingaggio non la cancella.
+         model TariffaCollaboratoreOfferta {
+           id                 String   @id @default(uuid())
+           collaboratoreId    String
+           offertaId          String
+           tariffaGiornaliera Decimal  @db.Decimal(10, 2)
+           createdAt          DateTime @default(now())
+           updatedAt          DateTime @updatedAt
+
+           collaboratore Collaboratore @relation(fields: [collaboratoreId], references: [id])
+           offerta       Offerta       @relation(fields: [offertaId], references: [id])
+
+           @@unique([collaboratoreId, offertaId])
+         }
+         ```
+      2. In `Collaboratore` aggiungere `tariffePersonalizzateOfferte TariffaCollaboratoreOfferta[]`; in `Offerta` aggiungere `tariffePersonalizzateCollaboratori TariffaCollaboratoreOfferta[]`.
+      3. Con il PostgreSQL locale attivo (`docker compose up -d` se serve) eseguire `npx prisma migrate dev --name tariffa_collaboratore_offerta`; verificare che l'SQL contenga `CREATE TABLE "TariffaCollaboratoreOfferta"`, l'indice unico `TariffaCollaboratoreOfferta_collaboratoreId_offertaId_key` e le due FK.
+      4. Eseguire `npm run db:generate`.
+      5. Aggiornare `prisma/seed.ts` come descritto in Change.
+
+      ## Verify
+      - Run: `npx prisma validate`
+      - Expect: "The schema at prisma/schema.prisma is valid"
+      - Run: `npx prisma migrate status`
+      - Expect: 10 migrazioni, "Database schema is up to date!"
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica (baseline verde)
+
+      ## Done
+      - [ ] AC-1 — la coppia collaboratore-offerta può avere una sola tariffa personalizzata, garantita dal vincolo unico a database
+      - [ ] AC-4 — la tariffa personalizzata ha `createdAt` e `updatedAt` persistiti
+      - [ ] Migrazione generata e committabile, client rigenerato, seed aggiornato
+
+      ## Blockers
+      None.
+  - id: TASK-02
+    title: calcolaRiepilogoMese applica le tariffe personalizzate per offerta
+    type: Impl
+    status: TODO
+    body: |-
+      ## Objective
+      La funzione pura `calcolaRiepilogoMese` calcola l'imponibile manodopera usando, per ogni offerta, la tariffa personalizzata se presente e altrimenti la tariffa standard, ed espone per offerta la tariffa applicata.
+
+      ## Read
+      - src/domain/consuntivi/index.ts — `RigaRiepilogo`, `VoceRiepilogoOfferta`, `BreakdownRiepilogoMese`, `calcolaRiepilogoMese` (righe 17-192)
+      - tests/unit/riepilogo-mese.test.ts — aspettative esatte attuali (oggetti `toEqual` che dovranno includere i nuovi campi)
+      - tests/unit/marginalita-clienti.test.ts — righe 215-240, coerenza costi = imponibile
+      - src/lib/attivita.ts — `creaRiepilogoVuoto` (riga 489), che costruisce un `BreakdownRiepilogoMese`
+
+      ## Change
+      - src/domain/consuntivi/index.ts — firma, tipi e calcolo di `calcolaRiepilogoMese`; nessuna modifica a `calcolaMarginalitaClienti` né agli altri calcoli
+      - src/lib/attivita.ts — solo `creaRiepilogoVuoto`: aggiungere `tariffeDifferenziate: false` al breakdown (necessario per la compilazione); il loader si cambia in TASK-04
+
+      ## Steps
+      1. Aggiungere a `VoceRiepilogoOfferta` i campi `tariffaGiornaliera: string` (tariffa applicata, `toFixed(2)`) e `tariffaPersonalizzata: boolean`.
+      2. Aggiungere a `BreakdownRiepilogoMese` il campo `tariffeDifferenziate: boolean` con commento: vero quando almeno un'ora fatturabile è valorizzata con una tariffa personalizzata. `breakdown.tariffaGiornaliera` resta la tariffa **standard**.
+      3. Cambiare la firma in `calcolaRiepilogoMese(righe, tariffaGiornaliera, tariffePersonalizzatePerOfferta: ReadonlyMap<string, string | number> = new Map())`, documentando nel JSDoc che la mappa è `offertaId → tariffa personalizzata`.
+      4. Risolvere la tariffa di ogni offerta con un helper locale: valore della mappa convertito con `Number` se finito, altrimenti la tariffa standard numerica; `tariffaPersonalizzata` è vero solo se la mappa ha la chiave con un numero finito.
+      5. Accumulare le ore fatturabili per tariffa applicata (`Map<number, number>`, chiave = tariffa numerica) nello stesso ciclo sulle righe, e calcolare `imponibileManodopera` come somma di `(ore / ORE_PER_GIORNATA) * tariffa` sulle chiavi. Con una sola tariffa il valore deve coincidere con la formula attuale `giornateFatturabili * tariffaNumerica` (stesse somme nello stesso ordine).
+      6. `tariffeDifferenziate` = esiste una voce con `tariffaPersonalizzata` e `oreFatturabili > 0`.
+      7. Aggiornare `creaRiepilogoVuoto` in `src/lib/attivita.ts`.
+      8. Aggiornare le aspettative `toEqual` esistenti in `tests/unit/riepilogo-mese.test.ts` aggiungendo i nuovi campi (`tariffaGiornaliera` della tariffa standard, `tariffaPersonalizzata: false`, `tariffeDifferenziate: false`) senza cambiare gli importi attesi.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/riepilogo-mese.test.ts tests/unit/marginalita-clienti.test.ts`
+      - Expect: tutti verdi con gli stessi importi della baseline
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica
+
+      ## Done
+      - [ ] AC-2 — l'imponibile usa la tariffa personalizzata per le offerte presenti nella mappa e la standard per le altre
+      - [ ] Senza override il risultato è identico al comportamento precedente (test esistenti con importi invariati)
+
+      ## Blockers
+      None.
+  - id: TASK-03
+    title: Unit test del riepilogo con tariffe personalizzate e coerenza con la marginalità
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      Test unitari dimostrano che il riepilogo usa l'override quando presente, la standard altrimenti, e che senza override torna alla standard.
+
+      ## Read
+      - tests/unit/riepilogo-mese.test.ts — helper `riga(...)` e stile delle asserzioni
+      - tests/unit/marginalita-clienti.test.ts — `describe` di coerenza (righe 180-240)
+      - src/domain/consuntivi/index.ts — nuova firma di `calcolaRiepilogoMese` (TASK-02)
+
+      ## Change
+      - tests/unit/riepilogo-mese.test.ts — nuovo `describe("calcolaRiepilogoMese con tariffe personalizzate", ...)`
+      - tests/unit/marginalita-clienti.test.ts — un nuovo `it` nel describe di coerenza
+
+      ## Steps
+      1. Caso misto: tariffa standard `"400.00"`, due righe fatturabili da 8 h su offerte `off-a` e `off-b`, mappa `new Map([["off-a", "520.00"]])`. Asserire `importoFattura === "920.00"`, `breakdown.imponibileManodopera === "920.00"`, `breakdown.tariffaGiornaliera === "400.00"`, `breakdown.tariffeDifferenziate === true`, voce `off-a` con `tariffaGiornaliera "520.00"` e `tariffaPersonalizzata true`, voce `off-b` con `"400.00"` e `false`.
+      2. Caso rimozione (AC-3): stesse righe con mappa vuota → `importoFattura "800.00"`, `tariffeDifferenziate false`, entrambe le voci `"400.00"`.
+      3. Override su offerta con sole ore non fatturabili: `tariffeDifferenziate false` e imponibile invariato.
+      4. Override con rimborso trasferta: l'importo fattura somma imponibile con override e rimborsi.
+      5. In `marginalita-clienti.test.ts`: righe di un collaboratore su due offerte, con `tariffaCollaboratoreGiornaliera` `"520.00"` su A e `"400.00"` su B; asserire che `calcolaMarginalitaClienti(righe).totali.costi` è uguale a `calcolaRiepilogoMese(..., "400.00", new Map([[A, "520.00"]])).breakdown.imponibileManodopera`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/riepilogo-mese.test.ts tests/unit/marginalita-clienti.test.ts`
+      - Expect: tutti verdi, inclusi i nuovi casi
+
+      ## Done
+      - [ ] AC-2 — oracolo: imponibile `920.00` con override 520 su A e standard 400 su B, con tariffa e badge per voce
+      - [ ] AC-3 — oracolo: con mappa vuota l'imponibile torna `800.00`
+      - [ ] Costi della marginalità e imponibile del riepilogo coincidono anche con override
+
+      ## Blockers
+      None.
+  - id: TASK-04
+    title: I loader di riepilogo mensile e marginalità risolvono la tariffa personalizzata
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-01
+      - TASK-02
+    body: |-
+      ## Objective
+      `riepilogoMese` e `reportMarginalitaPeriodo` leggono gli override da `TariffaCollaboratoreOfferta` e li passano ai calcoli puri.
+
+      ## Read
+      - src/lib/attivita.ts — `riepilogoMese` (righe 514-566)
+      - src/lib/report.ts — `reportMarginalitaPeriodo` (righe 120-173)
+      - src/domain/consuntivi/index.ts — `RigaMarginalita`, nuova firma di `calcolaRiepilogoMese`
+
+      ## Change
+      - src/lib/attivita.ts — solo `riepilogoMese`
+      - src/lib/report.ts — solo `reportMarginalitaPeriodo`; `reportFatturazioneClienti*` e gli altri report non cambiano (usano la tariffa dell'offerta)
+
+      ## Steps
+      1. In `riepilogoMese`, dopo il caricamento delle righe, leggere `db.tariffaCollaboratoreOfferta.findMany({ where: { collaboratoreId: collaboratore.id }, select: { offertaId: true, tariffaGiornaliera: true } })` e costruire `new Map(override.map((o) => [o.offertaId, o.tariffaGiornaliera.toString()]))`; passarla come terzo argomento a `calcolaRiepilogoMese`. `tariffaGiornaliera` del risultato resta la tariffa standard.
+      2. In `reportMarginalitaPeriodo`, dopo `righeDb`, leggere `db.tariffaCollaboratoreOfferta.findMany({ where: { offertaId: { in: [...new Set(righeDb.map((r) => r.offertaId))] } }, select: { collaboratoreId: true, offertaId: true, tariffaGiornaliera: true } })`, costruire una `Map` con chiave `` `${collaboratoreId}:${offertaId}` `` e valorizzare `tariffaCollaboratoreGiornaliera` con l'override della coppia della riga, altrimenti `riga.collaboratore.tariffaGiornaliera.toString()`. Saltare la query quando `righeDb` è vuoto.
+      3. Aggiornare il JSDoc di `reportMarginalitaPeriodo`: i costi usano la tariffa personalizzata della coppia collaboratore-offerta se presente, altrimenti la tariffa del collaboratore.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica
+      - Run: `npx vitest run tests/unit/attivita.test.ts tests/unit/marginalita-clienti.test.ts tests/unit/riepilogo-mese.test.ts`
+      - Expect: verdi come in baseline
+
+      ## Done
+      - [ ] AC-2 — riepilogo mensile e report marginalità usano l'override della coppia quando presente, altrimenti la tariffa standard
+      - [ ] AC-3 — senza riga di override i loader passano la sola tariffa standard
+
+      ## Blockers
+      None.
+  - id: TASK-05
+    title: Unit test dei loader riepilogoMese e reportMarginalitaPeriodo con override
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      Test unitari dimostrano che i loader producono importi basati sull'override letto dal database, senza fermarsi alla verifica delle chiamate.
+
+      ## Read
+      - tests/unit/attivita.test.ts — righe 1-107: mock di `@/lib/db`, mock parziale di `@/lib/dal` (`richiediCollaboratoreCorrente`), helper `rigaFittizia`
+      - src/lib/attivita.ts — `riepilogoMese`
+      - src/lib/report.ts — `reportMarginalitaPeriodo` (guardia `richiediRuoloApi`)
+
+      ## Change
+      - tests/unit/tariffe-personalizzate-calcoli.test.ts — nuovo file; nessuna modifica ai test esistenti
+
+      ## Steps
+      1. Mockare `@/lib/db` con `rigaAttivita.findMany` e `tariffaCollaboratoreOfferta.findMany`; mockare `@/lib/dal` sostituendo `richiediCollaboratoreCorrente` (collaboratore `{ id: "col-1", tariffaGiornaliera: "400.00" }`) e `richiediRuoloApi` (risolta).
+      2. `riepilogoMese("2026-03")`: due righe fatturabili da 8 h su `off-a` e `off-b`, override `[{ offertaId: "off-a", tariffaGiornaliera: "520.00" }]` → asserire `importoFattura "920.00"`, `breakdown.tariffeDifferenziate true`, voce `off-a` `tariffaPersonalizzata true`; asserire che `tariffaCollaboratoreOfferta.findMany` riceve `where: { collaboratoreId: "col-1" }`.
+      3. Stesso caso con override `[]` → `importoFattura "800.00"` (AC-3).
+      4. `reportMarginalitaPeriodo("2026-03", "2026-03")`: righe di due collaboratori (`col-1` tariffa 400, `col-2` tariffa 300) sulla stessa offerta `off-a` con tariffa offerta 600, 8 h ciascuno, override solo per `col-1`/`off-a` a 520 → costi dell'offerta `"820.00"` (520 + 300), ricavi `"1200.00"`; asserire il `where` con `offertaId: { in: ["off-a"] }`.
+      5. Con nessuna riga, `tariffaCollaboratoreOfferta.findMany` non viene chiamato.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/tariffe-personalizzate-calcoli.test.ts`
+      - Expect: tutti verdi
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica
+
+      ## Done
+      - [ ] AC-2 — oracolo: importi restituiti dai loader (`920.00` riepilogo, costi `820.00` marginalità) riflettono l'override della sola coppia
+      - [ ] AC-3 — oracolo: senza override il riepilogo restituisce `800.00`
+
+      ## Blockers
+      None.
+  - id: TASK-06
+    title: Query e Server Action per impostare e rimuovere la tariffa personalizzata
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      L'amministratore dispone di una query che elenca gli override dell'offerta e di due Server Action idempotenti per impostarli (upsert) e rimuoverli.
+
+      ## Read
+      - src/lib/abilitazioni.ts — `CollaboratoreIngaggiato`, `elencaCollaboratoriIngaggiati` (stile, guardia `richiediRuoloApi`, ordinamenti)
+      - src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts — forma di `StatoIngaggiAction`, guardie, `revalidatePath`
+      - src/domain/anagrafiche/valida-collaboratore.ts — `validaCampoTariffaGiornaliera` (riga 81)
+      - src/domain/anagrafiche/valida-offerta.ts — `normalizzaTariffaGiornaliera`
+      - tests/unit/ingaggi-offerta-dal-actions.test.ts — aspettative esatte su `select` di `elencaCollaboratoriIngaggiati`
+
+      ## Change
+      - src/lib/abilitazioni.ts — aggiungere `tariffaStandard: string` a `CollaboratoreIngaggiato` (select di `tariffaGiornaliera`), nuova interfaccia `TariffaPersonalizzataOfferta` e nuova query `elencaTariffePersonalizzateOfferta`
+      - src/app/(back-office)/offerte/[offertaId]/collaboratori/tariffe-actions.ts — nuovo file con `StatoTariffaPersonalizzataAction`, `impostaTariffaPersonalizzata`, `rimuoviTariffaPersonalizzata`
+      - tests/unit/ingaggi-offerta-dal-actions.test.ts — aggiornare solo le aspettative di `select`/risultato di `elencaCollaboratoriIngaggiati` per il nuovo campo
+      - Non modificare `ingaggi-actions.ts`: la revoca di un ingaggio non tocca gli override
+
+      ## Steps
+      1. In `abilitazioni.ts` definire:
+         ```ts
+         export interface TariffaPersonalizzataOfferta {
+           collaboratoreId: string;
+           nome: string;
+           cognome: string;
+           email: string;
+           tariffaStandard: string;
+           tariffaPersonalizzata: string;
+           creataIl: string;     // ISO 8601
+           aggiornataIl: string; // ISO 8601
+           ingaggiato: boolean;
+         }
+         ```
+      2. `elencaTariffePersonalizzateOfferta(offertaId)`: `await richiediRuoloApi("AMMINISTRATORE")`; `db.tariffaCollaboratoreOfferta.findMany({ where: { offertaId }, include: { collaboratore: { select: { id, nome, cognome, tariffaGiornaliera, utente: { select: { email } }, abilitazioniOfferte: { where: { offertaId }, select: { id: true } } } } }, orderBy: [{ collaboratore: { cognome: "asc" } }, { collaboratore: { nome: "asc" } }] })`; mappare `ingaggiato` come `abilitazioniOfferte.length > 0`, importi con `.toString()`, date con `.toISOString()`.
+      3. In `tariffe-actions.ts` (`"use server"`), `impostaTariffaPersonalizzata(_prev, formData)`: `richiediRuoloApi("AMMINISTRATORE")`; leggere `offertaId`, `collaboratoreId`, `tariffaGiornaliera`; errori `_form` "ID offerta mancante" / "Seleziona un collaboratore"; `validaCampoTariffaGiornaliera` → errore sul campo `tariffaGiornaliera`; verificare con `db.abilitazioneOfferta.findUnique({ where: { collaboratoreId_offertaId: { collaboratoreId, offertaId } } })` che il collaboratore sia ingaggiato, altrimenti `_form` "Il collaboratore non è ingaggiato su questa offerta"; poi `db.tariffaCollaboratoreOfferta.upsert({ where: { collaboratoreId_offertaId: {...} }, create: { collaboratoreId, offertaId, tariffaGiornaliera: normalizzata.valore }, update: { tariffaGiornaliera: normalizzata.valore } })`.
+      4. `rimuoviTariffaPersonalizzata(_prev, formData)`: guardia di ruolo, validazione degli id, `db.tariffaCollaboratoreOfferta.deleteMany({ where: { collaboratoreId, offertaId } })` (idempotente, nessun controllo di ingaggio).
+      5. Entrambe: `revalidatePath(`/offerte/${offertaId}/collaboratori`)` e ritorno `{ errori: {}, successo: true }`; nessuna scrittura negli esiti di rifiuto.
+      6. Aggiornare le aspettative di `ingaggi-offerta-dal-actions.test.ts` per `tariffaStandard`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/ingaggi-offerta-dal-actions.test.ts`
+      - Expect: verde
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica
+
+      ## Done
+      - [ ] AC-1 — l'amministratore può impostare o modificare la tariffa della coppia con validazione dell'importo e dell'ingaggio
+      - [ ] AC-3 — la rimozione cancella la sola coppia bersaglio
+      - [ ] AC-4 — la query espone tariffe standard e personalizzata, date di creazione e aggiornamento e stato di ingaggio
+
+      ## Blockers
+      None.
+  - id: TASK-07
+    title: Unit test di query e Server Action delle tariffe personalizzate
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+      Test unitari fissano i contratti esatti di `elencaTariffePersonalizzateOfferta`, `impostaTariffaPersonalizzata` e `rimuoviTariffaPersonalizzata`.
+
+      ## Read
+      - tests/unit/ingaggi-offerta-dal-actions.test.ts — mock di Prisma, `richiediRuoloApi`, `next/cache`, costruzione di `FormData`
+      - src/lib/abilitazioni.ts, src/app/(back-office)/offerte/[offertaId]/collaboratori/tariffe-actions.ts — implementazione di TASK-06
+
+      ## Change
+      - tests/unit/tariffe-personalizzate-actions.test.ts — nuovo file
+
+      ## Steps
+      1. Mock di `db` con `tariffaCollaboratoreOfferta: { findMany, upsert, deleteMany }` e `abilitazioneOfferta: { findUnique }`, più `richiediRuoloApi` e `revalidatePath`.
+      2. Query: asserire `where`, `orderBy` e la mappatura del risultato (`tariffaStandard "400.00"`, `tariffaPersonalizzata "520.00"`, `creataIl`/`aggiornataIl` ISO, `ingaggiato` true/false a seconda di `abilitazioniOfferte`).
+      3. Imposta: con `"520,00"` e ingaggio presente → `upsert` con `create`/`update` a `"520.00"` e chiave `collaboratoreId_offertaId`, `revalidatePath("/offerte/off-1/collaboratori")`, `{ errori: {}, successo: true }`.
+      4. Imposta, rifiuti senza `upsert`: tariffa vuota, `"465,755"` ("Importo non valido: usa massimo 2 decimali"), `"0"`, collaboratore mancante, collaboratore non ingaggiato.
+      5. Rimuovi: `deleteMany({ where: { collaboratoreId: "col-1", offertaId: "off-1" } })` e revalidate; id mancanti → nessuna scrittura.
+      6. Guardia: se `richiediRuoloApi` rigetta, nessuna scrittura per entrambe le action.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/tariffe-personalizzate-actions.test.ts tests/unit/ingaggi-offerta-dal-actions.test.ts`
+      - Expect: tutti verdi
+
+      ## Done
+      - [ ] AC-1 — oracolo: payload esatto di `upsert` con `"520.00"` e rifiuti senza scritture
+      - [ ] AC-3 — oracolo: `deleteMany` sulla sola coppia
+      - [ ] AC-4 — oracolo: il risultato della query contiene date ISO di creazione/aggiornamento e `ingaggiato`
+
+      ## Blockers
+      None.
+  - id: TASK-08
+    title: Sezione "Tariffe personalizzate" nella pagina collaboratori dell'offerta
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+      Su `/offerte/[offertaId]/collaboratori`, sotto "Collaboratori ingaggiati", l'amministratore vede, imposta, modifica e rimuove le tariffe personalizzate, con data di aggiornamento visibile, come da mockup in `docs/mockups/US-020/`.
+
+      ## Read
+      - docs/mockups/US-020/index.html, sezione-popolata.html, dialog-imposta-tariffa.html, conferma-rimozione.html, stato-vuoto.html — layout, testi e stati di riferimento
+      - src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx — caricamento dati in parallelo e render di `IngaggiCollaboratori`
+      - src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-collaboratori.tsx — intestazione di sezione, tabella, dialog (`role="dialog"`, `aria-modal`), `useActionState`, `PulsanteAttesa`, stato vuoto, revoca
+      - src/lib/formattazione.ts — `formattaEuro`
+
+      ## Change
+      - src/app/(back-office)/offerte/[offertaId]/collaboratori/tariffe-personalizzate.tsx — nuovo client component `TariffePersonalizzate`
+      - src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx — aggiungere `elencaTariffePersonalizzateOfferta(offertaId)` al `Promise.all` e renderizzare `<TariffePersonalizzate offertaId tariffe ingaggiati />` sotto `IngaggiCollaboratori`
+      - Nessuna modifica a `ingaggi-collaboratori.tsx` salvo eventuale export di helper già presenti (es. `inizialiPersona`) se riusati
+
+      ## Steps
+      1. Sezione con `aria-labelledby` e `h2` "Tariffe personalizzate", sottotitolo come da mockup, pulsante "Imposta tariffa" che apre il dialog.
+      2. Tabella con intestazioni "Collaboratore", "Tariffa standard", "Tariffa personalizzata", "Aggiornata il", "Azioni". Celle: nome cognome + email; `formattaEuro(tariffaStandard)`; `formattaEuro(tariffaPersonalizzata)` evidenziata; data `Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Rome" })` di `aggiornataIl` con sotto "creata il …"; badge "Non più ingaggiato" quando `!ingaggiato`.
+      3. Azioni: "Modifica" (solo se ingaggiato) apre il dialog precompilato con collaboratore fisso e tariffa con virgola; "Rimuovi" apre una conferma con testo "Rimuovere la tariffa personalizzata? I calcoli torneranno alla tariffa standard di {formattaEuro(tariffaStandard)}." e pulsante "Rimuovi" che invia `rimuoviTariffaPersonalizzata`.
+      4. Dialog "Imposta tariffa": `select` con label "Collaboratore" e opzioni dai soli `ingaggiati` con `collaboratoreAttivo` (testo `{cognome} {nome} — tariffa standard {formattaEuro(tariffaStandard)}`, value = `collaboratoreId`), input con label "Tariffa giornaliera" (`inputMode="decimal"`), hidden `offertaId`, pulsanti "Annulla" e `PulsanteAttesa` "Salva tariffa"; errori `errori.tariffaGiornaliera` sotto il campo e `errori._form` in testa; chiusura del dialog su `successo`.
+      5. Stato vuoto: "Nessuna tariffa personalizzata: tutti i collaboratori usano la propria tariffa standard."
+      6. Usare le stesse classi Tailwind dei componenti esistenti; nessun nuovo pacchetto.
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica
+      - Run: `npm run lint`
+      - Expect: verde con i soli 3 avvisi preesistenti della baseline
+      - Run: `npm run build`
+      - Expect: build completata
+
+      ## Done
+      - [ ] AC-1 — dal dialog l'amministratore imposta o modifica la tariffa di un collaboratore ingaggiato
+      - [ ] AC-3 — "Rimuovi" con conferma cancella l'override e mostra lo stato vuoto se era l'unico
+      - [ ] AC-4 — tariffa personalizzata, tariffa standard e "Aggiornata il" sono visibili nella pagina dell'offerta
+      - [ ] UI coerente con `docs/mockups/US-020/`
+
+      ## Blockers
+      None.
+  - id: TASK-09
+    title: Il riepilogo mensile mostra la tariffa applicata per offerta
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-04
+    body: |-
+      ## Objective
+      Nel riepilogo mensile il collaboratore vede, per ogni offerta, la tariffa giornaliera applicata con badge "Personalizzata" quando è un override, e il breakdown della fattura resta corretto con tariffe miste.
+
+      ## Read
+      - docs/mockups/US-020/riepilogo-mese.html — colonna "Tariffa giorno", badge e testo del breakdown
+      - src/app/(front-office)/attivita/riepilogo/riepilogo-mese.tsx — card "Giornate fatturabili" (riga ~173), breakdown importo fattura (riga ~189), tabella "Dettaglio per offerta", `formattaEuro` locale
+      - src/domain/consuntivi/index.ts — `VoceRiepilogoOfferta.tariffaGiornaliera`, `tariffaPersonalizzata`, `breakdown.tariffeDifferenziate`
+
+      ## Change
+      - src/app/(front-office)/attivita/riepilogo/riepilogo-mese.tsx — solo tabella per offerta e testo del breakdown; nessuna modifica ai `data-testid` esistenti
+
+      ## Steps
+      1. Aggiungere alla tabella la colonna "Tariffa giorno" (allineata a destra, dopo "Giornate fatturabili") con `formattaEuro(voce.tariffaGiornaliera)` e, se `voce.tariffaPersonalizzata`, un badge con testo esatto "Personalizzata".
+      2. Nel breakdown: se `riepilogo.breakdown.tariffeDifferenziate` mostrare `{giornateFatturabili} g · tariffe per offerta`, altrimenti il testo attuale `{giornateFatturabili} g × {tariffa}`.
+      3. Nella card "Giornate fatturabili" lasciare "Tariffa giorno: {standard}"; se `tariffeDifferenziate` aggiungere " · tariffe personalizzate per offerta".
+
+      ## Verify
+      - Run: `npx tsc --noEmit`
+      - Expect: nessuna diagnostica
+      - Run: `npm run lint`
+      - Expect: verde con i soli 3 avvisi preesistenti
+
+      ## Done
+      - [ ] AC-2 — il riepilogo mostra la tariffa applicata per offerta e il badge "Personalizzata" solo sulle offerte con override
+      - [ ] AC-3 — senza override il riepilogo torna all'aspetto precedente (nessun badge, breakdown "g × tariffa")
+
+      ## Blockers
+      None.
+  - id: TASK-10
+    title: E2E del flusso tariffa personalizzata su offerta
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-08
+      - TASK-09
+    body: |-
+      ## Objective
+      Un test Playwright dimostra l'intero flusso: l'amministratore imposta l'override, il collaboratore lo ritrova nel riepilogo, la marginalità lo usa nei costi, la rimozione ripristina la tariffa standard.
+
+      ## Read
+      - tests/e2e/README.md — contratto e2e
+      - tests/e2e/support/fixtures.ts, tests/e2e/support/factory.ts — `createCliente`, `createOfferta`, `createCollaboratore` (`tariffaGiornaliera`), `createAbilitazioneOfferta`, `createRigaAttivita`
+      - tests/e2e/support/date.ts — `meseRiservato`, `dataNelMese`
+      - tests/e2e/support/auth.ts — `accediComeAdmin`, `accediCome`
+      - tests/e2e/ingaggi-offerta.spec.ts — marcatore univoco e selezione per nome
+      - tests/e2e/report-marginalita.spec.ts — formatter euro, lettura delle celle di riga offerta, URL `?da=&a=`
+      - tests/e2e/demo__riepilogo-mensile-fattura.spec.ts — formato degli importi del front office e `data-testid` del riepilogo
+      - tests/e2e/gestione-utenti.spec.ts — uso di `browser.newContext()` per un secondo utente
+
+      ## Change
+      - tests/e2e/tariffa-personalizzata-offerta.spec.ts — nuovo file; nessuna modifica ai helper condivisi né alle entità del seed
+
+      ## Steps
+      1. Dati da factory: un cliente con marcatore univoco, offerte A e B (tariffa offerta 600,00) dello stesso cliente con codici derivati dal marcatore, un collaboratore con `tariffaGiornaliera: "400.00"`, ingaggi su A e B, una riga fatturabile da 8 h su A e una su B in `meseRiservato("US-020-TARIFFA-PERSONALIZZATA")`.
+      2. Amministratore (`page`, `accediComeAdmin`): `goto(/offerte/{A.id}/collaboratori)`, click su "Imposta tariffa", `selectOption({ label: ... })` con il testo derivato da cognome/nome del collaboratore, `fill("520,00")` sulla label "Tariffa giornaliera", click su "Salva tariffa". Nella sezione "Tariffe personalizzate" (`getByRole("region", { name: "Tariffe personalizzate" })`) la riga del collaboratore mostra `520,00 €` e "Aggiornata il" con la data odierna `gg/mm/aaaa` (Europe/Rome). Reload: valori ancora visibili (AC-1, AC-4).
+      3. Collaboratore in un secondo context (`browser.newContext()` + `accediCome(pagina, collaboratore.utente.email)`): `goto(/attivita/riepilogo?mese={mese})`; `summary-importo-fattura-value` contiene l'importo di 920,00 nel formato del front office; la riga dell'offerta A contiene "Personalizzata" e quella di B no (AC-2).
+      4. Amministratore: `goto(/report/marginalita?da={mese}&a={mese})`; la riga dell'offerta A ha costi `520,00 €` e la riga B `400,00 €` (AC-2).
+      5. Amministratore: torna alla pagina dell'offerta A, "Rimuovi" sulla riga e conferma; compare "Nessuna tariffa personalizzata: tutti i collaboratori usano la propria tariffa standard." (AC-3).
+      6. Collaboratore: reload del riepilogo → importo 800,00, nessun "Personalizzata"; amministratore: marginalità A costi `400,00 €` (AC-3).
+      7. Chiudere il secondo context alla fine. Solo `expect` web-first, ruoli/label/nomi esatti, niente attese fisse, niente selettori di classi Tailwind, niente `selectOption({ index })`.
+
+      ## Verify
+      - Run: `npx playwright test tests/e2e/tariffa-personalizzata-offerta.spec.ts`
+      - Expect: 1 test passato
+      - Run: `npx playwright test tests/e2e/tariffa-personalizzata-offerta.spec.ts --repeat-each=3`
+      - Expect: 3 passati (dati per tentativo isolati da factory)
+      - Run: `npm run lint`
+      - Expect: verde, guardrail e2e passato, nessun nuovo avviso oltre ai 3 preesistenti
+
+      ## Done
+      - [ ] AC-1 — oracolo: la riga del collaboratore mostra `520,00 €` dopo salvataggio e reload
+      - [ ] AC-2 — oracolo: riepilogo con importo 920,00 e badge solo su A; marginalità con costi 520,00 su A e 400,00 su B
+      - [ ] AC-3 — oracolo: dopo la rimozione lo stato vuoto è visibile, il riepilogo torna a 800,00 e i costi di A a 400,00
+      - [ ] AC-4 — oracolo: "Aggiornata il" con la data odierna visibile nella pagina dell'offerta
+
+      ## Blockers
+      None.
+  - id: TASK-11
+    title: ADR decisions/tariffa-collaboratore-per-offerta
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-04
+      - TASK-06
+    body: |-
+      ## Objective
+      Nella Wiki esiste la decisione accettata `decisions/tariffa-collaboratore-per-offerta` che documenta la scelta della tabella dedicata per gli override.
+
+      ## Read
+      - .claude/skills/archetipo-wiki/references/wiki-contract.md — contratto delle pagine `type: decision` (sezioni e `sources`)
+      - docs/wiki/decisions/tariffa-unica-collaboratore.md — formato e marcatori `<!-- archetipo:wiki section=... -->`
+      - Il paragrafo "Decisioni architetturali" del piano di US-020
+
+      ## Change
+      - docs/wiki/decisions/tariffa-collaboratore-per-offerta.md — nuova pagina
+      - docs/wiki/index.md — solo tramite `archetipo wiki catalog`
+
+      ## Steps
+      1. Creare la pagina con frontmatter `type: decision`, `title: Tariffa personalizzata per collaboratore e offerta`, `description`, `status: generated`, `decision_status: accepted`, `sources` con `prisma/schema.prisma` (symbol `TariffaCollaboratoreOfferta`, role implementation), `src/lib/attivita.ts` (`riepilogoMese`), `src/lib/report.ts` (`reportMarginalitaPeriodo`), `src/domain/consuntivi/index.ts` (`calcolaRiepilogoMese`), `src/app/(back-office)/offerte/[offertaId]/collaboratori/tariffe-actions.ts`, e come verification `tests/unit/tariffe-personalizzate-calcoli.test.ts`, `tests/unit/tariffe-personalizzate-actions.test.ts`, `tests/e2e/tariffa-personalizzata-offerta.spec.ts`.
+      2. Sezioni con marcatori `context`, `decision`, `alternatives` (colonna su `AbilitazioneOfferta` scartata per la perdita alla revoca; override storicizzato scartato perché non richiesto), `consequences` (ricalcolo retroattivo come per la tariffa standard; override sopravvive alla revoca; solo collaboratori ingaggiati per nuovi override), `verification`; link alla decisione sostituita `/decisions/tariffa-unica-collaboratore.md` e a `/domains/collaboratori.md`.
+      3. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: `data.ok: true`, nessun finding sulla nuova pagina
+
+      ## Done
+      - [ ] Pagina `decisions/tariffa-collaboratore-per-offerta` creata con le cinque sezioni marcate e fonti di repository
+      - [ ] Indice aggiornato con la nuova decisione
+      - [ ] AC-1, AC-2 — la decisione documenta dove vive l'override e come lo risolvono i calcoli
+
+      ## Blockers
+      None.
+  - id: TASK-12
+    title: ADR decisions/tariffa-unica-collaboratore passa a superseded
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-11
+    body: |-
+      ## Objective
+      La decisione `decisions/tariffa-unica-collaboratore` risulta sostituita e rimanda alla nuova decisione, conservando lo storico.
+
+      ## Read
+      - docs/wiki/decisions/tariffa-unica-collaboratore.md
+      - docs/wiki/decisions/tariffa-collaboratore-per-offerta.md (TASK-11)
+
+      ## Change
+      - docs/wiki/decisions/tariffa-unica-collaboratore.md — frontmatter e sezioni `consequences`/`verification`; nessuna cancellazione del contenuto storico
+
+      ## Steps
+      1. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset decisions/tariffa-unica-collaboratore` (pagina `reviewed` → `generated`) prima di modificarla; se il comando richiede una sintassi diversa, consultare `archetipo wiki reset --help`.
+      2. Impostare `decision_status: superseded`.
+      3. Aggiungere in testa al corpo una nota "Sostituita da [Tariffa personalizzata per collaboratore e offerta](/decisions/tariffa-collaboratore-per-offerta.md) con US-020".
+      4. Aggiornare la sezione `verification`: `Collaboratore.tariffaGiornaliera` resta la tariffa standard, ma esiste ora `TariffaCollaboratoreOfferta`.
+      5. Aggiungere tra le `sources` `prisma/schema.prisma` con symbol `TariffaCollaboratoreOfferta`.
+      6. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: `data.ok: true`
+
+      ## Done
+      - [ ] Pagina con `decision_status: superseded`, `status: generated` e link alla decisione sostitutiva
+      - [ ] AC-2 — la verifica non afferma più che non esista una tariffa collaboratore per offerta
+
+      ## Blockers
+      None.
+  - id: TASK-13
+    title: Wiki domains/collaboratori documenta la tariffa personalizzata per offerta
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-11
+    body: |-
+      ## Objective
+      La pagina di dominio `domains/collaboratori` descrive la nuova entità `TariffaCollaboratoreOfferta`, chi la possiede, i suoi invarianti e i test che la coprono.
+
+      ## Read
+      - docs/wiki/domains/collaboratori.md — glossario (riga ~93 "Tariffa giornaliera"), ownership (riga ~101), invarianti (riga ~144), verifiche (riga ~149)
+      - src/lib/abilitazioni.ts, src/app/(back-office)/offerte/[offertaId]/collaboratori/tariffe-actions.ts
+
+      ## Change
+      - docs/wiki/domains/collaboratori.md — paragrafi su glossario, ownership, invarianti, verifiche e `sources`; nessuna riscrittura delle parti non toccate
+
+      ## Steps
+      1. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset domains/collaboratori`.
+      2. Glossario: "Tariffa giornaliera" è la tariffa standard; nuova voce "Tariffa personalizzata" (override per coppia collaboratore-offerta che prevale nei calcoli correnti).
+      3. Ownership: la capability possiede anche `TariffaCollaboratoreOfferta`, indipendente da `AbilitazioneOfferta` (la revoca non la cancella).
+      4. Invarianti: coppia unica a database, importo positivo con massimo due decimali, nuovi override solo per collaboratori ingaggiati, rimozione idempotente.
+      5. Verifiche: citare `tariffe-personalizzate-actions.test.ts`, `tariffe-personalizzate-calcoli.test.ts`, `tariffa-personalizzata-offerta.spec.ts`; aggiungere le fonti nel frontmatter e il link a `/decisions/tariffa-collaboratore-per-offerta.md`.
+      6. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: `data.ok: true`
+
+      ## Done
+      - [ ] Pagina `domains/collaboratori` aggiornata, `status: generated`, con fonti e link alla nuova decisione
+      - [ ] AC-1, AC-4 — la pagina documenta come si definisce e dove è visibile l'override
+
+      ## Blockers
+      None.
+  - id: TASK-14
+    title: Wiki domains/attivita aggiorna la regola di tariffa del riepilogo mensile
+    type: Impl
+    status: TODO
+    dependencies:
+      - TASK-11
+    body: |-
+      ## Objective
+      La pagina `domains/attivita` descrive che il riepilogo mensile usa la tariffa personalizzata per offerta quando presente.
+
+      ## Read
+      - docs/wiki/domains/attivita.md — glossario (riga ~111) e invarianti (riga ~176: "La tariffa corrente del collaboratore ricalcola retroattivamente l'imponibile del riepilogo")
+      - src/domain/consuntivi/index.ts — `calcolaRiepilogoMese`
+
+      ## Change
+      - docs/wiki/domains/attivita.md — solo le frasi sulla tariffa del riepilogo e le `sources`
+
+      ## Steps
+      1. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner reset domains/attivita`.
+      2. Sostituire la frase sulla tariffa corrente con: l'imponibile del riepilogo usa per ogni offerta la tariffa personalizzata della coppia se presente, altrimenti la tariffa standard; entrambe sono correnti e ricalcolano retroattivamente i mesi passati; il breakdown segnala le tariffe differenziate.
+      3. Aggiungere al glossario "tariffa personalizzata", la fonte `tests/unit/tariffe-personalizzate-calcoli.test.ts` e il link a `/decisions/tariffa-collaboratore-per-offerta.md`.
+      4. Eseguire `archetipo wiki --project-root /Users/smarello/repo/coaching-planner catalog`.
+
+      ## Verify
+      - Run: `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`
+      - Expect: `data.ok: true`
+
+      ## Done
+      - [ ] Pagina `domains/attivita` aggiornata, `status: generated`, coerente con il calcolo implementato
+      - [ ] AC-2, AC-3 — la pagina documenta precedenza dell'override e ritorno alla standard
+
+      ## Blockers
+      None.
+  - id: TASK-15
+    title: Gate finale di verifica di US-020
+    type: Test
+    status: TODO
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+      - TASK-08
+      - TASK-09
+      - TASK-10
+      - TASK-11
+      - TASK-12
+      - TASK-13
+      - TASK-14
+    body: |-
+      ## Objective
+      Tutte le verifiche mirate e di regressione passano e ogni task della spec è `DONE` prima di chiedere la review.
+
+      ## Read
+      - .github/workflows/ci.yml — passi della CI (migrate deploy, seed, lint, unit, build, e2e)
+      - Sezione "Baseline" del piano di US-020
+
+      ## Change
+      - Nessun file applicativo: solo esecuzione delle verifiche; eventuali difetti si correggono nel task che li ha introdotti
+
+      ## Steps
+      1. `npx prisma validate` e `npx prisma migrate status`.
+      2. `npx vitest run tests/unit/riepilogo-mese.test.ts tests/unit/marginalita-clienti.test.ts tests/unit/tariffe-personalizzate-calcoli.test.ts tests/unit/tariffe-personalizzate-actions.test.ts tests/unit/ingaggi-offerta-dal-actions.test.ts`.
+      3. `npm test`.
+      4. `npx tsc --noEmit`.
+      5. `npm run lint`.
+      6. `npm run build`.
+      7. `npx playwright test tests/e2e/tariffa-personalizzata-offerta.spec.ts tests/e2e/ingaggi-offerta.spec.ts tests/e2e/report-marginalita.spec.ts tests/e2e/demo__riepilogo-mensile-fattura.spec.ts`.
+      8. `archetipo wiki --project-root /Users/smarello/repo/coaching-planner validate --profile bootstrap`.
+      9. Marcare questo task `DONE`, poi da `/Users/smarello/repo/coaching-planner` eseguire `archetipo spec show US-020` e verificare che nessun task sia ancora `TODO`. Solo allora eseguire `archetipo spec review US-020`.
+
+      ## Verify
+      - Run: i comandi degli step 1-8
+      - Expect: schema valido e 10 migrazioni applicate; unit test tutti verdi (più dei 838 della baseline); nessuna diagnostica `tsc`; lint verde con i soli 3 avvisi preesistenti; build completata; e2e selezionati tutti passati; validazione Wiki `data.ok: true`
+      - Run: `archetipo spec show US-020`
+      - Expect: tutti i 15 task con stato `DONE`
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4 — evidenze unit ed e2e verdi come da mappa delle evidenze
+      - [ ] Nessuna regressione rispetto alla baseline (unit, tsc, lint, build)
+      - [ ] `archetipo spec show US-020` conferma che ogni task è `DONE` prima di `archetipo spec review`
+
+      ## Blockers
+      None.

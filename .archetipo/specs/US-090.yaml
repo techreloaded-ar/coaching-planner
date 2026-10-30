@@ -1,0 +1,45 @@
+schema: archetipo/spec/v2
+code: US-090
+title: Collegare e scollegare Google Calendar dalle Impostazioni
+epic:
+  code: EP-016
+  title: Vorrei creare una sezione di settings dell'utente. Attualmente nei setti…
+priority: HIGH
+points: 3
+status: DONE
+blocked_by:
+  - US-089
+scope: MVP
+body: |-
+  **User Story**
+  Come collaboratore,
+  voglio gestire il collegamento a Google Calendar nella categoria «Connettori» delle Impostazioni,
+  così che trovi i collegamenti con servizi esterni nello stesso posto delle altre preferenze.
+
+  **Demonstrates**
+  Partendo da un collaboratore attivo senza calendario collegato, il reviewer apre Impostazioni, seleziona la categoria «Connettori» nella barra laterale, vede Google Calendar «non collegato» e il pulsante «Collega Google Calendar»; completa il consenso e torna sulla categoria «Connettori» delle Impostazioni con lo stato «collegato» e il pulsante «Scollega». Preme «Scollega» e lo stato torna «non collegato». Ripete il collegamento negando il consenso e vede, nella categoria «Connettori», l'avviso che il collegamento non è stato completato. Con un amministratore senza profilo collaboratore vede la sezione spiegare che il connettore non è disponibile, senza pulsanti.
+
+  **Acceptance Criteria**
+  - [ ] AC-1 — Per un collaboratore attivo, la categoria «Connettori» delle Impostazioni mostra Google Calendar e il suo stato: collegato o non collegato.
+  - [ ] AC-2 — Se non collegato, la sezione mostra «Collega Google Calendar», che avvia il consenso Google in sola lettura.
+  - [ ] AC-3 — Al termine del consenso riuscito l'utente torna sulla categoria «Connettori» delle Impostazioni e vede Google Calendar collegato.
+  - [ ] AC-4 — Se il consenso è negato o non valido, l'utente torna sulla categoria «Connettori» delle Impostazioni e vede l'avviso che il collegamento non è stato completato e che può riprovare.
+  - [ ] AC-5 — Se ha autorizzato un account Google diverso da quello di accesso, l'utente torna sulla categoria «Connettori» delle Impostazioni e vede l'avviso che indica l'email con cui riprovare.
+  - [ ] AC-6 — Se collegato, «Scollega» rimuove il collegamento e la sezione torna a mostrare lo stato non collegato con il pulsante per collegare.
+  - [ ] AC-7 — Per un utente senza profilo collaboratore attivo, nella categoria «Connettori» Google Calendar indica che il connettore non è disponibile e non mostra pulsanti di collegamento.
+
+  **Out of Scope**
+  Altri connettori esterni; scelta di quale calendario Google leggere; modifiche alle proposte di ore generate dagli impegni.
+
+  <!-- archetipo-increment:inc-59927d9d6b724648:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/11
+history:
+  - status: TODO
+    at: "2026-10-29T13:37:09Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T13:37:09Z"
+  - status: REVIEW
+    at: "2026-10-29T15:52:31Z"
+  - status: DONE
+    at: "2026-10-30T09:42:47Z"

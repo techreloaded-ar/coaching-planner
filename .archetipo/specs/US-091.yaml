@@ -1,0 +1,43 @@
+schema: archetipo/spec/v2
+code: US-091
+title: Indicatore discreto del collegamento Google Calendar nella pagina attività
+epic:
+  code: EP-016
+  title: Vorrei creare una sezione di settings dell'utente. Attualmente nei setti…
+priority: MEDIUM
+points: 2
+status: DONE
+blocked_by:
+  - US-090
+scope: MVP
+body: |-
+  **User Story**
+  Come collaboratore,
+  voglio vedere nella pagina attività solo un'indicazione discreta dello stato di Google Calendar,
+  così che il calendario delle attività abbia più spazio e la gestione del collegamento resti nelle Impostazioni.
+
+  **Demonstrates**
+  Partendo da un collaboratore attivo con calendario collegato, il reviewer apre la pagina attività e vede, in piccolo, «Google Calendar collegato» senza pulsante «Scollega» né il riquadro di oggi. Scollega il calendario dalle Impostazioni, torna alla pagina attività e vede, in piccolo, «Google Calendar non collegato» senza pulsante «Collega Google Calendar»; cliccando l'indicazione arriva alle Impostazioni.
+
+  **Acceptance Criteria**
+  - [ ] AC-1 — La pagina attività non mostra più il riquadro del collegamento a Google Calendar né i pulsanti «Collega Google Calendar» e «Scollega».
+  - [ ] AC-2 — La pagina attività mostra un'indicazione testuale piccola e discreta «Google Calendar collegato» quando il calendario è collegato.
+  - [ ] AC-3 — La pagina attività mostra un'indicazione testuale piccola e discreta «Google Calendar non collegato» quando il calendario non è collegato.
+  - [ ] AC-4 — L'indicazione porta alla pagina Impostazioni e non avvia direttamente il consenso Google.
+  - [ ] AC-5 — Gli avvisi sull'esito del consenso Google non compaiono più nella pagina attività.
+
+  **Out of Scope**
+  Indicatori del collegamento in altre pagine (dettaglio giornata, riepilogo); cambi al comportamento delle proposte di ore.
+
+  <!-- archetipo-increment:inc-59927d9d6b724648:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/11
+history:
+  - status: TODO
+    at: "2026-10-29T13:37:09Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T13:37:09Z"
+  - status: REVIEW
+    at: "2026-10-29T15:52:31Z"
+  - status: DONE
+    at: "2026-10-30T09:42:47Z"

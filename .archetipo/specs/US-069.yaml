@@ -1,0 +1,34 @@
+schema: archetipo/spec/v2
+code: US-069
+title: Scelta esplicita dell'account Google al login
+epic:
+  code: EP-008
+  title: |-
+    Dobbiamo fare un paio di miglioramenti sul coaching planner:
+    1. Nella sc…
+priority: HIGH
+points: 1
+status: DONE
+scope: MVP
+body: |-
+  **Come** utente del coaching planner con più account Google attivi nel browser **voglio** scegliere esplicitamente con quale account accedere **così da** non entrare (o vedermi negare l'accesso) con il mio account personale predefinito.
+
+  **Demonstrates:** dalla pagina di accesso premo «Accedi con Google»: l'URL di autorizzazione Google contiene `prompt=select_account`, quindi Google mostra sempre l elenco degli account invece di usare automaticamente quello predefinito.
+
+  ## Criteri di accettazione
+  - [ ] L URL di autorizzazione del login Google include `prompt=select_account`, così Google mostra sempre la scelta dell'account anche con una sola sessione attiva.
+  - [ ] Scope (`openid`, `email`, `profile`), state, PKCE e callback del login restano invariati; le regole di accesso (solo email registrate e attive) non cambiano.
+  - [ ] Un test unitario verifica i parametri dell'URL di autorizzazione del login.
+
+  <!-- archetipo-increment:inc-800bf08708b20f44:US-004 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/3
+history:
+  - status: TODO
+    at: "2026-10-27T11:34:12Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T11:34:12Z"
+  - status: REVIEW
+    at: "2026-10-27T12:04:01Z"
+  - status: DONE
+    at: "2026-10-27T12:06:08Z"

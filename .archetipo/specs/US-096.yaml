@@ -1,0 +1,42 @@
+schema: archetipo/spec/v2
+code: US-096
+title: Selezionare clienti e agire dalla barra azioni contestuale
+epic:
+  code: EP-018
+  title: Vorrei rivedere la user experience per le azioni che si possono fare nel…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** selezionare uno o più clienti e trovare le azioni in una barra sopra l'elenco
+  **così da** modificare, disattivare o riattivare i clienti senza azioni sparse sulle righe.
+
+  ### Demonstrates
+  In Anagrafiche > Clienti spuntare un cliente attivo: al posto della ricerca compare la barra «1 cliente selezionato» con Modifica, Disattiva e Annulla selezione; Modifica apre il form del cliente. Spuntare due clienti attivi e uno disattivato: la barra mostra «3 clienti selezionati», «Disattiva (2)» e «Riattiva (1)», senza Modifica. Premere «Disattiva (2)», confermare nel dialog: i due clienti mostrano la chip grigia «Disattivato», la selezione è vuota e torna la ricerca. Spuntare la checkbox in intestazione: tutti i clienti della pagina risultano selezionati; Annulla selezione li deseleziona.
+
+  ### Acceptance Criteria
+  - [ ] Esiste un unico componente condiviso (checkbox di riga, checkbox «seleziona tutti» con stato intermedio, barra contestuale) che ogni elenco configura con le proprie azioni
+  - [ ] Con almeno un elemento selezionato la barra di ricerca e contatori è sostituita dalla barra evidenziata con il numero di selezionati, le azioni applicabili e «Annulla selezione»; senza selezione torna la barra attuale
+  - [ ] Nomi e icone delle azioni Modifica, Disattiva, Riattiva, Elimina e Collaboratori abilitati sono definiti una sola volta nel componente condiviso
+  - [ ] Le azioni a selezione singola (Modifica) compaiono solo con esattamente un elemento selezionato
+  - [ ] Disattiva compare se almeno un selezionato è attivo, Riattiva se almeno uno è disattivato; con selezione mista riportano fra parentesi quanti elementi toccano e agiscono solo su quelli
+  - [ ] Disattiva chiede conferma in un dialog con il numero di elementi; Annulla chiude senza modifiche; Riattiva agisce subito
+  - [ ] La disattivazione/riattivazione multipla dei clienti avviene in un'unica operazione lato server riservata agli amministratori, e conserva pagina e ricerca dell'elenco
+  - [ ] La riga cliente non ha più azioni in linea; resta la chip di stato verde «Attivo» / grigia «Disattivato»
+  - [ ] Cambiare pagina o ricerca, o completare un'azione, azzera la selezione
+  - [ ] Checkbox e azioni sono utilizzabili da tastiera e hanno etichette accessibili (es. «Seleziona TechSolutions S.r.l.»)
+
+  <!-- archetipo-increment:inc-8edf57414347c123:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/13
+history:
+  - status: TODO
+    at: "2026-10-30T13:36:29Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T13:36:29Z"
+  - status: REVIEW
+    at: "2026-10-30T14:08:07Z"
+  - status: DONE
+    at: "2026-10-30T14:11:19Z"

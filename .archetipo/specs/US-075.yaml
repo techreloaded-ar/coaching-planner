@@ -1,0 +1,35 @@
+schema: archetipo/spec/v2
+code: US-075
+title: Diagnostica dell'associazione Gemini nei log del server
+epic:
+  code: EP-010
+  title: voglio potenziare la funzionalità di integrazione con google calendar, i…
+priority: HIGH
+points: 2
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore dell'applicazione, **voglio** trovare nei log del server l'esito di ogni chiamata a Gemini, **così** da capire perché i suggerimenti di cliente e offerta non compaiono senza dover modificare il codice.
+
+  **Demonstrates:** aprendo una giornata con proposte in anteprima senza GEMINI_API_KEY il terminale del server mostra una riga «Gemini: chiave-assente»; con Gemini simulato mostra una riga con esito ok, numero di eventi, offerte e associazioni.
+
+  ### Criteri di accettazione
+  - [ ] Ogni lettura delle proposte con almeno un evento proposto scrive una sola riga di log con prefisso «Gemini:» e un esito tra: chiave-assente, nessuna-offerta-abilitata, errore-http (con codice), timeout, risposta-non-valida, ok
+  - [ ] Per l'esito errore-http la riga riporta anche lo stato e il messaggio di errore restituiti da Google (es. «Your prepayment credits are depleted»)
+  - [ ] La riga riporta modello, durata in millisecondi, numero di eventi inviati, numero di offerte inviate, numero di associazioni con confidenza alta e bassa
+  - [ ] La riga non contiene mai l'API key, titoli, descrizioni, email o domini degli eventi
+  - [ ] Il README spiega come leggere questa riga su Vercel e come interpretare ogni esito
+  - [ ] Gli esiti sono coperti da test unitari
+
+  <!-- archetipo-increment:inc-b262b9534cbff76d:US-004 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/5
+history:
+  - status: TODO
+    at: "2026-10-27T16:13:04Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T16:13:04Z"
+  - status: REVIEW
+    at: "2026-10-27T17:15:42Z"
+  - status: DONE
+    at: "2026-10-27T17:29:12Z"

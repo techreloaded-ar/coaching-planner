@@ -1,0 +1,36 @@
+schema: archetipo/spec/v2
+code: US-072
+title: Cliente e offerta suggeriti in modo plausibile, solo con confidenza alta
+epic:
+  code: EP-010
+  title: voglio potenziare la funzionalità di integrazione con google calendar, i…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  **Come** collaboratore con il calendario collegato, **voglio** che cliente e offerta di una proposta siano suggeriti anche quando l'evento non li cita esplicitamente, ma precompilati solo quando il sistema ne è sicuro, **così** da confermare in un clic gli impegni chiari senza rischiare registrazioni sbagliate su quelli ambigui.
+
+  **Demonstrates:** aprendo una giornata con un evento «Sync settimanale» con partecipanti del dominio email di un cliente abilitato e un evento «Call» senza indizi, il primo mostra cliente e offerta con l'indicazione «Suggerito dall'AI» e il pulsante «Conferma»; il secondo mostra «Cliente e offerta da scegliere» e solo «Modifica» e «Rifiuta».
+
+  ### Criteri di accettazione
+  - [ ] A Gemini arrivano, oltre a titolo, descrizione e orario, i domini email dei partecipanti all'evento (mai gli indirizzi completi), così che ad esempio partecipanti @pippo.com indichino il cliente «Pippo» e le righe attività recenti del collaboratore (nota e offerta) come esempi di associazione
+  - [ ] Gemini sceglie l'offerta più plausibile tra quelle attive abilitate per il collaboratore, anche se l'evento non cita esplicitamente cliente o offerta, e indica una confidenza (alta o bassa)
+  - [ ] Cliente e offerta sono precompilati e «Conferma» è disponibile solo se la confidenza è alta e l'offerta è tra quelle abilitate
+  - [ ] Con confidenza bassa, offerta assente o non abilitata la proposta mostra «Cliente e offerta da scegliere», come oggi
+  - [ ] Una proposta precompilata riporta un'indicazione visibile che cliente e offerta sono suggeriti dall'AI
+  - [ ] Senza GEMINI_API_KEY o con errore di Gemini tutte le proposte restano da completare a mano e la giornata resta utilizzabile
+  - [ ] La modalità e2e simulata produce confidenza alta e bassa in modo deterministico, coperta da test
+
+  <!-- archetipo-increment:inc-b262b9534cbff76d:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/5
+history:
+  - status: TODO
+    at: "2026-10-27T16:13:04Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T16:13:04Z"
+  - status: REVIEW
+    at: "2026-10-27T17:15:42Z"
+  - status: DONE
+    at: "2026-10-27T17:29:12Z"

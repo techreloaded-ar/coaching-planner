@@ -1,0 +1,39 @@
+schema: archetipo/spec/v2
+code: US-094
+title: Report e avanzamento gestiscono offerte senza tariffa o giorni previsti
+epic:
+  code: EP-017
+  title: dobbiamo rilassare i vincoli dei campi obbligatori per collaboratori, cl…
+priority: HIGH
+points: 3
+status: DONE
+blocked_by:
+  - US-093
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** che report di fatturazione e avanzamento offerte funzionino anche per offerte senza tariffa o giorni previsti
+  **così da** non avere errori e accorgermi delle tariffe da completare prima di fatturare.
+
+  ### Demonstrates
+  Con un'offerta senza tariffa né giorni previsti e alcune giornate consuntivate nel mese: il report di fatturazione clienti mostra l'offerta con le sue giornate, tariffa «—», imponibile manodopera 0 € e l'avviso «tariffa da definire»; l'export Excel riporta la stessa riga con tariffa vuota e imponibile 0. Nell'elenco offerte e nel dettaglio avanzamento la stessa offerta mostra le giornate erogate, con giorni previsti, percentuale e residuo «—».
+
+  ### Acceptance Criteria
+  - [ ] Nel report di fatturazione clienti un'offerta senza tariffa mostra le giornate, tariffa «—», imponibile manodopera 0 € e l'avviso «tariffa da definire»
+  - [ ] Totali per cliente e del mese restano corretti (l'offerta senza tariffa contribuisce 0 € di manodopera; le trasferte forfettarie sono calcolate come oggi)
+  - [ ] L'export Excel del report riporta la riga dell'offerta con tariffa vuota e imponibile 0
+  - [ ] Elenco offerte e dettaglio avanzamento mostrano per un'offerta senza giorni previsti le giornate erogate e «—» per giorni previsti, percentuale e residuo
+  - [ ] Le offerte con tariffa e giorni previsti valorizzati si comportano esattamente come oggi
+
+  <!-- archetipo-increment:inc-271d782d46c2329a:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/12
+history:
+  - status: TODO
+    at: "2026-10-30T09:10:48Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T09:10:48Z"
+  - status: REVIEW
+    at: "2026-10-30T09:37:23Z"
+  - status: DONE
+    at: "2026-10-30T09:38:34Z"

@@ -1,0 +1,38 @@
+schema: archetipo/spec/v2
+code: US-093
+title: Censire un'offerta indicando solo codice e cliente
+epic:
+  code: EP-017
+  title: dobbiamo rilassare i vincoli dei campi obbligatori per collaboratori, cl…
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** creare e modificare un'offerta indicando solo il codice e il cliente
+  **così da** registrarla appena concordata e completare tariffa, giorni e descrizione in seguito.
+
+  ### Demonstrates
+  Da Offerte > Nuova offerta scegliere un cliente e inserire solo il codice: il salvataggio riesce. L'offerta compare nell'elenco offerte e nelle offerte del cliente con descrizione, tariffa e giorni previsti «—». Riaprirla, inserire giorni previsti «0»: il form segnala che devono essere maggiori di zero. Scegliere gestione trasferta «Forfettaria» senza importo: il form segnala che l'importo è obbligatorio. Un collaboratore abilitato all'offerta la può selezionare nel calendario attività.
+
+  ### Acceptance Criteria
+  - [ ] Un'offerta si salva (creazione e modifica) con soli codice e cliente valorizzati
+  - [ ] Codice e cliente restano obbligatori; restano invariati il limite di lunghezza e l'unicità del codice per cliente
+  - [ ] Descrizione, tariffa giornaliera e giorni previsti sono facoltativi; se valorizzati valgono le regole attuali (importo con massimo 2 decimali e maggiore di zero, giorni interi maggiori di zero)
+  - [ ] La gestione trasferta resta preimpostata su «Inclusa»; con «Forfettaria» l'importo per giorno di trasferta resta obbligatorio
+  - [ ] Il form non indica più come obbligatori descrizione, tariffa giornaliera e giorni previsti
+  - [ ] Elenchi e dettagli delle offerte (back office e selezione offerta nel front office) mostrano «—» o il solo codice dove manca un valore, senza errori
+
+  <!-- archetipo-increment:inc-271d782d46c2329a:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/12
+history:
+  - status: TODO
+    at: "2026-10-30T09:10:48Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T09:10:48Z"
+  - status: REVIEW
+    at: "2026-10-30T09:37:23Z"
+  - status: DONE
+    at: "2026-10-30T09:38:34Z"

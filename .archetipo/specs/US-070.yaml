@@ -1,0 +1,38 @@
+schema: archetipo/spec/v2
+code: US-070
+title: In anteprima entro scegliendo l'utente da un elenco
+epic:
+  code: EP-009
+  title: Vorrei rendere più comoda la prova delle preview del coaching planner qu…
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **Come** chi prova una preview con le integrazioni Google simulate
+  **voglio** scegliere con un clic l'utente con cui entrare
+  **così da** provare ogni profilo senza Google reale né chiamate dalla console del browser.
+
+  ### Demonstrates
+  Avviare la preview (`E2E_TEST_MODE=true`), premere «Accedi con Google»: si apre la pagina «Scegli l'utente» con gli utenti attivi del database locale (nome, cognome, email, ruolo e profilo collaboratore). Scegliere «Giulia Conti»: si arriva su /attivita come collaboratrice. Uscire, premere di nuovo «Accedi con Google» e scegliere un amministratore: si arriva su /attivita e dalla navigazione si apre il back office. Senza mock, l'URL della pagina «Scegli l'utente» risponde 404 e il pulsante porta a Google come oggi.
+
+  ### Acceptance Criteria
+  - [ ] Con `E2E_TEST_MODE=true` il pulsante «Accedi con Google» della pagina di accesso porta alla pagina locale «Scegli l'utente» invece che a Google
+  - [ ] La pagina elenca solo gli utenti attivi (esclusi utenti disattivati e collaboratori con profilo disattivato, come nel login reale), mostrando nome, cognome, email, ruolo e se hanno un profilo collaboratore
+  - [ ] Scegliendo un utente si crea la sessione con lo stesso meccanismo di `/api/e2e-test/sessione` e si arriva su /attivita, con gli stessi permessi di un login reale di quell'utente
+  - [ ] Senza `E2E_TEST_MODE=true` la pagina «Scegli l'utente» risponde 404 e il pulsante porta a `/api/auth/google` come oggi (Google reale, `prompt=select_account`)
+  - [ ] La pagina sta sotto il prefisso `e2e-test` ed è classificata dal proxy come le rotte `/api/e2e-test/*` (raggiungibile senza sessione)
+  - [ ] Un test unitario verifica il 404 senza mock e un test e2e percorre la scelta dell'utente con i mock, usando utenti creati dalle factory e senza modificare entità seed
+
+  <!-- archetipo-increment:inc-c54eddc338f3dadb:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/4
+history:
+  - status: TODO
+    at: "2026-10-27T12:13:00Z"
+  - status: IN PROGRESS
+    at: "2026-10-27T12:13:00Z"
+  - status: REVIEW
+    at: "2026-10-27T13:27:53Z"
+  - status: DONE
+    at: "2026-10-27T13:36:34Z"

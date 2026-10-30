@@ -1,0 +1,44 @@
+schema: archetipo/spec/v2
+code: US-088
+title: Menu dell'account sull'avatar nell'header
+epic:
+  code: EP-016
+  title: Vorrei creare una sezione di settings dell'utente. Attualmente nei setti…
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **User Story**
+  Come collaboratore o amministratore,
+  voglio vedere nella barra in alto solo il mio avatar e trovare i dati dell'account in un menu che si apre cliccandolo,
+  così che l'header sia più leggero e ordinato, come in GitHub.
+
+  **Demonstrates**
+  Partendo da un collaboratore collegato sulla pagina attività, il reviewer vede in alto a destra solo l'avatar con le iniziali, senza nome, ruolo, email né pulsante «Esci». Clicca l'avatar e si apre un menu con avatar, nome, email e ruolo («Collaboratore») e, sotto un separatore, la voce «Esci». Preme Esc e il menu si chiude; lo riapre, clicca fuori e si chiude di nuovo. Lo riapre e sceglie «Esci», tornando alla pagina di accesso. Ripete con un amministratore nella console amministrativa: in fondo alla barra laterale non ci sono più avatar, nome, ruolo né «Esci», e il menu dell'avatar nell'header mostra il ruolo «Amministratore» e permette di uscire.
+
+  **Acceptance Criteria**
+  - [ ] AC-1 — Nell'header del front office e in quello della console amministrativa l'utente collegato è rappresentato solo dal suo avatar con le iniziali: nome, ruolo ed email non sono più visibili nella barra.
+  - [ ] AC-2 — Il pulsante «Esci» non compare più direttamente nell'header.
+  - [ ] AC-3 — Cliccando l'avatar si apre un menu con l'avatar, il nome, l'email e il ruolo («Collaboratore» o «Amministratore») dell'utente collegato.
+  - [ ] AC-4 — Il menu contiene la voce «Esci», che disconnette l'utente e lo porta alla pagina di accesso.
+  - [ ] AC-5 — Il menu si chiude premendo Esc, cliccando fuori da esso o cliccando di nuovo l'avatar, senza cambiare pagina.
+  - [ ] AC-6 — L'avatar è utilizzabile da tastiera: è raggiungibile con Tab, apre il menu con Invio e un lettore di schermo lo annuncia come menu dell'account.
+  - [ ] AC-7 — Nella console amministrativa la barra laterale non mostra più il riquadro utente: avatar, nome, ruolo e pulsante «Esci» sono assenti, mentre le voci di navigazione restano invariate.
+  - [ ] AC-8 — Nel front office il pulsante «Console amministrativa» resta visibile nell'header per gli amministratori.
+
+  **Out of Scope**
+  Foto profilo reali; stato personale o altre voci del menu; cambio rapido di account; modifiche alle voci di navigazione della barra laterale.
+
+  <!-- archetipo-increment:inc-59927d9d6b724648:US-004 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/11
+history:
+  - status: TODO
+    at: "2026-10-29T13:37:09Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T13:37:09Z"
+  - status: REVIEW
+    at: "2026-10-29T15:52:31Z"
+  - status: DONE
+    at: "2026-10-30T09:42:47Z"

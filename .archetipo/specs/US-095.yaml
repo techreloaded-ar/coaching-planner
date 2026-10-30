@@ -1,0 +1,39 @@
+schema: archetipo/spec/v2
+code: US-095
+title: Censire un utente con solo nome, cognome, email e ruolo
+epic:
+  code: EP-017
+  title: dobbiamo rilassare i vincoli dei campi obbligatori per collaboratori, cl…
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** censire e modificare utenti e collaboratori indicando solo nome, cognome, email e almeno un ruolo
+  **così da** dare accesso subito a una persona e completare partita IVA e tariffa in seguito.
+
+  ### Demonstrates
+  In Anagrafiche > Utenti creare un utente con solo nome, cognome, email e ruolo Collaboratore: il salvataggio riesce, la persona compare fra i collaboratori con partita IVA «—» e senza tariffa nello storico. Togliere entrambi i ruoli: il form segnala di selezionarne almeno uno. Svuotare il cognome: il form segnala che è obbligatorio. Inserire una partita IVA di 5 cifre: il form segnala che deve essere di 11 cifre. In Anagrafiche > Collaboratori modificare il collaboratore svuotando la partita IVA: il salvataggio riesce.
+
+  ### Acceptance Criteria
+  - [ ] Censimento e modifica utente riescono con soli nome, cognome, email e almeno un ruolo fra Collaboratore e Amministratore
+  - [ ] Nome, cognome, email (formato valido e unicità) e almeno un ruolo restano obbligatori con i messaggi attuali
+  - [ ] La partita IVA del collaboratore è facoltativa; se valorizzata deve essere di 11 cifre
+  - [ ] La tariffa iniziale del profilo collaboratore è facoltativa: senza importo non viene creata alcuna voce di tariffa; se valorizzata valgono le regole attuali
+  - [ ] La modifica del profilo in Anagrafiche > Collaboratori accetta la partita IVA vuota
+  - [ ] Il form non indica più come obbligatori partita IVA e tariffa iniziale
+  - [ ] Elenchi e dettagli dei collaboratori mostrano «—» per la partita IVA assente
+
+  <!-- archetipo-increment:inc-271d782d46c2329a:US-004 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/12
+history:
+  - status: TODO
+    at: "2026-10-30T09:10:48Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T09:10:48Z"
+  - status: REVIEW
+    at: "2026-10-30T09:37:23Z"
+  - status: DONE
+    at: "2026-10-30T09:38:34Z"

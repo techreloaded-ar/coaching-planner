@@ -1,0 +1,37 @@
+schema: archetipo/spec/v2
+code: US-079
+title: La marginalità considera il costo delle attività non fatturabili
+epic:
+  code: EP-012
+  title: Attualmente, quando un collaboratore segna un'attività, può solo segnare…
+priority: MEDIUM
+points: 2
+status: DONE
+blocked_by:
+  - US-077
+scope: MVP
+body: |-
+  **Come** amministratore, **voglio** che il report di marginalità includa il costo delle attività non fatturabili, **così che** il margine rifletta quanto Agile Reloaded paga senza fatturare al cliente.
+
+  ### Demonstrates
+  Su un'offerta con tariffa 800 €/giornata e un collaboratore a 400 €/giornata, con 8 h Fatturabile, 8 h Non fatturabile e 8 h Investimento nel periodo: ricavi 800,00 €, costi 800,00 €, margine 0,00 €; le giornate fatturabili mostrate sono 1.
+
+  ### Criteri di accettazione
+  - [ ] Ricavi calcolati solo sulle ore Fatturabile (invariato, coincidono con il report fatturazione clienti).
+  - [ ] Costi calcolati su ore Fatturabile + Non fatturabile × tariffa del collaboratore; le ore Investimento non generano costo.
+  - [ ] Un'offerta o un cliente con sole ore Non fatturabile compare con ricavi 0,00 €, costo positivo e margine negativo evidenziato.
+  - [ ] La nota del report spiega quali categorie concorrono a ricavi e costi.
+  - [ ] Test unitari del calcolo aggiornati, incluso il caso con sole ore Non fatturabile.
+
+  <!-- archetipo-increment:inc-f99252df7ce0354d:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/7
+history:
+  - status: TODO
+    at: "2026-10-28T12:29:18Z"
+  - status: IN PROGRESS
+    at: "2026-10-28T12:29:18Z"
+  - status: REVIEW
+    at: "2026-10-28T15:33:40Z"
+  - status: DONE
+    at: "2026-10-28T15:40:43Z"

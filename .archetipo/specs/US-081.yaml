@@ -1,0 +1,47 @@
+schema: archetipo/spec/v2
+code: US-081
+title: Fatturare le trasferte forfettarie nel report Fatturazione clienti
+epic:
+  code: EP-013
+  title: Quando definiamo un'offerta, dobbiamo aggiungere l'informazione su come …
+priority: HIGH
+points: 5
+status: DONE
+blocked_by:
+  - US-080
+scope: MVP
+body: |-
+  **User Story**
+  Come amministratore di Agile Reloaded,
+  voglio che il report Fatturazione clienti calcoli le trasferte da fatturare secondo la modalità di ogni offerta,
+  così da emettere fatture corrette senza ribaltare al cliente i rimborsi dei collaboratori.
+
+  **Demonstrates**
+  Nel mese di prova, un cliente ha l'offerta A «Forfettaria · 80,00 €/gg» e l'offerta B «Inclusa nella tariffa». Sull'offerta A due collaboratori registrano un rimborso trasferta lo stesso giorno e uno dei due anche un altro giorno; sull'offerta B un collaboratore registra un rimborso trasferta. Il revisore apre *Report → Fatturazione clienti* per quel mese e vede per l'offerta A «Trasferte forfettarie: 3 gg × 80,00 € = 240,00 €», per l'offerta B nessuna trasferta fatturata, la riga cliente «Trasferte forfettarie 240,00 €» al posto di «Rimborsi trasferta ribaltati» e il totale da fatturare uguale a imponibile manodopera + 240,00 €. Scarica l'export e trova gli stessi valori.
+
+  **Acceptance Criteria**
+  - [ ] AC-1 — Per un'offerta forfettaria i giorni di trasferta del mese sono il numero di combinazioni distinte collaboratore + giorno con almeno un rimborso trasferta registrato su quell'offerta: due collaboratori lo stesso giorno contano 2, due righe dello stesso collaboratore nello stesso giorno contano 1.
+  - [ ] AC-2 — Il giorno di trasferta è contato qualunque sia la categoria dell'attività (fatturabile, non fatturabile, investimento).
+  - [ ] AC-3 — Per ogni offerta forfettaria con giorni di trasferta il report mostra giorni, importo forfettario e importo trasferte (giorni × importo forfettario).
+  - [ ] AC-4 — Un'offerta «Inclusa nella tariffa» non genera alcun importo di trasferta, anche se i collaboratori hanno registrato rimborsi trasferta su di essa.
+  - [ ] AC-5 — Per ogni cliente la riga «Rimborsi trasferta ribaltati» è sostituita da «Trasferte forfettarie», pari alla somma degli importi trasferte delle sue offerte; il totale da fatturare del cliente è imponibile manodopera + trasferte forfettarie.
+  - [ ] AC-6 — Gli importi dei rimborsi trasferta registrati dai collaboratori non concorrono più ad alcun totale del report Fatturazione clienti.
+  - [ ] AC-7 — Un cliente compare nel report anche se nel mese ha solo trasferte forfettarie e nessuna giornata fatturabile; un cliente con solo rimborsi su offerte «Inclusa nella tariffa» e nessuna giornata fatturabile non compare.
+  - [ ] AC-8 — I totali del mese riportano il totale trasferte forfettarie al posto del totale rimborsi e il totale da fatturare coerente.
+  - [ ] AC-9 — L'export del report riporta per offerta giorni di trasferta e importo trasferte forfettarie, e per cliente e mese il totale «Trasferte forfettarie», con gli stessi valori mostrati a video.
+
+  **Out of Scope**
+  Report di marginalità e altri report che usano i rimborsi dei collaboratori; modifica delle soglie o delle voci di rimborso; ricalcolo storico con condizioni dell'offerta diverse da quelle correnti.
+
+  <!-- archetipo-increment:inc-f0c31174f5973140:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/8
+history:
+  - status: TODO
+    at: "2026-10-28T16:29:30Z"
+  - status: IN PROGRESS
+    at: "2026-10-28T16:29:30Z"
+  - status: REVIEW
+    at: "2026-10-28T17:03:11Z"
+  - status: DONE
+    at: "2026-10-28T17:08:13Z"

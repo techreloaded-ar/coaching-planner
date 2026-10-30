@@ -1,0 +1,40 @@
+schema: archetipo/spec/v2
+code: US-099
+title: Registrare ore su un cliente lasciando l'offerta da definire
+epic:
+  code: EP-019
+  title: dobbiamo modificare come vengono censite le attività. Ad oggi per censir…
+priority: HIGH
+points: 5
+status: REVIEW
+scope: MVP
+body: |-
+  **Come** collaboratore
+  **voglio** registrare le ore su un cliente anche quando non esiste ancora un'offerta attiva
+  **così che** il lavoro svolto venga censito subito e l'offerta possa essere indicata in seguito.
+
+  ### Demonstrates
+  1. Il collaboratore apre il dettaglio di un giorno e la select «Cliente» mostra il gruppo «Consigliati» (clienti con almeno un'offerta attiva su cui è abilitato) e sotto il gruppo «Altri clienti» con tutti gli altri clienti attivi.
+  2. Sceglie un cliente da «Altri clienti», lascia l'offerta vuota, inserisce le ore e salva: la riga appare nel giorno con l'etichetta «Offerta da definire».
+  3. Modifica la riga, sceglie un cliente consigliato e una sua offerta abilitata, salva: l'etichetta lascia il posto a codice e descrizione dell'offerta.
+
+  ### Acceptance criteria
+  - [ ] La select «Cliente» del form riga attività presenta due gruppi: «Consigliati», con i clienti attivi su cui il collaboratore ha almeno un'offerta attiva abilitata, e «Altri clienti», con tutti gli altri clienti attivi; ogni gruppo è ordinato per ragione sociale e un cliente compare in un solo gruppo. Un gruppo vuoto non viene mostrato.
+  - [ ] Il cliente resta obbligatorio; l'offerta è facoltativa e la select offerta propone un'opzione vuota «Offerta da definire» accanto alle offerte attive abilitate del cliente.
+  - [ ] Per un cliente senza offerte abilitate il form non blocca più il salvataggio: il messaggio informa che le ore verranno registrate con offerta da definire.
+  - [ ] Il salvataggio di una riga senza offerta riesce in creazione, in modifica e in duplicazione su altri giorni; il server accetta solo clienti attivi.
+  - [ ] Quando un'offerta è indicata, restano invariate le verifiche attuali: offerta attiva, appartenente al cliente e abilitata per il collaboratore.
+  - [ ] Nel dettaglio giornata e nel calendario mensile una riga senza offerta mostra il cliente e l'etichetta «Offerta da definire».
+  - [ ] Il collaboratore può assegnare in seguito un'offerta a una riga che ne è priva, modificandola dal dettaglio giornata.
+  - [ ] Le righe già esistenti con offerta continuano a funzionare senza variazioni.
+
+  <!-- archetipo-increment:inc-ed02bdaae34cce26:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/14
+history:
+  - status: TODO
+    at: "2026-10-30T14:29:18Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T14:29:18Z"
+  - status: REVIEW
+    at: "2026-10-30T15:15:06Z"

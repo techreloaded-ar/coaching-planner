@@ -1,0 +1,37 @@
+schema: archetipo/spec/v2
+code: US-100
+title: Vedere le ore senza offerta nel riepilogo mensile del collaboratore
+epic:
+  code: EP-019
+  title: dobbiamo modificare come vengono censite le attività. Ad oggi per censir…
+priority: MEDIUM
+points: 2
+status: REVIEW
+blocked_by:
+  - US-099
+scope: MVP
+body: |-
+  **Come** collaboratore
+  **voglio** vedere nel riepilogo del mese quante ore ho registrato senza offerta
+  **così che** mi ricordi di completarle quando l'offerta sarà disponibile.
+
+  ### Demonstrates
+  1. Con almeno una riga senza offerta nel mese, il collaboratore apre il riepilogo mensile e trova la voce «Offerta da definire» con le ore sommate, raggruppate per cliente.
+  2. Dopo aver assegnato l'offerta alla riga, la voce scompare e le ore confluiscono nella voce della relativa offerta.
+
+  ### Acceptance criteria
+  - [ ] Il riepilogo mensile aggrega le righe senza offerta in voci «Offerta da definire», una per cliente, con il totale ore e, dove previsto, i giorni equivalenti, come per le altre voci.
+  - [ ] Le voci con offerta restano invariate nel contenuto e nell'ordinamento.
+  - [ ] I totali del mese includono anche le ore senza offerta.
+  - [ ] Senza righe prive di offerta il riepilogo è identico a quello attuale.
+
+  <!-- archetipo-increment:inc-ed02bdaae34cce26:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/14
+history:
+  - status: TODO
+    at: "2026-10-30T14:29:18Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T14:29:18Z"
+  - status: REVIEW
+    at: "2026-10-30T15:15:06Z"

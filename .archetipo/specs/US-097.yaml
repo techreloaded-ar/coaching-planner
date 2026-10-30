@@ -1,0 +1,41 @@
+schema: archetipo/spec/v2
+code: US-097
+title: Selezionare offerte e agire dalla barra azioni contestuale
+epic:
+  code: EP-018
+  title: Vorrei rivedere la user experience per le azioni che si possono fare nel…
+priority: HIGH
+points: 5
+status: DONE
+blocked_by:
+  - US-096
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** gestire le offerte con la stessa barra azioni delle altre anagrafiche
+  **così da** trovare modifica, collaboratori abilitati, eliminazione e disattivazione sempre nello stesso posto.
+
+  ### Demonstrates
+  In Offerte spuntare un'offerta attiva: la barra mostra «1 offerta selezionata» con Modifica, Collaboratori abilitati, Disattiva ed Elimina. Collaboratori abilitati apre la pagina dei collaboratori dell'offerta; Modifica apre il form dell'offerta; Elimina apre il dialog attuale (conferma, oppure blocco se l'offerta ha attività). Spuntare due offerte attive, premere «Disattiva (2)» e confermare: le offerte mostrano la chip grigia «Disattivata». Cliccare la riga (non la checkbox) espande ancora il dettaglio avanzamento; cliccare la checkbox non lo espande.
+
+  ### Acceptance Criteria
+  - [ ] L'elenco offerte usa il componente condiviso di US-001 con le azioni Modifica, Collaboratori abilitati, Elimina (solo selezione singola), Disattiva e Riattiva (anche multiple)
+  - [ ] Elimina mantiene le due varianti attuali del dialog (conferma eliminazione / blocco con proposta di disattivazione)
+  - [ ] La disattivazione/riattivazione multipla delle offerte avviene in un'unica operazione lato server riservata agli amministratori, conservando pagina, ricerca ed eventuale offerta espansa
+  - [ ] Il pallino-interruttore di stato è sostituito da una chip non interattiva verde «Attiva» / grigia «Disattivata» in una colonna Stato
+  - [ ] La colonna Azioni in riga è rimossa
+  - [ ] Il click sulla riga continua a espandere il dettaglio avanzamento; il click sulla checkbox seleziona senza espandere
+  - [ ] Il contatore riepilogativo usa «disattivate» al posto di «non attive»
+
+  <!-- archetipo-increment:inc-8edf57414347c123:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/13
+history:
+  - status: TODO
+    at: "2026-10-30T13:36:29Z"
+  - status: IN PROGRESS
+    at: "2026-10-30T13:36:29Z"
+  - status: REVIEW
+    at: "2026-10-30T14:08:07Z"
+  - status: DONE
+    at: "2026-10-30T14:11:19Z"

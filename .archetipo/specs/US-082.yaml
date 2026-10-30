@@ -1,0 +1,38 @@
+schema: archetipo/spec/v2
+code: US-082
+title: Sfogliare e cercare i clienti a pagine
+epic:
+  code: EP-014
+  title: Nella parte amministrativa vorrei modificare la visualizzazione delle pa…
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore, **voglio** che l'elenco Anagrafiche › Clienti mostri i clienti a pagine da 25 con una ricerca su tutto l'archivio, **così da** aprire la pagina velocemente anche con molti clienti e trovare comunque quello che cerco.
+
+  ### Demonstrates
+  Con più di 25 clienti: aprire /anagrafiche/clienti → 25 righe in ordine alfabetico e «Mostrati 1–25 di N»; cliccare «Successiva» → URL con `pagina=2` e righe successive; digitare nella ricerca la ragione sociale di un cliente di pagina 2 → appare in pagina 1 dei risultati; disattivarlo → si resta sulla stessa ricerca e pagina.
+
+  ### Criteri di accettazione
+  - [ ] Il server legge dal database solo i clienti della pagina richiesta (25 per pagina), in ordine alfabetico per ragione sociale.
+  - [ ] Sotto la tabella compaiono «Mostrati X–Y di N» e i controlli Precedente / numeri di pagina / Successiva; Precedente è disabilitato in prima pagina, Successiva nell'ultima; con un'unica pagina i controlli non compaiono.
+  - [ ] La ricerca per ragione sociale, P.IVA o città (senza distinzione maiuscole/minuscole) avviene sul server su tutti i clienti, aggiorna l'URL (`q`) e riporta a pagina 1.
+  - [ ] Pagina e ricerca sono nell'URL: ricaricare, usare Indietro o aprire il link mostra la stessa vista.
+  - [ ] Il riepilogo «N clienti · X attivi · Y disattivati» conta tutti i clienti che soddisfano la ricerca, non solo quelli della pagina.
+  - [ ] Dopo attiva/disattiva un cliente l'amministratore torna alla stessa pagina e ricerca.
+  - [ ] Una pagina oltre l'ultima mostra l'ultima pagina valida; nessun risultato mostra il messaggio «Nessun cliente corrisponde alla ricerca».
+  - [ ] Test unitari della funzione di elenco paginato ed e2e su dati creati dalle factory, aggiornati dove si appoggiavano all'elenco completo.
+
+  <!-- archetipo-increment:inc-e7a0e18a6d3648a9:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/9
+history:
+  - status: TODO
+    at: "2026-10-29T07:07:52Z"
+  - status: IN PROGRESS
+    at: "2026-10-29T07:07:52Z"
+  - status: REVIEW
+    at: "2026-10-29T09:42:11Z"
+  - status: DONE
+    at: "2026-10-29T09:48:19Z"
