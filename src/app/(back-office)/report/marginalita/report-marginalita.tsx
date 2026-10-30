@@ -185,8 +185,8 @@ export default function ReportMarginalita({
                   <tbody>
                     {cliente.perOfferta.map((offerta) => (
                       <tr
-                        key={offerta.offertaId}
-                        data-testid={`marginalita-offerta-${offerta.offertaId}`}
+                        key={offerta.offertaId ?? "senza-offerta"}
+                        data-testid={`marginalita-offerta-${offerta.offertaId ?? "senza-offerta"}`}
                         className={
                           offerta.margineNegativo
                             ? "bg-red-50/60 dark:bg-red-500/10"
@@ -194,7 +194,7 @@ export default function ReportMarginalita({
                         }
                       >
                         <td className="border-b border-zinc-100 px-5 py-[13px] align-middle dark:border-zinc-700/50">
-                          <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                          <span className={classeCodiceOfferta(offerta.offertaId)}>
                             {offerta.offertaCodice}
                           </span>
                         </td>
@@ -258,4 +258,11 @@ export default function ReportMarginalita({
       )}
     </div>
   );
+}
+
+/** Badge del codice offerta: la voce senza offerta è evidenziata come da assegnare. */
+function classeCodiceOfferta(offertaId: string | null): string {
+  return offertaId === null
+    ? "inline-block w-fit rounded-[6px] border border-amber-200 bg-amber-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
+    : "inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400";
 }

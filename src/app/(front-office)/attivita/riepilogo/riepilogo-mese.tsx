@@ -7,6 +7,7 @@ import { ETICHETTA_MODALITA_TARIFFA, etichettaMeseTariffa } from "@/domain/tarif
 import {
   CATEGORIE_ATTIVITA,
   DESCRIZIONE_CATEGORIA_ATTIVITA,
+  ETICHETTA_OFFERTA_DA_DEFINIRE,
 } from "@/domain/types";
 
 interface RiepilogoMeseProps {
@@ -124,7 +125,9 @@ export default function RiepilogoMese({
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[15px] w-[15px]">
             <path d="M4 6h16M4 12h16M4 18h10" />
           </svg>
-          <b className="tabular-nums">{riepilogo.perOfferta.length} offerte</b>
+          <b className="tabular-nums">
+            {riepilogo.perOfferta.filter((voce) => voce.offertaId !== null).length} offerte
+          </b>
           <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
           <b className="tabular-nums">{formattaGiornate(riepilogo.totali.giornateTotali)} g</b>
         </div>
@@ -266,7 +269,7 @@ export default function RiepilogoMese({
 
                   return (
                     <tr
-                      key={voce.offertaId}
+                      key={voce.offertaId ?? `senza-offerta|${voce.clienteRagioneSociale}`}
                       className="border-b border-zinc-100 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60"
                     >
                       <td className="px-3.5 py-3 align-top text-[13.5px] font-bold text-zinc-800 dark:text-zinc-100">
@@ -274,12 +277,23 @@ export default function RiepilogoMese({
                       </td>
                       <td className="px-3.5 py-3 align-top">
                         <div className="flex min-w-0 flex-col gap-1">
-                          <span className="w-fit rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-bold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                            {voce.offertaCodice}
-                          </span>
-                          <span className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
-                            {voce.offertaDescrizione}
-                          </span>
+                          {voce.offertaId === null ? (
+                            <span
+                              data-testid="riepilogo-offerta-da-definire"
+                              className="w-fit rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                            >
+                              {ETICHETTA_OFFERTA_DA_DEFINIRE}
+                            </span>
+                          ) : (
+                            <>
+                              <span className="w-fit rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-bold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                {voce.offertaCodice}
+                              </span>
+                              <span className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
+                                {voce.offertaDescrizione}
+                              </span>
+                            </>
+                          )}
                           {badge.map((testo) => (
                             <span key={testo} className="mt-1 inline-flex w-fit rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10.5px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
                               {testo}

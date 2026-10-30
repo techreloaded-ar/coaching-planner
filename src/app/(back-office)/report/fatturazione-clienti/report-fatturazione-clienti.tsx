@@ -479,12 +479,12 @@ export default function ReportFatturazioneClienti({
                         <tbody>
                           {cliente.perOfferta.map((offerta) => (
                             <tr
-                              key={offerta.offertaId}
+                              key={offerta.offertaId ?? "senza-offerta"}
                               className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                             >
                               <td className="border-b border-zinc-100 px-5 py-[13px] align-middle dark:border-zinc-700/50">
                                 <div className="flex min-w-0 flex-col gap-1">
-                                  <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                  <span className={classeCodiceOfferta(offerta.offertaId)}>
                                     {offerta.offertaCodice}
                                   </span>
                                   <span className="text-[12.5px] leading-snug text-zinc-500 dark:text-zinc-400">
@@ -504,7 +504,7 @@ export default function ReportFatturazioneClienti({
                                 {formattaEuro(offerta.imponibile)}
                               </td>
                               <td
-                                data-testid={`report-offerta-${offerta.offertaId}-trasferte`}
+                                data-testid={`report-offerta-${offerta.offertaId ?? "senza-offerta"}-trasferte`}
                                 className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums whitespace-nowrap dark:border-zinc-700/50"
                               >
                                 {offerta.importoTrasfertaForfettaria === null ? (
@@ -568,11 +568,11 @@ export default function ReportFatturazioneClienti({
                               .filter((offerta) => offerta.perCollaboratore.length > 0)
                               .map((offerta) => (
                               <div
-                                key={offerta.offertaId}
+                                key={offerta.offertaId ?? "senza-offerta"}
                                 data-testid={`dettaglio-offerta-${offerta.offertaCodice}`}
                               >
                                 <div className="mb-2 flex min-w-0 flex-col gap-1">
-                                  <span className="inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                  <span className={classeCodiceOfferta(offerta.offertaId)}>
                                     {offerta.offertaCodice}
                                   </span>
                                   <span className="text-[12.5px] leading-snug text-zinc-500 dark:text-zinc-400">
@@ -739,4 +739,11 @@ export default function ReportFatturazioneClienti({
       </section>
     </div>
   );
+}
+
+/** Badge del codice offerta: la voce senza offerta è evidenziata come da assegnare. */
+function classeCodiceOfferta(offertaId: string | null): string {
+  return offertaId === null
+    ? "inline-block w-fit rounded-[6px] border border-amber-200 bg-amber-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
+    : "inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400";
 }

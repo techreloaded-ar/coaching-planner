@@ -17,6 +17,7 @@ import {
 } from "@/domain/tariffe";
 import { formattaEuro } from "@/lib/formattazione";
 import { BadgeCategoriaAttivita } from "@/components";
+import { ETICHETTA_OFFERTA_DA_DEFINIRE } from "@/domain/types";
 import AbilitazioniOfferte from "./abilitazioni-offerte";
 import StoricoTariffe from "./storico-tariffe";
 
@@ -70,8 +71,8 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
     id: riga.id,
     data: formattaDataISO(riga.data),
     clienteRagioneSociale: riga.cliente.ragioneSociale,
-    offertaCodice: riga.offerta.codice,
-    offertaDescrizione: riga.offerta.descrizione,
+    offertaCodice: riga.offerta?.codice ?? ETICHETTA_OFFERTA_DA_DEFINIRE,
+    offertaDescrizione: riga.offerta?.descrizione ?? "",
     ore: Number(riga.ore),
     categoria: riga.categoria,
     nota: riga.nota,

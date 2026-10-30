@@ -566,3 +566,46 @@ describe("calcolaReportFatturazioneClienti", () => {
     });
   });
 });
+
+describe("calcolaReportFatturazioneClienti — ore senza offerta", () => {
+  const senzaOfferta = {
+    offertaId: null,
+    offertaCodice: "Senza offerta",
+    offertaDescrizione: "da assegnare a un'offerta",
+    tariffaOffertaGiornaliera: 0,
+  };
+
+  it("riporta le ore senza offerta in una voce a importo zero, in fondo al cliente", () => {
+    const report = calcolaReportFatturazioneClienti([
+      riga({ ore: 8 }),
+      riga({ ...senzaOfferta, ore: 4 }),
+    ]);
+
+    const [cliente] = report.perCliente;
+    expect(cliente.perOfferta.map((voce) => voce.offertaId)).toEqual(["offerta-1", null]);
+    const voceSenzaOfferta = cliente.perOfferta[1];
+    expect(voceSenzaOfferta.giornateFatturabili).toBe(0.5);
+    expect(voceSenzaOfferta.imponibile).toBe("0.00");
+    expect(voceSenzaOfferta.perCollaboratore).toEqual([
+      expect.objectContaining({ collaboratoreNome: "Mario Rossi", oreFatturabili: 4, imponibile: "0.00" }),
+    ]);
+    expect(cliente.importoTotale).toBe("500.00");
+    expect(report.totali.importoTotale).toBe("500.00");
+  });
+
+  it("non applica trasferte forfettarie alle ore senza offerta", () => {
+    const report = calcolaReportFatturazioneClienti([
+      riga({
+        ...senzaOfferta,
+        rimborsoTrasfertaImporto: "30.00",
+        gestioneTrasfertaOfferta: "FORFETTARIA",
+        importoTrasfertaForfettariaOfferta: "80.00",
+      }),
+    ]);
+
+    const voce = report.perCliente[0].perOfferta[0];
+    expect(voce.giorniTrasferta).toBe(0);
+    expect(voce.importoTrasferte).toBe("0.00");
+    expect(report.totali.importoTotale).toBe("0.00");
+  });
+});

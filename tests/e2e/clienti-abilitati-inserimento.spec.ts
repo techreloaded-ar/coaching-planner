@@ -3,18 +3,16 @@ import { meseRiservato, dataNelMese } from "./support/date";
 import { test, expect } from "./support/fixtures";
 
 /**
- * US-049: Selezione cliente limitata alle offerte abilitate
+ * Selezione cliente nel form riga attività.
  *
- * Verifica che la select dei clienti proponga solo i clienti su cui il
- * collaboratore ha almeno un'offerta attiva abilitata (AC-1), che l'assenza
- * totale di abilitazioni sostituisca la selezione con un messaggio esplicito
- * e blocchi il salvataggio (AC-2), e che una riga storica su un cliente non
- * più abilitato resti visibile, selezionata e salvabile a parità di offerta
- * (AC-3).
+ * La select propone tutti i clienti attivi: in cima il gruppo «Consigliati»
+ * con i clienti su cui il collaboratore ha almeno un'offerta attiva
+ * abilitata, sotto «Altri clienti». Una riga storica su un cliente non più
+ * abilitato resta visibile, selezionata e salvabile a parità di offerta.
  */
 
-test.describe("US-049 Selezione cliente limitata alle offerte abilitate", () => {
-	test("AC-1: la select clienti propone solo il cliente con offerta abilitata", async ({
+test.describe("Selezione cliente con gruppo Consigliati", () => {
+	test("la select clienti mette il cliente con offerta abilitata tra i Consigliati e gli altri sotto", async ({
 		page,
 		factory,
 	}) => {
@@ -42,33 +40,19 @@ test.describe("US-049 Selezione cliente limitata alle offerte abilitate", () => 
 		await page.goto(`/attivita/${dataNelMese(mese, 12)}?mese=${mese}`);
 
 		const selectCliente = page.locator("#cliente");
+		const consigliati = selectCliente.locator('optgroup[label="Consigliati"]');
+		const altriClienti = selectCliente.locator('optgroup[label="Altri clienti"]');
 
-		await expect(selectCliente).toContainText(clienteAbilitato.ragioneSociale);
-		await expect(selectCliente).not.toContainText(
+		await expect(consigliati).toContainText(clienteAbilitato.ragioneSociale);
+		await expect(consigliati).not.toContainText(
+			clienteNonAbilitato.ragioneSociale,
+		);
+		await expect(altriClienti).toContainText(
 			clienteNonAbilitato.ragioneSociale,
 		);
 	});
 
-	test("AC-2: senza alcuna offerta abilitata compare il messaggio al posto della select e il salvataggio è bloccato", async ({
-		page,
-		factory,
-	}) => {
-		const collaboratore = await factory.createCollaboratore();
-		await factory.createClienteConOfferta({}, { attiva: true });
-
-		await accediComeCollaboratore(page, collaboratore.utente.email);
-
-		const mese = meseRiservato("US-049");
-		await page.goto(`/attivita/${dataNelMese(mese, 13)}?mese=${mese}`);
-
-		await expect(page.getByTestId("nessun-cliente-abilitato")).toBeVisible();
-		await expect(page.locator("#cliente")).toHaveCount(0);
-		await expect(
-			page.getByRole("button", { name: "Aggiungi riga" }),
-		).toBeDisabled();
-	});
-
-	test("AC-3: in modifica il cliente della riga storica resta visibile e il salvataggio a parità di offerta è consentito", async ({
+	test("in modifica il cliente della riga storica resta visibile e il salvataggio a parità di offerta è consentito", async ({
 		page,
 		factory,
 	}) => {

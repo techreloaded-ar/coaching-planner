@@ -236,3 +236,28 @@ describe("calcolaRiepilogoMese — modalità della tariffa", () => {
     expect(result.importoFattura).toBe("30.00");
   });
 });
+
+describe("calcolaRiepilogoMese — ore con offerta da definire", () => {
+  const senzaOfferta = { offertaId: null, offertaCodice: "", offertaDescrizione: "" };
+
+  it("aggrega le ore senza offerta in una voce per cliente, inclusa nei totali", () => {
+    const result = calcolaRiepilogoMese(
+      [
+        riga({ ore: 8 }),
+        riga({ ...senzaOfferta, clienteRagioneSociale: "Cliente Nuovo", ore: 3 }),
+        riga({ ...senzaOfferta, clienteRagioneSociale: "Cliente Nuovo", ore: 1, categoria: "INVESTIMENTO" }),
+        riga({ ...senzaOfferta, clienteRagioneSociale: "Altro Cliente", ore: 2 }),
+      ],
+      giornaliera("400"),
+    );
+
+    expect(result.perOfferta.map((voce) => [voce.offertaId, voce.clienteRagioneSociale, voce.oreTotali])).toEqual([
+      ["off-1", "Cliente Uno", 8],
+      [null, "Cliente Nuovo", 4],
+      [null, "Altro Cliente", 2],
+    ]);
+    expect(result.perOfferta[1].oreDaFatturare).toBe(3);
+    expect(result.totali.oreTotali).toBe(14);
+    expect(result.totali.oreDaFatturare).toBe(13);
+  });
+});

@@ -89,7 +89,7 @@ function contestoFittizio(
 ): ContestoInserimentoGiornata {
   return {
     collaboratoreId,
-    clienti: [{ id: "cliente-1", ragioneSociale }],
+    clienti: [{ id: "cliente-1", ragioneSociale, consigliato: true }],
     vociRimborso: [
       { id: "voce-1", etichetta: "Trasferta Milano", importo: "42.00" },
     ],

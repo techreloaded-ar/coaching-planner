@@ -2,7 +2,11 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
-import { fatturataAlCliente } from "@/domain/types";
+import {
+  DESCRIZIONE_SENZA_OFFERTA,
+  ETICHETTA_SENZA_OFFERTA,
+  fatturataAlCliente,
+} from "@/domain/types";
 import { meseSuccessivo, parseTokenMese } from "@/domain/calendario";
 import { tariffaValidaNelMese } from "@/domain/tariffe";
 import type {
@@ -42,7 +46,7 @@ export interface RisultatoReportMarginalita extends ReportMarginalita {
 
 /** Riga attività arricchita con offerta e cliente */
 interface RigaAttivitaConContesto extends RigaAttivita {
-  offerta: Offerta;
+  offerta: Offerta | null;
   cliente: Cliente;
   collaboratore: Pick<Collaboratore, "nome" | "cognome">;
 }
@@ -107,18 +111,18 @@ export async function reportFatturazioneClientiMese(
       clienteId: riga.clienteId,
       clienteRagioneSociale: riga.cliente.ragioneSociale,
       offertaId: riga.offertaId,
-      offertaCodice: riga.offerta.codice,
-      offertaDescrizione: riga.offerta.descrizione,
-      tariffaOffertaGiornaliera: riga.offerta.tariffaGiornaliera.toString(),
+      offertaCodice: riga.offerta?.codice ?? ETICHETTA_SENZA_OFFERTA,
+      offertaDescrizione: riga.offerta?.descrizione ?? DESCRIZIONE_SENZA_OFFERTA,
+      tariffaOffertaGiornaliera: riga.offerta?.tariffaGiornaliera.toString() ?? 0,
       collaboratoreId: riga.collaboratoreId,
       collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
       fatturabile: fatturataAlCliente(riga.categoria),
       rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
       data: riga.data.toISOString().slice(0, 10),
-      gestioneTrasfertaOfferta: riga.offerta.gestioneTrasferta,
+      gestioneTrasfertaOfferta: riga.offerta?.gestioneTrasferta ?? "INCLUSA",
       importoTrasfertaForfettariaOfferta:
-        riga.offerta.importoTrasfertaForfettaria?.toString() ?? null,
+        riga.offerta?.importoTrasfertaForfettaria?.toString() ?? null,
     }),
   );
 
@@ -192,9 +196,9 @@ export async function reportMarginalitaPeriodo(
       clienteId: riga.clienteId,
       clienteRagioneSociale: riga.cliente.ragioneSociale,
       offertaId: riga.offertaId,
-      offertaCodice: riga.offerta.codice,
-      offertaDescrizione: riga.offerta.descrizione,
-      tariffaOffertaGiornaliera: riga.offerta.tariffaGiornaliera.toString(),
+      offertaCodice: riga.offerta?.codice ?? ETICHETTA_SENZA_OFFERTA,
+      offertaDescrizione: riga.offerta?.descrizione ?? DESCRIZIONE_SENZA_OFFERTA,
+      tariffaOffertaGiornaliera: riga.offerta?.tariffaGiornaliera.toString() ?? 0,
       collaboratoreId: riga.collaboratoreId,
       mese,
       modalitaTariffaCollaboratore: tariffa?.modalita ?? null,

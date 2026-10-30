@@ -268,6 +268,41 @@ describe("calcolaMarginalitaClienti", () => {
   });
 });
 
+describe("calcolaMarginalitaClienti — ore senza offerta", () => {
+  const senzaOfferta = {
+    offertaId: null,
+    offertaCodice: "Senza offerta",
+    offertaDescrizione: "da assegnare a un'offerta",
+    tariffaOffertaGiornaliera: 0,
+  };
+
+  it("mostra la voce senza offerta con ricavi zero e costi del collaboratore", () => {
+    const report = calcolaMarginalitaClienti([riga({ ore: 8 }), riga({ ...senzaOfferta, ore: 4 })]);
+
+    const [cliente] = report.perCliente;
+    expect(cliente.perOfferta.map((voce) => voce.offertaId)).toEqual(["offerta-1", null]);
+    const voce = cliente.perOfferta[1];
+    expect(voce.ricavi).toBe("0.00");
+    expect(voce.costi).toBe("200.00");
+    expect(report.totali.ricavi).toBe("600.00");
+    expect(report.totali.costi).toBe("600.00");
+  });
+
+  it("ripartisce il fisso mensile anche sulle ore senza offerta", () => {
+    const report = calcolaMarginalitaClienti(
+      [
+        riga({ ore: 8, modalitaTariffaCollaboratore: "FISSO_MENSILE", importoTariffaCollaboratore: 3000 }),
+        riga({ ...senzaOfferta, ore: 8, modalitaTariffaCollaboratore: "FISSO_MENSILE", importoTariffaCollaboratore: 3000 }),
+      ],
+      [{ collaboratoreId: "collab-1", mese: "2026-01", importo: "3000" }],
+    );
+
+    const [conOfferta, senza] = report.perCliente[0].perOfferta;
+    expect(conOfferta.fissoRipartito).toBe("1500.00");
+    expect(senza.fissoRipartito).toBe("1500.00");
+  });
+});
+
 describe("calcolaMarginalitaClienti — storico tariffe del collaboratore", () => {
   const offertaC = {
     offertaId: "offerta-c",

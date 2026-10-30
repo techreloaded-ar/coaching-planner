@@ -6,7 +6,7 @@ import { parseDataGiorno, parseTokenMese } from "@/domain/calendario";
 import { sommaOre } from "@/domain/types";
 import type { RigaAttivita, Offerta, Cliente } from "@/generated/prisma/client";
 import type {
-  ClienteSelect,
+  ClienteSelezionabile,
   ContestoInserimentoGiornata,
   DatiCalendarioMese,
   DatiGiornataAttivita,
@@ -28,7 +28,7 @@ import {
 
 /** Riga attività arricchita con offerta e cliente */
 export interface RigaAttivitaConContesto extends RigaAttivita {
-  offerta: Offerta;
+  offerta: Offerta | null;
   cliente: Cliente;
 }
 
@@ -318,7 +318,7 @@ function serializzaRigaAttivita(
     categoria: riga.categoria,
     rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta,
     rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
-    offerta: {
+    offerta: riga.offerta && {
       id: riga.offerta.id,
       codice: riga.offerta.codice,
       descrizione: riga.offerta.descrizione,
@@ -356,16 +356,18 @@ export async function contestoInserimentoPerCollaboratoreAutorizzato(
 }
 
 /**
- * Restituisce i clienti attivi su cui il collaboratore corrente ha almeno
- * un'offerta attiva abilitata, per la select del form attività (US-049).
+ * Restituisce tutti i clienti attivi per la select del form attività,
+ * marcando come consigliati quelli su cui il collaboratore corrente ha almeno
+ * un'offerta attiva abilitata: l'offerta è facoltativa, quindi si possono
+ * registrare ore anche su clienti senza offerte.
  *
  * Accessibile al collaboratore autenticato (a differenza di src/lib/clienti.ts
  * che è admin-only). Lancia ErroreAutorizzazione se non autenticato o se non
  * è un collaboratore.
  *
- * @returns Lista clienti attivi e abilitati con id e ragione sociale, ordinati per ragione sociale
+ * @returns Clienti attivi con id, ragione sociale e flag consigliato, ordinati per ragione sociale
  */
-export async function clientiAttiviPerSelezione(): Promise<ClienteSelect[]> {
+export async function clientiAttiviPerSelezione(): Promise<ClienteSelezionabile[]> {
   const collaboratore = await richiediCollaboratoreCorrente();
   if (!collaboratore) {
     throw new ErroreAutorizzazione(
@@ -384,27 +386,30 @@ export async function clientiAttiviPerSelezione(): Promise<ClienteSelect[]> {
  * sessione, e da `contestoInserimentoPerCollaboratoreAutorizzato`, che riceve
  * un id già autorizzato dal chiamante: le due non possono divergere.
  */
-function leggiClientiAttiviPerSelezione(
+async function leggiClientiAttiviPerSelezione(
   collaboratoreId: string
-): Promise<ClienteSelect[]> {
-  return db.cliente.findMany({
-    where: {
-      attivo: true,
-      offerte: {
-        some: {
-          attiva: true,
-          abilitazioniCollaboratori: {
-            some: { collaboratoreId },
-          },
-        },
-      },
-    },
+): Promise<ClienteSelezionabile[]> {
+  const clienti = await db.cliente.findMany({
+    where: { attivo: true },
     select: {
       id: true,
       ragioneSociale: true,
+      offerte: {
+        where: {
+          attiva: true,
+          abilitazioniCollaboratori: { some: { collaboratoreId } },
+        },
+        select: { id: true },
+        take: 1,
+      },
     },
     orderBy: { ragioneSociale: "asc" },
   });
+
+  return clienti.map(({ offerte, ...cliente }) => ({
+    ...cliente,
+    consigliato: offerte.length > 0,
+  }));
 }
 
 /**
@@ -557,9 +562,9 @@ export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMe
     ? { ...tariffaDelMese, importo: tariffaDelMese.importo.toString() }
     : null;
   const righe: RigaRiepilogo[] = righeDb.map((riga) => ({
-    offertaId: riga.offerta.id,
-    offertaCodice: riga.offerta.codice,
-    offertaDescrizione: riga.offerta.descrizione,
+    offertaId: riga.offerta?.id ?? null,
+    offertaCodice: riga.offerta?.codice ?? "",
+    offertaDescrizione: riga.offerta?.descrizione ?? "",
     clienteRagioneSociale: riga.cliente.ragioneSociale,
     ore: Number(riga.ore),
     categoria: riga.categoria,

@@ -5,7 +5,10 @@ import { duplicaRigaSuGiorni } from "@/lib/actions/righe-attivita";
 import { PulsanteAttesa } from "@/components";
 import type { RigaAttivitaClient } from "@/lib/attivita-contract";
 import { etichettaMese, parseDataGiorno } from "@/domain/calendario";
-import { DESCRIZIONE_CATEGORIA_ATTIVITA } from "@/domain/types";
+import {
+  DESCRIZIONE_CATEGORIA_ATTIVITA,
+  ETICHETTA_OFFERTA_DA_DEFINIRE,
+} from "@/domain/types";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -249,7 +252,9 @@ export function SelettoreDuplicazione({
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px] font-bold text-zinc-800 dark:text-zinc-100">
               {riga.cliente.ragioneSociale}
               <span className="font-normal text-zinc-400">·</span>
-              {riga.offerta.codice} — {riga.offerta.descrizione}
+              {riga.offerta
+                ? `${riga.offerta.codice} — ${riga.offerta.descrizione}`
+                : ETICHETTA_OFFERTA_DA_DEFINIRE}
               <span className="font-normal text-zinc-400">·</span>
               {riga.ore.toFixed(1)} h
               <span className="font-normal text-zinc-400">·</span>

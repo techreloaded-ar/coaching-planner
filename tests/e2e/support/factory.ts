@@ -81,7 +81,8 @@ export type CreateOffertaOptions = {
 export type CreateRigaAttivitaOptions = {
 	collaboratore?: Collaboratore | CollaboratoreTestData;
 	cliente?: Cliente;
-	offerta?: Offerta;
+	/** `null`: riga con offerta da definire (richiede `cliente`) */
+	offerta?: Offerta | null;
 	data?: Date;
 	ore?: string | number;
 	nota?: string | null;
@@ -305,8 +306,14 @@ export class E2eDataFactory {
 	): Promise<RigaAttivita> {
 		const collaboratore =
 			options.collaboratore ?? (await this.createCollaboratore());
-		const offerta = options.offerta ?? (await this.createOfferta());
-		const clienteId = options.cliente?.id ?? offerta.clienteId;
+		const offerta =
+			options.offerta === null
+				? null
+				: (options.offerta ?? (await this.createOfferta()));
+		const clienteId = options.cliente?.id ?? offerta?.clienteId;
+		if (!clienteId) {
+			throw new Error("Una riga senza offerta richiede il cliente");
+		}
 		const now = new Date();
 
 		return insertReturning<RigaAttivita>(
@@ -318,7 +325,7 @@ export class E2eDataFactory {
 				randomUUID(),
 				resolveCollaboratoreId(collaboratore),
 				clienteId,
-				offerta.id,
+				offerta?.id ?? null,
 				options.data ?? new Date("2026-01-15T00:00:00.000Z"),
 				options.ore ?? "8.00",
 				options.nota === undefined

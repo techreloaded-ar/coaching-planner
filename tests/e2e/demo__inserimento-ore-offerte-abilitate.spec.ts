@@ -9,13 +9,9 @@ import { test, expect } from "./support/fixtures";
  * Riproduce la Dimostrazione della spec: il collaboratore, abilitato su una
  * sola delle due offerte attive di un cliente, vede la select offerte
  * filtrata su quella abilitata; su un cliente privo di offerte abilitate
- * osserva il messaggio di assenza con salvataggio bloccato; una riga
- * preesistente su un'offerta non abilitata resta modificabile ed
- * eliminabile dal proprietario.
- *
- * Dopo US-049 la select clienti elenca solo i clienti abilitati, quindi il
- * cliente privo di offerte abilitate si raggiunge tramite il cambio cliente
- * esplicito durante la modifica di una riga storica.
+ * osserva l'avviso, con il salvataggio disponibile perché l'offerta è
+ * facoltativa; una riga preesistente su un'offerta non abilitata resta
+ * modificabile ed eliminabile dal proprietario.
  */
 test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", async ({
 	page,
@@ -75,7 +71,8 @@ test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", as
 		}),
 	);
 
-	// 2) Un cliente senza offerte abilitate mostra l'avviso e blocca il salvataggio.
+	// 2) Un cliente senza offerte abilitate mostra l'avviso: le ore restano
+	// registrabili con offerta da definire.
 	// Vi si arriva dalla riga storica: il suo cliente resta selezionabile in
 	// modifica anche se non più abilitato (US-049).
 	await page.goto(`/attivita/${dataRigaStorica}?mese=${mese}`);
@@ -96,7 +93,7 @@ test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", as
 	await expect(page.getByTestId("nessuna-offerta-abilitata")).toBeVisible();
 	await expect(
 		page.getByRole("button", { name: "Salva modifiche" }),
-	).toBeDisabled();
+	).toBeEnabled();
 
 	// 3) Una riga storica su un'offerta non abilitata resta modificabile ed eliminabile.
 	await page.getByRole("button", { name: "Annulla" }).click();

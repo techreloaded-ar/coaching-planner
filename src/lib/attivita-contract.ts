@@ -63,11 +63,12 @@ export interface RigaAttivitaClient {
   categoria: CategoriaAttivita;
   rimborsoTrasfertaEtichetta: string | null;
   rimborsoTrasfertaImporto: string | null;
+  /** null: offerta ancora da definire */
   offerta: {
     id: string;
     codice: string;
     descrizione: string;
-  };
+  } | null;
   cliente: {
     id: string;
     ragioneSociale: string;
@@ -78,6 +79,14 @@ export interface RigaAttivitaClient {
 export interface ClienteSelect {
   id: string;
   ragioneSociale: string;
+}
+
+/**
+ * Cliente selezionabile nel form riga attività: `consigliato` se il
+ * collaboratore ha almeno un'offerta attiva abilitata del cliente.
+ */
+export interface ClienteSelezionabile extends ClienteSelect {
+  consigliato: boolean;
 }
 
 /** Voce di rimborso trasferta selezionabile nel form riga attività */
@@ -126,8 +135,8 @@ export interface ContestoInserimentoGiornata {
    * svuotarsi quando la sessione della scheda cambia sotto di lei.
    */
   collaboratoreId: string;
-  /** Clienti attivi su cui il collaboratore ha almeno un'offerta abilitata */
-  clienti: ClienteSelect[];
+  /** Tutti i clienti attivi, con i consigliati marcati */
+  clienti: ClienteSelezionabile[];
   /** Voci di rimborso trasferta selezionabili */
   vociRimborso: VoceRimborsoTrasfertaSelezionabile[];
 }
