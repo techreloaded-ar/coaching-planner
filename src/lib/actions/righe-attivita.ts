@@ -3,9 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import {
+  ErroreAutorizzazione,
   risolviProfiloCollaboratoreCorrente,
   type StatoProfiloCollaboratore,
 } from "@/lib/dal";
+import {
+  MESSAGGIO_FOGLIO_SOLA_LETTURA,
+  risolviCollaboratoreConsultato,
+} from "@/lib/foglio-attivita";
 import type { Collaboratore, RigaAttivita } from "@/generated/prisma/client";
 import { validaOre } from "@/domain/consuntivi";
 import {
@@ -48,10 +53,21 @@ function messaggioProfiloNonDisponibile(
     : "Il tuo profilo Collaboratore è disattivato. Chiedi a un amministratore di riattivarlo.";
 }
 
-/** Restituisce solo il profilo corrente attivo, senza consentire fallback. */
-async function richiediCollaboratoreOperativo(): Promise<
-  Collaboratore | ActionResult
-> {
+/**
+ * Restituisce il collaboratore attivo del foglio su cui si scrive.
+ *
+ * Senza `collaboratoreIdConsultato` è il profilo corrente attivo, senza
+ * fallback. Con l'id è il collaboratore il cui foglio un amministratore sta
+ * modificando: valgono le stesse regole del suo proprietario, e un
+ * collaboratore disattivato resta in sola lettura.
+ */
+async function richiediCollaboratoreOperativo(
+  collaboratoreIdConsultato?: string | null
+): Promise<Collaboratore | ActionResult> {
+  if (collaboratoreIdConsultato) {
+    return richiediCollaboratoreConsultatoModificabile(collaboratoreIdConsultato);
+  }
+
   const profilo = await risolviProfiloCollaboratoreCorrente();
 
   if (profilo.stato === "ATTIVO") {
@@ -59,6 +75,30 @@ async function richiediCollaboratoreOperativo(): Promise<
   }
 
   return { success: false, error: messaggioProfiloNonDisponibile(profilo) };
+}
+
+async function richiediCollaboratoreConsultatoModificabile(
+  collaboratoreId: string
+): Promise<Collaboratore | ActionResult> {
+  let collaboratore: Collaboratore | null;
+  try {
+    collaboratore = await risolviCollaboratoreConsultato(collaboratoreId);
+  } catch (errore) {
+    if (errore instanceof ErroreAutorizzazione) {
+      return { success: false, error: errore.message };
+    }
+    throw errore;
+  }
+
+  if (!collaboratore) {
+    return { success: false, error: "Collaboratore non trovato" };
+  }
+
+  if (!collaboratore.attivo) {
+    return { success: false, error: MESSAGGIO_FOGLIO_SOLA_LETTURA };
+  }
+
+  return collaboratore;
 }
 
 /**
@@ -309,6 +349,8 @@ function normalizzaGiorniDestinazione(
  * Crea una nuova riga attività per il collaboratore corrente.
  *
  * Campi attesi nel FormData:
+ * - collaboratoreConsultatoId? quando un amministratore scrive sul foglio di
+ *   un altro collaboratore (vedi `richiediCollaboratoreOperativo`)
  * - clienteId, ore, nota, data (YYYY-MM-DD)
  * - offertaId? facoltativa: vuota = offerta da definire
  * - categoria? (FATTURABILE | NON_FATTURABILE | INVESTIMENTO), predefinita FATTURABILE
@@ -319,7 +361,9 @@ function normalizzaGiorniDestinazione(
 export async function creaRiga(
   formData: FormData
 ): Promise<ActionResult> {
-  const collaboratore = await richiediCollaboratoreOperativo();
+  const collaboratore = await richiediCollaboratoreOperativo(
+    formData.get("collaboratoreConsultatoId") as string | null
+  );
   if ("success" in collaboratore) {
     return collaboratore;
   }
@@ -422,13 +466,16 @@ export async function creaRiga(
  * Modifica una riga attività esistente.
  *
  * Campi attesi nel FormData:
+ * - collaboratoreConsultatoId? come in `creaRiga`
  * - rigaId, clienteId?, offertaId?, ore?, nota?, categoria?, data?
  * - offertaId presente ma vuota = offerta da definire; assente = invariata
  */
 export async function modificaRiga(
   formData: FormData
 ): Promise<ActionResult> {
-  const collaboratore = await richiediCollaboratoreOperativo();
+  const collaboratore = await richiediCollaboratoreOperativo(
+    formData.get("collaboratoreConsultatoId") as string | null
+  );
   if ("success" in collaboratore) {
     return collaboratore;
   }
@@ -560,9 +607,12 @@ export async function modificaRiga(
  * @param rigaId - ID della riga da eliminare
  */
 export async function eliminaRiga(
-  rigaId: string
+  rigaId: string,
+  collaboratoreConsultatoId?: string | null
 ): Promise<ActionResult> {
-  const collaboratore = await richiediCollaboratoreOperativo();
+  const collaboratore = await richiediCollaboratoreOperativo(
+    collaboratoreConsultatoId
+  );
   if ("success" in collaboratore) {
     return collaboratore;
   }
@@ -606,9 +656,12 @@ export async function eliminaRiga(
  * @param rigaId - ID della riga da cui rimuovere il rimborso
  */
 export async function rimuoviRimborsoTrasferta(
-  rigaId: string
+  rigaId: string,
+  collaboratoreConsultatoId?: string | null
 ): Promise<ActionResult> {
-  const collaboratore = await richiediCollaboratoreOperativo();
+  const collaboratore = await richiediCollaboratoreOperativo(
+    collaboratoreConsultatoId
+  );
   if ("success" in collaboratore) {
     return collaboratore;
   }
@@ -668,9 +721,12 @@ export async function rimuoviRimborsoTrasferta(
  */
 export async function duplicaRigaSuGiorni(
   rigaId: string,
-  giorni: string[]
+  giorni: string[],
+  collaboratoreConsultatoId?: string | null
 ): Promise<ActionResult & { giorniCreati?: number }> {
-  const collaboratore = await richiediCollaboratoreOperativo();
+  const collaboratore = await richiediCollaboratoreOperativo(
+    collaboratoreConsultatoId
+  );
   if ("success" in collaboratore) {
     return collaboratore;
   }

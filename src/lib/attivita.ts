@@ -195,9 +195,10 @@ export async function attivitaDelMese(token: string): Promise<AttivitaMese> {
  * (pagina RSC o route handler), evitando di ripetere la catena
  * sessione → profilo dentro la query.
  *
- * **Contratto di sicurezza:** l'id deve provenire esclusivamente dal DAL, mai
- * da search params, body o header. Il chiamante è responsabile
- * dell'autorizzazione; questa funzione è una lettura, non una guardia.
+ * **Contratto di sicurezza:** l'id deve provenire esclusivamente dal DAL o da
+ * `@/lib/foglio-attivita`, mai direttamente da search params, body o header.
+ * Il chiamante è responsabile dell'autorizzazione; questa funzione è una
+ * lettura, non una guardia.
  *
  * Seleziona il minimo necessario alla griglia (`data`, `ore`, `createdAt` e
  * `cliente { id, ragioneSociale }`), usa un intervallo half-open sul mese e
@@ -255,9 +256,10 @@ export async function datiCalendarioMesePerCollaboratoreAutorizzato(
  * profilo: riceve l'id del collaboratore da chi ha già effettuato il controllo
  * (pagina RSC o route handler).
  *
- * **Contratto di sicurezza:** l'id deve provenire esclusivamente dal DAL, mai
- * da search params, body o header. Il chiamante è responsabile
- * dell'autorizzazione; questa funzione è una lettura, non una guardia.
+ * **Contratto di sicurezza:** l'id deve provenire esclusivamente dal DAL o da
+ * `@/lib/foglio-attivita`, mai direttamente da search params, body o header.
+ * Il chiamante è responsabile dell'autorizzazione; questa funzione è una
+ * lettura, non una guardia.
  *
  * Su data non nel formato `YYYY-MM-DD`, o su data inesistente nel calendario,
  * restituisce il DTO con righe vuote senza interrogare il database: è lo stesso
@@ -413,31 +415,26 @@ async function leggiClientiAttiviPerSelezione(
 }
 
 /**
- * Restituisce le offerte attive del cliente su cui il collaboratore corrente
+ * Restituisce le offerte attive del cliente su cui il collaboratore del foglio
  * è abilitato.
  *
- * Accessibile al collaboratore autenticato. Lancia ErroreAutorizzazione
- * se non autenticato o se non è un collaboratore.
+ * **Contratto di sicurezza:** come le altre letture `...Autorizzato`, l'id del
+ * collaboratore deve provenire dal DAL o da `@/lib/foglio-attivita`, mai dal
+ * browser; il chiamante è responsabile dell'autorizzazione.
  *
  * @param clienteId - ID del cliente di cui recuperare le offerte attive
+ * @param collaboratoreId - Id del collaboratore già autorizzato dal chiamante
  * @returns Lista offerte attive e abilitate con id, codice e descrizione, ordinate per codice
  */
 export async function offerteAbilitatePerCliente(
-  clienteId: string
+  clienteId: string,
+  collaboratoreId: string
 ): Promise<{ id: string; codice: string; descrizione: string }[]> {
-  const collaboratore = await richiediCollaboratoreCorrente();
-  if (!collaboratore) {
-    throw new ErroreAutorizzazione(
-      401,
-      "Devi essere un collaboratore per visualizzare le offerte"
-    );
-  }
-
   return db.offerta.findMany({
     where: {
       clienteId,
       attiva: true,
-      abilitazioniCollaboratori: { some: { collaboratoreId: collaboratore.id } },
+      abilitazioniCollaboratori: { some: { collaboratoreId } },
     },
     select: {
       id: true,
@@ -517,16 +514,15 @@ function creaRiepilogoVuoto(token: string): RisultatoRiepilogoMese {
 }
 
 /**
- * Restituisce il riepilogo mensile del collaboratore corrente pronto per il client.
+ * Riepilogo mensile di un collaboratore **già autorizzato** dal chiamante, con
+ * lo stesso contratto di sicurezza delle altre letture `...Autorizzato`.
  */
-export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMese> {
+export async function riepilogoMesePerCollaboratoreAutorizzato(
+  token: string,
+  collaboratoreId: string
+): Promise<RisultatoRiepilogoMese> {
   const parsed = parseTokenMese(token);
   if (!parsed) {
-    return creaRiepilogoVuoto(token);
-  }
-
-  const collaboratore = await richiediCollaboratoreCorrente();
-  if (!collaboratore) {
     return creaRiepilogoVuoto(token);
   }
 
@@ -537,7 +533,7 @@ export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMe
   const [righeDb, tariffe] = await Promise.all([
     db.rigaAttivita.findMany({
       where: {
-        collaboratoreId: collaboratore.id,
+        collaboratoreId,
         data: {
           gte: inizio,
           lte: fine,
@@ -550,7 +546,7 @@ export async function riepilogoMese(token: string): Promise<RisultatoRiepilogoMe
       orderBy: { data: "asc" },
     }),
     db.tariffaCollaboratore.findMany({
-      where: { collaboratoreId: collaboratore.id, validaDalMese: { lte: token } },
+      where: { collaboratoreId, validaDalMese: { lte: token } },
       orderBy: { validaDalMese: "desc" },
       take: 1,
       select: { validaDalMese: true, modalita: true, importo: true },

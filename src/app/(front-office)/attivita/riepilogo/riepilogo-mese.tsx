@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { urlDelFoglio } from "@/lib/url-foglio-attivita";
+import { useCollaboratoreConsultato } from "../attivita-cache-provider";
 import type { RisultatoRiepilogoMese } from "@/lib/attivita";
 import type { VoceRiepilogoOfferta } from "@/domain/consuntivi";
 import { ETICHETTA_MODALITA_TARIFFA, etichettaMeseTariffa } from "@/domain/tariffe";
@@ -58,12 +60,13 @@ export default function RiepilogoMese({
   riepilogo,
 }: RiepilogoMeseProps) {
   const haDati = riepilogo.perOfferta.length > 0;
+  const collaboratoreConsultatoId = useCollaboratoreConsultato();
 
   return (
     <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-md:px-4 max-md:py-5">
       <div className="mb-5">
         <Link
-          href={`/attivita?mese=${token}`}
+          href={urlDelFoglio(`/attivita?mese=${token}`, collaboratoreConsultatoId)}
           className="inline-flex items-center gap-[7px] text-[13px] font-semibold text-zinc-500 transition hover:text-rose-800 dark:text-zinc-400 dark:hover:text-rose-300"
         >
           <svg
@@ -82,7 +85,7 @@ export default function RiepilogoMese({
       <div className="mb-[18px] flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2.5">
           <Link
-            href={`/attivita/riepilogo?mese=${tokenPrecedente}`}
+            href={urlDelFoglio(`/attivita/riepilogo?mese=${tokenPrecedente}`, collaboratoreConsultatoId)}
             className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
             aria-label="Mese precedente"
             title="Mese precedente"
@@ -97,7 +100,7 @@ export default function RiepilogoMese({
           </div>
 
           <Link
-            href={`/attivita/riepilogo?mese=${tokenSuccessivo}`}
+            href={urlDelFoglio(`/attivita/riepilogo?mese=${tokenSuccessivo}`, collaboratoreConsultatoId)}
             className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
             aria-label="Mese successivo"
             title="Mese successivo"
@@ -108,7 +111,7 @@ export default function RiepilogoMese({
           </Link>
 
           <Link
-            href="/attivita/riepilogo"
+            href={urlDelFoglio("/attivita/riepilogo", collaboratoreConsultatoId)}
             className="ml-1 inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">

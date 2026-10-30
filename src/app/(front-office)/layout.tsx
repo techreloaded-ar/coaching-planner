@@ -1,6 +1,12 @@
 import Link from "next/link";
-import { disconnetti, verificaSessione } from "@/lib/dal";
+import {
+  disconnetti,
+  risolviProfiloCollaboratoreCorrente,
+  verificaSessione,
+} from "@/lib/dal";
+import { collaboratoriDelSelettore } from "@/lib/foglio-attivita";
 import { LogoAgileReloaded, MenuAccount } from "@/components";
+import SelettoreFoglioAttivita from "./selettore-foglio-attivita";
 
 export default async function FrontOfficeLayout({
   children,
@@ -8,6 +14,16 @@ export default async function FrontOfficeLayout({
   children: React.ReactNode;
 }) {
   const sessione = await verificaSessione();
+  const amministratore = sessione.ruolo === "AMMINISTRATORE";
+
+  // Solo per un amministratore il titolo diventa il selettore del foglio:
+  // l'elenco dei collaboratori non viene mai letto per gli altri utenti.
+  const [collaboratori, profilo] = amministratore
+    ? await Promise.all([
+        collaboratoriDelSelettore(sessione),
+        risolviProfiloCollaboratoreCorrente(sessione),
+      ])
+    : [[], null];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -19,14 +35,24 @@ export default async function FrontOfficeLayout({
             <div className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
               Front office
             </div>
-            <h1 className="mt-0.5 text-[22px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
-              Le mie attività
-            </h1>
+            {amministratore ? (
+              <SelettoreFoglioAttivita
+                collaboratori={collaboratori}
+                proprioCollaboratoreId={
+                  profilo?.stato === "ATTIVO" ? profilo.collaboratore.id : null
+                }
+                nomeUtente={sessione.nome}
+              />
+            ) : (
+              <h1 className="mt-0.5 text-[22px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+                Le mie attività
+              </h1>
+            )}
           </div>
           <div className="flex-1" />
 
           <div className="flex items-center gap-3.5">
-            {sessione.ruolo === "AMMINISTRATORE" && (
+            {amministratore && (
               <Link
                 href="/anagrafiche"
                 className="inline-flex items-center rounded-[10px] border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[12.5px] font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 dark:hover:bg-indigo-500/25"

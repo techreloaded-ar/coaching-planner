@@ -1,17 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ErroreAutorizzazione, risolviProfiloCollaboratoreCorrente } from "@/lib/dal";
+import { ErroreAutorizzazione } from "@/lib/dal";
+import { risolviCollaboratoreDelFoglio } from "@/lib/foglio-attivita";
+import { PARAMETRO_COLLABORATORE_CONSULTATO } from "@/lib/url-foglio-attivita";
 import { offerteAbilitatePerCliente } from "@/lib/attivita";
 import { rispostaDatiPrivati } from "@/lib/risposta-dati-privati";
 
 /**
  * GET /api/attivita/offerte-cliente?cliente=<id>
  *
- * Restituisce le offerte attive di un cliente su cui il **solo** collaboratore
- * autenticato è abilitato: è la sorgente del cascade select cliente → offerta
- * del form riga attività.
+ * Restituisce le offerte attive di un cliente su cui è abilitato il
+ * collaboratore del foglio: quello autenticato oppure, solo per un
+ * amministratore, quello indicato con il parametro facoltativo `collaboratore`.
+ * È la sorgente del cascade select cliente → offerta del form riga attività.
  *
- * Il collaboratore è sempre derivato dalla sessione server, come per le altre
- * letture dell'area: il browser può indicare soltanto quale cliente guardare.
+ * Come per le altre letture dell'area, l'identità del collaboratore è decisa
+ * dal server in `@/lib/foglio-attivita`, non dal browser.
  *
  * Perché è una route HTTP e non più una Server Action: la risposta di una
  * Server Action riconcilia l'albero RSC del router con l'URL corrente e, dopo
@@ -23,7 +26,9 @@ import { rispostaDatiPrivati } from "@/lib/risposta-dati-privati";
  * - `400` parametro `cliente` assente, vuoto o composto di soli spazi,
  *   rilevato **prima** di interrogare il read model
  * - `401` sessione assente o non valida
- * - `403` profilo Collaboratore assente o disattivato
+ * - `403` profilo Collaboratore assente o disattivato, oppure `collaboratore`
+ *   indicato da un non amministratore
+ * - `404` collaboratore indicato inesistente
  * - `200` `{ offerte }`, eventualmente vuoto
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -37,16 +42,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const profilo = await risolviProfiloCollaboratoreCorrente();
+    const collaboratore = await risolviCollaboratoreDelFoglio(
+      request.nextUrl.searchParams.get(PARAMETRO_COLLABORATORE_CONSULTATO)
+    );
 
-    if (profilo.stato !== "ATTIVO") {
-      return rispostaDatiPrivati(
-        { errore: "Profilo collaboratore non operativo" },
-        403
-      );
+    if (!collaboratore) {
+      return rispostaDatiPrivati({ errore: "Collaboratore non trovato" }, 404);
     }
 
-    const offerte = await offerteAbilitatePerCliente(clienteId);
+    const offerte = await offerteAbilitatePerCliente(clienteId, collaboratore.id);
 
     return rispostaDatiPrivati({ offerte }, 200);
   } catch (errore) {

@@ -15,10 +15,12 @@ import {
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
 import { SelettoreMese, useIdratata } from "@/components";
 import { sommaOre } from "@/domain/types";
+import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
   ErroreIdentitaSchedaCambiata,
   ErroreSessioneAttivita,
   useCacheCalendario,
+  useCollaboratoreConsultato,
 } from "./attivita-cache-provider";
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -128,6 +130,18 @@ export default function CalendarioMensile({
     [tokenVisualizzato]
   );
 
+  // Sul foglio consultato da un amministratore ogni URL conserva il
+  // collaboratore: la navigazione tra i mesi non riporta al proprio foglio.
+  const collaboratoreConsultatoId = useCollaboratoreConsultato();
+  const urlDellIntento = useCallback(
+    (intento: IntentoNavigazione) =>
+      urlDelFoglio(
+        intento.url ?? urlDelMese(intento.token),
+        collaboratoreConsultatoId
+      ),
+    [collaboratoreConsultatoId]
+  );
+
   const commit = useCallback(
     (intento: IntentoNavigazione, dati: DatiCalendarioMese) => {
       setMeseVisualizzato(dati);
@@ -136,10 +150,10 @@ export default function CalendarioMensile({
 
       // L'URL viene registrato solo ora, quando il mese è davvero pronto.
       if (intento.registraHistory) {
-        window.history.pushState(null, "", intento.url ?? urlDelMese(intento.token));
+        window.history.pushState(null, "", urlDellIntento(intento));
       }
     },
-    []
+    [urlDellIntento]
   );
 
   const vaiA = useCallback(
@@ -149,7 +163,7 @@ export default function CalendarioMensile({
 
       // Senza isola client (provider assente) resta la navigazione RSC.
       if (!cache) {
-        router.push(intento.url ?? urlDelMese(destinazione));
+        router.push(urlDellIntento(intento));
         return;
       }
 
@@ -193,7 +207,7 @@ export default function CalendarioMensile({
           );
         });
     },
-    [cache, commit, router]
+    [cache, commit, router, urlDellIntento]
   );
 
   // ── Sincronizzazione con il rendering server ─────────────────
@@ -393,7 +407,10 @@ export default function CalendarioMensile({
           </button>
 
           <Link
-            href={`/attivita/riepilogo?mese=${tokenVisualizzato}`}
+            href={urlDelFoglio(
+              `/attivita/riepilogo?mese=${tokenVisualizzato}`,
+              collaboratoreConsultatoId
+            )}
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
@@ -581,7 +598,10 @@ export default function CalendarioMensile({
             return (
               <Link
                 key={key}
-                href={`/attivita/${key}?mese=${tokenCella}`}
+                href={urlDelFoglio(
+                  `/attivita/${key}?mese=${tokenCella}`,
+                  collaboratoreConsultatoId
+                )}
                 // Su rotta dinamica il prefetch del giorno non trasporta i dati
                 // della giornata e competerebbe con il prefetch dei mesi.
                 prefetch={false}

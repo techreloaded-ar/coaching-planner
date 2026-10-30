@@ -17,6 +17,8 @@ interface SelettoreDuplicazioneProps {
   riga: RigaAttivitaClient;
   /** Giorno YYYY-MM-DD da cui parte la duplicazione: non è una destinazione ammessa */
   giornoOrigine: string;
+  /** Foglio di un altro collaboratore aperto da un amministratore, o `null` */
+  collaboratoreConsultatoId?: string | null;
   /** Chiude il pannello senza duplicare nulla */
   onChiudi: () => void;
   /**
@@ -108,6 +110,7 @@ function etichettaConteggio(quanti: number): string {
 export function SelettoreDuplicazione({
   riga,
   giornoOrigine,
+  collaboratoreConsultatoId = null,
   onChiudi,
   onDuplicata,
 }: SelettoreDuplicazioneProps) {
@@ -169,7 +172,11 @@ export function SelettoreDuplicazione({
     setErrore(null);
     setInCorso(true);
     try {
-      const risultato = await duplicaRigaSuGiorni(riga.id, giorniScelti);
+      const risultato = await duplicaRigaSuGiorni(
+        riga.id,
+        giorniScelti,
+        collaboratoreConsultatoId
+      );
       if (!risultato.success) {
         // Il pannello resta aperto con le date invariate: il rifiuto non deve
         // costare al collaboratore il lavoro di composizione già fatto.
@@ -180,7 +187,7 @@ export function SelettoreDuplicazione({
     } finally {
       setInCorso(false);
     }
-  }, [giorniScelti, riga.id, onDuplicata]);
+  }, [giorniScelti, riga.id, onDuplicata, collaboratoreConsultatoId]);
 
   const nessunGiornoScelto = giorniScelti.length === 0;
 

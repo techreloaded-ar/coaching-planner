@@ -4,17 +4,51 @@ import {
   verificaSessione,
 } from "@/lib/dal";
 import { datiCalendarioMesePerCollaboratoreAutorizzato } from "@/lib/attivita";
+import { collaboratoreConsultatoDellaPagina } from "@/lib/foglio-attivita";
 import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
 import CalendarioMensile from "./calendario-mensile";
 import StatoProfiloCollaboratore from "./stato-profilo-collaboratore";
+import BannerFoglioConsultato from "./banner-foglio-consultato";
 import { calendarioCollegato } from "@/lib/proposte-calendario";
 
 export default async function AttivitaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mese?: string }>;
+  searchParams: Promise<{ mese?: string; collaboratore?: string }>;
 }) {
   const sessione = await verificaSessione();
+  const params = await searchParams;
+
+  // Foglio di un altro collaboratore, aperto da un amministratore.
+  const consultato = await collaboratoreConsultatoDellaPagina(
+    sessione,
+    params.collaboratore
+  );
+
+  // Token del mese: da query string o mese corrente
+  const tokenRaw = params.mese ?? tokenMeseCorrente();
+  const parsed = parseTokenMese(tokenRaw);
+  const token = parsed ? tokenRaw : tokenMeseCorrente();
+
+  if (consultato) {
+    // Il collegamento Google Calendar è personale: sul foglio di un altro
+    // collaboratore non se ne mostra lo stato.
+    const datiMese = await datiCalendarioMesePerCollaboratoreAutorizzato(
+      token,
+      consultato.id
+    );
+
+    return (
+      <>
+        <BannerFoglioConsultato collaboratore={consultato} />
+        <CalendarioMensile
+          datiMeseIniziale={datiMese}
+          oggi={new Date().toISOString()}
+        />
+      </>
+    );
+  }
+
   // La sessione è già verificata: il resolver del profilo la riusa invece di
   // risolverla una seconda volta.
   const profilo = await risolviProfiloCollaboratoreCorrente(sessione);
@@ -27,13 +61,6 @@ export default async function AttivitaPage({
       />
     );
   }
-
-  const params = await searchParams;
-
-  // Token del mese: da query string o mese corrente
-  const tokenRaw = params.mese ?? tokenMeseCorrente();
-  const parsed = parseTokenMese(tokenRaw);
-  const token = parsed ? tokenRaw : tokenMeseCorrente();
 
   // Dati del mese letti con il collaboratore già autorizzato: la query non
   // ripete la catena sessione → profilo. Etichetta del mese e griglia delle 42

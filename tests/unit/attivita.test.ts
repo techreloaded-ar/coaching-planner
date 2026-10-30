@@ -769,24 +769,16 @@ describe("offerteAbilitatePerCliente", () => {
     vi.clearAllMocks();
   });
 
-  it("interroga il DB filtrando su clienteId, offerte attive e abilitazione del collaboratore corrente", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue({
-      id: "collab-giulia",
-      userId: "user-giulia",
-      nome: "Giulia",
-      cognome: "Conti",
-      partitaIva: "IT12345678901",
-      attivo: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
+  it("interroga il DB filtrando su clienteId, offerte attive e abilitazione del collaboratore indicato", async () => {
     const offerteAttese = [
       { id: "offerta-1", codice: "TS-001", descrizione: "Consulenza" },
     ];
     mockOfferta.findMany.mockResolvedValue(offerteAttese);
 
-    const result = await offerteAbilitatePerCliente("cliente-techsolutions");
+    const result = await offerteAbilitatePerCliente(
+      "cliente-techsolutions",
+      "collab-giulia"
+    );
 
     expect(mockOfferta.findMany).toHaveBeenCalledTimes(1);
     expect(mockOfferta.findMany).toHaveBeenCalledWith({
@@ -805,15 +797,6 @@ describe("offerteAbilitatePerCliente", () => {
       orderBy: { codice: "asc" },
     });
     expect(result).toBe(offerteAttese);
-  });
-
-  it("lancia ErroreAutorizzazione se non c'è un collaboratore corrente", async () => {
-    mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
-
-    await expect(
-      offerteAbilitatePerCliente("cliente-techsolutions")
-    ).rejects.toBeInstanceOf(ErroreAutorizzazione);
-    expect(mockOfferta.findMany).not.toHaveBeenCalled();
   });
 });
 
