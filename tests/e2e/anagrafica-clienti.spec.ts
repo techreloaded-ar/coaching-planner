@@ -87,7 +87,7 @@ test.describe("Anagrafica clienti", () => {
 		await apriElencoFiltrato(page, "/anagrafiche/clienti", ragioneSociale);
 		// Colonna P.IVA
 		await expect(
-			rigaCliente(page, ragioneSociale).getByRole("cell").nth(1),
+			rigaCliente(page, ragioneSociale).getByRole("cell").nth(2),
 		).toHaveText("—");
 
 		// Anche il dettaglio cliente mostra «—» per la partita IVA assente.

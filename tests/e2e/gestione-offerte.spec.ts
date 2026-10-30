@@ -126,10 +126,11 @@ test.describe("Gestione offerte", () => {
 		await cercaNellElenco(page, "/offerte", codice);
 		const riga = rigaConCodice(page, codice);
 		await expect(riga).toHaveCount(1);
+		// La prima cella è la casella di selezione: descrizione, tariffa e giorni seguono.
 		const celle = riga.locator("td");
-		await expect(celle.nth(0)).toContainText("—");
-		await expect(celle.nth(2)).toContainText("—");
+		await expect(celle.nth(1)).toContainText("—");
 		await expect(celle.nth(3)).toContainText("—");
+		await expect(celle.nth(4)).toContainText("—");
 	});
 
 	test("modifica di descrizione e tariffa persistita nell'elenco", async ({
