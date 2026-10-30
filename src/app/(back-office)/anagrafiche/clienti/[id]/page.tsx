@@ -118,7 +118,7 @@ export default async function DettaglioClientePage({
           </span>
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-x-[22px] gap-y-[14px] px-[22px] py-5">
-          <Dato label="Partita IVA" valore={cliente.partitaIva} />
+          <Dato label="Partita IVA" valore={cliente.partitaIva} segnaposto="—" />
           <Dato label="Codice fiscale" valore={cliente.codiceFiscale} />
           <Dato label="Sede legale" valore={sede} />
           <Dato label="PEC" valore={cliente.pec} />
@@ -174,7 +174,15 @@ export default async function DettaglioClientePage({
   );
 }
 
-function Dato({ label, valore }: { label: string; valore?: string | null }) {
+function Dato({
+  label,
+  valore,
+  segnaposto = "Non indicato",
+}: {
+  label: string;
+  valore?: string | null;
+  segnaposto?: string;
+}) {
   return (
     <div className="min-w-0 leading-[1.35]">
       <div className="mb-[3px] text-[10.5px] font-bold uppercase tracking-[.07em] text-zinc-400 dark:text-zinc-500">
@@ -188,7 +196,7 @@ function Dato({ label, valore }: { label: string; valore?: string | null }) {
         }`}
         title={valore ?? ""}
       >
-        {valore || "Non indicato"}
+        {valore || segnaposto}
       </div>
     </div>
   );

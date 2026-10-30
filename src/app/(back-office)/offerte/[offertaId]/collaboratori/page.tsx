@@ -76,7 +76,7 @@ export default async function CollaboratoriOffertaPage({
               )}
             </div>
             <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
-              {offerta.descrizione}
+              {offerta.descrizione || offerta.codice}
             </h1>
             <div className="mt-[6px] flex flex-wrap items-center gap-x-[18px] gap-y-[6px] text-[13px] text-zinc-500 dark:text-zinc-400">
               <span className="inline-flex min-w-0 items-center gap-[8px]">

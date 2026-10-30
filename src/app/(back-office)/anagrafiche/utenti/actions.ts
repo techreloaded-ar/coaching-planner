@@ -13,9 +13,9 @@ import {
   type DatiCensimentoUtenteInput,
   type DatiModificaUtenteInput,
   type ErroriValidazione,
+  tariffaInizialeIndicata,
 } from "@/domain/anagrafiche/valida-utente";
 import { normalizzaTariffaGiornaliera } from "@/domain/anagrafiche/valida-collaboratore";
-import { tariffaInizialeIndicata } from "@/domain/anagrafiche/valida-utente";
 import type { ModalitaTariffa } from "@/domain/tariffe";
 import { db } from "@/lib/db";
 import { eseguiConRetrySerializzazione } from "@/lib/retry-serializzazione";

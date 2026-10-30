@@ -80,6 +80,14 @@ test.describe("Anagrafica clienti", () => {
 		await expect(
 			rigaCliente(page, ragioneSociale).getByRole("cell").nth(1),
 		).toHaveText("—");
+
+		// Anche il dettaglio cliente mostra «—» per la partita IVA assente.
+		await rigaCliente(page, ragioneSociale)
+			.getByRole("link", { name: ragioneSociale })
+			.click();
+		await expect(
+			page.getByText("Partita IVA", { exact: true }).locator(".."),
+		).toHaveText("Partita IVA—");
 	});
 
 	test("modifica persistita dopo reload", async ({ page, factory }) => {
