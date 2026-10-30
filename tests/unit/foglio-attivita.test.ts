@@ -17,7 +17,9 @@ const mocks = vi.hoisted(() => ({
   collaboratore: { findUnique: vi.fn() },
   rigaAttivita: {
     create: vi.fn(),
+    createMany: vi.fn(),
     findUnique: vi.fn(),
+    update: vi.fn(),
     delete: vi.fn(),
   },
   offerta: { findUnique: vi.fn() },
@@ -58,7 +60,12 @@ import {
 } from "@/lib/foglio-attivita";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import { GET as getGiornata } from "@/app/api/attivita/giornata/route";
-import { creaRiga, eliminaRiga } from "@/lib/actions/righe-attivita";
+import {
+  creaRiga,
+  duplicaRigaSuGiorni,
+  eliminaRiga,
+  modificaRiga,
+} from "@/lib/actions/righe-attivita";
 
 const AMMINISTRATORE = {
   utenteId: "utente-admin",
@@ -195,6 +202,48 @@ describe("Server Action sul foglio consultato", () => {
     });
     expect(mocks.rigaAttivita.create.mock.calls[0][0].data.collaboratoreId).toBe("collab-mario");
     expect(mocks.risolviProfiloCollaboratoreCorrente).not.toHaveBeenCalled();
+  });
+
+  it("ignora sul foglio consultato l'evento del calendario, che è personale", async () => {
+    mocks.richiediSessioneApi.mockResolvedValue(AMMINISTRATORE);
+    mocks.collaboratore.findUnique.mockResolvedValue(collaboratore("collab-mario"));
+
+    const esito = await creaRiga(formRiga({ ...campiRiga, eventoCalendarioId: "evento-1" }));
+
+    // Nessuna transazione con l'evento: la `db` di prova non ha `$transaction`.
+    expect(esito).toEqual({ success: true });
+    expect(mocks.rigaAttivita.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("un amministratore modifica e duplica le righe del collaboratore consultato", async () => {
+    mocks.richiediSessioneApi.mockResolvedValue(AMMINISTRATORE);
+    mocks.collaboratore.findUnique.mockResolvedValue(collaboratore("collab-mario"));
+    mocks.rigaAttivita.findUnique.mockResolvedValue({
+      collaboratoreId: "collab-mario",
+      offertaId: "offerta-1",
+      clienteId: "cliente-1",
+      data: new Date("2026-10-12T12:00:00Z"),
+      ore: "4",
+      nota: null,
+      categoria: "FATTURABILE",
+      rimborsoTrasfertaEtichetta: null,
+      rimborsoTrasfertaImporto: null,
+    });
+
+    const modifica = await modificaRiga(
+      formRiga({ collaboratoreConsultatoId: "collab-mario", rigaId: "riga-1", ore: "6" })
+    );
+    const duplicazione = await duplicaRigaSuGiorni("riga-1", ["2026-10-13"], "collab-mario");
+
+    expect(modifica).toEqual({ success: true });
+    expect(mocks.rigaAttivita.update).toHaveBeenCalledWith({
+      where: { id: "riga-1" },
+      data: { ore: 6 },
+    });
+    expect(duplicazione).toEqual({ success: true, giorniCreati: 1 });
+    expect(mocks.rigaAttivita.createMany.mock.calls[0][0].data[0].collaboratoreId).toBe(
+      "collab-mario"
+    );
   });
 
   it("rifiuta la scrittura sul foglio di un collaboratore disattivato", async () => {

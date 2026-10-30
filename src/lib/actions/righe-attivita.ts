@@ -378,8 +378,11 @@ export async function creaRiga(
   const voceRimborsoTrasfertaIdRaw = formData.get("voceRimborsoTrasfertaId") as
     | string
     | null;
-  const eventoCalendarioId =
-    (formData.get("eventoCalendarioId") as string | null)?.trim() || null;
+  // Le proposte del calendario Google sono personali: sul foglio consultato da
+  // un amministratore non esistono, quindi l'evento indicato viene ignorato.
+  const eventoCalendarioId = formData.get("collaboratoreConsultatoId")
+    ? null
+    : (formData.get("eventoCalendarioId") as string | null)?.trim() || null;
 
   // Validazione campi obbligatori
   if (!clienteId || !oreRaw || !dataStr) {

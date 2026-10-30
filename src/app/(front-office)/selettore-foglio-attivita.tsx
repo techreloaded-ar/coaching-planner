@@ -155,6 +155,8 @@ export default function SelettoreFoglioAttivita({
     } else if (evento.key === "Escape") {
       evento.preventDefault();
       chiudi();
+    } else if (evento.key === "Tab") {
+      setAperto(false);
     }
   }
 

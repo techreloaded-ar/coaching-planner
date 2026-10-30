@@ -111,7 +111,7 @@ test.describe("Foglio attività dei collaboratori per gli amministratori", () =>
 		const giulia = await factory.createCollaboratore();
 		const mario = await factory.createCollaboratore();
 		const offerta = await factory.createOfferta({ attiva: true });
-		const giorno = dataNelMese(meseRiservato("FOGLIO-ATTIVITA-SEGREGAZIONE"), 8);
+		const giorno = dataNelMese(meseRiservato("FOGLIO-ATTIVITA-AMMINISTRATORE"), 8);
 		const notaMario = `Riservata a Mario ${factory.namespace}`;
 		await factory.createRigaAttivita({
 			collaboratore: mario,
@@ -141,7 +141,7 @@ test.describe("Foglio attività dei collaboratori per gli amministratori", () =>
 		const amministratore = await factory.createUtente({ ruolo: "AMMINISTRATORE" });
 		const disattivato = await factory.createCollaboratore({ attivo: false });
 		const offerta = await factory.createOfferta({ attiva: true });
-		const mese = meseRiservato("FOGLIO-ATTIVITA-SOLA-LETTURA");
+		const mese = meseRiservato("FOGLIO-ATTIVITA-AMMINISTRATORE");
 		const giorno = dataNelMese(mese, 15);
 		const nota = `Storico ${factory.namespace}`;
 		await factory.createRigaAttivita({
@@ -176,7 +176,7 @@ test.describe("Foglio attività dei collaboratori per gli amministratori", () =>
 		const nomeBruno = `${bruno.collaboratore.nome} ${bruno.collaboratore.cognome}`;
 		const { cliente, offerta } = await factory.createClienteConOfferta({}, { attiva: true });
 
-		const mese = meseRiservato("FOGLIO-ATTIVITA-SELETTORE");
+		const mese = meseRiservato("FOGLIO-ATTIVITA-AMMINISTRATORE");
 		const giorno = dataNelMese(mese, 20);
 		for (const collaboratore of [anna, bruno]) {
 			await factory.createRigaAttivita({
