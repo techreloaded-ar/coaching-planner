@@ -21,6 +21,7 @@ export const ROTTE_BACK_OFFICE = [
   "/offerte",
   "/collaboratori",
   "/report",
+  "/righe-sospese",
 ] as const;
 
 /** Prefissi dell'area autenticata comune (front office). */

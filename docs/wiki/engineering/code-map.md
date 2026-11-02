@@ -72,6 +72,11 @@ coverage:
       pages:
         - domains/attivita
     - kind: capability
+      path: righe-sospese
+      status: mapped
+      pages:
+        - domains/righe-sospese-import
+    - kind: capability
       path: clienti
       status: mapped
       pages:

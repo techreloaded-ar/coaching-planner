@@ -14,6 +14,7 @@ describe("politicaAccessoPerRotta", () => {
     ["AMMINISTRATORE", "/collaboratori"],
     ["AMMINISTRATORE", "/report"],
     ["AMMINISTRATORE", "/report/2025"],
+    ["AMMINISTRATORE", "/righe-sospese"],
     ["AUTENTICATO", "/attivita"],
     ["AUTENTICATO", "/attivita/2025-06"],
     ["AUTENTICATO", "/rotta-non-classificata"],
