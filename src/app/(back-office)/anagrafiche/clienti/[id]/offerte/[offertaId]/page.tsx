@@ -34,6 +34,8 @@ export default async function ModificaOffertaPage({
         gestioneTrasferta: offerta.gestioneTrasferta,
         importoTrasfertaForfettaria:
           offerta.importoTrasfertaForfettaria?.toString().replace(".", ",") ?? "",
+        numeroOrdine: offerta.numeroOrdine,
+        accountAgileReloaded: offerta.accountAgileReloaded,
         note: offerta.note,
       }}
     />

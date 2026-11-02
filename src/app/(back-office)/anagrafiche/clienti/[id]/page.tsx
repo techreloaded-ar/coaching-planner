@@ -114,6 +114,7 @@ export default async function DettaglioClientePage({
           <Dato label="Sede legale" valore={sede} />
           <Dato label="PEC" valore={cliente.pec} />
           <Dato label="Codice SDI" valore={cliente.codiceDestinatario} />
+          <Dato label="Persona di riferimento" valore={cliente.personaRiferimento} />
         </div>
         <NoteAnagrafica
           note={cliente.note}

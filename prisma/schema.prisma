@@ -150,6 +150,8 @@ model Cliente {
   provincia         String?
   pec               String?
   codiceDestinatario String?
+  /// Persona del cliente con cui ci interfacciamo (testo libero)
+  personaRiferimento String?
   /// Note libere dell'amministratore
   note              String?
   // Lo stato non è memorizzato: un cliente è attivo se ha almeno un'offerta
@@ -174,6 +176,10 @@ model Offerta {
   /// Importo fatturato al cliente per ogni giorno di trasferta; valorizzato solo se FORFETTARIA
   importoTrasfertaForfettaria Decimal? @db.Decimal(10, 2)
   attiva            Boolean  @default(true)
+  /// Numero d'ordine del cliente (testo libero)
+  numeroOrdine      String?
+  /// Chi in Agile Reloaded gestisce l'offerta (testo libero, non collegato agli utenti)
+  accountAgileReloaded String?
   /// Note libere dell'amministratore
   note              String?
   createdAt         DateTime @default(now())

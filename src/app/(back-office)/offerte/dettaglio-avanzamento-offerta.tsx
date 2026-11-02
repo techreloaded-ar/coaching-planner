@@ -154,6 +154,13 @@ export default function DettaglioAvanzamentoOfferta({
         </span>
       </div>
 
+      {(offerta.numeroOrdine || offerta.accountAgileReloaded) && (
+        <dl className="m-0 flex flex-wrap gap-x-[28px] gap-y-[10px] border-b border-zinc-200 px-[22px] py-[13px] dark:border-zinc-700">
+          <DatoOfferta etichetta="Numero d'ordine" valore={offerta.numeroOrdine} />
+          <DatoOfferta etichetta="Account Agile Reloaded" valore={offerta.accountAgileReloaded} />
+        </dl>
+      )}
+
       <NoteAnagrafica
         note={offerta.note}
         className="border-b border-zinc-200 px-[22px] py-[13px] dark:border-zinc-700"
@@ -349,6 +356,17 @@ function Kpi({ etichetta, valore }: { etichetta: string; valore: number | null }
         {formattaGiornate(valore)}
         <span className="ml-[3px] text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">gg</span>
       </span>
+    </div>
+  );
+}
+
+function DatoOfferta({ etichetta, valore }: { etichetta: string; valore: string | null }) {
+  return (
+    <div className="min-w-0">
+      <dt className="mb-[3px] text-[10.5px] font-bold uppercase tracking-[.07em] text-zinc-400 dark:text-zinc-500">{etichetta}</dt>
+      <dd className={`m-0 break-words text-[13.5px] ${valore ? "font-semibold text-zinc-800 dark:text-zinc-100" : "font-medium text-zinc-400 dark:text-zinc-500"}`}>
+        {valore || "Non indicato"}
+      </dd>
     </div>
   );
 }

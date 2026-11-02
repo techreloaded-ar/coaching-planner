@@ -39,6 +39,8 @@ interface OffertaFormProps {
     gestioneTrasferta: GestioneTrasferta;
     /** Importo con virgola decimale; vuoto se la trasferta è inclusa */
     importoTrasfertaForfettaria: string;
+    numeroOrdine: string | null;
+    accountAgileReloaded: string | null;
     note: string | null;
   };
   /**
@@ -200,6 +202,22 @@ export default function OffertaForm({
               placeholder="Es. Percorso di coaching executive"
               defaultValue={valoreIniziale("descrizione", offerta?.descrizione ?? "")}
               errore={stato.errori.descrizione}
+            />
+
+            <Campo
+              label="Numero d'ordine"
+              name="numeroOrdine"
+              placeholder="Es. PO-2026/0042"
+              defaultValue={valoreIniziale("numeroOrdine", offerta?.numeroOrdine ?? "")}
+              facoltativo
+            />
+
+            <Campo
+              label="Account Agile Reloaded"
+              name="accountAgileReloaded"
+              placeholder="Chi in Agile Reloaded gestisce l'offerta"
+              defaultValue={valoreIniziale("accountAgileReloaded", offerta?.accountAgileReloaded ?? "")}
+              facoltativo
             />
 
             <div className="col-span-2 mt-2 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500 max-[920px]:col-span-1">
@@ -416,6 +434,7 @@ interface CampoProps {
   defaultValue?: string;
   errore?: string;
   obbligatorio?: boolean;
+  facoltativo?: boolean;
   uppercase?: boolean;
   suffisso?: string;
   hint?: string;
@@ -429,6 +448,7 @@ function Campo({
   defaultValue,
   errore,
   obbligatorio,
+  facoltativo,
   uppercase,
   suffisso,
   hint,
@@ -438,6 +458,9 @@ function Campo({
     <div className="mb-[18px] flex min-w-0 flex-col gap-[6px] text-left">
       <label htmlFor={name} className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400">
         {label} {obbligatorio && <span className="font-bold text-red-600 dark:text-red-400">*</span>}
+        {facoltativo && (
+          <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">(facoltativo)</span>
+        )}
       </label>
       <div className="relative">
         <input

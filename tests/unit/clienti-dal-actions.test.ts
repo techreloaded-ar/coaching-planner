@@ -364,6 +364,7 @@ describe("Server Actions clienti", () => {
       formData.set("provincia", "MI");
       formData.set("pec", "test@pec.it");
       formData.set("codiceDestinatario", "ABC1234");
+      formData.set("personaRiferimento", "  Mario Rossi (HR)  ");
       formData.set("note", "  Referente: Mario\nPreferisce la PEC  ");
 
       await creaCliente(statoIniziale(), formData);
@@ -380,6 +381,7 @@ describe("Server Actions clienti", () => {
           provincia: "MI",
           pec: "test@pec.it",
           codiceDestinatario: "ABC1234",
+          personaRiferimento: "Mario Rossi (HR)",
           note: "Referente: Mario\nPreferisce la PEC",
         },
       });
@@ -405,6 +407,7 @@ describe("Server Actions clienti", () => {
       formData.set("provincia", "RM");
       formData.set("pec", "");
       formData.set("codiceDestinatario", "");
+      formData.set("personaRiferimento", "  ");
       formData.set("note", "   ");
 
       await aggiornaCliente(statoIniziale(), formData);
@@ -422,6 +425,7 @@ describe("Server Actions clienti", () => {
           provincia: "RM",
           pec: null,
           codiceDestinatario: null,
+          personaRiferimento: null,
           note: null,
         },
       });
