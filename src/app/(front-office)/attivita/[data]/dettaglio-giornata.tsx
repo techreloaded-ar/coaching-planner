@@ -46,7 +46,7 @@ interface DettaglioGiornataProps {
   data: string;
   /** Righe già registrate per la giornata mostrata */
   righe: RigaAttivitaClient[];
-  /** Clienti attivi per la select, con i consigliati marcati */
+  /** Tutti i clienti per la select, con i consigliati marcati */
   clienti: ClienteSelezionabile[];
   /** Voci di rimborso trasferta selezionabili nel form */
   vociRimborso: VoceRimborsoTrasfertaSelezionabile[];
