@@ -194,6 +194,7 @@ describe("Server Actions utenti", () => {
           cognome: "Bianchi",
           email: "laura.bianchi@example.com",
           ruolo: "AMMINISTRATORE",
+          note: null,
         },
       });
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
@@ -233,6 +234,7 @@ describe("Server Actions utenti", () => {
           cognome: "Rossi",
           email: "mario.rossi@example.com",
           ruolo: "AMMINISTRATORE",
+          note: null,
         },
       });
       expect(mockCollaboratore.create).toHaveBeenCalledWith({
@@ -297,6 +299,7 @@ describe("Server Actions utenti", () => {
           cognome: "Rossi",
           email: "mario.rossi@example.com",
           ruolo: "COLLABORATORE",
+          note: null,
         },
       });
       expect(mockCollaboratore.create).toHaveBeenCalledWith({
@@ -428,6 +431,7 @@ describe("Server Actions utenti", () => {
           cognome: "Verdi",
           email: "laura.verdi@example.com",
           ruolo: "AMMINISTRATORE",
+          note: null,
         },
       });
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
@@ -516,6 +520,7 @@ describe("Server Actions utenti", () => {
           cognome: "Verdi",
           email: "laura.verdi@example.com",
           ruolo: "COLLABORATORE",
+          note: null,
         },
       });
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
@@ -561,6 +566,7 @@ describe("Server Actions utenti", () => {
           cognome: "Rossi",
           email: "mario.rossi@example.com",
           ruolo: "AMMINISTRATORE",
+          note: null,
         },
       });
       expect(mockCollaboratore.create).toHaveBeenCalledWith({
@@ -691,6 +697,7 @@ describe("Server Actions utenti", () => {
           cognome: "Verdi",
           email: "laura.verdi@example.com",
           ruolo: "COLLABORATORE",
+          note: null,
         },
       });
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
@@ -770,6 +777,7 @@ describe("Server Actions utenti", () => {
           cognome: "Verdi",
           email: "laura.verdi@example.com",
           ruolo: "AMMINISTRATORE",
+          note: null,
         },
       });
     });

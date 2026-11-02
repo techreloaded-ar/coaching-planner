@@ -109,6 +109,37 @@ test.describe("Anagrafica offerte", () => {
 		await expect(page.getByText(/725,50\s*€/)).toBeVisible();
 	});
 
+	test("crea un'offerta su un cliente non attivo, che torna attivo", async ({
+		page,
+		factory,
+	}) => {
+		const token = randomUUID().slice(0, 8);
+		const cliente = await factory.createCliente({
+			ragioneSociale: `E2E Offerte Cliente Non Attivo ${token}`,
+		});
+		await factory.createOfferta({ cliente, attiva: false });
+		const codice = `OFF-NA-${token}`.toUpperCase();
+
+		await page.goto(`/anagrafiche/clienti/${cliente.id}`);
+		const titolo = page.getByRole("heading", { level: 1, name: cliente.ragioneSociale });
+		await expect(titolo).toContainText("1 chiusa");
+
+		await page.getByRole("link", { name: "Nuova offerta" }).click();
+		await page.waitForURL(/\/offerte\/nuova$/);
+		await expect(page.getByText(/non puoi creare/)).toHaveCount(0);
+		await page.getByLabel("Codice").fill(codice);
+		await page.getByLabel("Descrizione").fill("Offerta su cliente non attivo");
+		await page.getByLabel("Tariffa giornaliera").fill("650,00");
+		await page.getByLabel("Giorni previsti").fill("3");
+		await page.getByRole("button", { name: "Crea offerta" }).click();
+
+		await page.waitForURL(/\?esito=offerta-creata$/);
+		await expect(
+			page.getByRole("table", { name: "Offerte del cliente" }).getByText(codice, { exact: true }),
+		).toBeVisible();
+		await expect(titolo).toContainText("1 attiva");
+	});
+
 	test("elenco offerte con codice, descrizione, tariffa e giorni", async ({
 		page,
 		clienteConOfferta,

@@ -148,7 +148,7 @@ function validaOreLocale(input: string): string | null {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Box di avviso: nessun cliente attivo selezionabile, oppure nessuna offerta
+ * Box di avviso: nessun cliente selezionabile, oppure nessuna offerta
  * abilitata sul cliente selezionato (le ore restano con offerta da definire).
  */
 function AvvisoAbilitazioneMancante({
@@ -319,10 +319,10 @@ export default function DettaglioGiornata({
 
   // ── Clienti selezionabili e assenza di clienti abilitati ────
 
-  // La select elenca tutti i clienti attivi, in due gruppi: i consigliati
-  // (con offerte abilitate per il collaboratore) e gli altri. In modifica, il
-  // cliente della riga storica viene aggiunto agli altri se non più attivo,
-  // così da restare visibile e selezionato.
+  // La select elenca tutti i clienti, in due gruppi: i consigliati (con
+  // offerte abilitate per il collaboratore) e gli altri. In modifica, il
+  // cliente della riga storica viene aggiunto agli altri se assente
+  // dall'elenco, così da restare visibile e selezionato.
   const clientiSelezionabili = useMemo(() => {
     const elenco =
       !clienteRigaInModifica ||
@@ -335,7 +335,7 @@ export default function DettaglioGiornata({
     };
   }, [clienti, clienteRigaInModifica]);
 
-  // Nessun cliente attivo in modalità "Nuova riga": al posto della select
+  // Nessun cliente censito in modalità "Nuova riga": al posto della select
   // compare un messaggio esplicito e il salvataggio non è disponibile
   const nessunClienteAbilitato = clienti.length === 0 && modificaId === null;
 
@@ -1043,7 +1043,7 @@ export default function DettaglioGiornata({
             )}
             {nessunClienteAbilitato ? (
               <AvvisoAbilitazioneMancante testId="nessun-cliente-abilitato">
-                Non ci sono clienti attivi. Contatta un amministratore per
+                Non ci sono clienti censiti. Contatta un amministratore per
                 censire il cliente su cui registrare attività.
               </AvvisoAbilitazioneMancante>
             ) : (

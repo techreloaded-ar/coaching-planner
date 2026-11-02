@@ -25,10 +25,10 @@ import { avatarUtente } from "./support/menu-account";
  *   Nessun altro scenario e2e tocca questa offerta (TechSolutions è un seed
  *   condiviso stabile: gli altri spec creano clienti/offerte via factory e
  *   non selezionano questa offerta), quindi i valori sono a cifra fissa.
- * - GE-2024-03 (GreenEnergy Srl, cliente e offerta inattivi): 10 gg previste,
- *   nessuna attività registrata → 0 gg erogate, stato non
- *   attiva. Il cliente inattivo non è selezionabile dai form attività degli
- *   altri scenari e2e, quindi i valori restano a cifra fissa.
+ * - GE-2024-03 (GreenEnergy Srl, offerta disattivata: il cliente risulta
+ *   non attivo): 10 gg previste, nessuna attività registrata → 0 gg erogate,
+ *   stato non attiva. L'offerta disattivata non è selezionabile dai form
+ *   attività degli altri scenari e2e, quindi i valori restano a cifra fissa.
  * - DF-2025-02 (DataFlow SpA): 25 gg previste (valore fisso di seed); riceve
  *   però attività aggiuntive da altri scenari e2e (US-012) che restano
  *   registrate e non vengono ripulite fino al termine dell'intera suite. Per
@@ -121,7 +121,7 @@ test.describe("US-025 Demo", () => {
     await expect(rigaDf.getByText("Attiva", { exact: true })).toBeVisible();
 
     // ── 4. GE-2024-03 (GreenEnergy, inattiva): valori a cifra fissa ─
-    // Cliente/offerta inattivi, nessuna attività, non selezionabili altrove.
+    // Offerta disattivata, nessuna attività, non selezionabile altrove.
     await cercaNellElenco(page, "/offerte", "GE-2024-03");
     const rigaGe = rigaOfferta(page, "GE-2024-03");
     await expect(rigaGe).toContainText("GreenEnergy Srl");

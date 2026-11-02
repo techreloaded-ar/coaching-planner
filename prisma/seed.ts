@@ -183,7 +183,7 @@ async function main() {
     `✓ Creata offerta: ${offerta2.codice} — ${offerta2.descrizione} (€${offerta2.tariffaGiornaliera}/g × ${offerta2.giorniPrevisti} gg)`
   );
 
-  // ── Cliente 3 (inattivo) ─────────────────────────────────────
+  // ── Cliente 3 (non attivo: ha solo offerte chiuse) ───────────
   const cliente3 = await prisma.cliente.create({
     data: {
       ragioneSociale: "GreenEnergy Srl",
@@ -192,10 +192,9 @@ async function main() {
       citta: "Bologna",
       cap: "40121",
       provincia: "BO",
-      attivo: false,
     },
   });
-  console.log(`✓ Creato cliente (inattivo): ${cliente3.ragioneSociale}`);
+  console.log(`✓ Creato cliente (non attivo): ${cliente3.ragioneSociale}`);
 
   // ── Offerta 3 (cliente 3, non attiva) ────────────────────────
   await prisma.offerta.create({

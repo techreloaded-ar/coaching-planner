@@ -182,24 +182,20 @@ async function verificaOffertaCliente(
 }
 
 /**
- * Verifica che il cliente esista e sia attivo: è l'unico vincolo di una riga
- * senza offerta, perché ogni cliente attivo è selezionabile.
+ * Verifica che il cliente esista: è l'unico vincolo di una riga senza
+ * offerta, perché ogni cliente è selezionabile.
  * Restituisce null se ok, altrimenti un ActionResult con errore.
  */
-async function verificaClienteAttivo(
+async function verificaClienteEsistente(
   clienteId: string
 ): Promise<ActionResult | null> {
   const cliente = await db.cliente.findUnique({
     where: { id: clienteId },
-    select: { attivo: true },
+    select: { id: true },
   });
 
   if (!cliente) {
     return { success: false, error: "Cliente non trovato" };
-  }
-
-  if (!cliente.attivo) {
-    return { success: false, error: "Il cliente non è più attivo" };
   }
 
   return null;
@@ -208,7 +204,7 @@ async function verificaClienteAttivo(
 /**
  * Verifica l'ammissibilità di una coppia cliente/offerta per una riga nuova:
  * con offerta valgono le regole dell'offerta (attiva, del cliente, abilitata),
- * senza offerta basta un cliente attivo.
+ * senza offerta basta un cliente esistente.
  */
 async function verificaClienteEOffertaPerNuovaRiga(
   collaboratoreId: string,
@@ -216,7 +212,7 @@ async function verificaClienteEOffertaPerNuovaRiga(
   offertaId: string | null
 ): Promise<ActionResult | null> {
   if (!offertaId) {
-    return verificaClienteAttivo(clienteId);
+    return verificaClienteEsistente(clienteId);
   }
 
   const erroreOfferta = await verificaOffertaCliente(offertaId, clienteId);
@@ -524,10 +520,10 @@ export async function modificaRiga(
   // invariata. La verifica di ABILITAZIONE invece resta legata al solo
   // cambio di offerta: righe storiche su offerte non più abilitate restano
   // modificabili finché l'offerta non cambia (AC-4/AC-5).
-  // Senza offerta l'unico vincolo è che il cliente, se cambiato, sia attivo.
+  // Senza offerta l'unico vincolo è che il cliente, se cambiato, esista.
   if (offertaFinale === null) {
     if (clienteFinale !== riga.clienteId) {
-      const erroreCliente = await verificaClienteAttivo(clienteFinale);
+      const erroreCliente = await verificaClienteEsistente(clienteFinale);
       if (erroreCliente) return erroreCliente;
     }
   } else if (offertaFinale !== riga.offertaId || clienteFinale !== riga.clienteId) {

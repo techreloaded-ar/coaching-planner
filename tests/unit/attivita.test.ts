@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   attivitaDelMese,
-  clientiAttiviPerSelezione,
+  clientiPerSelezione,
   contestoInserimentoPerCollaboratoreAutorizzato,
   datiCalendarioMesePerCollaboratoreAutorizzato,
   offerteAbilitatePerCliente,
@@ -800,7 +800,7 @@ describe("offerteAbilitatePerCliente", () => {
   });
 });
 
-describe("clientiAttiviPerSelezione", () => {
+describe("clientiPerSelezione", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -822,11 +822,10 @@ describe("clientiAttiviPerSelezione", () => {
       { id: "cliente-techsolutions", ragioneSociale: "TechSolutions", offerte: [{ id: "offerta-1" }] },
     ]);
 
-    const result = await clientiAttiviPerSelezione();
+    const result = await clientiPerSelezione();
 
     expect(mockCliente.findMany).toHaveBeenCalledTimes(1);
     expect(mockCliente.findMany).toHaveBeenCalledWith({
-      where: { attivo: true },
       select: {
         id: true,
         ragioneSociale: true,
@@ -850,7 +849,7 @@ describe("clientiAttiviPerSelezione", () => {
   it("lancia ErroreAutorizzazione se non c'è un collaboratore corrente", async () => {
     mockRichiediCollaboratoreCorrente.mockResolvedValue(null);
 
-    await expect(clientiAttiviPerSelezione()).rejects.toBeInstanceOf(
+    await expect(clientiPerSelezione()).rejects.toBeInstanceOf(
       ErroreAutorizzazione
     );
     expect(mockCliente.findMany).not.toHaveBeenCalled();
@@ -1108,12 +1107,11 @@ describe("contestoInserimentoPerCollaboratoreAutorizzato", () => {
 
   // ── Payload Prisma delle due letture ────────────────────────
 
-  it("interroga tutti i clienti attivi, leggendo le offerte attive abilitate per il collaboratore ricevuto", async () => {
+  it("interroga tutti i clienti, leggendo le offerte attive abilitate per il collaboratore ricevuto", async () => {
     await contestoInserimentoPerCollaboratoreAutorizzato("collab-autorizzato");
 
     expect(mockCliente.findMany).toHaveBeenCalledTimes(1);
     expect(mockCliente.findMany).toHaveBeenCalledWith({
-      where: { attivo: true },
       select: {
         id: true,
         ragioneSociale: true,

@@ -74,7 +74,6 @@ export async function proposteCalendarioPerCollaboratoreAutorizzato(
   // contratto precedente, ma non vengono mai precompilate.
   const offerte = await db.offerta.findMany({
     where: {
-      cliente: { attivo: true },
       abilitazioniCollaboratori: { some: { collaboratoreId } },
     },
     select: {

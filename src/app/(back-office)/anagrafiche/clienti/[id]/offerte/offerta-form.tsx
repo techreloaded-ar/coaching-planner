@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, type ReactNode } from "react";
-import { PulsanteAttesa, useValoriInviati } from "@/components";
+import { CampoNote, PulsanteAttesa, useValoriInviati } from "@/components";
 import {
   creaOfferta,
   aggiornaOfferta,
@@ -21,10 +21,9 @@ interface OffertaFormProps {
   cliente?: {
     id: string;
     ragioneSociale: string;
-    attivo: boolean;
   };
   /**
-   * Elenco dei clienti attivi selezionabili. Quando presente, il form mostra una
+   * Elenco dei clienti selezionabili. Quando presente, il form mostra una
    * select "Cliente" al posto del cliente fisso (creazione dalla pagina offerte).
    */
   clienti?: {
@@ -40,6 +39,7 @@ interface OffertaFormProps {
     gestioneTrasferta: GestioneTrasferta;
     /** Importo con virgola decimale; vuoto se la trasferta è inclusa */
     importoTrasfertaForfettaria: string;
+    note: string | null;
   };
   /**
    * Origine della navigazione. Con "offerte" il form torna alla pagina
@@ -248,15 +248,15 @@ export default function OffertaForm({
                 hint="Fatturato al cliente per ogni collaboratore in trasferta, per ogni giorno"
               />
             </SceltaGestioneTrasferta>
+
+            <CampoNote
+              className="col-span-2"
+              defaultValue={valoreIniziale("note", offerta?.note ?? "")}
+            />
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-[10px] rounded-b-[11px] border-t border-zinc-200 bg-zinc-50 px-7 py-4 dark:border-zinc-700 dark:bg-zinc-800/50">
-          {cliente && !cliente.attivo && !inModifica && (
-            <span className="mr-auto text-[12.5px] font-medium text-red-600 dark:text-red-400">
-              Il cliente è disattivato: non puoi creare nuove offerte.
-            </span>
-          )}
           <Link
             href={linkRitorno}
             className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm no-underline transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
@@ -405,9 +405,6 @@ function SelectCliente({ clienti, defaultValue, errore }: SelectClienteProps) {
           {errore}
         </p>
       )}
-      <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
-        Sono elencati solo i clienti attivi
-      </span>
     </div>
   );
 }

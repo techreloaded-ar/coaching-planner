@@ -106,7 +106,7 @@ describe("Server Actions offerte", () => {
 		mockClientePerId.mockResolvedValue({
 			id: "cli-1",
 			ragioneSociale: "Cliente demo",
-			attivo: true,
+			stato: { tipo: "ATTIVO", numeroOfferte: 1 },
 		});
 		mockOfferta.create.mockResolvedValue(undefined);
 		mockOfferta.update.mockResolvedValue(undefined);
@@ -129,11 +129,11 @@ describe("Server Actions offerte", () => {
 		expect(mockOfferta.create).not.toHaveBeenCalled();
 	});
 
-	it("rifiuta la creazione su cliente disattivato", async () => {
+	it("consente la creazione su un cliente senza offerte attive", async () => {
 		mockClientePerId.mockResolvedValue({
 			id: "cli-1",
 			ragioneSociale: "Cliente demo",
-			attivo: false,
+			stato: { tipo: "NON_ATTIVO", numeroOfferte: 2 },
 		});
 
 		const formData = new FormData();
@@ -143,12 +143,11 @@ describe("Server Actions offerte", () => {
 		formData.set("tariffaGiornaliera", "650,00");
 		formData.set("giorniPrevisti", "5");
 
-		const result = await creaOfferta({ errori: {} }, formData);
+		await creaOfferta({ errori: {} }, formData);
 
-		expect(result.errori._form).toBe(
-			"Non puoi creare offerte per un cliente disattivato",
-		);
-		expect(mockOfferta.create).not.toHaveBeenCalled();
+		expect(mockOfferta.create).toHaveBeenCalledWith({
+			data: expect.objectContaining({ clienteId: "cli-1", attiva: true }),
+		});
 	});
 
 	it("traduce il P2002 in errore sul campo codice", async () => {
@@ -179,6 +178,7 @@ describe("Server Actions offerte", () => {
 		formData.set("giorniPrevisti", "5");
 		formData.set("gestioneTrasferta", "INCLUSA");
 		formData.set("importoTrasfertaForfettaria", "80,00");
+		formData.set("note", "Rinnovo previsto a settembre\nReferente HR");
 
 		await creaOfferta({ errori: {} }, formData);
 
@@ -191,6 +191,7 @@ describe("Server Actions offerte", () => {
 				giorniPrevisti: 5,
 				gestioneTrasferta: "INCLUSA",
 				importoTrasfertaForfettaria: null,
+				note: "Rinnovo previsto a settembre\nReferente HR",
 				attiva: true,
 			},
 		});
@@ -228,6 +229,7 @@ describe("Server Actions offerte", () => {
 				giorniPrevisti: 8,
 				gestioneTrasferta: "FORFETTARIA",
 				importoTrasfertaForfettaria: "80.00",
+				note: null,
 			},
 		});
 		expect(mockRedirect).toHaveBeenCalledWith(

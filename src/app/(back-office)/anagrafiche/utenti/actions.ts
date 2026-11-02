@@ -20,6 +20,7 @@ import type { ModalitaTariffa } from "@/domain/tariffe";
 import { db } from "@/lib/db";
 import { eseguiConRetrySerializzazione } from "@/lib/retry-serializzazione";
 import { richiediRuoloApi } from "@/lib/dal";
+import { leggiNoteDaForm } from "@/domain/anagrafiche/note";
 
 export interface StatoAction {
   errori: ErroriValidazione;
@@ -156,6 +157,7 @@ export async function creaUtente(
           cognome: dati.cognome,
           email: dati.email,
           ruolo: dati.ruoloAmministratore ? "AMMINISTRATORE" : "COLLABORATORE",
+          note: leggiNoteDaForm(formData),
         },
       });
 
@@ -295,6 +297,7 @@ export async function aggiornaUtente(
               ruolo: nuovoRuolo,
               nome: dati.nome,
               cognome: dati.cognome,
+              note: leggiNoteDaForm(formData),
             },
           });
 

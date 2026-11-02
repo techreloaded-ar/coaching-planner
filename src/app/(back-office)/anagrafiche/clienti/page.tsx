@@ -2,16 +2,23 @@ import Link from "next/link";
 import { richiediRuolo } from "@/lib/dal";
 import { elencaClientiPaginati } from "@/lib/clienti";
 import { leggiPosizioneElenco } from "@/lib/paginazione";
+import { leggiFiltroStatoCliente } from "@/domain/anagrafiche/stato-cliente";
 import ClientiTabella from "./clienti-tabella";
 
 interface ClientiPageProps {
-  searchParams: Promise<{ q?: string | string[]; pagina?: string | string[] }>;
+  searchParams: Promise<{
+    q?: string | string[];
+    pagina?: string | string[];
+    stato?: string | string[];
+  }>;
 }
 
 export default async function ClientiPage({ searchParams }: ClientiPageProps) {
   await richiediRuolo("AMMINISTRATORE");
-  const { ricerca, pagina } = leggiPosizioneElenco(await searchParams);
-  const elenco = await elencaClientiPaginati({ ricerca, pagina });
+  const parametri = await searchParams;
+  const { ricerca, pagina } = leggiPosizioneElenco(parametri);
+  const stati = leggiFiltroStatoCliente(parametri.stato);
+  const elenco = await elencaClientiPaginati({ ricerca, pagina, stati });
 
   return (
     <div>
@@ -25,7 +32,7 @@ export default async function ClientiPage({ searchParams }: ClientiPageProps) {
             Clienti
           </h1>
           <p className="mt-[6px] max-w-[560px] text-[13px] text-zinc-400 dark:text-zinc-500">
-            I clienti disattivati restano nello storico ma non sono selezionabili per nuove attività e offerte.
+            Un cliente è attivo quando ha almeno un&apos;offerta attiva e nuovo quando non ha ancora offerte.
           </p>
         </div>
         <div className="mt-1 flex shrink-0 items-center gap-[10px]">

@@ -18,3 +18,5 @@ export {
   type AzioneElencoSelezionabile,
   type StatoElencoSelezionabile,
 } from "./elenco-selezionabile";
+export { ChipStatoCliente } from "./chip-stato-cliente";
+export { CampoNote, NoteAnagrafica } from "./campo-note";

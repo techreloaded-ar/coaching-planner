@@ -10,32 +10,58 @@ import {
   type PaginaElenco,
   type PosizioneElenco,
 } from "@/lib/paginazione";
+import {
+  TIPI_STATO_CLIENTE,
+  TIPI_STATO_CLIENTE_PREDEFINITI,
+  statoCliente,
+  type StatoCliente,
+  type TipoStatoCliente,
+} from "@/domain/anagrafiche/stato-cliente";
 
 // ── API clienti (back office, solo amministratore) ──────────────
 
-/** Pagina dell'elenco clienti con i contatori dell'intero insieme filtrato. */
+/** Cliente con lo stato derivato dalle sue offerte. */
+export type ClienteConStato = Cliente & { stato: StatoCliente };
+
+/** Pagina dell'elenco clienti con i conteggi per stato dell'intero insieme cercato. */
 export interface ElencoClientiPaginato extends PaginaElenco {
-  clienti: Cliente[];
-  attivi: number;
-  disattivati: number;
+  clienti: ClienteConStato[];
+  conteggiPerStato: Record<TipoStatoCliente, number>;
+  /** Stati selezionati nel quick filter (ignorati se c'è una ricerca). */
+  statiSelezionati: TipoStatoCliente[];
+}
+
+/** Condizione Prisma equivalente a `statoCliente(...).tipo === tipo`. */
+const CONDIZIONE_STATO: Record<TipoStatoCliente, Prisma.ClienteWhereInput> = {
+  ATTIVO: { offerte: { some: { attiva: true } } },
+  NUOVO: { offerte: { none: {} } },
+  NON_ATTIVO: { AND: [{ offerte: { some: {} } }, { offerte: { none: { attiva: true } } }] },
+};
+
+const SELEZIONE_OFFERTE_PER_STATO = { offerte: { select: { attiva: true } } } as const;
+
+function conStato({ offerte, ...cliente }: Cliente & { offerte: { attiva: boolean }[] }): ClienteConStato {
+  return { ...cliente, stato: statoCliente(offerte) };
 }
 
 /**
- * Elenca i clienti (attivi e disattivati) a pagine, in ordine alfabetico per
- * ragione sociale. La ricerca, senza distinzione maiuscole/minuscole, filtra
- * per ragione sociale, P.IVA o città su tutto l'archivio; i contatori
- * riguardano l'intero insieme filtrato. Una pagina oltre l'ultima restituisce
+ * Elenca i clienti a pagine, in ordine alfabetico per ragione sociale.
+ * Senza ricerca mostra solo i clienti negli stati selezionati; la ricerca,
+ * senza distinzione maiuscole/minuscole, filtra per ragione sociale, P.IVA o
+ * città su tutto l'archivio a prescindere dallo stato. I conteggi per stato
+ * riguardano l'insieme cercato. Una pagina oltre l'ultima restituisce
  * l'ultima pagina valida.
  * Accesso riservato all'amministratore.
  */
 export async function elencaClientiPaginati({
   ricerca,
   pagina,
-}: PosizioneElenco): Promise<ElencoClientiPaginato> {
+  stati = [...TIPI_STATO_CLIENTE_PREDEFINITI],
+}: PosizioneElenco & { stati?: TipoStatoCliente[] }): Promise<ElencoClientiPaginato> {
   await richiediRuoloApi("AMMINISTRATORE");
 
   const filtro = { contains: ricerca, mode: "insensitive" } as const;
-  const where: Prisma.ClienteWhereInput = ricerca
+  const whereRicerca: Prisma.ClienteWhereInput = ricerca
     ? {
         OR: [
           { ragioneSociale: filtro },
@@ -44,15 +70,21 @@ export async function elencaClientiPaginati({
         ],
       }
     : {};
+  const where: Prisma.ClienteWhereInput = ricerca
+    ? whereRicerca
+    : { OR: stati.map((tipo) => CONDIZIONE_STATO[tipo]) };
 
-  const [totaleClienti, attivi] = await Promise.all([
+  const [totaleClienti, ...conteggi] = await Promise.all([
     db.cliente.count({ where }),
-    db.cliente.count({ where: { AND: [where, { attivo: true }] } }),
+    ...TIPI_STATO_CLIENTE.map((tipo) =>
+      db.cliente.count({ where: { AND: [whereRicerca, CONDIZIONE_STATO[tipo]] } }),
+    ),
   ]);
   const paginaElenco = calcolaPaginaElenco(pagina, totaleClienti);
 
   const clienti = await db.cliente.findMany({
     where,
+    include: SELEZIONE_OFFERTE_PER_STATO,
     orderBy: [{ ragioneSociale: "asc" }, { id: "asc" }],
     skip: inizioPagina(paginaElenco.paginaCorrente),
     take: ELEMENTI_PER_PAGINA,
@@ -60,35 +92,38 @@ export async function elencaClientiPaginati({
 
   return {
     ...paginaElenco,
-    clienti,
-    attivi,
-    disattivati: totaleClienti - attivi,
+    clienti: clienti.map(conStato),
+    conteggiPerStato: Object.fromEntries(
+      TIPI_STATO_CLIENTE.map((tipo, indice) => [tipo, conteggi[indice]]),
+    ) as Record<TipoStatoCliente, number>,
+    statiSelezionati: stati,
   };
 }
 
 /**
- * Restituisce un cliente per ID.
+ * Restituisce un cliente per ID con il suo stato derivato.
  * Accesso riservato all'amministratore.
  * Restituisce null se il cliente non esiste.
  */
-export async function clientePerId(id: string): Promise<Cliente | null> {
+export async function clientePerId(id: string): Promise<ClienteConStato | null> {
   await richiediRuoloApi("AMMINISTRATORE");
 
-  return db.cliente.findUnique({
+  const cliente = await db.cliente.findUnique({
     where: { id },
+    include: SELEZIONE_OFFERTE_PER_STATO,
   });
+  return cliente ? conStato(cliente) : null;
 }
 
 /**
- * Elenca i soli clienti attivi, ordinati per ragione sociale.
- * Unica fonte per le selezioni operative (offerte, attività, ecc.).
+ * Elenca tutti i clienti, ordinati per ragione sociale: ogni cliente può
+ * ricevere nuove offerte, qualunque sia il suo stato.
  * Accesso riservato all'amministratore.
  */
 export async function elencaClientiSelezionabili(): Promise<Cliente[]> {
   await richiediRuoloApi("AMMINISTRATORE");
 
   return db.cliente.findMany({
-    where: { attivo: true },
     orderBy: { ragioneSociale: "asc" },
   });
 }

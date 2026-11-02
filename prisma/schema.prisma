@@ -51,6 +51,8 @@ model Utente {
   image         String?
   ruolo         Ruolo    @default(COLLABORATORE)
   attivo        Boolean  @default(true)
+  /// Note libere dell'amministratore
+  note          String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -148,7 +150,10 @@ model Cliente {
   provincia         String?
   pec               String?
   codiceDestinatario String?
-  attivo            Boolean  @default(true)
+  /// Note libere dell'amministratore
+  note              String?
+  // Lo stato non è memorizzato: un cliente è attivo se ha almeno un'offerta
+  // attiva, nuovo se non ha offerte, non attivo altrimenti (statoCliente).
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -169,6 +174,8 @@ model Offerta {
   /// Importo fatturato al cliente per ogni giorno di trasferta; valorizzato solo se FORFETTARIA
   importoTrasfertaForfettaria Decimal? @db.Decimal(10, 2)
   attiva            Boolean  @default(true)
+  /// Note libere dell'amministratore
+  note              String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
