@@ -135,7 +135,7 @@ export interface ContestoInserimentoGiornata {
    * svuotarsi quando la sessione della scheda cambia sotto di lei.
    */
   collaboratoreId: string;
-  /** Tutti i clienti attivi, con i consigliati marcati */
+  /** Tutti i clienti, con i consigliati marcati */
   clienti: ClienteSelezionabile[];
   /** Voci di rimborso trasferta selezionabili */
   vociRimborso: VoceRimborsoTrasfertaSelezionabile[];

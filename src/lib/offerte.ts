@@ -53,6 +53,8 @@ export interface VoceElencoOfferta {
   /** Importo fatturato per giorno di trasferta; null se la trasferta è inclusa */
   importoTrasfertaForfettaria: string | null;
   attiva: boolean;
+  /** Note libere dell'amministratore; null se assenti. */
+  note: string | null;
   giornateErogate: number;
   residuo: number | null;
   /** Percentuale di utilizzo del budget previsto dall'offerta. */
@@ -155,6 +157,7 @@ function costruisciVociElencoOfferte(
       importoTrasfertaForfettaria:
         offerta.importoTrasfertaForfettaria?.toString() ?? null,
       attiva: offerta.attiva,
+      note: offerta.note,
       giornateErogate: avanzamento?.giornateErogate ?? 0,
       residuo: avanzamento?.residuo ?? offerta.giorniPrevisti,
       percentualeUtilizzo: avanzamento ? avanzamento.percentualeUtilizzo : 0,

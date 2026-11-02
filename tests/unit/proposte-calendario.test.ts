@@ -111,7 +111,6 @@ describe("proposteCalendarioPerCollaboratoreAutorizzato", () => {
     expect(mockDb.offerta.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          cliente: { attivo: true },
           abilitazioniCollaboratori: { some: { collaboratoreId: "collab-1" } },
         },
       })

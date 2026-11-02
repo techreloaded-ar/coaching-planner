@@ -34,6 +34,13 @@ function paginazione(page: Page): Locator {
 	return page.getByRole("navigation", { name: "Paginazione" });
 }
 
+/** Opzione del quick filter per stato dell'elenco clienti (il nome include il conteggio). */
+function opzioneFiltro(page: Page, etichetta: "Attivi" | "Nuovi" | "Non attivi"): Locator {
+	return page
+		.getByRole("group", { name: "Filtra per stato" })
+		.getByRole("button", { name: new RegExp(`^${etichetta}\\s*\\d+$`) });
+}
+
 function urlPosizione(
 	percorso: string,
 	ricerca: string,
@@ -50,7 +57,7 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		await accediAlBackOfficeComeAdmin(page);
 	});
 
-	test("25 clienti per pagina, navigazione, ricerca e ritorno alla pagina dopo la disattivazione", async ({
+	test("25 clienti per pagina, navigazione, ricerca e filtro per stato conservati", async ({
 		page,
 		factory,
 	}) => {
@@ -70,9 +77,12 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		await apriElencoFiltrato(page, "/anagrafiche/clienti", prefisso);
 		await expect(righe).toHaveCount(25);
 		await expect(page.getByText(`Mostrati 1–25 di ${TOTALE}`)).toBeVisible();
-		await expect(
-			page.getByText(`${TOTALE} clienti · ${TOTALE} attivi · 0 disattivati`),
-		).toBeVisible();
+		// I clienti creati senza offerte sono tutti «Nuovi».
+		await expect(opzioneFiltro(page, "Nuovi")).toHaveText(
+			new RegExp(`^Nuovi\\s*${TOTALE}$`),
+		);
+		await expect(opzioneFiltro(page, "Attivi")).toHaveText(/^Attivi\s*0$/);
+		await expect(opzioneFiltro(page, "Non attivi")).toHaveText(/^Non attivi\s*0$/);
 		await expect(rigaCliente(1)).toBeVisible();
 		await expect(rigaCliente(26)).toHaveCount(0);
 		await expect(paginazione(page).getByText("Precedente")).toHaveAttribute(
@@ -95,21 +105,23 @@ test.describe("Paginazione elenco clienti (US-001)", () => {
 		await expect(rigaCliente(1)).toHaveCount(0);
 		await expect(rigaCliente(28)).toBeVisible();
 
-		// Disattivare da pagina 2 riporta a pagina 2 con la stessa ricerca.
-		const barra = await selezionaRighe(page, [`${prefisso} 28`]);
-		await barra.getByRole("button", { name: "Disattiva", exact: true }).click();
-		await page
-			.getByRole("dialog", { name: `Disattivare «${prefisso} 28»?` })
-			.getByRole("button", { name: "Disattiva", exact: true })
-			.click();
-		await expect(
-			rigaCliente(28).getByText("Disattivato", { exact: true }),
-		).toBeVisible();
-		await expect(page).toHaveURL(urlPosizione("/anagrafiche/clienti", prefisso, 2));
+		// Il quick filter riparte da pagina 1 conservando la ricerca; la
+		// paginazione conserva sia la ricerca sia il filtro.
+		await opzioneFiltro(page, "Non attivi").click();
+		await page.waitForURL(
+			(url) =>
+				urlPosizione("/anagrafiche/clienti", prefisso, null)(url) &&
+				url.searchParams.get("stato") === "attivi,nuovi,non-attivi",
+		);
+		await expect(righe).toHaveCount(25);
+		await paginazione(page).getByRole("link", { name: "Successiva" }).click();
+		await page.waitForURL(
+			(url) =>
+				urlPosizione("/anagrafiche/clienti", prefisso, 2)(url) &&
+				url.searchParams.get("stato") === "attivi,nuovi,non-attivi",
+		);
 		await expect(righe).toHaveCount(RIGHE_PAGINA_2);
-		await expect(
-			page.getByText(`${TOTALE} clienti · ${TOTALE - 1} attivi · 1 disattivati`),
-		).toBeVisible();
+		await expect(opzioneFiltro(page, "Non attivi")).toHaveAttribute("aria-pressed", "true");
 
 		// Una pagina oltre l'ultima mostra l'ultima pagina valida.
 		await page.goto(

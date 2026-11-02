@@ -760,7 +760,7 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
     // arriva rispetto al commit dell'URL.
     await expect(
       // Solo le righe attività: il nome resta tra le opzioni della select,
-      // che elenca tutti i clienti attivi.
+      // che elenca tutti i clienti.
       page
         .getByTestId("activity-row")
         .filter({ hasText: clienteDelPrimo.cliente.ragioneSociale }),
@@ -774,7 +774,7 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
     );
     await expect(
       // Solo le righe attività: il nome resta tra le opzioni della select,
-      // che elenca tutti i clienti attivi.
+      // che elenca tutti i clienti.
       page
         .getByTestId("activity-row")
         .filter({ hasText: clienteDelPrimo.cliente.ragioneSociale }),
@@ -864,7 +864,7 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
     await expect(page.getByTestId("activity-row")).toHaveCount(0);
     await expect(
       // Solo le righe attività: il nome resta tra le opzioni della select,
-      // che elenca tutti i clienti attivi.
+      // che elenca tutti i clienti.
       page
         .getByTestId("activity-row")
         .filter({ hasText: clienteConOfferta.cliente.ragioneSociale }),

@@ -64,7 +64,6 @@ export type CreateClienteOptions = {
 	provincia?: string | null;
 	pec?: string | null;
 	codiceDestinatario?: string | null;
-	attivo?: boolean;
 };
 
 export type CreateOffertaOptions = {
@@ -245,8 +244,8 @@ export class E2eDataFactory {
 
 		return insertReturning<Cliente>(
 			this.prisma,
-			`INSERT INTO "Cliente" ("id", "ragioneSociale", "partitaIva", "codiceFiscale", "indirizzo", "citta", "cap", "provincia", "pec", "codiceDestinatario", "attivo", "createdAt", "updatedAt")
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
+			`INSERT INTO "Cliente" ("id", "ragioneSociale", "partitaIva", "codiceFiscale", "indirizzo", "citta", "cap", "provincia", "pec", "codiceDestinatario", "createdAt", "updatedAt")
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 			 RETURNING *`,
 			[
 				randomUUID(),
@@ -262,7 +261,6 @@ export class E2eDataFactory {
 				options.pec ?? `${token}@pec.e2e.invalid`,
 				options.codiceDestinatario ??
 					`E${this.numericCode(`cliente-sdi-${token}`).slice(0, 6)}`,
-				options.attivo ?? true,
 				now,
 			],
 		);

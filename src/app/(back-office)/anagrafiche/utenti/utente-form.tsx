@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { PulsanteAttesa, useValoriInviati } from "@/components";
+import { CampoNote, PulsanteAttesa, useValoriInviati } from "@/components";
 import { tokenMeseCorrente } from "@/domain/calendario";
 import { ETICHETTA_MODALITA_TARIFFA, MODALITA_TARIFFA } from "@/domain/tariffe";
 import {
@@ -38,6 +38,7 @@ interface UtenteFormProps {
     email: string;
     ruolo: RuoloAmmesso;
     attivo: boolean;
+    note: string | null;
     collaboratore: { attivo: boolean } | null;
   };
 }
@@ -343,6 +344,11 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                 />
               </>
             )}
+
+            <CampoNote
+              className="col-span-2 max-[640px]:col-span-1"
+              defaultValue={valoreIniziale("note", utente?.note ?? "")}
+            />
           </div>
         </div>
 

@@ -13,6 +13,7 @@ import {
   type ErroriValidazioneOfferta,
 } from "@/domain/anagrafiche/valida-offerta";
 import type { GestioneTrasferta } from "@/domain/types";
+import { leggiNoteDaForm } from "@/domain/anagrafiche/note";
 
 export interface StatoActionOfferta {
   errori: ErroriValidazioneOfferta;
@@ -104,14 +105,6 @@ export async function creaOfferta(
     return { errori: { _form: "Cliente non trovato" } };
   }
 
-  if (!cliente.attivo) {
-    return {
-      errori: {
-        _form: "Non puoi creare offerte per un cliente disattivato",
-      },
-    };
-  }
-
   const dati = datiDaForm(formData);
   const errori = validaOfferta(dati);
 
@@ -127,6 +120,7 @@ export async function creaOfferta(
         descrizione: dati.descrizione,
         ...valoriFacoltativi(dati),
         ...condizioniTrasferta(dati),
+        note: leggiNoteDaForm(formData),
         attiva: true,
       },
     });
@@ -183,6 +177,7 @@ export async function aggiornaOfferta(
         descrizione: dati.descrizione,
         ...valoriFacoltativi(dati),
         ...condizioniTrasferta(dati),
+        note: leggiNoteDaForm(formData),
       },
     });
   } catch (error) {

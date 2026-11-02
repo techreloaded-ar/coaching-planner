@@ -9,6 +9,7 @@ import {
   type DatiClienteInput,
   type ErroriValidazione,
 } from "@/domain/anagrafiche/valida-cliente";
+import { leggiNoteDaForm } from "@/domain/anagrafiche/note";
 
 // ── Tipi per useActionState ─────────────────────────────────────
 
@@ -78,7 +79,7 @@ export async function creaCliente(
       provincia: dati.provincia || null,
       pec: dati.pec || null,
       codiceDestinatario: dati.codiceDestinatario || null,
-      attivo: true,
+      note: leggiNoteDaForm(formData),
     },
   });
 
@@ -121,39 +122,10 @@ export async function aggiornaCliente(
       provincia: dati.provincia || null,
       pec: dati.pec || null,
       codiceDestinatario: dati.codiceDestinatario || null,
+      note: leggiNoteDaForm(formData),
     },
   });
 
   revalidatePath("/anagrafiche/clienti");
   redirect("/anagrafiche/clienti?esito=salvato");
-}
-
-/**
- * Attiva o disattiva un cliente.
- *
- * Usabile con useActionState.
- */
-export async function cambiaStatoCliente(
-  _prevState: StatoAction,
-  formData: FormData
-): Promise<StatoAction> {
-  await guardiaAmministratore();
-
-  const id = formData.get("id") as string;
-  const nuovoStato = formData.get("attivo") === "true";
-
-  if (!id) {
-    return { errori: { _form: "ID cliente mancante" } };
-  }
-
-  await db.cliente.update({
-    where: { id },
-    data: { attivo: nuovoStato },
-  });
-
-  revalidatePath("/anagrafiche/clienti");
-  return {
-    errori: {},
-    successo: true,
-  };
 }

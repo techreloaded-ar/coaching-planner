@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import type { StatoAvanzamentoOfferta } from "@/domain/consuntivi";
 import type { VoceElencoOfferta } from "@/lib/offerte";
+import { NoteAnagrafica } from "@/components";
 
 const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
   minimumFractionDigits: 0,
@@ -152,6 +153,11 @@ export default function DettaglioAvanzamentoOfferta({
           {config.etichetta}
         </span>
       </div>
+
+      <NoteAnagrafica
+        note={offerta.note}
+        className="border-b border-zinc-200 px-[22px] py-[13px] dark:border-zinc-700"
+      />
 
       <div className="px-[22px] pt-4 pb-[18px]">
         <div className="mb-4 grid grid-cols-3 overflow-hidden rounded-[10px] border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">

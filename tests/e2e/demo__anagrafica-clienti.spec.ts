@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 
 import { accediAlBackOfficeComeAdmin } from "./support/auth";
-import { barraSelezione, cercaNellElenco, selezionaRighe } from "./support/elenchi";
+import { cercaNellElenco, selezionaRighe } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 import { apriMenuAccount, avatarUtente, pannelloAccount } from "./support/menu-account";
 
 /**
  * Demo scenario — US-007: Anagrafica clienti — ciclo di vita del cliente
  *
- * Il demo crea e disattiva un cliente proprio, quindi non muta i seed condivisi.
+ * Il demo crea un cliente proprio (stato «Nuovo»), lo modifica aggiungendo
+ * le note e gli apre la prima offerta: il cliente diventa attivo. Non muta i
+ * seed condivisi.
  */
 
 test.use({
@@ -18,7 +20,7 @@ test.use({
 });
 
 test.describe("US-007 Demo", () => {
-	test("ciclo di vita cliente: crea → modifica → disattiva", async ({ page }) => {
+	test("ciclo di vita cliente: crea → modifica con note → prima offerta", async ({ page }) => {
 		await accediAlBackOfficeComeAdmin(page);
 
 		await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
@@ -62,7 +64,8 @@ test.describe("US-007 Demo", () => {
 			.filter({ hasText: ragioneSociale })
 			.first();
 		await expect(rigaCliente.getByText(ragioneSociale)).toBeVisible();
-		await expect(rigaCliente.getByText("Attivo")).toBeVisible();
+		// Senza offerte il cliente è «Nuovo».
+		await expect(rigaCliente.getByRole("cell").nth(4)).toHaveText("Nuovo");
 
 		const barra = await selezionaRighe(page, [ragioneSociale]);
 		await barra.getByRole("link", { name: "Modifica", exact: true }).click();
@@ -75,6 +78,9 @@ test.describe("US-007 Demo", () => {
 		const campoCitta = page.getByLabel("Città");
 		await campoCitta.clear();
 		await campoCitta.fill(nuovaCitta);
+		await page
+			.getByRole("textbox", { name: /^Note\b/ })
+			.fill("Referente: Laura Bassi\nFatture entro il 5 del mese");
 
 		await page.getByRole("button", { name: "Salva modifiche" }).click();
 		await page.waitForURL("**/anagrafiche/clienti?esito=salvato");
@@ -87,25 +93,25 @@ test.describe("US-007 Demo", () => {
 			.first();
 		await expect(rigaModificata.getByText(nuovaCitta)).toBeVisible();
 
-		const barraDisattiva = await selezionaRighe(page, [ragioneSociale]);
-		await barraDisattiva.getByRole("button", { name: "Disattiva", exact: true }).click();
-		await page
-			.getByRole("dialog", { name: `Disattivare «${ragioneSociale}»?` })
-			.getByRole("button", { name: "Disattiva", exact: true })
-			.click();
-		// La disattivazione riporta allo stesso elenco filtrato.
-		await expect(page).toHaveURL(
-			(url) =>
-				url.pathname === "/anagrafiche/clienti" &&
-				url.searchParams.get("q") === ragioneSociale,
+		// Scheda cliente: note su più righe e prima offerta.
+		await rigaModificata.getByRole("link", { name: ragioneSociale }).click();
+		await page.waitForURL(/\/anagrafiche\/clienti\/[^/?]+$/);
+		const titolo = page.getByRole("heading", { level: 1, name: ragioneSociale });
+		await expect(titolo).toContainText("Nuovo");
+		await expect(page.getByTestId("note-anagrafica")).toContainText(
+			"Fatture entro il 5 del mese",
 		);
 
-		const rigaDisattivata = page
-			.locator("table[aria-label='Elenco clienti'] tbody tr")
-			.filter({ hasText: ragioneSociale })
-			.first();
-		await expect(rigaDisattivata.getByText("Disattivato", { exact: true })).toBeVisible();
-		await expect(barraSelezione(page)).toBeHidden();
+		await page.getByRole("link", { name: "Nuova offerta" }).click();
+		await page.waitForURL(/\/offerte\/nuova$/);
+		await page.getByLabel("Codice").fill(`DEMO-${token}`.toUpperCase());
+		await page.getByLabel("Descrizione").fill("Percorso di coaching");
+		await page.getByLabel("Tariffa giornaliera").fill("600,00");
+		await page.getByLabel("Giorni previsti").fill("5");
+		await page.getByRole("button", { name: "Crea offerta" }).click();
+		await page.waitForURL(/\?esito=offerta-creata$/);
+		// Con un'offerta attiva il cliente diventa attivo.
+		await expect(titolo).toContainText("1 attiva");
 
 		// Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
 		await page.waitForTimeout(1500);

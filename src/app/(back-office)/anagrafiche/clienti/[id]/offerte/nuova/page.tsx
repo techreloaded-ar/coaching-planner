@@ -22,7 +22,6 @@ export default async function NuovaOffertaPage({ params }: NuovaOffertaPageProps
       cliente={{
         id: cliente.id,
         ragioneSociale: cliente.ragioneSociale,
-        attivo: cliente.attivo,
       }}
     />
   );

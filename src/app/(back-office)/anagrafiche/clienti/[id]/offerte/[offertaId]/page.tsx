@@ -24,7 +24,6 @@ export default async function ModificaOffertaPage({
       cliente={{
         id: offerta.cliente.id,
         ragioneSociale: offerta.cliente.ragioneSociale,
-        attivo: offerta.cliente.attivo,
       }}
       offerta={{
         id: offerta.id,
@@ -35,6 +34,7 @@ export default async function ModificaOffertaPage({
         gestioneTrasferta: offerta.gestioneTrasferta,
         importoTrasfertaForfettaria:
           offerta.importoTrasfertaForfettaria?.toString().replace(".", ",") ?? "",
+        note: offerta.note,
       }}
     />
   );

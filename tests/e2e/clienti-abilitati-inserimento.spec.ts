@@ -5,9 +5,10 @@ import { test, expect } from "./support/fixtures";
 /**
  * Selezione cliente nel form riga attività.
  *
- * La select propone tutti i clienti attivi: in cima il gruppo «Consigliati»
- * con i clienti su cui il collaboratore ha almeno un'offerta attiva
- * abilitata, sotto «Altri clienti». Una riga storica su un cliente non più
+ * La select propone tutti i clienti, qualunque sia il loro stato: in cima il
+ * gruppo «Consigliati» con i clienti su cui il collaboratore ha almeno
+ * un'offerta attiva abilitata, sotto «Altri clienti» (anche quelli nuovi o
+ * con offerte tutte chiuse). Una riga storica su un cliente non più
  * abilitato resta visibile, selezionata e salvabile a parità di offerta.
  */
 
@@ -34,6 +35,10 @@ test.describe("Selezione cliente con gruppo Consigliati", () => {
 			attiva: true,
 		});
 
+		// Cliente non attivo: offerte tutte chiuse, comunque selezionabile.
+		const clienteNonAttivo = await factory.createCliente();
+		await factory.createOfferta({ cliente: clienteNonAttivo, attiva: false });
+
 		await accediComeCollaboratore(page, collaboratore.utente.email);
 
 		const mese = meseRiservato("US-049");
@@ -50,6 +55,7 @@ test.describe("Selezione cliente con gruppo Consigliati", () => {
 		await expect(altriClienti).toContainText(
 			clienteNonAbilitato.ragioneSociale,
 		);
+		await expect(altriClienti).toContainText(clienteNonAttivo.ragioneSociale);
 	});
 
 	test("in modifica il cliente della riga storica resta visibile e il salvataggio a parità di offerta è consentito", async ({

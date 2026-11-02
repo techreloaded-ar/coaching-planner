@@ -76,7 +76,6 @@ import {
 import {
   creaCliente,
   aggiornaCliente,
-  cambiaStatoCliente,
 } from "@/app/(back-office)/anagrafiche/clienti/actions";
 
 // ═══════════════════════════════════════════════════════════════════
@@ -100,15 +99,25 @@ describe("DAL clienti", () => {
   // ── 1. elencaClientiPaginati ──────────────────────────────────
 
   describe("elencaClientiPaginati", () => {
-    it("legge solo la pagina richiesta, 25 clienti per pagina in ordine alfabetico", async () => {
-      mockCliente.count.mockResolvedValueOnce(120).mockResolvedValueOnce(100);
+    it("senza ricerca legge solo la pagina richiesta dei clienti attivi e nuovi, con i conteggi per stato", async () => {
+      mockCliente.count
+        .mockResolvedValueOnce(120)
+        .mockResolvedValueOnce(100)
+        .mockResolvedValueOnce(20)
+        .mockResolvedValueOnce(7);
       mockCliente.findMany.mockResolvedValue([]);
 
       const result = await elencaClientiPaginati({ ricerca: "", pagina: 2 });
 
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
       expect(mockCliente.findMany).toHaveBeenCalledWith({
-        where: {},
+        where: {
+          OR: [
+            { offerte: { some: { attiva: true } } },
+            { offerte: { none: {} } },
+          ],
+        },
+        include: { offerte: { select: { attiva: true } } },
         orderBy: [{ ragioneSociale: "asc" }, { id: "asc" }],
         skip: 25,
         take: 25,
@@ -117,16 +126,50 @@ describe("DAL clienti", () => {
         paginaCorrente: 2,
         totalePagine: 5,
         totaleElementi: 120,
-        attivi: 100,
-        disattivati: 20,
+        conteggiPerStato: { ATTIVO: 100, NUOVO: 20, NON_ATTIVO: 7 },
+        statiSelezionati: ["ATTIVO", "NUOVO"],
       });
     });
 
-    it("cerca sul server per ragione sociale, P.IVA o città e conta l'insieme filtrato", async () => {
+    it("con il filtro sui non attivi legge solo i clienti con offerte tutte chiuse", async () => {
       mockCliente.count.mockResolvedValue(0);
       mockCliente.findMany.mockResolvedValue([]);
 
-      await elencaClientiPaginati({ ricerca: "rossi", pagina: 1 });
+      await elencaClientiPaginati({ ricerca: "", pagina: 1, stati: ["NON_ATTIVO"] });
+
+      expect(mockCliente.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            OR: [
+              { AND: [{ offerte: { some: {} } }, { offerte: { none: { attiva: true } } }] },
+            ],
+          },
+        }),
+      );
+    });
+
+    it("restituisce ogni cliente con lo stato derivato dalle sue offerte", async () => {
+      mockCliente.count.mockResolvedValue(3);
+      mockCliente.findMany.mockResolvedValue([
+        { id: "a", ragioneSociale: "A", offerte: [{ attiva: true }, { attiva: false }] },
+        { id: "b", ragioneSociale: "B", offerte: [] },
+        { id: "c", ragioneSociale: "C", offerte: [{ attiva: false }, { attiva: false }] },
+      ]);
+
+      const { clienti } = await elencaClientiPaginati({ ricerca: "", pagina: 1 });
+
+      expect(clienti).toEqual([
+        { id: "a", ragioneSociale: "A", stato: { tipo: "ATTIVO", numeroOfferte: 1 } },
+        { id: "b", ragioneSociale: "B", stato: { tipo: "NUOVO", numeroOfferte: 0 } },
+        { id: "c", ragioneSociale: "C", stato: { tipo: "NON_ATTIVO", numeroOfferte: 2 } },
+      ]);
+    });
+
+    it("con una ricerca cerca su tutti i clienti a prescindere dal filtro e conta gli stati dell'insieme cercato", async () => {
+      mockCliente.count.mockResolvedValue(0);
+      mockCliente.findMany.mockResolvedValue([]);
+
+      await elencaClientiPaginati({ ricerca: "rossi", pagina: 1, stati: ["ATTIVO"] });
 
       const filtro = { contains: "rossi", mode: "insensitive" };
       const where = {
@@ -138,7 +181,10 @@ describe("DAL clienti", () => {
       };
       expect(mockCliente.count).toHaveBeenCalledWith({ where });
       expect(mockCliente.count).toHaveBeenCalledWith({
-        where: { AND: [where, { attivo: true }] },
+        where: { AND: [where, { offerte: { some: { attiva: true } } }] },
+      });
+      expect(mockCliente.count).toHaveBeenCalledWith({
+        where: { AND: [where, { offerte: { none: {} } }] },
       });
       expect(mockCliente.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where, skip: 0 }),
@@ -161,65 +207,30 @@ describe("DAL clienti", () => {
   // ── 2. elencaClientiSelezionabili ─────────────────────────────
 
   describe("elencaClientiSelezionabili", () => {
-    it("restituisce solo i clienti attivi, ordinati per ragioneSociale", async () => {
-      const clientiAttivi = [
-        {
-          id: "1",
-          ragioneSociale: "Cliente A",
-          attivo: true,
-          partitaIva: "11111111111",
-          codiceFiscale: null,
-          indirizzo: null,
-          citta: null,
-          cap: null,
-          provincia: null,
-          pec: null,
-          codiceDestinatario: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: "3",
-          ragioneSociale: "Cliente C",
-          attivo: true,
-          partitaIva: "33333333333",
-          codiceFiscale: null,
-          indirizzo: null,
-          citta: null,
-          cap: null,
-          provincia: null,
-          pec: null,
-          codiceDestinatario: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+    it("restituisce tutti i clienti, qualunque sia il loro stato, ordinati per ragioneSociale", async () => {
+      const clienti = [
+        { id: "1", ragioneSociale: "Cliente A" },
+        { id: "3", ragioneSociale: "Cliente C" },
       ];
-      mockCliente.findMany.mockResolvedValue(clientiAttivi);
+      mockCliente.findMany.mockResolvedValue(clienti);
 
       const result = await elencaClientiSelezionabili();
 
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
       expect(mockCliente.findMany).toHaveBeenCalledWith({
-        where: { attivo: true },
         orderBy: { ragioneSociale: "asc" },
       });
-      expect(result).toEqual(clientiAttivi);
-      expect(result).toHaveLength(2);
-      // Verifica che tutti i clienti restituiti siano attivi
-      for (const c of result) {
-        expect(c.attivo).toBe(true);
-      }
+      expect(result).toEqual(clienti);
     });
   });
 
   // ── 3-4. clientePerId ─────────────────────────────────────────
 
   describe("clientePerId", () => {
-    it("restituisce un cliente per ID", async () => {
+    it("restituisce un cliente per ID con lo stato derivato dalle offerte", async () => {
       const cliente = {
         id: "cliente-1",
         ragioneSociale: "Test SRL",
-        attivo: true,
         partitaIva: "12345678901",
         codiceFiscale: null,
         indirizzo: null,
@@ -231,15 +242,19 @@ describe("DAL clienti", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      mockCliente.findUnique.mockResolvedValue(cliente);
+      mockCliente.findUnique.mockResolvedValue({
+        ...cliente,
+        offerte: [{ attiva: true }, { attiva: true }, { attiva: false }],
+      });
 
       const result = await clientePerId("cliente-1");
 
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
       expect(mockCliente.findUnique).toHaveBeenCalledWith({
         where: { id: "cliente-1" },
+        include: { offerte: { select: { attiva: true } } },
       });
-      expect(result).toEqual(cliente);
+      expect(result).toEqual({ ...cliente, stato: { tipo: "ATTIVO", numeroOfferte: 2 } });
       expect(result?.ragioneSociale).toBe("Test SRL");
     });
 
@@ -250,6 +265,7 @@ describe("DAL clienti", () => {
 
       expect(mockCliente.findUnique).toHaveBeenCalledWith({
         where: { id: "inesistente" },
+        include: { offerte: { select: { attiva: true } } },
       });
       expect(result).toBeNull();
     });
@@ -348,6 +364,7 @@ describe("Server Actions clienti", () => {
       formData.set("provincia", "MI");
       formData.set("pec", "test@pec.it");
       formData.set("codiceDestinatario", "ABC1234");
+      formData.set("note", "  Referente: Mario\nPreferisce la PEC  ");
 
       await creaCliente(statoIniziale(), formData);
 
@@ -363,7 +380,7 @@ describe("Server Actions clienti", () => {
           provincia: "MI",
           pec: "test@pec.it",
           codiceDestinatario: "ABC1234",
-          attivo: true,
+          note: "Referente: Mario\nPreferisce la PEC",
         },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/clienti");
@@ -388,6 +405,7 @@ describe("Server Actions clienti", () => {
       formData.set("provincia", "RM");
       formData.set("pec", "");
       formData.set("codiceDestinatario", "");
+      formData.set("note", "   ");
 
       await aggiornaCliente(statoIniziale(), formData);
 
@@ -404,48 +422,11 @@ describe("Server Actions clienti", () => {
           provincia: "RM",
           pec: null,
           codiceDestinatario: null,
+          note: null,
         },
       });
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/clienti");
       expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/clienti?esito=salvato");
-    });
-  });
-
-  // ── 9-10. cambiaStatoCliente ─────────────────────────────────
-
-  describe("cambiaStatoCliente", () => {
-    it("attiva un cliente impostando attivo a true", async () => {
-      const formData = new FormData();
-      formData.set("id", "cliente-1");
-      formData.set("attivo", "true");
-
-      const result = await cambiaStatoCliente(statoIniziale(), formData);
-
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
-      expect(mockCliente.update).toHaveBeenCalledWith({
-        where: { id: "cliente-1" },
-        data: { attivo: true },
-      });
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/clienti");
-      expect(result.successo).toBe(true);
-      expect(result.errori).toEqual({});
-    });
-
-    it("disattiva un cliente impostando attivo a false", async () => {
-      const formData = new FormData();
-      formData.set("id", "cliente-2");
-      formData.set("attivo", "false");
-
-      const result = await cambiaStatoCliente(statoIniziale(), formData);
-
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
-      expect(mockCliente.update).toHaveBeenCalledWith({
-        where: { id: "cliente-2" },
-        data: { attivo: false },
-      });
-      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/clienti");
-      expect(result.successo).toBe(true);
-      expect(result.errori).toEqual({});
     });
   });
 
@@ -472,18 +453,6 @@ describe("Server Actions clienti", () => {
 
       await expect(
         aggiornaCliente(statoIniziale(), formData)
-      ).rejects.toThrow("Accesso negato");
-      expect(mockCliente.update).not.toHaveBeenCalled();
-    });
-
-    it("cambiaStatoCliente propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
-
-      const formData = new FormData();
-      formData.set("id", "cliente-1");
-
-      await expect(
-        cambiaStatoCliente(statoIniziale(), formData)
       ).rejects.toThrow("Accesso negato");
       expect(mockCliente.update).not.toHaveBeenCalled();
     });

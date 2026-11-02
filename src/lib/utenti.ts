@@ -11,6 +11,7 @@ export interface UtenteConProfiloCollaboratore {
   email: string;
   ruolo: Ruolo;
   attivo: boolean;
+  note: string | null;
   collaboratore: { attivo: boolean } | null;
 }
 
@@ -21,6 +22,7 @@ const selezioneUtenteConProfiloCollaboratore = {
   email: true,
   ruolo: true,
   attivo: true,
+  note: true,
   collaboratore: { select: { attivo: true } },
 } as const;
 

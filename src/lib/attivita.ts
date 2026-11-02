@@ -350,7 +350,7 @@ export async function contestoInserimentoPerCollaboratoreAutorizzato(
   collaboratoreId: string
 ): Promise<ContestoInserimentoGiornata> {
   const [clienti, vociRimborso] = await Promise.all([
-    leggiClientiAttiviPerSelezione(collaboratoreId),
+    leggiClientiPerSelezione(collaboratoreId),
     leggiVociRimborsoTrasfertaPerSelezione(),
   ]);
 
@@ -358,7 +358,7 @@ export async function contestoInserimentoPerCollaboratoreAutorizzato(
 }
 
 /**
- * Restituisce tutti i clienti attivi per la select del form attività,
+ * Restituisce tutti i clienti per la select del form attività,
  * marcando come consigliati quelli su cui il collaboratore corrente ha almeno
  * un'offerta attiva abilitata: l'offerta è facoltativa, quindi si possono
  * registrare ore anche su clienti senza offerte.
@@ -367,9 +367,9 @@ export async function contestoInserimentoPerCollaboratoreAutorizzato(
  * che è admin-only). Lancia ErroreAutorizzazione se non autenticato o se non
  * è un collaboratore.
  *
- * @returns Clienti attivi con id, ragione sociale e flag consigliato, ordinati per ragione sociale
+ * @returns Clienti con id, ragione sociale e flag consigliato, ordinati per ragione sociale
  */
-export async function clientiAttiviPerSelezione(): Promise<ClienteSelezionabile[]> {
+export async function clientiPerSelezione(): Promise<ClienteSelezionabile[]> {
   const collaboratore = await richiediCollaboratoreCorrente();
   if (!collaboratore) {
     throw new ErroreAutorizzazione(
@@ -378,21 +378,20 @@ export async function clientiAttiviPerSelezione(): Promise<ClienteSelezionabile[
     );
   }
 
-  return leggiClientiAttiviPerSelezione(collaboratore.id);
+  return leggiClientiPerSelezione(collaboratore.id);
 }
 
 /**
  * Query dei clienti selezionabili, senza guardia di autorizzazione.
  *
- * Condivisa da `clientiAttiviPerSelezione`, che risolve il collaboratore dalla
+ * Condivisa da `clientiPerSelezione`, che risolve il collaboratore dalla
  * sessione, e da `contestoInserimentoPerCollaboratoreAutorizzato`, che riceve
  * un id già autorizzato dal chiamante: le due non possono divergere.
  */
-async function leggiClientiAttiviPerSelezione(
+async function leggiClientiPerSelezione(
   collaboratoreId: string
 ): Promise<ClienteSelezionabile[]> {
   const clienti = await db.cliente.findMany({
-    where: { attivo: true },
     select: {
       id: true,
       ragioneSociale: true,

@@ -24,11 +24,14 @@ export function RicercaElenco({
   segnaposto,
   etichetta,
   className = "",
+  parametri,
 }: {
   ricerca: string;
   segnaposto: string;
   etichetta: string;
   className?: string;
+  /** Altri parametri URL da conservare (es. filtri dell'elenco). */
+  parametri?: Record<string, string>;
 }) {
   const router = useRouter();
   const percorso = usePathname();
@@ -55,7 +58,7 @@ export function RicercaElenco({
     timerRicerca.current = setTimeout(() => {
       setUltimaRicercaInviata(valore.trim());
       router.replace(
-        urlPosizioneElenco(percorso, { ricerca: valore.trim(), pagina: 1 }),
+        urlPosizioneElenco(percorso, { ricerca: valore.trim(), pagina: 1 }, parametri),
         { scroll: false },
       );
     }, ATTESA_RICERCA_MS);
@@ -109,7 +112,13 @@ export function PaginazioneElenco({
   paginaCorrente,
   totalePagine,
   totaleElementi,
-}: PaginaElenco & { percorso: string; ricerca: string }) {
+  parametri,
+}: PaginaElenco & {
+  percorso: string;
+  ricerca: string;
+  /** Altri parametri URL da conservare (es. filtri dell'elenco). */
+  parametri?: Record<string, string>;
+}) {
   if (totaleElementi === 0) {
     return null;
   }
@@ -117,7 +126,7 @@ export function PaginazioneElenco({
   const primo = inizioPagina(paginaCorrente) + 1;
   const ultimo = Math.min(paginaCorrente * ELEMENTI_PER_PAGINA, totaleElementi);
   const urlPagina = (pagina: number) =>
-    urlPosizioneElenco(percorso, { ricerca, pagina });
+    urlPosizioneElenco(percorso, { ricerca, pagina }, parametri);
 
   return (
     <div className="flex flex-wrap items-center gap-3 border-t border-zinc-200 px-4 py-[12px] dark:border-zinc-800">

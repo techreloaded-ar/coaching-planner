@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { PulsanteAttesa, useValoriInviati } from "@/components";
+import { CampoNote, ChipStatoCliente, PulsanteAttesa, useValoriInviati } from "@/components";
+import type { StatoCliente } from "@/domain/anagrafiche/stato-cliente";
 import {
   creaCliente,
   aggiornaCliente,
@@ -24,7 +25,8 @@ interface ClienteFormProps {
     provincia: string | null;
     pec: string | null;
     codiceDestinatario: string | null;
-    attivo: boolean;
+    note: string | null;
+    stato: StatoCliente;
   };
 }
 
@@ -217,6 +219,19 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               facoltativo
               uppercase
             />
+
+            {/* ── Note ── */}
+            <div className="col-span-2 mt-2 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px] text-indigo-500" strokeWidth={2}>
+                <path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="M13.5 6.5l4 4" />
+              </svg>
+              Note
+            </div>
+
+            <CampoNote
+              className="col-span-2"
+              defaultValue={valoreIniziale("note", cliente?.note ?? "")}
+            />
           </div>
         </div>
 
@@ -224,18 +239,7 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
         <div className="flex items-center justify-end gap-[10px] rounded-b-[11px] border-t border-zinc-200 bg-zinc-50 px-7 py-4 dark:border-zinc-700 dark:bg-zinc-800/50">
           {inModifica && (
             <span className="mr-auto flex items-center gap-[9px] text-[12.5px] text-zinc-400 dark:text-zinc-500">
-              Stato attuale:{" "}
-              {cliente!.attivo ? (
-                <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                  <span className="h-[6px] w-[6px] rounded-full bg-current" />
-                  Attivo
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-[5px] rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
-                  <span className="h-[6px] w-[6px] rounded-full bg-current" />
-                  Disattivato
-                </span>
-              )}
+              Stato attuale: <ChipStatoCliente stato={cliente!.stato} />
             </span>
           )}
           <Link

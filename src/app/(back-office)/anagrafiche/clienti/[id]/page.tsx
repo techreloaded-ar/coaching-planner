@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { richiediRuolo } from "@/lib/dal";
 import { clientePerId } from "@/lib/clienti";
 import { elencaOffertePerClienteConAvanzamento } from "@/lib/offerte";
+import { ChipStatoCliente, NoteAnagrafica } from "@/components";
 import OfferteClienteTabella from "./offerte-cliente-tabella";
 
 interface DettaglioClientePageProps {
@@ -70,17 +71,7 @@ export default async function DettaglioClientePage({
             </div>
             <h1 className="flex flex-wrap items-center gap-[10px] text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
               {cliente.ragioneSociale}
-              {cliente.attivo ? (
-                <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                  <span className="h-[6px] w-[6px] rounded-full bg-current" />
-                  Attivo
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-[5px] rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                  <span className="h-[6px] w-[6px] rounded-full bg-current" />
-                  Disattivato
-                </span>
-              )}
+              <ChipStatoCliente stato={cliente.stato} />
             </h1>
           </div>
         </div>
@@ -124,6 +115,10 @@ export default async function DettaglioClientePage({
           <Dato label="PEC" valore={cliente.pec} />
           <Dato label="Codice SDI" valore={cliente.codiceDestinatario} />
         </div>
+        <NoteAnagrafica
+          note={cliente.note}
+          className="border-t border-zinc-200 px-[22px] py-4 dark:border-zinc-800"
+        />
       </section>
 
       <section className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">

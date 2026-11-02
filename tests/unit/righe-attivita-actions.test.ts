@@ -451,7 +451,7 @@ describe("creaRiga", () => {
       stato: "ATTIVO",
       collaboratore: collaboratoreMock(),
     });
-    mockCliente.findUnique.mockResolvedValue({ attivo: true });
+    mockCliente.findUnique.mockResolvedValue({ id: "cliente-nuovo" });
     mockRigaAttivita.create.mockResolvedValue({ id: "riga-1" });
 
     const result = await creaRiga(
@@ -461,7 +461,7 @@ describe("creaRiga", () => {
     expect(result.success).toBe(true);
     expect(mockCliente.findUnique).toHaveBeenCalledWith({
       where: { id: "cliente-nuovo" },
-      select: { attivo: true },
+      select: { id: true },
     });
     expect(mockOfferta.findUnique).not.toHaveBeenCalled();
     expect(mockAbilitazioneOfferta.findUnique).not.toHaveBeenCalled();
@@ -470,18 +470,18 @@ describe("creaRiga", () => {
     expect(chiamata.data.offertaId).toBeNull();
   });
 
-  it("rifiuta una riga senza offerta su un cliente non più attivo", async () => {
+  it("rifiuta una riga senza offerta su un cliente inesistente", async () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
       stato: "ATTIVO",
       collaboratore: collaboratoreMock(),
     });
-    mockCliente.findUnique.mockResolvedValue({ attivo: false });
+    mockCliente.findUnique.mockResolvedValue(null);
 
     const result = await creaRiga(
-      creaFormData({ clienteId: "cliente-chiuso", ore: "4", data: "2026-07-01" })
+      creaFormData({ clienteId: "cliente-inesistente", ore: "4", data: "2026-07-01" })
     );
 
-    expect(result).toEqual({ success: false, error: "Il cliente non è più attivo" });
+    expect(result).toEqual({ success: false, error: "Cliente non trovato" });
     expect(mockRigaAttivita.create).not.toHaveBeenCalled();
   });
 
@@ -869,7 +869,7 @@ describe("modificaRiga", () => {
     expect(mockRigaAttivita.update.mock.calls[0][0].data.offertaId).toBe("offerta-2");
   });
 
-  it("rifiuta di spostare una riga senza offerta su un cliente non più attivo", async () => {
+  it("rifiuta di spostare una riga senza offerta su un cliente inesistente", async () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
       stato: "ATTIVO",
       collaboratore: collaboratoreMock(),
@@ -879,13 +879,13 @@ describe("modificaRiga", () => {
       offertaId: null,
       clienteId: "cliente-1",
     });
-    mockCliente.findUnique.mockResolvedValue({ attivo: false });
+    mockCliente.findUnique.mockResolvedValue(null);
 
     const result = await modificaRiga(
-      creaFormData({ rigaId: "riga-1", clienteId: "cliente-chiuso", offertaId: "", data: "2026-07-01" })
+      creaFormData({ rigaId: "riga-1", clienteId: "cliente-inesistente", offertaId: "", data: "2026-07-01" })
     );
 
-    expect(result).toEqual({ success: false, error: "Il cliente non è più attivo" });
+    expect(result).toEqual({ success: false, error: "Cliente non trovato" });
     expect(mockRigaAttivita.update).not.toHaveBeenCalled();
   });
 
@@ -1270,9 +1270,9 @@ describe("duplicaRigaSuGiorni", () => {
     aspettataNessunaInvalidazione();
   });
 
-  it("duplica una riga con offerta da definire verificando solo che il cliente sia attivo", async () => {
+  it("duplica una riga con offerta da definire verificando solo che il cliente esista", async () => {
     mockRigaAttivita.findUnique.mockResolvedValue({ ...rigaSorgenteMock(), offertaId: null });
-    mockCliente.findUnique.mockResolvedValue({ attivo: true });
+    mockCliente.findUnique.mockResolvedValue({ id: "cliente-nuovo" });
 
     const result = await duplicaRigaSuGiorni("riga-1", ["2026-03-17"]);
 
