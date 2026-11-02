@@ -178,6 +178,8 @@ describe("Server Actions offerte", () => {
 		formData.set("giorniPrevisti", "5");
 		formData.set("gestioneTrasferta", "INCLUSA");
 		formData.set("importoTrasfertaForfettaria", "80,00");
+		formData.set("numeroOrdine", " PO-2026/0042 ");
+		formData.set("accountAgileReloaded", "Stefano Marello");
 		formData.set("note", "Rinnovo previsto a settembre\nReferente HR");
 
 		await creaOfferta({ errori: {} }, formData);
@@ -191,6 +193,8 @@ describe("Server Actions offerte", () => {
 				giorniPrevisti: 5,
 				gestioneTrasferta: "INCLUSA",
 				importoTrasfertaForfettaria: null,
+				numeroOrdine: "PO-2026/0042",
+				accountAgileReloaded: "Stefano Marello",
 				note: "Rinnovo previsto a settembre\nReferente HR",
 				attiva: true,
 			},
@@ -229,6 +233,8 @@ describe("Server Actions offerte", () => {
 				giorniPrevisti: 8,
 				gestioneTrasferta: "FORFETTARIA",
 				importoTrasfertaForfettaria: "80.00",
+				numeroOrdine: null,
+				accountAgileReloaded: null,
 				note: null,
 			},
 		});

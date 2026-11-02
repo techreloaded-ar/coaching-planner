@@ -13,7 +13,7 @@ import {
   type ErroriValidazioneOfferta,
 } from "@/domain/anagrafiche/valida-offerta";
 import type { GestioneTrasferta } from "@/domain/types";
-import { leggiNoteDaForm } from "@/domain/anagrafiche/note";
+import { leggiNoteDaForm, leggiTestoFacoltativoDaForm } from "@/domain/anagrafiche/note";
 
 export interface StatoActionOfferta {
   errori: ErroriValidazioneOfferta;
@@ -120,6 +120,8 @@ export async function creaOfferta(
         descrizione: dati.descrizione,
         ...valoriFacoltativi(dati),
         ...condizioniTrasferta(dati),
+        numeroOrdine: leggiTestoFacoltativoDaForm(formData, "numeroOrdine"),
+        accountAgileReloaded: leggiTestoFacoltativoDaForm(formData, "accountAgileReloaded"),
         note: leggiNoteDaForm(formData),
         attiva: true,
       },
@@ -177,6 +179,8 @@ export async function aggiornaOfferta(
         descrizione: dati.descrizione,
         ...valoriFacoltativi(dati),
         ...condizioniTrasferta(dati),
+        numeroOrdine: leggiTestoFacoltativoDaForm(formData, "numeroOrdine"),
+        accountAgileReloaded: leggiTestoFacoltativoDaForm(formData, "accountAgileReloaded"),
         note: leggiNoteDaForm(formData),
       },
     });

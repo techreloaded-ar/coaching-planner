@@ -9,7 +9,7 @@ import {
   type DatiClienteInput,
   type ErroriValidazione,
 } from "@/domain/anagrafiche/valida-cliente";
-import { leggiNoteDaForm } from "@/domain/anagrafiche/note";
+import { leggiNoteDaForm, leggiTestoFacoltativoDaForm } from "@/domain/anagrafiche/note";
 
 // ── Tipi per useActionState ─────────────────────────────────────
 
@@ -79,6 +79,7 @@ export async function creaCliente(
       provincia: dati.provincia || null,
       pec: dati.pec || null,
       codiceDestinatario: dati.codiceDestinatario || null,
+      personaRiferimento: leggiTestoFacoltativoDaForm(formData, "personaRiferimento"),
       note: leggiNoteDaForm(formData),
     },
   });
@@ -122,6 +123,7 @@ export async function aggiornaCliente(
       provincia: dati.provincia || null,
       pec: dati.pec || null,
       codiceDestinatario: dati.codiceDestinatario || null,
+      personaRiferimento: leggiTestoFacoltativoDaForm(formData, "personaRiferimento"),
       note: leggiNoteDaForm(formData),
     },
   });

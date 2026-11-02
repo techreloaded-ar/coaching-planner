@@ -25,6 +25,7 @@ interface ClienteFormProps {
     provincia: string | null;
     pec: string | null;
     codiceDestinatario: string | null;
+    personaRiferimento: string | null;
     note: string | null;
     stato: StatoCliente;
   };
@@ -137,6 +138,15 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
               defaultValue={valoreIniziale("codiceFiscale", cliente?.codiceFiscale ?? "")}
               errore={stato.errori.codiceFiscale}
               facoltativo
+            />
+
+            <Campo
+              label="Persona di riferimento"
+              name="personaRiferimento"
+              placeholder="Chi è il nostro interlocutore presso il cliente"
+              defaultValue={valoreIniziale("personaRiferimento", cliente?.personaRiferimento ?? "")}
+              facoltativo
+              fullWidth
             />
 
             {/* ── Sede legale ── */}
