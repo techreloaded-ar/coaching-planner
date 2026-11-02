@@ -169,9 +169,19 @@ case "$comando" in
   build)
     esporta_ambiente
     npm run build
+    # ponytail: il supervisore dei check, a fine comando, ferma il process group;
+    # su macOS i worker di next build appena usciti e non ancora raccolti fanno
+    # fallire quel kill (EPERM) e il check risulta fallito con build riuscita.
+    # Togliere l'attesa quando la CLI ignorerà EPERM sul gruppo.
+    sleep 1
     ;;
   e2e)
     esporta_ambiente
+    # La 3000 può essere occupata dal server di sviluppo di un altro checkout:
+    # senza E2E_PORT si usa una porta libera, e l'URL pubblico (incluso nella
+    # build e usato dai redirect OAuth simulati) la segue.
+    E2E_PORT="${E2E_PORT:-$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')}"
+    export E2E_PORT NEXT_PUBLIC_APP_URL="http://localhost:${E2E_PORT}"
     npx playwright test --reporter=line "$@"
     ;;
   anteprima)

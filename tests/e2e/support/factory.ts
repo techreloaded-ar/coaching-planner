@@ -7,6 +7,8 @@ import type {
 	ModalitaTariffa,
 	Offerta,
 	RigaAttivita,
+	MotivoSospensione,
+	RigaAttivitaSospesa,
 	Ruolo,
 	Utente,
 	VoceRimborsoTrasferta,
@@ -90,6 +92,14 @@ export type CreateRigaAttivitaOptions = {
 	categoria?: "FATTURABILE" | "NON_FATTURABILE" | "INVESTIMENTO";
 	rimborsoTrasfertaEtichetta?: string | null;
 	rimborsoTrasfertaImporto?: string | number | null;
+};
+
+export type CreateRigaAttivitaSospesaOptions = {
+	motivo?: MotivoSospensione;
+	data?: string;
+	cliente?: string;
+	codiceOfferta?: string;
+	ore?: string;
 };
 
 export type CreateVoceRimborsoTrasfertaOptions = {
@@ -335,6 +345,30 @@ export class E2eDataFactory {
 				options.rimborsoTrasfertaEtichetta,
 				options.rimborsoTrasfertaImporto,
 				now,
+			],
+		);
+	}
+
+	/** Riga sospesa aperta, con un collaboratore grezzo univoco per il test. */
+	async createRigaAttivitaSospesa(
+		options: CreateRigaAttivitaSospesaOptions = {},
+	): Promise<RigaAttivitaSospesa> {
+		const token = this.nextToken("riga-sospesa");
+
+		return insertReturning<RigaAttivitaSospesa>(
+			this.prisma,
+			`INSERT INTO "RigaAttivitaSospesa" ("id", "collaboratore", "data", "cliente", "codiceOfferta", "ore", "tipologiaFatturazione", "motivo")
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8::"MotivoSospensione")
+			 RETURNING *`,
+			[
+				randomUUID(),
+				`E2E ${this.readableName(token)}`,
+				options.data ?? "2026-03-02",
+				options.cliente ?? "Cliente non censito",
+				options.codiceOfferta ?? "XX-01",
+				options.ore ?? "8",
+				"FATTURABILE",
+				options.motivo ?? "CLIENTE_SCONOSCIUTO",
 			],
 		);
 	}

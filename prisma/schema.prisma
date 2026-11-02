@@ -225,6 +225,36 @@ model RigaAttivita {
   @@index([collaboratoreId, data, createdAt], map: "RigaAttivita_collaboratore_data_createdAt_idx")
 }
 
+// ── Righe attività sospese dall'import Excel ─────────────────────
+
+// Perché una riga del foglio di pianificazione non è entrata come
+// RigaAttivita: il primo problema riscontrato, nell'ordine dell'enum.
+enum MotivoSospensione {
+  COLLABORATORE_SCONOSCIUTO
+  CLIENTE_SCONOSCIUTO
+  OFFERTA_SCONOSCIUTA
+  OFFERTA_ALTRO_CLIENTE
+  DATI_NON_VALIDI
+}
+
+/// Riga dell'Excel conservata così com'è: valori grezzi senza foreign key,
+/// anche quando non corrispondono a nulla. L'amministratore modifica solo
+/// `risoltaIl` (null finché la riga è da guardare).
+model RigaAttivitaSospesa {
+  id                    String            @id @default(uuid())
+  collaboratore         String?
+  /// YYYY-MM-DD quando leggibile, altrimenti il valore grezzo.
+  data                  String?
+  cliente               String?
+  codiceOfferta         String?
+  ore                   String?
+  tipologiaFatturazione String?
+  motivo                MotivoSospensione
+  nota                  String?           @db.Text
+  risoltaIl             DateTime?
+  createdAt             DateTime          @default(now())
+}
+
 // ── Abilitazioni Collaboratore su Offerta ────────────────────────
 
 model AbilitazioneOfferta {

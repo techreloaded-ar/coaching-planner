@@ -31,6 +31,7 @@
 * [Identità, sessioni e accesso](domains/identita-accesso.md) - Censimento utenti, accesso Google, sessione JWT, ruoli, policy di rotta e segregazione dei dati. _State: reviewed._
 * [Offerte](domains/offerte.md) - Impegni commerciali per cliente, budget in giornate e monitoraggio dell’avanzamento. _State: reviewed._
 * [Politiche di rimborso trasferta](domains/politiche-rimborso.md) - Configurazione globale delle voci di rimborso trasferta a etichetta libera e importo forfettario. _State: reviewed._
+* [Righe sospese dell'import Excel](domains/righe-sospese-import.md) - Righe di pianificazione che l'import Excel non ha abbinato alle anagrafiche, conservate grezze e marcate come risolte dall'amministratore. _State: generated._
 
 ## Engineering
 

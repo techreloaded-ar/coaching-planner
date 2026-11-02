@@ -57,6 +57,7 @@
     "node_modules",
     "src/generated/prisma"
   ],
+  "local_files": null,
   "prepare": [
     {
       "name": "npm-ci",

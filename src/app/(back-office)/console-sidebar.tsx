@@ -52,6 +52,12 @@ const IconAttivita = (
   </svg>
 );
 
+const IconRigheSospese = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9}>
+    <path d="M12 3 2.5 19.5h19L12 3Z" /><path d="M12 10v4.5M12 17.2h.01" />
+  </svg>
+);
+
 // ── Dati di navigazione ────────────────────────────────────────
 
 const NAV_ITEMS = [
@@ -62,6 +68,7 @@ const NAV_ITEMS = [
   { href: "/anagrafiche/voci-rimborso", label: "Voci di rimborso", icon: IconVociRimborso },
   { href: "/report/fatturazione-clienti", label: "Fatturazione clienti", icon: IconReport },
   { href: "/report/marginalita", label: "Marginalità", icon: IconReport },
+  { href: "/righe-sospese", label: "Righe sospese", icon: IconRigheSospese },
 ] as const;
 
 // ── Componente ─────────────────────────────────────────────────

@@ -10,6 +10,7 @@ async function main() {
   console.log("🌱 Avvio seed del database...\n");
 
   // Pulisci i dati esistenti in ordine di dipendenza (figli prima dei genitori)
+  await prisma.rigaAttivitaSospesa.deleteMany();
   await prisma.eventoCalendarioGestito.deleteMany();
   await prisma.collegamentoCalendarioGoogle.deleteMany();
   await prisma.rigaAttivita.deleteMany();
@@ -335,6 +336,20 @@ async function main() {
   console.log(
     `✓ Create ${attivitaSecondoCollaboratore.length} attività del secondo collaboratore`
   );
+
+  // ── Righe sospese di esempio dell'import Excel ───────────────
+  // Valori grezzi come li conserverebbe l'import, uno per motivo, così la
+  // pagina "Righe sospese" del back-office non parte vuota.
+  const righeSospese = await prisma.rigaAttivitaSospesa.createMany({
+    data: [
+      { collaboratore: "P. Rossi", data: "2026-03-02", cliente: "TechSolutions Srl", codiceOfferta: "TS-2025-01", ore: "8", tipologiaFatturazione: "FATTURABILE", motivo: "COLLABORATORE_SCONOSCIUTO" },
+      { collaboratore: "Giulia Conti", data: "2026-03-05", cliente: "Acme Retail", codiceOfferta: "AR-01", ore: "2,5", tipologiaFatturazione: "FATTURABILE", motivo: "CLIENTE_SCONOSCIUTO" },
+      { collaboratore: "Giulia Conti", data: "2026-03-06", cliente: "DataFlow SpA", codiceOfferta: "DF-99", ore: "4", tipologiaFatturazione: "FATTURABILE", motivo: "OFFERTA_SCONOSCIUTA" },
+      { collaboratore: "Marco Bianchi", data: "2026-03-09", cliente: "DataFlow SpA", codiceOfferta: "TS-2025-01", ore: "6", tipologiaFatturazione: "FATTURABILE", motivo: "OFFERTA_ALTRO_CLIENTE", nota: "Il codice TS-2025-01 esiste sul cliente TechSolutions Srl" },
+      { collaboratore: "Marco Bianchi", data: "31/02/2026", cliente: "TechSolutions Srl", codiceOfferta: "TS-2025-01", ore: "abc", tipologiaFatturazione: "FATTURABILE", motivo: "DATI_NON_VALIDI", nota: "Data illeggibile" },
+    ],
+  });
+  console.log(`✓ Create ${righeSospese.count} righe sospese di esempio`);
 
   // ── Backfill abilitazioni iniziali (US-042) ──────────────────
   // Il seed svuota le tabelle all'avvio, quindi il guard "tabella vuota"

@@ -38,6 +38,16 @@ export interface StatoElencoSelezionabile<T> {
   descrizioneDisattivazione?: (elementi: T[]) => ReactNode;
 }
 
+/**
+ * Segna come risolti / di nuovo da risolvere, anche su più elementi. La server
+ * action riceve un campo `id` per ogni elemento coinvolto e `risolta`
+ * ("true"/"false").
+ */
+export interface RisoluzioneElencoSelezionabile<T> {
+  risolta: (elemento: T) => boolean;
+  azione: (formData: FormData) => void | Promise<void>;
+}
+
 export interface NomiElemento {
   singolare: string;
   plurale: string;
@@ -52,6 +62,7 @@ interface ElencoSelezionabileProps<T> {
   nomi: NomiElemento;
   azioni?: AzioneElencoSelezionabile<T>[];
   stato?: StatoElencoSelezionabile<T>;
+  risoluzione?: RisoluzioneElencoSelezionabile<T>;
   children: ReactNode;
 }
 
@@ -62,6 +73,7 @@ interface ContestoSelezione {
   nomi: NomiElemento;
   azioni: AzioneElencoSelezionabile<unknown>[];
   stato?: StatoElencoSelezionabile<unknown>;
+  risoluzione?: RisoluzioneElencoSelezionabile<unknown>;
   selezionati: Set<string>;
   impostaSelezione: (selezionati: Set<string>) => void;
   chiediDisattivazione: () => void;
@@ -92,6 +104,7 @@ export function ElencoSelezionabile<T>({
   nomi,
   azioni = [],
   stato,
+  risoluzione,
   children,
 }: ElencoSelezionabileProps<T>) {
   const [selezionati, setSelezionati] = useState<Set<string>>(() => new Set());
@@ -113,6 +126,7 @@ export function ElencoSelezionabile<T>({
     nomi,
     azioni: azioni as AzioneElencoSelezionabile<unknown>[],
     stato: stato as StatoElencoSelezionabile<unknown> | undefined,
+    risoluzione: risoluzione as RisoluzioneElencoSelezionabile<unknown> | undefined,
     selezionati,
     impostaSelezione: setSelezionati,
     chiediDisattivazione: () => setConferma(true),
@@ -215,6 +229,7 @@ const ICONA_COLLABORATORI = (
 );
 const ICONA_DISATTIVA = <Icona><circle cx="12" cy="12" r="8.6" /><path d="M6 6l12 12" /></Icona>;
 const ICONA_RIATTIVA = <Icona><path d="M4.5 12a7.5 7.5 0 1 1 2.2 5.3" /><path d="M4.5 17.5V12H10" /></Icona>;
+const ICONA_RISOLVI = <Icona><path d="M4.5 12.5 9.5 17.5 19.5 6.5" /></Icona>;
 const ICONA_ELIMINA = (
   <Icona><path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" /></Icona>
 );
@@ -247,6 +262,7 @@ export function BarraElencoSelezionabile({ children }: { children: ReactNode }) 
     nomi,
     azioni,
     stato,
+    risoluzione,
     selezionati,
     impostaSelezione,
     chiediDisattivazione,
@@ -264,6 +280,8 @@ export function BarraElencoSelezionabile({ children }: { children: ReactNode }) 
   const singolo = elementiSelezionati.length === 1 ? elementiSelezionati[0] : null;
   const daRiattivare = stato ? elementiSelezionati.filter((elemento) => !stato.attivo(elemento)) : [];
   const numeroDaDisattivare = stato ? elementiSelezionati.length - daRiattivare.length : 0;
+  const giaRisolti = risoluzione ? elementiSelezionati.filter((elemento) => risoluzione.risolta(elemento)) : [];
+  const daRisolvere = risoluzione ? elementiSelezionati.filter((elemento) => !risoluzione.risolta(elemento)) : [];
   const n = elementiSelezionati.length;
   const desinenza = nomi.femminile ? (n === 1 ? "a" : "e") : n === 1 ? "o" : "i";
 
@@ -315,6 +333,32 @@ export function BarraElencoSelezionabile({ children }: { children: ReactNode }) 
           <PulsanteAttesa className={`${classePulsante} ${tonoVerde}`}>
             {ICONA_RIATTIVA}
             {etichettaConConteggio("Riattiva", daRiattivare.length, n)}
+          </PulsanteAttesa>
+        </form>
+      )}
+
+      {risoluzione && daRisolvere.length > 0 && (
+        <form action={risoluzione.azione} className="contents">
+          <CampiId id={daRisolvere.map(idElemento)} />
+          <input type="hidden" name="risolta" value="true" />
+          <PulsanteAttesa className={`${classePulsante} ${tonoVerde}`}>
+            {ICONA_RISOLVI}
+            {etichettaConConteggio(
+              `Segna come risolt${nomi.femminile ? (daRisolvere.length === 1 ? "a" : "e") : daRisolvere.length === 1 ? "o" : "i"}`,
+              daRisolvere.length,
+              n,
+            )}
+          </PulsanteAttesa>
+        </form>
+      )}
+
+      {risoluzione && giaRisolti.length > 0 && (
+        <form action={risoluzione.azione} className="contents">
+          <CampiId id={giaRisolti.map(idElemento)} />
+          <input type="hidden" name="risolta" value="false" />
+          <PulsanteAttesa className={`${classePulsante} ${tonoNeutro}`}>
+            {ICONA_RIATTIVA}
+            {etichettaConConteggio("Segna come da risolvere", giaRisolti.length, n)}
           </PulsanteAttesa>
         </form>
       )}
