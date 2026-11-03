@@ -2,7 +2,11 @@
  * Import dello storico (CLIENTI, OFFERTE, COACH, GIORNATE) nel Coaching Planner.
  *
  * Uso:
- *   npm run db:importa-storico -- [tutto|clienti|offerte|coach|giornate] [--dry-run] [--reset] [--config <file>]
+ *   npm run db:importa-storico -- [tutto|clienti|offerte|coach|rimborsi|giornate] [--dry-run] [--reset] [--config <file>]
+ *
+ * Il comando è lo stesso da bash/zsh (Mac, Linux) e da PowerShell: da PowerShell il `--`
+ * viene consumato dalla shell e npm trattiene i flag come npm_config_*, che argomenti.ts
+ * recupera (vedi lì per i dettagli).
  *
  * - Legge la configurazione da scripts/importa-storico/.env.importa-storico (vedi .example).
  * - Prima di toccare i dati rigenera il client Prisma (nello script npm) e controlla che il
@@ -11,8 +15,10 @@
  * - Senza --reset aggiunge solo ciò che manca: clienti per ragione sociale, offerte per
  *   cliente e codice, coach per email (l'ID del foglio), voci di rimborso per etichetta,
  *   righe attività per collaboratore, data, cliente e offerta. Ciò che esiste non si tocca.
- * - Con --reset svuota prima tutte le tabelle applicative (utenti compresi, voci di
- *   rimborso escluse).
+ * - Con --reset svuota prima tutte le tabelle applicative (utenti e voci di rimborso
+ *   compresi): le voci di rimborso vengono ricreate subito dopo dalla configurazione.
+ * - Le righe dei clienti in CLIENTI_ESCLUSI (predefinito: ND) vengono saltate in ogni passo
+ *   e contate nel riepilogo come righeDiClientiEsclusi / offerteDiClientiEsclusi.
  */
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -25,28 +31,13 @@ import { importaRimborsi } from "./rimborsi";
 import { importaGiornate } from "./giornate";
 import { normalizzaTesto } from "../../src/domain/righe-sospese/abbinamento";
 import { verificaClientPrisma, verificaMigrazioni } from "./ambiente";
-
-const PASSI = ["clienti", "offerte", "coach", "rimborsi", "giornate"] as const;
-type Passo = (typeof PASSI)[number];
+import { leggiArgomenti } from "./argomenti";
 
 class ProvaASecco extends Error {}
 
-function leggiArgomenti(argv: string[]) {
-  const opzioni = { passi: [...PASSI] as Passo[], dryRun: false, reset: false, config: PERCORSO_CONFIGURAZIONE_PREDEFINITO };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--dry-run") opzioni.dryRun = true;
-    else if (a === "--reset") opzioni.reset = true;
-    else if (a === "--config") opzioni.config = argv[++i] ?? "";
-    else if (a === "tutto") opzioni.passi = [...PASSI];
-    else if ((PASSI as readonly string[]).includes(a)) opzioni.passi = [a as Passo];
-    else throw new Error(`Argomento non riconosciuto: ${a}\nUso: [tutto|${PASSI.join("|")}] [--dry-run] [--reset] [--config <file>]`);
-  }
-  return opzioni;
-}
-
 async function azzeraTabelle(tx: Prisma.TransactionClient): Promise<void> {
   await tx.rigaAttivitaSospesa.deleteMany();
+  await tx.voceRimborsoTrasferta.deleteMany();
   await tx.rigaAttivita.deleteMany();
   await tx.abilitazioneOfferta.deleteMany();
   await tx.eventoCalendarioGestito.deleteMany();
@@ -62,7 +53,7 @@ async function azzeraTabelle(tx: Prisma.TransactionClient): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const opzioni = leggiArgomenti(process.argv.slice(2));
+  const opzioni = leggiArgomenti(process.argv.slice(2), PERCORSO_CONFIGURAZIONE_PREDEFINITO, process.env);
   const cfg: Configurazione = caricaConfigurazione(opzioni.config);
   console.log(`Origine: ${cfg.origineFoglio}\nPassi: ${opzioni.passi.join(", ")}${opzioni.dryRun ? " (prova a secco)" : ""}${opzioni.reset ? " con azzeramento" : ""}\n`);
 

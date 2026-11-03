@@ -16,6 +16,13 @@ npm run db:importa-storico -- giornate --dry-run # un solo passo (clienti|offert
 npm run db:importa-storico -- --config altro.env
 ```
 
+Gli stessi comandi valgono da bash/zsh (Mac, Linux) e da PowerShell. Da PowerShell il
+separatore `--` viene consumato dalla shell e npm tratta `--reset`, `--dry-run` e `--config`
+come proprie opzioni (compare un avviso "Unknown cli config", innocuo): lo script le
+recupera dalle variabili `npm_config_*` che npm imposta, quindi l'effetto è identico. Vale
+anche la forma `--config=altro.env`. La riga `Passi: ...` in testa all'output conferma cosa
+è stato letto: `(prova a secco)` per `--dry-run`, `con azzeramento` per `--reset`.
+
 Il comando rigenera prima il client Prisma, così è sempre allineato allo schema anche
 dopo un `git pull`. Prima di toccare i dati lo script controlla anche che il database di
 `DATABASE_URL` abbia tutte le migrazioni di `prisma/migrations`; se ne mancano (database
@@ -43,7 +50,9 @@ non trovate entrano tutte, anche se ripetute tra loro. Con `--reset` entra quind
 del foglio.
 
 `--reset` svuota utenti, collaboratori, tariffe, clienti, offerte, righe attività, righe
-sospese e abilitazioni; non tocca le voci di rimborso trasferta.
+sospese, abilitazioni e voci di rimborso trasferta. Le voci di rimborso vengono ricreate
+subito dopo dalla configurazione, quindi con `--reset` il passo `rimborsi` le riporta tutte
+come `inserite`; eventuali voci aggiunte a mano dal back office spariscono.
 
 ## Accesso al Google Sheets
 
@@ -118,7 +127,9 @@ report `lavoro/righe-sospese.csv`. In particolare:
   che ha lo stesso importo, altrimenti "Spese dal foglio storico";
 - per ogni coppia (collaboratore, offerta) incontrata viene creata l'abilitazione.
 
-I clienti in `CLIENTI_ESCLUSI` (predefinito: ND) sono ignorati in tutte le schede.
+I clienti in `CLIENTI_ESCLUSI` (predefinito: ND) sono ignorati in tutte le schede: le loro
+righe non entrano né tra le importate né tra le sospese e compaiono nel riepilogo come
+`esclusi` (clienti), `offerteDiClientiEsclusi` (offerte) e `righeDiClientiEsclusi` (giornate).
 
 ## Modulo riusabile
 

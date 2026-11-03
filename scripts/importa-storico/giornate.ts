@@ -33,7 +33,7 @@ export interface EsitoGiornate {
   conOreZero: number;
   conRimborso: number;
   abilitazioniCreate: number;
-  escluse: number;
+  righeDiClientiEsclusi: number;
   sospesePerMotivo: Record<MotivoSospensione, number>;
   reportSospese: string;
 }
@@ -56,7 +56,7 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
 
   const esito: EsitoGiornate = {
     righeLette: 0, importate: 0, giaPresenti: 0, sospeseGiaPresenti: 0, conOffertaDaDefinire: 0, conOffertaDedotta: 0, conOreDaiGiorni: 0, conOreZero: 0,
-    conRimborso: 0, abilitazioniCreate: 0, escluse: 0,
+    conRimborso: 0, abilitazioniCreate: 0, righeDiClientiEsclusi: 0,
     sospesePerMotivo: { COLLABORATORE_SCONOSCIUTO: 0, CLIENTE_SCONOSCIUTO: 0, OFFERTA_SCONOSCIUTA: 0, OFFERTA_ALTRO_CLIENTE: 0, DATI_NON_VALIDI: 0 },
     reportSospese: path.join(cfg.cartellaLavoro, "righe-sospese.csv"),
   };
@@ -91,7 +91,7 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
     };
 
     const clienteNormalizzato = normalizzaTesto(grezzi.cliente);
-    if (cfg.clientiEsclusi.has(clienteNormalizzato)) { esito.escluse++; continue; }
+    if (cfg.clientiEsclusi.has(clienteNormalizzato)) { esito.righeDiClientiEsclusi++; continue; }
 
     const emailCoach = idCoachEmail.get(normalizzaTesto(grezzi.collaboratore));
     const collaboratoreId = emailCoach ? collaboratorePerEmail.get(emailCoach) : undefined;

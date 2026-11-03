@@ -15,7 +15,7 @@ export interface EsitoOfferte {
   /** Clienti presenti solo nella scheda offerte, creati con la sola ragione sociale */
   clientiCreati: string[];
   duplicate: string[];
-  escluse: number;
+  offerteDiClientiEsclusi: number;
   scartate: string[];
 }
 
@@ -25,7 +25,7 @@ export async function importaOfferte(tx: Prisma.TransactionClient, cfg: Configur
 
   const clienti = await tx.cliente.findMany({ select: { id: true, ragioneSociale: true } });
   const idCliente = new Map(clienti.map((c) => [normalizzaTesto(c.ragioneSociale), c.id]));
-  const esito: EsitoOfferte = { inserite: 0, giaPresenti: 0, attive: 0, forfettarie: 0, senzaCodice: 0, clientiCreati: [], duplicate: [], escluse: 0, scartate: [] };
+  const esito: EsitoOfferte = { inserite: 0, giaPresenti: 0, attive: 0, forfettarie: 0, senzaCodice: 0, clientiCreati: [], duplicate: [], offerteDiClientiEsclusi: 0, scartate: [] };
   // Chiave dell'offerta: cliente + codice (normalizzato). Le offerte già presenti non si toccano.
   const viste = new Set<string>();
   const esistenti = new Set((await tx.offerta.findMany({ select: { clienteId: true, codice: true } })).map((o) => `${o.clienteId}|${normalizzaTesto(o.codice)}`));
@@ -35,7 +35,7 @@ export async function importaOfferte(tx: Prisma.TransactionClient, cfg: Configur
     const numeroRiga = indice + 2;
     const nomeCliente = cella(riga, "Cliente").replace(/\s+/g, " ");
     if (!nomeCliente) continue;
-    if (cfg.clientiEsclusi.has(normalizzaTesto(nomeCliente))) { esito.escluse++; continue; }
+    if (cfg.clientiEsclusi.has(normalizzaTesto(nomeCliente))) { esito.offerteDiClientiEsclusi++; continue; }
 
     const anno = Number(/\b(19|20)\d{2}\b/.exec(cella(riga, "Data"))?.[0]);
     if (!anno) { esito.scartate.push(`riga ${numeroRiga} (${nomeCliente}): anno non leggibile "${cella(riga, "Data")}"`); continue; }
