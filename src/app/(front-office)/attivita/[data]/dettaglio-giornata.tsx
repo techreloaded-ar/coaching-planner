@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useTransition, useRef, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useMemo, useTransition, useRef, type ReactNode } from "react";
 import {
   creaRiga,
   modificaRiga,
@@ -54,6 +54,10 @@ interface DettaglioGiornataProps {
   calendarioCollegato?: boolean;
   /** Foglio di un collaboratore disattivato: righe visibili, nessuna modifica. */
   solaLettura?: boolean;
+  /** Riga da aprire subito nel form di modifica, se è tra le righe del giorno. */
+  rigaDaAprireInModifica?: string | null;
+  /** Notifica che la riga richiesta è stata aperta (o non c'è): non va riaperta. */
+  onRigaApertaInModifica?: () => void;
   /**
    * Notifica all'isola che una riga della giornata è stata creata, modificata
    * o eliminata, così le cache della scheda possano rileggere il dato.
@@ -191,6 +195,8 @@ export default function DettaglioGiornata({
   vociRimborso,
   calendarioCollegato = false,
   solaLettura = false,
+  rigaDaAprireInModifica = null,
+  onRigaApertaInModifica,
   onMutazioneCompletata,
 }: DettaglioGiornataProps) {
   const [isPending, startTransition] = useTransition();
@@ -569,6 +575,19 @@ export default function DettaglioGiornata({
     },
     [letturaOfferteCliente]
   );
+
+  // Apertura diretta in modifica dal link «Modifica» dell'Elenco attività.
+  // Differita a un timer: `handleModifica` imposta lo stato del form, cosa che
+  // il corpo di un effect non deve fare in modo sincrono.
+  useEffect(() => {
+    if (!rigaDaAprireInModifica) return;
+    const riga = righe.find((r) => r.id === rigaDaAprireInModifica);
+    const apertura = setTimeout(() => {
+      onRigaApertaInModifica?.();
+      if (riga && !solaLettura) void handleModifica(riga);
+    });
+    return () => clearTimeout(apertura);
+  }, [rigaDaAprireInModifica, onRigaApertaInModifica, righe, solaLettura, handleModifica]);
 
   // ── Modifica di una proposta dal calendario ────────────────
   //

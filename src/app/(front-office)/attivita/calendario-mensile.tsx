@@ -22,6 +22,8 @@ import {
   useCacheCalendario,
   useCollaboratoreConsultato,
 } from "./attivita-cache-provider";
+import InterruttoreVista from "./interruttore-vista";
+import { FILTRI_VUOTI, urlElenco } from "./filtri-elenco";
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -428,6 +430,12 @@ export default function CalendarioMensile({
         </div>
 
         <div className="flex-1" />
+
+        <InterruttoreVista
+          vista="calendario"
+          hrefCalendario={urlDelFoglio(urlDelMese(tokenVisualizzato), collaboratoreConsultatoId)}
+          hrefElenco={urlDelFoglio(urlElenco(tokenVisualizzato, FILTRI_VUOTI), collaboratoreConsultatoId)}
+        />
 
         {/* Riepilogo mese */}
         {totaleRighe > 0 && (

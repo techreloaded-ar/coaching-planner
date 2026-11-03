@@ -3,18 +3,29 @@ import {
   risolviProfiloCollaboratoreCorrente,
   verificaSessione,
 } from "@/lib/dal";
-import { datiCalendarioMesePerCollaboratoreAutorizzato } from "@/lib/attivita";
+import {
+  datiCalendarioMesePerCollaboratoreAutorizzato,
+  righeDelMesePerCollaboratoreAutorizzato,
+} from "@/lib/attivita";
 import { collaboratoreConsultatoDellaPagina } from "@/lib/foglio-attivita";
 import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
 import CalendarioMensile from "./calendario-mensile";
 import StatoProfiloCollaboratore from "./stato-profilo-collaboratore";
 import BannerFoglioConsultato from "./banner-foglio-consultato";
 import { calendarioCollegato } from "@/lib/proposte-calendario";
+import ElencoAttivita from "./elenco-attivita";
 
 export default async function AttivitaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mese?: string; collaboratore?: string }>;
+  searchParams: Promise<{
+    mese?: string;
+    collaboratore?: string;
+    vista?: string;
+    cliente?: string;
+    offerta?: string;
+    nota?: string;
+  }>;
 }) {
   const sessione = await verificaSessione();
   const params = await searchParams;
@@ -30,7 +41,32 @@ export default async function AttivitaPage({
   const parsed = parseTokenMese(tokenRaw);
   const token = parsed ? tokenRaw : tokenMeseCorrente();
 
+  // Vista Elenco: le righe del mese in tabella, filtrabili. Il calendario resta
+  // la vista predefinita.
+  const vistaElenco = params.vista === "elenco";
+  const elenco = async (collaboratoreId: string, solaLettura: boolean) => (
+    <ElencoAttivita
+      token={token}
+      righe={await righeDelMesePerCollaboratoreAutorizzato(token, collaboratoreId)}
+      filtriIniziali={{
+        cliente: params.cliente ?? "",
+        offerta: params.offerta ?? "",
+        nota: params.nota ?? "",
+      }}
+      solaLettura={solaLettura}
+    />
+  );
+
   if (consultato) {
+    if (vistaElenco) {
+      return (
+        <>
+          <BannerFoglioConsultato collaboratore={consultato} />
+          {await elenco(consultato.id, !consultato.attivo)}
+        </>
+      );
+    }
+
     // Il collegamento Google Calendar è personale: sul foglio di un altro
     // collaboratore non se ne mostra lo stato.
     const datiMese = await datiCalendarioMesePerCollaboratoreAutorizzato(
@@ -66,8 +102,17 @@ export default async function AttivitaPage({
   // ripete la catena sessione → profilo. Etichetta del mese e griglia delle 42
   // celle sono derivate nel client dalle funzioni pure del dominio, quindi non
   // vengono serializzate nel payload.
-  const [datiMese, collegato] = await Promise.all([
-    datiCalendarioMesePerCollaboratoreAutorizzato(token, profilo.collaboratore.id),
+  const [vista, collegato] = await Promise.all([
+    vistaElenco
+      ? elenco(profilo.collaboratore.id, false)
+      : datiCalendarioMesePerCollaboratoreAutorizzato(token, profilo.collaboratore.id).then(
+          (datiMese) => (
+            <CalendarioMensile
+              datiMeseIniziale={datiMese}
+              oggi={new Date().toISOString()}
+            />
+          )
+        ),
     calendarioCollegato(profilo.collaboratore.id),
   ]);
 
@@ -86,10 +131,7 @@ export default async function AttivitaPage({
           {collegato ? "Google Calendar collegato" : "Google Calendar non collegato"}
         </Link>
       </div>
-      <CalendarioMensile
-        datiMeseIniziale={datiMese}
-        oggi={new Date().toISOString()}
-      />
+      {vista}
     </>
   );
 }

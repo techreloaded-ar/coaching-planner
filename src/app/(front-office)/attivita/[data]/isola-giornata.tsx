@@ -19,6 +19,7 @@ import {
   useCollaboratoreConsultato,
 } from "../attivita-cache-provider";
 import DettaglioGiornata from "./dettaglio-giornata";
+import { filtriDaQuery, urlElenco } from "../filtri-elenco";
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -72,6 +73,13 @@ interface IsolaGiornataProps {
   contestoIniziale: ContestoInserimentoGiornata;
   /** Token mese (YYYY-MM) con cui la pagina è stata aperta, se presente. */
   meseToken?: string;
+  /** Riga da aprire nel form di modifica all'apertura (link «Modifica» dell'Elenco). */
+  rigaDaModificareId?: string;
+  /**
+   * Query dei filtri dell'Elenco da cui si è arrivati: presente ⇒ il ritorno
+   * porta all'Elenco con quei filtri invece che al calendario.
+   */
+  filtriElencoDiRitorno?: string;
   /** Il collaboratore ha collegato il calendario Google (invariante per giorno). */
   calendarioCollegato?: boolean;
   /** Foglio di un collaboratore disattivato: consultabile, non modificabile. */
@@ -95,6 +103,8 @@ export default function IsolaGiornata({
   datiGiornataIniziale,
   contestoIniziale,
   meseToken,
+  rigaDaModificareId,
+  filtriElencoDiRitorno,
   calendarioCollegato = false,
   solaLettura = false,
 }: IsolaGiornataProps) {
@@ -566,10 +576,22 @@ export default function IsolaGiornata({
     [cacheCalendario, cacheGiornate, router]
   );
 
+  // Riga da aprire in modifica: consumata alla prima apertura, così tornando
+  // sul giorno dopo un cambio giorno il form non si riapre da solo.
+  const [rigaDaAprireInModifica, setRigaDaAprireInModifica] = useState(
+    rigaDaModificareId ?? null
+  );
+
   // ── Breadcrumb ───────────────────────────────────────────────
-  // Il ritorno al calendario segue il giorno mostrato, non quello di apertura.
+  // Il ritorno (al calendario o all'Elenco) segue il giorno mostrato, non
+  // quello di apertura.
+  const ritornoAllElenco = filtriElencoDiRitorno !== undefined;
   const ritornoHref = urlDelFoglio(
-    meseToken ? `/attivita?mese=${giornoVisualizzato.slice(0, 7)}` : "/attivita",
+    ritornoAllElenco
+      ? urlElenco(giornoVisualizzato.slice(0, 7), filtriDaQuery(filtriElencoDiRitorno))
+      : meseToken
+        ? `/attivita?mese=${giornoVisualizzato.slice(0, 7)}`
+        : "/attivita",
     collaboratoreConsultatoId
   );
 
@@ -590,7 +612,7 @@ export default function IsolaGiornata({
           >
             <path d="m15 18-6-6 6-6" />
           </svg>
-          Torna al calendario
+          {ritornoAllElenco ? "Torna all'elenco" : "Torna al calendario"}
         </Link>
       </div>
 
@@ -713,6 +735,8 @@ export default function IsolaGiornata({
             vociRimborso={contesto.vociRimborso}
             calendarioCollegato={calendarioCollegato}
             solaLettura={solaLettura}
+            rigaDaAprireInModifica={rigaDaAprireInModifica}
+            onRigaApertaInModifica={() => setRigaDaAprireInModifica(null)}
             onMutazioneCompletata={invalidaDopoMutazione}
           />
         </div>
