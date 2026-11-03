@@ -26,6 +26,10 @@ export default function InterruttoreVista({
           <Link
             key={voce.chiave}
             href={voce.href}
+            // Niente prefetch: nel calendario l'href cambia a ogni cambio mese
+            // e ogni prefetch sarebbe una richiesta RSC che la cache dei mesi
+            // esiste proprio per evitare.
+            prefetch={false}
             aria-current={attiva ? "page" : undefined}
             className={`inline-flex items-center gap-1.5 rounded-[8px] px-3 py-[5px] text-[12.5px] font-semibold transition ${
               attiva
