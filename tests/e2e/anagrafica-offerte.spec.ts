@@ -158,7 +158,7 @@ test.describe("Anagrafica offerte", () => {
 			page.getByRole("columnheader", { name: "Tariffa giornaliera" }),
 		).toBeVisible();
 		await expect(
-			page.getByRole("columnheader", { name: "Giorni previsti" }),
+			page.getByRole("columnheader", { name: "Giorni erogati" }),
 		).toBeVisible();
 		await expect(
 			page

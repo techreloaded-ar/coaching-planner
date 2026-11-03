@@ -118,6 +118,66 @@ test.describe("Dettaglio avanzamento offerta nella pagina cliente", () => {
 		await expect(pulsante).toHaveAttribute("aria-expanded", "false");
 	});
 
+	test("mostra i giorni erogati di ogni offerta con esaurita e oltre budget", async ({
+		page,
+		factory,
+	}) => {
+		const cliente = await factory.createCliente({
+			ragioneSociale: `E2E Giorni Erogati ${randomUUID().slice(0, 8)}`,
+		});
+		const collaboratore = await factory.createCollaboratore();
+		const inCorso = await factory.createOfferta({
+			cliente,
+			codice: codiceUnivoco("INCORSO"),
+			giorniPrevisti: 10,
+		});
+		const esaurita = await factory.createOfferta({
+			cliente,
+			codice: codiceUnivoco("ESAURITA"),
+			giorniPrevisti: 1,
+		});
+		const oltreBudget = await factory.createOfferta({
+			cliente,
+			codice: codiceUnivoco("OLTRE"),
+			giorniPrevisti: 1,
+		});
+		for (const [offerta, ore] of [
+			[inCorso, "16.00"],
+			[esaurita, "8.00"],
+			[oltreBudget, "16.00"],
+		] as const) {
+			await factory.createRigaAttivita({ cliente, offerta, collaboratore, ore });
+		}
+
+		await apriDettaglioCliente(page, cliente.id);
+
+		const tabella = page.getByRole("table", { name: "Offerte del cliente" });
+		await expect(
+			tabella.getByRole("columnheader", { name: "Giorni erogati" }),
+		).toBeVisible();
+		await expect(
+			tabella.getByRole("columnheader", { name: "Giorni previsti" }),
+		).toHaveCount(0);
+
+		const indicatoreInCorso = rigaOfferta(page, inCorso.codice).getByTestId(
+			"indicatore-giorni-erogati",
+		);
+		await expect(indicatoreInCorso).toHaveText(/^2\/10\s*gg$/);
+		await expect(
+			indicatoreInCorso.getByRole("img", { name: "Erogato 20% del previsto" }),
+		).toBeVisible();
+		await expect(
+			rigaOfferta(page, esaurita.codice)
+				.getByTestId("indicatore-giorni-erogati")
+				.getByText("Esaurita", { exact: true }),
+		).toBeVisible();
+		await expect(
+			rigaOfferta(page, oltreBudget.codice)
+				.getByTestId("indicatore-giorni-erogati")
+				.getByText("Oltre budget", { exact: true }),
+		).toBeVisible();
+	});
+
 	test("porta alla modifica senza espandere la riga", async ({ page, factory }) => {
 		const codice = codiceUnivoco("MODIFICA");
 		const { cliente, offerta } = await factory.createClienteConOfferta(

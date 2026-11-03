@@ -6,6 +6,7 @@ import {
   ChipStato,
   ICONA_DISATTIVA,
   ICONA_RIATTIVA,
+  IndicatoreGiorniErogati,
   PulsanteAttesa,
   useIdratata,
 } from "@/components";
@@ -81,7 +82,7 @@ export default function OfferteClienteTabella({
             Tariffa giornaliera
           </th>
           <th className="px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-            Giorni previsti
+            Giorni erogati
           </th>
           <th className="w-[130px] px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
             Stato
@@ -155,8 +156,15 @@ export default function OfferteClienteTabella({
                     )}
                   </div>
                 </td>
-                <td className={`px-4 py-[13px] text-right align-middle tabular-nums text-zinc-800 dark:text-zinc-100 ${attenuata}`}>
-                  {offerta.giorniPrevisti ?? "—"}
+                {/* Giorni erogati: la stessa cella dell'anagrafica offerte */}
+                <td className={`px-4 py-[13px] text-right align-middle whitespace-nowrap ${attenuata}`}>
+                  <IndicatoreGiorniErogati
+                    avanzamento={{
+                      giornateErogate: offerta.giornateErogate,
+                      giorniPrevisti: offerta.giorniPrevisti,
+                      stato: offerta.stato,
+                    }}
+                  />
                 </td>
                 <td className="px-4 py-[13px] align-middle">
                   <ChipStato attivo={offerta.attiva} femminile />
