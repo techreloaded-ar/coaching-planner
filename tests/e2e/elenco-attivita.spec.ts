@@ -12,7 +12,7 @@ import { test, expect } from "./support/fixtures";
  * creato dalla factory, quindi il mese riservato non è condiviso.
  */
 
-const MESE = meseRiservato("ELENCO-ATTIVITA");
+const MESE = meseRiservato("ELENCO-ATTIVITA-MESE");
 
 /** Scrittura del giorno civile con la stessa convenzione UTC dell'applicazione. */
 function dataDb(giorno: string): Date {
