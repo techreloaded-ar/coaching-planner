@@ -56,7 +56,7 @@ async function verificaElencoFiltrato(
   await expect(page.getByTestId("banner-foglio-consultato")).toContainText(`Grace ${codice}`);
   const elenco = page.getByRole("region", { name: "Elenco delle attività del mese" });
   await expect(elenco).toHaveAttribute("data-idratata", "true");
-  await expect(page.getByLabel("Offerta")).toHaveValue(offerta.id);
+  await expect(page.getByRole("combobox", { name: /^Offerta/ })).toHaveValue(offerta.id);
   const righe = elenco.getByTestId("riga-elenco");
   await expect(righe).toHaveCount(1);
   await expect(righe.first()).toContainText(`Sessione ${codice}`);
