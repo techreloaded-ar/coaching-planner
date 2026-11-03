@@ -5,6 +5,8 @@
  *   npm run db:importa-storico -- [tutto|clienti|offerte|coach|giornate] [--dry-run] [--reset] [--config <file>]
  *
  * - Legge la configurazione da scripts/importa-storico/.env.importa-storico (vedi .example).
+ * - Prima di toccare i dati rigenera il client Prisma (nello script npm) e controlla che il
+ *   database della configurazione abbia tutte le migrazioni.
  * - Scrive in un'unica transazione; con --dry-run la annulla alla fine (report compreso).
  * - Senza --reset aggiunge solo ciò che manca: clienti per ragione sociale, offerte per
  *   cliente e codice, coach per email (l'ID del foglio), voci di rimborso per etichetta,
@@ -22,6 +24,7 @@ import { importaCoach } from "./coach";
 import { importaRimborsi } from "./rimborsi";
 import { importaGiornate } from "./giornate";
 import { normalizzaTesto } from "../../src/domain/righe-sospese/abbinamento";
+import { verificaClientPrisma, verificaMigrazioni } from "./ambiente";
 
 const PASSI = ["clienti", "offerte", "coach", "rimborsi", "giornate"] as const;
 type Passo = (typeof PASSI)[number];
@@ -66,6 +69,9 @@ async function main(): Promise<void> {
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: cfg.databaseUrl }) });
   const riepilogo: Record<string, unknown> = {};
   try {
+    verificaClientPrisma(prisma);
+    await verificaMigrazioni(prisma);
+
     // L'inferenza con Claude è lenta e non scrive: fuori dalla transazione, solo per i clienti nuovi.
     let clientiPreparati: ClientiPreparati | undefined;
     if (opzioni.passi.includes("clienti")) {

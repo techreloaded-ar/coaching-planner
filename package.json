@@ -20,7 +20,7 @@
     "db:studio": "prisma studio",
     "db:bootstrap-amministratore": "tsx scripts/bootstrap-amministratore-iniziale.ts",
     "db:backfill-abilitazioni": "tsx scripts/backfill-abilitazioni-iniziali.ts",
-    "db:importa-storico": "tsx scripts/importa-storico/index.ts"
+    "db:importa-storico": "npm run db:generate && tsx scripts/importa-storico/index.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

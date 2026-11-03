@@ -16,6 +16,15 @@ npm run db:importa-storico -- giornate --dry-run # un solo passo (clienti|offert
 npm run db:importa-storico -- --config altro.env
 ```
 
+Il comando rigenera prima il client Prisma, così è sempre allineato allo schema anche
+dopo un `git pull`. Prima di toccare i dati lo script controlla anche che il database di
+`DATABASE_URL` abbia tutte le migrazioni di `prisma/migrations`; se ne mancano (database
+nuovo, ad esempio un Postgres locale in Docker) si ferma e dice come applicarle:
+
+```bash
+DATABASE_URL="<lo stesso del file di configurazione>" npm run db:migrate:deploy
+```
+
 Tutto avviene in un'unica transazione: o entra tutto o niente. Senza `--reset` lo script è
 **additivo**: inserisce solo ciò che non trova e non modifica mai ciò che esiste, così si
 può rilanciare dopo ogni aggiornamento del foglio. Le chiavi di confronto:
