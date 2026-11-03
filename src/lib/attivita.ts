@@ -308,6 +308,33 @@ export async function righeDelGiornoPerCollaboratoreAutorizzato(
   };
 }
 
+/**
+ * Righe del mese per l'Elenco attività, per un collaboratore **già
+ * autorizzato**: stesso contratto di sicurezza e stessa serializzazione della
+ * giornata, ordinate per giorno e, nel giorno, per creazione.
+ *
+ * @param token - Token YYYY-MM del mese
+ * @param collaboratoreId - Id del collaboratore già autorizzato dal chiamante
+ * @returns Righe serializzate; token non valido ⇒ nessuna riga
+ */
+export async function righeDelMesePerCollaboratoreAutorizzato(
+  token: string,
+  collaboratoreId: string
+): Promise<RigaAttivitaClient[]> {
+  const parsed = parseTokenMese(token);
+  if (!parsed) return [];
+
+  const { inizio, fine } = intervalloMese(parsed.anno, parsed.mese);
+
+  const righe = await db.rigaAttivita.findMany({
+    where: { collaboratoreId, data: { gte: inizio, lt: fine } },
+    include: { offerta: true, cliente: true },
+    orderBy: [{ data: "asc" }, { createdAt: "asc" }],
+  });
+
+  return righe.map(serializzaRigaAttivita);
+}
+
 /** Serializza una riga attività per il client (Date → string, Decimal → number/string). */
 function serializzaRigaAttivita(
   riga: RigaAttivitaConContesto

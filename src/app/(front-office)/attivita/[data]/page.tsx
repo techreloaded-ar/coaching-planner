@@ -24,12 +24,23 @@ export default async function DettaglioGiornataPage({
   searchParams,
 }: {
   params: Promise<{ data: string }>;
-  searchParams: Promise<{ mese?: string; collaboratore?: string }>;
+  searchParams: Promise<{
+    mese?: string;
+    collaboratore?: string;
+    /** Riga da aprire subito nel form di modifica (dall'Elenco). */
+    modifica?: string;
+    /** Filtri dell'Elenco da cui si è arrivati: il ritorno va lì. */
+    elenco?: string;
+  }>;
 }) {
   const sessione = await verificaSessione();
   const { data: dataStr } = await params;
-  const { mese: meseToken, collaboratore: collaboratoreRichiesto } =
-    await searchParams;
+  const {
+    mese: meseToken,
+    collaboratore: collaboratoreRichiesto,
+    modifica,
+    elenco,
+  } = await searchParams;
 
   // Foglio di un altro collaboratore, aperto da un amministratore.
   const consultato = await collaboratoreConsultatoDellaPagina(
@@ -83,6 +94,8 @@ export default async function DettaglioGiornataPage({
         datiGiornataIniziale={datiGiornata}
         contestoIniziale={contestoInserimento}
         meseToken={meseToken}
+        rigaDaModificareId={modifica}
+        filtriElencoDiRitorno={elenco}
         calendarioCollegato={collegato}
         solaLettura={consultato ? !consultato.attivo : false}
       />
