@@ -54,3 +54,7 @@ docs/test-results
 
 # output degli script di valutazione (scripts/valuta-jev-associazioni.ts)
 /output/
+
+# Import dello storico: configurazione locale e cartella di lavoro
+!scripts/importa-storico/.env.importa-storico.example
+scripts/importa-storico/lavoro/
