@@ -1,9 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { StatoAvanzamentoOfferta } from "@/domain/consuntivi";
 import type { VoceElencoOfferta } from "@/lib/offerte";
 import { NoteAnagrafica } from "@/components";
+import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 
 const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
   minimumFractionDigits: 0,
@@ -126,6 +128,17 @@ export default function DettaglioAvanzamentoOfferta({
   const senzaBudget = offerta.percentualeUtilizzo === null;
   const percentualeReale = Math.round((offerta.percentualeUtilizzo ?? 0) * 100);
   const percentualeVisibile = Math.min((offerta.percentualeUtilizzo ?? 0) * 100, 100);
+
+  // Foglio attività del collaboratore in vista Elenco, filtrato sull'offerta e
+  // aperto sull'ultimo mese in cui vi ha segnato ore (i mesi YYYY-MM si
+  // ordinano come stringhe).
+  const urlFoglioSullOfferta = (collaboratoreId: string) => {
+    const riga = offerta.matriceMensile.righe.find((r) => r.collaboratoreId === collaboratoreId);
+    const ultimoMese = Object.keys(riga?.giornatePerMese ?? {}).sort().pop();
+    const parametri = new URLSearchParams({ vista: "elenco", offerta: offerta.offertaId });
+    if (ultimoMese) parametri.set("mese", ultimoMese);
+    return urlDelFoglio(`/attivita?${parametri}`, collaboratoreId);
+  };
 
   return (
     <section
@@ -252,12 +265,10 @@ export default function DettaglioAvanzamentoOfferta({
                   return (
                     <tr key={collaboratore.collaboratoreId} className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                       <td className="border-t border-zinc-100 px-[22px] py-[9px] align-middle dark:border-zinc-700/50">
-                        <div className="flex min-w-0 items-center gap-[10px]">
-                          <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-[10px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
-                            {inizialiCollaboratore(collaboratore.collaboratoreNome)}
-                          </span>
-                          <span className="truncate text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">{collaboratore.collaboratoreNome}</span>
-                        </div>
+                        <CollaboratoreConFoglio
+                          nome={collaboratore.collaboratoreNome}
+                          urlFoglio={urlFoglioSullOfferta(collaboratore.collaboratoreId)}
+                        />
                       </td>
                       <td className="border-t border-zinc-100 px-[22px] py-[9px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-500 dark:border-zinc-700/50 dark:text-zinc-400">
                         {formattaGiornate(collaboratore.oreErogate)} h
@@ -307,12 +318,10 @@ export default function DettaglioAvanzamentoOfferta({
                 {offerta.matriceMensile.righe.map((riga) => (
                   <tr key={riga.collaboratoreId} className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                     <td className="border-t border-zinc-100 px-[22px] py-[9px] align-middle dark:border-zinc-700/50">
-                      <div className="flex min-w-0 items-center gap-[10px]">
-                        <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-[10px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
-                          {inizialiCollaboratore(riga.collaboratoreNome)}
-                        </span>
-                        <span className="truncate text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">{riga.collaboratoreNome}</span>
-                      </div>
+                      <CollaboratoreConFoglio
+                        nome={riga.collaboratoreNome}
+                        urlFoglio={urlFoglioSullOfferta(riga.collaboratoreId)}
+                      />
                     </td>
                     {offerta.matriceMensile.mesi.map((mese) => (
                       <td key={mese} className="border-t border-zinc-100 px-[22px] py-[9px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-500 dark:border-zinc-700/50 dark:text-zinc-400">
@@ -345,6 +354,24 @@ export default function DettaglioAvanzamentoOfferta({
         )}
       </div>
     </section>
+  );
+}
+
+function CollaboratoreConFoglio({ nome, urlFoglio }: { nome: string; urlFoglio: string }) {
+  return (
+    <div className="flex min-w-0 items-center gap-[10px]">
+      <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-[10px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
+        {inizialiCollaboratore(nome)}
+      </span>
+      <Link
+        href={urlFoglio}
+        prefetch={false}
+        title={`Apri il foglio attività di ${nome} su questa offerta`}
+        className="truncate text-[13px] font-semibold text-zinc-800 underline-offset-2 transition-colors hover:text-indigo-600 hover:underline dark:text-zinc-100 dark:hover:text-indigo-400"
+      >
+        {nome}
+      </Link>
+    </div>
   );
 }
 
