@@ -97,6 +97,10 @@ test.describe("US-030 Attività amministratore", () => {
 		await expect(rigaCreata).toBeVisible();
 		await expect(rigaCreata).toContainText(offerta.codice);
 		await expect(rigaCreata).toContainText("7.5 h");
+		// Codice e descrizione dell'offerta in un'unica chip.
+		await expect(
+			rigaCreata.getByText(`${offerta.codice} — ${offerta.descrizione}`, { exact: true }),
+		).toBeVisible();
 
 		await page.getByRole("link", { name: "Torna al calendario", exact: true }).click();
 		await page.waitForURL(`**/attivita?mese=${mese}`);
@@ -120,11 +124,14 @@ test.describe("US-030 Attività amministratore", () => {
 		await page.waitForURL(`**/attivita?mese=${mese}`);
 		await page.getByRole("link", { name: "Riepilogo mese", exact: true }).click();
 		await page.waitForURL(`**/attivita/riepilogo?mese=${mese}`);
-		await expect(page.getByTestId("summary-ore-totali-value")).toHaveText("7,5");
-		await expect(page.getByTestId("summary-ore-da-fatturare-value")).toHaveText(
-			"7,5",
+		await expect(page.getByTestId("summary-giornate-totali-value")).toHaveText("0,94");
+		await expect(page.getByText("0,94 gg", { exact: true })).toBeVisible();
+		await expect(page.getByTestId("summary-giornate-da-fatturare-value")).toHaveText(
+			"0,94",
 		);
-		await expect(page.getByTestId("summary-table")).toContainText(offerta.codice);
+		await expect(
+			page.getByTestId("summary-table").getByText(`${offerta.codice} — ${offerta.descrizione}`, { exact: true }),
+		).toBeVisible();
 
 		await page
 			.getByRole("link", { name: "Console amministrativa", exact: true })

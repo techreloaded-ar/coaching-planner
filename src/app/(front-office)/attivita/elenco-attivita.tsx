@@ -9,7 +9,7 @@ import {
   meseSuccessivo,
   parseTokenMese,
 } from "@/domain/calendario";
-import { ETICHETTA_OFFERTA_DA_DEFINIRE } from "@/domain/types";
+import { ETICHETTA_OFFERTA_DA_DEFINIRE, ORE_PER_GIORNATA } from "@/domain/types";
 import type { RigaAttivitaClient } from "@/lib/attivita-contract";
 import { eliminaRiga } from "@/lib/actions/righe-attivita";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
@@ -193,7 +193,7 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
           <div className="inline-flex items-center gap-[9px] rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-[12.5px] font-semibold text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
             <b className="tabular-nums">{righe.length} righe</b>
             <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
-            <b className="tabular-nums">{formattaOre(totaliMese.ore)} h</b>
+            <b className="tabular-nums">{formattaOre(totaliMese.ore / ORE_PER_GIORNATA)} gg</b>
           </div>
         )}
       </div>

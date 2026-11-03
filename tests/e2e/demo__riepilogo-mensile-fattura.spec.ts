@@ -27,8 +27,8 @@ const TARIFFA_COLLABORATORE = 400;
 const TARIFFA_OFFERTA = 640;
 
 type RiepilogoLetto = {
-  oreTotali: number;
-  oreDaFatturare: number;
+  giornateTotali: number;
+  giornateDaFatturare: number;
   totaleRimborsi: number;
   imponibileManodopera: number;
 };
@@ -66,14 +66,14 @@ async function leggiNumero(page: Page, testId: string): Promise<number> {
 }
 
 async function leggiRiepilogo(page: Page): Promise<RiepilogoLetto> {
-  const oreTotali = await leggiNumero(page, "summary-ore-totali-value");
-  const oreDaFatturare = await leggiNumero(page, "summary-ore-da-fatturare-value");
+  const giornateTotali = await leggiNumero(page, "summary-giornate-totali-value");
+  const giornateDaFatturare = await leggiNumero(page, "summary-giornate-da-fatturare-value");
   const importoFattura = await leggiNumero(page, "summary-importo-fattura-value");
   const totaleRimborsi = await leggiNumero(page, "summary-rimborsi-value");
 
   return {
-    oreTotali,
-    oreDaFatturare,
+    giornateTotali,
+    giornateDaFatturare,
     totaleRimborsi,
     imponibileManodopera: importoFattura - totaleRimborsi,
   };
@@ -213,7 +213,7 @@ test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
     await accediComeCollaboratore(page, scenario.collaboratore.utente.email);
     await apriRiepilogoDaCalendario(page, scenario.mese);
 
-    await expect(page.getByTestId("summary-ore-totali")).toBeVisible();
+    await expect(page.getByTestId("summary-giornate-totali")).toBeVisible();
     await expect(page.getByTestId("summary-giornate-da-fatturare")).toBeVisible();
     await expect(page.getByTestId("summary-ore-per-categoria")).toBeVisible();
     await expect(page.getByTestId("summary-rimborsi")).toBeVisible();
@@ -248,12 +248,17 @@ test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
     const oreAggiunte = 4;
     const imponibileAggiunto = (oreAggiunte / ORE_PER_GIORNATA) * TARIFFA_COLLABORATORE;
 
-    expectDeltaEsatto(riepilogoDopo.oreTotali, riepilogoPrima.oreTotali, oreAggiunte, "ore totali");
     expectDeltaEsatto(
-      riepilogoDopo.oreDaFatturare,
-      riepilogoPrima.oreDaFatturare,
-      oreAggiunte,
-      "ore da fatturare",
+      riepilogoDopo.giornateTotali,
+      riepilogoPrima.giornateTotali,
+      oreAggiunte / ORE_PER_GIORNATA,
+      "giornate totali",
+    );
+    expectDeltaEsatto(
+      riepilogoDopo.giornateDaFatturare,
+      riepilogoPrima.giornateDaFatturare,
+      oreAggiunte / ORE_PER_GIORNATA,
+      "giornate da fatturare",
     );
     expectDeltaEsatto(
       riepilogoDopo.imponibileManodopera,
@@ -304,12 +309,17 @@ test.describe("US-014 — scenari complementari", () => {
 
     const riepilogoDopo = await leggiRiepilogo(page);
 
-    expectDeltaEsatto(riepilogoDopo.oreTotali, riepilogoPrima.oreTotali, 4, "ore totali");
     expectDeltaEsatto(
-      riepilogoDopo.oreDaFatturare,
-      riepilogoPrima.oreDaFatturare,
-      4,
-      "ore da fatturare",
+      riepilogoDopo.giornateTotali,
+      riepilogoPrima.giornateTotali,
+      4 / ORE_PER_GIORNATA,
+      "giornate totali",
+    );
+    expectDeltaEsatto(
+      riepilogoDopo.giornateDaFatturare,
+      riepilogoPrima.giornateDaFatturare,
+      4 / ORE_PER_GIORNATA,
+      "giornate da fatturare",
     );
     expectDeltaEsatto(
       riepilogoDopo.imponibileManodopera,
@@ -358,12 +368,17 @@ test.describe("US-014 — scenari complementari", () => {
 
     const riepilogoDopo = await leggiRiepilogo(page);
 
-    expectDeltaEsatto(riepilogoDopo.oreTotali, riepilogoPrima.oreTotali, 4, "ore totali");
     expectDeltaEsatto(
-      riepilogoDopo.oreDaFatturare,
-      riepilogoPrima.oreDaFatturare,
-      0,
-      "ore da fatturare",
+      riepilogoDopo.giornateTotali,
+      riepilogoPrima.giornateTotali,
+      4 / ORE_PER_GIORNATA,
+      "giornate totali",
+    );
+    expectDeltaEsatto(
+      riepilogoDopo.giornateDaFatturare,
+      riepilogoPrima.giornateDaFatturare,
+      0 / ORE_PER_GIORNATA,
+      "giornate da fatturare",
     );
     expectDeltaEsatto(
       riepilogoDopo.imponibileManodopera,
@@ -393,8 +408,8 @@ test.describe("US-014 — scenari complementari", () => {
     await page.waitForURL("**/attivita/riepilogo**");
 
     await expect(page.getByText("Nessuna attività registrata per questo mese.")).toBeVisible();
-    await expect(page.getByTestId("summary-ore-totali-value")).toHaveText("0");
-    await expect(page.getByTestId("summary-ore-da-fatturare-value")).toHaveText("0");
+    await expect(page.getByTestId("summary-giornate-totali-value")).toHaveText("0,00");
+    await expect(page.getByTestId("summary-giornate-da-fatturare-value")).toHaveText("0,00");
     await expect(page.getByTestId("summary-rimborsi-value")).toHaveText(/€\s*0,00/);
     await expect(page.getByTestId("summary-importo-fattura-value")).toHaveText(/€\s*0,00/);
   });

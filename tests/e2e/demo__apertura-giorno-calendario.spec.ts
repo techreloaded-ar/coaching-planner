@@ -51,7 +51,7 @@ test.describe("US-031 Demo", () => {
     await page.locator("#ore").fill("3");
     await page.getByRole("button", { name: "Aggiungi riga" }).click();
     await expect(
-      page.getByText(clienteConOfferta.offerta.codice, { exact: true }),
+      page.getByText(`${clienteConOfferta.offerta.codice} — ${clienteConOfferta.offerta.descrizione}`, { exact: true }),
     ).toBeVisible();
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();

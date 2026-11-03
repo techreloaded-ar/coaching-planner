@@ -14,7 +14,7 @@ import {
 } from "@/domain/calendario";
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
 import { SelettoreMese, useIdratata } from "@/components";
-import { sommaOre } from "@/domain/types";
+import { ORE_PER_GIORNATA, sommaOre } from "@/domain/types";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
   ErroreIdentitaSchedaCambiata,
@@ -452,7 +452,9 @@ export default function CalendarioMensile({
             </svg>
             <b className="tabular-nums">{totaleRighe} righe</b>
             <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
-            <b className="tabular-nums">{totaleOre.toFixed(1)} h</b>
+            <b className="tabular-nums">
+              {(totaleOre / ORE_PER_GIORNATA).toLocaleString("it-IT", { maximumFractionDigits: 2 })} gg
+            </b>
           </div>
         )}
       </div>

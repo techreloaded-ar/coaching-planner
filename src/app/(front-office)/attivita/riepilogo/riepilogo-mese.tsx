@@ -6,7 +6,6 @@ import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import { useCollaboratoreConsultato } from "../attivita-cache-provider";
 import type { RisultatoRiepilogoMese } from "@/lib/attivita";
 import type { VoceRiepilogoOfferta } from "@/domain/consuntivi";
-import { ETICHETTA_MODALITA_TARIFFA, etichettaMeseTariffa } from "@/domain/tariffe";
 import {
   CATEGORIE_ATTIVITA,
   DESCRIZIONE_CATEGORIA_ATTIVITA,
@@ -133,7 +132,7 @@ export default function RiepilogoMese({
             {riepilogo.perOfferta.filter((voce) => voce.offertaId !== null).length} offerte
           </b>
           <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
-          <b className="tabular-nums">{formattaGiornate(riepilogo.totali.giornateTotali)} g</b>
+          <b className="tabular-nums">{formattaGiornate(riepilogo.totali.giornateTotali)} gg</b>
         </div>
       </div>
 
@@ -150,34 +149,17 @@ export default function RiepilogoMese({
         </h2>
       </div>
 
-      <div className="mt-[18px] grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <div data-testid="summary-ore-totali" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-          <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore totali</div>
-          <div data-testid="summary-ore-totali-value" className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
-            {formattaNumero(riepilogo.totali.oreTotali)}
-          </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500">{formattaGiornate(riepilogo.totali.giornateTotali)} giornate</div>
-        </div>
-
-        <div className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="mt-[18px] grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div data-testid="summary-giornate-totali" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
           <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate totali</div>
-          <div className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
+          <div data-testid="summary-giornate-totali-value" className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
             {formattaGiornate(riepilogo.totali.giornateTotali)}
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500">1 giornata = 8 ore</div>
-        </div>
-
-        <div data-testid="summary-ore-da-fatturare" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-          <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore da fatturare</div>
-          <div data-testid="summary-ore-da-fatturare-value" className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
-            {formattaNumero(riepilogo.totali.oreDaFatturare)}
-          </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500">Fatturabili e non fatturabili, da fatturare ad Agile Reloaded</div>
         </div>
 
         <div data-testid="summary-giornate-da-fatturare" className="rounded-[11px] border border-zinc-200 bg-white p-[16px_18px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
           <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate da fatturare</div>
-          <div className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
+          <div data-testid="summary-giornate-da-fatturare-value" className="mt-1 text-[28px] font-bold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
             {formattaGiornate(riepilogo.totali.giornateDaFatturare)}
           </div>
           <div className="text-xs text-zinc-400 dark:text-zinc-500">
@@ -209,7 +191,7 @@ export default function RiepilogoMese({
           <div className="text-xs text-zinc-400 dark:text-zinc-500">Somma delle trasferte del mese</div>
         </div>
 
-        <div data-testid="summary-importo-fattura" className="overflow-hidden rounded-[11px] border border-rose-600 bg-gradient-to-br from-rose-600 to-rose-700 p-[18px_20px] text-white shadow-[0_12px_40px_rgba(24,24,27,0.16)] md:col-span-2 xl:col-span-3 dark:from-rose-500 dark:to-rose-600">
+        <div data-testid="summary-importo-fattura" className="overflow-hidden rounded-[11px] border border-rose-600 bg-gradient-to-br from-rose-600 to-rose-700 p-[18px_20px] text-white shadow-[0_12px_40px_rgba(24,24,27,0.16)] md:col-span-2 xl:col-span-4 dark:from-rose-500 dark:to-rose-600">
           <div className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-white/80">Importo fattura</div>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div data-testid="summary-importo-fattura-value" className="text-[38px] font-bold tabular-nums tracking-tight">{formattaEuro(riepilogo.importoFattura)}</div>
@@ -226,13 +208,6 @@ export default function RiepilogoMese({
               <span className="h-4 w-px bg-white/25" />
               <span>Rimborsi {formattaEuro(riepilogo.breakdown.totaleRimborsi)}</span>
             </div>
-          </div>
-          <div data-testid="summary-importo-fattura-tariffa" className="mt-2 text-[12px] text-white/80">
-            {riepilogo.breakdown.modalitaTariffa && riepilogo.breakdown.tariffaValidaDalMese
-              ? `Tariffa ${ETICHETTA_MODALITA_TARIFFA[riepilogo.breakdown.modalitaTariffa].toLowerCase()} valida da ${etichettaMeseTariffa(riepilogo.breakdown.tariffaValidaDalMese)}`
-              : "Nessuna tariffa in vigore in questo mese"}
-            {riepilogo.breakdown.modalitaTariffa === "FISSO_MENSILE" &&
-              ` · ${riepilogo.breakdown.giornateDaFatturare} g registrate: il fisso non dipende dalle giornate`}
           </div>
         </div>
       </div>
@@ -260,9 +235,7 @@ export default function RiepilogoMese({
                 <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/80">
                   <th className="px-3.5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Cliente</th>
                   <th className="px-3.5 py-3 text-left text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Offerta</th>
-                  <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore totali</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate totali</th>
-                  <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore da fatturare</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate da fatturare</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Rimborsi trasferta</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giorni erogati</th>
@@ -293,14 +266,9 @@ export default function RiepilogoMese({
                               {ETICHETTA_OFFERTA_DA_DEFINIRE}
                             </span>
                           ) : (
-                            <>
-                              <span className="w-fit rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-bold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                                {voce.offertaCodice}
-                              </span>
-                              <span className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
-                                {voce.offertaDescrizione}
-                              </span>
-                            </>
+                            <span className="w-fit rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-bold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                              {[voce.offertaCodice, voce.offertaDescrizione].filter(Boolean).join(" — ")}
+                            </span>
                           )}
                           {badge.map((testo) => (
                             <span key={testo} className="mt-1 inline-flex w-fit rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10.5px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
@@ -310,13 +278,7 @@ export default function RiepilogoMese({
                         </div>
                       </td>
                       <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
-                        {formattaNumero(voce.oreTotali)}
-                      </td>
-                      <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
                         {formattaGiornate(voce.giornateTotali)}
-                      </td>
-                      <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
-                        {voce.oreDaFatturare > 0 ? formattaNumero(voce.oreDaFatturare) : "—"}
                       </td>
                       <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
                         {voce.giornateDaFatturare > 0 ? formattaGiornate(voce.giornateDaFatturare) : "—"}
@@ -339,9 +301,7 @@ export default function RiepilogoMese({
                 <tr className="bg-zinc-50 dark:bg-zinc-800/80">
                   <td className="px-3.5 py-3 text-[12px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Totale</td>
                   <td />
-                  <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaNumero(riepilogo.totali.oreTotali)}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaGiornate(riepilogo.totali.giornateTotali)}</td>
-                  <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.oreDaFatturare > 0 ? formattaNumero(riepilogo.totali.oreDaFatturare) : "—"}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.giornateDaFatturare > 0 ? formattaGiornate(riepilogo.totali.giornateDaFatturare) : "—"}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaEuro(riepilogo.totali.totaleRimborsi)}</td>
                   <td />
