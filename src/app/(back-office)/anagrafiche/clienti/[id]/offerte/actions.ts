@@ -201,3 +201,36 @@ export async function aggiornaOfferta(
 
   redirect(`/anagrafiche/clienti/${clienteId}?esito=offerta-salvata`);
 }
+
+/**
+ * Disattiva o riattiva una singola offerta dal dettaglio cliente (campi `id`,
+ * `clienteId`, `attivo` "true"/"false") e torna al dettaglio con l'esito.
+ * Il filtro su `clienteId` impedisce di toccare offerte di altri clienti.
+ */
+export async function cambiaStatoOffertaCliente(formData: FormData): Promise<void> {
+  await guardiaAmministratore();
+
+  const id = formData.get("id");
+  const clienteId = formData.get("clienteId");
+  if (typeof clienteId !== "string" || !clienteId) {
+    redirect("/anagrafiche/clienti");
+  }
+  if (typeof id !== "string" || !id) {
+    redirect(`/anagrafiche/clienti/${clienteId}`);
+  }
+
+  const attiva = formData.get("attivo") === "true";
+
+  await db.offerta.updateMany({
+    where: { id, clienteId },
+    data: { attiva },
+  });
+
+  revalidatePath("/anagrafiche/clienti");
+  revalidatePath(`/anagrafiche/clienti/${clienteId}`);
+  revalidatePath("/offerte");
+
+  redirect(
+    `/anagrafiche/clienti/${clienteId}?esito=${attiva ? "offerta-riattivata" : "offerta-disattivata"}`,
+  );
+}

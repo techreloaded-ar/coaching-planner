@@ -735,6 +735,24 @@ describe("elencaOffertePerClienteConAvanzamento", () => {
 		]);
 	});
 
+	it("mette le offerte attive prima delle disattivate, ciascun gruppo per codice", async () => {
+		mockOfferta.findMany.mockResolvedValue([
+			offertaConCliente({ id: "off-a", codice: "OFF-A", clienteId: "cli-1", attiva: false }),
+			offertaConCliente({ id: "off-d", codice: "OFF-D", clienteId: "cli-1" }),
+			offertaConCliente({ id: "off-c", codice: "OFF-C", clienteId: "cli-1", attiva: false }),
+			offertaConCliente({ id: "off-b", codice: "OFF-B", clienteId: "cli-1" }),
+		]);
+
+		const voci = await elencaOffertePerClienteConAvanzamento("cli-1");
+
+		expect(voci.map((voce) => voce.codice)).toEqual([
+			"OFF-B",
+			"OFF-D",
+			"OFF-A",
+			"OFF-C",
+		]);
+	});
+
 	it("restituisce percentuale zero, ripartizione vuota e residuo previsto senza attività", async () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ clienteId: "cli-1", giorniPrevisti: 7 }),
