@@ -13,6 +13,7 @@ import { ErroreAutorizzazione } from "@/lib/dal";
 
 const mockRigaAttivita = vi.hoisted(() => ({
   findMany: vi.fn(),
+  groupBy: vi.fn(),
 }));
 
 const mockOfferta = vi.hoisted(() => ({
@@ -770,10 +771,10 @@ describe("offerteAbilitatePerCliente", () => {
   });
 
   it("interroga il DB filtrando su clienteId, offerte attive e abilitazione del collaboratore indicato", async () => {
-    const offerteAttese = [
-      { id: "offerta-1", codice: "TS-001", descrizione: "Consulenza" },
-    ];
-    mockOfferta.findMany.mockResolvedValue(offerteAttese);
+    mockOfferta.findMany.mockResolvedValue([
+      { id: "offerta-1", codice: "TS-001", descrizione: "Consulenza", giorniPrevisti: 2 },
+    ]);
+    mockRigaAttivita.groupBy.mockResolvedValue([]);
 
     const result = await offerteAbilitatePerCliente(
       "cliente-techsolutions",
@@ -793,10 +794,48 @@ describe("offerteAbilitatePerCliente", () => {
         id: true,
         codice: true,
         descrizione: true,
+        giorniPrevisti: true,
       },
       orderBy: { codice: "asc" },
     });
-    expect(result).toBe(offerteAttese);
+    expect(result).toEqual([
+      {
+        id: "offerta-1",
+        codice: "TS-001",
+        descrizione: "Consulenza",
+        avanzamento: { giornateErogate: 0, giorniPrevisti: 2, stato: "IN_CORSO" },
+      },
+    ]);
+  });
+
+  it("allega l'avanzamento dell'offerta calcolato sulle ore fatturate al cliente di tutti i collaboratori", async () => {
+    mockOfferta.findMany.mockResolvedValue([
+      { id: "offerta-esaurita", codice: "TS-001", descrizione: "", giorniPrevisti: 2 },
+      { id: "offerta-oltre", codice: "TS-002", descrizione: "", giorniPrevisti: 2 },
+      { id: "offerta-senza-budget", codice: "TS-003", descrizione: "", giorniPrevisti: null },
+    ]);
+    mockRigaAttivita.groupBy.mockResolvedValue([
+      { offertaId: "offerta-esaurita", categoria: "FATTURABILE", _sum: { ore: 16 } },
+      // Le ore non fatturate al cliente non consumano il budget.
+      { offertaId: "offerta-esaurita", categoria: "INVESTIMENTO", _sum: { ore: 8 } },
+      { offertaId: "offerta-oltre", categoria: "FATTURABILE", _sum: { ore: 20 } },
+      { offertaId: "offerta-senza-budget", categoria: "FATTURABILE", _sum: { ore: 24 } },
+    ]);
+
+    const result = await offerteAbilitatePerCliente("cliente-1", "collab-1");
+
+    expect(mockRigaAttivita.groupBy).toHaveBeenCalledWith({
+      by: ["offertaId", "categoria"],
+      where: {
+        offertaId: { in: ["offerta-esaurita", "offerta-oltre", "offerta-senza-budget"] },
+      },
+      _sum: { ore: true },
+    });
+    expect(result.map((offerta) => offerta.avanzamento)).toEqual([
+      { giornateErogate: 2, giorniPrevisti: 2, stato: "ESAURITA" },
+      { giornateErogate: 2.5, giorniPrevisti: 2, stato: "OLTRE_BUDGET" },
+      { giornateErogate: 3, giorniPrevisti: null, stato: "IN_CORSO" },
+    ]);
   });
 });
 

@@ -9,6 +9,7 @@ import {
   CasellaSelezioneTutti,
   ChipStato,
   ElencoSelezionabile,
+  IndicatoreGiorniErogati,
   PaginazioneElenco,
   PulsanteAttesa,
   RicercaElenco,
@@ -30,18 +31,6 @@ import {
 } from "./actions";
 
 const statoEliminazioneIniziale: StatoEliminazioneOfferta = {};
-
-// ── Formattatori ────────────────────────────────────────────────
-
-const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 1,
-});
-
-/** Formatta un numero di giornate con al massimo un decimale, stile it-IT. */
-function formattaGiornate(valore: number | null): string {
-  return valore === null ? "—" : formattatoreGiornate.format(valore);
-}
 
 // ── Props ───────────────────────────────────────────────────────
 
@@ -203,12 +192,6 @@ function RigaOfferta({
   onToggleEspansione: () => void;
 }) {
   const { isSelezionato } = useSelezioneElenco();
-  const oltreBudget = offerta.stato === "OLTRE_BUDGET";
-  const esaurita = offerta.stato === "ESAURITA";
-  const percentuale =
-    offerta.giorniPrevisti !== null && offerta.giorniPrevisti > 0
-      ? Math.min((offerta.giornateErogate / offerta.giorniPrevisti) * 100, 100)
-      : 0;
 
   return (
     <Fragment key={offerta.offertaId}>
@@ -292,51 +275,13 @@ function RigaOfferta({
 
       {/* Giorni erogati: erogate/previste + mini barra + flag critici */}
       <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
-        <div className="inline-flex flex-col items-end gap-[5px]">
-          <span className="tabular-nums font-bold text-zinc-800 dark:text-zinc-100">
-            {formattaGiornate(offerta.giornateErogate)}
-            <span className="font-semibold text-zinc-400 dark:text-zinc-500">/</span>
-            {formattaGiornate(offerta.giorniPrevisti)}
-            <span className="ml-[3px] text-[11.5px] font-semibold text-zinc-400 dark:text-zinc-500">
-              gg
-            </span>
-          </span>
-          {offerta.giorniPrevisti !== null && (
-          <span
-            className="relative h-[5px] w-[72px] overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-700/50"
-            role="img"
-            aria-label={`Erogato ${Math.round(percentuale)}% del previsto`}
-          >
-            <span
-              className={`absolute inset-y-0 left-0 rounded-full ${
-                oltreBudget
-                  ? "bg-[repeating-linear-gradient(45deg,theme(colors.red.500)_0_6px,theme(colors.red.700)_6px_12px)]"
-                  : esaurita
-                    ? "bg-red-500"
-                    : "bg-indigo-500"
-              }`}
-              style={{ width: `${percentuale}%` }}
-            />
-          </span>
-          )}
-          {oltreBudget && (
-            <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-red-600 dark:text-red-400">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[12px] w-[12px]" strokeWidth={2.2}>
-                <path d="M12 5v14M5 12l7-7 7 7" />
-              </svg>
-              Oltre budget
-            </span>
-          )}
-          {esaurita && (
-            <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-red-600 dark:text-red-400">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[12px] w-[12px]" strokeWidth={2.2}>
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8v5M12 16h.01" />
-              </svg>
-              Esaurita
-            </span>
-          )}
-        </div>
+        <IndicatoreGiorniErogati
+          avanzamento={{
+            giornateErogate: offerta.giornateErogate,
+            giorniPrevisti: offerta.giorniPrevisti,
+            stato: offerta.stato,
+          }}
+        />
       </td>
 
       {/* Stato */}

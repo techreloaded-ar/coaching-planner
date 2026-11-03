@@ -22,3 +22,4 @@ export {
 } from "./elenco-selezionabile";
 export { ChipStatoCliente } from "./chip-stato-cliente";
 export { CampoNote, NoteAnagrafica } from "./campo-note";
+export { IndicatoreGiorniErogati } from "./indicatore-giorni-erogati";

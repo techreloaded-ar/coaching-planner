@@ -18,6 +18,7 @@ import type {
   DatiCalendarioMese,
   DatiGiornataAttivita,
 } from "@/lib/attivita-contract";
+import type { AvanzamentoGiornateOfferta } from "@/domain/consuntivi";
 import {
   ErroreIdentitaSchedaCambiata,
   GuardiaIdentitaScheda,
@@ -132,6 +133,11 @@ export interface OffertaAbilitataCliente {
   id: string;
   codice: string;
   descrizione: string;
+  /**
+   * Avanzamento in giornate dell'offerta. Assente sull'offerta storica di una
+   * riga in modifica non più abilitata, che non passa dalla lettura.
+   */
+  avanzamento?: AvanzamentoGiornateOfferta;
 }
 
 /**

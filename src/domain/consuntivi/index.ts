@@ -895,6 +895,14 @@ export type StatoAvanzamentoOfferta =
   | "ESAURITA"
   | "OLTRE_BUDGET";
 
+/** Avanzamento in giornate di un'offerta, come mostrato nella cella «Giorni erogati» */
+export interface AvanzamentoGiornateOfferta {
+  giornateErogate: number;
+  /** null se l'offerta non ha un budget in giornate */
+  giorniPrevisti: number | null;
+  stato: StatoAvanzamentoOfferta;
+}
+
 /** Metadati di un'offerta ai fini del calcolo dell'avanzamento (dipendenza-zero) */
 export interface OffertaAvanzamento {
   offertaId: string;

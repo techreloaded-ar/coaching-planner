@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IndicatoreGiorniErogati } from "@/components";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import { useCollaboratoreConsultato } from "../attivita-cache-provider";
 import type { RisultatoRiepilogoMese } from "@/lib/attivita";
@@ -264,11 +265,15 @@ export default function RiepilogoMese({
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Ore da fatturare</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate da fatturare</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Rimborsi trasferta</th>
+                  <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giorni erogati</th>
                 </tr>
               </thead>
               <tbody>
                 {riepilogo.perOfferta.map((voce) => {
                   const badge = badgeCategorieNonFatturabili(voce);
+                  // Avanzamento a oggi dell'intera offerta, come nell'anagrafica.
+                  const avanzamento =
+                    voce.offertaId === null ? undefined : riepilogo.avanzamentoPerOfferta[voce.offertaId];
 
                   return (
                     <tr
@@ -319,6 +324,13 @@ export default function RiepilogoMese({
                       <td className="px-3.5 py-3 text-right font-bold tabular-nums text-rose-800 dark:text-rose-300">
                         {Number(voce.rimborsiTrasferta) > 0 ? formattaEuro(voce.rimborsiTrasferta) : "—"}
                       </td>
+                      <td className="px-3.5 py-3 text-right align-top whitespace-nowrap">
+                        {avanzamento ? (
+                          <IndicatoreGiorniErogati avanzamento={avanzamento} />
+                        ) : (
+                          <span className="font-bold text-zinc-400 dark:text-zinc-500">—</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -332,6 +344,7 @@ export default function RiepilogoMese({
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.oreDaFatturare > 0 ? formattaNumero(riepilogo.totali.oreDaFatturare) : "—"}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.giornateDaFatturare > 0 ? formattaGiornate(riepilogo.totali.giornateDaFatturare) : "—"}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaEuro(riepilogo.totali.totaleRimborsi)}</td>
+                  <td />
                 </tr>
               </tfoot>
             </table>

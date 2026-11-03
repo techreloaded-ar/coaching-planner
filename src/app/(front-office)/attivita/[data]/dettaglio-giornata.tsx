@@ -7,7 +7,7 @@ import {
   eliminaRiga,
   rimuoviRimborsoTrasferta,
 } from "@/lib/actions/righe-attivita";
-import { BadgeCategoriaAttivita, PulsanteAttesa } from "@/components";
+import { BadgeCategoriaAttivita, IndicatoreGiorniErogati, PulsanteAttesa } from "@/components";
 import {
   CATEGORIA_ATTIVITA_PREDEFINITA,
   CATEGORIE_ATTIVITA,
@@ -298,6 +298,10 @@ export default function DettaglioGiornata({
     }, 0);
     return { nRighe, oreTotali, oreDaFatturare, totaleRimborsi };
   }, [righe]);
+
+  const avanzamentoOffertaSelezionata = offerte.find(
+    (offerta) => offerta.id === offertaId
+  )?.avanzamento;
 
   // ── Assenza di offerte abilitate per il cliente selezionato ─
 
@@ -1076,14 +1080,22 @@ export default function DettaglioGiornata({
             )}
           </div>
 
-          {/* Offerta */}
+          {/* Offerta: accanto all'etichetta l'avanzamento in giornate, come
+              nell'anagrafica offerte. Solo un'indicazione: non blocca nulla. */}
           <div>
-            <label
-              htmlFor="offerta"
-              className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
-            >
-              Offerta
-            </label>
+            <div className="mb-[5px] flex items-center justify-between gap-3">
+              <label
+                htmlFor="offerta"
+                className="block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+              >
+                Offerta
+              </label>
+              {avanzamentoOffertaSelezionata && (
+                <span className="text-[12.5px]">
+                  <IndicatoreGiorniErogati avanzamento={avanzamentoOffertaSelezionata} inRiga />
+                </span>
+              )}
+            </div>
             <select
               id="offerta"
               value={offertaId}
