@@ -74,8 +74,8 @@ Il confronto tra valori dell'Excel e anagrafiche avviene sempre su valori normal
   "offerta da definire", già supportata dall'applicazione.
 - Riga con ore vuote o zero: importata con ore 0 e una nota sulla riga. Non è una
   sospensione, l'attività è reale e il collaboratore può correggerla.
-- Righe con la stessa chiave (collaboratore, data, cliente, offerta): la prima entra, le
-  ripetizioni sono contate nel riepilogo dello script, non sono sospensioni.
+- Righe ripetute nel foglio: importate tutte. In un lancio additivo una riga entra solo se
+  la sua chiave (collaboratore, data, cliente, offerta) non è già nel database.
 
 ## Pagina di back-office
 

@@ -63,8 +63,9 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
   const righe: Prisma.RigaAttivitaCreateManyInput[] = [];
   const sospese: Prisma.RigaAttivitaSospesaCreateManyInput[] = [];
   const abilitazioni = new Set<string>();
-  // Chiave della riga: collaboratore + data + cliente + offerta. Le righe già presenti non si toccano;
-  // la stessa chiave ripetuta nel foglio entra una volta sola.
+  // Chiave della riga: collaboratore + data + cliente + offerta, confrontata solo con le righe già
+  // nel database all'inizio del lancio: quelle entrano una volta sola, tutte le altre righe del
+  // foglio entrano così come sono, anche se ripetute (con --reset il database è vuoto: entra tutto).
   const chiaveRiga = (collaboratoreId: string, data: string, clienteId: string, offertaId: string | null) => [collaboratoreId, data, clienteId, offertaId ?? ""].join("|");
   const presenti = new Set(
     (await tx.rigaAttivita.findMany({ select: { collaboratoreId: true, data: true, clienteId: true, offertaId: true } })).map((r) =>
@@ -85,7 +86,6 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
     const sospendi = (motivo: MotivoSospensione, nota: string) => {
       const sospesa = { ...grezzi, data: leggiData(grezzi.data) ?? grezzi.data, motivo, nota };
       if (sospesePresenti.has(chiaveSospesa(sospesa))) { esito.sospeseGiaPresenti++; return; }
-      sospesePresenti.add(chiaveSospesa(sospesa));
       esito.sospesePerMotivo[motivo]++;
       sospese.push(sospesa);
     };
@@ -132,7 +132,6 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
 
     const chiave = chiaveRiga(collaboratoreId, data, clienteId, ricerca.offerta?.id ?? null);
     if (presenti.has(chiave)) { esito.giaPresenti++; continue; }
-    presenti.add(chiave);
     if (ricerca.offerta) abilitazioni.add(`${collaboratoreId}|${ricerca.offerta.id}`);
 
     const [anno, mese, giorno] = data.split("-").map(Number);

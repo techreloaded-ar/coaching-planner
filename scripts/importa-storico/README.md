@@ -29,6 +29,10 @@ può rilanciare dopo ogni aggiornamento del foglio. Le chiavi di confronto:
 | Riga attività | collaboratore + data + cliente + offerta |
 | Riga sospesa | tutti i valori grezzi della riga |
 
+Il confronto è solo con ciò che c'è nel database all'inizio del lancio: le righe del foglio
+non trovate entrano tutte, anche se ripetute tra loro. Con `--reset` entra quindi ogni riga
+del foglio.
+
 `--reset` svuota utenti, collaboratori, tariffe, clienti, offerte, righe attività, righe
 sospese e abilitazioni; non tocca le voci di rimborso trasferta.
 
@@ -103,9 +107,7 @@ report `lavoro/righe-sospese.csv`. In particolare:
   per `CLIENTE_INTERNO` → non fatturabile;
 - `Spese Coach` > 0 → rimborso trasferta sulla riga, con l'etichetta della voce di rimborso
   che ha lo stesso importo, altrimenti "Spese dal foglio storico";
-- per ogni coppia (collaboratore, offerta) incontrata viene creata l'abilitazione;
-- una stessa chiave (collaboratore, data, cliente, offerta) ripetuta nel foglio entra una
-  volta sola: le ripetizioni rientrano in `giaPresenti` nel riepilogo.
+- per ogni coppia (collaboratore, offerta) incontrata viene creata l'abilitazione.
 
 I clienti in `CLIENTI_ESCLUSI` (predefinito: ND) sono ignorati in tutte le schede.
 
