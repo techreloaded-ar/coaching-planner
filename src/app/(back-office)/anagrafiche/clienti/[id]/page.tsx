@@ -25,6 +25,7 @@ export default async function DettaglioClientePage({
   }
 
   const offerte = await elencaOffertePerClienteConAvanzamento(cliente.id);
+  const offerteAttive = offerte.filter((offerta) => offerta.attiva).length;
   const { esito } = await searchParams;
 
   const sede = [
@@ -41,7 +42,11 @@ export default async function DettaglioClientePage({
       ? "Offerta creata correttamente"
       : esito === "offerta-salvata"
         ? "Modifiche all'offerta salvate"
-        : null;
+        : esito === "offerta-disattivata"
+          ? "Offerta disattivata"
+          : esito === "offerta-riattivata"
+            ? "Offerta riattivata"
+            : null;
 
   return (
     <div>
@@ -133,6 +138,8 @@ export default async function DettaglioClientePage({
           </span>
           <span className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
             {offerte.length === 1 ? "1 offerta" : `${offerte.length} offerte`}
+            {offerte.length > 0 &&
+              ` · ${offerteAttive} ${offerteAttive === 1 ? "attiva" : "attive"} · ${offerte.length - offerteAttive} ${offerte.length - offerteAttive === 1 ? "disattivata" : "disattivate"}`}
           </span>
           <span className="ml-auto">
             <Link

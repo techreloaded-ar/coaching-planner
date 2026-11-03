@@ -227,8 +227,8 @@ const ICONA_COLLABORATORI = (
     <path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM20 19v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.4 4.3a3.5 3.5 0 0 1 0 6.8" />
   </Icona>
 );
-const ICONA_DISATTIVA = <Icona><circle cx="12" cy="12" r="8.6" /><path d="M6 6l12 12" /></Icona>;
-const ICONA_RIATTIVA = <Icona><path d="M4.5 12a7.5 7.5 0 1 1 2.2 5.3" /><path d="M4.5 17.5V12H10" /></Icona>;
+export const ICONA_DISATTIVA = <Icona><circle cx="12" cy="12" r="8.6" /><path d="M6 6l12 12" /></Icona>;
+export const ICONA_RIATTIVA = <Icona><path d="M4.5 12a7.5 7.5 0 1 1 2.2 5.3" /><path d="M4.5 17.5V12H10" /></Icona>;
 const ICONA_RISOLVI = <Icona><path d="M4.5 12.5 9.5 17.5 19.5 6.5" /></Icona>;
 const ICONA_ELIMINA = (
   <Icona><path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" /></Icona>

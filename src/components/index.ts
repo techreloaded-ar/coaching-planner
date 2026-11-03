@@ -14,6 +14,8 @@ export {
   CasellaSelezioneTutti,
   CasellaSelezione,
   ChipStato,
+  ICONA_DISATTIVA,
+  ICONA_RIATTIVA,
   useSelezioneElenco,
   type AzioneElencoSelezionabile,
   type StatoElencoSelezionabile,

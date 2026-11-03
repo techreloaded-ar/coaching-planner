@@ -302,8 +302,8 @@ export async function elencaOfferteConAvanzamentoPaginate({
 }
 
 /**
- * Elenca le offerte di un cliente con il relativo avanzamento, ordinate per
- * codice. Il risultato è interamente serializzabile: la tariffa è una stringa
+ * Elenca le offerte di un cliente con il relativo avanzamento: prima le
+ * attive, poi le disattivate, ciascun gruppo ordinato per codice. Il risultato è interamente serializzabile: la tariffa è una stringa
  * e non espone valori Decimal o Date grezzi.
  *
  * Accesso riservato all'amministratore.
@@ -324,7 +324,11 @@ export async function elencaOffertePerClienteConAvanzamento(
   });
 
   const voci = costruisciVociElencoOfferte(offerte, righe);
-  voci.sort((a, b) => a.codice.localeCompare(b.codice));
+  // Prima le attive, poi le disattivate; dentro ciascun gruppo per codice.
+  voci.sort(
+    (a, b) =>
+      Number(b.attiva) - Number(a.attiva) || a.codice.localeCompare(b.codice),
+  );
 
   return voci;
 }
