@@ -132,7 +132,7 @@ export default function RiepilogoMese({
             {riepilogo.perOfferta.filter((voce) => voce.offertaId !== null).length} offerte
           </b>
           <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
-          <b className="tabular-nums">{formattaGiornate(riepilogo.totali.giornateTotali)} g</b>
+          <b className="tabular-nums">{formattaGiornate(riepilogo.totali.giornateTotali)} gg</b>
         </div>
       </div>
 
