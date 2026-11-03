@@ -74,8 +74,8 @@ Il confronto tra valori dell'Excel e anagrafiche avviene sempre su valori normal
   "offerta da definire", già supportata dall'applicazione.
 - Riga con ore vuote o zero: importata con ore 0 e una nota sulla riga. Non è una
   sospensione, l'attività è reale e il collaboratore può correggerla.
-- Righe duplicate: importate tutte. Lo script le elenca nel proprio report, non sono
-  sospensioni.
+- Righe con la stessa chiave (collaboratore, data, cliente, offerta): la prima entra, le
+  ripetizioni sono contate nel riepilogo dello script, non sono sospensioni.
 
 ## Pagina di back-office
 
@@ -96,7 +96,8 @@ nel codice, così la build fallisce se un nuovo motivo resta senza descrizione.
 Implementato in `scripts/importa-storico/` (`npm run db:importa-storico`, vedi il README lì).
 
 - `--reset` svuota le tabelle applicative, compresa `RigaAttivitaSospesa`, prima di
-  scrivere; senza `--reset` lo script si rifiuta di partire su un database non vuoto.
+  scrivere; senza `--reset` lo script è additivo: inserisce solo ciò che manca, per chiave,
+  e non modifica ciò che esiste.
 - `--dry-run` produce solo il report senza scrivere.
 - Scrittura in un'unica transazione.
 - A fine esecuzione stampa il conteggio delle righe importate e delle righe sospese per

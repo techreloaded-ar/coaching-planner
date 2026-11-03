@@ -68,6 +68,7 @@ con "cliente" identico al valore ricevuto. Regole:
 
 export interface EsitoClienti {
   inseriti: number;
+  giaPresenti: number;
   conDatiFatturazione: number;
   esclusi: string[];
   duplicati: string[];
@@ -80,13 +81,16 @@ export interface ClientiPreparati {
   esito: Omit<EsitoClienti, "inseriti">;
 }
 
-/** Legge la scheda e interroga Claude: nessun accesso al database. */
-export async function preparaClienti(cfg: Configurazione): Promise<ClientiPreparati> {
+/**
+ * Legge la scheda e interroga Claude solo per i clienti nuovi: le ragioni sociali
+ * già presenti (normalizzate) non si toccano. Nessuna scrittura sul database.
+ */
+export async function preparaClienti(cfg: Configurazione, ragioniSocialiEsistenti: Set<string>): Promise<ClientiPreparati> {
   const scheda = await leggiScheda(cfg, cfg.schede.clienti);
   richiediColonne(scheda, cfg.schede.clienti, ["Cliente"]);
 
   const visti = new Set<string>();
-  const esito: ClientiPreparati["esito"] = { conDatiFatturazione: 0, esclusi: [], duplicati: [], campiScartati: {} };
+  const esito: ClientiPreparati["esito"] = { giaPresenti: 0, conDatiFatturazione: 0, esclusi: [], duplicati: [], campiScartati: {} };
   const daInferire: RigaFoglio[] = [];
   const righe: ClientiPreparati["righe"] = [];
   for (const riga of scheda.righe) {
@@ -96,6 +100,7 @@ export async function preparaClienti(cfg: Configurazione): Promise<ClientiPrepar
     if (cfg.clientiEsclusi.has(chiave)) { esito.esclusi.push(ragioneSociale); continue; }
     if (visti.has(chiave)) { esito.duplicati.push(ragioneSociale); continue; }
     visti.add(chiave);
+    if (ragioniSocialiEsistenti.has(chiave)) { esito.giaPresenti++; continue; }
     righe.push({ ragioneSociale, dati: {} });
     if (COLONNE_DETTAGLIO.some((c) => cella(riga, c))) daInferire.push(riga);
   }

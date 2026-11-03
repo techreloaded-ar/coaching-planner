@@ -10,16 +10,27 @@ cp scripts/importa-storico/.env.importa-storico.example scripts/importa-storico/
 # compila DATABASE_URL, FOGLIO_ORIGINE, GOOGLE_SERVICE_ACCOUNT_FILE, EMAIL_AMMINISTRATORI
 
 npm run db:importa-storico -- --dry-run          # prova a secco: legge tutto, scrive niente
-npm run db:importa-storico                       # import completo su database vuoto
+npm run db:importa-storico                       # aggiunge ciò che manca, non tocca l'esistente
 npm run db:importa-storico -- --reset            # svuota prima le tabelle applicative
-npm run db:importa-storico -- giornate --dry-run # un solo passo (clienti|offerte|coach|giornate)
+npm run db:importa-storico -- giornate --dry-run # un solo passo (clienti|offerte|coach|rimborsi|giornate)
 npm run db:importa-storico -- --config altro.env
 ```
 
-Tutto avviene in un'unica transazione: o entra tutto o niente. Senza `--reset` lo script
-si rifiuta di scrivere su tabelle già popolate. `--reset` svuota utenti, collaboratori,
-tariffe, clienti, offerte, righe attività, righe sospese e abilitazioni; non tocca le voci
-di rimborso trasferta.
+Tutto avviene in un'unica transazione: o entra tutto o niente. Senza `--reset` lo script è
+**additivo**: inserisce solo ciò che non trova e non modifica mai ciò che esiste, così si
+può rilanciare dopo ogni aggiornamento del foglio. Le chiavi di confronto:
+
+| Entità | Chiave |
+|---|---|
+| Cliente | ragione sociale (spazi compattati, maiuscole ignorate) |
+| Offerta | cliente + codice offerta |
+| Coach | email dell'utente, a cui l'`ID` del foglio corrisponde |
+| Voce di rimborso | etichetta |
+| Riga attività | collaboratore + data + cliente + offerta |
+| Riga sospesa | tutti i valori grezzi della riga |
+
+`--reset` svuota utenti, collaboratori, tariffe, clienti, offerte, righe attività, righe
+sospese e abilitazioni; non tocca le voci di rimborso trasferta.
 
 ## Accesso al Google Sheets
 
@@ -71,6 +82,10 @@ cognome tutti maiuscoli vengono riportati con l'iniziale maiuscola. Il foglio no
 amministra: gli indirizzi in `EMAIL_AMMINISTRATORI` ricevono il ruolo AMMINISTRATORE. La
 colonna `ID` è la chiave che la scheda GIORNATE usa nella colonna `Coach`.
 
+**RIMBORSI** — le voci di `VOCI_RIMBORSO_TRASFERTA` (`etichetta = importo`, separate da
+`;`) vengono create se mancano, prima delle giornate, così le righe con `Spese Coach`
+agganciano l'etichetta giusta.
+
 **GIORNATE** — ogni riga diventa una `RigaAttivita` oppure una `RigaAttivitaSospesa` con il
 primo motivo riscontrato (collaboratore, cliente, offerta, dati), secondo
 `docs/righe-attivita-sospese-approccio.md`. Le righe sospese si vedono nel back office e nel
@@ -88,7 +103,9 @@ report `lavoro/righe-sospese.csv`. In particolare:
   per `CLIENTE_INTERNO` → non fatturabile;
 - `Spese Coach` > 0 → rimborso trasferta sulla riga, con l'etichetta della voce di rimborso
   che ha lo stesso importo, altrimenti "Spese dal foglio storico";
-- per ogni coppia (collaboratore, offerta) incontrata viene creata l'abilitazione.
+- per ogni coppia (collaboratore, offerta) incontrata viene creata l'abilitazione;
+- una stessa chiave (collaboratore, data, cliente, offerta) ripetuta nel foglio entra una
+  volta sola: le ripetizioni rientrano in `giaPresenti` nel riepilogo.
 
 I clienti in `CLIENTI_ESCLUSI` (predefinito: ND) sono ignorati in tutte le schede.
 

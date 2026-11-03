@@ -8,6 +8,7 @@ import { cella, leggiScheda, richiediColonne } from "./foglio";
 
 export interface EsitoOfferte {
   inserite: number;
+  giaPresenti: number;
   attive: number;
   forfettarie: number;
   senzaCodice: number;
@@ -24,8 +25,10 @@ export async function importaOfferte(tx: Prisma.TransactionClient, cfg: Configur
 
   const clienti = await tx.cliente.findMany({ select: { id: true, ragioneSociale: true } });
   const idCliente = new Map(clienti.map((c) => [normalizzaTesto(c.ragioneSociale), c.id]));
-  const esito: EsitoOfferte = { inserite: 0, attive: 0, forfettarie: 0, senzaCodice: 0, clientiCreati: [], duplicate: [], escluse: 0, scartate: [] };
+  const esito: EsitoOfferte = { inserite: 0, giaPresenti: 0, attive: 0, forfettarie: 0, senzaCodice: 0, clientiCreati: [], duplicate: [], escluse: 0, scartate: [] };
+  // Chiave dell'offerta: cliente + codice (normalizzato). Le offerte già presenti non si toccano.
   const viste = new Set<string>();
+  const esistenti = new Set((await tx.offerta.findMany({ select: { clienteId: true, codice: true } })).map((o) => `${o.clienteId}|${normalizzaTesto(o.codice)}`));
   const daInserire: Prisma.OffertaCreateManyInput[] = [];
 
   for (const [indice, riga] of scheda.righe.entries()) {
@@ -50,6 +53,7 @@ export async function importaOfferte(tx: Prisma.TransactionClient, cfg: Configur
     const chiave = `${clienteId}|${normalizzaTesto(codice)}`;
     if (viste.has(chiave)) { esito.duplicate.push(`${nomeCliente} / ${codice} (${anno})`); continue; }
     viste.add(chiave);
+    if (esistenti.has(chiave)) { esito.giaPresenti++; continue; }
 
     const forfettaria = /^forfait/i.test(cella(riga, "Tipologia Spese"));
     const speseForfait = leggiNumero(cella(riga, "Spese Forfait"));

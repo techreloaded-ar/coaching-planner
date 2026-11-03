@@ -6,8 +6,11 @@
  *
  * - Legge la configurazione da scripts/importa-storico/.env.importa-storico (vedi .example).
  * - Scrive in un'unica transazione; con --dry-run la annulla alla fine (report compreso).
- * - Senza --reset si rifiuta di scrivere su tabelle già popolate; con --reset svuota prima
- *   tutte le tabelle applicative (utenti compresi, voci di rimborso escluse).
+ * - Senza --reset aggiunge solo ciò che manca: clienti per ragione sociale, offerte per
+ *   cliente e codice, coach per email (l'ID del foglio), voci di rimborso per etichetta,
+ *   righe attività per collaboratore, data, cliente e offerta. Ciò che esiste non si tocca.
+ * - Con --reset svuota prima tutte le tabelle applicative (utenti compresi, voci di
+ *   rimborso escluse).
  */
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -16,18 +19,12 @@ import { caricaConfigurazione, PERCORSO_CONFIGURAZIONE_PREDEFINITO, type Configu
 import { preparaClienti, scriviClienti, type ClientiPreparati } from "./clienti";
 import { importaOfferte } from "./offerte";
 import { importaCoach } from "./coach";
+import { importaRimborsi } from "./rimborsi";
 import { importaGiornate } from "./giornate";
+import { normalizzaTesto } from "../../src/domain/righe-sospese/abbinamento";
 
-const PASSI = ["clienti", "offerte", "coach", "giornate"] as const;
+const PASSI = ["clienti", "offerte", "coach", "rimborsi", "giornate"] as const;
 type Passo = (typeof PASSI)[number];
-
-/** Tabelle che ogni passo popola: devono essere vuote senza --reset. */
-const TABELLE_DEL_PASSO: Record<Passo, (tx: Prisma.TransactionClient) => Promise<[string, number][]>> = {
-  clienti: async (tx) => [["Cliente", await tx.cliente.count()]],
-  offerte: async (tx) => [["Offerta", await tx.offerta.count()]],
-  coach: async (tx) => [["Utente", await tx.utente.count()]],
-  giornate: async (tx) => [["RigaAttivita", await tx.rigaAttivita.count()], ["RigaAttivitaSospesa", await tx.rigaAttivitaSospesa.count()]],
-};
 
 class ProvaASecco extends Error {}
 
@@ -66,26 +63,22 @@ async function main(): Promise<void> {
   const cfg: Configurazione = caricaConfigurazione(opzioni.config);
   console.log(`Origine: ${cfg.origineFoglio}\nPassi: ${opzioni.passi.join(", ")}${opzioni.dryRun ? " (prova a secco)" : ""}${opzioni.reset ? " con azzeramento" : ""}\n`);
 
-  // L'inferenza con Claude è lenta e non tocca il database: fuori dalla transazione.
-  let clientiPreparati: ClientiPreparati | undefined;
-  if (opzioni.passi.includes("clienti")) {
-    console.log("Clienti: lettura scheda e inferenza dei dati di fatturazione");
-    clientiPreparati = await preparaClienti(cfg);
-  }
-
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: cfg.databaseUrl }) });
   const riepilogo: Record<string, unknown> = {};
   try {
+    // L'inferenza con Claude è lenta e non scrive: fuori dalla transazione, solo per i clienti nuovi.
+    let clientiPreparati: ClientiPreparati | undefined;
+    if (opzioni.passi.includes("clienti")) {
+      console.log("Clienti: lettura scheda e inferenza dei dati di fatturazione");
+      const esistenti = opzioni.reset ? [] : await prisma.cliente.findMany({ select: { ragioneSociale: true } });
+      clientiPreparati = await preparaClienti(cfg, new Set(esistenti.map((c) => normalizzaTesto(c.ragioneSociale))));
+    }
+
     await prisma.$transaction(
       async (tx) => {
         if (opzioni.reset) {
           await azzeraTabelle(tx);
           console.log("Tabelle applicative azzerate");
-        } else {
-          for (const passo of opzioni.passi) {
-            const piene = (await TABELLE_DEL_PASSO[passo](tx)).filter(([, n]) => n > 0);
-            if (piene.length) throw new Error(`Il passo "${passo}" scrive su tabelle già popolate (${piene.map(([t, n]) => `${t}: ${n}`).join(", ")}). Usa --reset per svuotarle prima.`);
-          }
         }
         for (const passo of opzioni.passi) {
           console.log(`\n▶ ${passo}`);
@@ -93,6 +86,7 @@ async function main(): Promise<void> {
             passo === "clienti" ? await scriviClienti(tx, clientiPreparati!)
             : passo === "offerte" ? await importaOfferte(tx, cfg)
             : passo === "coach" ? await importaCoach(tx, cfg)
+            : passo === "rimborsi" ? await importaRimborsi(tx, cfg)
             : await importaGiornate(tx, cfg);
           console.log(JSON.stringify(riepilogo[passo], null, 2));
         }

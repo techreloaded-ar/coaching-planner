@@ -21,6 +21,8 @@ export interface Configurazione {
   emailAmministratori: Set<string>;
   importoTrasfertaForfettariaPredefinito: number;
   primoMeseTariffa: string;
+  /** Voci di rimborso trasferta da garantire prima delle giornate */
+  vociRimborsoTrasferta: { etichetta: string; importo: number }[];
   claude: { comando: string; modello: string; dimensioneLotto: number };
   /** Cartella per cache dell'inferenza e report */
   cartellaLavoro: string;
@@ -56,14 +58,23 @@ export function caricaConfigurazione(percorsoFile: string): Configurazione {
     if (!(numero >= 0)) throw new Error(`Variabile ${nome} non numerica in ${percorsoFile}`);
     return numero;
   };
-  const elenco = (nome: string, predefinito: string) =>
-    leggi(nome, predefinito).split(",").map((v) => v.trim()).filter(Boolean);
+  const elenco = (nome: string, predefinito: string, separatore = ",") =>
+    leggi(nome, predefinito).split(separatore).map((v) => v.trim()).filter(Boolean);
 
   const primoMeseTariffa = leggi("PRIMO_MESE_TARIFFA", "2018-01");
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(primoMeseTariffa)) throw new Error("PRIMO_MESE_TARIFFA deve essere nel formato YYYY-MM");
 
+  // "Fino a 100 km = 75; Eventi = 100": etichetta e importo separati da "=", voci separate da ";"
+  const vociRimborsoTrasferta = elenco("VOCI_RIMBORSO_TRASFERTA", "", ";").map((voce) => {
+    const [etichetta, importoGrezzo, ...resto] = voce.split("=").map((v) => v.trim());
+    const importo = Number((importoGrezzo ?? "").replace(/€/g, "").replace(",", "."));
+    if (!etichetta || resto.length || !(importo > 0)) throw new Error(`VOCI_RIMBORSO_TRASFERTA: voce non valida "${voce}" (atteso "etichetta = importo")`);
+    return { etichetta, importo };
+  });
+
   return {
     databaseUrl: leggi("DATABASE_URL"),
+    vociRimborsoTrasferta,
     origineFoglio: leggiOrigineFoglio(leggi("FOGLIO_ORIGINE")),
     fileServiceAccountGoogle: leggi("GOOGLE_SERVICE_ACCOUNT_FILE", ""),
     schede: {

@@ -25,6 +25,8 @@ const ETICHETTA_RIMBORSO_GENERICA = "Spese dal foglio storico";
 export interface EsitoGiornate {
   righeLette: number;
   importate: number;
+  giaPresenti: number;
+  sospeseGiaPresenti: number;
   conOffertaDaDefinire: number;
   conOffertaDedotta: number;
   conOreDaiGiorni: number;
@@ -32,7 +34,6 @@ export interface EsitoGiornate {
   conRimborso: number;
   abilitazioniCreate: number;
   escluse: number;
-  duplicate: number;
   sospesePerMotivo: Record<MotivoSospensione, number>;
   reportSospese: string;
 }
@@ -54,15 +55,25 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
   const etichettaPerImporto = new Map(vociRimborso.map((v) => [Number(v.importo), v.etichetta]));
 
   const esito: EsitoGiornate = {
-    righeLette: 0, importate: 0, conOffertaDaDefinire: 0, conOffertaDedotta: 0, conOreDaiGiorni: 0, conOreZero: 0,
-    conRimborso: 0, abilitazioniCreate: 0, escluse: 0, duplicate: 0,
+    righeLette: 0, importate: 0, giaPresenti: 0, sospeseGiaPresenti: 0, conOffertaDaDefinire: 0, conOffertaDedotta: 0, conOreDaiGiorni: 0, conOreZero: 0,
+    conRimborso: 0, abilitazioniCreate: 0, escluse: 0,
     sospesePerMotivo: { COLLABORATORE_SCONOSCIUTO: 0, CLIENTE_SCONOSCIUTO: 0, OFFERTA_SCONOSCIUTA: 0, OFFERTA_ALTRO_CLIENTE: 0, DATI_NON_VALIDI: 0 },
     reportSospese: path.join(cfg.cartellaLavoro, "righe-sospese.csv"),
   };
   const righe: Prisma.RigaAttivitaCreateManyInput[] = [];
   const sospese: Prisma.RigaAttivitaSospesaCreateManyInput[] = [];
   const abilitazioni = new Set<string>();
-  const impronte = new Set<string>();
+  // Chiave della riga: collaboratore + data + cliente + offerta. Le righe già presenti non si toccano;
+  // la stessa chiave ripetuta nel foglio entra una volta sola.
+  const chiaveRiga = (collaboratoreId: string, data: string, clienteId: string, offertaId: string | null) => [collaboratoreId, data, clienteId, offertaId ?? ""].join("|");
+  const presenti = new Set(
+    (await tx.rigaAttivita.findMany({ select: { collaboratoreId: true, data: true, clienteId: true, offertaId: true } })).map((r) =>
+      chiaveRiga(r.collaboratoreId, r.data.toISOString().slice(0, 10), r.clienteId, r.offertaId),
+    ),
+  );
+  const chiaveSospesa = (s: Pick<Prisma.RigaAttivitaSospesaCreateManyInput, "collaboratore" | "data" | "cliente" | "codiceOfferta" | "ore" | "tipologiaFatturazione">) =>
+    [s.collaboratore, s.data, s.cliente, s.codiceOfferta, s.ore, s.tipologiaFatturazione].map(normalizzaTesto).join("|");
+  const sospesePresenti = new Set((await tx.rigaAttivitaSospesa.findMany()).map(chiaveSospesa));
 
   for (const riga of scheda.righe) {
     const grezzi = {
@@ -72,8 +83,11 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
     if (!Object.values(grezzi).some(Boolean)) continue;
     esito.righeLette++;
     const sospendi = (motivo: MotivoSospensione, nota: string) => {
+      const sospesa = { ...grezzi, data: leggiData(grezzi.data) ?? grezzi.data, motivo, nota };
+      if (sospesePresenti.has(chiaveSospesa(sospesa))) { esito.sospeseGiaPresenti++; return; }
+      sospesePresenti.add(chiaveSospesa(sospesa));
       esito.sospesePerMotivo[motivo]++;
-      sospese.push({ ...grezzi, data: leggiData(grezzi.data) ?? grezzi.data, motivo, nota });
+      sospese.push(sospesa);
     };
 
     const clienteNormalizzato = normalizzaTesto(grezzi.cliente);
@@ -116,9 +130,9 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
     const rimborso = spese && spese > 0 ? { rimborsoTrasfertaImporto: spese.toFixed(2), rimborsoTrasfertaEtichetta: etichettaPerImporto.get(spese) ?? ETICHETTA_RIMBORSO_GENERICA } : {};
     if (spese && spese > 0) esito.conRimborso++;
 
-    const impronta = [collaboratoreId, data, clienteId, ricerca.offerta?.id ?? "", ore].join("|");
-    if (impronte.has(impronta)) esito.duplicate++;
-    impronte.add(impronta);
+    const chiave = chiaveRiga(collaboratoreId, data, clienteId, ricerca.offerta?.id ?? null);
+    if (presenti.has(chiave)) { esito.giaPresenti++; continue; }
+    presenti.add(chiave);
     if (ricerca.offerta) abilitazioni.add(`${collaboratoreId}|${ricerca.offerta.id}`);
 
     const [anno, mese, giorno] = data.split("-").map(Number);

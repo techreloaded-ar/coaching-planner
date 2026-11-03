@@ -9,6 +9,7 @@ import { cella, leggiScheda, richiediColonne, type SchedaLetta } from "./foglio"
 
 export interface EsitoCoach {
   utenti: number;
+  giaPresenti: number;
   amministratori: number;
 }
 
@@ -39,7 +40,9 @@ export function mappaIdCoachEmail(scheda: SchedaLetta): Map<string, string> {
 
 export async function importaCoach(tx: Prisma.TransactionClient, cfg: Configurazione): Promise<EsitoCoach> {
   const scheda = await leggiSchedaCoach(cfg);
-  const esito: EsitoCoach = { utenti: 0, amministratori: 0 };
+  const esito: EsitoCoach = { utenti: 0, giaPresenti: 0, amministratori: 0 };
+  // L'ID del foglio non è nel database: l'utente esiste se esiste la sua email
+  const emailEsistenti = new Set((await tx.utente.findMany({ select: { email: true } })).map((u) => u.email.toLowerCase()));
   const emailViste = new Set<string>();
   const idVisti = new Set<string>();
 
@@ -57,6 +60,9 @@ export async function importaCoach(tx: Prisma.TransactionClient, cfg: Configuraz
 
     if (idVisti.has(id)) throw new Error(`Scheda coach, riga ${numeroRiga}: ID "${id}" ripetuto`);
     if (emailViste.has(email)) throw new Error(`Scheda coach, riga ${numeroRiga}: email "${email}" ripetuta`);
+    idVisti.add(id);
+    emailViste.add(email);
+    if (emailEsistenti.has(email)) { esito.giaPresenti++; continue; }
     if (!modalita || !importo) throw new Error(`Scheda coach, riga ${numeroRiga} (${id}): tipologia o importo tariffa non leggibili`);
     const errori = validaCensimentoUtente({
       nome, cognome, email, partitaIva,
@@ -64,8 +70,6 @@ export async function importaCoach(tx: Prisma.TransactionClient, cfg: Configuraz
       modalitaTariffa: modalita, importoTariffa: importo.toFixed(2), tariffaValidaDalMese: cfg.primoMeseTariffa,
     });
     if (Object.keys(errori).length) throw new Error(`Scheda coach, riga ${numeroRiga} (${id}): ${Object.values(errori).join("; ")}`);
-    idVisti.add(id);
-    emailViste.add(email);
 
     await tx.utente.create({
       data: {
