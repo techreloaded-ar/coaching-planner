@@ -72,9 +72,7 @@ test.describe("Riepilogo mensile con la tariffa del mese", () => {
 		await apriRiepilogo(page, meseGiornaliera);
 		await expect(page.getByTestId("summary-importo-fattura-value")).toContainText("840,00");
 		await expect(page.getByTestId("summary-importo-fattura-breakdown")).toContainText(/2\.00 g × .*400,00/);
-		await expect(page.getByTestId("summary-importo-fattura-tariffa")).toContainText(
-			"Tariffa giornaliera valida da",
-		);
+		await expect(page.getByTestId("summary-giornate-da-fatturare")).toContainText(/Tariffa giorno: .*400,00/);
 
 		// Fisso mensile: 6.500 + 240 di rimborsi, indipendente dalle 12 ore.
 		await apriRiepilogo(page, meseFisso);
@@ -82,8 +80,8 @@ test.describe("Riepilogo mensile con la tariffa del mese", () => {
 		await expect(page.getByTestId("summary-importo-fattura-breakdown")).toContainText(
 			/Fisso mensile .*6\.?500,00/,
 		);
-		await expect(page.getByTestId("summary-importo-fattura-tariffa")).toContainText(
-			"il fisso non dipende dalle giornate",
+		await expect(page.getByTestId("summary-giornate-da-fatturare")).toContainText(
+			"Il fisso mensile non dipende dalle giornate",
 		);
 
 		// Mese con il fisso in vigore ma senza attività: il fisso è comunque dovuto.
@@ -93,8 +91,6 @@ test.describe("Riepilogo mensile con la tariffa del mese", () => {
 		// Mese precedente alla prima tariffa: compenso zero e nota esplicita.
 		await apriRiepilogo(page, mesePassatoRiservato(CODICE_SPEC, 4));
 		await expect(page.getByTestId("summary-importo-fattura-value")).toHaveText(/^(€\s*)?0,00(\s*€)?$/);
-		await expect(page.getByTestId("summary-importo-fattura-tariffa")).toHaveText(
-			"Nessuna tariffa in vigore in questo mese",
-		);
+		await expect(page.getByTestId("summary-giornate-da-fatturare")).toContainText("Nessuna tariffa in vigore");
 	});
 });

@@ -60,7 +60,7 @@ test.describe("US-030 Demo", () => {
 
 		await page.getByRole("link", { name: "Torna al calendario", exact: true }).click();
 		await page.getByRole("link", { name: "Riepilogo mese", exact: true }).click();
-		await expect(page.getByTestId("summary-ore-totali-value")).toHaveText("6");
+		await expect(page.getByTestId("summary-giornate-totali-value")).toHaveText("0,75");
 		await expect(page.getByTestId("summary-table")).toContainText(
 			cliente.ragioneSociale,
 		);

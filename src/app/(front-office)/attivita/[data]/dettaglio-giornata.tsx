@@ -888,16 +888,9 @@ export default function DettaglioGiornata({
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       {riga.offerta ? (
-                        <>
-                          <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
-                            {riga.offerta.codice}
-                          </span>
-                          {riga.offerta.descrizione && (
-                            <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
-                              {riga.offerta.descrizione}
-                            </span>
-                          )}
-                        </>
+                        <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
+                          {[riga.offerta.codice, riga.offerta.descrizione].filter(Boolean).join(" — ")}
+                        </span>
                       ) : (
                         <span
                           data-testid="offerta-da-definire"

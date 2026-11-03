@@ -104,6 +104,8 @@ test.describe("Elenco attività del mese", () => {
     await page.getByRole("navigation", { name: "Vista delle attività" }).getByRole("link", { name: "Calendario", exact: true }).click();
     await expect(page.getByRole("region", { name: "Calendario mensile delle attività" })).toBeVisible();
     await expect(page.getByText("1 righe", { exact: true })).toBeVisible();
+    // La chip del mese riporta le giornate: 1 h = 0,125 gg.
+    await expect(page.getByText("0,13 gg", { exact: true })).toBeVisible();
 
     await page.getByRole("navigation", { name: "Vista delle attività" }).getByRole("link", { name: "Elenco", exact: true }).click();
     await expect(elenco).toHaveAttribute("data-idratata", "true");
