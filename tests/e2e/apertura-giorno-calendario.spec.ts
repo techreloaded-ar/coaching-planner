@@ -60,7 +60,7 @@ test.describe("US-031 Apertura di qualsiasi giorno dal calendario", () => {
 
     // Attendi la card della riga con il codice dell'offerta factory
     await expect(
-      page.getByText(clienteConOfferta.offerta.codice, { exact: true }),
+      page.getByText(`${clienteConOfferta.offerta.codice} — ${clienteConOfferta.offerta.descrizione}`, { exact: true }),
     ).toBeVisible();
 
     // Torna al calendario: la cella ora ha data-con-attivita="true" e mostra la sintesi
@@ -75,7 +75,7 @@ test.describe("US-031 Apertura di qualsiasi giorno dal calendario", () => {
     await page.waitForURL(`**/attivita/${dataVuota}**`);
 
     await expect(
-      page.getByText(clienteConOfferta.offerta.codice, { exact: true }),
+      page.getByText(`${clienteConOfferta.offerta.codice} — ${clienteConOfferta.offerta.descrizione}`, { exact: true }),
     ).toBeVisible();
   });
 
