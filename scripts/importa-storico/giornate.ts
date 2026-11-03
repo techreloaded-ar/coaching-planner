@@ -1,6 +1,11 @@
 // Passo GIORNATE: ogni riga del foglio diventa una RigaAttivita se collaboratore,
 // cliente e offerta si abbinano, altrimenti una RigaAttivitaSospesa con il motivo
 // (vedi docs/righe-attivita-sospese-approccio.md). L'import arriva sempre in fondo.
+//
+// Una riga attività non ha una chiave che la identifichi nel foglio, quindi senza --reset
+// non si può fare un'aggiunta vera: le giornate con data precedente a GIORNATE_REIMPORTA_DAL
+// restano congelate nel database (le righe del foglio di quel periodo si ignorano), quelle
+// da quella data in poi vengono cancellate e reimportate dal foglio per intero.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -24,8 +29,11 @@ const ETICHETTA_RIMBORSO_GENERICA = "Spese dal foglio storico";
 
 export interface EsitoGiornate {
   righeLette: number;
+  /** Solo senza --reset: periodo cancellato dal database e reimportato dal foglio. */
+  periodoReimportato?: { dal: string; righeAttivitaEliminate: number; righeSospeseEliminate: number };
+  /** Righe del foglio con data precedente al periodo reimportato: lasciate com'erano nel database. */
+  righeCongelate: number;
   importate: number;
-  giaPresenti: number;
   sospeseGiaPresenti: number;
   conOffertaDaDefinire: number;
   conOffertaDedotta: number;
@@ -38,7 +46,23 @@ export interface EsitoGiornate {
   reportSospese: string;
 }
 
-export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configurazione): Promise<EsitoGiornate> {
+const FORMATO_DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Senza --reset: cancella righe attività e righe sospese con data da `dal` (YYYY-MM-DD) in poi.
+ * Le sospese conservano la data come testo: si cancellano solo quelle con data leggibile nel periodo,
+ * le altre restano e il confronto per chiave evita di reinserirle.
+ */
+async function svuotaPeriodoDaReimportare(tx: Prisma.TransactionClient, dal: string): Promise<NonNullable<EsitoGiornate["periodoReimportato"]>> {
+  const [anno, mese, giorno] = dal.split("-").map(Number);
+  const righeAttivitaEliminate = (await tx.rigaAttivita.deleteMany({ where: { data: { gte: new Date(Date.UTC(anno, mese - 1, giorno)) } } })).count;
+  const sospese = await tx.rigaAttivitaSospesa.findMany({ select: { id: true, data: true } });
+  const idSospeseNelPeriodo = sospese.filter((s) => s.data && FORMATO_DATA_ISO.test(s.data) && s.data >= dal).map((s) => s.id);
+  const righeSospeseEliminate = (await tx.rigaAttivitaSospesa.deleteMany({ where: { id: { in: idSospeseNelPeriodo } } })).count;
+  return { dal, righeAttivitaEliminate, righeSospeseEliminate };
+}
+
+export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configurazione, opzioni: { reset: boolean }): Promise<EsitoGiornate> {
   const scheda = await leggiScheda(cfg, cfg.schede.giornate);
   richiediColonne(scheda, cfg.schede.giornate, ["Coach", "Data", "Cliente", "Codice Offerta", "Ore", "Tipologia Fatturazione"]);
   const idCoachEmail = mappaIdCoachEmail(await leggiSchedaCoach(cfg));
@@ -54,24 +78,23 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
   const vociRimborso = await tx.voceRimborsoTrasferta.findMany({ select: { etichetta: true, importo: true } });
   const etichettaPerImporto = new Map(vociRimborso.map((v) => [Number(v.importo), v.etichetta]));
 
+  // Con --reset il database è già vuoto: entra ogni riga del foglio. Senza --reset si svuota il
+  // periodo da reimportare e nel foglio si considerano solo le righe di quel periodo.
+  const periodoReimportato = opzioni.reset ? undefined : await svuotaPeriodoDaReimportare(tx, cfg.giornateReimportaDal);
+  const congelata = (data: string | null) => periodoReimportato !== undefined && data !== null && data < periodoReimportato.dal;
+
   const esito: EsitoGiornate = {
-    righeLette: 0, importate: 0, giaPresenti: 0, sospeseGiaPresenti: 0, conOffertaDaDefinire: 0, conOffertaDedotta: 0, conOreDaiGiorni: 0, conOreZero: 0,
-    conRimborso: 0, abilitazioniCreate: 0, righeDiClientiEsclusi: 0,
+    righeLette: 0, periodoReimportato, righeCongelate: 0, importate: 0, sospeseGiaPresenti: 0, conOffertaDaDefinire: 0, conOffertaDedotta: 0,
+    conOreDaiGiorni: 0, conOreZero: 0, conRimborso: 0, abilitazioniCreate: 0, righeDiClientiEsclusi: 0,
     sospesePerMotivo: { COLLABORATORE_SCONOSCIUTO: 0, CLIENTE_SCONOSCIUTO: 0, OFFERTA_SCONOSCIUTA: 0, OFFERTA_ALTRO_CLIENTE: 0, DATI_NON_VALIDI: 0 },
     reportSospese: path.join(cfg.cartellaLavoro, "righe-sospese.csv"),
   };
   const righe: Prisma.RigaAttivitaCreateManyInput[] = [];
   const sospese: Prisma.RigaAttivitaSospesaCreateManyInput[] = [];
   const abilitazioni = new Set<string>();
-  // Chiave della riga: collaboratore + data + cliente + offerta, confrontata solo con le righe già
-  // nel database all'inizio del lancio: quelle entrano una volta sola, tutte le altre righe del
-  // foglio entrano così come sono, anche se ripetute (con --reset il database è vuoto: entra tutto).
-  const chiaveRiga = (collaboratoreId: string, data: string, clienteId: string, offertaId: string | null) => [collaboratoreId, data, clienteId, offertaId ?? ""].join("|");
-  const presenti = new Set(
-    (await tx.rigaAttivita.findMany({ select: { collaboratoreId: true, data: true, clienteId: true, offertaId: true } })).map((r) =>
-      chiaveRiga(r.collaboratoreId, r.data.toISOString().slice(0, 10), r.clienteId, r.offertaId),
-    ),
-  );
+  // Le righe sospese si confrontano con quelle rimaste nel database (senza data leggibile o fuori
+  // periodo), così non si reinseriscono due volte. Le righe attività non hanno una chiave: nel
+  // periodo reimportato entrano tutte, anche se ripetute nel foglio.
   const chiaveSospesa = (s: Pick<Prisma.RigaAttivitaSospesaCreateManyInput, "collaboratore" | "data" | "cliente" | "codiceOfferta" | "ore" | "tipologiaFatturazione">) =>
     [s.collaboratore, s.data, s.cliente, s.codiceOfferta, s.ore, s.tipologiaFatturazione].map(normalizzaTesto).join("|");
   const sospesePresenti = new Set((await tx.rigaAttivitaSospesa.findMany()).map(chiaveSospesa));
@@ -83,8 +106,10 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
     };
     if (!Object.values(grezzi).some(Boolean)) continue;
     esito.righeLette++;
+    const data = leggiData(grezzi.data);
+    if (congelata(data)) { esito.righeCongelate++; continue; }
     const sospendi = (motivo: MotivoSospensione, nota: string) => {
-      const sospesa = { ...grezzi, data: leggiData(grezzi.data) ?? grezzi.data, motivo, nota };
+      const sospesa = { ...grezzi, data: data ?? grezzi.data, motivo, nota };
       if (sospesePresenti.has(chiaveSospesa(sospesa))) { esito.sospeseGiaPresenti++; return; }
       esito.sospesePerMotivo[motivo]++;
       sospese.push(sospesa);
@@ -105,7 +130,6 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
     const ricerca = cercaOfferta(grezzi.codiceOfferta, offertePerCliente.get(clienteId) ?? [], offerte, nomeCliente);
     if ("motivo" in ricerca) { sospendi(ricerca.motivo, ricerca.nota); continue; }
 
-    const data = leggiData(grezzi.data);
     if (!data) { sospendi("DATI_NON_VALIDI", `Data non leggibile: "${grezzi.data}"`); continue; }
     const categoria = categoriaDaTipologia(grezzi.tipologiaFatturazione, clienteNormalizzato === cfg.clienteInterno);
     if (!categoria) { sospendi("DATI_NON_VALIDI", `Tipologia di fatturazione sconosciuta: "${grezzi.tipologiaFatturazione}"`); continue; }
@@ -130,8 +154,6 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
     const rimborso = spese && spese > 0 ? { rimborsoTrasfertaImporto: spese.toFixed(2), rimborsoTrasfertaEtichetta: etichettaPerImporto.get(spese) ?? ETICHETTA_RIMBORSO_GENERICA } : {};
     if (spese && spese > 0) esito.conRimborso++;
 
-    const chiave = chiaveRiga(collaboratoreId, data, clienteId, ricerca.offerta?.id ?? null);
-    if (presenti.has(chiave)) { esito.giaPresenti++; continue; }
     if (ricerca.offerta) abilitazioni.add(`${collaboratoreId}|${ricerca.offerta.id}`);
 
     const [anno, mese, giorno] = data.split("-").map(Number);
@@ -141,6 +163,15 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
       ore: ore.toFixed(2), categoria, nota: note.length ? note.join(". ") : null, ...rimborso,
     });
     esito.importate++;
+  }
+
+  // Un foglio senza giornate nel periodo (scheda sbagliata, export parziale) non deve svuotare il
+  // database di quell'anno: la transazione viene annullata.
+  if (periodoReimportato && periodoReimportato.righeAttivitaEliminate > 0 && righe.length === 0 && sospese.length === 0) {
+    throw new Error(
+      `Il foglio non ha giornate dal ${periodoReimportato.dal}, ma il database ne ha ${periodoReimportato.righeAttivitaEliminate}: ` +
+        "mi fermo senza cancellarle. Controlla la scheda GIORNATE o GIORNATE_REIMPORTA_DAL.",
+    );
   }
 
   const DIMENSIONE_BLOCCO = 1000;

@@ -32,9 +32,12 @@ nuovo, ad esempio un Postgres locale in Docker) si ferma e dice come applicarle:
 DATABASE_URL="<lo stesso del file di configurazione>" npm run db:migrate:deploy
 ```
 
-Tutto avviene in un'unica transazione: o entra tutto o niente. Senza `--reset` lo script è
-**additivo**: inserisce solo ciò che non trova e non modifica mai ciò che esiste, così si
-può rilanciare dopo ogni aggiornamento del foglio. Le chiavi di confronto:
+Tutto avviene in un'unica transazione: o entra tutto o niente. Senza `--reset` lo script si
+può rilanciare dopo ogni aggiornamento del foglio: le anagrafiche sono **additive**, le
+giornate vengono **reimportate per periodo**.
+
+Per le anagrafiche inserisce solo ciò che non trova e non modifica mai ciò che esiste. Le
+chiavi di confronto:
 
 | Entità | Chiave |
 |---|---|
@@ -42,12 +45,23 @@ può rilanciare dopo ogni aggiornamento del foglio. Le chiavi di confronto:
 | Offerta | cliente + codice offerta |
 | Coach | email dell'utente, a cui l'`ID` del foglio corrisponde |
 | Voce di rimborso | etichetta |
-| Riga attività | collaboratore + data + cliente + offerta |
 | Riga sospesa | tutti i valori grezzi della riga |
 
-Il confronto è solo con ciò che c'è nel database all'inizio del lancio: le righe del foglio
-non trovate entrano tutte, anche se ripetute tra loro. Con `--reset` entra quindi ogni riga
-del foglio.
+Le righe attività non hanno una chiave che le identifichi nel foglio, quindi il passo
+`giornate` segue `GIORNATE_REIMPORTA_DAL` (predefinito `2026-01-01`):
+
+- le giornate con data precedente restano **congelate**: non si toccano nel database e le
+  righe del foglio di quel periodo vengono ignorate (`righeCongelate` nel riepilogo);
+- le giornate da quella data in poi vengono **cancellate e reimportate** dal foglio, righe
+  sospese comprese (`periodoReimportato` nel riepilogo dice quante ne sono state eliminate).
+  Entrano tutte le righe del foglio di quel periodo, anche se ripetute tra loro.
+
+Se il foglio non ha nessuna giornata nel periodo ma il database sì, lo script si ferma senza
+cancellare nulla: tipico di una scheda sbagliata o di un export parziale. Le righe sospese
+senza data leggibile non si possono collocare nel tempo: restano nel database e il confronto
+per chiave evita di reinserirle.
+
+Con `--reset` entra invece ogni riga del foglio, di qualunque data.
 
 `--reset` svuota utenti, collaboratori, tariffe, clienti, offerte, righe attività, righe
 sospese, abilitazioni e voci di rimborso trasferta. Le voci di rimborso vengono ricreate

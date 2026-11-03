@@ -21,6 +21,11 @@ export interface Configurazione {
   emailAmministratori: Set<string>;
   importoTrasfertaForfettariaPredefinito: number;
   primoMeseTariffa: string;
+  /**
+   * Senza --reset le giornate con data precedente (YYYY-MM-DD) restano congelate nel database;
+   * da questa data in poi vengono cancellate e reimportate dal foglio.
+   */
+  giornateReimportaDal: string;
   /** Voci di rimborso trasferta da garantire prima delle giornate */
   vociRimborsoTrasferta: { etichetta: string; importo: number }[];
   claude: { comando: string; modello: string; dimensioneLotto: number };
@@ -64,6 +69,9 @@ export function caricaConfigurazione(percorsoFile: string): Configurazione {
   const primoMeseTariffa = leggi("PRIMO_MESE_TARIFFA", "2018-01");
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(primoMeseTariffa)) throw new Error("PRIMO_MESE_TARIFFA deve essere nel formato YYYY-MM");
 
+  const giornateReimportaDal = leggi("GIORNATE_REIMPORTA_DAL", "2026-01-01");
+  if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(giornateReimportaDal)) throw new Error("GIORNATE_REIMPORTA_DAL deve essere nel formato YYYY-MM-DD");
+
   // "Fino a 100 km = 75; Eventi = 100": etichetta e importo separati da "=", voci separate da ";"
   const vociRimborsoTrasferta = elenco("VOCI_RIMBORSO_TRASFERTA", "", ";").map((voce) => {
     const [etichetta, importoGrezzo, ...resto] = voce.split("=").map((v) => v.trim());
@@ -88,6 +96,7 @@ export function caricaConfigurazione(percorsoFile: string): Configurazione {
     emailAmministratori: new Set(elenco("EMAIL_AMMINISTRATORI", "").map((e) => e.toLowerCase())),
     importoTrasfertaForfettariaPredefinito: leggiNumero("IMPORTO_TRASFERTA_FORFETTARIA_PREDEFINITO", "220"),
     primoMeseTariffa,
+    giornateReimportaDal,
     claude: {
       comando: leggi("CLAUDE_COMANDO", "claude"),
       modello: leggi("CLAUDE_MODELLO", ""),

@@ -12,9 +12,11 @@
  * - Prima di toccare i dati rigenera il client Prisma (nello script npm) e controlla che il
  *   database della configurazione abbia tutte le migrazioni.
  * - Scrive in un'unica transazione; con --dry-run la annulla alla fine (report compreso).
- * - Senza --reset aggiunge solo ciò che manca: clienti per ragione sociale, offerte per
- *   cliente e codice, coach per email (l'ID del foglio), voci di rimborso per etichetta,
- *   righe attività per collaboratore, data, cliente e offerta. Ciò che esiste non si tocca.
+ * - Senza --reset le anagrafiche sono additive: clienti per ragione sociale, offerte per
+ *   cliente e codice, coach per email (l'ID del foglio), voci di rimborso per etichetta.
+ *   Ciò che esiste non si tocca. Le giornate invece non hanno una chiave: quelle con data
+ *   precedente a GIORNATE_REIMPORTA_DAL restano congelate nel database, quelle da quella data
+ *   in poi vengono cancellate e reimportate dal foglio.
  * - Con --reset svuota prima tutte le tabelle applicative (utenti e voci di rimborso
  *   compresi): le voci di rimborso vengono ricreate subito dopo dalla configurazione.
  * - Le righe dei clienti in CLIENTI_ESCLUSI (predefinito: ND) vengono saltate in ogni passo
@@ -84,7 +86,7 @@ async function main(): Promise<void> {
             : passo === "offerte" ? await importaOfferte(tx, cfg)
             : passo === "coach" ? await importaCoach(tx, cfg)
             : passo === "rimborsi" ? await importaRimborsi(tx, cfg)
-            : await importaGiornate(tx, cfg);
+            : await importaGiornate(tx, cfg, { reset: opzioni.reset });
           console.log(JSON.stringify(riepilogo[passo], null, 2));
         }
         if (opzioni.dryRun) throw new ProvaASecco();
