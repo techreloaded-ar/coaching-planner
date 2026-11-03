@@ -1,8 +1,14 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ChipStato, PulsanteAttesa, useIdratata } from "@/components";
+import {
+  ChipStato,
+  ICONA_DISATTIVA,
+  ICONA_RIATTIVA,
+  PulsanteAttesa,
+  useIdratata,
+} from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
 import DettaglioAvanzamentoOfferta from "@/app/(back-office)/offerte/dettaglio-avanzamento-offerta";
 import { descriviGestioneTrasferta, formattaEuro } from "@/lib/formattazione";
@@ -12,21 +18,26 @@ const classeIntestazioneGruppo =
   "bg-zinc-50 px-4 py-2 text-left text-[11px] font-bold uppercase tracking-[.07em] text-zinc-500 dark:bg-zinc-800/40 dark:text-zinc-400";
 
 const classePulsanteIcona =
-  "inline-flex h-[30px] w-[30px] items-center justify-center rounded-[8px] border border-zinc-200 bg-white no-underline transition hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700";
+  "inline-flex h-[30px] w-[30px] items-center justify-center rounded-[8px] border border-zinc-200 bg-white no-underline transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-zinc-700 dark:bg-zinc-800";
 
-const ICONA_DISATTIVA = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px]" strokeWidth={2} aria-hidden="true">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M10 9v6M14 9v6" />
-  </svg>
-);
-
-const ICONA_RIATTIVA = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px]" strokeWidth={2} aria-hidden="true">
-    <circle cx="12" cy="12" r="9" />
-    <path d="m10 8 6 4-6 4Z" />
-  </svg>
-);
+/**
+ * Tooltip dei pulsanti a icona: compare dopo 150ms al passaggio del mouse o al
+ * focus da tastiera, al posto del `title` nativo che ha un ritardo lungo.
+ * È solo visivo: il nome accessibile resta l'`aria-label` del pulsante.
+ */
+function ConTooltip({ testo, children }: { testo: string; children: ReactNode }) {
+  return (
+    <span className="group/tooltip relative inline-flex">
+      {children}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0 bottom-full z-10 mb-[6px] whitespace-nowrap rounded-[6px] bg-zinc-800 px-2 py-1 text-[11.5px] font-semibold text-white opacity-0 shadow-md transition-opacity duration-100 group-hover/tooltip:opacity-100 group-hover/tooltip:delay-150 group-focus-within/tooltip:opacity-100 dark:bg-zinc-100 dark:text-zinc-900"
+      >
+        {testo}
+      </span>
+    </span>
+  );
+}
 
 interface OfferteClienteTabellaProps {
   clienteId: string;
@@ -155,28 +166,31 @@ export default function OfferteClienteTabella({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="inline-flex items-center gap-[6px]">
+                    <ConTooltip testo="Modifica offerta">
                     <Link
                       href={`/anagrafiche/clienti/${clienteId}/offerte/${offerta.offertaId}`}
                       aria-label={`Modifica ${offerta.codice}`}
-                      title="Modifica offerta"
-                      className={`${classePulsanteIcona} text-zinc-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400`}
+                      className={`${classePulsanteIcona} text-zinc-500 hover:bg-zinc-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-indigo-400`}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
                         <path d="M16.5 3.7a2.2 2.2 0 0 1 3.1 3.1L7.5 18.9 3 20l1.1-4.5L16.5 3.7Z" />
                       </svg>
                     </Link>
+                    </ConTooltip>
                     {offerta.attiva ? (
+                      <ConTooltip testo="Disattiva offerta">
                       <button
                         type="button"
                         aria-label={`Disattiva offerta ${offerta.codice}`}
-                        title="Disattiva offerta"
                         onClick={() => setOffertaDaDisattivare(offerta)}
-                        className={`${classePulsanteIcona} text-amber-700 dark:text-amber-400`}
+                        className={`${classePulsanteIcona} text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10`}
                       >
                         {ICONA_DISATTIVA}
                       </button>
+                      </ConTooltip>
                     ) : (
                       // La riattivazione non toglie nulla: parte senza conferma.
+                      <ConTooltip testo="Riattiva offerta">
                       <form action={cambiaStatoOffertaCliente}>
                         <input type="hidden" name="id" value={offerta.offertaId} />
                         <input type="hidden" name="clienteId" value={clienteId} />
@@ -184,12 +198,12 @@ export default function OfferteClienteTabella({
                         <PulsanteAttesa
                           mostraRotellina={false}
                           aria-label={`Riattiva offerta ${offerta.codice}`}
-                          title="Riattiva offerta"
-                          className={`${classePulsanteIcona} text-emerald-600 dark:text-emerald-400`}
+                          className={`${classePulsanteIcona} text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10`}
                         >
                           {ICONA_RIATTIVA}
                         </PulsanteAttesa>
                       </form>
+                      </ConTooltip>
                     )}
                   </div>
                 </td>

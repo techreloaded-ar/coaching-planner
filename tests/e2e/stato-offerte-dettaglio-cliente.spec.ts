@@ -41,8 +41,17 @@ test.describe("Stato offerte nel dettaglio cliente", () => {
 		]);
 		await expect(page.getByText("3 offerte · 2 attive · 1 disattivata")).toBeVisible();
 
+		// Tooltip rapido al passaggio del mouse (non il title nativo).
+		const pulsanteDisattivaB = tabella.getByRole("button", {
+			name: `Disattiva offerta ${codiceB}`,
+		});
+		await pulsanteDisattivaB.hover();
+		await expect(
+			pulsanteDisattivaB.locator("..").getByText("Disattiva offerta", { exact: true }),
+		).toHaveCSS("opacity", "1");
+
 		// Annulla: nessun cambio e la riga non si espande.
-		await tabella.getByRole("button", { name: `Disattiva offerta ${codiceB}` }).click();
+		await pulsanteDisattivaB.click();
 		const dialog = page.getByRole("dialog", { name: `Disattivare «${codiceB}»?` });
 		await expect(dialog).toContainText("restano nello storico");
 		await dialog.getByRole("button", { name: "Annulla" }).click();
