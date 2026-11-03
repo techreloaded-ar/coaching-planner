@@ -15,8 +15,10 @@ import type {
   SintesiGiorno,
   VoceRimborsoTrasfertaSelezionabile,
 } from "@/lib/attivita-contract";
+import { avanzamentoGiornateOfferte } from "@/lib/offerte";
 import {
   calcolaRiepilogoMese,
+  type AvanzamentoGiornateOfferta,
   orePerCategoriaVuote,
   type RigaRiepilogo,
   type VoceRiepilogoOfferta,
@@ -52,6 +54,8 @@ export interface RisultatoRiepilogoMese {
   totali: TotaliRiepilogoMese;
   importoFattura: string;
   breakdown: BreakdownRiepilogoMese;
+  /** Avanzamento in giornate, a oggi, di ciascuna offerta del mese (per id). */
+  avanzamentoPerOfferta: Record<string, AvanzamentoGiornateOfferta>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -423,13 +427,21 @@ async function leggiClientiPerSelezione(
  *
  * @param clienteId - ID del cliente di cui recuperare le offerte attive
  * @param collaboratoreId - Id del collaboratore già autorizzato dal chiamante
- * @returns Lista offerte attive e abilitate con id, codice e descrizione, ordinate per codice
+ * @returns Lista offerte attive e abilitate con id, codice, descrizione e
+ *   avanzamento in giornate dell'offerta (di tutti i collaboratori), ordinate per codice
  */
 export async function offerteAbilitatePerCliente(
   clienteId: string,
   collaboratoreId: string
-): Promise<{ id: string; codice: string; descrizione: string }[]> {
-  return db.offerta.findMany({
+): Promise<
+  {
+    id: string;
+    codice: string;
+    descrizione: string;
+    avanzamento: AvanzamentoGiornateOfferta;
+  }[]
+> {
+  const offerte = await db.offerta.findMany({
     where: {
       clienteId,
       attiva: true,
@@ -439,9 +451,20 @@ export async function offerteAbilitatePerCliente(
       id: true,
       codice: true,
       descrizione: true,
+      giorniPrevisti: true,
     },
     orderBy: { codice: "asc" },
   });
+
+  const avanzamentoPerOfferta = await avanzamentoGiornateOfferte(offerte);
+
+  // Il calcolo restituisce una voce per ogni offerta indicata, anche senza ore.
+  return offerte.map(({ id, codice, descrizione }) => ({
+    id,
+    codice,
+    descrizione,
+    avanzamento: avanzamentoPerOfferta.get(id)!,
+  }));
 }
 
 /**
@@ -509,6 +532,7 @@ function creaRiepilogoVuoto(token: string): RisultatoRiepilogoMese {
       imponibileManodopera: "0.00",
       totaleRimborsi: "0.00",
     },
+    avanzamentoPerOfferta: {},
   };
 }
 
@@ -568,6 +592,12 @@ export async function riepilogoMesePerCollaboratoreAutorizzato(
   }));
 
   const riepilogo = calcolaRiepilogoMese(righe, tariffa);
+  const offerteDelMese = new Map(
+    righeDb.flatMap((riga) => (riga.offerta ? [[riga.offerta.id, riga.offerta]] : []))
+  );
+  const avanzamentoPerOfferta = await avanzamentoGiornateOfferte([
+    ...offerteDelMese.values(),
+  ]);
 
   return {
     token,
@@ -575,5 +605,6 @@ export async function riepilogoMesePerCollaboratoreAutorizzato(
     totali: riepilogo.totali,
     importoFattura: riepilogo.importoFattura,
     breakdown: riepilogo.breakdown,
+    avanzamentoPerOfferta: Object.fromEntries(avanzamentoPerOfferta),
   };
 }

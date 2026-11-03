@@ -19,6 +19,7 @@ import type {
 } from "@/generated/prisma/client";
 import {
   calcolaAvanzamentoOfferte,
+  type AvanzamentoGiornateOfferta,
   type OffertaAvanzamento,
   type RigaAvanzamento,
   type StatoAvanzamentoOfferta,
@@ -110,6 +111,76 @@ function offertaPerAvanzamento(offerta: OffertaConCliente): OffertaAvanzamento {
     clienteRagioneSociale: offerta.cliente.ragioneSociale,
     giorniPrevisti: offerta.giorniPrevisti,
   };
+}
+
+/** Somma delle ore di un'offerta per categoria, come restituita da `groupBy`. */
+interface SommaOrePerOffertaECategoria {
+  offertaId: string | null;
+  categoria: RigaAttivita["categoria"];
+  _sum: { ore: Prisma.Decimal | null };
+}
+
+/**
+ * Righe elementari per il calcolo dell'avanzamento ricavate dalle somme delle
+ * ore per offerta e categoria: bastano per erogato, residuo e stato, non per
+ * il dettaglio per collaboratore o per mese.
+ */
+function righeAvanzamentoDaSomme(
+  somme: SommaOrePerOffertaECategoria[],
+): RigaAvanzamento[] {
+  return somme.map((gruppo) => ({
+    offertaId: gruppo.offertaId ?? "",
+    collaboratoreId: "",
+    collaboratoreNome: "",
+    ore: Number(gruppo._sum.ore ?? 0),
+    fatturabile: fatturataAlCliente(gruppo.categoria),
+    mese: "",
+  }));
+}
+
+/**
+ * Avanzamento in giornate (erogate su previste, stato) delle offerte indicate,
+ * con lo stesso calcolo dell'anagrafica offerte: concorrono le ore fatturate
+ * al cliente da tutti i collaboratori, senza limiti di periodo.
+ *
+ * Nessun controllo di ruolo: lo usa anche l'area attività del collaboratore,
+ * e l'autorizzazione a vedere le offerte indicate resta al chiamante.
+ */
+export async function avanzamentoGiornateOfferte(
+  offerte: { id: string; giorniPrevisti: number | null }[],
+): Promise<Map<string, AvanzamentoGiornateOfferta>> {
+  if (offerte.length === 0) {
+    return new Map();
+  }
+
+  const orePerOffertaECategoria = await db.rigaAttivita.groupBy({
+    by: ["offertaId", "categoria"],
+    where: { offertaId: { in: offerte.map((offerta) => offerta.id) } },
+    _sum: { ore: true },
+  });
+
+  const { perOfferta } = calcolaAvanzamentoOfferte(
+    offerte.map((offerta) => ({
+      offertaId: offerta.id,
+      offertaCodice: "",
+      offertaDescrizione: "",
+      clienteId: "",
+      clienteRagioneSociale: "",
+      giorniPrevisti: offerta.giorniPrevisti,
+    })),
+    righeAvanzamentoDaSomme(orePerOffertaECategoria),
+  );
+
+  return new Map(
+    perOfferta.map((voce) => [
+      voce.offertaId,
+      {
+        giornateErogate: voce.giornateErogate,
+        giorniPrevisti: voce.giornatePreviste,
+        stato: voce.stato,
+      },
+    ]),
+  );
 }
 
 /** Costruisce voci serializzabili di avanzamento a partire da offerte e attività. */
@@ -240,16 +311,7 @@ export async function elencaOfferteConAvanzamentoPaginate({
 
   const { perOfferta } = calcolaAvanzamentoOfferte(
     offerte.map(offertaPerAvanzamento),
-    orePerOffertaECategoria.map(
-      (gruppo): RigaAvanzamento => ({
-        offertaId: gruppo.offertaId ?? "",
-        collaboratoreId: "",
-        collaboratoreNome: "",
-        ore: Number(gruppo._sum.ore ?? 0),
-        fatturabile: fatturataAlCliente(gruppo.categoria),
-        mese: "",
-      }),
-    ),
+    righeAvanzamentoDaSomme(orePerOffertaECategoria),
   );
   const avanzamentoPerOfferta = new Map(
     perOfferta.map((voce) => [voce.offertaId, voce]),
