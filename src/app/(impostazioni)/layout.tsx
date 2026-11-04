@@ -19,8 +19,8 @@ export default async function ImpostazioniLayout({
   const tornaAlleAttivita = sessione.ruolo === "COLLABORATORE" || profilo.stato === "ATTIVO";
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
+    <div className="flex min-h-[calc(100dvh-var(--altezza-banner-ambiente))] flex-col">
+      <header className="sticky top-[var(--altezza-banner-ambiente)] z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
         <div className="flex items-center gap-5 px-8 py-3.5 max-sm:gap-3 max-sm:px-4">
           <LogoAgileReloaded />
           <div aria-hidden="true" className="h-[26px] w-px shrink-0 bg-zinc-200 max-lg:hidden dark:bg-zinc-700" />
