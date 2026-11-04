@@ -10,14 +10,14 @@ export default async function BackOfficeLayout({
   const sessione = await richiediRuolo("AMMINISTRATORE");
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex min-h-[calc(100dvh-var(--altezza-banner-ambiente))] flex-col bg-zinc-50 dark:bg-zinc-950">
       {/* Sidebar fissa a sinistra */}
       <ConsoleSidebar />
 
       {/* Area contenuto — margin-left = larghezza sidebar */}
-      <div className="ml-[248px] max-[920px]:ml-[66px] flex min-h-screen flex-col">
+      <div className="ml-[248px] max-[920px]:ml-[66px] flex min-h-[calc(100dvh-var(--altezza-banner-ambiente))] flex-col">
         {/* Il brand resta nella sidebar; l'header ospita il menu dell'account. */}
-        <header className="sticky top-0 z-10 flex min-h-[57px] items-center justify-end gap-4 border-b border-zinc-200 bg-white/80 px-8 py-2.5 max-sm:gap-2 max-sm:px-4 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
+        <header className="sticky top-[var(--altezza-banner-ambiente)] z-10 flex min-h-[57px] items-center justify-end gap-4 border-b border-zinc-200 bg-white/80 px-8 py-2.5 max-sm:gap-2 max-sm:px-4 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
           <MenuAccount
             nome={sessione.nome}
             email={sessione.email}

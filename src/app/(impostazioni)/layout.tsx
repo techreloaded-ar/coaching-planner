@@ -19,8 +19,8 @@ export default async function ImpostazioniLayout({
   const tornaAlleAttivita = sessione.ruolo === "COLLABORATORE" || profilo.stato === "ATTIVO";
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
+    <div className="flex min-h-[calc(100dvh-var(--altezza-banner-ambiente))] flex-col">
+      <header className="sticky top-[var(--altezza-banner-ambiente)] z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
         <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 md:flex md:gap-5 md:px-8">
           <LogoCoachingPlanner />
           <div aria-hidden="true" className="hidden h-[26px] w-px shrink-0 bg-zinc-200 md:block dark:bg-zinc-700" />

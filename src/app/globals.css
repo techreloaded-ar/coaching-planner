@@ -18,6 +18,7 @@
 }
 
 :root {
+  --altezza-banner-ambiente: 0px;
   --background: #ffffff;
   --foreground: #171717;
   /* Controlli nativi (date picker, select, scrollbar) allineati al tema. */
@@ -27,6 +28,16 @@
     --background: #0a0a0a;
     --foreground: #ededed;
     color-scheme: dark;
+  }
+}
+
+html[data-ambiente="pre-prod"] {
+  --altezza-banner-ambiente: 2.5rem;
+}
+
+@media print {
+  html[data-ambiente="pre-prod"] {
+    --altezza-banner-ambiente: 0px;
   }
 }
 
@@ -45,6 +56,7 @@
 }
 
 body {
+  padding-top: var(--altezza-banner-ambiente);
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;

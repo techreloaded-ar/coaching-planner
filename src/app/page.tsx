@@ -19,7 +19,7 @@ export default async function Home({
   const showError = params.error === "1";
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+    <div className="relative flex min-h-[calc(100dvh-var(--altezza-banner-ambiente))] items-center justify-center overflow-hidden bg-zinc-50 dark:bg-zinc-950">
       {/* Blob decorativi di sfondo */}
       <div className="pointer-events-none fixed inset-0 z-0 opacity-50 dark:opacity-20">
         <div className="absolute -left-[140px] -top-[160px] h-[480px] w-[480px] rounded-full bg-gradient-to-br from-emerald-200/60 to-transparent blur-[70px]" />

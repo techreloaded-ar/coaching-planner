@@ -77,7 +77,7 @@ export default function ConsoleSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-20 flex w-[248px] flex-col border-r border-zinc-200 bg-white transition-colors dark:border-zinc-800 dark:bg-zinc-900 max-[920px]:w-[66px]">
+    <aside className="fixed bottom-0 top-[var(--altezza-banner-ambiente)] left-0 z-20 flex w-[248px] flex-col border-r border-zinc-200 bg-white transition-colors dark:border-zinc-800 dark:bg-zinc-900 max-[920px]:w-[66px]">
       {/* Brand */}
       <div className="flex items-center gap-[11px] border-b border-zinc-100 px-4 py-[18px] dark:border-zinc-800 max-[920px]:justify-center max-[920px]:px-0">
         <LogoCoachingPlanner mostraNome={false} />
