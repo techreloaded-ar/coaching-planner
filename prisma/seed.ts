@@ -45,9 +45,9 @@ async function main() {
   // Account Google reale per la demo.
   const admin = await prisma.utente.create({
     data: {
-      nome: "Tech",
-      cognome: "Reloaded",
-      email: "info@techreloaded.it",
+      nome: "Stefano",
+      cognome: "Leli",
+      email: "stefano.leli@agilereloaded.it",
       ruolo: "AMMINISTRATORE",
     },
   });
@@ -361,7 +361,7 @@ async function main() {
   );
 
   console.log("\n🔐 Accesso tramite Google OAuth:");
-  console.log("   Amministratore → info@techreloaded.it (Back Office)");
+  console.log("   Amministratore → stefano.leli@agilereloaded.it (Back Office)");
   console.log("   Amministratore → stefano.marello@agilereloaded.it (Back Office)");
   console.log("   Collaboratore  → giulia.conti@agilereloaded.it (Front Office)");
   console.log("   Collaboratore  → marco.bianchi@agilereloaded.it (Front Office)");
