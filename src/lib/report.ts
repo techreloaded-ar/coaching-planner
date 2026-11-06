@@ -18,7 +18,9 @@ import type {
 import {
   calcolaReportFatturazioneClienti,
   calcolaMarginalitaClienti,
+  calcolaReportFatturazioneCollaboratori,
   type RigaReportFatturazione,
+  type ReportFatturazioneCollaboratori,
   type ReportFatturazioneClienti,
   type FissoMensileCollaboratore,
   type RigaMarginalita,
@@ -32,6 +34,12 @@ import {
  * Pronto per essere consumato da un Client Component: nessun Date o Decimal grezzo.
  */
 export interface RisultatoReportFatturazione extends ReportFatturazioneClienti {
+  /** Token YYYY-MM del mese di riferimento */
+  token: string;
+}
+
+/** Fatture attese dai collaboratori per un mese, serializzabile. */
+export interface RisultatoReportFatturazioneCollaboratori extends ReportFatturazioneCollaboratori {
   /** Token YYYY-MM del mese di riferimento */
   token: string;
 }
@@ -230,4 +238,70 @@ export async function reportMarginalitaPeriodo(
   }
 
   return { da, a, ...calcolaMarginalitaClienti(righe, fissiMensili) };
+}
+
+/**
+ * Fatture attese dai collaboratori per un mese: per ciascuno lo stesso importo
+ * fattura del suo riepilogo mensile (tariffa valida nel mese più rimborsi).
+ *
+ * Accesso riservato all'amministratore. Se il token non è valido restituisce
+ * un report vuoto senza errori.
+ *
+ * @param token - Token YYYY-MM del mese
+ */
+export async function reportFatturazioneCollaboratoriMese(
+  token: string,
+): Promise<RisultatoReportFatturazioneCollaboratori> {
+  await richiediRuoloApi("AMMINISTRATORE");
+
+  const parsed = parseTokenMese(token);
+  if (!parsed) {
+    return { token, ...calcolaReportFatturazioneCollaboratori([]) };
+  }
+
+  const inizio = new Date(parsed.anno, parsed.mese - 1, 1);
+  const fine = new Date(parsed.anno, parsed.mese, 0);
+
+  const collaboratori = await db.collaboratore.findMany({
+    select: {
+      id: true,
+      nome: true,
+      cognome: true,
+      attivo: true,
+      tariffe: {
+        where: { validaDalMese: { lte: token } },
+        select: { validaDalMese: true, modalita: true, importo: true },
+      },
+      righeAttivita: {
+        where: { data: { gte: inizio, lte: fine } },
+        include: { offerta: true, cliente: true },
+      },
+    },
+  });
+
+  return {
+    token,
+    ...calcolaReportFatturazioneCollaboratori(
+      collaboratori.map((collaboratore) => {
+        const tariffa = tariffaValidaNelMese(collaboratore.tariffe, token);
+        return {
+          collaboratoreId: collaboratore.id,
+          nome: collaboratore.nome,
+          cognome: collaboratore.cognome,
+          attivo: collaboratore.attivo,
+          tariffa: tariffa && { ...tariffa, importo: tariffa.importo.toString() },
+          righe: collaboratore.righeAttivita.map((riga) => ({
+            offertaId: riga.offertaId,
+            offertaCodice: riga.offerta?.codice ?? "",
+            offertaDescrizione: riga.offerta?.descrizione ?? "",
+            clienteId: riga.clienteId,
+            clienteRagioneSociale: riga.cliente.ragioneSociale,
+            ore: Number(riga.ore),
+            categoria: riga.categoria,
+            rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
+          })),
+        };
+      }),
+    ),
+  };
 }
