@@ -1148,8 +1148,8 @@ export default function DettaglioGiornata({
                 testId="offerta-non-abilitata"
                 className="mt-2"
               >
-                Attenzione, stai censendo un&apos;attività su un&apos;offerta a
-                cui non sei abilitato. Fatti abilitare.
+                Stai aggiungendo ore su un&apos;offerta a cui non sei abilitato.
+                Richiedi l&apos;abilitazione.
               </AvvisoAbilitazioneMancante>
             )}
             {erroreOfferte && (

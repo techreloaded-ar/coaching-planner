@@ -99,7 +99,7 @@ test.describe("Offerte abilitate e non abilitate nel form riga attività", () =>
     await selectOfferta.selectOption(clienteConOfferta.offerta.id);
 
     await expect(page.getByTestId("offerta-non-abilitata")).toHaveText(
-      "Attenzione, stai censendo un'attività su un'offerta a cui non sei abilitato. Fatti abilitare.",
+      "Stai aggiungendo ore su un'offerta a cui non sei abilitato. Richiedi l'abilitazione.",
     );
 
     await page.locator("#ore").fill("3");
