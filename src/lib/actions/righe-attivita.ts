@@ -181,69 +181,26 @@ async function verificaOffertaCliente(
   return null;
 }
 
-/**
- * Verifica che il cliente esista: è l'unico vincolo di una riga senza
- * offerta, perché ogni cliente è selezionabile.
- * Restituisce null se ok, altrimenti un ActionResult con errore.
- */
-async function verificaClienteEsistente(
-  clienteId: string
-): Promise<ActionResult | null> {
-  const cliente = await db.cliente.findUnique({
-    where: { id: clienteId },
-    select: { id: true },
-  });
-
-  if (!cliente) {
-    return { success: false, error: "Cliente non trovato" };
-  }
-
-  return null;
-}
+/** Errore di una riga senza offerta: l'offerta è obbligatoria per l'applicazione. */
+const ERRORE_OFFERTA_MANCANTE: ActionResult = {
+  success: false,
+  error: "L'offerta è obbligatoria",
+};
 
 /**
  * Verifica l'ammissibilità di una coppia cliente/offerta per una riga nuova:
- * con offerta valgono le regole dell'offerta (attiva, del cliente, abilitata),
- * senza offerta basta un cliente esistente.
+ * l'offerta è obbligatoria (vincolo solo applicativo, la colonna resta
+ * nullable), attiva e del cliente. L'abilitazione del collaboratore non è
+ * richiesta: il form avvisa, ma non blocca, chi registra su un'offerta a cui
+ * non è abilitato.
  */
 async function verificaClienteEOffertaPerNuovaRiga(
-  collaboratoreId: string,
   clienteId: string,
   offertaId: string | null
 ): Promise<ActionResult | null> {
-  if (!offertaId) {
-    return verificaClienteEsistente(clienteId);
-  }
+  if (!offertaId) return ERRORE_OFFERTA_MANCANTE;
 
-  const erroreOfferta = await verificaOffertaCliente(offertaId, clienteId);
-  if (erroreOfferta) return erroreOfferta;
-
-  return verificaAbilitazioneOfferta(collaboratoreId, offertaId);
-}
-
-/**
- * Verifica che il collaboratore sia abilitato a registrare attività
- * sull'offerta indicata.
- * Restituisce null se ok, altrimenti un ActionResult con errore.
- */
-async function verificaAbilitazioneOfferta(
-  collaboratoreId: string,
-  offertaId: string
-): Promise<ActionResult | null> {
-  const abilitazione = await db.abilitazioneOfferta.findUnique({
-    where: {
-      collaboratoreId_offertaId: { collaboratoreId, offertaId },
-    },
-  });
-
-  if (!abilitazione) {
-    return {
-      success: false,
-      error: "Non sei abilitato a registrare attività su questa offerta",
-    };
-  }
-
-  return null;
+  return verificaOffertaCliente(offertaId, clienteId);
 }
 
 /**
@@ -348,7 +305,7 @@ function normalizzaGiorniDestinazione(
  * - collaboratoreConsultatoId? quando un amministratore scrive sul foglio di
  *   un altro collaboratore (vedi `richiediCollaboratoreOperativo`)
  * - clienteId, ore, nota, data (YYYY-MM-DD)
- * - offertaId? facoltativa: vuota = offerta da definire
+ * - offertaId obbligatoria (vincolo applicativo)
  * - categoria? (FATTURABILE | NON_FATTURABILE | INVESTIMENTO), predefinita FATTURABILE
  * - eventoCalendarioId? quando la riga nasce da una proposta del calendario:
  *   l'evento viene segnato come gestito nella stessa transazione, così non
@@ -386,7 +343,6 @@ export async function creaRiga(
   }
 
   const erroreAmmissibilita = await verificaClienteEOffertaPerNuovaRiga(
-    collaboratore.id,
     clienteId,
     offertaId
   );
@@ -467,7 +423,7 @@ export async function creaRiga(
  * Campi attesi nel FormData:
  * - collaboratoreConsultatoId? come in `creaRiga`
  * - rigaId, clienteId?, offertaId?, ore?, nota?, categoria?, data?
- * - offertaId presente ma vuota = offerta da definire; assente = invariata
+ * - offertaId presente ma vuota = rifiutata (offerta obbligatoria); assente = invariata
  */
 export async function modificaRiga(
   formData: FormData
@@ -513,30 +469,20 @@ export async function modificaRiga(
   const offertaFinale = offertaId === undefined ? riga.offertaId : offertaId;
   const clienteFinale = clienteId || riga.clienteId;
 
+  // L'offerta è obbligatoria anche in modifica: una riga storica con offerta
+  // da definire si salva solo dopo averle assegnato un'offerta.
+  if (offertaFinale === null) return ERRORE_OFFERTA_MANCANTE;
+
   // Se la coppia offerta-cliente risultante differisce da quella attuale della
   // riga (perché è cambiata l'offerta, il cliente, o entrambi), verifica
-  // sempre che l'offerta appartenga davvero al cliente indicato: il controllo
-  // di coerenza non deve mai essere saltato solo perché l'offerta è rimasta
-  // invariata. La verifica di ABILITAZIONE invece resta legata al solo
-  // cambio di offerta: righe storiche su offerte non più abilitate restano
-  // modificabili finché l'offerta non cambia (AC-4/AC-5).
-  // Senza offerta l'unico vincolo è che il cliente, se cambiato, esista.
-  if (offertaFinale === null) {
-    if (clienteFinale !== riga.clienteId) {
-      const erroreCliente = await verificaClienteEsistente(clienteFinale);
-      if (erroreCliente) return erroreCliente;
-    }
-  } else if (offertaFinale !== riga.offertaId || clienteFinale !== riga.clienteId) {
+  // sempre che l'offerta appartenga davvero al cliente indicato e sia attiva:
+  // il controllo di coerenza non deve mai essere saltato solo perché l'offerta
+  // è rimasta invariata. Una riga storica su un'offerta poi disattivata resta
+  // invece modificabile finché la coppia non cambia. L'abilitazione del
+  // collaboratore non è richiesta, come in creazione.
+  if (offertaFinale !== riga.offertaId || clienteFinale !== riga.clienteId) {
     const erroreOfferta = await verificaOffertaCliente(offertaFinale, clienteFinale);
     if (erroreOfferta) return erroreOfferta;
-
-    if (offertaFinale !== riga.offertaId) {
-      const erroreAbilitazione = await verificaAbilitazioneOfferta(
-        collaboratore.id,
-        offertaFinale
-      );
-      if (erroreAbilitazione) return erroreAbilitazione;
-    }
   }
 
   const oreRaw = formData.get("ore") as string;
@@ -706,9 +652,8 @@ export async function rimuoviRimborsoTrasferta(
  * viene mai riletto, quindi una duplicazione non può reintrodurre importi
  * cambiati dopo il salvataggio della riga sorgente.
  *
- * L'ammissibilità applicata è quella della **creazione** (offerta attiva,
- * coerente col cliente e abilitata per il collaboratore, oppure cliente
- * attivo per una riga con offerta da definire), non quella più
+ * L'ammissibilità applicata è quella della **creazione** (offerta presente,
+ * attiva e coerente col cliente), non quella più
  * clemente di `modificaRiga`: qui non si aggiorna una riga storica, si creano
  * righe nuove, che devono rispettare le regole valide oggi.
  *
@@ -752,9 +697,15 @@ export async function duplicaRigaSuGiorni(
     return { success: false, error: "Scegli almeno un giorno di destinazione" };
   }
 
+  if (!riga.offertaId) {
+    return {
+      success: false,
+      error: "Assegna un'offerta alla riga prima di duplicarla",
+    };
+  }
+
   // Riverifica dell'ammissibilità sulla coppia cliente/offerta di origine
   const erroreAmmissibilita = await verificaClienteEOffertaPerNuovaRiga(
-    collaboratore.id,
     riga.clienteId,
     riga.offertaId
   );

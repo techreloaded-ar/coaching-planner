@@ -389,10 +389,10 @@ export async function contestoInserimentoPerCollaboratoreAutorizzato(
 }
 
 /**
- * Restituisce tutti i clienti per la select del form attività,
- * marcando come consigliati quelli su cui il collaboratore corrente ha almeno
- * un'offerta attiva abilitata: l'offerta è facoltativa, quindi si possono
- * registrare ore anche su clienti senza offerte.
+ * Restituisce i clienti per la select del form attività: solo quelli con
+ * almeno un'offerta attiva, a prescindere dalle abilitazioni del
+ * collaboratore. Sono marcati come consigliati quelli su cui il collaboratore
+ * corrente ha almeno un'offerta attiva abilitata.
  *
  * Accessibile al collaboratore autenticato (a differenza di src/lib/clienti.ts
  * che è admin-only). Lancia ErroreAutorizzazione se non autenticato o se non
@@ -423,6 +423,7 @@ async function leggiClientiPerSelezione(
   collaboratoreId: string
 ): Promise<ClienteSelezionabile[]> {
   const clienti = await db.cliente.findMany({
+    where: { offerte: { some: { attiva: true } } },
     select: {
       id: true,
       ragioneSociale: true,
@@ -445,8 +446,10 @@ async function leggiClientiPerSelezione(
 }
 
 /**
- * Restituisce le offerte attive del cliente su cui il collaboratore del foglio
- * è abilitato.
+ * Restituisce tutte le offerte attive del cliente, indicando per ciascuna se
+ * il collaboratore del foglio è abilitato. Le offerte disattivate non sono
+ * mai restituite; quelle non abilitate restano registrabili, con un avviso
+ * nel form.
  *
  * **Contratto di sicurezza:** come le altre letture `...Autorizzato`, l'id del
  * collaboratore deve provenire dal DAL o da `@/lib/foglio-attivita`, mai dal
@@ -454,10 +457,10 @@ async function leggiClientiPerSelezione(
  *
  * @param clienteId - ID del cliente di cui recuperare le offerte attive
  * @param collaboratoreId - Id del collaboratore già autorizzato dal chiamante
- * @returns Lista offerte attive e abilitate con id, codice, descrizione e
+ * @returns Lista offerte attive con id, codice, descrizione, flag abilitata e
  *   avanzamento in giornate dell'offerta (di tutti i collaboratori), ordinate per codice
  */
-export async function offerteAbilitatePerCliente(
+export async function offerteAttivePerCliente(
   clienteId: string,
   collaboratoreId: string
 ): Promise<
@@ -465,20 +468,21 @@ export async function offerteAbilitatePerCliente(
     id: string;
     codice: string;
     descrizione: string;
+    abilitata: boolean;
     avanzamento: AvanzamentoGiornateOfferta;
   }[]
 > {
   const offerte = await db.offerta.findMany({
-    where: {
-      clienteId,
-      attiva: true,
-      abilitazioniCollaboratori: { some: { collaboratoreId } },
-    },
+    where: { clienteId, attiva: true },
     select: {
       id: true,
       codice: true,
       descrizione: true,
       giorniPrevisti: true,
+      abilitazioniCollaboratori: {
+        where: { collaboratoreId },
+        select: { collaboratoreId: true },
+      },
     },
     orderBy: { codice: "asc" },
   });
@@ -486,10 +490,11 @@ export async function offerteAbilitatePerCliente(
   const avanzamentoPerOfferta = await avanzamentoGiornateOfferte(offerte);
 
   // Il calcolo restituisce una voce per ogni offerta indicata, anche senza ore.
-  return offerte.map(({ id, codice, descrizione }) => ({
+  return offerte.map(({ id, codice, descrizione, abilitazioniCollaboratori }) => ({
     id,
     codice,
     descrizione,
+    abilitata: abilitazioniCollaboratori.length > 0,
     avanzamento: avanzamentoPerOfferta.get(id)!,
   }));
 }

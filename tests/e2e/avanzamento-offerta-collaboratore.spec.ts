@@ -51,7 +51,7 @@ test.describe("Avanzamento in giornate dell'offerta per il collaboratore", () =>
 
 		await page.locator("#cliente").selectOption(cliente.id);
 		await attendiOfferteCaricate(selectOfferta);
-		// Offerta da definire: nessuna indicazione.
+		// Nessuna offerta scelta: nessuna indicazione.
 		await expect(indicatore).toHaveCount(0);
 
 		await selectOfferta.selectOption({

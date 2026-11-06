@@ -128,20 +128,26 @@ export interface ApiCacheContestoInserimento extends ApiSessioneScheda {
   subscribe(ascoltatore: (chiave: string) => void): () => void;
 }
 
-/** Offerta abilitata di un cliente, per il cascade select del form riga. */
-export interface OffertaAbilitataCliente {
+/** Offerta attiva di un cliente, per il cascade select del form riga. */
+export interface OffertaAttivaCliente {
   id: string;
   codice: string;
   descrizione: string;
   /**
+   * Se il collaboratore del foglio è abilitato sull'offerta. Assente, come
+   * `avanzamento`, sull'offerta storica di una riga in modifica non più
+   * attiva, che non passa dalla lettura.
+   */
+  abilitata?: boolean;
+  /**
    * Avanzamento in giornate dell'offerta. Assente sull'offerta storica di una
-   * riga in modifica non più abilitata, che non passa dalla lettura.
+   * riga in modifica non più attiva, che non passa dalla lettura.
    */
   avanzamento?: AvanzamentoGiornateOfferta;
 }
 
 /**
- * Lettura delle offerte abilitate di un cliente.
+ * Lettura delle offerte attive di un cliente.
  *
  * Non è una cache — dipende dal cliente scelto nel form, non dal giorno — ma
  * passa dallo stesso confine di lettura delle tre cache, e quindi dallo stesso
@@ -150,8 +156,8 @@ export interface OffertaAbilitataCliente {
  * silenzio.
  */
 export interface ApiOfferteCliente extends ApiSessioneScheda {
-  /** Offerte attive del cliente su cui il collaboratore è abilitato. */
-  leggi(clienteId: string): Promise<OffertaAbilitataCliente[]>;
+  /** Offerte attive del cliente, con l'abilitazione del collaboratore. */
+  leggi(clienteId: string): Promise<OffertaAttivaCliente[]>;
 }
 
 /** Le letture della scheda, esposte insieme da un solo contesto React. */
@@ -364,8 +370,8 @@ function leggiGiornataDaEndpoint(
 async function leggiOfferteClienteDaEndpoint(
   clienteId: string,
   contenitore: Contenitore
-): Promise<OffertaAbilitataCliente[]> {
-  const dati = await leggiDaEndpoint<{ offerte: OffertaAbilitataCliente[] }>(
+): Promise<OffertaAttivaCliente[]> {
+  const dati = await leggiDaEndpoint<{ offerte: OffertaAttivaCliente[] }>(
     urlDelFoglio(
       `/api/attivita/offerte-cliente?cliente=${encodeURIComponent(clienteId)}`,
       contenitore.collaboratoreConsultatoId

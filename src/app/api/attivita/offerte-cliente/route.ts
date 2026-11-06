@@ -2,15 +2,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ErroreAutorizzazione } from "@/lib/dal";
 import { risolviCollaboratoreDelFoglio } from "@/lib/foglio-attivita";
 import { PARAMETRO_COLLABORATORE_CONSULTATO } from "@/lib/url-foglio-attivita";
-import { offerteAbilitatePerCliente } from "@/lib/attivita";
+import { offerteAttivePerCliente } from "@/lib/attivita";
 import { rispostaDatiPrivati } from "@/lib/risposta-dati-privati";
 
 /**
  * GET /api/attivita/offerte-cliente?cliente=<id>
  *
- * Restituisce le offerte attive di un cliente su cui è abilitato il
- * collaboratore del foglio: quello autenticato oppure, solo per un
- * amministratore, quello indicato con il parametro facoltativo `collaboratore`.
+ * Restituisce tutte le offerte attive di un cliente, indicando per ciascuna se
+ * è abilitato il collaboratore del foglio: quello autenticato oppure, solo per
+ * un amministratore, quello indicato con il parametro facoltativo `collaboratore`.
  * È la sorgente del cascade select cliente → offerta del form riga attività.
  *
  * Come per le altre letture dell'area, l'identità del collaboratore è decisa
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return rispostaDatiPrivati({ errore: "Collaboratore non trovato" }, 404);
     }
 
-    const offerte = await offerteAbilitatePerCliente(clienteId, collaboratore.id);
+    const offerte = await offerteAttivePerCliente(clienteId, collaboratore.id);
 
     return rispostaDatiPrivati({ offerte }, 200);
   } catch (errore) {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Nessun dettaglio dell'errore interno esce dal confine HTTP.
-    console.error("Errore nelle offerte abilitate per cliente:", errore);
+    console.error("Errore nelle offerte attive per cliente:", errore);
     return rispostaDatiPrivati({ errore: "Errore interno" }, 500);
   }
 }

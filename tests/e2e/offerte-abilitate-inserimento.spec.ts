@@ -7,22 +7,17 @@ import { meseRiservato, dataNelMese } from "./support/date";
 import { test, expect } from "./support/fixtures";
 
 /**
- * US-043: Inserimento ore consentito solo sulle offerte abilitate
+ * Offerte abilitate e non abilitate nel form riga attività.
  *
- * Verifica che la select delle offerte proponga solo le offerte abilitate
- * per il collaboratore (AC-1), che l'assenza di offerte abilitate blocchi
- * il salvataggio con un messaggio esplicito (AC-3), e che una riga
- * preesistente su un'offerta non abilitata resti modificabile ed
- * eliminabile dal suo proprietario (AC-4).
- *
- * Dopo US-049 il percorso "nuova riga su un cliente non abilitato" è precluso
- * a monte: la select clienti elenca solo i clienti con offerte abilitate.
- * Il banner AC-3 protegge quindi l'unico percorso ancora raggiungibile, cioè
- * il cambio cliente esplicito durante la modifica di una riga storica.
+ * La select delle offerte propone tutte le offerte attive del cliente in due
+ * gruppi, «Offerte abilitate» e «Offerte non abilitate», e mai quelle
+ * disattivate. Scegliendo un'offerta non abilitata compare un avviso giallo
+ * che non blocca il salvataggio. Una riga preesistente su un'offerta non
+ * abilitata resta modificabile ed eliminabile dal suo proprietario (US-043 AC-4).
  */
 
-test.describe("US-043 Inserimento ore consentito solo sulle offerte abilitate", () => {
-  test("AC-1: la select offerte propone solo l'offerta abilitata del cliente", async ({
+test.describe("Offerte abilitate e non abilitate nel form riga attività", () => {
+  test("la select offerte raggruppa abilitate e non abilitate ed esclude le disattivate", async ({
     page,
     factory,
   }) => {
@@ -36,9 +31,17 @@ test.describe("US-043 Inserimento ore consentito solo sulle offerte abilitate", 
       cliente,
       attiva: true,
     });
+    const offertaDisattivata = await factory.createOfferta({
+      cliente,
+      attiva: false,
+    });
     await factory.createAbilitazioneOfferta({
       collaboratore,
       offerta: offertaAbilitata,
+    });
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: offertaDisattivata,
     });
 
     await accediComeCollaboratore(page, collaboratore.utente.email);
@@ -56,83 +59,56 @@ test.describe("US-043 Inserimento ore consentito solo sulle offerte abilitate", 
 
     await attendiOfferteCaricate(selectOfferta);
 
-    const labelAbilitata = labelOffertaTest({
-      cliente,
-      offerta: offertaAbilitata,
-    });
-    const labelNonAbilitata = labelOffertaTest({
-      cliente,
-      offerta: offertaNonAbilitata,
-    });
-
-    await expect(selectOfferta).toContainText(labelAbilitata);
-    await expect(selectOfferta).not.toContainText(labelNonAbilitata);
+    await expect(
+      selectOfferta.locator('optgroup[label="Offerte abilitate"]'),
+    ).toContainText(labelOffertaTest({ cliente, offerta: offertaAbilitata }));
+    await expect(
+      selectOfferta.locator('optgroup[label="Offerte non abilitate"]'),
+    ).toContainText(labelOffertaTest({ cliente, offerta: offertaNonAbilitata }));
+    await expect(selectOfferta).not.toContainText(
+      labelOffertaTest({ cliente, offerta: offertaDisattivata }),
+    );
+    await expect(page.getByTestId("offerta-non-abilitata")).toHaveCount(0);
   });
 
-  test("AC-3: tornando in modifica su un cliente senza offerte abilitate compare l'avviso e il salvataggio resta possibile", async ({
+  test("su un'offerta non abilitata compare l'avviso e il salvataggio è comunque consentito", async ({
     page,
     factory,
   }) => {
     const collaboratore = await factory.createCollaboratore();
-
-    // Cliente della riga storica: offerta attiva ma nessuna abilitazione
-    const clienteNonAbilitato = await factory.createClienteConOfferta(
+    const clienteConOfferta = await factory.createClienteConOfferta(
       {},
       { attiva: true },
     );
+    const nota = `Riga su offerta non abilitata ${collaboratore.collaboratore.id}`;
 
-    // Cliente abilitato: unico presente nella select in modalità nuova riga
-    const clienteAbilitato = await factory.createClienteConOfferta(
-      {},
-      { attiva: true },
-    );
-    await factory.createAbilitazioneOfferta({
-      collaboratore,
-      offerta: clienteAbilitato.offerta,
-    });
+    await accediComeCollaboratore(page, collaboratore.utente.email);
 
     const mese = meseRiservato("US-043");
     const data = dataNelMese(mese, 13);
-    const rigaEsistente = await factory.createRigaAttivita({
-      collaboratore,
-      cliente: clienteNonAbilitato.cliente,
-      offerta: clienteNonAbilitato.offerta,
-      data: new Date(`${data}T00:00:00.000Z`),
-      ore: "4.00",
-      nota: `Riga AC-3 ${collaboratore.collaboratore.id}`,
-    });
-
-    await accediComeCollaboratore(page, collaboratore.utente.email);
     await page.goto(`/attivita/${data}?mese=${mese}`);
-
-    const rigaCard = page
-      .getByTestId("activity-row")
-      .filter({ hasText: rigaEsistente.nota ?? "" });
-    await expect(rigaCard).toBeVisible();
-    await rigaCard.getByRole("button", { name: "Modifica" }).click();
 
     const selectCliente = page.locator("#cliente");
     const selectOfferta = page.locator("#offerta");
 
-    await expect(selectOfferta).toHaveValue(clienteNonAbilitato.offerta.id);
-
-    // Cambio cliente esplicito verso quello abilitato: le sue offerte si caricano
-    await selectCliente.selectOption(clienteAbilitato.cliente.id);
+    await expect(
+      selectCliente.locator('optgroup[label="Altri clienti"]'),
+    ).toContainText(clienteConOfferta.cliente.ragioneSociale);
+    await selectCliente.selectOption(clienteConOfferta.cliente.id);
     await attendiOfferteCaricate(selectOfferta);
-    await expect(selectOfferta).toContainText(
-      labelOffertaTest(clienteAbilitato),
+    await selectOfferta.selectOption(clienteConOfferta.offerta.id);
+
+    await expect(page.getByTestId("offerta-non-abilitata")).toHaveText(
+      "Attenzione, stai censendo un'attività su un'offerta a cui non sei abilitato. Fatti abilitare.",
     );
 
-    // Il cliente della riga in modifica resta selezionabile (US-049 AC-3):
-    // tornandoci esplicitamente, l'assenza di offerte abilitate è segnalata
-    await selectCliente.selectOption(clienteNonAbilitato.cliente.id);
-    await expect(selectCliente).toHaveValue(clienteNonAbilitato.cliente.id);
+    await page.locator("#ore").fill("3");
+    await page.locator("#nota").fill(nota);
+    await page.getByRole("button", { name: "Aggiungi riga" }).click();
 
-    await expect(page.getByTestId("nessuna-offerta-abilitata")).toBeVisible();
-    await expect(selectOfferta).toHaveValue("");
-    await expect(
-      page.getByRole("button", { name: "Salva modifiche" }),
-    ).toBeEnabled();
+    const rigaCard = page.getByTestId("activity-row").filter({ hasText: nota });
+    await expect(rigaCard).toContainText(clienteConOfferta.offerta.codice);
+    await expect(rigaCard).toContainText("3.0 h");
   });
 
   test("AC-4: una riga su offerta non abilitata resta modificabile ed eliminabile", async ({

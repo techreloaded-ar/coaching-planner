@@ -23,7 +23,6 @@ const mocks = vi.hoisted(() => ({
     delete: vi.fn(),
   },
   offerta: { findUnique: vi.fn() },
-  abilitazioneOfferta: { findUnique: vi.fn() },
   cliente: { findUnique: vi.fn() },
 }));
 
@@ -32,7 +31,6 @@ vi.mock("@/lib/db", () => ({
     collaboratore: mocks.collaboratore,
     rigaAttivita: mocks.rigaAttivita,
     offerta: mocks.offerta,
-    abilitazioneOfferta: mocks.abilitazioneOfferta,
     cliente: mocks.cliente,
   },
 }));
@@ -184,22 +182,16 @@ describe("Server Action sul foglio consultato", () => {
 
   beforeEach(() => {
     mocks.offerta.findUnique.mockResolvedValue({ clienteId: "cliente-1", attiva: true });
-    mocks.abilitazioneOfferta.findUnique.mockResolvedValue({ collaboratoreId: "collab-mario" });
     mocks.rigaAttivita.create.mockResolvedValue({ id: "riga-nuova" });
   });
 
-  it("un amministratore crea la riga intestata al collaboratore consultato, con le sue abilitazioni", async () => {
+  it("un amministratore crea la riga intestata al collaboratore consultato", async () => {
     mocks.richiediSessioneApi.mockResolvedValue(AMMINISTRATORE);
     mocks.collaboratore.findUnique.mockResolvedValue(collaboratore("collab-mario"));
 
     const esito = await creaRiga(formRiga(campiRiga));
 
     expect(esito).toEqual({ success: true });
-    expect(mocks.abilitazioneOfferta.findUnique).toHaveBeenCalledWith({
-      where: {
-        collaboratoreId_offertaId: { collaboratoreId: "collab-mario", offertaId: "offerta-1" },
-      },
-    });
     expect(mocks.rigaAttivita.create.mock.calls[0][0].data.collaboratoreId).toBe("collab-mario");
     expect(mocks.risolviProfiloCollaboratoreCorrente).not.toHaveBeenCalled();
   });
