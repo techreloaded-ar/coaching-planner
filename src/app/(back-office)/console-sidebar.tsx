@@ -69,7 +69,7 @@ const NAV_ITEMS = [
   { href: "/report/fatturazione-clienti", label: "Fatturazione clienti", icon: IconReport },
   { href: "/report/fatturazione-collaboratori", label: "Fatturazione collaboratori", icon: IconReport },
   { href: "/report/marginalita", label: "Marginalità", icon: IconReport },
-  { href: "/righe-sospese", label: "Righe sospese", icon: IconRigheSospese },
+  { href: "/importazione", label: "Importazione", icon: IconRigheSospese },
 ] as const;
 
 // ── Componente ─────────────────────────────────────────────────

@@ -317,3 +317,31 @@ model PromemoriaFineMeseInviato {
 
   @@id([collaboratoreId, mese])
 }
+
+// Modulo temporaneo di migrazione: nessuna relazione inversa nei dati applicativi.
+// Rimuovere queste due tabelle non modifica le giornate/anagrafiche importate.
+model ImportazioneLegacy {
+  id        String   @id @default(uuid())
+  origine   String
+  autoreId  String
+  stato     String   @default("ANTEPRIMA")
+  piano     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([origine, createdAt])
+}
+
+model ImportazioneLegacyRiga {
+  id               String   @id @default(uuid())
+  origine          String
+  chiave           String
+  dati             Json
+  rigaAttivitaId   String?
+  impronta         String?
+  ignorata         Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+
+  @@unique([origine, chiave])
+  @@index([origine, rigaAttivitaId])
+}

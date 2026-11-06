@@ -38,6 +38,7 @@ test.describe("Righe sospese dell'import", () => {
 		});
 
 		await page.goto("/anagrafiche/clienti");
+		await page.getByRole("link", { name: "Importazione", exact: true }).click();
 		await page.getByRole("link", { name: "Righe sospese", exact: true }).click();
 		await expect(page.getByRole("heading", { level: 1, name: "Righe sospese" })).toBeVisible();
 		await expect(page.getByRole("status", { name: "Righe aperte" })).toBeVisible();

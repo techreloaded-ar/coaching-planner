@@ -3,6 +3,7 @@ import { elencaRigheSospese } from "@/lib/righe-sospese";
 import { leggiPosizioneElenco } from "@/lib/paginazione";
 import { leggiFiltroRigheSospese } from "@/domain/righe-sospese";
 import RigheSospeseTabella from "./righe-sospese-tabella";
+import Link from "next/link";
 
 interface RigheSospesePageProps {
   searchParams: Promise<{
@@ -20,6 +21,7 @@ export default async function RigheSospesePage({ searchParams }: RigheSospesePag
 
   return (
     <div>
+      <Link href="/importazione" className="mb-4 inline-block text-sm text-indigo-600 underline dark:text-indigo-400">Torna a Importazione</Link>
       {/* Intestazione view */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-4">
         <div>
