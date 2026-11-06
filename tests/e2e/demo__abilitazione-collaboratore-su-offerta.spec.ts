@@ -57,7 +57,7 @@ test("l'amministratore abilita e revoca un'offerta dal dettaglio del collaborato
 	await expect(
 		tabellaAbilitate
 			.getByRole("rowgroup")
-			.filter({ has: rigaPrePopolata })
+			.filter({ hasText: codiceOffertaPrePopolata })
 			.getByRole("button", { name: clientePrePopolato.ragioneSociale }),
 	).toBeVisible();
 

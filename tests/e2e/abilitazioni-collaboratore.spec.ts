@@ -76,7 +76,7 @@ test.describe("Abilitazioni collaboratore", () => {
 		await expect(
 			tabellaAbilitate
 				.getByRole("rowgroup")
-				.filter({ has: rigaA })
+				.filter({ hasText: codiceOffertaA })
 				.getByRole("button", { name: clienteA.ragioneSociale }),
 		).toBeVisible();
 		await expect(tabellaAbilitate).not.toContainText(codiceOffertaB);

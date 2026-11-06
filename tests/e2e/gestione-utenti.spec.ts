@@ -1436,15 +1436,15 @@ test.describe("Gestione utenti", () => {
 		// AC-3: lo storico attività resta consultabile dal foglio attività del
 		// collaboratore, in vista Elenco.
 		await page.goto(
+			`/attivita?mese=${meseRiservato("US-046")}&vista=elenco&collaboratore=${collaboratore.collaboratore.id}`,
+		);
+		await expect(page.getByText(nota)).toBeVisible();
+		await page.goto(
 			`/anagrafiche/collaboratori/${collaboratore.collaboratore.id}`,
 		);
 		await expect(
 			page.getByRole("heading", { name: nomeCompleto }),
 		).toBeVisible();
-		await page.goto(
-			`/attivita?mese=${meseRiservato("US-046")}&vista=elenco&collaboratore=${collaboratore.collaboratore.id}`,
-		);
-		await expect(page.getByText(nota)).toBeVisible();
 
 		// AC-4: al login il collaboratore vede il profilo disattivato e nessuna
 		// interfaccia di registrazione ore.
@@ -1636,15 +1636,15 @@ test.describe("Gestione utenti", () => {
 			}),
 		).toBeVisible();
 		await page.goto(
+			`/attivita?mese=${meseRiservato("US-046")}&vista=elenco&collaboratore=${collaboratore.collaboratore.id}`,
+		);
+		await expect(page.getByText(notaStorica)).toBeVisible();
+		await page.goto(
 			`/anagrafiche/collaboratori/${collaboratore.collaboratore.id}`,
 		);
 		await expect(
 			page.getByRole("heading", { name: nomeCompletoCollaboratore }),
 		).toBeVisible();
-		await page.goto(
-			`/attivita?mese=${meseRiservato("US-046")}&vista=elenco&collaboratore=${collaboratore.collaboratore.id}`,
-		);
-		await expect(page.getByText(notaStorica)).toBeVisible();
 
 		// 3. Al login il collaboratore vede il messaggio di profilo disattivato.
 		const contestoUtente = await browser.newContext();
