@@ -4,16 +4,15 @@ import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
 
 /**
- * Demo — US-043: Inserimento ore consentito solo sulle offerte abilitate
+ * Demo — Inserimento ore su offerte abilitate e non abilitate
  *
- * Riproduce la Dimostrazione della spec: il collaboratore, abilitato su una
- * sola delle due offerte attive di un cliente, vede la select offerte
- * filtrata su quella abilitata; su un cliente privo di offerte abilitate
- * osserva l'avviso, con il salvataggio disponibile perché l'offerta è
- * facoltativa; una riga preesistente su un'offerta non abilitata resta
- * modificabile ed eliminabile dal proprietario.
+ * Il collaboratore, abilitato su una sola delle due offerte attive di un
+ * cliente, vede la select offerte divisa nei gruppi «Offerte abilitate» e
+ * «Offerte non abilitate»; scegliendo quella non abilitata osserva l'avviso
+ * giallo, con il salvataggio comunque disponibile; una riga preesistente su
+ * un'offerta non abilitata resta modificabile ed eliminabile dal proprietario.
  */
-test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", async ({
+test("il collaboratore vede le offerte abilitate e non abilitate e l'avviso non blocca", async ({
 	page,
 	factory,
 }) => {
@@ -51,7 +50,7 @@ test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", as
 
 	await accediComeCollaboratore(page, collaboratore.utente.email);
 
-	// 1) La select offerte propone solo l'offerta abilitata del cliente.
+	// 1) La select offerte divide le offerte attive in abilitate e non abilitate.
 	const dataNuovaRiga = dataNelMese(mese, 20);
 	await page.goto(`/attivita/${dataNuovaRiga}?mese=${mese}`);
 
@@ -61,20 +60,30 @@ test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", as
 	await selectCliente.selectOption(clienteDueOfferte.id);
 	await attendiOfferteCaricate(selectOfferta);
 
-	await expect(selectOfferta).toContainText(
+	await expect(
+		selectOfferta.locator('optgroup[label="Offerte abilitate"]'),
+	).toContainText(
 		labelOffertaTest({ cliente: clienteDueOfferte, offerta: offertaAbilitata }),
 	);
-	await expect(selectOfferta).not.toContainText(
+	await expect(
+		selectOfferta.locator('optgroup[label="Offerte non abilitate"]'),
+	).toContainText(
 		labelOffertaTest({
 			cliente: clienteDueOfferte,
 			offerta: offertaNonAbilitata,
 		}),
 	);
 
-	// 2) Un cliente senza offerte abilitate mostra l'avviso: le ore restano
-	// registrabili con offerta da definire.
-	// Vi si arriva dalla riga storica: il suo cliente resta selezionabile in
-	// modifica anche se non più abilitato (US-049).
+	// 2) Scegliendo l'offerta non abilitata compare l'avviso, che non blocca.
+	await selectOfferta.selectOption(offertaNonAbilitata.id);
+	await expect(page.getByTestId("offerta-non-abilitata")).toBeVisible();
+	await selectOfferta.selectOption(offertaAbilitata.id);
+	await expect(page.getByTestId("offerta-non-abilitata")).toHaveCount(0);
+	await selectOfferta.selectOption(offertaNonAbilitata.id);
+	await expect(
+		page.getByRole("button", { name: "Aggiungi riga" }),
+	).toBeEnabled();
+
 	await page.goto(`/attivita/${dataRigaStorica}?mese=${mese}`);
 
 	const rigaCard = page
@@ -83,20 +92,7 @@ test("il collaboratore inserisce ore solo sulle offerte su cui è abilitato", as
 	await expect(rigaCard).toBeVisible();
 	await expect(rigaCard).toContainText("3.0 h");
 
-	await rigaCard.getByRole("button", { name: "Modifica" }).click();
-	await expect(selectOfferta).toHaveValue(clienteConRigaStorica.offerta.id);
-
-	await selectCliente.selectOption(clienteDueOfferte.id);
-	await attendiOfferteCaricate(selectOfferta);
-	await selectCliente.selectOption(clienteConRigaStorica.cliente.id);
-
-	await expect(page.getByTestId("nessuna-offerta-abilitata")).toBeVisible();
-	await expect(
-		page.getByRole("button", { name: "Salva modifiche" }),
-	).toBeEnabled();
-
 	// 3) Una riga storica su un'offerta non abilitata resta modificabile ed eliminabile.
-	await page.getByRole("button", { name: "Annulla" }).click();
 	await rigaCard.getByRole("button", { name: "Modifica" }).click();
 
 	const inputOre = page.locator("#ore");

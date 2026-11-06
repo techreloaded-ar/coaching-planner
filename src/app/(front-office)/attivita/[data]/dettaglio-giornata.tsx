@@ -34,12 +34,17 @@ import {
   useCollaboratoreConsultato,
   useLetturaOfferteCliente,
   type ApiOfferteCliente,
-  type OffertaAbilitataCliente,
+  type OffertaAttivaCliente,
 } from "../attivita-cache-provider";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
-type OffertaSelect = OffertaAbilitataCliente;
+type OffertaSelect = OffertaAttivaCliente;
+
+/** Etichetta di un'offerta nella tendina: codice e descrizione. */
+function etichettaOfferta(offerta: OffertaSelect): string {
+  return [offerta.codice, offerta.descrizione].filter(Boolean).join(" — ");
+}
 
 interface DettaglioGiornataProps {
   /** Data in formato YYYY-MM-DD della giornata mostrata */
@@ -84,7 +89,7 @@ interface DettaglioGiornataProps {
 const SELEZIONE_RIMBORSO_INVARIATO = "invariato";
 
 /**
- * Legge le offerte abilitate per un cliente dal confine HTTP dell'area
+ * Legge le offerte attive di un cliente dal confine HTTP dell'area
  * attività, per il cascade select cliente → offerta.
  *
  * È una `fetch` e non una Server Action deliberatamente: la risposta di una
@@ -152,8 +157,8 @@ function validaOreLocale(input: string): string | null {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Box di avviso: nessun cliente selezionabile, oppure nessuna offerta
- * abilitata sul cliente selezionato (le ore restano con offerta da definire).
+ * Box di avviso: nessun cliente con offerte attive, oppure offerta
+ * selezionata su cui il collaboratore non è abilitato (non bloccante).
  */
 function AvvisoAbilitazioneMancante({
   testId,
@@ -276,12 +281,6 @@ export default function DettaglioGiornata({
   const [erroreOfferte, setErroreOfferte] = useState<string | null>(null);
   const letturaOfferteCliente = useLetturaOfferteCliente();
 
-  // Traccia se, durante la modifica di una riga, l'utente ha esplicitamente
-  // cambiato il cliente selezionato (a differenza del cliente/offerta della
-  // riga storica caricati automaticamente da handleModifica)
-  const [clienteCambiatoDuranteModifica, setClienteCambiatoDuranteModifica] =
-    useState(false);
-
   // Cliente della riga storica aperta in modifica: resta selezionabile anche
   // se il collaboratore non è più abilitato su alcuna sua offerta (US-049 AC-3)
   const [clienteRigaInModifica, setClienteRigaInModifica] =
@@ -309,30 +308,31 @@ export default function DettaglioGiornata({
     (offerta) => offerta.id === offertaId
   )?.avanzamento;
 
-  // ── Assenza di offerte abilitate per il cliente selezionato ─
+  // ── Offerta selezionata non abilitata ──────────────────────
 
-  // Avviso informativo, non bloccante: senza offerte abilitate le ore si
-  // registrano con offerta da definire. In modifica, la riga storica può avere un'offerta non più abilitata:
-  // handleModifica la aggiunge comunque all'elenco `offerte` per mantenere
-  // la riga modificabile (AC-4), quindi `offerte` non risulta mai vuoto in
-  // quel caso e il banner non deve comparire. Il banner deve invece comparire
-  // se l'utente, durante la modifica, cambia esplicitamente il cliente verso
-  // uno per cui il fetch restituisce un elenco offerte vuoto (AC-3).
-  // Un elenco vuoto per errore di lettura non è un'assenza di abilitazioni:
-  // in quel caso parla il messaggio d'errore, non questo banner.
-  const nessunaOffertaAbilitata =
-    clienteId !== "" &&
-    !offerteLoading &&
-    erroreOfferte === null &&
-    offerte.length === 0 &&
-    (!modificaId || clienteCambiatoDuranteModifica);
+  // Avviso non bloccante: il collaboratore può registrare ore su un'offerta
+  // attiva a cui non è abilitato. L'offerta storica di una riga in modifica,
+  // non più attiva, non ha il flag e non mostra l'avviso.
+  const offertaSelezionataNonAbilitata =
+    offerte.find((offerta) => offerta.id === offertaId)?.abilitata === false;
 
-  // ── Clienti selezionabili e assenza di clienti abilitati ────
+  // Gruppi della tendina offerta: abilitate, non abilitate e, in modifica,
+  // l'eventuale offerta storica non più attiva della riga.
+  const offerteRaggruppate = useMemo(
+    () => ({
+      abilitate: offerte.filter((o) => o.abilitata === true),
+      nonAbilitate: offerte.filter((o) => o.abilitata === false),
+      storiche: offerte.filter((o) => o.abilitata === undefined),
+    }),
+    [offerte]
+  );
 
-  // La select elenca tutti i clienti, in due gruppi: i consigliati (con
-  // offerte abilitate per il collaboratore) e gli altri. In modifica, il
-  // cliente della riga storica viene aggiunto agli altri se assente
-  // dall'elenco, così da restare visibile e selezionato.
+  // ── Clienti selezionabili e assenza di clienti con offerte attive ─
+
+  // La select elenca i clienti con almeno un'offerta attiva, in due gruppi: i
+  // consigliati (con offerte abilitate per il collaboratore) e gli altri. In
+  // modifica, il cliente della riga storica viene aggiunto agli altri se
+  // assente dall'elenco, così da restare visibile e selezionato.
   const clientiSelezionabili = useMemo(() => {
     const elenco =
       !clienteRigaInModifica ||
@@ -345,9 +345,9 @@ export default function DettaglioGiornata({
     };
   }, [clienti, clienteRigaInModifica]);
 
-  // Nessun cliente censito in modalità "Nuova riga": al posto della select
-  // compare un messaggio esplicito e il salvataggio non è disponibile
-  const nessunClienteAbilitato = clienti.length === 0 && modificaId === null;
+  // Nessun cliente con offerte attive in modalità "Nuova riga": al posto della
+  // select compare un messaggio esplicito e il salvataggio non è disponibile
+  const nessunClienteConOfferteAttive = clienti.length === 0 && modificaId === null;
 
   // ── Preview della voce di rimborso selezionata ─────────────
 
@@ -375,9 +375,6 @@ export default function DettaglioGiornata({
       setOffertaId("");
       setOfferte([]);
       setErroreOfferte(null);
-      // Se siamo in modifica, questo è un cambio cliente esplicito dell'utente
-      // (a differenza del caricamento iniziale della riga in handleModifica)
-      setClienteCambiatoDuranteModifica(modificaId !== null);
 
       if (!nuovoClienteId) {
         setOfferteLoading(false);
@@ -407,7 +404,7 @@ export default function DettaglioGiornata({
         }
       }
     },
-    [letturaOfferteCliente, modificaId]
+    [letturaOfferteCliente]
   );
 
   // ── Validazione ore inline ─────────────────────────────────
@@ -429,9 +426,14 @@ export default function DettaglioGiornata({
       e.preventDefault();
       setErroreSubmit(null);
 
-      // L'offerta è facoltativa: vuota = offerta da definire.
       if (!clienteId || !ore) {
         setErroreSubmit("Compila tutti i campi obbligatori");
+        return;
+      }
+
+      // L'offerta è obbligatoria (vincolo applicativo, verificato anche dal server).
+      if (!offertaId) {
+        setErroreSubmit("L'offerta è obbligatoria");
         return;
       }
 
@@ -500,7 +502,6 @@ export default function DettaglioGiornata({
       setModificaId(null);
       setOfferte([]);
       setErroreSubmit(null);
-      setClienteCambiatoDuranteModifica(false);
       setClienteRigaInModifica(null);
     },
     [clienteId, offertaId, ore, nota, categoria, selezioneRimborso, data, modificaId, invalidaDopoMutazione, eventoDaProposta, rimuoviProposta, collaboratoreConsultatoId]
@@ -527,10 +528,6 @@ export default function DettaglioGiornata({
       setErroreOre(null);
       setErroreSubmit(null);
       setErroreOfferte(null);
-      // Ingresso in modifica sulla riga storica: non è un cambio cliente
-      // esplicito dell'utente, quindi il banner "nessuna offerta" non deve
-      // comparire anche se, per un errore di fetch, `offerte` restasse vuoto.
-      setClienteCambiatoDuranteModifica(false);
 
       // Carica le offerte di quel cliente
       setRigaInAttesaId(riga.id);
@@ -603,7 +600,6 @@ export default function DettaglioGiornata({
       setEventoDaProposta(proposta.eventoId);
       setClienteId(proposta.cliente?.id ?? "");
       setClienteRigaInModifica(null);
-      setClienteCambiatoDuranteModifica(false);
       setOffertaId("");
       setOfferte([]);
       setOre(proposta.ore.toString().replace(".", ","));
@@ -665,7 +661,6 @@ export default function DettaglioGiornata({
     setOfferte([]);
     setErroreSubmit(null);
     setErroreOfferte(null);
-    setClienteCambiatoDuranteModifica(false);
     setClienteRigaInModifica(null);
   }, []);
 
@@ -1045,7 +1040,7 @@ export default function DettaglioGiornata({
           <div>
             {/* Senza select non c'è alcun controllo da etichettare: la voce
                 "Cliente" resta visibile come intestazione, non come label */}
-            {nessunClienteAbilitato ? (
+            {nessunClienteConOfferteAttive ? (
               <p className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400">
                 Cliente <span className="text-rose-600">*</span>
               </p>
@@ -1057,10 +1052,11 @@ export default function DettaglioGiornata({
                 Cliente <span className="text-rose-600">*</span>
               </label>
             )}
-            {nessunClienteAbilitato ? (
-              <AvvisoAbilitazioneMancante testId="nessun-cliente-abilitato">
-                Non ci sono clienti censiti. Contatta un amministratore per
-                censire il cliente su cui registrare attività.
+            {nessunClienteConOfferteAttive ? (
+              <AvvisoAbilitazioneMancante testId="nessun-cliente-con-offerte-attive">
+                Non ci sono clienti con offerte attive. Contatta un
+                amministratore per attivare un&apos;offerta sul cliente su cui
+                registrare attività.
               </AvvisoAbilitazioneMancante>
             ) : (
               <select
@@ -1100,7 +1096,7 @@ export default function DettaglioGiornata({
                 htmlFor="offerta"
                 className="block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
               >
-                Offerta
+                Offerta <span className="text-rose-600">*</span>
               </label>
               {avanzamentoOffertaSelezionata && (
                 <span className="text-[12.5px]">
@@ -1115,26 +1111,45 @@ export default function DettaglioGiornata({
               disabled={!clienteId || offerteLoading}
               className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:disabled:bg-zinc-800/50"
             >
-              <option value="">
+              {/* Segnaposto non selezionabile: l'offerta è obbligatoria. */}
+              <option value="" disabled>
                 {offerteLoading
                   ? "Caricamento offerte..."
                   : !clienteId
                     ? "Seleziona prima un cliente"
-                    : ETICHETTA_OFFERTA_DA_DEFINIRE}
+                    : "Seleziona un'offerta"}
               </option>
-              {offerte.map((o) => (
+              {offerteRaggruppate.storiche.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {[o.codice, o.descrizione].filter(Boolean).join(" — ")}
+                  {etichettaOfferta(o)}
                 </option>
               ))}
+              {offerteRaggruppate.abilitate.length > 0 && (
+                <optgroup label="Offerte abilitate">
+                  {offerteRaggruppate.abilitate.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {etichettaOfferta(o)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {offerteRaggruppate.nonAbilitate.length > 0 && (
+                <optgroup label="Offerte non abilitate">
+                  {offerteRaggruppate.nonAbilitate.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {etichettaOfferta(o)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
-            {nessunaOffertaAbilitata && (
+            {offertaSelezionataNonAbilitata && (
               <AvvisoAbilitazioneMancante
-                testId="nessuna-offerta-abilitata"
+                testId="offerta-non-abilitata"
                 className="mt-2"
               >
-                Nessuna offerta abilitata per questo cliente: le ore verranno
-                registrate con offerta da definire.
+                Stai aggiungendo ore su un&apos;offerta a cui non sei abilitato.
+                Richiedi l&apos;abilitazione.
               </AvvisoAbilitazioneMancante>
             )}
             {erroreOfferte && (
@@ -1306,7 +1321,7 @@ export default function DettaglioGiornata({
               type="submit"
               attesaEsterna={salvataggioInCorso || isPending}
               etichettaAttesa="Salvataggio…"
-              disabled={offerteLoading || nessunClienteAbilitato}
+              disabled={offerteLoading || nessunClienteConOfferteAttive}
               className="inline-flex items-center gap-[7px] rounded-[10px] bg-rose-600 px-[18px] py-[9px] text-[13.5px] font-bold text-white shadow-sm transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
             >
               <svg

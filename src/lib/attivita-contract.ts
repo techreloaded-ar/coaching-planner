@@ -82,8 +82,9 @@ export interface ClienteSelect {
 }
 
 /**
- * Cliente selezionabile nel form riga attività: `consigliato` se il
- * collaboratore ha almeno un'offerta attiva abilitata del cliente.
+ * Cliente selezionabile nel form riga attività (ha almeno un'offerta
+ * attiva): `consigliato` se il collaboratore ha almeno un'offerta attiva
+ * abilitata del cliente.
  */
 export interface ClienteSelezionabile extends ClienteSelect {
   consigliato: boolean;

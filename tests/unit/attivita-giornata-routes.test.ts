@@ -24,12 +24,12 @@ const {
   mockRisolviProfiloCollaboratoreCorrente,
   mockRigheDelGiornoPerCollaboratoreAutorizzato,
   mockContestoInserimentoPerCollaboratoreAutorizzato,
-  mockOfferteAbilitatePerCliente,
+  mockOfferteAttivePerCliente,
 } = vi.hoisted(() => ({
   mockRisolviProfiloCollaboratoreCorrente: vi.fn(),
   mockRigheDelGiornoPerCollaboratoreAutorizzato: vi.fn(),
   mockContestoInserimentoPerCollaboratoreAutorizzato: vi.fn(),
-  mockOfferteAbilitatePerCliente: vi.fn(),
+  mockOfferteAttivePerCliente: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", async (importOriginal) => {
@@ -45,7 +45,7 @@ vi.mock("@/lib/attivita", () => ({
     mockRigheDelGiornoPerCollaboratoreAutorizzato,
   contestoInserimentoPerCollaboratoreAutorizzato:
     mockContestoInserimentoPerCollaboratoreAutorizzato,
-  offerteAbilitatePerCliente: mockOfferteAbilitatePerCliente,
+  offerteAttivePerCliente: mockOfferteAttivePerCliente,
 }));
 
 import { NextRequest } from "next/server";
@@ -403,7 +403,7 @@ describe("GET /api/attivita/offerte-cliente", () => {
       errore: "Parametro 'cliente' richiesto",
     });
     aspettatiHeaderPrivati(risposta);
-    expect(mockOfferteAbilitatePerCliente).not.toHaveBeenCalled();
+    expect(mockOfferteAttivePerCliente).not.toHaveBeenCalled();
     // La validazione precede la risoluzione della sessione: una richiesta
     // malformata non arriva nemmeno al DAL.
     expect(mockRisolviProfiloCollaboratoreCorrente).not.toHaveBeenCalled();
@@ -419,7 +419,7 @@ describe("GET /api/attivita/offerte-cliente", () => {
       errore: "Parametro 'cliente' richiesto",
     });
     aspettatiHeaderPrivati(risposta);
-    expect(mockOfferteAbilitatePerCliente).not.toHaveBeenCalled();
+    expect(mockOfferteAttivePerCliente).not.toHaveBeenCalled();
     expect(mockRisolviProfiloCollaboratoreCorrente).not.toHaveBeenCalled();
   });
 
@@ -436,7 +436,7 @@ describe("GET /api/attivita/offerte-cliente", () => {
       errore: "Parametro 'cliente' richiesto",
     });
     aspettatiHeaderPrivati(risposta);
-    expect(mockOfferteAbilitatePerCliente).not.toHaveBeenCalled();
+    expect(mockOfferteAttivePerCliente).not.toHaveBeenCalled();
     expect(mockRisolviProfiloCollaboratoreCorrente).not.toHaveBeenCalled();
   });
 
@@ -444,14 +444,14 @@ describe("GET /api/attivita/offerte-cliente", () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue(
       profiloAttivo("collab-1")
     );
-    mockOfferteAbilitatePerCliente.mockResolvedValue([]);
+    mockOfferteAttivePerCliente.mockResolvedValue([]);
 
     const risposta = await getOfferteCliente(
       richiestaOfferteCliente("?cliente=%20cliente-ts%20")
     );
 
     expect(risposta.status).toBe(200);
-    expect(mockOfferteAbilitatePerCliente).toHaveBeenCalledWith(
+    expect(mockOfferteAttivePerCliente).toHaveBeenCalledWith(
       "cliente-ts",
       "collab-1"
     );
@@ -471,16 +471,16 @@ describe("GET /api/attivita/offerte-cliente", () => {
     expect(risposta.status).toBe(401);
     await expect(risposta.json()).resolves.toEqual({ errore: "Non autenticato" });
     aspettatiHeaderPrivati(risposta);
-    expect(mockOfferteAbilitatePerCliente).not.toHaveBeenCalled();
+    expect(mockOfferteAttivePerCliente).not.toHaveBeenCalled();
   });
 
   it("propaga come 401 anche l'errore di autorizzazione lanciato dalla lettura", async () => {
-    // `offerteAbilitatePerCliente` rideriva il collaboratore dalla sessione e
+    // `offerteAttivePerCliente` rideriva il collaboratore dalla sessione e
     // lancia a sua volta: quel 401 non deve degradare in 500.
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue(
       profiloAttivo("collab-giulia")
     );
-    mockOfferteAbilitatePerCliente.mockRejectedValue(
+    mockOfferteAttivePerCliente.mockRejectedValue(
       new ErroreAutorizzazione(
         401,
         "Devi essere un collaboratore per visualizzare le offerte"
@@ -512,7 +512,7 @@ describe("GET /api/attivita/offerte-cliente", () => {
         errore: "Profilo collaboratore non operativo",
       });
       aspettatiHeaderPrivati(risposta);
-      expect(mockOfferteAbilitatePerCliente).not.toHaveBeenCalled();
+      expect(mockOfferteAttivePerCliente).not.toHaveBeenCalled();
     }
   );
 
@@ -549,7 +549,7 @@ describe("GET /api/attivita/offerte-cliente", () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue(
       profiloAttivo("collab-giulia")
     );
-    mockOfferteAbilitatePerCliente.mockResolvedValue(offerte);
+    mockOfferteAttivePerCliente.mockResolvedValue(offerte);
 
     const risposta = await getOfferteCliente(
       richiestaOfferteCliente("?cliente=cliente-ts")
@@ -564,7 +564,7 @@ describe("GET /api/attivita/offerte-cliente", () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue(
       profiloAttivo("collab-giulia")
     );
-    mockOfferteAbilitatePerCliente.mockResolvedValue([]);
+    mockOfferteAttivePerCliente.mockResolvedValue([]);
 
     const risposta = await getOfferteCliente(
       richiestaOfferteCliente("?cliente=cliente-senza-offerte")
@@ -581,7 +581,7 @@ describe("GET /api/attivita/offerte-cliente", () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue(
       profiloAttivo("collab-del-profilo")
     );
-    mockOfferteAbilitatePerCliente.mockResolvedValue([]);
+    mockOfferteAttivePerCliente.mockResolvedValue([]);
 
     // La query string contiene parametri che la route non deve considerare:
     // l'unica scelta concessa al browser è quale cliente guardare.
@@ -591,14 +591,14 @@ describe("GET /api/attivita/offerte-cliente", () => {
       )
     );
 
-    expect(mockOfferteAbilitatePerCliente).toHaveBeenCalledTimes(1);
-    expect(mockOfferteAbilitatePerCliente).toHaveBeenCalledWith(
+    expect(mockOfferteAttivePerCliente).toHaveBeenCalledTimes(1);
+    expect(mockOfferteAttivePerCliente).toHaveBeenCalledWith(
       "cliente-ts",
       "collab-del-profilo"
     );
 
     // Parametri di identità non riconosciuti non raggiungono la lettura.
-    const argomentiLettura = mockOfferteAbilitatePerCliente.mock.calls[0];
+    const argomentiLettura = mockOfferteAttivePerCliente.mock.calls[0];
     expect(argomentiLettura).not.toContain("collab-di-un-altro");
     expect(argomentiLettura).not.toContain("altro-utente");
   });
@@ -611,7 +611,7 @@ describe("GET /api/attivita/offerte-cliente", () => {
     mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue(
       profiloAttivo("collab-giulia")
     );
-    mockOfferteAbilitatePerCliente.mockRejectedValue(
+    mockOfferteAttivePerCliente.mockRejectedValue(
       new Error("connect ECONNREFUSED 10.0.0.7:5432")
     );
 

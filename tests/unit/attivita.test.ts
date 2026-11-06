@@ -4,7 +4,7 @@ import {
   clientiPerSelezione,
   contestoInserimentoPerCollaboratoreAutorizzato,
   datiCalendarioMesePerCollaboratoreAutorizzato,
-  offerteAbilitatePerCliente,
+  offerteAttivePerCliente,
   righeDelGiornoPerCollaboratoreAutorizzato,
 } from "@/lib/attivita";
 import { ErroreAutorizzazione } from "@/lib/dal";
@@ -765,36 +765,47 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
   });
 });
 
-describe("offerteAbilitatePerCliente", () => {
+describe("offerteAttivePerCliente", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("interroga il DB filtrando su clienteId, offerte attive e abilitazione del collaboratore indicato", async () => {
+  it("restituisce tutte le offerte attive del cliente, marcando quelle abilitate per il collaboratore indicato", async () => {
     mockOfferta.findMany.mockResolvedValue([
-      { id: "offerta-1", codice: "TS-001", descrizione: "Consulenza", giorniPrevisti: 2 },
+      {
+        id: "offerta-1",
+        codice: "TS-001",
+        descrizione: "Consulenza",
+        giorniPrevisti: 2,
+        abilitazioniCollaboratori: [{ collaboratoreId: "collab-giulia" }],
+      },
+      {
+        id: "offerta-2",
+        codice: "TS-002",
+        descrizione: "Workshop",
+        giorniPrevisti: null,
+        abilitazioniCollaboratori: [],
+      },
     ]);
     mockRigaAttivita.groupBy.mockResolvedValue([]);
 
-    const result = await offerteAbilitatePerCliente(
+    const result = await offerteAttivePerCliente(
       "cliente-techsolutions",
       "collab-giulia"
     );
 
     expect(mockOfferta.findMany).toHaveBeenCalledTimes(1);
     expect(mockOfferta.findMany).toHaveBeenCalledWith({
-      where: {
-        clienteId: "cliente-techsolutions",
-        attiva: true,
-        abilitazioniCollaboratori: {
-          some: { collaboratoreId: "collab-giulia" },
-        },
-      },
+      where: { clienteId: "cliente-techsolutions", attiva: true },
       select: {
         id: true,
         codice: true,
         descrizione: true,
         giorniPrevisti: true,
+        abilitazioniCollaboratori: {
+          where: { collaboratoreId: "collab-giulia" },
+          select: { collaboratoreId: true },
+        },
       },
       orderBy: { codice: "asc" },
     });
@@ -803,16 +814,24 @@ describe("offerteAbilitatePerCliente", () => {
         id: "offerta-1",
         codice: "TS-001",
         descrizione: "Consulenza",
+        abilitata: true,
         avanzamento: { giornateErogate: 0, giorniPrevisti: 2, stato: "IN_CORSO" },
+      },
+      {
+        id: "offerta-2",
+        codice: "TS-002",
+        descrizione: "Workshop",
+        abilitata: false,
+        avanzamento: { giornateErogate: 0, giorniPrevisti: null, stato: "IN_CORSO" },
       },
     ]);
   });
 
   it("allega l'avanzamento dell'offerta calcolato sulle ore fatturate al cliente di tutti i collaboratori", async () => {
     mockOfferta.findMany.mockResolvedValue([
-      { id: "offerta-esaurita", codice: "TS-001", descrizione: "", giorniPrevisti: 2 },
-      { id: "offerta-oltre", codice: "TS-002", descrizione: "", giorniPrevisti: 2 },
-      { id: "offerta-senza-budget", codice: "TS-003", descrizione: "", giorniPrevisti: null },
+      { id: "offerta-esaurita", codice: "TS-001", descrizione: "", giorniPrevisti: 2, abilitazioniCollaboratori: [] },
+      { id: "offerta-oltre", codice: "TS-002", descrizione: "", giorniPrevisti: 2, abilitazioniCollaboratori: [] },
+      { id: "offerta-senza-budget", codice: "TS-003", descrizione: "", giorniPrevisti: null, abilitazioniCollaboratori: [] },
     ]);
     mockRigaAttivita.groupBy.mockResolvedValue([
       { offertaId: "offerta-esaurita", categoria: "FATTURABILE", _sum: { ore: 16 } },
@@ -822,7 +841,7 @@ describe("offerteAbilitatePerCliente", () => {
       { offertaId: "offerta-senza-budget", categoria: "FATTURABILE", _sum: { ore: 24 } },
     ]);
 
-    const result = await offerteAbilitatePerCliente("cliente-1", "collab-1");
+    const result = await offerteAttivePerCliente("cliente-1", "collab-1");
 
     expect(mockRigaAttivita.groupBy).toHaveBeenCalledWith({
       by: ["offertaId", "categoria"],
@@ -844,7 +863,7 @@ describe("clientiPerSelezione", () => {
     vi.clearAllMocks();
   });
 
-  it("restituisce tutti i clienti attivi, consigliati quelli con un'offerta attiva abilitata per il collaboratore corrente", async () => {
+  it("restituisce i clienti con almeno un'offerta attiva, consigliati quelli con un'offerta attiva abilitata per il collaboratore corrente", async () => {
     mockRichiediCollaboratoreCorrente.mockResolvedValue({
       id: "collab-giulia",
       userId: "user-giulia",
@@ -865,6 +884,7 @@ describe("clientiPerSelezione", () => {
 
     expect(mockCliente.findMany).toHaveBeenCalledTimes(1);
     expect(mockCliente.findMany).toHaveBeenCalledWith({
+      where: { offerte: { some: { attiva: true } } },
       select: {
         id: true,
         ragioneSociale: true,
@@ -1146,11 +1166,12 @@ describe("contestoInserimentoPerCollaboratoreAutorizzato", () => {
 
   // ── Payload Prisma delle due letture ────────────────────────
 
-  it("interroga tutti i clienti, leggendo le offerte attive abilitate per il collaboratore ricevuto", async () => {
+  it("interroga i clienti con offerte attive, leggendo le offerte attive abilitate per il collaboratore ricevuto", async () => {
     await contestoInserimentoPerCollaboratoreAutorizzato("collab-autorizzato");
 
     expect(mockCliente.findMany).toHaveBeenCalledTimes(1);
     expect(mockCliente.findMany).toHaveBeenCalledWith({
+      where: { offerte: { some: { attiva: true } } },
       select: {
         id: true,
         ragioneSociale: true,

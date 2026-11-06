@@ -134,33 +134,28 @@ function rigaOffertaConCodice(page: Page, codice: string): Locator {
 }
 
 /**
- * Revoca l'abilitazione creata dalla factory per questo test.
+ * Disattiva un'offerta creata dalla factory per questo test.
  *
  * Serve a provocare un rifiuto che arriva DAL SERVER, dopo l'`await` della
  * server action: le validazioni sulle ore sono identiche sul client e sul
  * server (`validaOreLocale` rispecchia `validaOre`), quindi si fermano prima
- * che l'attesa cominci e non esercitano il `finally`. Togliere l'abilitazione
+ * che l'attesa cominci e non esercitano il `finally`. Disattivare l'offerta
  * fa invece rispondere `creaRiga` con `{ success: false }` dopo il round-trip,
  * cioè esattamente sul `return` anticipato dentro il `try`.
  *
- * Va revocata l'abilitazione della SOLA offerta selezionata, lasciandone
- * un'altra abilitata sullo stesso cliente: la risposta della server action
- * riporta anche l'albero RSC aggiornato, e se il collaboratore restasse senza
- * alcuna offerta abilitata il form passerebbe legittimamente allo stato
- * "nessun cliente abilitato", che disabilita il salvataggio per un motivo
- * diverso dall'attesa e renderebbe cieca l'asserzione.
+ * Va disattivata la SOLA offerta selezionata, lasciandone un'altra attiva
+ * sullo stesso cliente: la risposta della server action riporta anche
+ * l'albero RSC aggiornato, e se il cliente restasse senza offerte attive
+ * sparirebbe dalla select, svuotando il form per un motivo diverso
+ * dall'attesa e rendendo cieca l'asserzione.
  *
- * Tocca solo una riga creata dalla factory in questo test: nessuna entità di
- * seed e nessun dato condiviso con altri worker.
+ * Tocca solo un'offerta creata dalla factory in questo test: nessuna entità
+ * di seed e nessun dato condiviso con altri worker.
  */
-async function revocaAbilitazioneOfferta(
-  collaboratoreId: string,
-  offertaId: string,
-): Promise<void> {
+async function disattivaOfferta(offertaId: string): Promise<void> {
   const esito = await e2ePrisma.query(
-    `DELETE FROM "AbilitazioneOfferta"
-      WHERE "collaboratoreId" = $1 AND "offertaId" = $2`,
-    [collaboratoreId, offertaId],
+    `UPDATE "Offerta" SET "attiva" = false WHERE "id" = $1`,
+    [offertaId],
   );
 
   expect(esito.rowCount).toBe(1);
@@ -238,8 +233,8 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
       offerta: clienteConOfferta.offerta,
     });
 
-    // Seconda offerta abilitata sullo stesso cliente: tiene il collaboratore
-    // abilitato anche dopo la revoca mirata sull'offerta selezionata.
+    // Seconda offerta attiva sullo stesso cliente: tiene il cliente nella
+    // select anche dopo la disattivazione mirata dell'offerta selezionata.
     const offertaSuperstite = await factory.createOfferta({
       cliente: clienteConOfferta.cliente,
     });
@@ -277,13 +272,10 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     await expect(pulsanteSalva).toBeEnabled();
     await expect(pulsanteSalva).toHaveAttribute("aria-busy", "false");
 
-    // AC-4, rifiuto del server: l'abilitazione viene revocata a pagina già
+    // AC-4, rifiuto del server: l'offerta viene disattivata a pagina già
     // aperta, così l'esito negativo arriva dopo l'`await` della server action.
     await campoOre.fill("6,5");
-    await revocaAbilitazioneOfferta(
-      collaboratore.collaboratore.id,
-      clienteConOfferta.offerta.id,
-    );
+    await disattivaOfferta(clienteConOfferta.offerta.id);
 
     const gate = await trattieniPostDellaPagina(page, percorsoGiornata);
     await pulsanteSalva.click();
@@ -297,7 +289,7 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     // coprisse il return anticipato, il pulsante resterebbe disabilitato e la
     // riga non sarebbe più correggibile.
     await expect(
-      page.getByText("Non sei abilitato a registrare attività su questa offerta"),
+      page.getByText("L'offerta non è più attiva"),
     ).toBeVisible();
     await expect(pulsanteSalva).toBeEnabled();
     await expect(pulsanteSalva).toHaveAttribute("aria-busy", "false");

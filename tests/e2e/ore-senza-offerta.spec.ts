@@ -3,26 +3,38 @@ import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
 
 /**
- * Ore registrate su un cliente con offerta da definire.
+ * Ore storiche con offerta da definire.
  *
- * Il collaboratore sceglie un cliente senza offerte (gruppo «Altri clienti»),
- * salva le ore lasciando vuota l'offerta, le ritrova come «Offerta da
- * definire» nel giorno e nel riepilogo e, quando l'offerta arriva, la assegna
- * modificando la riga. L'amministratore vede le stesse ore nei report come
- * voce «Senza offerta» a importo zero.
+ * L'offerta è obbligatoria per l'applicazione: un cliente senza offerte
+ * attive non è selezionabile, il form non salva senza offerta e una riga
+ * storica senza offerta si salva solo dopo averle assegnato un'offerta.
+ * L'amministratore continua a vedere le ore storiche senza offerta nei report
+ * come voce «Senza offerta» a importo zero.
  */
 
 test.describe("Ore con offerta da definire", () => {
-	test("il collaboratore registra ore senza offerta e assegna l'offerta in seguito", async ({
+	test("una riga storica senza offerta si salva solo dopo averle assegnato un'offerta", async ({
 		page,
 		factory,
 	}) => {
 		const collaboratore = await factory.createCollaboratore();
+		const { cliente, offerta } = await factory.createClienteConOfferta(
+			{},
+			{ attiva: true },
+		);
 		const clienteSenzaOfferte = await factory.createCliente();
 		const nota = `Ore senza offerta ${collaboratore.collaboratore.id}`;
 
 		const mese = meseRiservato("OFFERTA-DA-DEFINIRE");
 		const data = dataNelMese(mese, 9);
+		await factory.createRigaAttivita({
+			collaboratore,
+			cliente,
+			offerta: null,
+			data: new Date(`${data}T00:00:00.000Z`),
+			ore: "4.00",
+			nota,
+		});
 
 		await accediComeCollaboratore(page, collaboratore.utente.email);
 		await page.goto(`/attivita/${data}?mese=${mese}`);
@@ -30,43 +42,24 @@ test.describe("Ore con offerta da definire", () => {
 		const selectCliente = page.locator("#cliente");
 		const selectOfferta = page.locator("#offerta");
 
-		await expect(
-			selectCliente.locator('optgroup[label="Altri clienti"]'),
-		).toContainText(clienteSenzaOfferte.ragioneSociale);
-
-		await selectCliente.selectOption(clienteSenzaOfferte.id);
-		await expect(page.getByTestId("nessuna-offerta-abilitata")).toBeVisible();
-		await expect(selectOfferta).toHaveValue("");
-
-		await page.locator("#ore").fill("4");
-		await page.locator("#nota").fill(nota);
-		await page.getByRole("button", { name: "Aggiungi riga" }).click();
+		await expect(selectCliente).not.toContainText(
+			clienteSenzaOfferte.ragioneSociale,
+		);
 
 		const rigaCard = page.getByTestId("activity-row").filter({ hasText: nota });
-		await expect(rigaCard).toContainText(clienteSenzaOfferte.ragioneSociale);
 		await expect(rigaCard.getByTestId("offerta-da-definire")).toHaveText(
 			"Offerta da definire",
 		);
 
-		await page.goto(`/attivita/riepilogo?mese=${mese}`);
-		const voceDaDefinire = page
-			.getByRole("row")
-			.filter({ hasText: clienteSenzaOfferte.ragioneSociale });
-		await expect(
-			voceDaDefinire.getByTestId("riepilogo-offerta-da-definire"),
-		).toBeVisible();
-
-		// L'offerta arriva dopo: il collaboratore la assegna alla riga.
-		const offerta = await factory.createOfferta({
-			cliente: clienteSenzaOfferte,
-			attiva: true,
-		});
-		await factory.createAbilitazioneOfferta({ collaboratore, offerta });
-
-		await page.goto(`/attivita/${data}?mese=${mese}`);
 		await rigaCard.getByRole("button", { name: "Modifica" }).click();
-		await expect(selectCliente).toHaveValue(clienteSenzaOfferte.id);
+		await expect(selectCliente).toHaveValue(cliente.id);
 		await expect(selectOfferta).toContainText(offerta.codice);
+		await expect(selectOfferta).toHaveValue("");
+
+		await page.getByRole("button", { name: "Salva modifiche" }).click();
+		await expect(page.getByText("L'offerta è obbligatoria", { exact: true })).toBeVisible();
+		await expect(rigaCard.getByTestId("offerta-da-definire")).toBeVisible();
+
 		await selectOfferta.selectOption(offerta.id);
 		await page.getByRole("button", { name: "Salva modifiche" }).click();
 

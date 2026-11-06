@@ -5,15 +5,16 @@ import { test, expect } from "./support/fixtures";
 /**
  * Selezione cliente nel form riga attività.
  *
- * La select propone tutti i clienti, qualunque sia il loro stato: in cima il
- * gruppo «Consigliati» con i clienti su cui il collaboratore ha almeno
- * un'offerta attiva abilitata, sotto «Altri clienti» (anche quelli nuovi o
- * con offerte tutte chiuse). Una riga storica su un cliente non più
- * abilitato resta visibile, selezionata e salvabile a parità di offerta.
+ * La select propone solo i clienti con almeno un'offerta attiva, a
+ * prescindere dalle abilitazioni: in cima il gruppo «Consigliati» con i
+ * clienti su cui il collaboratore ha almeno un'offerta attiva abilitata,
+ * sotto «Altri clienti». I clienti senza offerte o con offerte tutte chiuse
+ * non compaiono. Una riga storica su un cliente non più abilitato resta
+ * visibile, selezionata e salvabile a parità di offerta.
  */
 
 test.describe("Selezione cliente con gruppo Consigliati", () => {
-	test("la select clienti mette il cliente con offerta abilitata tra i Consigliati e gli altri sotto", async ({
+	test("la select clienti mostra solo i clienti con offerte attive, con gli abilitati tra i Consigliati", async ({
 		page,
 		factory,
 	}) => {
@@ -35,9 +36,10 @@ test.describe("Selezione cliente con gruppo Consigliati", () => {
 			attiva: true,
 		});
 
-		// Cliente non attivo: offerte tutte chiuse, comunque selezionabile.
+		// Offerte tutte chiuse, oppure nessuna offerta: il cliente non compare.
 		const clienteNonAttivo = await factory.createCliente();
 		await factory.createOfferta({ cliente: clienteNonAttivo, attiva: false });
+		const clienteSenzaOfferte = await factory.createCliente();
 
 		await accediComeCollaboratore(page, collaboratore.utente.email);
 
@@ -55,7 +57,12 @@ test.describe("Selezione cliente con gruppo Consigliati", () => {
 		await expect(altriClienti).toContainText(
 			clienteNonAbilitato.ragioneSociale,
 		);
-		await expect(altriClienti).toContainText(clienteNonAttivo.ragioneSociale);
+		await expect(selectCliente).not.toContainText(
+			clienteNonAttivo.ragioneSociale,
+		);
+		await expect(selectCliente).not.toContainText(
+			clienteSenzaOfferte.ragioneSociale,
+		);
 	});
 
 	test("in modifica il cliente della riga storica resta visibile e il salvataggio a parità di offerta è consentito", async ({
