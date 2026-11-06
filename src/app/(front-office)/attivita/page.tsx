@@ -44,7 +44,11 @@ export default async function AttivitaPage({
   // Vista Elenco: le righe del mese in tabella, filtrabili. Il calendario resta
   // la vista predefinita.
   const vistaElenco = params.vista === "elenco";
-  const elenco = async (collaboratoreId: string, solaLettura: boolean) => (
+  const elenco = async (
+    collaboratoreId: string,
+    solaLettura: boolean,
+    nomeCollaboratoreConsultato: string | null = null
+  ) => (
     <ElencoAttivita
       token={token}
       righe={await righeDelMesePerCollaboratoreAutorizzato(token, collaboratoreId)}
@@ -54,6 +58,7 @@ export default async function AttivitaPage({
         nota: params.nota ?? "",
       }}
       solaLettura={solaLettura}
+      nomeCollaboratoreConsultato={nomeCollaboratoreConsultato}
     />
   );
 
@@ -62,7 +67,11 @@ export default async function AttivitaPage({
       return (
         <>
           <BannerFoglioConsultato collaboratore={consultato} />
-          {await elenco(consultato.id, !consultato.attivo)}
+          {await elenco(
+            consultato.id,
+            !consultato.attivo,
+            `${consultato.nome} ${consultato.cognome}`
+          )}
         </>
       );
     }

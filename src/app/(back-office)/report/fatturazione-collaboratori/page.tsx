@@ -2,7 +2,7 @@ import Link from "next/link";
 import { richiediRuolo } from "@/lib/dal";
 import { reportFatturazioneCollaboratoriMese } from "@/lib/report";
 import { formattaEuro } from "@/lib/formattazione";
-import { urlDelFoglio } from "@/lib/url-foglio-attivita";
+import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
 import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
 import { UNITA_TARIFFA } from "@/domain/tariffe";
 import BarraMese from "./barra-mese";
@@ -93,7 +93,7 @@ export default async function ReportFatturazioneCollaboratoriPage({
                 >
                   <td className={classeCella}>
                     <Link
-                      href={urlDelFoglio(`/attivita?mese=${token}`, voce.collaboratoreId)}
+                      href={urlFoglioDaAmministrazione(voce.collaboratoreId, { mese: token })}
                       className={`font-semibold hover:underline ${
                         voce.foglioVuoto
                           ? "text-zinc-500 dark:text-zinc-400"

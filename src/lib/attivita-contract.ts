@@ -27,6 +27,8 @@ export interface SintesiGiorno {
   oreTotali: number;
   /** Sintesi per cliente, in ordine di prima apparizione nel giorno */
   clienti: SintesiClienteGiorno[];
+  /** Righe su offerte a cui il collaboratore non è abilitato */
+  righeOfferteNonAbilitate: number;
 }
 
 /**
@@ -68,7 +70,10 @@ export interface RigaAttivitaClient {
     id: string;
     codice: string;
     descrizione: string;
+    attiva: boolean;
   } | null;
+  /** L'offerta della riga non è tra quelle abilitate per il collaboratore (false senza offerta). */
+  offertaNonAbilitata: boolean;
   cliente: {
     id: string;
     ragioneSociale: string;

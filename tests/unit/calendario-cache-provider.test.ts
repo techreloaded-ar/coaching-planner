@@ -45,6 +45,7 @@ function meseFittizio(
         data: `${token}-05`,
         righe: 1,
         oreTotali: ore,
+        righeOfferteNonAbilitate: 0,
         clienti: [
           { clienteId: "cliente-1", ragioneSociale: "TechSolutions Srl", ore },
         ],

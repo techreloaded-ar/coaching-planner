@@ -24,3 +24,15 @@ export function urlDelFoglio(
   const separatore = url.includes("?") ? "&" : "?";
   return `${url}${separatore}${PARAMETRO_COLLABORATORE_CONSULTATO}=${encodeURIComponent(collaboratoreConsultatoId)}`;
 }
+
+/**
+ * URL del foglio di un collaboratore aperto da una pagina di amministrazione:
+ * sempre in vista Elenco, con eventuali parametri aggiuntivi (mese, filtri).
+ */
+export function urlFoglioDaAmministrazione(
+  collaboratoreId: string,
+  parametri: Record<string, string> = {}
+): string {
+  const query = new URLSearchParams({ ...parametri, vista: "elenco" });
+  return urlDelFoglio(`/attivita?${query}`, collaboratoreId);
+}

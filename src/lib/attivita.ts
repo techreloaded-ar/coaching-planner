@@ -74,6 +74,7 @@ function formattaDataISO(data: Date): string {
 interface RigaPerSintesiGiornaliera {
   data: Date;
   ore: unknown;
+  offertaId?: string | null;
   cliente: { id: string; ragioneSociale: string };
 }
 
@@ -85,7 +86,8 @@ interface RigaPerSintesiGiornaliera {
  * lettura specializzata del calendario, così le due non possono divergere.
  */
 function aggregaSintesiPerGiorno(
-  righe: readonly RigaPerSintesiGiornaliera[]
+  righe: readonly RigaPerSintesiGiornaliera[],
+  offerteAbilitate?: ReadonlySet<string>
 ): Map<string, SintesiGiorno> {
   const perGiorno = new Map<string, SintesiGiorno>();
 
@@ -93,6 +95,8 @@ function aggregaSintesiPerGiorno(
     const chiave = formattaDataISO(riga.data);
     const ore = Number(riga.ore);
     const esistente = perGiorno.get(chiave);
+    const nonAbilitata =
+      riga.offertaId && offerteAbilitate && !offerteAbilitate.has(riga.offertaId) ? 1 : 0;
 
     if (!esistente) {
       perGiorno.set(chiave, {
@@ -106,11 +110,13 @@ function aggregaSintesiPerGiorno(
             ore,
           },
         ],
+        righeOfferteNonAbilitate: nonAbilitata,
       });
       continue;
     }
 
     esistente.righe += 1;
+    esistente.righeOfferteNonAbilitate += nonAbilitata;
     esistente.oreTotali = sommaOre(esistente.oreTotali, ore);
 
     const sintesiCliente = esistente.clienti.find(
@@ -128,6 +134,17 @@ function aggregaSintesiPerGiorno(
   }
 
   return perGiorno;
+}
+
+/** Id delle offerte a cui il collaboratore è abilitato. */
+async function offerteAbilitateDelCollaboratore(
+  collaboratoreId: string
+): Promise<Set<string>> {
+  const abilitazioni = await db.abilitazioneOfferta.findMany({
+    where: { collaboratoreId },
+    select: { offertaId: true },
+  });
+  return new Set(abilitazioni.map((abilitazione) => abilitazione.offertaId));
 }
 
 /** Estremi half-open del mese: `[primo del mese, primo del mese successivo)`. */
@@ -224,32 +241,36 @@ export async function datiCalendarioMesePerCollaboratoreAutorizzato(
 
   const { inizio, fine } = intervalloMese(parsed.anno, parsed.mese);
 
-  const righe = await db.rigaAttivita.findMany({
-    where: {
-      collaboratoreId,
-      data: {
-        gte: inizio,
-        lt: fine,
-      },
-    },
-    select: {
-      data: true,
-      ore: true,
-      createdAt: true,
-      cliente: {
-        select: {
-          id: true,
-          ragioneSociale: true,
+  const [righe, offerteAbilitate] = await Promise.all([
+    db.rigaAttivita.findMany({
+      where: {
+        collaboratoreId,
+        data: {
+          gte: inizio,
+          lt: fine,
         },
       },
-    },
-    orderBy: [{ data: "asc" }, { createdAt: "asc" }],
-  });
+      select: {
+        data: true,
+        ore: true,
+        createdAt: true,
+        offertaId: true,
+        cliente: {
+          select: {
+            id: true,
+            ragioneSociale: true,
+          },
+        },
+      },
+      orderBy: [{ data: "asc" }, { createdAt: "asc" }],
+    }),
+    offerteAbilitateDelCollaboratore(collaboratoreId),
+  ]);
 
   return {
     token,
     collaboratoreId,
-    sintesiPerGiorno: Object.fromEntries(aggregaSintesiPerGiorno(righe)),
+    sintesiPerGiorno: Object.fromEntries(aggregaSintesiPerGiorno(righe, offerteAbilitate)),
   };
 }
 
@@ -290,25 +311,28 @@ export async function righeDelGiornoPerCollaboratoreAutorizzato(
   const inizio = new Date(anno, mese - 1, giorno);
   const fine = new Date(anno, mese - 1, giorno, 23, 59, 59, 999);
 
-  const righe = await db.rigaAttivita.findMany({
-    where: {
-      collaboratoreId,
-      data: {
-        gte: inizio,
-        lte: fine,
+  const [righe, offerteAbilitate] = await Promise.all([
+    db.rigaAttivita.findMany({
+      where: {
+        collaboratoreId,
+        data: {
+          gte: inizio,
+          lte: fine,
+        },
       },
-    },
-    include: {
-      offerta: true,
-      cliente: true,
-    },
-    orderBy: { createdAt: "asc" },
-  });
+      include: {
+        offerta: true,
+        cliente: true,
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    offerteAbilitateDelCollaboratore(collaboratoreId),
+  ]);
 
   return {
     data: dataStr,
     collaboratoreId,
-    righe: righe.map(serializzaRigaAttivita),
+    righe: righe.map((riga) => serializzaRigaAttivita(riga, offerteAbilitate)),
   };
 }
 
@@ -330,18 +354,22 @@ export async function righeDelMesePerCollaboratoreAutorizzato(
 
   const { inizio, fine } = intervalloMese(parsed.anno, parsed.mese);
 
-  const righe = await db.rigaAttivita.findMany({
-    where: { collaboratoreId, data: { gte: inizio, lt: fine } },
-    include: { offerta: true, cliente: true },
-    orderBy: [{ data: "asc" }, { createdAt: "asc" }],
-  });
+  const [righe, offerteAbilitate] = await Promise.all([
+    db.rigaAttivita.findMany({
+      where: { collaboratoreId, data: { gte: inizio, lt: fine } },
+      include: { offerta: true, cliente: true },
+      orderBy: [{ data: "asc" }, { createdAt: "asc" }],
+    }),
+    offerteAbilitateDelCollaboratore(collaboratoreId),
+  ]);
 
-  return righe.map(serializzaRigaAttivita);
+  return righe.map((riga) => serializzaRigaAttivita(riga, offerteAbilitate));
 }
 
 /** Serializza una riga attività per il client (Date → string, Decimal → number/string). */
 function serializzaRigaAttivita(
-  riga: RigaAttivitaConContesto
+  riga: RigaAttivitaConContesto,
+  offerteAbilitate: ReadonlySet<string>
 ): RigaAttivitaClient {
   return {
     id: riga.id,
@@ -355,7 +383,9 @@ function serializzaRigaAttivita(
       id: riga.offerta.id,
       codice: riga.offerta.codice,
       descrizione: riga.offerta.descrizione,
+      attiva: riga.offerta.attiva,
     },
+    offertaNonAbilitata: riga.offerta !== null && !offerteAbilitate.has(riga.offerta.id),
     cliente: {
       id: riga.cliente.id,
       ragioneSociale: riga.cliente.ragioneSociale,

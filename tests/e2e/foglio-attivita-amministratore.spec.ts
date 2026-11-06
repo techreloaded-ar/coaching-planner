@@ -56,7 +56,8 @@ test.describe("Foglio attività dei collaboratori per gli amministratori", () =>
 		await accediComeAdmin(page, amministratore.email);
 		await page.goto(`/anagrafiche/collaboratori/${mario.collaboratore.id}`);
 		await page.getByRole("link", { name: "Apri foglio attività" }).click();
-		await page.waitForURL(`**/attivita?collaboratore=${mario.collaboratore.id}`);
+		await page.waitForURL(`**/attivita?vista=elenco&collaboratore=${mario.collaboratore.id}`);
+		await expect(page.getByRole("link", { name: "Elenco" })).toHaveAttribute("aria-current", "page");
 
 		await expect(titoloFoglio(page, `Attività di ${nomeMario}`)).toBeVisible();
 		const banner = page.getByTestId("banner-foglio-consultato");

@@ -7,7 +7,14 @@ import {
   eliminaRiga,
   rimuoviRimborsoTrasferta,
 } from "@/lib/actions/righe-attivita";
-import { BadgeCategoriaAttivita, IndicatoreGiorniErogati, PulsanteAttesa } from "@/components";
+import {
+  AvvisoOffertaNonAbilitata,
+  BadgeCategoriaAttivita,
+  CLASSE_RIGA_OFFERTA_NON_ABILITATA,
+  IconaOffertaNonAbilitata,
+  IndicatoreGiorniErogati,
+  PulsanteAttesa,
+} from "@/components";
 import {
   CATEGORIA_ATTIVITA_PREDEFINITA,
   CATEGORIE_ATTIVITA,
@@ -31,6 +38,8 @@ import type {
 } from "@/lib/attivita-contract";
 import {
   ErroreSessioneAttivita,
+  useCacheCalendario,
+  useCacheGiornate,
   useCollaboratoreConsultato,
   useLetturaOfferteCliente,
   type ApiOfferteCliente,
@@ -59,6 +68,8 @@ interface DettaglioGiornataProps {
   calendarioCollegato?: boolean;
   /** Foglio di un collaboratore disattivato: righe visibili, nessuna modifica. */
   solaLettura?: boolean;
+  /** Nome del collaboratore il cui foglio è consultato da un amministratore, `null` sul proprio foglio. */
+  nomeCollaboratoreConsultato?: string | null;
   /** Riga da aprire subito nel form di modifica, se è tra le righe del giorno. */
   rigaDaAprireInModifica?: string | null;
   /** Notifica che la riga richiesta è stata aperta (o non c'è): non va riaperta. */
@@ -200,6 +211,7 @@ export default function DettaglioGiornata({
   vociRimborso,
   calendarioCollegato = false,
   solaLettura = false,
+  nomeCollaboratoreConsultato = null,
   rigaDaAprireInModifica = null,
   onRigaApertaInModifica,
   onMutazioneCompletata,
@@ -208,6 +220,8 @@ export default function DettaglioGiornata({
   // Foglio di un altro collaboratore aperto da un amministratore: le Server
   // Action lo ricevono e ne verificano l'autorizzazione.
   const collaboratoreConsultatoId = useCollaboratoreConsultato();
+  const cacheCalendario = useCacheCalendario();
+  const cacheGiornate = useCacheGiornate();
 
   /**
    * Notifica la mutazione all'isola, che possiede le cache della scheda.
@@ -223,6 +237,14 @@ export default function DettaglioGiornata({
     },
     [data, onMutazioneCompletata]
   );
+
+  // L'abilitazione cambia il giallo di tutte le righe dell'offerta, in ogni
+  // mese e giornata già in cache: si svuotano e si rilegge il giorno mostrato.
+  const dopoAbilitazione = () => {
+    cacheCalendario?.clear();
+    cacheGiornate?.clear();
+    invalidaDopoMutazione();
+  };
 
   // ── Stato form ─────────────────────────────────────────────
   const [clienteId, setClienteId] = useState("");
@@ -874,7 +896,12 @@ export default function DettaglioGiornata({
               <div
                 key={riga.id}
                 data-testid="activity-row"
-                className="rounded-[11px] border border-zinc-200 bg-white p-[13px_15px] transition-shadow hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+                data-offerta-non-abilitata={riga.offertaNonAbilitata ? "true" : undefined}
+                className={`rounded-[11px] border p-[13px_15px] transition-shadow hover:shadow-sm ${
+                  riga.offertaNonAbilitata
+                    ? `border-amber-300 dark:border-amber-700 ${CLASSE_RIGA_OFFERTA_NON_ABILITATA}`
+                    : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
+                }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -883,7 +910,14 @@ export default function DettaglioGiornata({
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       {riga.offerta ? (
-                        <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] ${
+                            riga.offertaNonAbilitata
+                              ? "border border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                              : "bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400"
+                          }`}
+                        >
+                          {riga.offertaNonAbilitata && <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />}
                           {[riga.offerta.codice, riga.offerta.descrizione].filter(Boolean).join(" — ")}
                         </span>
                       ) : (
@@ -931,6 +965,20 @@ export default function DettaglioGiornata({
                         € {parseFloat(riga.rimborsoTrasfertaImporto).toFixed(2)}
                       </span>
                     )}
+                  </div>
+                )}
+
+                {riga.offertaNonAbilitata && riga.offerta && (
+                  <div className="mt-[9px] border-t border-dashed border-amber-300 pt-2 dark:border-amber-700">
+                    <AvvisoOffertaNonAbilitata
+                      codiceOfferta={riga.offerta.codice}
+                      nomeCollaboratore={nomeCollaboratoreConsultato}
+                      abilitazione={
+                        collaboratoreConsultatoId && !solaLettura && riga.offerta.attiva
+                          ? { collaboratoreId: collaboratoreConsultatoId, offertaId: riga.offerta.id, onAbilitata: dopoAbilitazione }
+                          : null
+                      }
+                    />
                   </div>
                 )}
 

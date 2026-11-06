@@ -2,10 +2,16 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { StatoAvanzamentoOfferta } from "@/domain/consuntivi";
 import type { VoceElencoOfferta } from "@/lib/offerte";
-import { NoteAnagrafica } from "@/components";
-import { urlDelFoglio } from "@/lib/url-foglio-attivita";
+import {
+  CLASSE_RIGA_OFFERTA_NON_ABILITATA,
+  IconaOffertaNonAbilitata,
+  NoteAnagrafica,
+  PulsanteAbilitaOfferta,
+} from "@/components";
+import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
 
 const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
   minimumFractionDigits: 0,
@@ -121,6 +127,7 @@ interface DettaglioAvanzamentoOffertaProps {
 export default function DettaglioAvanzamentoOfferta({
   offerta,
 }: DettaglioAvanzamentoOffertaProps) {
+  const router = useRouter();
   const config = CONFIG_STATO[offerta.stato];
   const oltreBudget = offerta.stato === "OLTRE_BUDGET";
   const esaurita = offerta.stato === "ESAURITA";
@@ -135,9 +142,10 @@ export default function DettaglioAvanzamentoOfferta({
   const urlFoglioSullOfferta = (collaboratoreId: string) => {
     const riga = offerta.matriceMensile.righe.find((r) => r.collaboratoreId === collaboratoreId);
     const ultimoMese = Object.keys(riga?.giornatePerMese ?? {}).sort().pop();
-    const parametri = new URLSearchParams({ vista: "elenco", offerta: offerta.offertaId });
-    if (ultimoMese) parametri.set("mese", ultimoMese);
-    return urlDelFoglio(`/attivita?${parametri}`, collaboratoreId);
+    return urlFoglioDaAmministrazione(collaboratoreId, {
+      offerta: offerta.offertaId,
+      ...(ultimoMese ? { mese: ultimoMese } : {}),
+    });
   };
 
   return (
@@ -254,6 +262,7 @@ export default function DettaglioAvanzamentoOfferta({
                   <th className="px-[22px] py-2 text-right text-[10px] font-bold tracking-[.04em] whitespace-nowrap text-zinc-400 dark:text-zinc-500">Ore consuntivate</th>
                   <th className="px-[22px] py-2 text-right text-[10px] font-bold tracking-[.04em] whitespace-nowrap text-zinc-400 dark:text-zinc-500">Giornate erogate</th>
                   <th className="px-[22px] py-2 text-right text-[10px] font-bold tracking-[.04em] whitespace-nowrap text-zinc-400 dark:text-zinc-500">Quota</th>
+                  <th className="px-[22px] py-2 text-right text-[10px] font-bold tracking-[.04em] whitespace-nowrap text-zinc-400 dark:text-zinc-500">Abilitazione</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,9 +270,16 @@ export default function DettaglioAvanzamentoOfferta({
                   const quota = offerta.giornateErogate > 0
                     ? (collaboratore.giornateErogate / offerta.giornateErogate) * 100
                     : 0;
+                  const nonAbilitato = offerta.collaboratoriNonAbilitati.find(
+                    (voce) => voce.collaboratoreId === collaboratore.collaboratoreId,
+                  );
 
                   return (
-                    <tr key={collaboratore.collaboratoreId} className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                    <tr
+                      key={collaboratore.collaboratoreId}
+                      data-testid="collaboratore-avanzamento"
+                      className={nonAbilitato ? CLASSE_RIGA_OFFERTA_NON_ABILITATA : "transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"}
+                    >
                       <td className="border-t border-zinc-100 px-[22px] py-[9px] align-middle dark:border-zinc-700/50">
                         <CollaboratoreConFoglio
                           nome={collaboratore.collaboratoreNome}
@@ -278,6 +294,26 @@ export default function DettaglioAvanzamentoOfferta({
                       </td>
                       <td className="border-t border-zinc-100 px-[22px] py-[9px] text-right align-middle text-[12.5px] tabular-nums whitespace-nowrap text-zinc-400 dark:border-zinc-700/50 dark:text-zinc-500">
                         {formattatorePercentuale.format(quota)}%
+                      </td>
+                      <td className="border-t border-zinc-100 px-[22px] py-[9px] text-right align-middle text-[12px] font-bold dark:border-zinc-700/50">
+                        {nonAbilitato ? (
+                          <span className="inline-flex flex-wrap items-center justify-end gap-2 text-amber-800 dark:text-amber-300">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[11px] whitespace-nowrap dark:border-amber-700 dark:bg-amber-900/40">
+                              <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />
+                              Non abilitato
+                            </span>
+                            {offerta.attiva && nonAbilitato.attivo && (
+                              <PulsanteAbilitaOfferta
+                                collaboratoreId={collaboratore.collaboratoreId}
+                                offertaId={offerta.offertaId}
+                                nomeCollaboratore={collaboratore.collaboratoreNome}
+                                onAbilitata={() => router.refresh()}
+                              />
+                            )}
+                          </span>
+                        ) : (
+                          <span className="whitespace-nowrap text-emerald-600 dark:text-emerald-400">✓ Abilitato</span>
+                        )}
                       </td>
                     </tr>
                   );

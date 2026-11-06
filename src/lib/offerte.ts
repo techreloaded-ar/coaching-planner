@@ -70,6 +70,8 @@ export interface VoceElencoOfferta {
   /** Matrice mensile (mese x collaboratore) delle giornate erogate. */
   matriceMensile: MatriceMensileAvanzamento;
   numeroRigheAttivita: number;
+  /** Collaboratori con attività sull'offerta ma senza abilitazione; `attivo` dice se si possono abilitare. */
+  collaboratoriNonAbilitati: { collaboratoreId: string; attivo: boolean }[];
 }
 
 /**
@@ -183,11 +185,32 @@ export async function avanzamentoGiornateOfferte(
   );
 }
 
+/** Coppie offerta–collaboratore abilitate per le offerte indicate. */
+function abilitazioniDelleOfferte(offertaIds: string[]) {
+  return db.abilitazioneOfferta.findMany({
+    where: { offertaId: { in: offertaIds } },
+    select: { offertaId: true, collaboratoreId: true },
+  });
+}
+
 /** Costruisce voci serializzabili di avanzamento a partire da offerte e attività. */
 function costruisciVociElencoOfferte(
   offerte: OffertaConCliente[],
   righe: RigaAttivitaConCollaboratore[],
+  abilitazioni: { offertaId: string; collaboratoreId: string }[],
 ): VoceElencoOfferta[] {
+  const coppieAbilitate = new Set(
+    abilitazioni.map((a) => `${a.offertaId}:${a.collaboratoreId}`),
+  );
+  const nonAbilitatiPerOfferta = new Map<string, Map<string, boolean>>();
+  for (const riga of righe) {
+    if (riga.offertaId === null) continue;
+    if (coppieAbilitate.has(`${riga.offertaId}:${riga.collaboratoreId}`)) continue;
+    const nonAbilitati = nonAbilitatiPerOfferta.get(riga.offertaId) ?? new Map();
+    nonAbilitati.set(riga.collaboratoreId, riga.collaboratore.attivo);
+    nonAbilitatiPerOfferta.set(riga.offertaId, nonAbilitati);
+  }
+
   const offerteMappate = offerte.map(offertaPerAvanzamento);
 
   const righeMappate: RigaAvanzamento[] = righe.map(
@@ -247,6 +270,9 @@ function costruisciVociElencoOfferte(
         totaleGiornate: 0,
       },
       numeroRigheAttivita: numeroRighePerOfferta.get(offerta.id) ?? 0,
+      collaboratoriNonAbilitati: [
+        ...(nonAbilitatiPerOfferta.get(offerta.id) ?? []),
+      ].map(([collaboratoreId, attivo]) => ({ collaboratoreId, attivo })),
     };
   });
 }
@@ -346,17 +372,21 @@ export async function elencaOfferteConAvanzamentoPaginate({
     .slice(inizio, inizio + ELEMENTI_PER_PAGINA)
     .map(({ offerta }) => offerta);
 
-  const righe =
+  const idsOffertePagina = offertePagina.map((offerta) => offerta.id);
+  const [righe, abilitazioni] =
     offertePagina.length > 0
-      ? await db.rigaAttivita.findMany({
-          where: { offertaId: { in: offertePagina.map((offerta) => offerta.id) } },
-          include: { collaboratore: true },
-        })
-      : [];
+      ? await Promise.all([
+          db.rigaAttivita.findMany({
+            where: { offertaId: { in: idsOffertePagina } },
+            include: { collaboratore: true },
+          }),
+          abilitazioniDelleOfferte(idsOffertePagina),
+        ])
+      : [[], []];
 
   return {
     ...paginaElenco,
-    offerte: costruisciVociElencoOfferte(offertePagina, righe),
+    offerte: costruisciVociElencoOfferte(offertePagina, righe, abilitazioni),
     attive,
     nonAttive: offerte.length - attive,
     critiche,
@@ -380,12 +410,15 @@ export async function elencaOffertePerClienteConAvanzamento(
     include: { cliente: true },
   });
 
-  const righe = await db.rigaAttivita.findMany({
-    where: { offerta: { clienteId } },
-    include: { collaboratore: true },
-  });
+  const [righe, abilitazioni] = await Promise.all([
+    db.rigaAttivita.findMany({
+      where: { offerta: { clienteId } },
+      include: { collaboratore: true },
+    }),
+    abilitazioniDelleOfferte(offerte.map((offerta) => offerta.id)),
+  ]);
 
-  const voci = costruisciVociElencoOfferte(offerte, righe);
+  const voci = costruisciVociElencoOfferte(offerte, righe, abilitazioni);
   // Prima le attive, poi le disattivate; dentro ciascun gruppo per codice.
   voci.sort(
     (a, b) =>

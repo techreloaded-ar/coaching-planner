@@ -22,7 +22,8 @@ function riga(parziale: Partial<RigaAttivitaClient> & { id: string }): RigaAttiv
     categoria: "FATTURABILE",
     rimborsoTrasfertaEtichetta: null,
     rimborsoTrasfertaImporto: null,
-    offerta: { id: "off-a", codice: "OFF-A", descrizione: "Coaching Alpha" },
+    offerta: { id: "off-a", codice: "OFF-A", descrizione: "Coaching Alpha", attiva: true },
+    offertaNonAbilitata: false,
     cliente: { id: "cli-tech", ragioneSociale: "TechSolutions" },
     ...parziale,
   };
@@ -35,7 +36,7 @@ const righe = [
     id: "3",
     nota: "preparazione retro",
     ore: 1.5,
-    offerta: { id: "off-b", codice: "OFF-B", descrizione: "Formazione PO" },
+    offerta: { id: "off-b", codice: "OFF-B", descrizione: "Formazione PO", attiva: true },
   }),
   riga({
     id: "4",
