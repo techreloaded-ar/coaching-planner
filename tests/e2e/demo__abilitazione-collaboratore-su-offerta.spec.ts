@@ -54,9 +54,12 @@ test("l'amministratore abilita e revoca un'offerta dal dettaglio del collaborato
 		name: codiceOffertaPrePopolata,
 	});
 	await expect(rigaPrePopolata).toBeVisible();
-	await expect(rigaPrePopolata).toContainText(
-		clientePrePopolato.ragioneSociale,
-	);
+	await expect(
+		tabellaAbilitate
+			.getByRole("rowgroup")
+			.filter({ hasText: codiceOffertaPrePopolata })
+			.getByRole("button", { name: clientePrePopolato.ragioneSociale }),
+	).toBeVisible();
 
 	// L'amministratore abilita una nuova offerta dal dialog di ricerca.
 	const dialog = page.getByRole("dialog");

@@ -2,6 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { richiediRuoloApi } from "@/lib/dal";
+import { ORE_PER_GIORNATA, fatturataDalCollaboratore, sommaOre } from "@/domain/types";
 
 // ── API abilitazioni (back office, solo amministratore) ──────────
 
@@ -9,8 +10,12 @@ export interface OffertaAbilitata {
   offertaId: string;
   codice: string;
   descrizione: string;
+  clienteId: string;
   clienteRagioneSociale: string;
-  offertaAttiva: boolean;
+  /** Giornate che il collaboratore fattura ad Agile Reloaded sull'offerta, su tutto lo storico. */
+  giorniFatturati: number;
+  /** Ultimo mese (YYYY-MM) con ore del collaboratore sull'offerta, di qualunque categoria; null se nessuna. */
+  ultimoMeseConOre: string | null;
 }
 
 export interface OffertaAbilitabile {
@@ -21,11 +26,12 @@ export interface OffertaAbilitabile {
 }
 
 /**
- * Elenca le offerte a cui il collaboratore è abilitato, con codice offerta e
- * ragione sociale del cliente, ordinate per ragione sociale e poi per codice.
+ * Elenca le offerte attive a cui il collaboratore è abilitato, con cliente,
+ * giornate fatturate e ultimo mese con ore, ordinate per ragione sociale e poi
+ * per codice.
  *
- * Un'offerta abilitata e poi disattivata resta elencata (con offertaAttiva a
- * false): l'abilitazione storica non viene rimossa.
+ * Le abilitazioni su offerte non attive restano nel database ma non vengono
+ * elencate.
  *
  * Accesso riservato all'amministratore.
  */
@@ -35,7 +41,7 @@ export async function elencaOfferteAbilitate(
   await richiediRuoloApi("AMMINISTRATORE");
 
   const abilitazioni = await db.abilitazioneOfferta.findMany({
-    where: { collaboratoreId },
+    where: { collaboratoreId, offerta: { attiva: true } },
     include: {
       offerta: {
         include: { cliente: { select: { ragioneSociale: true } } },
@@ -47,12 +53,45 @@ export async function elencaOfferteAbilitate(
     ],
   });
 
+  if (abilitazioni.length === 0) {
+    return [];
+  }
+
+  const somme = await db.rigaAttivita.groupBy({
+    by: ["offertaId", "categoria"],
+    where: {
+      collaboratoreId,
+      offertaId: { in: abilitazioni.map((abilitazione) => abilitazione.offertaId) },
+    },
+    _sum: { ore: true },
+    _max: { data: true },
+  });
+
+  const orePerOfferta = new Map<string, number[]>();
+  const ultimoMesePerOfferta = new Map<string, string>();
+  for (const gruppo of somme) {
+    if (gruppo.offertaId === null) continue;
+    if (fatturataDalCollaboratore(gruppo.categoria)) {
+      const ore = orePerOfferta.get(gruppo.offertaId) ?? [];
+      ore.push(Number(gruppo._sum.ore ?? 0));
+      orePerOfferta.set(gruppo.offertaId, ore);
+    }
+    // I mesi YYYY-MM si ordinano come stringhe.
+    const mese = gruppo._max.data?.toISOString().slice(0, 7);
+    if (mese && mese > (ultimoMesePerOfferta.get(gruppo.offertaId) ?? "")) {
+      ultimoMesePerOfferta.set(gruppo.offertaId, mese);
+    }
+  }
+
   return abilitazioni.map((abilitazione) => ({
     offertaId: abilitazione.offerta.id,
     codice: abilitazione.offerta.codice,
     descrizione: abilitazione.offerta.descrizione,
+    clienteId: abilitazione.offerta.clienteId,
     clienteRagioneSociale: abilitazione.offerta.cliente.ragioneSociale,
-    offertaAttiva: abilitazione.offerta.attiva,
+    giorniFatturati:
+      sommaOre(...(orePerOfferta.get(abilitazione.offertaId) ?? [])) / ORE_PER_GIORNATA,
+    ultimoMeseConOre: ultimoMesePerOfferta.get(abilitazione.offertaId) ?? null,
   }));
 }
 

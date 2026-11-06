@@ -1,16 +1,53 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useActionState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { OffertaAbilitata, OffertaAbilitabile } from "@/lib/abilitazioni";
 import type { StatoAction } from "../actions";
 import { PulsanteAttesa } from "@/components";
 import { inizialiCliente } from "@/lib/formattazione";
+import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
 import {
   abilitaCollaboratoreSuOfferte,
   revocaAbilitazioneCollaboratore,
 } from "./abilitazioni-actions";
 
 const statoIniziale: StatoAction = { errori: {} };
+
+const formattaGiorni = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 });
+
+interface GruppoCliente {
+  clienteId: string;
+  clienteRagioneSociale: string;
+  offerte: OffertaAbilitata[];
+}
+
+/** Raggruppa le offerte (già ordinate per cliente e codice) per cliente. */
+function raggruppaPerCliente(offerte: OffertaAbilitata[]): GruppoCliente[] {
+  const gruppi = new Map<string, GruppoCliente>();
+  for (const offerta of offerte) {
+    const gruppo = gruppi.get(offerta.clienteId) ?? {
+      clienteId: offerta.clienteId,
+      clienteRagioneSociale: offerta.clienteRagioneSociale,
+      offerte: [],
+    };
+    gruppo.offerte.push(offerta);
+    gruppi.set(offerta.clienteId, gruppo);
+  }
+  return [...gruppi.values()];
+}
+
+/**
+ * Foglio attività del collaboratore in vista Elenco, filtrato sull'offerta e
+ * aperto sull'ultimo mese in cui vi ha segnato ore (mese corrente se nessuno).
+ */
+function urlFoglioSullOfferta(collaboratoreId: string, offerta: OffertaAbilitata): string {
+  return urlFoglioDaAmministrazione(collaboratoreId, {
+    offerta: offerta.offertaId,
+    ...(offerta.ultimoMeseConOre ? { mese: offerta.ultimoMeseConOre } : {}),
+  });
+}
 
 // ── Props ───────────────────────────────────────────────────────
 
@@ -29,6 +66,16 @@ export default function AbilitazioniOfferte({
 }: AbilitazioniOfferteProps) {
   const [dialogAperto, setDialogAperto] = useState(false);
   const chiudiDialog = useCallback(() => setDialogAperto(false), []);
+  const [clientiCompressi, setClientiCompressi] = useState<Set<string>>(new Set());
+  const gruppi = useMemo(() => raggruppaPerCliente(abilitate), [abilitate]);
+
+  function commutaCliente(clienteId: string) {
+    setClientiCompressi((precedenti) => {
+      const successivi = new Set(precedenti);
+      if (!successivi.delete(clienteId)) successivi.add(clienteId);
+      return successivi;
+    });
+  }
 
   return (
     <section aria-labelledby="titolo-offerte-abilitate" className="mb-[22px]">
@@ -45,7 +92,7 @@ export default function AbilitazioniOfferte({
               Offerte abilitate
             </h2>
             <p className="mt-[1px] text-[12.5px] text-zinc-400 dark:text-zinc-500">
-              Offerte su cui il collaboratore può inserire ore
+              Offerte attive su cui il collaboratore può inserire ore · clic su una riga per aprirne le attività
             </p>
           </div>
         </div>
@@ -78,26 +125,52 @@ export default function AbilitazioniOfferte({
                 <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                   Offerta
                 </th>
-                <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                  Cliente
+                <th className="w-[170px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                  Giorni fatturati
                 </th>
-                <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                  Stato
-                </th>
-                <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                <th className="w-[150px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
                   Azioni
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {abilitate.map((offerta) => (
-                <RigaOffertaAbilitata
-                  key={offerta.offertaId}
-                  offerta={offerta}
-                  collaboratoreId={collaboratoreId}
-                />
-              ))}
-            </tbody>
+            {gruppi.map((gruppo) => {
+              const compresso = clientiCompressi.has(gruppo.clienteId);
+              return (
+                <tbody key={gruppo.clienteId}>
+                  <tr className="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40">
+                    <td colSpan={3} className="p-0">
+                      <button
+                        type="button"
+                        onClick={() => commutaCliente(gruppo.clienteId)}
+                        aria-expanded={!compresso}
+                        className="flex w-full items-center gap-[9px] px-4 py-[9px] text-left font-[inherit] transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={`h-[14px] w-[14px] shrink-0 text-zinc-500 transition-transform ${compresso ? "" : "rotate-90"}`} strokeWidth={2.2} aria-hidden="true">
+                          <path d="m9 6 6 6-6 6" />
+                        </svg>
+                        <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[8px] border border-zinc-200 bg-white text-[10.5px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
+                          {inizialiCliente(gruppo.clienteRagioneSociale)}
+                        </span>
+                        <span className="text-[12.5px] font-bold text-zinc-700 dark:text-zinc-200">
+                          {gruppo.clienteRagioneSociale}
+                        </span>
+                        <span className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
+                          · {gruppo.offerte.length} {gruppo.offerte.length === 1 ? "offerta" : "offerte"}
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                  {!compresso &&
+                    gruppo.offerte.map((offerta) => (
+                      <RigaOffertaAbilitata
+                        key={offerta.offertaId}
+                        offerta={offerta}
+                        collaboratoreId={collaboratoreId}
+                      />
+                    ))}
+                </tbody>
+              );
+            })}
           </table>
         </section>
       )}
@@ -112,7 +185,7 @@ export default function AbilitazioniOfferte({
   );
 }
 
-// ── Riga con azione di revoca ───────────────────────────────────
+// ── Riga cliccabile con azione di revoca ────────────────────────
 
 function RigaOffertaAbilitata({
   offerta,
@@ -122,39 +195,35 @@ function RigaOffertaAbilitata({
   collaboratoreId: string;
 }) {
   const [, azione] = useActionState(revocaAbilitazioneCollaboratore, statoIniziale);
+  const router = useRouter();
+  const href = urlFoglioSullOfferta(collaboratoreId, offerta);
 
   return (
-    <tr className="border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800/60 dark:hover:bg-zinc-800/50">
+    <tr
+      onClick={(e) => {
+        // Link del codice e Revoca gestiscono da sé il proprio clic.
+        if ((e.target as HTMLElement).closest("a, button, form")) return;
+        router.push(href);
+      }}
+      className="cursor-pointer border-t border-zinc-100 transition-colors hover:bg-indigo-50/60 dark:border-zinc-800/60 dark:hover:bg-indigo-500/10"
+    >
       <td className="px-4 py-[13px] align-middle">
-        <span className="block text-[12px] font-semibold text-indigo-600 dark:text-indigo-400">
+        <Link
+          href={href}
+          className="block text-[12px] font-semibold text-indigo-600 no-underline hover:underline dark:text-indigo-400"
+        >
           {offerta.codice}
-        </span>
+        </Link>
         <span className="text-[12.5px] text-zinc-600 dark:text-zinc-300">
           {offerta.descrizione}
         </span>
       </td>
-      <td className="px-4 py-[13px] align-middle">
-        <div className="flex min-w-0 items-center gap-[10px]">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] border border-zinc-200 bg-zinc-50 text-[11px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
-            {inizialiCliente(offerta.clienteRagioneSociale)}
-          </span>
-          <span className="min-w-0 truncate text-[13.5px] text-zinc-700 dark:text-zinc-200" title={offerta.clienteRagioneSociale}>
-            {offerta.clienteRagioneSociale}
-          </span>
-        </div>
-      </td>
-      <td className="px-4 py-[13px] align-middle">
-        {offerta.offertaAttiva ? (
-          <span className="inline-flex items-center gap-[5px] rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-            <span className="h-[6px] w-[6px] rounded-full bg-current" />
-            Abilitata
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-[5px] rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
-            <span className="h-[6px] w-[6px] rounded-full bg-current" />
-            Non attiva
-          </span>
-        )}
+      <td
+        className={`px-4 py-[13px] text-right align-middle font-semibold tabular-nums ${
+          offerta.giorniFatturati === 0 ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-800 dark:text-zinc-100"
+        }`}
+      >
+        {formattaGiorni.format(offerta.giorniFatturati)}
       </td>
       <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
         <form action={azione} className="inline">
@@ -167,6 +236,9 @@ function RigaOffertaAbilitata({
             Revoca
           </PulsanteAttesa>
         </form>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="ml-1 inline h-[14px] w-[14px] text-zinc-400 dark:text-zinc-500" strokeWidth={2.2} aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
       </td>
     </tr>
   );

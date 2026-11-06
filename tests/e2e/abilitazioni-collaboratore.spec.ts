@@ -72,7 +72,13 @@ test.describe("Abilitazioni collaboratore", () => {
 		// offerte non ancora abilitate B e C.
 		const rigaA = tabellaAbilitate.getByRole("row", { name: codiceOffertaA });
 		await expect(rigaA).toBeVisible();
-		await expect(rigaA).toContainText(clienteA.ragioneSociale);
+		// Il cliente è l'intestazione del gruppo che contiene l'offerta.
+		await expect(
+			tabellaAbilitate
+				.getByRole("rowgroup")
+				.filter({ hasText: codiceOffertaA })
+				.getByRole("button", { name: clienteA.ragioneSociale }),
+		).toBeVisible();
 		await expect(tabellaAbilitate).not.toContainText(codiceOffertaB);
 		await expect(tabellaAbilitate).not.toContainText(codiceOffertaC);
 
