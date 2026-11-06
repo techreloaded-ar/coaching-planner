@@ -12,9 +12,14 @@ const mockOfferta = vi.hoisted(() => ({
   findMany: vi.fn(),
 }));
 
+const mockRigaAttivita = vi.hoisted(() => ({
+  groupBy: vi.fn(),
+}));
+
 const mockDb = vi.hoisted(() => ({
   abilitazioneOfferta: mockAbilitazioneOfferta,
   offerta: mockOfferta,
+  rigaAttivita: mockRigaAttivita,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -97,7 +102,7 @@ describe("DAL abilitazioni — query", () => {
   // ── 2. elencaOfferteAbilitate ──────────────────────────────────
 
   describe("elencaOfferteAbilitate", () => {
-    it("interroga con where, include e orderBy attesi e mappa le abilitazioni", async () => {
+    it("elenca solo le offerte attive con giornate fatturate e ultimo mese con ore", async () => {
       const abilitazioni = [
         {
           collaboratoreId: "collab-1",
@@ -106,6 +111,7 @@ describe("DAL abilitazioni — query", () => {
             id: "off-1",
             codice: "OFF-1",
             descrizione: "Sviluppo",
+            clienteId: "cli-1",
             attiva: true,
             cliente: { ragioneSociale: "Acme S.r.l." },
           },
@@ -117,18 +123,25 @@ describe("DAL abilitazioni — query", () => {
             id: "off-2",
             codice: "OFF-2",
             descrizione: "Manutenzione",
-            attiva: false,
+            clienteId: "cli-2",
+            attiva: true,
             cliente: { ragioneSociale: "Beta S.p.A." },
           },
         },
       ];
       mockAbilitazioneOfferta.findMany.mockResolvedValue(abilitazioni);
+      mockRigaAttivita.groupBy.mockResolvedValue([
+        { offertaId: "off-1", categoria: "FATTURABILE", _sum: { ore: 16.5 }, _max: { data: new Date("2026-08-20") } },
+        { offertaId: "off-1", categoria: "NON_FATTURABILE", _sum: { ore: 3.5 }, _max: { data: new Date("2026-07-02") } },
+        // Gli investimenti non si fatturano ma contano per l'ultimo mese.
+        { offertaId: "off-1", categoria: "INVESTIMENTO", _sum: { ore: 8 }, _max: { data: new Date("2026-09-01") } },
+      ]);
 
       const result = await elencaOfferteAbilitate("collab-1");
 
       expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
       expect(mockAbilitazioneOfferta.findMany).toHaveBeenCalledWith({
-        where: { collaboratoreId: "collab-1" },
+        where: { collaboratoreId: "collab-1", offerta: { attiva: true } },
         include: {
           offerta: {
             include: { cliente: { select: { ragioneSociale: true } } },
@@ -139,22 +152,39 @@ describe("DAL abilitazioni — query", () => {
           { offerta: { codice: "asc" } },
         ],
       });
+      expect(mockRigaAttivita.groupBy).toHaveBeenCalledWith({
+        by: ["offertaId", "categoria"],
+        where: { collaboratoreId: "collab-1", offertaId: { in: ["off-1", "off-2"] } },
+        _sum: { ore: true },
+        _max: { data: true },
+      });
       expect(result).toEqual([
         {
           offertaId: "off-1",
           codice: "OFF-1",
           descrizione: "Sviluppo",
+          clienteId: "cli-1",
           clienteRagioneSociale: "Acme S.r.l.",
-          offertaAttiva: true,
+          giorniFatturati: 2.5,
+          ultimoMeseConOre: "2026-09",
         },
         {
           offertaId: "off-2",
           codice: "OFF-2",
           descrizione: "Manutenzione",
+          clienteId: "cli-2",
           clienteRagioneSociale: "Beta S.p.A.",
-          offertaAttiva: false,
+          giorniFatturati: 0,
+          ultimoMeseConOre: null,
         },
       ]);
+    });
+
+    it("senza abilitazioni attive non legge le righe attività", async () => {
+      mockAbilitazioneOfferta.findMany.mockResolvedValue([]);
+
+      expect(await elencaOfferteAbilitate("collab-1")).toEqual([]);
+      expect(mockRigaAttivita.groupBy).not.toHaveBeenCalled();
     });
   });
 

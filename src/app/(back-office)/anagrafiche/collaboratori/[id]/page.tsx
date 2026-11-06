@@ -1,14 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { richiediRuolo } from "@/lib/dal";
-import {
-  collaboratorePerId,
-  storicoAttivitaCollaboratore,
-  storicoTariffeCollaboratore,
-} from "@/lib/collaboratori";
+import { collaboratorePerId, storicoTariffeCollaboratore } from "@/lib/collaboratori";
 import { elencaOfferteAbilitate, elencaOfferteAbilitabili } from "@/lib/abilitazioni";
-import { raggruppaAttivitaPerMese, type RigaStoricoAttivita } from "@/domain/consuntivi";
-import { etichettaMese, tokenMeseCorrente } from "@/domain/calendario";
+import { tokenMeseCorrente } from "@/domain/calendario";
 import {
   ETICHETTA_MODALITA_TARIFFA,
   UNITA_TARIFFA,
@@ -17,31 +12,8 @@ import {
 } from "@/domain/tariffe";
 import { formattaEuro } from "@/lib/formattazione";
 import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
-import { BadgeCategoriaAttivita } from "@/components";
-import { ETICHETTA_OFFERTA_DA_DEFINIRE } from "@/domain/types";
 import AbilitazioniOfferte from "./abilitazioni-offerte";
 import StoricoTariffe from "./storico-tariffe";
-
-// ── Utilità ────────────────────────────────────────────────────
-
-/** Formatta una Date in stringa YYYY-MM-DD in ora locale. */
-function formattaDataISO(data: Date): string {
-  const a = data.getFullYear();
-  const m = String(data.getMonth() + 1).padStart(2, "0");
-  const g = String(data.getDate()).padStart(2, "0");
-  return `${a}-${m}-${g}`;
-}
-
-const formattaNumero = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 });
-
-const GIORNI_SETTIMANA = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"] as const;
-
-/** Giorno del mese e giorno della settimana da una data YYYY-MM-DD. */
-function etichettaGiorno(dataISO: string): { giorno: number; settimana: string } {
-  const [anno, mese, giorno] = dataISO.split("-").map(Number);
-  const data = new Date(anno, mese - 1, giorno);
-  return { giorno, settimana: GIORNI_SETTIMANA[data.getDay()] };
-}
 
 // ── Pagina ─────────────────────────────────────────────────────
 
@@ -59,27 +31,13 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
     notFound();
   }
 
-  const [storico, abilitate, abilitabili, tariffe] = await Promise.all([
-    storicoAttivitaCollaboratore(id),
+  const [abilitate, abilitabili, tariffe] = await Promise.all([
     elencaOfferteAbilitate(id),
     elencaOfferteAbilitabili(id),
     storicoTariffeCollaboratore(id),
   ]);
   const meseCorrente = tokenMeseCorrente();
   const tariffaAttuale = tariffaValidaNelMese(tariffe, meseCorrente);
-
-  const righe: RigaStoricoAttivita[] = storico.map((riga) => ({
-    id: riga.id,
-    data: formattaDataISO(riga.data),
-    clienteRagioneSociale: riga.cliente.ragioneSociale,
-    offertaCodice: riga.offerta?.codice ?? ETICHETTA_OFFERTA_DA_DEFINIRE,
-    offertaDescrizione: riga.offerta?.descrizione ?? "",
-    ore: Number(riga.ore),
-    categoria: riga.categoria,
-    nota: riga.nota,
-  }));
-
-  const mesi = raggruppaAttivitaPerMese(righe);
 
   const nomeCompleto = `${collaboratore.nome} ${collaboratore.cognome}`;
   const iniziali = `${collaboratore.nome[0] ?? ""}${collaboratore.cognome[0] ?? ""}`.toUpperCase();
@@ -127,16 +85,19 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
               </svg>
               {collaboratore.utente.email}
             </div>
-            <div className="mt-3">
+            <div className="mt-[14px]">
               <Link
                 href={urlFoglioDaAmministrazione(collaboratore.id)}
-                className="inline-flex items-center gap-[7px] rounded-[10px] border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[12.5px] font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 dark:hover:bg-indigo-500/25"
+                className="inline-flex items-center gap-[8px] rounded-[10px] bg-indigo-500 px-4 py-2.5 text-[14px] font-semibold text-white no-underline shadow-md shadow-indigo-500/30 transition hover:bg-indigo-600"
               >
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
                   <rect x="3" y="4" width="18" height="18" rx="2" />
                   <path d="M16 2v4M8 2v4M3 10h18" />
                 </svg>
                 Apri foglio attività
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2.2}>
+                  <path d="M5 12h14m-6-6 6 6-6 6" />
+                </svg>
               </Link>
             </div>
           </div>
@@ -175,104 +136,6 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
         abilitate={abilitate}
         abilitabili={abilitabili}
       />
-
-      {/* Storico attività per mese */}
-      {mesi.length === 0 ? (
-        <section className="rounded-[11px] border border-zinc-200 bg-white px-5 py-10 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="mx-auto mb-3 flex h-[42px] w-[42px] items-center justify-center rounded-[12px] bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5" strokeWidth={1.9}>
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-          </div>
-          <p className="m-0 text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
-            Nessuna attività registrata per questo collaboratore.
-          </p>
-        </section>
-      ) : (
-        <div className="flex flex-col gap-[22px]">
-          {mesi.map((mese) => (
-            <section
-              key={mese.token}
-              className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-[18px] py-[15px] dark:border-zinc-800">
-                <span className="inline-flex items-center gap-[9px] text-[15px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] text-indigo-500" strokeWidth={2}>
-                    <rect x="3" y="4" width="18" height="18" rx="2" />
-                    <path d="M16 2v4M8 2v4M3 10h18" />
-                  </svg>
-                  {etichettaMese(mese.token)}
-                </span>
-                <span className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
-                  {formattaNumero.format(mese.oreTotali)} ore · {formattaNumero.format(mese.giornateTotali)} giornate
-                </span>
-              </div>
-
-              <table className="w-full border-collapse text-[13.5px]" aria-label={`Attività di ${etichettaMese(mese.token)}`}>
-                <thead>
-                  <tr>
-                    <th className="w-[90px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                      Giorno
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                      Cliente
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                      Offerta
-                    </th>
-                    <th className="w-[90px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                      Ore
-                    </th>
-                    <th className="w-[150px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                      Categoria
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
-                      Note
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mese.righe.map((riga) => {
-                    const { giorno, settimana } = etichettaGiorno(riga.data);
-                    return (
-                      <tr
-                        key={riga.id}
-                        className="border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800/60 dark:hover:bg-zinc-800/50"
-                      >
-                        <td className="px-4 py-[13px] align-middle whitespace-nowrap">
-                          <span className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">{giorno}</span>{" "}
-                          <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">{settimana}</span>
-                        </td>
-                        <td className="px-4 py-[13px] align-middle font-semibold text-zinc-800 dark:text-zinc-100">
-                          {riga.clienteRagioneSociale}
-                        </td>
-                        <td className="px-4 py-[13px] align-middle">
-                          <span className="block text-[12px] font-semibold text-indigo-600 dark:text-indigo-400">
-                            {riga.offertaCodice}
-                          </span>
-                          <span className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            {riga.offertaDescrizione}
-                          </span>
-                        </td>
-                        <td className="px-4 py-[13px] text-right align-middle tabular-nums font-semibold text-zinc-800 dark:text-zinc-100">
-                          {formattaNumero.format(riga.ore)}
-                        </td>
-                        <td className="px-4 py-[13px] align-middle">
-                          <BadgeCategoriaAttivita categoria={riga.categoria} />
-                        </td>
-                        <td className="px-4 py-[13px] align-middle text-[12.5px] text-zinc-500 dark:text-zinc-400">
-                          {riga.nota ?? ""}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </section>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

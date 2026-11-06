@@ -7,35 +7,22 @@ import {
 import { test, expect } from "./support/fixtures";
 
 /**
- * Test e2e — US-038: Dettaglio collaboratore con storico attività
+ * Test e2e — Dettaglio collaboratore
  *
  * Scenari:
- * - Navigazione dalla riga dell'elenco al dettaglio con anagrafica (AC-1),
- *   sezioni mese in italiano ordinate dalla più recente con totali
- *   ore/giornate, righe con cliente/offerta/nota e badge di fatturabilità
- *   (AC-2/AC-3), e link "Modifica" sulla riga che resta intatto (AC-5)
- * - Stato vuoto per un collaboratore senza attività registrate (AC-4)
+ * - Navigazione dalla riga dell'elenco al dettaglio con anagrafica e link
+ *   "Modifica" sulla riga che resta intatto
+ * - Offerte abilitate: solo le attive, raggruppate per cliente con gruppi
+ *   collassabili, giorni fatturati dal collaboratore e riga che apre il foglio
+ *   attività in vista Elenco filtrato sull'offerta, sull'ultimo mese con ore;
+ *   nessun riepilogo mensile delle attività
  */
 
-// Mesi riservati alla spec US-038: mesePrecedente < meseRecente in ordine
-// cronologico, così le sezioni del dettaglio hanno un ordinamento atteso stabile.
+// Mesi riservati alla spec: mesePrecedente < meseRecente in ordine cronologico,
+// così l'ultimo mese con ore atteso è stabile.
 const meseRecente = meseRiservato("US-038");
 const mesePrecedente = mesePassatoRiservato("US-038", 1);
 
-const formattatoreMeseAtteso = new Intl.DateTimeFormat("it-IT", {
-	month: "long",
-	year: "numeric",
-});
-
-// Etichetta sezione mese identica a quella resa dalla UI
-// (src/app/(back-office)/anagrafiche/collaboratori/[id]/page.tsx).
-function etichettaMeseAttesa(meseToken: string): string {
-	const [anno, numeroMese] = meseToken.split("-").map(Number);
-	return formattatoreMeseAtteso.format(new Date(anno, numeroMese - 1, 1));
-}
-
-// Giorni lontani dai bordi del mese: la pagina formatta la data in ora locale
-// del server, quindi mezzanotte UTC non può slittare sul mese adiacente.
 function dataNelMeseUtc(meseToken: string, giorno: number): Date {
 	return new Date(`${dataNelMese(meseToken, giorno)}T00:00:00.000Z`);
 }
@@ -49,50 +36,15 @@ test.describe("Dettaglio collaboratore", () => {
 		await accediComeAdmin(page);
 	});
 
-	test("navigazione dalla riga, gruppi mese con totali e link Modifica intatto", async ({
+	test("navigazione dalla riga, intestazione e link Modifica intatto", async ({
 		page,
 		factory,
 	}) => {
-		const { cliente, offerta } = await factory.createClienteConOfferta();
 		const collaboratoreA = await factory.createCollaboratore({
 			tariffaGiornaliera: "432.50",
 		});
 		const idA = collaboratoreA.collaboratore.id;
 		const nomeCompletoA = `${collaboratoreA.collaboratore.nome} ${collaboratoreA.collaboratore.cognome}`;
-		const notaFatturabile = `Nota fatturabile ${factory.namespace}`;
-		const notaIntegrativa = `Nota integrativa ${factory.namespace}`;
-		const notaNonFatturabile = `Nota non fatturabile ${factory.namespace}`;
-
-		// Mese recente: 8h + 4h fatturabili → intestazione "12 ore · 1,5 giornate"
-		await factory.createRigaAttivita({
-			collaboratore: collaboratoreA,
-			cliente,
-			offerta,
-			data: dataNelMeseUtc(meseRecente, 10),
-			ore: "8",
-			nota: notaFatturabile,
-			categoria: "FATTURABILE",
-		});
-		await factory.createRigaAttivita({
-			collaboratore: collaboratoreA,
-			cliente,
-			offerta,
-			data: dataNelMeseUtc(meseRecente, 12),
-			ore: "4",
-			nota: notaIntegrativa,
-			categoria: "FATTURABILE",
-		});
-		// Mese precedente: una riga non fatturabile → "4 ore · 0,5 giornate"
-		await factory.createRigaAttivita({
-			collaboratore: collaboratoreA,
-			cliente,
-			offerta,
-			data: dataNelMeseUtc(mesePrecedente, 15),
-			ore: "4",
-			nota: notaNonFatturabile,
-			categoria: "NON_FATTURABILE",
-		});
-
 		// Navigazione dalla riga dell'elenco al dettaglio del collaboratore A
 		await page.goto("/anagrafiche/collaboratori");
 		await expect(
@@ -149,68 +101,6 @@ test.describe("Dettaglio collaboratore", () => {
 		).toBeVisible();
 		await expect(page.getByTestId("tariffa-attuale")).toContainText(/432,50\s*€\s*\/ giorno/);
 
-		// AC-2/AC-3 — due sezioni mese con etichetta italiana, ordinate dalla
-		// più recente, con totali di ore/giornate e badge di fatturabilità
-		const etichettaRecente = etichettaMeseAttesa(meseRecente);
-		const etichettaPrecedente = etichettaMeseAttesa(mesePrecedente);
-
-		const tabelleMese = page.getByRole("table", { name: /^Attività di / });
-		await expect(tabelleMese).toHaveCount(2);
-		await expect(tabelleMese.nth(0)).toHaveAttribute(
-			"aria-label",
-			`Attività di ${etichettaRecente}`,
-		);
-		await expect(tabelleMese.nth(1)).toHaveAttribute(
-			"aria-label",
-			`Attività di ${etichettaPrecedente}`,
-		);
-
-		const tabellaRecente = page.getByRole("table", {
-			name: `Attività di ${etichettaRecente}`,
-			exact: true,
-		});
-		const tabellaPrecedente = page.getByRole("table", {
-			name: `Attività di ${etichettaPrecedente}`,
-			exact: true,
-		});
-
-		const sezioneRecente = page
-			.locator("section")
-			.filter({ has: tabellaRecente });
-		await expect(
-			sezioneRecente.getByText(etichettaRecente, { exact: true }),
-		).toBeVisible();
-		await expect(
-			sezioneRecente.getByText("12 ore · 1,5 giornate", { exact: true }),
-		).toBeVisible();
-
-		const rigaConNota = tabellaRecente.getByRole("row", {
-			name: testoLetterale(notaFatturabile),
-		});
-		await expect(rigaConNota).toContainText(cliente.ragioneSociale);
-		await expect(rigaConNota).toContainText(offerta.codice);
-		await expect(
-			rigaConNota.getByRole("cell", { name: "8", exact: true }),
-		).toBeVisible();
-		await expect(
-			rigaConNota.getByText("Fatturabile", { exact: true }),
-		).toBeVisible();
-		await expect(rigaConNota).toContainText(notaFatturabile);
-
-		const sezionePrecedente = page
-			.locator("section")
-			.filter({ has: tabellaPrecedente });
-		await expect(
-			sezionePrecedente.getByText("4 ore · 0,5 giornate", { exact: true }),
-		).toBeVisible();
-
-		const rigaNonFatturabile = tabellaPrecedente.getByRole("row", {
-			name: testoLetterale(notaNonFatturabile),
-		});
-		await expect(
-			rigaNonFatturabile.getByText("Non fatturabile", { exact: true }),
-		).toBeVisible();
-
 		// AC-5 — ritorno all'elenco: il link Modifica sulla riga di A porta al
 		// form di modifica e non viene catturato dalla navigazione di riga
 		await page
@@ -231,34 +121,104 @@ test.describe("Dettaglio collaboratore", () => {
 		).toBeVisible();
 	});
 
-	test("stato vuoto per collaboratore senza attività", async ({
+	test("offerte abilitate attive per cliente, giorni fatturati e apertura del foglio sull'offerta", async ({
 		page,
 		factory,
 	}) => {
-		const collaboratoreB = await factory.createCollaboratore();
-		const idB = collaboratoreB.collaboratore.id;
-		const nomeCompletoB = `${collaboratoreB.collaboratore.nome} ${collaboratoreB.collaboratore.cognome}`;
-
-		// Navigazione dalla riga dell'elenco al dettaglio del collaboratore B
-		await page.goto("/anagrafiche/collaboratori");
-		const rigaB = page.getByRole("row", {
-			name: testoLetterale(nomeCompletoB),
+		const marcatore = factory.namespace.replace(/[^a-z0-9]/gi, "").toUpperCase();
+		const cliente = await factory.createCliente({
+			ragioneSociale: `Cliente dettaglio ${marcatore}`,
 		});
-		await rigaB.getByRole("link", { name: nomeCompletoB, exact: true }).click();
-		await expect(page).toHaveURL(
-			new RegExp(`/anagrafiche/collaboratori/${idB}$`),
-		);
+		const offertaConOre = await factory.createOfferta({
+			cliente,
+			codice: `${marcatore}-ORE`,
+		});
+		const offertaSenzaOre = await factory.createOfferta({
+			cliente,
+			codice: `${marcatore}-ZERO`,
+		});
+		const offertaNonAttiva = await factory.createOfferta({
+			cliente,
+			codice: `${marcatore}-OFF`,
+			attiva: false,
+		});
+		const collaboratore = await factory.createCollaboratore();
+		const id = collaboratore.collaboratore.id;
+		for (const offerta of [offertaConOre, offertaSenzaOre, offertaNonAttiva]) {
+			await factory.createAbilitazioneOfferta({ collaboratore, offerta });
+		}
 
-		// AC-4 — messaggio di stato vuoto senza sezioni mese
+		// 8 + 4 ore fatturate (fatturabile e non fatturabile) = 1,5 giorni;
+		// l'investimento non si fattura ma rende meseRecente l'ultimo mese con ore.
+		await factory.createRigaAttivita({
+			collaboratore,
+			offerta: offertaConOre,
+			data: dataNelMeseUtc(mesePrecedente, 10),
+			ore: "8",
+			categoria: "FATTURABILE",
+		});
+		await factory.createRigaAttivita({
+			collaboratore,
+			offerta: offertaConOre,
+			data: dataNelMeseUtc(mesePrecedente, 12),
+			ore: "4",
+			categoria: "NON_FATTURABILE",
+		});
+		await factory.createRigaAttivita({
+			collaboratore,
+			offerta: offertaConOre,
+			data: dataNelMeseUtc(meseRecente, 15),
+			ore: "4",
+			categoria: "INVESTIMENTO",
+		});
+
+		await page.goto(`/anagrafiche/collaboratori/${id}`);
+
+		const tabella = page.getByRole("table", {
+			name: "Offerte abilitate",
+			exact: true,
+		});
+		const gruppoCliente = tabella.getByRole("button", {
+			name: testoLetterale(cliente.ragioneSociale),
+		});
+		const rigaConOre = tabella.getByRole("row", { name: offertaConOre.codice });
+		const rigaSenzaOre = tabella.getByRole("row", { name: offertaSenzaOre.codice });
+
+		// Solo le offerte attive, sotto l'intestazione del cliente.
+		await expect(gruppoCliente).toContainText("2 offerte");
+		await expect(rigaConOre.getByRole("cell", { name: "1,5", exact: true })).toBeVisible();
+		await expect(rigaSenzaOre.getByRole("cell", { name: "0", exact: true })).toBeVisible();
+		await expect(tabella).not.toContainText(offertaNonAttiva.codice);
+
+		// Nessun riepilogo mensile delle attività.
+		await expect(page.getByRole("table", { name: /^Attività di / })).toHaveCount(0);
+
+		// Il gruppo cliente si comprime e si riespande. Il primo clic può cadere
+		// prima dell'idratazione: il ritentativo non oscilla perché si attende lo
+		// stato compresso.
+		await expect(async () => {
+			await gruppoCliente.click();
+			await expect(gruppoCliente).toHaveAttribute("aria-expanded", "false", { timeout: 1_000 });
+		}).toPass({ timeout: 15_000 });
+		await expect(rigaConOre).toHaveCount(0);
+		await gruppoCliente.click();
+		await expect(gruppoCliente).toHaveAttribute("aria-expanded", "true");
+
+		// Clic su una cella neutra della riga: foglio in vista Elenco filtrato
+		// sull'offerta, aperto sull'ultimo mese con ore.
+		await rigaConOre.getByRole("cell", { name: "1,5", exact: true }).click();
+		await page.waitForURL(
+			`**/attivita?offerta=${offertaConOre.id}&mese=${meseRecente}&vista=elenco&collaboratore=${id}`,
+		);
 		await expect(
-			page.getByText("Nessuna attività registrata per questo collaboratore.", {
-				exact: true,
-			}),
+			page.getByRole("region", { name: "Elenco delle attività del mese" }),
 		).toBeVisible();
-		// Le tabelle dello storico hanno aria-label "Attività di <mese>": in
-		// stato vuoto non ne deve esistere nessuna
-		await expect(
-			page.getByRole("table", { name: /Attività di/ }),
-		).toHaveCount(0);
+
+		// Senza ore il foglio si apre filtrato sull'offerta, sul mese corrente.
+		await page.goto(`/anagrafiche/collaboratori/${id}`);
+		await expect(tabella.getByRole("link", { name: offertaSenzaOre.codice, exact: true })).toHaveAttribute(
+			"href",
+			`/attivita?offerta=${offertaSenzaOre.id}&vista=elenco&collaboratore=${id}`,
+		);
 	});
 });
