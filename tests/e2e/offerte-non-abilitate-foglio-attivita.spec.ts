@@ -30,8 +30,8 @@ async function preparaRighe(factory: E2eDataFactory) {
 	const abilitata = await factory.createOfferta({ cliente });
 	const collaboratore = await factory.createCollaboratore({ nome: "Ada", cognome: codice });
 	await factory.createAbilitazioneOfferta({ collaboratore, offerta: abilitata });
-	await factory.createRigaAttivita({ collaboratore, cliente, offerta: abilitata, data: dataDb(GIORNO), ore: "2.00", nota: `Abilitata ${codice}` });
-	await factory.createRigaAttivita({ collaboratore, cliente, offerta: nonAbilitata, data: dataDb(GIORNO), ore: "6.00", nota: `Non abilitata ${codice}` });
+	await factory.createRigaAttivita({ collaboratore, cliente, offerta: abilitata, data: dataDb(GIORNO), ore: "2.00", nota: `Sessione consentita ${codice}` });
+	await factory.createRigaAttivita({ collaboratore, cliente, offerta: nonAbilitata, data: dataDb(GIORNO), ore: "6.00", nota: `Sessione da abilitare ${codice}` });
 	return { codice, collaboratore, nome: `Ada ${codice}` };
 }
 
@@ -53,10 +53,10 @@ test.describe("Righe su offerte non abilitate", () => {
 
 		await page.goto(`/attivita/${GIORNO}?mese=${MESE}`);
 		await expect(
-			page.getByTestId("activity-row").filter({ hasText: `Non abilitata ${codice}` }).getByTestId("avviso-offerta-non-abilitata"),
+			page.getByTestId("activity-row").filter({ hasText: `Sessione da abilitare ${codice}` }).getByTestId("avviso-offerta-non-abilitata"),
 		).toBeVisible();
 		await expect(
-			page.getByTestId("activity-row").filter({ hasText: `Abilitata ${codice}` }).getByTestId("avviso-offerta-non-abilitata"),
+			page.getByTestId("activity-row").filter({ hasText: `Sessione consentita ${codice}` }).getByTestId("avviso-offerta-non-abilitata"),
 		).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Abilita", exact: true })).toHaveCount(0);
 	});
@@ -82,7 +82,7 @@ test.describe("Righe su offerte non abilitate", () => {
 		await expect(page.getByTestId("indicatore-offerte-non-abilitate")).toHaveText("1");
 
 		await page.goto(`/attivita/${GIORNO}?mese=${MESE}&collaboratore=${idCollaboratore}`);
-		const riga = page.getByTestId("activity-row").filter({ hasText: `Non abilitata ${codice}` });
+		const riga = page.getByTestId("activity-row").filter({ hasText: `Sessione da abilitare ${codice}` });
 		await riga.getByRole("button", { name: "Abilita", exact: true }).click();
 		await expect(riga).toContainText(`Abilitare ${nome} a questa offerta?`);
 		await riga.getByRole("button", { name: "No", exact: true }).click();
