@@ -46,7 +46,7 @@ const GIORNO_ALTRO_MESE = dataNelMesePassatoRiservato(CODICE_SPEC, 7);
 const GIORNO_RIFIUTO = dataNelMeseRiservato(CODICE_SPEC, 4);
 
 const RAGIONE_SOCIALE_ORIGINE = "E2E US057 Origine";
-const RAGIONE_SOCIALE_NON_ABILITATA = "E2E US057 Non Abilitata";
+const RAGIONE_SOCIALE_OFFERTA_CHIUSA = "E2E US057 Non Abilitata";
 
 /** Fotografia del rimborso già congelata sulla riga sorgente. */
 const ETICHETTA_RIMBORSO = "Trasferta US-057";
@@ -390,7 +390,7 @@ test.describe("US-057 Duplicazione di una riga su più giorni scelti", () => {
     await expect(page.getByTestId("conferma-duplicazione")).toBeEnabled();
   });
 
-  test("la duplicazione di una riga su offerta non abilitata è rifiutata e non crea righe sul giorno scelto", async ({
+  test("la duplicazione di una riga su offerta non più attiva è rifiutata e non crea righe sul giorno scelto", async ({
     page,
     factory,
     collaboratore,
@@ -398,24 +398,28 @@ test.describe("US-057 Duplicazione di una riga su più giorni scelti", () => {
   }) => {
     await preparaRigaSorgente(factory, collaboratore, namespace);
 
-    // Seconda riga sullo stesso giorno, su un'offerta attiva ma **non**
-    // abilitata al collaboratore: è la riga storica della storia utente.
-    const offertaNonAbilitata = await factory.createClienteConOfferta({
-      ragioneSociale: RAGIONE_SOCIALE_NON_ABILITATA,
-    });
+    // Seconda riga sullo stesso giorno, su un'offerta poi disattivata: è la
+    // riga storica della storia utente. L'abilitazione non conta più: una
+    // riga su un'offerta attiva non abilitata si duplica regolarmente.
+    const offertaChiusa = await factory.createClienteConOfferta(
+      {
+        ragioneSociale: RAGIONE_SOCIALE_OFFERTA_CHIUSA,
+      },
+      { attiva: false },
+    );
     await factory.createRigaAttivita({
       collaboratore,
-      cliente: offertaNonAbilitata.cliente,
-      offerta: offertaNonAbilitata.offerta,
+      cliente: offertaChiusa.cliente,
+      offerta: offertaChiusa.offerta,
       data: dataDb(GIORNO_ORIGINE),
       ore: "2.00",
-      nota: `US-057 riga non abilitata ${namespace}`,
+      nota: `US-057 riga su offerta chiusa ${namespace}`,
     });
 
     await accediComeCollaboratore(page, collaboratore.utente.email);
     await apriGiornoOrigine(page);
 
-    await cardRigaDi(page, RAGIONE_SOCIALE_NON_ABILITATA)
+    await cardRigaDi(page, RAGIONE_SOCIALE_OFFERTA_CHIUSA)
       .getByTestId("duplica-riga")
       .click();
     await expect(selettore(page)).toBeVisible();
@@ -431,7 +435,7 @@ test.describe("US-057 Duplicazione di una riga su più giorni scelti", () => {
     await expect(errore).toBeVisible();
     await expect(errore).toHaveAttribute("role", "alert");
     await expect(errore).toContainText(
-      "Non sei abilitato a registrare attività su questa offerta",
+      "L'offerta non è più attiva",
     );
     await expect(page.getByTestId("esito-duplicazione")).toHaveCount(0);
 
@@ -446,7 +450,7 @@ test.describe("US-057 Duplicazione di una riga su più giorni scelti", () => {
     await expect(page.getByTestId("contenuto-giornata")).toBeVisible();
 
     await expect(
-      cardRigaDi(page, RAGIONE_SOCIALE_NON_ABILITATA),
+      cardRigaDi(page, RAGIONE_SOCIALE_OFFERTA_CHIUSA),
     ).toHaveCount(0);
     await expect(page.getByTestId("activity-row")).toHaveCount(0);
   });

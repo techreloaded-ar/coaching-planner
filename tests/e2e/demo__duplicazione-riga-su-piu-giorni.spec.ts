@@ -22,7 +22,7 @@ import { test, expect } from "./support/fixtures";
  * etichetta/importo di rimborso; riapre il selettore e osserva che la conferma
  * non è disponibile prima di aver scelto almeno una data e che il giorno di
  * origine non è selezionabile; infine, su una riga storica la cui offerta non è
- * più abilitata, avvia la duplicazione e osserva un errore visibile e nessuna
+ * più attiva, avvia la duplicazione e osserva un errore visibile e nessuna
  * riga creata sul giorno scelto.
  *
  * Le entità sono tutte create dalla factory dentro due mesi riservati alla
@@ -43,7 +43,7 @@ const GIORNO_ALTRO_MESE = dataNelMesePassatoRiservato(CODICE_SPEC, 7);
 const GIORNO_RIFIUTO = dataNelMeseRiservato(CODICE_SPEC, 4);
 
 const RAGIONE_SOCIALE_ORIGINE = "Demo US057 Cliente Abilitato";
-const RAGIONE_SOCIALE_NON_ABILITATA = "Demo US057 Offerta Decaduta";
+const RAGIONE_SOCIALE_OFFERTA_CHIUSA = "Demo US057 Offerta Decaduta";
 
 const ETICHETTA_RIMBORSO = "Trasferta demo US-057";
 const IMPORTO_RIMBORSO = "85.00";
@@ -90,7 +90,7 @@ test.describe("US-057 Demo", () => {
     test.setTimeout(120_000);
 
     // ── Preparazione: una riga sorgente completa di rimborso già fotografato
-    // su un'offerta abilitata, e una riga storica su un'offerta mai abilitata.
+    // su un'offerta abilitata, e una riga storica su un'offerta poi disattivata.
     const clienteConOfferta = await factory.createClienteConOfferta({
       ragioneSociale: RAGIONE_SOCIALE_ORIGINE,
     });
@@ -112,13 +112,16 @@ test.describe("US-057 Demo", () => {
       rimborsoTrasfertaImporto: IMPORTO_RIMBORSO,
     });
 
-    const offertaNonAbilitata = await factory.createClienteConOfferta({
-      ragioneSociale: RAGIONE_SOCIALE_NON_ABILITATA,
-    });
+    const offertaChiusa = await factory.createClienteConOfferta(
+      {
+        ragioneSociale: RAGIONE_SOCIALE_OFFERTA_CHIUSA,
+      },
+      { attiva: false },
+    );
     await factory.createRigaAttivita({
       collaboratore,
-      cliente: offertaNonAbilitata.cliente,
-      offerta: offertaNonAbilitata.offerta,
+      cliente: offertaChiusa.cliente,
+      offerta: offertaChiusa.offerta,
       data: dataDb(GIORNO_ORIGINE),
       ore: "2.00",
       nota: `Demo US-057 riga storica ${namespace}`,
@@ -222,7 +225,7 @@ test.describe("US-057 Demo", () => {
     await selettore(page).getByRole("button", { name: "Annulla" }).click();
     await expect(selettore(page)).toHaveCount(0);
 
-    await cardRigaDi(page, RAGIONE_SOCIALE_NON_ABILITATA)
+    await cardRigaDi(page, RAGIONE_SOCIALE_OFFERTA_CHIUSA)
       .getByTestId("duplica-riga")
       .click();
     await expect(selettore(page)).toBeVisible();
@@ -237,7 +240,7 @@ test.describe("US-057 Demo", () => {
     const errore = page.getByTestId("errore-duplicazione");
     await expect(errore).toBeVisible();
     await expect(errore).toContainText(
-      "Non sei abilitato a registrare attività su questa offerta",
+      "L'offerta non è più attiva",
     );
     await expect(page.getByTestId("esito-duplicazione")).toHaveCount(0);
 
