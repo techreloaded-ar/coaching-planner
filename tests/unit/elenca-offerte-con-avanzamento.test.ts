@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockOfferta, mockRigaAttivita } = vi.hoisted(() => ({
+const { mockOfferta, mockRigaAttivita, mockAbilitazioneOfferta } = vi.hoisted(() => ({
 	mockOfferta: {
 		findMany: vi.fn(),
 		findUnique: vi.fn(),
@@ -9,10 +9,17 @@ const { mockOfferta, mockRigaAttivita } = vi.hoisted(() => ({
 		findMany: vi.fn(),
 		groupBy: vi.fn(),
 	},
+	mockAbilitazioneOfferta: {
+		findMany: vi.fn(async () => [] as { offertaId: string; collaboratoreId: string }[]),
+	},
 }));
 
 vi.mock("@/lib/db", () => ({
-	db: { offerta: mockOfferta, rigaAttivita: mockRigaAttivita },
+	db: {
+		offerta: mockOfferta,
+		rigaAttivita: mockRigaAttivita,
+		abilitazioneOfferta: mockAbilitazioneOfferta,
+	},
 }));
 
 const { mockRichiediRuoloApi } = vi.hoisted(() => ({
@@ -82,6 +89,7 @@ function rigaConCollaboratore(
 		ore?: number;
 		categoria?: "FATTURABILE" | "NON_FATTURABILE" | "INVESTIMENTO";
 		data?: Date;
+		attivo?: boolean;
 	} = {},
 ) {
 	const collaboratoreId = modifiche.collaboratoreId ?? "collab-1";
@@ -96,6 +104,7 @@ function rigaConCollaboratore(
 			id: collaboratoreId,
 			nome: modifiche.nome ?? "Mario",
 			cognome: modifiche.cognome ?? "Rossi",
+			attivo: modifiche.attivo ?? true,
 		},
 	};
 }
@@ -501,6 +510,29 @@ describe("elencaOfferteConAvanzamento", () => {
 		const [voce] = await elencaOfferteConAvanzamento();
 
 		expect(voce.matriceMensile.mesi).toEqual(["2025-12", "2026-03"]);
+	});
+
+	it("elenca i collaboratori con attività sull'offerta ma senza abilitazione", async () => {
+		mockOfferta.findMany.mockResolvedValue([offertaConCliente({ id: "off-1" })]);
+		impostaRigheAttivita([
+			rigaConCollaboratore({ offertaId: "off-1", collaboratoreId: "collab-abilitato" }),
+			rigaConCollaboratore({ offertaId: "off-1", collaboratoreId: "collab-non-abilitato" }),
+			rigaConCollaboratore({ offertaId: "off-1", collaboratoreId: "collab-disattivato", attivo: false }),
+		]);
+		mockAbilitazioneOfferta.findMany.mockResolvedValueOnce([
+			{ offertaId: "off-1", collaboratoreId: "collab-abilitato" },
+		]);
+
+		const [voce] = await elencaOfferteConAvanzamento();
+
+		expect(mockAbilitazioneOfferta.findMany).toHaveBeenCalledWith({
+			where: { offertaId: { in: ["off-1"] } },
+			select: { offertaId: true, collaboratoreId: true },
+		});
+		expect(voce.collaboratoriNonAbilitati).toEqual([
+			{ collaboratoreId: "collab-non-abilitato", attivo: true },
+			{ collaboratoreId: "collab-disattivato", attivo: false },
+		]);
 	});
 
 	it("costruisce una matrice mensile serializzabile con giornate per mese e totali quadrati (AC-2)", async () => {

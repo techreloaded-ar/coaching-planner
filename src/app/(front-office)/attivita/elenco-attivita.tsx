@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,7 +13,15 @@ import { ETICHETTA_OFFERTA_DA_DEFINIRE, ORE_PER_GIORNATA } from "@/domain/types"
 import type { RigaAttivitaClient } from "@/lib/attivita-contract";
 import { eliminaRiga } from "@/lib/actions/righe-attivita";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
-import { BadgeCategoriaAttivita, PulsanteAttesa, SelettoreMese, useIdratata } from "@/components";
+import {
+  AvvisoOffertaNonAbilitata,
+  BadgeCategoriaAttivita,
+  CLASSE_RIGA_OFFERTA_NON_ABILITATA,
+  IconaOffertaNonAbilitata,
+  PulsanteAttesa,
+  SelettoreMese,
+  useIdratata,
+} from "@/components";
 import {
   useCacheCalendario,
   useCacheGiornate,
@@ -42,6 +50,8 @@ interface ElencoAttivitaProps {
   filtriIniziali: FiltriElenco;
   /** Foglio di un collaboratore disattivato: nessuna azione sulle righe. */
   solaLettura: boolean;
+  /** Nome del collaboratore il cui foglio è consultato da un amministratore, `null` sul proprio foglio. */
+  nomeCollaboratoreConsultato: string | null;
 }
 
 function formattaOre(ore: number): string {
@@ -83,7 +93,7 @@ const CLASSE_CAMPO =
   "h-9 rounded-[10px] border border-zinc-200 bg-white px-3 text-[13px] text-zinc-800 shadow-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200";
 const CLASSE_ETICHETTA = "text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500";
 
-export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettura }: ElencoAttivitaProps) {
+export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettura, nomeCollaboratoreConsultato }: ElencoAttivitaProps) {
   const router = useRouter();
   const idratata = useIdratata();
   const cacheCalendario = useCacheCalendario();
@@ -145,6 +155,14 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
     } finally {
       setRigaInEliminazione(null);
     }
+  };
+
+  // L'abilitazione cambia il giallo di tutte le righe dell'offerta, in ogni
+  // mese e giornata già in cache.
+  const dopoAbilitazione = () => {
+    cacheCalendario?.clear();
+    cacheGiornate?.clear();
+    startTransition(() => router.refresh());
   };
 
   const { primo, ultimo } = estremiMese(token);
@@ -330,92 +348,117 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
                 {righeVisibili.map((riga) => {
                   const { giorno, settimana } = giornoDellaRiga(riga.data);
                   const inConferma = rigaInConferma === riga.id;
+                  const nonAbilitata = riga.offertaNonAbilitata && riga.offerta;
                   return (
-                    <tr
-                      key={riga.id}
-                      data-testid="riga-elenco"
-                      className={`border-b border-zinc-100 dark:border-zinc-800 ${inConferma ? "bg-rose-50 dark:bg-rose-950/40" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"}`}
-                    >
-                      <td className="whitespace-nowrap px-3.5 py-3 align-top">
-                        <span className="block font-bold text-zinc-800 dark:text-zinc-100">{giorno}</span>
-                        <span className="block text-[11.5px] text-zinc-400 dark:text-zinc-500">{settimana}</span>
-                      </td>
-                      <td className="px-3.5 py-3 align-top font-bold text-zinc-800 dark:text-zinc-100">{riga.cliente.ragioneSociale}</td>
-                      <td className="px-3.5 py-3 align-top">
-                        {riga.offerta ? (
-                          <>
-                            <span className="inline-block rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-bold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                              {riga.offerta.codice}
-                            </span>
-                            <span className="mt-1 block text-[12px] text-zinc-500 dark:text-zinc-400">{riga.offerta.descrizione}</span>
-                          </>
-                        ) : (
-                          <span className="inline-block rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                            {ETICHETTA_OFFERTA_DA_DEFINIRE}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3.5 py-3 align-top"><BadgeCategoriaAttivita categoria={riga.categoria} /></td>
-                      <td className="max-w-[280px] px-3.5 py-3 align-top text-zinc-600 dark:text-zinc-300">
-                        {riga.nota
-                          ? segmentiNota(riga.nota, filtri.nota).map((segmento, indice) =>
-                              segmento.trovato ? (
-                                <mark key={indice} className="rounded-sm bg-yellow-200 text-inherit dark:bg-yellow-700/60">{segmento.testo}</mark>
-                              ) : (
-                                <span key={indice}>{segmento.testo}</span>
-                              )
-                            )
-                          : <span className="text-zinc-300 dark:text-zinc-600">—</span>}
-                      </td>
-                      <td className="px-3.5 py-3 text-right align-top font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaOre(riga.ore)}</td>
-                      <td className="whitespace-nowrap px-3.5 py-3 text-right align-top tabular-nums text-zinc-700 dark:text-zinc-300">
-                        {riga.rimborsoTrasfertaImporto ? formattaEuro(riga.rimborsoTrasfertaImporto) : "—"}
-                      </td>
-                      {!solaLettura && (
-                        <td className="whitespace-nowrap px-3.5 py-2 text-right align-top">
-                          {inConferma ? (
-                            <span className="inline-flex items-center gap-2 text-[12.5px] font-semibold text-rose-800 dark:text-rose-300">
-                              Eliminare la riga?
-                              <button type="button" className={`${CLASSE_PULSANTE} h-8`} onClick={() => setRigaInConferma(null)}>No</button>
-                              <PulsanteAttesa
-                                type="button"
-                                attesaEsterna={rigaInEliminazione === riga.id}
-                                etichettaAttesa="Elimino…"
-                                onClick={() => void elimina(riga)}
-                                className="inline-flex h-8 cursor-pointer items-center rounded-[10px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                    <Fragment key={riga.id}>
+                      <tr
+                        data-testid="riga-elenco"
+                        data-offerta-non-abilitata={nonAbilitata ? "true" : undefined}
+                        className={`dark:border-zinc-800 ${nonAbilitata ? CLASSE_RIGA_OFFERTA_NON_ABILITATA : "border-b border-zinc-100"} ${inConferma ? "bg-rose-50 dark:bg-rose-950/40" : nonAbilitata ? "" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"}`}
+                      >
+                        <td className="whitespace-nowrap px-3.5 py-3 align-top">
+                          <span className="block font-bold text-zinc-800 dark:text-zinc-100">{giorno}</span>
+                          <span className="block text-[11.5px] text-zinc-400 dark:text-zinc-500">{settimana}</span>
+                        </td>
+                        <td className="px-3.5 py-3 align-top font-bold text-zinc-800 dark:text-zinc-100">{riga.cliente.ragioneSociale}</td>
+                        <td className="px-3.5 py-3 align-top">
+                          {riga.offerta ? (
+                            <>
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-bold ${
+                                  riga.offertaNonAbilitata
+                                    ? "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                                    : "border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                                }`}
                               >
-                                Elimina
-                              </PulsanteAttesa>
-                            </span>
+                                {riga.offertaNonAbilitata && <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />}
+                                {riga.offerta.codice}
+                              </span>
+                              <span className="mt-1 block text-[12px] text-zinc-500 dark:text-zinc-400">{riga.offerta.descrizione}</span>
+                            </>
                           ) : (
-                            <span className="inline-flex gap-1">
-                              <Link
-                                href={urlGiornata(riga.data, riga.id)}
-                                prefetch={false}
-                                aria-label={`Modifica riga del ${giorno}`}
-                                title="Modifica"
-                                className={`${CLASSE_PULSANTE} h-8 w-8 px-0`}
-                              >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[15px] w-[15px]" aria-hidden="true">
-                                  <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
-                                </svg>
-                              </Link>
-                              <button
-                                type="button"
-                                aria-label={`Elimina riga del ${giorno}`}
-                                title="Elimina"
-                                onClick={() => setRigaInConferma(riga.id)}
-                                className={`${CLASSE_PULSANTE} h-8 w-8 px-0 text-rose-600 dark:text-rose-400`}
-                              >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[15px] w-[15px]" aria-hidden="true">
-                                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
-                                </svg>
-                              </button>
+                            <span className="inline-block rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                              {ETICHETTA_OFFERTA_DA_DEFINIRE}
                             </span>
                           )}
                         </td>
+                        <td className="px-3.5 py-3 align-top"><BadgeCategoriaAttivita categoria={riga.categoria} /></td>
+                        <td className="max-w-[280px] px-3.5 py-3 align-top text-zinc-600 dark:text-zinc-300">
+                          {riga.nota
+                            ? segmentiNota(riga.nota, filtri.nota).map((segmento, indice) =>
+                                segmento.trovato ? (
+                                  <mark key={indice} className="rounded-sm bg-yellow-200 text-inherit dark:bg-yellow-700/60">{segmento.testo}</mark>
+                                ) : (
+                                  <span key={indice}>{segmento.testo}</span>
+                                )
+                              )
+                            : <span className="text-zinc-300 dark:text-zinc-600">—</span>}
+                        </td>
+                        <td className="px-3.5 py-3 text-right align-top font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaOre(riga.ore)}</td>
+                        <td className="whitespace-nowrap px-3.5 py-3 text-right align-top tabular-nums text-zinc-700 dark:text-zinc-300">
+                          {riga.rimborsoTrasfertaImporto ? formattaEuro(riga.rimborsoTrasfertaImporto) : "—"}
+                        </td>
+                        {!solaLettura && (
+                          <td className="whitespace-nowrap px-3.5 py-2 text-right align-top">
+                            {inConferma ? (
+                              <span className="inline-flex items-center gap-2 text-[12.5px] font-semibold text-rose-800 dark:text-rose-300">
+                                Eliminare la riga?
+                                <button type="button" className={`${CLASSE_PULSANTE} h-8`} onClick={() => setRigaInConferma(null)}>No</button>
+                                <PulsanteAttesa
+                                  type="button"
+                                  attesaEsterna={rigaInEliminazione === riga.id}
+                                  etichettaAttesa="Elimino…"
+                                  onClick={() => void elimina(riga)}
+                                  className="inline-flex h-8 cursor-pointer items-center rounded-[10px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                                >
+                                  Elimina
+                                </PulsanteAttesa>
+                              </span>
+                            ) : (
+                              <span className="inline-flex gap-1">
+                                <Link
+                                  href={urlGiornata(riga.data, riga.id)}
+                                  prefetch={false}
+                                  aria-label={`Modifica riga del ${giorno}`}
+                                  title="Modifica"
+                                  className={`${CLASSE_PULSANTE} h-8 w-8 px-0`}
+                                >
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[15px] w-[15px]" aria-hidden="true">
+                                    <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+                                  </svg>
+                                </Link>
+                                <button
+                                  type="button"
+                                  aria-label={`Elimina riga del ${giorno}`}
+                                  title="Elimina"
+                                  onClick={() => setRigaInConferma(riga.id)}
+                                  className={`${CLASSE_PULSANTE} h-8 w-8 px-0 text-rose-600 dark:text-rose-400`}
+                                >
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[15px] w-[15px]" aria-hidden="true">
+                                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+                                  </svg>
+                                </button>
+                              </span>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                      {nonAbilitata && (
+                        <tr className={`border-b border-zinc-100 dark:border-zinc-800 ${CLASSE_RIGA_OFFERTA_NON_ABILITATA}`}>
+                          <td colSpan={solaLettura ? 7 : 8} className="border-t border-dashed border-amber-300 px-3.5 py-2 dark:border-amber-700">
+                            <AvvisoOffertaNonAbilitata
+                              codiceOfferta={nonAbilitata.codice}
+                              nomeCollaboratore={nomeCollaboratoreConsultato}
+                              abilitazione={
+                                collaboratoreConsultatoId && !solaLettura && nonAbilitata.attiva
+                                  ? { collaboratoreId: collaboratoreConsultatoId, offertaId: nonAbilitata.id, onAbilitata: dopoAbilitazione }
+                                  : null
+                              }
+                            />
+                          </td>
+                        </tr>
                       )}
-                    </tr>
+                    </Fragment>
                   );
                 })}
               </tbody>

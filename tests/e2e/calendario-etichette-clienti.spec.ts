@@ -34,6 +34,12 @@ test.describe("US-034 Etichette cliente nel calendario mensile", () => {
     // Cliente B con una sola offerta: riga di 3h
     const clienteBConOfferta = await factory.createClienteConOfferta();
 
+    // Offerte abilitate: la cella resta nello stato ordinario, senza il
+    // badge delle righe su offerte non abilitate.
+    for (const offerta of [clienteAConOffertaUno.offerta, offertaADue, clienteBConOfferta.offerta]) {
+      await factory.createAbilitazioneOfferta({ collaboratore, offerta });
+    }
+
     await factory.createRigaAttivita({
       collaboratore,
       cliente: clienteAConOffertaUno.cliente,
@@ -86,6 +92,7 @@ test.describe("US-034 Etichette cliente nel calendario mensile", () => {
     // AC-3: un terzo cliente nello stesso giorno introduce l'indicatore "+1"
     // dopo le prime due etichette, che restano quelle di A e B.
     const clienteCConOfferta = await factory.createClienteConOfferta();
+    await factory.createAbilitazioneOfferta({ collaboratore, offerta: clienteCConOfferta.offerta });
     await factory.createRigaAttivita({
       collaboratore,
       cliente: clienteCConOfferta.cliente,

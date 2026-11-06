@@ -58,7 +58,7 @@ test.describe("Fatturazione collaboratori", () => {
 		// Il nome apre il foglio attività del collaboratore per quel mese.
 		const nome = `${conAttivita.collaboratore.nome} ${conAttivita.collaboratore.cognome}`;
 		await riga.getByRole("link", { name: nome, exact: true }).click();
-		await page.waitForURL(`**/attivita?mese=${mese}&collaboratore=${conAttivita.collaboratore.id}`);
+		await page.waitForURL(`**/attivita?mese=${mese}&vista=elenco&collaboratore=${conAttivita.collaboratore.id}`);
 		await expect(page.getByTestId("banner-foglio-consultato")).toContainText(
 			`Stai consultando il foglio di ${nome}`,
 		);

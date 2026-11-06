@@ -98,6 +98,7 @@ export default async function DettaglioGiornataPage({
         filtriElencoDiRitorno={elenco}
         calendarioCollegato={collegato}
         solaLettura={consultato ? !consultato.attivo : false}
+        nomeCollaboratoreConsultato={consultato ? `${consultato.nome} ${consultato.cognome}` : null}
       />
     </>
   );

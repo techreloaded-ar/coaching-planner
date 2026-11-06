@@ -23,3 +23,9 @@ export {
 export { ChipStatoCliente } from "./chip-stato-cliente";
 export { CampoNote, NoteAnagrafica } from "./campo-note";
 export { IndicatoreGiorniErogati } from "./indicatore-giorni-erogati";
+export {
+  AvvisoOffertaNonAbilitata,
+  CLASSE_RIGA_OFFERTA_NON_ABILITATA,
+  IconaOffertaNonAbilitata,
+  PulsanteAbilitaOfferta,
+} from "./abilitazione-offerta";

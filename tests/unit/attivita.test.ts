@@ -28,12 +28,17 @@ const mockVoceRimborsoTrasferta = vi.hoisted(() => ({
   findMany: vi.fn(),
 }));
 
+const mockAbilitazioneOfferta = vi.hoisted(() => ({
+  findMany: vi.fn(async () => [] as { offertaId: string }[]),
+}));
+
 vi.mock("@/lib/db", () => ({
   db: {
     rigaAttivita: mockRigaAttivita,
     offerta: mockOfferta,
     cliente: mockCliente,
     voceRimborsoTrasferta: mockVoceRimborsoTrasferta,
+    abilitazioneOfferta: mockAbilitazioneOfferta,
   },
 }));
 
@@ -596,6 +601,7 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
       data: true,
       ore: true,
       createdAt: true,
+      offertaId: true,
       cliente: { select: { id: true, ragioneSociale: true } },
     });
     expect(chiamata.include).toBeUndefined();
@@ -676,7 +682,30 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
       clienti: [
         { clienteId: "cliente-ts", ragioneSociale: "TechSolutions Srl", ore: 12 },
       ],
+      righeOfferteNonAbilitate: 0,
     });
+  });
+
+  it("conta per giorno le righe su offerte a cui il collaboratore non è abilitato", async () => {
+    mockAbilitazioneOfferta.findMany.mockResolvedValueOnce([{ offertaId: "off-abilitata" }]);
+    mockRigaAttivita.findMany.mockResolvedValue([
+      { ...rigaCalendario(new Date(2026, 5, 4), 2, "cliente-ts", "TechSolutions Srl"), offertaId: "off-abilitata" },
+      { ...rigaCalendario(new Date(2026, 5, 4), 6, "cliente-df", "DataFlow SpA"), offertaId: "off-non-abilitata" },
+      { ...rigaCalendario(new Date(2026, 5, 5), 3, "cliente-ts", "TechSolutions Srl"), offertaId: null },
+    ]);
+
+    const { sintesiPerGiorno } = await datiCalendarioMesePerCollaboratoreAutorizzato(
+      "2026-06",
+      "collab-1",
+    );
+
+    expect(mockAbilitazioneOfferta.findMany).toHaveBeenCalledWith({
+      where: { collaboratoreId: "collab-1" },
+      select: { offertaId: true },
+    });
+    expect(sintesiPerGiorno["2026-06-04"].righeOfferteNonAbilitate).toBe(1);
+    // Una riga senza offerta non è «non abilitata».
+    expect(sintesiPerGiorno["2026-06-05"].righeOfferteNonAbilitate).toBe(0);
   });
 
   it("mantiene i clienti in ordine di prima apparizione nel giorno", async () => {
@@ -1041,6 +1070,8 @@ describe("righeDelGiornoPerCollaboratoreAutorizzato", () => {
   // ── DTO restituito ──────────────────────────────────────────
 
   it("serializza le righe della giornata nel DTO del client mantenendo l'ordine di lettura", async () => {
+    // Abilitato solo a TS-001: la riga su DF-001 è segnalata.
+    mockAbilitazioneOfferta.findMany.mockResolvedValueOnce([{ offertaId: "offerta-ts-001" }]);
     mockRigaAttivita.findMany.mockResolvedValue([
       rigaConContesto({
         id: "riga-mattina",
@@ -1082,7 +1113,9 @@ describe("righeDelGiornoPerCollaboratoreAutorizzato", () => {
             id: "offerta-ts-001",
             codice: "TS-001",
             descrizione: "Consulenza",
+            attiva: true,
           },
+          offertaNonAbilitata: false,
           cliente: {
             id: "cliente-techsolutions",
             ragioneSociale: "TechSolutions Srl",
@@ -1100,7 +1133,9 @@ describe("righeDelGiornoPerCollaboratoreAutorizzato", () => {
             id: "offerta-df-001",
             codice: "DF-001",
             descrizione: "Formazione",
+            attiva: true,
           },
+          offertaNonAbilitata: true,
           cliente: {
             id: "cliente-dataflow",
             ragioneSociale: "DataFlow SpA",

@@ -73,7 +73,9 @@ function giornataFittizia(
           id: "offerta-1",
           codice: "OFF-001",
           descrizione: "Consulenza continuativa",
+          attiva: true,
         },
+        offertaNonAbilitata: false,
         cliente: {
           id: "cliente-1",
           ragioneSociale: "TechSolutions Srl",
@@ -108,6 +110,7 @@ function meseFittizio(
         data: `${token}-10`,
         righe: 1,
         oreTotali: 8,
+        righeOfferteNonAbilitate: 0,
         clienti: [
           { clienteId: "cliente-1", ragioneSociale: "TechSolutions Srl", ore: 8 },
         ],

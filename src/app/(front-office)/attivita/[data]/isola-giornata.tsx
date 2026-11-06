@@ -84,6 +84,8 @@ interface IsolaGiornataProps {
   calendarioCollegato?: boolean;
   /** Foglio di un collaboratore disattivato: consultabile, non modificabile. */
   solaLettura?: boolean;
+  /** Nome del collaboratore il cui foglio è consultato da un amministratore. */
+  nomeCollaboratoreConsultato?: string | null;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -107,6 +109,7 @@ export default function IsolaGiornata({
   filtriElencoDiRitorno,
   calendarioCollegato = false,
   solaLettura = false,
+  nomeCollaboratoreConsultato = null,
 }: IsolaGiornataProps) {
   const router = useRouter();
   const collaboratoreConsultatoId = useCollaboratoreConsultato();
@@ -735,6 +738,7 @@ export default function IsolaGiornata({
             vociRimborso={contesto.vociRimborso}
             calendarioCollegato={calendarioCollegato}
             solaLettura={solaLettura}
+            nomeCollaboratoreConsultato={nomeCollaboratoreConsultato}
             rigaDaAprireInModifica={rigaDaAprireInModifica}
             onRigaApertaInModifica={() => setRigaDaAprireInModifica(null)}
             onMutazioneCompletata={invalidaDopoMutazione}

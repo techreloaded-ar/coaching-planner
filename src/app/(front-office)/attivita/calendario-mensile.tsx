@@ -13,7 +13,7 @@ import {
   type CellaGiorno,
 } from "@/domain/calendario";
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
-import { SelettoreMese, useIdratata } from "@/components";
+import { IconaOffertaNonAbilitata, SelettoreMese, useIdratata } from "@/components";
 import { ORE_PER_GIORNATA, sommaOre } from "@/domain/types";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
@@ -519,6 +519,8 @@ export default function CalendarioMensile({
             const key = formattaDataISO(cellaData);
             const tokenCella = key.slice(0, 7);
             const haAttivita = key in sintesi;
+            // Righe su offerte a cui il collaboratore non è abilitato: giorno giallo.
+            const righeNonAbilitate = haAttivita ? sintesi[key].righeOfferteNonAbilitate : 0;
             const isToday = stessoGiorno(cellaData, oggiDate);
             const isLastRow = idx >= griglia.length - 7;
 
@@ -532,9 +534,11 @@ export default function CalendarioMensile({
               !cella.fuoriMese && cella.isWeekend && !haAttivita
                 ? "bg-zinc-50/45 dark:bg-zinc-800/30"
                 : "",
-              haAttivita
-                ? "bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100/70 dark:hover:bg-rose-950/60"
-                : (!cella.fuoriMese ? "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60" : ""),
+              righeNonAbilitate > 0
+                ? "bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100/70 dark:hover:bg-amber-950/50"
+                : haAttivita
+                  ? "bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100/70 dark:hover:bg-rose-950/60"
+                  : (!cella.fuoriMese ? "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60" : ""),
               isToday
                 ? "shadow-[inset_0_0_0_2px] shadow-rose-600 dark:shadow-rose-400"
                 : "",
@@ -545,7 +549,21 @@ export default function CalendarioMensile({
             const contenuto = (
               <>
                 {haAttivita && (
-                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-rose-600 dark:bg-rose-400" />
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-[3px] ${
+                      righeNonAbilitate > 0 ? "bg-amber-500 dark:bg-amber-400" : "bg-rose-600 dark:bg-rose-400"
+                    }`}
+                  />
+                )}
+                {righeNonAbilitate > 0 && (
+                  <span
+                    data-testid="indicatore-offerte-non-abilitate"
+                    title={`${righeNonAbilitate} ${righeNonAbilitate === 1 ? "riga" : "righe"} su offerte non abilitate`}
+                    className="absolute right-[9px] top-[9px] inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-[7px] py-[1px] text-[10.5px] font-bold tabular-nums text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                  >
+                    <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />
+                    {righeNonAbilitate}
+                  </span>
                 )}
                 <span
                   className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded-lg text-[13px] font-semibold tabular-nums ${
