@@ -9,7 +9,7 @@ on:
 jobs:
   ci:
     name: CI Pipeline
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ponytail: Playwright 1.60 non supporta ubuntu 26.04 (nuovo ubuntu-latest); tornare a latest quando Playwright lo supporta
     timeout-minutes: 15
 
     env:
