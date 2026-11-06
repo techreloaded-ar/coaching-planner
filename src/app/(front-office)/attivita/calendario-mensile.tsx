@@ -565,20 +565,22 @@ export default function CalendarioMensile({
                     {righeNonAbilitate}
                   </span>
                 )}
-                <span
-                  className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded-lg text-[13px] font-semibold tabular-nums ${
-                    cella.fuoriMese
-                      ? "text-zinc-400/65 dark:text-zinc-500/65"
-                      : isToday
-                        ? "bg-rose-600 text-white dark:bg-rose-400 dark:text-white"
-                        : "text-zinc-600 dark:text-zinc-400"
-                  }`}
-                >
-                  {cellaData.getDate()}
-                </span>
-                {haAttivita && (
-                  <div className="mt-auto flex flex-col gap-[5px]">
-                    <div className="flex flex-wrap items-center gap-1.5">
+                {/* In cima: numero del giorno e, a destra, i totali della giornata. */}
+                <div className="flex w-full flex-wrap items-center justify-between gap-1.5">
+                  <span
+                    data-testid="numero-giorno"
+                    className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded-lg text-[13px] font-semibold tabular-nums ${
+                      cella.fuoriMese
+                        ? "text-zinc-400/65 dark:text-zinc-500/65"
+                        : isToday
+                          ? "bg-rose-600 text-white dark:bg-rose-400 dark:text-white"
+                          : "text-zinc-600 dark:text-zinc-400"
+                    }`}
+                  >
+                    {cellaData.getDate()}
+                  </span>
+                  {haAttivita && (
+                    <div data-testid="totali-giorno" className="flex flex-wrap items-center gap-1.5">
                       <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-white px-[7px] py-[3px] text-[11px] font-bold tabular-nums text-rose-800 dark:border-rose-800 dark:bg-zinc-800 dark:text-rose-300">
                         <svg
                           viewBox="0 0 24 24"
@@ -596,28 +598,31 @@ export default function CalendarioMensile({
                         {sintesi[key].oreTotali.toFixed(1)} h
                       </span>
                     </div>
-                    <div className="flex min-w-0 flex-wrap gap-1">
-                      {sintesi[key].clienti.slice(0, 2).map((cliente) => (
-                        <span
-                          key={cliente.clienteId}
-                          data-testid="etichetta-cliente"
-                          className="max-w-full truncate rounded-md border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
-                        >
-                          {cliente.ragioneSociale}{" "}
-                          <span className="tabular-nums">
-                            {cliente.ore.toFixed(1)} h
-                          </span>
+                  )}
+                </div>
+                {/* In fondo: i clienti su cui si è lavorato nella giornata. */}
+                {haAttivita && (
+                  <div className="mt-auto flex min-w-0 max-w-full flex-wrap gap-1">
+                    {sintesi[key].clienti.slice(0, 2).map((cliente) => (
+                      <span
+                        key={cliente.clienteId}
+                        data-testid="etichetta-cliente"
+                        className="max-w-full truncate rounded-md border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                      >
+                        {cliente.ragioneSociale}{" "}
+                        <span className="tabular-nums">
+                          {cliente.ore.toFixed(1)} h
                         </span>
-                      ))}
-                      {sintesi[key].clienti.length > 2 && (
-                        <span
-                          data-testid="indicatore-altri-clienti"
-                          className="px-0.5 py-0.5 text-[10px] font-bold text-rose-800 dark:text-rose-300"
-                        >
-                          +{sintesi[key].clienti.length - 2}
-                        </span>
-                      )}
-                    </div>
+                      </span>
+                    ))}
+                    {sintesi[key].clienti.length > 2 && (
+                      <span
+                        data-testid="indicatore-altri-clienti"
+                        className="px-0.5 py-0.5 text-[10px] font-bold text-rose-800 dark:text-rose-300"
+                      >
+                        +{sintesi[key].clienti.length - 2}
+                      </span>
+                    )}
                   </div>
                 )}
               </>
