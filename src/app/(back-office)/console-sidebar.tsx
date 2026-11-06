@@ -67,6 +67,7 @@ const NAV_ITEMS = [
   { href: "/anagrafiche/utenti", label: "Utenti", icon: IconUtenti },
   { href: "/anagrafiche/voci-rimborso", label: "Voci di rimborso", icon: IconVociRimborso },
   { href: "/report/fatturazione-clienti", label: "Fatturazione clienti", icon: IconReport },
+  { href: "/report/fatturazione-collaboratori", label: "Fatturazione collaboratori", icon: IconReport },
   { href: "/report/marginalita", label: "Marginalità", icon: IconReport },
   { href: "/righe-sospese", label: "Righe sospese", icon: IconRigheSospese },
 ] as const;

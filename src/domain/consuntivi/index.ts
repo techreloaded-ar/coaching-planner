@@ -249,6 +249,95 @@ export function calcolaRiepilogoMese(
   };
 }
 
+// ── Fatture attese dai collaboratori ────────────────────────────
+
+/** Collaboratore con le sue righe del mese e la tariffa valida nel mese */
+export interface CollaboratoreDelMese {
+  collaboratoreId: string;
+  nome: string;
+  cognome: string;
+  attivo: boolean;
+  tariffa: TariffaApplicata | null;
+  righe: RigaRiepilogo[];
+}
+
+/** Fattura che un collaboratore emetterà per il mese */
+export interface FatturaAttesaCollaboratore {
+  collaboratoreId: string;
+  collaboratoreNome: string;
+  modalitaTariffa: ModalitaTariffa | null;
+  importoTariffa: string;
+  giornateDaFatturare: number;
+  prestazioni: string;
+  rimborsiTrasferta: string;
+  importoAtteso: string;
+  /** Nessuna riga attività registrata nel mese */
+  foglioVuoto: boolean;
+}
+
+export interface ReportFatturazioneCollaboratori {
+  perCollaboratore: FatturaAttesaCollaboratore[];
+  totali: {
+    /** Collaboratori con importo atteso maggiore di zero */
+    fattureAttese: number;
+    giornateDaFatturare: number;
+    prestazioni: string;
+    rimborsiTrasferta: string;
+    importoAtteso: string;
+  };
+}
+
+/**
+ * Fatture attese dai collaboratori per un mese, ciascuna calcolata con
+ * `calcolaRiepilogoMese`: coincide con l'importo fattura che il collaboratore
+ * vede nel proprio riepilogo. Compaiono i collaboratori attivi e i disattivati
+ * con attività nel mese; chi non ha righe (foglio vuoto) va in fondo.
+ */
+export function calcolaReportFatturazioneCollaboratori(
+  collaboratori: CollaboratoreDelMese[],
+): ReportFatturazioneCollaboratori {
+  const perCollaboratore = collaboratori
+    .filter((collaboratore) => collaboratore.attivo || collaboratore.righe.length > 0)
+    .sort(
+      (a, b) =>
+        Number(a.righe.length === 0) - Number(b.righe.length === 0) ||
+        a.cognome.localeCompare(b.cognome, "it") ||
+        a.nome.localeCompare(b.nome, "it"),
+    )
+    .map((collaboratore): FatturaAttesaCollaboratore => {
+      const riepilogo = calcolaRiepilogoMese(collaboratore.righe, collaboratore.tariffa);
+      return {
+        collaboratoreId: collaboratore.collaboratoreId,
+        collaboratoreNome: `${collaboratore.nome} ${collaboratore.cognome}`,
+        modalitaTariffa: riepilogo.breakdown.modalitaTariffa,
+        importoTariffa: riepilogo.breakdown.importoTariffa,
+        giornateDaFatturare: riepilogo.totali.giornateDaFatturare,
+        prestazioni: riepilogo.breakdown.imponibileManodopera,
+        rimborsiTrasferta: riepilogo.totali.totaleRimborsi,
+        importoAtteso: riepilogo.importoFattura,
+        foglioVuoto: collaboratore.righe.length === 0,
+      };
+    });
+
+  // Somme in centesimi: gli importi per collaboratore sono già arrotondati.
+  const centesimi = (campo: "prestazioni" | "rimborsiTrasferta" | "importoAtteso") =>
+    perCollaboratore.reduce((somma, voce) => somma + Math.round(Number(voce[campo]) * 100), 0);
+
+  return {
+    perCollaboratore,
+    totali: {
+      fattureAttese: perCollaboratore.filter((voce) => Number(voce.importoAtteso) > 0).length,
+      // Somma sulle ore (due decimali esatti), poi conversione in giornate.
+      giornateDaFatturare:
+        sommaOre(...perCollaboratore.map((voce) => voce.giornateDaFatturare * ORE_PER_GIORNATA)) /
+        ORE_PER_GIORNATA,
+      prestazioni: (centesimi("prestazioni") / 100).toFixed(2),
+      rimborsiTrasferta: (centesimi("rimborsiTrasferta") / 100).toFixed(2),
+      importoAtteso: (centesimi("importoAtteso") / 100).toFixed(2),
+    },
+  };
+}
+
 /** Ordina le voci per codice offerta, con la voce senza offerta in fondo. */
 function confrontaVociPerOfferta(
   a: { offertaId: string | null; offertaCodice: string },
