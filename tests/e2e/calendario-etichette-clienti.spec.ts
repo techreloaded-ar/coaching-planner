@@ -83,6 +83,17 @@ test.describe("US-034 Etichette cliente nel calendario mensile", () => {
     await expect(cella.getByText("3", { exact: true })).toBeVisible();
     await expect(cella.getByText("9.0 h", { exact: true })).toBeVisible();
 
+    // I totali stanno in cima, sulla riga del numero del giorno; i clienti in
+    // fondo alla cella.
+    const numeroGiorno = await cella.getByTestId("numero-giorno").boundingBox();
+    const totaliGiorno = await cella.getByTestId("totali-giorno").boundingBox();
+    const primoCliente = await etichetteCliente.first().boundingBox();
+    expect(totaliGiorno!.y).toBeLessThan(numeroGiorno!.y + numeroGiorno!.height);
+    expect(totaliGiorno!.x).toBeGreaterThan(numeroGiorno!.x);
+    expect(primoCliente!.y).toBeGreaterThanOrEqual(
+      totaliGiorno!.y + totaliGiorno!.height,
+    );
+
     // AC-3: un terzo cliente nello stesso giorno introduce l'indicatore "+1"
     // dopo le prime due etichette, che restano quelle di A e B.
     const clienteCConOfferta = await factory.createClienteConOfferta();
