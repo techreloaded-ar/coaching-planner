@@ -9,6 +9,7 @@ import {
   etichettaMese,
 } from "@/domain/calendario";
 import { ETICHETTA_MODALITA_TARIFFA } from "@/domain/tariffe";
+import { OFFERTA_DA_DEFINIRE } from "@/app/(front-office)/attivita/filtri-elenco";
 import type {
   VoceCollaboratoreMeseMarginalita,
   VoceOffertaMarginalita,
@@ -198,7 +199,18 @@ export default async function DettaglioMarginalitaClientePage({
                           className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                         >
                           <td className={`${classeCella} text-zinc-800 dark:text-zinc-100`}>
-                            {voce.collaboratoreNominativo}
+                            <Link
+                              href={`/attivita?${new URLSearchParams({
+                                vista: "elenco",
+                                collaboratore: voce.collaboratoreId,
+                                mese: voce.mese,
+                                cliente: cliente.id,
+                                offerta: offerta.offertaId ?? OFFERTA_DA_DEFINIRE,
+                              })}`}
+                              className="text-zinc-800 no-underline transition hover:text-indigo-600 hover:underline dark:text-zinc-100 dark:hover:text-indigo-400"
+                            >
+                              {voce.collaboratoreNominativo}
+                            </Link>
                           </td>
                           <td className={`${classeCella} text-zinc-500 dark:text-zinc-400`}>
                             {etichettaMese(voce.mese)}

@@ -109,7 +109,7 @@ test.describe("Dettaglio marginalità del cliente", () => {
     await accediComeAdmin(page);
   });
 
-  test("dal nome del cliente mostra ricavi e costi per collaboratore e mese con le formule", async ({
+  test("dal pulsante Dettaglio calcolo mostra ricavi e costi per collaboratore e mese con le formule", async ({
     page,
     factory,
   }) => {
@@ -119,7 +119,7 @@ test.describe("Dettaglio marginalità del cliente", () => {
     await page.goto(`/report/marginalita?da=${meseUno}&a=${meseDue}`);
     await page
       .getByTestId(`marginalita-cliente-${cliente.id}`)
-      .getByRole("link", { name: cliente.ragioneSociale, exact: true })
+      .getByRole("link", { name: "Dettaglio calcolo →", exact: true })
       .click();
     await page.waitForURL(`**/report/marginalita/${cliente.id}?da=${meseUno}&a=${meseDue}`);
     await expect(
@@ -155,5 +155,47 @@ test.describe("Dettaglio marginalità del cliente", () => {
     // Ritorno al report con lo stesso periodo
     await page.getByRole("link", { name: "Marginalità per cliente e offerta", exact: true }).click();
     await page.waitForURL(`**/report/marginalita?da=${meseUno}&a=${meseDue}`);
+  });
+
+  test("nome del cliente e codice dell'offerta aprono le anagrafiche", async ({
+    page,
+    factory,
+  }) => {
+    const { cliente, offertaA, meseUno, meseDue } = await creaDatasetMarginalita(factory);
+    const scheda = page.getByTestId(`marginalita-cliente-${cliente.id}`);
+
+    await page.goto(`/report/marginalita?da=${meseUno}&a=${meseDue}`);
+    await scheda.getByRole("link", { name: cliente.ragioneSociale, exact: true }).click();
+    await page.waitForURL(`**/anagrafiche/clienti/${cliente.id}`);
+    await expect(
+      page.getByRole("heading", { level: 1, name: cliente.ragioneSociale }),
+    ).toBeVisible();
+
+    await page.goto(`/report/marginalita?da=${meseUno}&a=${meseDue}`);
+    await scheda.getByRole("link", { name: offertaA.codice, exact: true }).click();
+    await page.waitForURL(`**/anagrafiche/clienti/${cliente.id}/offerte/${offertaA.id}`);
+  });
+
+  test("il nome del collaboratore apre le sue attività filtrate per mese, cliente e offerta", async ({
+    page,
+    factory,
+  }) => {
+    const { cliente, offertaA, offertaB, collaboratore, meseDue } =
+      await creaDatasetMarginalita(factory);
+    const { nome, cognome, id } = collaboratore.collaboratore;
+
+    await page.goto(`/report/marginalita/${cliente.id}?da=${meseDue}&a=${meseDue}`);
+    await page
+      .getByTestId(`dettaglio-marginalita-offerta-${offertaB.id}`)
+      .getByRole("link", { name: `${nome} ${cognome}`, exact: true })
+      .click();
+    await page.waitForURL(
+      `**/attivita?vista=elenco&collaboratore=${id}&mese=${meseDue}&cliente=${cliente.id}&offerta=${offertaB.id}`,
+    );
+
+    const righe = page.getByTestId("riga-elenco");
+    // Offerta B nel mese: 8h Fatturabile e 2h Non fatturabile; le righe di A sono filtrate
+    await expect(righe.filter({ hasText: offertaB.codice })).toHaveCount(2);
+    await expect(righe.filter({ hasText: offertaA.codice })).toHaveCount(0);
   });
 });

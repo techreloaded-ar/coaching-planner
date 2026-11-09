@@ -151,14 +151,22 @@ export default function ReportMarginalita({
                     {inizialiCliente(cliente.clienteRagioneSociale)}
                   </div>
                   <div className="min-w-0 leading-[1.3]">
-                    <h2 className="text-[16px] font-bold -tracking-[0.01em] text-zinc-800 dark:text-zinc-100">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <h2 className="text-[16px] font-bold -tracking-[0.01em] text-zinc-800 dark:text-zinc-100">
+                        <Link
+                          href={`/anagrafiche/clienti/${cliente.clienteId}`}
+                          className="text-zinc-800 no-underline transition hover:text-indigo-600 hover:underline dark:text-zinc-100 dark:hover:text-indigo-400"
+                        >
+                          {cliente.clienteRagioneSociale}
+                        </Link>
+                      </h2>
                       <Link
                         href={`/report/marginalita/${cliente.clienteId}?da=${da}&a=${a}`}
-                        className="text-zinc-800 no-underline transition hover:text-indigo-600 hover:underline dark:text-zinc-100 dark:hover:text-indigo-400"
+                        className="rounded-[8px] border border-indigo-200 bg-white px-[10px] py-[3px] text-[12px] font-semibold whitespace-nowrap text-indigo-600 no-underline transition hover:bg-indigo-50 dark:border-indigo-500/30 dark:bg-zinc-800 dark:text-indigo-300 dark:hover:bg-indigo-500/10"
                       >
-                        {cliente.clienteRagioneSociale}
+                        Dettaglio calcolo →
                       </Link>
-                    </h2>
+                    </div>
                     <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">
                       {formattatoreGiornate.format(cliente.giornateFatturabili)}{" "}
                       giornate fatturabili
@@ -200,9 +208,16 @@ export default function ReportMarginalita({
                         }
                       >
                         <td className="border-b border-zinc-100 px-5 py-[13px] align-middle dark:border-zinc-700/50">
-                          <span className={classeCodiceOfferta(offerta.offertaId)}>
-                            {offerta.offertaCodice}
-                          </span>
+                          {offerta.offertaId === null ? (
+                            <span className={classeCodiceOfferta(null)}>{offerta.offertaCodice}</span>
+                          ) : (
+                            <Link
+                              href={`/anagrafiche/clienti/${cliente.clienteId}/offerte/${offerta.offertaId}`}
+                              className={`${classeCodiceOfferta(offerta.offertaId)} no-underline transition hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-300`}
+                            >
+                              {offerta.offertaCodice}
+                            </Link>
+                          )}
                         </td>
                         <td className="border-b border-zinc-100 px-5 py-[13px] align-middle text-[12.5px] text-zinc-500 dark:border-zinc-700/50 dark:text-zinc-400">
                           {offerta.offertaDescrizione}
