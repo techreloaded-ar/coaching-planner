@@ -149,8 +149,34 @@ describe("importer incrementale senza ID nel foglio", () => {
     expect(analizza(schede([riga()]), a, cfg).righe[0].stato).toBe("PRESENTE");
     g.ore = "6.00";
     expect(analizza(schede([riga()]), a, cfg).righe[0].stato).toBe("AGGIORNARE");
-    expect(analizza(schede([]), a, cfg).righe).toHaveLength(0);
+    const senzaRiga = analizza(schede([]), a, cfg);
+    expect(senzaRiga.righe.map((r) => r.stato)).toEqual(["SCOMPARSA"]);
+    expect(operazioni(senzaRiga, [])).toHaveLength(0);
     expect(a.giornate).toHaveLength(1);
+  });
+  it("non considera scomparse le righe manuali, i dati invalidi ancora presenti o gli aggiornamenti ambigui", () => {
+    const a = archivio(); const g = esistente(a); a.giornate.push(g);
+    expect(analizza(schede([]), a, cfg).righe).toHaveLength(0);
+    const r = analizza(schede([riga()]), a, cfg).righe[0];
+    a.registro.push({ chiave: r.chiave, dati: r.grezzi, rigaAttivitaId: g.id, impronta: impronta(g), ignorata: false });
+    expect(analizza(schede([riga({ ore: "non numeriche" })]), a, cfg).righe.map((r) => r.stato)).toEqual(["NON_IMPORTABILE"]);
+    const ambiguo = analizza(schede([riga({ ore: "4" }), riga({ ore: "3" })]), a, cfg);
+    expect(ambiguo.righe.some((r) => r.stato === "SCOMPARSA")).toBe(false);
+  });
+  it("rileva una sola occorrenza rimossa e richiede una scelta di eliminazione valida", () => {
+    const a = archivio();
+    a.giornate.push(esistente(a), { ...esistente(a), id: "seconda" });
+    const prima = analizza(schede([riga(), riga()]), a, cfg);
+    a.registro = prima.righe.map((r) => ({ chiave: r.chiave, dati: r.grezzi, rigaAttivitaId: r.collegataId!, impronta: impronta(r.proposta!), ignorata: false }));
+    const dopo = analizza(schede([riga()]), a, cfg);
+    expect(dopo.righe.map((r) => r.stato)).toEqual(["PRESENTE", "SCOMPARSA"]);
+    const missing = dopo.righe[1];
+    const ops = operazioni(dopo, [{ chiave: missing.chiave, azione: "ELIMINA" }]);
+    expect(ops.find((op) => op.azione === "ELIMINA")?.destinazione).toBe(missing.collegataId);
+    expect(() => operazioni(dopo, [{ chiave: dopo.righe[0].chiave, azione: "ELIMINA" }])).toThrow("soltanto");
+    expect(() => operazioni(dopo, [{ chiave: missing.chiave, azione: "NUOVA" }])).toThrow("soltanto");
+    const f = new FormData(); f.set(`scelta:${missing.chiave}`, "ELIMINA");
+    expect(parseDecisioni(f)).toEqual([{ chiave: missing.chiave, azione: "ELIMINA" }]);
   });
   it("rivaluta gli scarti e le righe ignorate ad ogni lettura", () => {
     const a = archivio(); const row = analizza(schede([riga()]), a, cfg).righe[0];
@@ -213,7 +239,7 @@ describe("riconciliazioni ambigue", () => {
     const a = archivio(); const g = esistente(a); a.giornate.push(g);
     const old = analizza(schede([riga()]), a, cfg).righe[0];
     a.registro.push({ chiave: old.chiave, dati: old.grezzi, rigaAttivitaId: g.id, impronta: impronta(g), ignorata: true });
-    expect(analizza(schede([]), a, cfg).righe).toHaveLength(0);
+    expect(analizza(schede([]), a, cfg).righe.map((r) => r.stato)).toEqual(["SCOMPARSA"]);
     expect(analizza(schede([riga()]), a, cfg).righe[0].stato).toBe("PRESENTE");
   });
 });

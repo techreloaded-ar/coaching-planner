@@ -5,12 +5,22 @@ export function operazioni(piano: Piano, decisioni: Decisione[]) {
   const scelte = new Map<string, Decisione>();
   for (const d of decisioni) {
     if (scelte.has(d.chiave) || !piano.righe.some((r) => r.chiave === d.chiave)) throw new ErroreImporter("Scelta duplicata o riga non presente nell’anteprima.");
-    if (!["NUOVA", "AGGIORNA", "COLLEGA", "IGNORA", "SENZA_CODICE"].includes(d.azione)) throw new ErroreImporter("Azione non valida.");
+    if (!["NUOVA", "AGGIORNA", "COLLEGA", "IGNORA", "SENZA_CODICE", "ELIMINA"].includes(d.azione)) throw new ErroreImporter("Azione non valida.");
     scelte.set(d.chiave, d);
   }
   const targets = new Set<string>();
   return piano.righe.flatMap<{ riga: RigaAnteprima; azione: Decisione["azione"]; destinazione?: string }>((r) => {
     const scelta = scelte.get(r.chiave);
+    if (r.stato === "SCOMPARSA") {
+      if (!scelta) return [];
+      if (scelta.azione !== "ELIMINA" || r.candidati.length !== 1 || r.collegataId !== r.candidati[0].id ||
+        piano.righe.some((altra) => altra !== r && altra.stato !== "SCOMPARSA" && (altra.collegataId === r.collegataId || altra.candidati.some((g) => g.id === r.collegataId))) || targets.has(r.collegataId)) {
+        throw new ErroreImporter("Puoi eliminare soltanto una giornata non più presente nel foglio e senza altri abbinamenti.");
+      }
+      targets.add(r.collegataId);
+      return [{ riga: r, azione: "ELIMINA", destinazione: r.collegataId }];
+    }
+    if (scelta?.azione === "ELIMINA") throw new ErroreImporter("Si possono eliminare soltanto le giornate non più presenti nel foglio.");
     if (r.stato === "PRESENTE") {
       if (!r.collegataId) throw new ErroreImporter("Collegamento mancante.");
       if (scelta) throw new ErroreImporter("Una riga già presente non può essere modificata da questa anteprima.");
@@ -45,7 +55,7 @@ export function parseDecisioni(form: FormData): Decisione[] {
   for (const [key, value] of form.entries()) {
     if (!key.startsWith("scelta:") || typeof value !== "string" || !value) continue;
     const chiave = key.slice(7);
-    if (value === "NUOVA" || value === "IGNORA" || value === "SENZA_CODICE") decisioni.push({ chiave, azione: value });
+    if (value === "NUOVA" || value === "IGNORA" || value === "SENZA_CODICE" || value === "ELIMINA") decisioni.push({ chiave, azione: value });
     else if (value.startsWith("AGGIORNA:")) decisioni.push({ chiave, azione: "AGGIORNA", destinazione: value.slice(9) });
     else throw new ErroreImporter("Scelta non valida.");
   }

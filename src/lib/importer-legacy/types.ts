@@ -67,6 +67,6 @@ export interface Piano {
     coach: { id: string; etichetta: string }[];
     offerte: { id: string; codice: string; clienteId: string }[];
   };
-  esito?: { aggiunte: number; aggiornate: number; riconosciute: number; ignorate: number };
+  esito?: { aggiunte: number; aggiornate: number; riconosciute: number; ignorate: number; eliminate: number };
 }
-export interface Decisione { chiave: string; azione: "NUOVA" | "AGGIORNA" | "COLLEGA" | "IGNORA" | "SENZA_CODICE"; destinazione?: string }
+export interface Decisione { chiave: string; azione: "NUOVA" | "AGGIORNA" | "COLLEGA" | "IGNORA" | "SENZA_CODICE" | "ELIMINA"; destinazione?: string }

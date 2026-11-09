@@ -101,10 +101,23 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
       void ripiego;
       await tx.offerta.create({ data: { ...dati, createdAt: new Date(Date.UTC(anno, 0, 1, 12)) } });
     }
-    const esito = piano.esito ?? { aggiunte: 0, aggiornate: 0, riconosciute: 0, ignorate: 0 };
-    esito.riconosciute = 0;
+    const esito = { aggiunte: 0, aggiornate: 0, riconosciute: 0, ignorate: 0, eliminate: 0 };
     for (const op of ops) {
       const { riga, azione } = op;
+      if (azione === "ELIMINA") {
+        // Anche una decisione costruita a mano deve avere un collegamento reale
+        // nel registro dell'origine corrente. Nessuna cancellazione per ID libero.
+        if (!archivio.registro.some((voce) => voce.chiave === riga.chiave && voce.rigaAttivitaId === op.destinazione)) {
+          throw new ErroreImporter("La giornata da eliminare non appartiene al registro di questo documento.");
+        }
+        if (await tx.importazioneLegacyRiga.count({ where: { rigaAttivitaId: op.destinazione!, origine: { not: cfg.id } } })) {
+          throw new ErroreImporter("La giornata è collegata anche a un altro documento: non può essere eliminata da questa importazione.");
+        }
+        await tx.rigaAttivita.delete({ where: { id: op.destinazione! } });
+        await tx.importazioneLegacyRiga.deleteMany({ where: { origine: cfg.id, rigaAttivitaId: op.destinazione! } });
+        esito.eliminate++;
+        continue;
+      }
       let rigaAttivitaId: string | null = null;
       let fingerprint: string | null = null;
       if (azione === "NUOVA" || azione === "AGGIORNA") {

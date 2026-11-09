@@ -252,6 +252,24 @@ export function analizza(s: Schede, archivio: Archivio, cfg: ConfigImporter, mod
       }
     }
   }
+  // Segnala soltanto giornate collegate a questo documento dal suo registro.
+  // Le righe manuali e i collegamenti già risolti/candidati non sono sparizioni.
+  const protette = new Set(righe.flatMap((r) => [r.collegataId, ...r.candidati.map((g) => g.id)]).filter(Boolean));
+  const chiaviPresenti = new Set(righe.map((r) => r.chiave));
+  const identitaGiornoFonte = (dati: Celle) => {
+    const raw = normalizzaRiga(dati);
+    return hash([raw.coach, raw.cliente, raw.data]);
+  };
+  const fontiNonValide = new Set(righe.filter((r) => r.stato === "NON_IMPORTABILE" || r.stato === "IGNORATA").map((r) => identitaGiornoFonte(r.grezzi)));
+  for (const voce of a.registro) {
+    if (!voce.rigaAttivitaId || protette.has(voce.rigaAttivitaId) || chiaviPresenti.has(voce.chiave) || fontiNonValide.has(identitaGiornoFonte(voce.dati))) continue;
+    const esistente = giornatePerId.get(voce.rigaAttivitaId);
+    if (!esistente) continue;
+    righe.push({ chiave: voce.chiave, numero: 0, grezzi: voce.dati, stato: "SCOMPARSA", proposta: null,
+      candidati: [esistente], collegataId: esistente.id,
+      motivo: "Giornata importata da questo documento, non più ritrovata nel foglio. È proposta l’eliminazione alla conferma dell’importazione; puoi scegliere di mantenerla nell’app." });
+    protette.add(esistente.id);
+  }
   return { versione: 4, origine: cfg.id, modalita, revisioneArchivio: revisioneArchivio(archivio), anagrafiche, righe,
     schede: s, riferimenti: { clienti: [...a.clienti, ...anagrafiche.clienti].map(({ id, ragioneSociale }) => ({ id, ragioneSociale })),
       offerte: [...a.offerte, ...anagrafiche.offerte].map(({ id, codice, clienteId }) => ({ id, codice, clienteId })),

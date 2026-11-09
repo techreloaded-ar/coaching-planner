@@ -43,6 +43,35 @@ beforeEach(async () => {
 afterAll(async () => { vi.unstubAllEnvs(); await db.$disconnect(); });
 
 describe("persistenza reale importer (database dedicato)", () => {
+  it("mantiene per default la giornata rimossa e cancella solo quella scelta, conservando le manuali", async () => {
+    const prima = await preview(schede([row(), row({ data: "2026-11-06" })]));
+    await applicaAnteprima(prima.job.id, prima.job.updatedAt.toISOString(), [], [], "");
+    const manuale = await db.rigaAttivita.create({ data: { collaboratoreId, clienteId, offertaId, data: new Date("2026-11-07T12:00:00Z"), ore: "3" } });
+    const seconda = await preview(schede([row({ ore: "4" })]));
+    expect(seconda.piano.righe.map((r) => r.stato)).toEqual(["AGGIORNARE", "SCOMPARSA"]);
+    await applicaAnteprima(seconda.job.id, seconda.job.updatedAt.toISOString(), [], [], "");
+    expect(await db.rigaAttivita.count({ where: { collaboratoreId } })).toBe(3);
+    const terza = await preview(schede([row({ ore: "4" })]));
+    const missing = terza.piano.righe.find((r) => r.stato === "SCOMPARSA")!;
+    const esito = await applicaAnteprima(terza.job.id, terza.job.updatedAt.toISOString(), [{ chiave: missing.chiave, azione: "ELIMINA" }], [], "");
+    expect(esito.eliminate).toBe(1);
+    expect(await db.rigaAttivita.findUnique({ where: { id: missing.collegataId } })).toBeNull();
+    expect(await db.rigaAttivita.findUnique({ where: { id: manuale.id } })).not.toBeNull();
+    expect(await db.importazioneLegacyRiga.count({ where: { origine: sheet } })).toBe(1);
+    expect((await preview(schede([row({ ore: "4" })]))).piano.righe.map((r) => r.stato)).toEqual(["PRESENTE"]);
+  });
+  it("blocca una cancellazione se il DB cambia dopo l'analisi o il collegamento appartiene anche a un altro documento", async () => {
+    const prima = await preview(schede([row()]));
+    await applicaAnteprima(prima.job.id, prima.job.updatedAt.toISOString(), [], [], "");
+    const seconda = await preview(schede([])); const missing = seconda.piano.righe[0];
+    await db.rigaAttivita.update({ where: { id: missing.collegataId }, data: { nota: "Modifica dopo analisi" } });
+    await expect(applicaAnteprima(seconda.job.id, seconda.job.updatedAt.toISOString(), [{ chiave: missing.chiave, azione: "ELIMINA" }], [], "")).rejects.toThrow("cambiati dopo");
+    await db.importazioneLegacyRiga.create({ data: { origine: `altro-${sheet}`, chiave: "altra", dati: {}, rigaAttivitaId: missing.collegataId } });
+    const terza = await preview(schede([]));
+    await expect(applicaAnteprima(terza.job.id, terza.job.updatedAt.toISOString(), [{ chiave: terza.piano.righe[0].chiave, azione: "ELIMINA" }], [], "")).rejects.toThrow("altro documento");
+    expect(await db.rigaAttivita.findUnique({ where: { id: missing.collegataId } })).not.toBeNull();
+    expect(await refresh(terza.job.id)).toMatchObject({ stato: "ANTEPRIMA" });
+  });
   it("conferma, crea un ripiego per cliente e reimporta senza duplicare giornate o note", async () => {
     const s = schede([row({ "codice offerta": "", note: "Nota originale" }), row({ "codice offerta": "MANCANTE", data: "2026-11-06", "spese coach": "75" })]);
     const { job, piano } = await preview(s);
@@ -159,11 +188,11 @@ describe("persistenza reale importer (database dedicato)", () => {
     await applicaAnteprima(next.job.id, next.job.updatedAt.toISOString(), [], [], "");
     expect(await db.rigaAttivita.count({ where: { collaboratoreId } })).toBe(3);
   });
-  it("rivaluta gli scarti e conserva le giornate assenti senza chiederne la gestione", async () => {
+  it("rivaluta gli scarti e segnala le giornate assenti mantenendole nell'app", async () => {
     const { job, piano } = await preview(schede([row(), row({ data: "non leggibile" })]));
     await applicaAnteprima(job.id, job.updatedAt.toISOString(), [{ chiave: piano.righe[1].chiave, azione: "IGNORA" }], [], "");
     const p2 = await preview(schede([row({ data: "non leggibile" })]));
-    expect(p2.piano.righe.map((r) => r.stato)).toEqual(["NON_IMPORTABILE"]);
+    expect(p2.piano.righe.map((r) => r.stato)).toEqual(["NON_IMPORTABILE", "SCOMPARSA"]);
     expect(await db.rigaAttivita.count({ where: { collaboratoreId } })).toBe(1);
   });
   it("aggiorna una giornata con ID stabile senza duplicarla né cancellare le altre", async () => {

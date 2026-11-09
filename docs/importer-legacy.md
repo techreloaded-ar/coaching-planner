@@ -3,16 +3,31 @@
 La pagina amministrativa **Importazione** (`/importazione`) legge CLIENTI,
 OFFERTE, COACH e GIORNATE dal documento Google configurato, senza modificarlo.
 Considera tutte le date. Il flusso ordinario aggiunge i dati mancanti e aggiorna
-le giornate riconosciute: non cancella le giornate assenti dal documento.
+le giornate riconosciute. Segnala quelle non più presenti senza cancellarle automaticamente.
 
 ## Uso
 
+La vista presenta origine e analisi, riepilogo dei conteggi, giornate, nuove
+anagrafiche e conferma finale. Le giornate sono ordinate per gruppi: Non più presenti nel foglio, Da verificare,
+Su SENZA CODICE, Da aggiornare, Nuove e Scarti. Le giornate già presenti e
+ignorate restano in elenchi chiusi con paginazione. I gruppi vuoti non compaiono
+e viene aperto il primo gruppo operativo non vuoto. Gli aggiornamenti
+mostrano subito soltanto i campi modificati, con valori nell'app e dal foglio;
+il confronto completo rimane nei dettagli. Le anagrafiche sono richiudibili e
+compaiono solo se ve ne sono da aggiungere. La data della lettura, il testo
+tecnico sull'analisi e il messaggio di assistenza AI non configurata non sono mostrati.
+Su desktop i comandi restano fermi e scorre soltanto il dettaglio centrale.
+Su mobile scorre la pagina, con una sola barra Importa aderente al fondo.
+La barra contiene riepilogo e conferme SENZA CODICE/reset e non compare se non
+ci sono operazioni applicabili. Se tutte le giornate sono già presenti, la vista
+mostra che il foglio è allineato senza aprire la lista.
+
 1. All'apertura la pagina non mostra anteprime salvate. **Analizza foglio** legge il documento e confronta i dati con
    il database. L’analisi non modifica giornate o anagrafiche.
-2. Controllare aggiunte, aggiornamenti, **Da importare su SENZA CODICE** e **Scarti**. Le offerte dedotte univocamente
+2. Controllare aggiunte, aggiornamenti, **Su SENZA CODICE** e **Scarti**. Le offerte dedotte univocamente
    e le righe ripetute sono accettate come nello script originale. Due righe identiche
    sono due giornate: dopo la prima importazione non vengono inserite nuovamente.
-3. **Importa e aggiorna** applica tutte le righe valide in una transazione. Gli
+3. **Importa** applica tutte le righe valide in una transazione. Gli
    scarti non vengono importati. Gli aggiornamenti ambigui richiedono una scelta.
    Dopo la conferma appare soltanto l'esito: per i casi rimasti occorre una nuova analisi.
 4. Ogni nuova lettura sostituisce l’unica anteprima corrente del documento. Non c’è
@@ -48,7 +63,19 @@ Con più righe o più candidate occorre scegliere **Aggiorna candidata**, **Aggi
 come nuova** oppure **Ignora**. Una giornata non può essere aggiornata da due righe.
 Una data, un cliente, un collaboratore o un’offerta diversi costituiscono una nuova
 chiave; senza ID esplicito non si cerca una corrispondenza tra date differenti.
-Le giornate assenti dal foglio restano nel database.
+Le giornate precedentemente importate dallo stesso documento e non più ritrovate
+compaiono in **Non più presenti nel foglio**, con i valori attuali nell'app.
+La scelta predefinita è **Elimina dall’app**: la cancellazione viene conteggiata
+nel riepilogo e applicata soltanto alla conferma di **Importa**, nella stessa
+transazione degli altri aggiornamenti. Per conservare una giornata scegliere
+**Mantieni nell’app** prima di confermare.
+Le giornate manuali non vengono segnalate. Le giornate candidate per una riga
+ancora presente sono escluse dalle rimozioni; quelle collegate anche a un altro
+documento non possono essere eliminate da questo flusso. Una modifica del database
+dopo l'analisi richiede una nuova lettura prima di confermare.
+Senza ID stabile, cambiare data, cliente, collaboratore o offerta può apparire
+come una nuova giornata e una precedente non più presente: controllare i due gruppi
+prima di decidere. Le giornate mantenute saranno segnalate anche alle analisi successive.
 
 ## Regole delle anagrafiche e scarti
 
@@ -67,7 +94,7 @@ con `scripts/importa-storico`. L'importatore incrementale usa invece queste rego
 - Codice ambiguo tra più offerte: lascia la riga **Da verificare**. L'amministratore
   può scegliere **Importa su SENZA CODICE**, lasciarla in attesa o ignorarla.
 - Codice intestato a un altro cliente: rimane uno scarto da correggere.
-- Il gruppo **Da importare su SENZA CODICE** mostra coach, data, cliente, ore,
+- Il gruppo **Su SENZA CODICE** mostra coach, data, cliente, ore,
   codice originale, motivo, destinazione e note finali. Le scelte sulle ambigue
   aggiornano il gruppo e il riepilogo prima dell'importazione.
 - La spunta **Confermo le associazioni a SENZA CODICE** è obbligatoria anche lato
