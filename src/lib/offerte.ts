@@ -119,6 +119,7 @@ function offertaPerAvanzamento(offerta: OffertaConCliente): OffertaAvanzamento {
 interface SommaOrePerOffertaECategoria {
   offertaId: string | null;
   categoria: RigaAttivita["categoria"];
+  inAffiancamento?: boolean;
   _sum: { ore: Prisma.Decimal | null };
 }
 
@@ -135,6 +136,7 @@ function righeAvanzamentoDaSomme(
     collaboratoreId: "",
     collaboratoreNome: "",
     ore: Number(gruppo._sum.ore ?? 0),
+    inAffiancamento: gruppo.inAffiancamento,
     fatturabile: fatturataAlCliente(gruppo.categoria),
     mese: "",
   }));
@@ -156,7 +158,7 @@ export async function avanzamentoGiornateOfferte(
   }
 
   const orePerOffertaECategoria = await db.rigaAttivita.groupBy({
-    by: ["offertaId", "categoria"],
+    by: ["offertaId", "categoria", "inAffiancamento"],
     where: { offertaId: { in: offerte.map((offerta) => offerta.id) } },
     _sum: { ore: true },
   });
@@ -220,6 +222,7 @@ function costruisciVociElencoOfferte(
       collaboratoreId: riga.collaboratoreId,
       collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
+      inAffiancamento: riga.inAffiancamento,
       fatturabile: fatturataAlCliente(riga.categoria),
       mese: riga.data.toISOString().slice(0, 7),
     }),
@@ -329,7 +332,7 @@ export async function elencaOfferteConAvanzamentoPaginate({
   });
 
   const orePerOffertaECategoria = await db.rigaAttivita.groupBy({
-    by: ["offertaId", "categoria"],
+    by: ["offertaId", "categoria", "inAffiancamento"],
     // Le ore senza offerta non avanzano alcuna offerta.
     where: ricerca ? { offerta: where } : { offertaId: { not: null } },
     _sum: { ore: true },

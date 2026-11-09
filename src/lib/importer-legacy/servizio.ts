@@ -30,7 +30,7 @@ export async function creaAnteprima(autoreId: string, modalita: Piano["modalita"
 
 export function leggiPiano(value: unknown): Piano {
   const piano = value as Piano;
-  if (piano?.versione !== 4 || !Array.isArray(piano.righe) || !piano.schede) throw new ErroreImporter("Anteprima non compatibile. Ripeti l’analisi.");
+  if (piano?.versione !== 6 || !Array.isArray(piano.righe) || !piano.schede) throw new ErroreImporter("Anteprima non compatibile. Ripeti l’analisi.");
   return piano;
 }
 
@@ -48,12 +48,12 @@ async function azzera(tx: Prisma.TransactionClient) {
   await tx.collaboratore.deleteMany();
   await tx.offerta.deleteMany();
   await tx.cliente.deleteMany();
-  await tx.session.deleteMany();
-  await tx.account.deleteMany();
-  await tx.utente.deleteMany();
+  await tx.session.deleteMany({ where: { user: { ruolo: { not: "AMMINISTRATORE" } } } });
+  await tx.account.deleteMany({ where: { user: { ruolo: { not: "AMMINISTRATORE" } } } });
+  await tx.utente.deleteMany({ where: { ruolo: { not: "AMMINISTRATORE" } } });
 }
 
-function datiGiornata(g: Giornata) { return { ...g, data: new Date(`${g.data}T12:00:00.000Z`) }; }
+function datiGiornata(g: Giornata) { return { ...g, inAffiancamento: g.inAffiancamento ?? false, data: new Date(`${g.data}T12:00:00.000Z`) }; }
 
 export async function applicaAnteprima(id: string, revisione: string, decisioni: Decisione[], clientiAI: string[], confermaReset: string, confermaSenzaCodice = false) {
   const cfg = richiediImporter();
@@ -76,7 +76,7 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
       if (confermaReset !== "AZZERA TUTTO") throw new ErroreImporter("Per il reset completo scrivi AZZERA TUTTO.");
       if (piano.righe.some((r) => ["VERIFICARE", "NON_IMPORTABILE", "SCOMPARSA"].includes(r.stato) && !ops.some((o) => o.riga.chiave === r.chiave))) throw new ErroreImporter("Prima del reset decidi anche tutte le righe da verificare o non importabili.");
       if (!ops.some((o) => o.azione === "NUOVA")) throw new ErroreImporter("Reset annullato: nessuna giornata da importare.");
-      if (!piano.anagrafiche.coach.some((c) => c.ruolo === "AMMINISTRATORE")) throw new ErroreImporter("Reset annullato: configura IMPORTER_EMAIL_AMMINISTRATORI con almeno un coach del foglio, per mantenere l’accesso amministrativo.");
+      if (!archivio.utenti.some((u) => u.ruolo === "AMMINISTRATORE") && !piano.anagrafiche.coach.some((c) => c.ruolo === "AMMINISTRATORE")) throw new ErroreImporter("Reset annullato: configura IMPORTER_EMAIL_AMMINISTRATORI con almeno un coach del foglio, per mantenere l’accesso amministrativo.");
       await azzera(tx);
       // Le altre anteprime non sono più applicabili.
       await tx.importazioneLegacy.updateMany({ where: { id: { not: id }, stato: { not: "COMPLETATA" } }, data: { stato: "SUPERATA" } });
@@ -86,13 +86,23 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
       await tx.cliente.create({ data: { id: c.id, ragioneSociale: c.ragioneSociale, ...dati } });
     }
     for (const c of piano.anagrafiche.coach) {
-      const profilo = { id: c.id, nome: c.nome, cognome: c.cognome, partitaIva: c.partitaIva || null,
-        tariffe: { create: { validaDalMese: c.dalMese, modalita: c.modalita, importo: c.importo } } };
-      if (c.utenteEsistente) {
+      const tariffe = c.tariffe ?? [{ validaDalMese: c.dalMese, validaAlMese: null, modalita: c.modalita, importo: c.importo }];
+      const profilo = { id: c.id, nome: c.nome, cognome: c.cognome, partitaIva: c.partitaIva || null, attivo: c.attivo ?? true,
+        tariffe: { create: tariffe } };
+      if (c.profiloEsistente) {
+        // La fotografia approvata contiene tutti i periodi del coach, non solo
+        // la tariffa attuale. La sostituzione resta atomica e ripetibile.
+        await tx.tariffaCollaboratore.deleteMany({ where: { collaboratoreId: c.id } });
+        await tx.collaboratore.update({ where: { id: c.id }, data: { attivo: c.attivo ?? true, tariffe: { create: tariffe } } });
+      } else if (c.utenteEsistente) {
         await tx.collaboratore.create({ data: { ...profilo, userId: c.userId } });
       } else {
         await tx.utente.create({ data: { id: c.userId, nome: c.nome, cognome: c.cognome, email: c.email, ruolo: c.ruolo,
+          attivo: c.ruolo === "AMMINISTRATORE" ? true : c.attivo ?? true,
           collaboratore: { create: profilo } } });
+      }
+      if (c.utenteEsistente && c.attivo !== undefined) {
+        await tx.utente.updateMany({ where: { id: c.userId, ruolo: { not: "AMMINISTRATORE" } }, data: { attivo: c.attivo } });
       }
     }
     for (const o of piano.anagrafiche.offerte) {

@@ -436,3 +436,20 @@ describe("calcolaMarginalitaClienti con tariffa Percentuale", () => {
     });
   });
 });
+
+it.each([
+  ["GIORNALIERA", 400, "400.00"],
+  ["PERCENTUALE", 30, "420.00"],
+] as const)("PAIR: dimezza i ricavi ma paga tutte le ore con tariffa %s", (modalita, importo, costo) => {
+  const report = calcolaMarginalitaClienti([riga({ inAffiancamento: true,
+    modalitaTariffaCollaboratore: modalita, importoTariffaCollaboratore: importo })]);
+  expect(report.totali).toMatchObject({ giornateFatturabili: 0.5, ricavi: "300.00", costi: costo });
+});
+
+it("PAIR: conserva le frazioni anche nei totali tra clienti", () => {
+  const report = calcolaMarginalitaClienti([
+    riga({ ore: 0.25, inAffiancamento: true }),
+    riga({ ore: 0.25, inAffiancamento: true, clienteId: "cliente-2" }),
+  ]);
+  expect(report.totali.giornateFatturabili).toBe(0.25 / 8);
+});

@@ -8,17 +8,20 @@ import type { E2eDataFactory } from "../e2e/support/factory";
 
 // Fotografia reale del DB, nello stesso ordine deterministico del reader applicativo.
 async function archivio(factory: E2eDataFactory): Promise<Archivio> {
-  const [clienti, utenti, offerte, giornate, rimborsi, registro] = await Promise.all([
+  const [clienti, utenti, offerte, giornate, rimborsi, registro, tariffe] = await Promise.all([
     factory.prisma.query('SELECT "id", "ragioneSociale" FROM "Cliente" ORDER BY "id"'),
-    factory.prisma.query('SELECT u."id", u."email", c."id" AS "collaboratoreId" FROM "Utente" u LEFT JOIN "Collaboratore" c ON c."userId"=u."id" ORDER BY u."id"'),
+    factory.prisma.query('SELECT u."id", u."email", u."ruolo", u."attivo", c."id" AS "collaboratoreId", c."attivo" AS "collaboratoreAttivo" FROM "Utente" u LEFT JOIN "Collaboratore" c ON c."userId"=u."id" ORDER BY u."id"'),
     factory.prisma.query('SELECT "id", "codice", "clienteId" FROM "Offerta" ORDER BY "id"'),
     factory.prisma.query(`SELECT *, "data"::text AS "dataISO", "updatedAt" AT TIME ZONE 'UTC' AS "versioneUTC" FROM "RigaAttivita" ORDER BY "id"`),
     factory.prisma.query('SELECT "etichetta", "importo"::text FROM "VoceRimborsoTrasferta" ORDER BY "id"'),
     factory.prisma.query('SELECT * FROM "ImportazioneLegacyRiga" WHERE "origine"=$1 ORDER BY "chiave"', ["e2e-importer"]),
+    factory.prisma.query('SELECT "collaboratoreId", "validaDalMese", "validaAlMese", "modalita", "importo"::text FROM "TariffaCollaboratore" ORDER BY "validaDalMese"'),
   ]);
-  return { clienti: clienti.rows, utenti: utenti.rows.map((u) => ({ id: u.id, email: u.email, collaboratore: u.collaboratoreId ? { id: u.collaboratoreId } : null })), offerte: offerte.rows,
+  return { clienti: clienti.rows, utenti: utenti.rows.map((u) => ({ id: u.id, email: u.email, ruolo: u.ruolo, attivo: u.attivo,
+    collaboratore: u.collaboratoreId ? { id: u.collaboratoreId, attivo: u.collaboratoreAttivo,
+      tariffe: tariffe.rows.filter((t) => t.collaboratoreId === u.collaboratoreId).map((t) => ({ validaDalMese: t.validaDalMese, validaAlMese: t.validaAlMese, modalita: t.modalita, importo: Number(t.importo).toFixed(2) })) } : null })), offerte: offerte.rows,
     giornate: giornate.rows.map((g) => ({ id: g.id, versione: g.versioneUTC.toISOString(), data: g.dataISO, collaboratoreId: g.collaboratoreId, clienteId: g.clienteId, offertaId: g.offertaId,
-      ore: Number(g.ore).toFixed(2), categoria: g.categoria, rimborsoTrasfertaImporto: g.rimborsoTrasfertaImporto === null ? null : Number(g.rimborsoTrasfertaImporto).toFixed(2), rimborsoTrasfertaEtichetta: g.rimborsoTrasfertaEtichetta, nota: g.nota })),
+      ore: Number(g.ore).toFixed(2), categoria: g.categoria, inAffiancamento: g.inAffiancamento, rimborsoTrasfertaImporto: g.rimborsoTrasfertaImporto === null ? null : Number(g.rimborsoTrasfertaImporto).toFixed(2), rimborsoTrasfertaEtichetta: g.rimborsoTrasfertaEtichetta, nota: g.nota })),
     rimborsi: rimborsi.rows, registro: registro.rows.map((r) => ({ chiave: r.chiave, dati: r.dati, rigaAttivitaId: r.rigaAttivitaId, impronta: r.impronta, ignorata: r.ignorata })) };
 }
 

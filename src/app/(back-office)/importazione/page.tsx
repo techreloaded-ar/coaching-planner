@@ -18,7 +18,7 @@ export default async function ImportazionePage({ searchParams }: {
   const job = stato.abilitato && stato.configurato && params.id && !params.salvata ? await db.importazioneLegacy.findFirst({
     where: { id: params.id, origine: cfg.id, autoreId: user.utenteId, stato: "ANTEPRIMA" },
   }) : null;
-  const compatibile = job && (job.piano as { versione?: number } | null)?.versione === 4;
+  const compatibile = job && (job.piano as { versione?: number } | null)?.versione === 6;
   const piano = compatibile ? leggiPiano(job.piano) : null;
   return <div className="mx-auto flex max-w-6xl flex-col gap-3 text-zinc-800 max-sm:-mx-5 max-sm:-my-3 dark:text-zinc-100 [@media(min-width:1024px)_and_(min-height:640px)]:h-[calc(100dvh-var(--altezza-banner-ambiente)-117px)] [@media(min-width:1024px)_and_(min-height:640px)]:min-h-0">
     <header className="flex shrink-0 flex-wrap items-start justify-between gap-4"><div>

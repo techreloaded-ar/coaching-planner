@@ -126,6 +126,7 @@ export async function reportFatturazioneClientiMese(
       collaboratoreId: riga.collaboratoreId,
       collaboratoreNome: `${riga.collaboratore.nome} ${riga.collaboratore.cognome}`,
       ore: Number(riga.ore),
+      inAffiancamento: riga.inAffiancamento,
       fatturabile: fatturataAlCliente(riga.categoria),
       rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
       data: riga.data.toISOString().slice(0, 10),
@@ -185,7 +186,7 @@ export async function reportMarginalitaPeriodo(
         attivo: true,
         tariffe: {
           where: { validaDalMese: { lte: a } },
-          select: { validaDalMese: true, modalita: true, importo: true },
+          select: { validaDalMese: true, validaAlMese: true, modalita: true, importo: true },
         },
       },
     }),
@@ -213,6 +214,7 @@ export async function reportMarginalitaPeriodo(
       modalitaTariffaCollaboratore: tariffa?.modalita ?? null,
       importoTariffaCollaboratore: tariffa?.importo.toString() ?? 0,
       ore: Number(riga.ore),
+      inAffiancamento: riga.inAffiancamento,
       categoria: riga.categoria,
     };
   });
@@ -226,7 +228,7 @@ export async function reportMarginalitaPeriodo(
       const tariffa = tariffaValidaNelMese(collaboratore.tariffe, mese);
       if (
         tariffa?.modalita === "FISSO_MENSILE" &&
-        (collaboratore.attivo || conRigheNelMese.has(`${collaboratore.id}|${mese}`))
+        (collaboratore.attivo || tariffa.validaAlMese != null || conRigheNelMese.has(`${collaboratore.id}|${mese}`))
       ) {
         fissiMensili.push({
           collaboratoreId: collaboratore.id,
@@ -270,7 +272,7 @@ export async function reportFatturazioneCollaboratoriMese(
       attivo: true,
       tariffe: {
         where: { validaDalMese: { lte: token } },
-        select: { validaDalMese: true, modalita: true, importo: true },
+        select: { validaDalMese: true, validaAlMese: true, modalita: true, importo: true },
       },
       righeAttivita: {
         where: { data: { gte: inizio, lte: fine } },

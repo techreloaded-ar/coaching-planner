@@ -9,6 +9,7 @@ export interface Giornata {
   data: string;
   ore: string;
   categoria: CategoriaAttivita;
+  inAffiancamento?: boolean;
   rimborsoTrasfertaImporto: string | null;
   rimborsoTrasfertaEtichetta: string | null;
   nota: string | null;
@@ -16,6 +17,9 @@ export interface Giornata {
 export interface Esistente extends Giornata { id: string; versione: string }
 export interface ClienteImport { id: string; ragioneSociale: string; dettagli: Celle; dati: Celle; verifica: boolean }
 export interface CoachImport {
+  profiloEsistente?: boolean;
+  attivo?: boolean;
+  tariffe?: { validaDalMese: string; validaAlMese: string | null; modalita: ModalitaTariffa; importo: string }[];
   utenteEsistente?: boolean;
   id: string; userId: string; nome: string; cognome: string; email: string; partitaIva: string;
   ruolo: Ruolo; modalita: ModalitaTariffa; importo: string; dalMese: string;
@@ -47,14 +51,14 @@ export interface Registro {
 }
 export interface Archivio {
   clienti: { id: string; ragioneSociale: string }[];
-  utenti: { id: string; email: string; collaboratore: { id: string } | null }[];
+  utenti: { id: string; email: string; ruolo?: Ruolo; attivo?: boolean; collaboratore: { id: string; attivo?: boolean; tariffe?: { validaDalMese: string; validaAlMese: string | null; modalita: ModalitaTariffa; importo: string }[] } | null }[];
   offerte: { id: string; codice: string; clienteId: string }[];
   giornate: Esistente[];
   rimborsi: { etichetta: string; importo: string }[];
   registro: Registro[];
 }
 export interface Piano {
-  versione: 4;
+  versione: 6;
   origine: string;
   modalita: "INCREMENTALE" | "RESET";
   revisioneArchivio: string;

@@ -460,3 +460,12 @@ describe("calcolaAvanzamentoOfferte", () => {
     });
   });
 });
+
+it("PAIR: l'avanzamento conta metà delle ore di ciascun coach", () => {
+  const report = calcolaAvanzamentoOfferte([offerta()], [
+    riga({ inAffiancamento: true }),
+    riga({ inAffiancamento: true, collaboratoreId: "collaboratore-2" }),
+  ]);
+  expect(report.totali.giornateErogateTotali).toBe(1);
+  expect(report.perOfferta[0].perCollaboratore.map(c => c.giornateErogate)).toEqual([0.5, 0.5]);
+});

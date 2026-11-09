@@ -355,7 +355,8 @@ export function calcolaReportFatturazioneCollaboratori(
   collaboratori: CollaboratoreDelMese[],
 ): ReportFatturazioneCollaboratori {
   const perCollaboratore = collaboratori
-    .filter((collaboratore) => collaboratore.attivo || collaboratore.righe.length > 0)
+    .filter((collaboratore) => collaboratore.attivo || collaboratore.righe.length > 0 ||
+      (collaboratore.tariffa?.modalita === "FISSO_MENSILE" && collaboratore.tariffa.validaAlMese != null))
     .sort(
       (a, b) =>
         Number(a.righe.length === 0) - Number(b.righe.length === 0) ||
@@ -413,7 +414,18 @@ function confrontaVociPerOfferta(
  * Riga elementare di attività per il report di fatturazione (dipendenza-zero).
  * Rappresenta un contributo di un collaboratore su una offerta di un cliente.
  */
+/** Le ore del coach restano intere; al cliente un PAIR pesa metà.
+ * Le mezze centesime di ora vanno conservate fino al calcolo monetario.
+ */
+function oreCliente(riga: { ore: number; inAffiancamento?: boolean }): number {
+  return riga.ore * (riga.inAffiancamento ? 0.5 : 1);
+}
+function sommaOreCliente(...ore: number[]): number {
+  return ore.reduce((somma, valore) => somma + Math.round(valore * 200), 0) / 200;
+}
+
 export interface RigaReportFatturazione {
+  inAffiancamento?: boolean;
   clienteId: string;
   clienteRagioneSociale: string;
   /** null: ore senza offerta, riportate nella voce «Senza offerta» a importo zero */
@@ -568,14 +580,14 @@ export function calcolaReportFatturazioneClienti(
     }
 
     if (riga.fatturabile) {
-      offerta.oreFatturabili = sommaOre(offerta.oreFatturabili, riga.ore);
+      offerta.oreFatturabili = sommaOreCliente(offerta.oreFatturabili, oreCliente(riga));
 
       const collaboratore = offerta.collaboratori.get(riga.collaboratoreId) ?? {
         collaboratoreId: riga.collaboratoreId,
         collaboratoreNome: riga.collaboratoreNome,
         oreFatturabili: 0,
       };
-      collaboratore.oreFatturabili = sommaOre(collaboratore.oreFatturabili, riga.ore);
+      collaboratore.oreFatturabili = sommaOreCliente(collaboratore.oreFatturabili, oreCliente(riga));
       offerta.collaboratori.set(riga.collaboratoreId, collaboratore);
     }
 
@@ -754,6 +766,7 @@ export function calcolaReportFatturazioneClienti(
  * mese della riga (costo).
  */
 export interface RigaMarginalita {
+  inAffiancamento?: boolean;
   clienteId: string;
   clienteRagioneSociale: string;
   /** null: ore senza offerta, ricavi zero ma costi del collaboratore conteggiati */
@@ -940,7 +953,7 @@ export function calcolaMarginalitaClienti(
     }
 
     if (fatturataAlCliente(riga.categoria)) {
-      offerta.ore = sommaOre(offerta.ore, riga.ore);
+      offerta.ore = sommaOreCliente(offerta.ore, oreCliente(riga));
     }
 
     if (riga.modalitaTariffaCollaboratore === "FISSO_MENSILE") {
@@ -998,7 +1011,7 @@ export function calcolaMarginalitaClienti(
       }
       // Stessa formula di calcolaReportFatturazioneClienti: ore totali / 8 × tariffa
       offerta.ricavi = (offerta.ore / ORE_PER_GIORNATA) * offerta.tariffaOfferta;
-      sommaCliente.ore = sommaOre(sommaCliente.ore, offerta.ore);
+      sommaCliente.ore = sommaOreCliente(sommaCliente.ore, offerta.ore);
       sommaCliente.ricavi += offerta.ricavi;
       sommaCliente.costi += offerta.costi;
       perOfferta.push({
@@ -1015,7 +1028,7 @@ export function calcolaMarginalitaClienti(
     }
 
     perOfferta.sort(confrontaVociPerOfferta);
-    totale.ore = sommaOre(totale.ore, sommaCliente.ore);
+    totale.ore = sommaOreCliente(totale.ore, sommaCliente.ore);
     totale.ricavi += sommaCliente.ricavi;
     totale.costi += sommaCliente.costi;
     perCliente.push({
@@ -1076,6 +1089,7 @@ export interface OffertaAvanzamento {
 
 /** Riga elementare di attività ai fini del calcolo dell'avanzamento */
 export interface RigaAvanzamento {
+  inAffiancamento?: boolean;
   offertaId: string;
   collaboratoreId: string;
   collaboratoreNome: string;
@@ -1183,7 +1197,7 @@ export function calcolaAvanzamentoOfferte(
       accumulatori.set(riga.offertaId, accumulatoreOfferta);
     }
 
-    accumulatoreOfferta.oreErogateTotali = sommaOre(accumulatoreOfferta.oreErogateTotali, riga.ore);
+    accumulatoreOfferta.oreErogateTotali = sommaOreCliente(accumulatoreOfferta.oreErogateTotali, oreCliente(riga));
     accumulatoreOfferta.mesi.add(riga.mese);
 
     const accumulatoreCollaboratore = accumulatoreOfferta.collaboratori.get(
@@ -1194,10 +1208,10 @@ export function calcolaAvanzamentoOfferte(
       oreErogate: 0,
       orePerMese: new Map<string, number>(),
     };
-    accumulatoreCollaboratore.oreErogate = sommaOre(accumulatoreCollaboratore.oreErogate, riga.ore);
+    accumulatoreCollaboratore.oreErogate = sommaOreCliente(accumulatoreCollaboratore.oreErogate, oreCliente(riga));
     accumulatoreCollaboratore.orePerMese.set(
       riga.mese,
-      sommaOre(accumulatoreCollaboratore.orePerMese.get(riga.mese) ?? 0, riga.ore),
+      sommaOreCliente(accumulatoreCollaboratore.orePerMese.get(riga.mese) ?? 0, oreCliente(riga)),
     );
     accumulatoreOfferta.collaboratori.set(riga.collaboratoreId, accumulatoreCollaboratore);
   }

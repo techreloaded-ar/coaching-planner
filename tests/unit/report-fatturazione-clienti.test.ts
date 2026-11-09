@@ -628,3 +628,18 @@ describe("calcolaReportFatturazioneClienti — ore senza offerta", () => {
     expect(report.totali.importoTotale).toBe("0.00");
   });
 });
+
+it("PAIR: due coach di 8 ore fatturano complessivamente una giornata", () => {
+  const report = calcolaReportFatturazioneClienti([
+    riga({ inAffiancamento: true }),
+    riga({ inAffiancamento: true, collaboratoreId: "collaboratore-2" }),
+  ]);
+  expect(report.perCliente[0].perOfferta[0].giornateFatturabili).toBe(1);
+  expect(report.totali.imponibileManodopera).toBe("500.00");
+  expect(report.perCliente[0].perOfferta[0].perCollaboratore.map(c => c.giornateFatturabili)).toEqual([0.5, 0.5]);
+});
+
+it("PAIR: conserva le mezze centesime di ora senza arrotondare la durata", () => {
+  const report = calcolaReportFatturazioneClienti([riga({ ore: 0.25, inAffiancamento: true })]);
+  expect(report.perCliente[0].perOfferta[0].giornateFatturabili).toBe(0.125 / 8);
+});

@@ -634,11 +634,11 @@ export async function riepilogoMesePerCollaboratoreAutorizzato(
       where: { collaboratoreId, validaDalMese: { lte: token } },
       orderBy: { validaDalMese: "desc" },
       take: 1,
-      select: { validaDalMese: true, modalita: true, importo: true },
+      select: { validaDalMese: true, validaAlMese: true, modalita: true, importo: true },
     }),
   ]);
 
-  const tariffaDelMese = tariffe[0];
+  const tariffaDelMese = tariffe[0]?.validaAlMese && tariffe[0].validaAlMese < token ? null : tariffe[0];
   const tariffa = tariffaDelMese
     ? { ...tariffaDelMese, importo: tariffaDelMese.importo.toString() }
     : null;

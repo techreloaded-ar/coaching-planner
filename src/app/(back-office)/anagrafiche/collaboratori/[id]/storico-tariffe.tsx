@@ -206,6 +206,12 @@ function ModuloTariffa({
             className={classeCampo}
           />
           <ErroreCampo id="tariffa-valida-dal-mese-errore" messaggio={stato.errori.validaDalMese} />
+          <label htmlFor="tariffa-valida-al-mese" className={classeEtichetta}>Valida fino al mese (facoltativo)</label>
+          <input id="tariffa-valida-al-mese" type="month" name="validaAlMese"
+            defaultValue={valoreIniziale("validaAlMese", voce?.validaAlMese ?? "")}
+            aria-invalid={Boolean(stato.errori.validaAlMese)}
+            aria-describedby="tariffa-valida-al-mese-errore" className={classeCampo} />
+          <ErroreCampo id="tariffa-valida-al-mese-errore" messaggio={stato.errori.validaAlMese} />
         </div>
 
         <fieldset>
