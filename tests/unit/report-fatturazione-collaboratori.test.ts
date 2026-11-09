@@ -33,6 +33,13 @@ function collaboratore(parziale: Partial<CollaboratoreDelMese>): CollaboratoreDe
 }
 
 describe("calcolaReportFatturazioneCollaboratori", () => {
+  it("include il mensile storico valido anche per un coach oggi cessato e senza righe", () => {
+    const report = calcolaReportFatturazioneCollaboratori([collaboratore({
+      attivo: false, righe: [], tariffa: { modalita: "FISSO_MENSILE", importo: "3500.00", validaDalMese: "2019-01", validaAlMese: "2019-12" },
+    })]);
+    expect(report.perCollaboratore).toHaveLength(1);
+    expect(report.perCollaboratore[0].prestazioni).toBe("3500.00");
+  });
   it("calcola per ciascuno l'importo del riepilogo mensile, con fogli vuoti in fondo e totali", () => {
     const report = calcolaReportFatturazioneCollaboratori([
       collaboratore({ collaboratoreId: "luca", nome: "Luca", cognome: "Bianchi" }),

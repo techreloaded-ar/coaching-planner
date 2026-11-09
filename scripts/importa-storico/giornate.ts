@@ -160,7 +160,7 @@ export async function importaGiornate(tx: Prisma.TransactionClient, cfg: Configu
     righe.push({
       collaboratoreId, clienteId, offertaId: ricerca.offerta?.id ?? null,
       data: new Date(Date.UTC(anno, mese - 1, giorno, 12)),
-      ore: ore.toFixed(2), categoria, nota: note.length ? note.join(". ") : null, ...rimborso,
+      ore: ore.toFixed(2), categoria, inAffiancamento: normalizzaTesto(grezzi.tipologiaFatturazione) === "PAIR", nota: note.length ? note.join(". ") : null, ...rimborso,
     });
     esito.importate++;
   }

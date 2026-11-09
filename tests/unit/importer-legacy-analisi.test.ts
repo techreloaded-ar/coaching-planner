@@ -5,7 +5,7 @@ import { configurazioneImporter } from "@/lib/importer-legacy/config";
 import type { Archivio, Celle, Schede } from "@/lib/importer-legacy/types";
 import { appendiNote, daImportareSenzaCodice } from "@/lib/importer-legacy/senza-codice";
 
-const cfg = configurazioneImporter({ IMPORTER_GOOGLE_SPREADSHEET_ID: "test", IMPORTER_ENABLED: "true" });
+const cfg = configurazioneImporter({ IMPORTER_GOOGLE_SPREADSHEET_ID: "test" });
 function archivio(): Archivio {
   return { clienti: [{ id: "cliente", ragioneSociale: "Cliente Test" }], utenti: [{ id: "utente", email: "coach@example.com", collaboratore: { id: "coach" } }],
     offerte: [{ id: "offerta", codice: "OFF-2026", clienteId: "cliente" }], giornate: [], rimborsi: [], registro: [] };
@@ -301,4 +301,16 @@ describe("chiave naturale collaboratore, data, cliente, offerta e ore", () => {
     expect(modificata.righe[0].stato).toBe("AGGIORNARE");
     expect(operazioni(modificata, [])).toMatchObject([{ azione: "AGGIORNA", destinazione: "giornata" }]);
   });
+});
+
+it("aggiorna i PAIR già importati mantenendo le ore intere e riconosce il successivo reimport", () => {
+  const a = archivio();
+  const raw = riga({ "tipologia fatturazione": "PAIR" });
+  const saved = { ...esistente(a, raw), categoria: "NON_FATTURABILE" as const, inAffiancamento: false };
+  a.giornate.push(saved);
+  const next = analizza(schede([raw]), a, cfg).righe[0];
+  expect(next.stato).toBe("AGGIORNARE");
+  expect(next.proposta).toMatchObject({ ore: "8.00", categoria: "FATTURABILE", inAffiancamento: true });
+  a.giornate[0] = { ...saved, ...next.proposta! };
+  expect(analizza(schede([raw]), a, cfg).righe[0].stato).toBe("PRESENTE");
 });

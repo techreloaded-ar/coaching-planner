@@ -32,7 +32,7 @@ async function refresh(id: string) { return db.importazioneLegacy.findUniqueOrTh
 
 beforeEach(async () => {
   sheet = `test-${randomUUID()}`; cliente = `Cliente ${sheet}`; email = `${sheet}@example.com`;
-  vi.stubEnv("IMPORTER_ENABLED", "true"); vi.stubEnv("IMPORTER_GOOGLE_SPREADSHEET_ID", sheet);
+  vi.stubEnv("IMPORTER_GOOGLE_SPREADSHEET_ID", sheet);
   vi.stubEnv("IMPORTER_GOOGLE_SERVICE_ACCOUNT_JSON", "configurazione-test-non-usata-per-la-scrittura");
   vi.stubEnv("IMPORTER_AI_BASE_URL", "");
   vi.stubEnv("IMPORTER_EMAIL_AMMINISTRATORI", "");
@@ -43,6 +43,29 @@ beforeEach(async () => {
 afterAll(async () => { vi.unstubAllEnvs(); await db.$disconnect(); });
 
 describe("persistenza reale importer (database dedicato)", () => {
+  it("sincronizza i periodi del coach esistente e disattiva l'accesso dopo la cessazione", async () => {
+    const s = schede([row()]);
+    s.coach = [
+      { id: "C1", email, nome: "Coach", cognome: "Test", dal_mese: "2018-01", al_mese: "2018-12", tipologia: "PERCENTUALE", importo: "30" },
+      { id: "C1", email, nome: "Coach", cognome: "Test", dal_mese: "2019-01", al_mese: "2020-12", tipologia: "FISSO_MENSILE", importo: "3500" },
+    ];
+    const { job, piano } = await preview(s);
+    expect(piano.anagrafiche.coach).toHaveLength(1);
+    expect(piano.anagrafiche.coach[0].tariffe).toHaveLength(2);
+    await applicaAnteprima(job.id, job.updatedAt.toISOString(), [], [], "");
+    const saved = await db.collaboratore.findUniqueOrThrow({ where: { id: collaboratoreId }, include: { tariffe: { orderBy: { validaDalMese: "asc" } }, utente: true } });
+    expect(saved.attivo).toBe(false); expect(saved.utente.attivo).toBe(false);
+    expect(saved.tariffe[0]).toMatchObject({ modalita: "PERCENTUALE", validaAlMese: "2018-12" });
+    expect(saved.tariffe[0].importo.toString()).toBe("30");
+    expect(saved.tariffe[1].validaAlMese).toBe("2020-12");
+    expect((await preview(s)).piano.anagrafiche.coach).toHaveLength(0);
+    s.coach.push({ id: "C1", email, nome: "Coach", cognome: "Test", dal_mese: "2021-01", al_mese: "", tipologia: "GIORNALIERA", importo: "500" });
+    const rientro = await preview(s);
+    await applicaAnteprima(rientro.job.id, rientro.job.updatedAt.toISOString(), [], [], "");
+    expect((await db.collaboratore.findUniqueOrThrow({ where: { id: collaboratoreId } })).attivo).toBe(true);
+    expect((await db.utente.findUniqueOrThrow({ where: { email } })).attivo).toBe(true);
+    expect(await db.tariffaCollaboratore.count({ where: { collaboratoreId } })).toBe(3);
+  });
   it("mantiene per default la giornata rimossa e cancella solo quella scelta, conservando le manuali", async () => {
     const prima = await preview(schede([row(), row({ data: "2026-11-06" })]));
     await applicaAnteprima(prima.job.id, prima.job.updatedAt.toISOString(), [], [], "");
@@ -229,7 +252,7 @@ describe("persistenza reale importer (database dedicato)", () => {
     await expect(applicaAnteprima(job.id, job.updatedAt.toISOString(), [], [], "")).rejects.toThrow("AZZERA TUTTO");
     expect(await db.utente.count()).toBe(prima);
     // Una tariffa oltre il range del DB fa fallire il commit dopo le cancellazioni.
-    piano.anagrafiche.coach[0].importo = "99999999999999999";
+    piano.anagrafiche.coach[0].tariffe![0].importo = "99999999999999999";
     const changed = await db.importazioneLegacy.update({ where: { id: job.id }, data: { piano: JSON.parse(JSON.stringify(piano)) } });
     await expect(applicaAnteprima(job.id, changed.updatedAt.toISOString(), [], [], "AZZERA TUTTO")).rejects.toThrow();
     expect(await db.utente.count()).toBe(prima);
@@ -240,12 +263,31 @@ describe("persistenza reale importer (database dedicato)", () => {
     const s = schede([row()]);
     s.clienti = [{ cliente }]; s.offerte = [{ data: "2026", cliente, offerta: "OFF" }];
     s.coach = [{ id: "C1", email, nome: "Coach", cognome: "Test", tipologia: "GIORNATA", importo: "400" }];
+    const adminPrima = await db.utente.findMany({ where: { ruolo: "AMMINISTRATORE" }, include: { account: true, session: true } });
     const { job } = await preview(s, "RESET");
     await applicaAnteprima(job.id, job.updatedAt.toISOString(), [], [], "AZZERA TUTTO");
-    expect(await db.utente.count()).toBe(1);
-    expect((await db.utente.findFirstOrThrow()).ruolo).toBe("AMMINISTRATORE");
+    expect(await db.utente.count()).toBe(adminPrima.length + 1);
+    expect((await db.utente.findUniqueOrThrow({ where: { email } })).ruolo).toBe("AMMINISTRATORE");
+    for (const admin of adminPrima) expect(await db.utente.findUniqueOrThrow({ where: { id: admin.id }, include: { account: true, session: true } })).toEqual(admin);
     expect(await db.rigaAttivita.count()).toBe(1);
     expect(await db.importazioneLegacy.findUnique({ where: { id: job.id } })).toBeNull();
     expect((await preview(s)).piano.righe[0].stato).toBe("PRESENTE");
   });
+});
+
+it("aggiorna un PAIR preesistente senza dimezzare le ore del coach né duplicare", async () => {
+  const s = schede([row({ "tipologia fatturazione": "PAIR" })]);
+  const first = await preview(s);
+  await applicaAnteprima(first.job.id, first.job.updatedAt.toISOString(), [], [], "");
+  const saved = await db.rigaAttivita.findFirstOrThrow({ where: { collaboratoreId } });
+  await db.rigaAttivita.update({ where: { id: saved.id }, data: { categoria: "NON_FATTURABILE", inAffiancamento: false } });
+  const next = await preview(s);
+  expect(next.piano.righe[0].stato).toBe("AGGIORNARE");
+  await applicaAnteprima(next.job.id, next.job.updatedAt.toISOString(), [], [], "");
+  expect(await db.rigaAttivita.count({ where: { collaboratoreId } })).toBe(1);
+  const updated = await db.rigaAttivita.findUniqueOrThrow({ where: { id: saved.id } });
+  expect(updated.inAffiancamento).toBe(true);
+  expect(updated.categoria).toBe("FATTURABILE");
+  expect(Number(updated.ore)).toBe(8);
+  expect((await preview(s)).piano.righe[0].stato).toBe("PRESENTE");
 });

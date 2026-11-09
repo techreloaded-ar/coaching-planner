@@ -19,7 +19,7 @@ const FIELD = "rounded-md border border-zinc-300 bg-white p-2 text-sm dark:borde
 function Cambiamenti({ prima, dopo, piano }: { prima: Giornata; dopo: Giornata; piano: Piano }) {
   const campi: [keyof Giornata, string][] = [
     ["collaboratoreId", "Coach"], ["data", "Data"], ["clienteId", "Cliente"], ["offertaId", "Offerta"],
-    ["ore", "Ore"], ["categoria", "Categoria"], ["rimborsoTrasfertaImporto", "Rimborso"],
+    ["ore", "Ore"], ["categoria", "Categoria"], ["inAffiancamento", "Affiancamento PAIR"], ["rimborsoTrasfertaImporto", "Rimborso"],
     ["rimborsoTrasfertaEtichetta", "Tipo rimborso"], ["nota", "Note"],
   ];
   const modificati = campi.filter(([campo]) => prima[campo] !== dopo[campo]);
@@ -28,7 +28,8 @@ function Cambiamenti({ prima, dopo, piano }: { prima: Giornata; dopo: Giornata; 
     if (campo === "offertaId") return piano.riferimenti.offerte.find((o) => o.id === g.offertaId)?.codice || "Da definire";
     if (campo === "collaboratoreId") return piano.riferimenti.coach.find((c) => c.id === g.collaboratoreId)?.etichetta || g.collaboratoreId;
     if (campo === "rimborsoTrasfertaImporto") return `${g[campo] ?? "0.00"} €`;
-    return g[campo] || "—";
+    if (campo === "inAffiancamento") return g.inAffiancamento ? "Sì: metà giornata al cliente" : "No";
+    return String(g[campo] || "—");
   }
   return <table aria-label="Campi modificati" className="mt-4 w-full table-fixed border-collapse text-left text-sm">
     <caption className="mb-2 text-left font-semibold">Campi modificati</caption>
@@ -180,7 +181,7 @@ export default function Anteprima({ piano, id, revisione, completata }: { piano:
       </section>}
       {nuoveAnagrafiche > 0 && <details className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
         <summary className="cursor-pointer font-semibold">Nuove anagrafiche ({nuoveAnagrafiche})</summary>
-        <p className="my-3 text-sm">{piano.modalita === "RESET" ? "Il reset sostituirà tutte le anagrafiche con quelle mostrate." : "I dati e i ruoli degli utenti esistenti restano invariati. Agli utenti senza profilo collaboratore verrà aggiunto il profilo indicato. Le nuove anagrafiche verranno aggiunte insieme alle giornate approvate."}</p>
+        <p className="my-3 text-sm">{piano.modalita === "RESET" ? "Il reset sostituirà le anagrafiche con quelle mostrate, conservando gli amministratori e i loro accessi." : "Identità e ruoli degli utenti esistenti restano invariati. I periodi e lo stato dei coach del foglio verranno sincronizzati. Agli utenti senza profilo collaboratore verrà aggiunto il profilo indicato. Le nuove anagrafiche verranno aggiunte insieme alle giornate approvate."}</p>
         {an.clienti.map((c) => <details key={c.id} className="my-2 rounded border border-zinc-200 p-3 dark:border-zinc-700">
           <summary>{c.ragioneSociale}{c.verifica ? " — estrazione AI da verificare" : ""}</summary>
           <h3 className="mt-3 text-sm font-semibold">Testo originale</h3><dl className="text-sm">{Object.entries(c.dettagli).filter(([, v]) => v).map(([k, v]) => <div key={k}><dt className="font-medium">{k}</dt><dd className="whitespace-pre-wrap">{v}</dd></div>)}</dl>
@@ -188,7 +189,10 @@ export default function Anteprima({ piano, id, revisione, completata }: { piano:
             <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" name="clienteAI" value={c.id} disabled={completata} />Confermo i dati AI di {c.ragioneSociale}</label><p className="text-xs">Senza conferma viene conservato soltanto il testo originale nelle note.</p></>}
         </details>)}
         {offerteDaCreare.map((o) => <p key={o.id} className="my-2 text-sm">Offerta {o.codice} — {piano.riferimenti.clienti.find((c) => c.id === o.clienteId)?.ragioneSociale} · {o.tariffaGiornaliera} €/giorno · {o.giorniPrevisti} giorni · {o.attiva ? "Aperta" : "Chiusa"} · Trasferte {o.gestioneTrasferta}{o.importoTrasfertaForfettaria ? ` ${o.importoTrasfertaForfettaria} €` : ""}</p>)}
-        {an.coach.map((c) => <p key={c.id} className="my-2 text-sm">{c.nome} {c.cognome} — {c.email} · {c.utenteEsistente ? "Profilo da aggiungere all’utente esistente (ruolo invariato)" : c.ruolo} · {c.modalita} {c.importo} € dal {c.dalMese}{c.partitaIva ? ` · P.IVA ${c.partitaIva}` : ""}</p>)}
+        {an.coach.map((c) => <div key={c.id} className="my-2 text-sm">
+          <p>{c.nome} {c.cognome} — {c.email} · {c.profiloEsistente ? "Aggiornamento storico e stato" : c.utenteEsistente ? "Profilo da aggiungere (ruolo invariato)" : c.ruolo} · {c.attivo === false ? "Collaboratore cessato / non attivo nel mese corrente" : "Collaboratore attivo"}</p>
+          <ul className="ml-4 list-disc">{(c.tariffe ?? [{ validaDalMese: c.dalMese, validaAlMese: null, modalita: c.modalita, importo: c.importo }]).map((t) => <li key={t.validaDalMese}>{t.validaDalMese} → {t.validaAlMese ?? "in corso"} · {t.modalita} {t.importo} {t.modalita === "PERCENTUALE" ? "% trattenuta" : "€"}</li>)}</ul>
+        </div>)}
       </details>}
       </section>
       {!completata && haOperazioni && <section aria-label="Azioni importazione" className="sticky bottom-0 z-20 shrink-0 space-y-1 border-t border-zinc-300 bg-white px-1 py-2 shadow-[0_-8px_16px_-16px_rgba(0,0,0,0.4)] dark:border-zinc-700 dark:bg-zinc-950 [@media(min-width:1024px)_and_(min-height:640px)]:static">

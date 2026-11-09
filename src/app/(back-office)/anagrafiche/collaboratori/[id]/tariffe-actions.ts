@@ -41,6 +41,7 @@ export async function salvaTariffaCollaboratore(
 
   const dati = {
     validaDalMese: campo(formData, "validaDalMese"),
+    validaAlMese: campo(formData, "validaAlMese") || null,
     modalita: campo(formData, "modalita"),
     importo: campo(formData, "importo"),
   };
@@ -64,6 +65,7 @@ export async function salvaTariffaCollaboratore(
 
   const valori = {
     validaDalMese: dati.validaDalMese,
+    ...(formData.has("validaAlMese") ? { validaAlMese: dati.validaAlMese } : {}),
     modalita: dati.modalita,
     importo,
   };

@@ -82,7 +82,7 @@ prima di decidere. Le giornate mantenute saranno segnalate anche alle analisi su
 Clienti e offerte mancanti sono aggiunti prima delle giornate; quelli già presenti
 vengono riutilizzati. Per un utente esistente senza profilo collaboratore viene
 aggiunto il profilo con la tariffa del foglio, conservando identità, ruolo, account
-Google e sessioni. Un profilo già esistente viene riutilizzato.
+Google e sessioni. Un profilo già esistente viene riutilizzato. Con il nuovo formato COACH, lo storico e lo stato del profilo vengono sincronizzati e mostrati nell’anteprima. Identità, ruolo e account degli utenti esistenti vengono conservati.
 
 Le regole di lettura di date, numeri e categorie sono condivise
 con `scripts/importa-storico`. L'importatore incrementale usa invece queste regole per le offerte:
@@ -116,16 +116,23 @@ periodo: la ricreazione delle giornate invalida le associazioni esistenti.
 
 ## Configurazione
 
+L'importatore è sempre disponibile agli amministratori. Le sole variabili
+obbligatorie sono documento sorgente e credenziali Google: usare il file reale
+in produzione e quello demo in preproduzione.
+
+Il formato è fisso: schede `CLIENTI`, `OFFERTE`, `COACH`, `GIORNATE`, cliente interno
+`AGILERELOADED` e cliente escluso `ND`. La tariffa iniziale del vecchio formato
+senza decorrenze parte da `2018-01`; il formato con periodi usa `DAL_MESE`.
+Queste regole non richiedono variabili d'ambiente. Le vecchie variabili
+`IMPORTER_ENABLED`, `IMPORTER_SCHEDA_*`, `IMPORTER_CLIENTE_INTERNO`,
+`IMPORTER_CLIENTI_ESCLUSI` e `IMPORTER_PRIMO_MESE_TARIFFA` non sono più lette e
+possono essere rimosse da Vercel.
+
 | Variabile | Significato |
 | --- | --- |
-| `IMPORTER_ENABLED` | `true` abilita il servizio |
 | `IMPORTER_GOOGLE_SPREADSHEET_ID` | ID del documento Google |
 | `IMPORTER_GOOGLE_SERVICE_ACCOUNT_JSON` | Chiave JSON completa del service account, segreto del server |
-| `IMPORTER_PRIMO_MESE_TARIFFA` | Mese della tariffa iniziale, predefinito `2018-01` |
 | `IMPORTER_EMAIL_AMMINISTRATORI` | Email dei nuovi coach amministratori; non cambia ruoli esistenti |
-| `IMPORTER_CLIENTE_INTERNO` | Predefinito `AGILERELOADED` |
-| `IMPORTER_CLIENTI_ESCLUSI` | Nomi separati da virgola, predefinito `ND` |
-| `IMPORTER_SCHEDA_CLIENTI`, `IMPORTER_SCHEDA_OFFERTE`, `IMPORTER_SCHEDA_COACH`, `IMPORTER_SCHEDA_GIORNATE` | Nomi delle schede |
 | `IMPORTER_AI_BASE_URL`, `IMPORTER_AI_API_KEY`, `IMPORTER_AI_MODEL` | Assistenza facoltativa via endpoint Chat Completions |
 
 Abilitare Google Sheets API e condividere il foglio come Visualizzatore con il
@@ -158,6 +165,63 @@ E2E_DATABASE_URL='postgresql://…@127.0.0.1:PORT/importer_browser_e2e' \
 E2E_PORT=3108 npx playwright test --config tests/integration/playwright.config.ts
 ```
 
-Le anteprime precedenti alla versione 4 sono incompatibili e non vengono proposte; avviare una nuova
+Le anteprime precedenti alla versione 6 sono incompatibili e non vengono proposte; avviare una nuova
 lettura. Il vecchio reset completo resta protetto lato servizio per compatibilità,
 ma non è esposto nel flusso ordinario di append/aggiornamento.
+
+
+## COACH con decorrenze e cessazioni
+
+Il tab COACH contiene una riga per periodo, con colonne `ID`, `NOME`,
+`COGNOME`, `EMAIL`, `DAL_MESE`, `AL_MESE`, `TIPOLOGIA`, `IMPORTO`.
+Lo stesso ID/email può comparire più volte con anagrafica coerente. ID diversi
+non possono condividere un'email. I periodi vengono ordinati prima di importarli.
+
+- `DAL_MESE` è obbligatorio nel nuovo formato: `YYYY-MM`.
+- `AL_MESE` è inclusivo; vuoto significa periodo aperto. Una riga aperta non
+  può precedere un altro periodo: chiuderla esplicitamente. Sono ammessi buchi
+  per interruzioni e rientri. Sovrapposizioni, doppie decorrenze e date invalide
+  bloccano l'analisi prima di qualsiasi scrittura.
+- `TIPOLOGIA`: `GIORNALIERA`, `FISSO_MENSILE`, `PERCENTUALE`. Restano accettati
+  gli alias legacy GIORNATA e FISSO. `IMPORTO` è in euro per i primi due tipi,
+  in percentuale trattenuta dall'azienda per il terzo: 30 significa 70% al coach.
+- Il collaboratore è attivo se ha un periodo valido nel mese corrente. In caso
+  contrario profilo e accesso collaboratore sono disattivati, conservando tutte
+  le attività storiche. L'accesso amministratore non viene disattivato.
+- Il reset conserva gli utenti amministratori, account OAuth e sessioni; ricrea
+  i dati applicativi e gli eventuali loro profili collaboratore dal foglio.
+- L'incrementale propone anche aggiornamenti di periodi e stato dei coach
+  presenti nel foglio. Non elimina utenti manuali assenti dal foglio.
+- Il vecchio formato senza DAL_MESE conserva la tariffa iniziale configurata;
+  non sovrascrive i profili collaboratore già censiti.
+
+Le scadenze sono conservate nel database e rispettate da riepilogo,
+fatturazione e marginalità, anche per collaboratori oggi cessati.
+
+### Verifica locale con fotografia del foglio
+
+`scripts/verifica-importazione-locale.ts` esercita il servizio transazionale
+reale con una fotografia JSON delle quattro matrici Google (`coach`, `clienti`,
+`offerte`, `giornate`, intestazioni incluse). Richiede DATABASE_URL esplicita,
+accetta soltanto il database locale `coaching_planner` e richiede `--reset`.
+Non legge file .env. Eseguire prima un backup del database.
+
+```sh
+DATABASE_URL='postgresql://…@127.0.0.1:5432/coaching_planner' \
+NODE_OPTIONS='--conditions=react-server' \
+npx tsx scripts/verifica-importazione-locale.ts /percorso/source.json --reset
+```
+
+Questa prova distruttiva conserva gli amministratori, importa le righe valide,
+associa le offerte ambigue a SENZA CODICE e registra gli eventuali scarti nel
+report JSON accanto alla fotografia. Verifica stato e periodi, preservazione
+degli amministratori e un secondo import incrementale senza duplicazioni.
+
+### Attività PAIR
+
+Una riga PAIR è fatturabile in affiancamento: conserva tutte le ore lavorate e
+pagate al coach; fatturazione cliente, marginalità e avanzamento offerta contano
+metà di quelle ore. Le trasferte non vengono dimezzate. L'import incrementale
+aggiorna anche i PAIR precedentemente classificati come non fatturabili.
+Le righe ND sono scarti attesi e non costituiscono differenze di riconciliazione.
+L'anteprima usa la versione 6: rigenerare le anteprime precedenti.

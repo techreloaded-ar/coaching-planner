@@ -32,7 +32,7 @@ export async function elencaCollaboratori(): Promise<CollaboratoreConTariffe[]> 
     orderBy: { cognome: "asc" },
     include: {
       utente: { select: { email: true } },
-      tariffe: { select: { validaDalMese: true, modalita: true, importo: true } },
+      tariffe: { select: { validaDalMese: true, validaAlMese: true, modalita: true, importo: true } },
     },
   });
 
@@ -57,7 +57,7 @@ export async function storicoTariffeCollaboratore(
   const tariffe = await db.tariffaCollaboratore.findMany({
     where: { collaboratoreId },
     orderBy: { validaDalMese: "desc" },
-    select: { id: true, validaDalMese: true, modalita: true, importo: true },
+    select: { id: true, validaDalMese: true, validaAlMese: true, modalita: true, importo: true },
   });
 
   return tariffe.map((tariffa) => ({ ...tariffa, importo: tariffa.importo.toFixed(2) }));

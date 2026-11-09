@@ -4,7 +4,7 @@ import { leggiGoogle } from "@/lib/importer-legacy/google";
 import { configurazioneImporter } from "@/lib/importer-legacy/config";
 
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
-const cfg = configurazioneImporter({ IMPORTER_ENABLED: "true", IMPORTER_GOOGLE_SPREADSHEET_ID: "test-id",
+const cfg = configurazioneImporter({ IMPORTER_GOOGLE_SPREADSHEET_ID: "test-id",
   IMPORTER_GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify({ client_email: "test@project.iam.gserviceaccount.com", private_key: privateKey.export({ type: "pkcs8", format: "pem" }) }) });
 const ranges = [
   { values: [["Cliente"], ["Esempio"]] }, { values: [["Data", "Cliente", "Offerta"]] },

@@ -130,6 +130,7 @@ model TariffaCollaboratore {
   id              String          @id @default(uuid())
   collaboratoreId String
   validaDalMese   String // YYYY-MM
+  validaAlMese    String? // YYYY-MM incluso; null = fino alla decorrenza successiva
   modalita        ModalitaTariffa
   importo         Decimal         @db.Decimal(10, 2)
   createdAt       DateTime        @default(now())
@@ -218,6 +219,7 @@ model RigaAttivita {
   ore                        Decimal  @db.Decimal(4, 2)
   nota                       String?  @db.Text
   categoria                  CategoriaAttivita @default(FATTURABILE)
+  inAffiancamento             Boolean           @default(false)
   rimborsoTrasfertaEtichetta String?
   rimborsoTrasfertaImporto   Decimal? @db.Decimal(10, 2)
   createdAt                  DateTime @default(now())

@@ -1,7 +1,7 @@
 import { ErroreImporter } from "./errori";
 import { createHash, randomUUID } from "node:crypto";
 import { categoriaDaTipologia, cercaOfferta, leggiData, leggiNumero, normalizzaTesto, CODICE_OFFERTA_MANCANTE } from "@/domain/righe-sospese/abbinamento";
-import { validaCensimentoUtente } from "@/domain/anagrafiche/valida-utente";
+import { preparaCoach } from "./coach";
 import { LUNGHEZZA_MASSIMA_CODICE } from "@/domain/anagrafiche/valida-offerta";
 import { cella } from "../../../scripts/importa-storico/foglio";
 import type { ConfigImporter } from "./config";
@@ -12,7 +12,7 @@ export function hash(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 export function impronta(g: Giornata): string {
-  return hash([g.collaboratoreId, g.clienteId, g.offertaId, g.data, Number(g.ore), g.categoria,
+  return hash([g.collaboratoreId, g.clienteId, g.offertaId, g.data, Number(g.ore), g.categoria, Boolean(g.inAffiancamento),
     g.rimborsoTrasfertaImporto === null ? null : Number(g.rimborsoTrasfertaImporto), g.rimborsoTrasfertaEtichetta, g.nota]);
 }
 export function revisioneArchivio(a: Archivio): string {
@@ -27,7 +27,6 @@ export function normalizzaRiga(row: Celle): Celle {
   return raw;
 }
 const nome = (s: string) => s.replace(/\s+/g, " ").trim();
-const iniziali = (s: string) => nome(s).toLowerCase().replace(/(^|[\s'’-])\p{L}/gu, (c) => c.toUpperCase());
 const euro = (n: number) => Math.round(n * 100) / 100;
 
 export function preparaAnagrafiche(s: Schede, a: Archivio, cfg: ConfigImporter): Anagrafiche {
@@ -68,28 +67,7 @@ export function preparaAnagrafiche(s: Schede, a: Archivio, cfg: ConfigImporter):
       attiva: /^(APERTA|SI|SÌ)$/.test(normalizzaTesto(cella(r, "STATO", "Attiva"))), numeroOrdine: cella(r, "Numero Ordine / BEF") || null,
       accountAgileReloaded: cella(r, "Account") || null });
   }
-  const utentiPerEmail = new Map(a.utenti.map((u) => [u.email.toLowerCase(), u]));
-  const ids = new Set<string>();
-  const sourceEmails = new Set<string>();
-  for (const [i, r] of s.coach.entries()) {
-    const id = normalizzaTesto(cella(r, "ID"));
-    if (!id) continue;
-    const email = cella(r, "Email").toLowerCase();
-    if (ids.has(id) || sourceEmails.has(email)) throw new ErroreImporter(`COACH, riga ${i + 2}: ID o email ripetuti. Correggi il foglio prima di analizzarlo.`);
-    ids.add(id); sourceEmails.add(email);
-    const utenteEsistente = utentiPerEmail.get(email);
-    if (utenteEsistente?.collaboratore) continue;
-    const nome = iniziali(cella(r, "Nome")), cognome = iniziali(cella(r, "Cognome"));
-    const tipo = cella(r, "Tipologia", "Tipo Tariffa");
-    const modalita = /giorn/i.test(tipo) ? "GIORNALIERA" : /fiss|mens/i.test(tipo) ? "FISSO_MENSILE" : null;
-    const importo = leggiNumero(cella(r, "Importo", "Tariffa"));
-    const partitaIva = cella(r, "Partita Iva");
-    const admin = cfg.amministratori.includes(email);
-    const errors = validaCensimentoUtente({ nome, cognome, email, partitaIva, ruoloAmministratore: admin, ruoloCollaboratore: true,
-      modalitaTariffa: modalita || "", importoTariffa: importo?.toFixed(2) || "", tariffaValidaDalMese: cfg.dalMese });
-    if (!modalita || !importo || Object.keys(errors).length) { result.avvisi.push(`COACH, riga ${i + 2} (${email}): tariffa o dati non validi. ${Object.values(errors).join("; ")}`); continue; }
-    result.coach.push({ id: randomUUID(), userId: utenteEsistente?.id ?? randomUUID(), utenteEsistente: Boolean(utenteEsistente), nome, cognome, email, partitaIva, ruolo: admin ? "AMMINISTRATORE" : "COLLABORATORE", modalita, importo: importo.toFixed(2), dalMese: cfg.dalMese });
-  }
+  result.coach = preparaCoach(s.coach, a, cfg, result.avvisi);
   return result;
 }
 
@@ -146,14 +124,14 @@ export function preparaGiornata(row: Celle, s: Schede, a: Archivio, an: Anagrafi
       : `Importazione storico: offerta “${codiceOriginale}” ${senzaCodice.motivo === "AMBIGUA" ? "ambigua; associata a SENZA CODICE per scelta dell’amministratore" : "non trovata; associata a SENZA CODICE"}.`);
   }
   return { proposta: { collaboratoreId, clienteId, offertaId, data,
-    ore: ore.toFixed(2), categoria, rimborsoTrasfertaImporto: rimborso,
+    ore: ore.toFixed(2), categoria, inAffiancamento: tipologia === "PAIR", rimborsoTrasfertaImporto: rimborso,
     rimborsoTrasfertaEtichetta: rimborso ? a.rimborsi.find((r) => Number(r.importo) === Number(rimborso))?.etichetta ?? "Spese dal foglio storico" : null,
     nota: appendiNote(cella(row, "Note", "Nota"), ...note) }, senzaCodice,
     motivo: senzaCodice ? ("motivo" in ricerca ? ricerca.nota : "Codice offerta non indicato.") : dedotta ? `Offerta dedotta: ${dedotta}.` : "Giornata nuova." };
 }
 
 export function analizza(s: Schede, archivio: Archivio, cfg: ConfigImporter, modalita: Piano["modalita"] = "INCREMENTALE"): Piano {
-  const a: Archivio = modalita === "RESET" ? { clienti: [], utenti: [], offerte: [], giornate: [], rimborsi: [], registro: [] } : archivio;
+  const a: Archivio = modalita === "RESET" ? { clienti: [], utenti: archivio.utenti.filter((u) => u.ruolo === "AMMINISTRATORE").map((u) => ({ ...u, collaboratore: null })), offerte: [], giornate: [], rimborsi: [], registro: [] } : archivio;
   const anagrafiche = preparaAnagrafiche(s, a, cfg);
   // Le identità usano riferimenti già risolti, date ISO e ore numeriche:
   // formati del foglio, note e colonne accessorie non cambiano la chiave.
@@ -270,7 +248,7 @@ export function analizza(s: Schede, archivio: Archivio, cfg: ConfigImporter, mod
       motivo: "Giornata importata da questo documento, non più ritrovata nel foglio. È proposta l’eliminazione alla conferma dell’importazione; puoi scegliere di mantenerla nell’app." });
     protette.add(esistente.id);
   }
-  return { versione: 4, origine: cfg.id, modalita, revisioneArchivio: revisioneArchivio(archivio), anagrafiche, righe,
+  return { versione: 6, origine: cfg.id, modalita, revisioneArchivio: revisioneArchivio(archivio), anagrafiche, righe,
     schede: s, riferimenti: { clienti: [...a.clienti, ...anagrafiche.clienti].map(({ id, ragioneSociale }) => ({ id, ragioneSociale })),
       offerte: [...a.offerte, ...anagrafiche.offerte].map(({ id, codice, clienteId }) => ({ id, codice, clienteId })),
       coach: [...a.utenti.filter((u) => u.collaboratore).map((u) => ({ id: u.collaboratore!.id, etichetta: u.email })), ...anagrafiche.coach.map((c) => ({ id: c.id, etichetta: `${c.nome} ${c.cognome} (${c.email})` }))] },

@@ -39,6 +39,7 @@ type DatiRigaDiOrigine = Pick<
   | "ore"
   | "nota"
   | "categoria"
+  | "inAffiancamento"
   | "rimborsoTrasfertaEtichetta"
   | "rimborsoTrasfertaImporto"
 >;
@@ -120,6 +121,7 @@ async function caricaRigaDelCollaboratore(
       ore: true,
       nota: true,
       categoria: true,
+      inAffiancamento: true,
       rimborsoTrasfertaEtichetta: true,
       rimborsoTrasfertaImporto: true,
     },
@@ -147,6 +149,7 @@ async function caricaRigaDelCollaboratore(
       ore: riga.ore,
       nota: riga.nota,
       categoria: riga.categoria,
+      inAffiancamento: riga.inAffiancamento,
       rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta,
       rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto,
     },
@@ -724,6 +727,7 @@ export async function duplicaRigaSuGiorni(
         ore: riga.ore,
         nota: riga.nota,
         categoria: riga.categoria,
+        inAffiancamento: riga.inAffiancamento,
         rimborsoTrasfertaEtichetta: riga.rimborsoTrasfertaEtichetta,
         rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto,
       };

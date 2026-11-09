@@ -154,7 +154,7 @@ describe("DAL collaboratori", () => {
         orderBy: { cognome: "asc" },
         include: {
           utente: { select: { email: true } },
-          tariffe: { select: { validaDalMese: true, modalita: true, importo: true } },
+          tariffe: { select: { validaDalMese: true, validaAlMese: true, modalita: true, importo: true } },
         },
       });
       expect(result).toHaveLength(2);
@@ -266,7 +266,7 @@ describe("DAL collaboratori", () => {
       expect(mockTariffaCollaboratore.findMany).toHaveBeenCalledWith({
         where: { collaboratoreId: "collab-1" },
         orderBy: { validaDalMese: "desc" },
-        select: { id: true, validaDalMese: true, modalita: true, importo: true },
+        select: { id: true, validaDalMese: true, validaAlMese: true, modalita: true, importo: true },
       });
       expect(result).toEqual([
         { id: "t2", validaDalMese: "2026-07", modalita: "FISSO_MENSILE", importo: "6500.00" },

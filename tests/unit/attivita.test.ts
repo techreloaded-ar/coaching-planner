@@ -873,7 +873,7 @@ describe("offerteAttivePerCliente", () => {
     const result = await offerteAttivePerCliente("cliente-1", "collab-1");
 
     expect(mockRigaAttivita.groupBy).toHaveBeenCalledWith({
-      by: ["offertaId", "categoria"],
+      by: ["offertaId", "categoria", "inAffiancamento"],
       where: {
         offertaId: { in: ["offerta-esaurita", "offerta-oltre", "offerta-senza-budget"] },
       },

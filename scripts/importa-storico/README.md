@@ -135,7 +135,7 @@ report `lavoro/righe-sospese.csv`. In particolare:
 - `Ore` vuote → `Giorni Fatturati verso Cliente` × 8, altrimenti 0 con nota; ore zero o
   superiori a 24 entrano così come sono (vincolo solo del form, non del database);
 - `Tipologia Fatturazione`: FATTURABILE, NON FATTURABILE, INVESTIMENTO, più i valori
-  storici PIANIFICATA (fatturabile) e PAIR (non fatturabile); vuota → fatturabile, tranne
+  storici PIANIFICATA (fatturabile) e PAIR (fatturabile al 50% al cliente, ore intere al coach); vuota → fatturabile, tranne
   per `CLIENTE_INTERNO` → non fatturabile;
 - `Spese Coach` > 0 → rimborso trasferta sulla riga, con l'etichetta della voce di rimborso
   che ha lo stesso importo, altrimenti "Spese dal foglio storico";

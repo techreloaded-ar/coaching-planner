@@ -36,6 +36,7 @@ export interface TariffaApplicata {
   importo: string;
   /** Mese YYYY-MM da cui la tariffa è valida */
   validaDalMese: string;
+  validaAlMese?: string | null;
 }
 
 /**
@@ -43,7 +44,7 @@ export interface TariffaApplicata {
  * decorrenza più recente non successivo a `mese`. `null` se il mese precede la
  * prima voce. I token YYYY-MM si confrontano correttamente come stringhe.
  */
-export function tariffaValidaNelMese<T extends { validaDalMese: string }>(
+export function tariffaValidaNelMese<T extends { validaDalMese: string; validaAlMese?: string | null }>(
   voci: readonly T[],
   mese: string,
 ): T | null {
@@ -56,13 +57,14 @@ export function tariffaValidaNelMese<T extends { validaDalMese: string }>(
       valida = voce;
     }
   }
-  return valida;
+  return valida?.validaAlMese && valida.validaAlMese < mese ? null : valida;
 }
 
 // ── Validazione ─────────────────────────────────────────────────
 
 export interface DatiVoceTariffaInput {
   validaDalMese: string;
+  validaAlMese?: string | null;
   modalita: string;
   importo: string;
 }
@@ -82,6 +84,9 @@ export function validaVoceTariffa(dati: DatiVoceTariffaInput): ErroriValidazione
 
   if (!parseTokenMese(dati.validaDalMese.trim())) {
     errori.validaDalMese = "Indica il mese da cui la tariffa è valida";
+  }
+  if (dati.validaAlMese && (!parseTokenMese(dati.validaAlMese) || dati.validaAlMese < dati.validaDalMese)) {
+    errori.validaAlMese = "Indica un mese finale non precedente alla decorrenza";
   }
 
   if (!eModalitaTariffa(dati.modalita)) {
@@ -119,7 +124,7 @@ export function etichettaMeseTariffa(token: string): string {
  * Periodo di validità di ogni voce dello storico, indicizzato per voce.
  * L'ultima voce resta aperta ("→ in corso").
  */
-export function periodiDiValidita<T extends { validaDalMese: string }>(
+export function periodiDiValidita<T extends { validaDalMese: string; validaAlMese?: string | null }>(
   voci: readonly T[],
 ): Map<T, string> {
   const ordinate = [...voci].sort((a, b) => a.validaDalMese.localeCompare(b.validaDalMese));
@@ -127,8 +132,10 @@ export function periodiDiValidita<T extends { validaDalMese: string }>(
     ordinate.map((voce, indice) => {
       const successiva = ordinate[indice + 1];
       const inizio = etichettaMeseTariffa(voce.validaDalMese);
-      if (!successiva) return [voce, `${inizio} → in corso`];
-      const fine = mesePrecedente(successiva.validaDalMese);
+      if (!successiva && !voce.validaAlMese) return [voce, `${inizio} → in corso`];
+      const prossimaFine = successiva ? mesePrecedente(successiva.validaDalMese) : null;
+      const fine = voce.validaAlMese && (!prossimaFine || voce.validaAlMese < prossimaFine)
+        ? voce.validaAlMese : prossimaFine!;
       return [
         voce,
         fine === voce.validaDalMese ? inizio : `${inizio} → ${etichettaMeseTariffa(fine)}`,

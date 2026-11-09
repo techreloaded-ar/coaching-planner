@@ -84,7 +84,7 @@ const CATEGORIA_PER_TIPOLOGIA: Record<string, CategoriaAttivita> = {
   INVESTIMENTO: "INVESTIMENTO",
   // Valori storici del foglio
   PIANIFICATA: "FATTURABILE",
-  PAIR: "NON_FATTURABILE",
+  PAIR: "FATTURABILE",
 };
 
 /**
