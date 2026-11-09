@@ -95,7 +95,7 @@ test.describe("US-035 Demo", () => {
 
     // ── 1. Login amministratore e apertura "Offerte" dalla sidebar ─
     await accediAlBackOfficeComeAdmin(page);
-    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+    await expect(avatarUtente(page, "Stefano Leli")).toBeVisible();
     await apriPaginaOfferte(page);
     // L'elenco è paginato: le offerte della demo si ritrovano con la ricerca.
     await cercaNellElenco(page, "/offerte", clienteDemo.ragioneSociale);

@@ -23,7 +23,7 @@ test.describe("US-007 Demo", () => {
 	test("ciclo di vita cliente: crea → modifica con note → prima offerta", async ({ page }) => {
 		await accediAlBackOfficeComeAdmin(page);
 
-		await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+		await expect(avatarUtente(page, "Stefano Leli")).toBeVisible();
 		await apriMenuAccount(page);
 		await expect(pannelloAccount(page)).toContainText("Amministratore");
 		await page.keyboard.press("Escape");

@@ -183,6 +183,8 @@ export async function reportMarginalitaPeriodo(
     db.collaboratore.findMany({
       select: {
         id: true,
+        nome: true,
+        cognome: true,
         attivo: true,
         tariffe: {
           where: { validaDalMese: { lte: a } },
@@ -194,6 +196,12 @@ export async function reportMarginalitaPeriodo(
 
   const tariffePerCollaboratore = new Map(
     collaboratori.map((collaboratore) => [collaboratore.id, collaboratore.tariffe]),
+  );
+  const nominativiCollaboratori = new Map(
+    collaboratori.map((collaboratore) => [
+      collaboratore.id,
+      `${collaboratore.nome} ${collaboratore.cognome}`,
+    ]),
   );
 
   const righe: RigaMarginalita[] = righeDb.map((riga) => {
@@ -210,6 +218,7 @@ export async function reportMarginalitaPeriodo(
       offertaDescrizione: riga.offerta?.descrizione ?? DESCRIZIONE_SENZA_OFFERTA,
       tariffaOffertaGiornaliera: riga.offerta?.tariffaGiornaliera?.toString() ?? 0,
       collaboratoreId: riga.collaboratoreId,
+      collaboratoreNominativo: nominativiCollaboratori.get(riga.collaboratoreId),
       mese,
       modalitaTariffaCollaboratore: tariffa?.modalita ?? null,
       importoTariffaCollaboratore: tariffa?.importo.toString() ?? 0,

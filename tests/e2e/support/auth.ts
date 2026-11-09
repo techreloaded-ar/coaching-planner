@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { NOME_COOKIE_SESSIONE } from "../../../src/lib/session-config";
 
-export const EMAIL_ADMIN_E2E = "info@techreloaded.it";
+export const EMAIL_ADMIN_E2E = "stefano.leli@agilereloaded.it";
 export const EMAIL_COLLABORATORE_E2E = "giulia.conti@agilereloaded.it";
 
 /** Setup dei test di business: crea la stessa sessione del login simulato,

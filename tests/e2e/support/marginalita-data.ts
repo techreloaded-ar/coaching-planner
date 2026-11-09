@@ -68,6 +68,7 @@ export async function creaDatasetMarginalita(factory: E2eDataFactory) {
 
   return {
     cliente,
+    collaboratore,
     offertaA,
     offertaB,
     meseUno: mesePassatoRiservato(CODICE_SPEC_MARGINALITA, 2),

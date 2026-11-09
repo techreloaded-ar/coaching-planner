@@ -65,7 +65,7 @@ test.describe("US-006 Demo", () => {
 
     await accediAlBackOfficeComeAdmin(page);
 
-    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+    await expect(avatarUtente(page, "Stefano Leli")).toBeVisible();
     await apriMenuAccount(page);
     await expect(pannelloAccount(page)).toContainText("Amministratore");
     await page.keyboard.press("Escape");
