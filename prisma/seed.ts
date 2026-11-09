@@ -68,6 +68,20 @@ async function main() {
     `✓ Creato amministratore: ${admin2.nome} ${admin2.cognome} (${admin2.email})`,
   );
 
+  // Amministratore di riferimento per il login dei test end-to-end.
+  const adminTest = await prisma.utente.create({
+    data: {
+      nome: "Tech",
+      cognome: "Reloaded",
+      email: "info@techreloaded.it",
+      ruolo: "AMMINISTRATORE",
+      attivo: true,
+    },
+  });
+  console.log(
+    `✓ Creato amministratore: ${adminTest.nome} ${adminTest.cognome} (${adminTest.email})`,
+  );
+
   // ── Utente Collaboratore ─────────────────────────────────────
   // Utente distinto dall'amministratore, senza password.
   const collabUser = await prisma.utente.create({
@@ -363,6 +377,7 @@ async function main() {
   console.log("\n🔐 Accesso tramite Google OAuth:");
   console.log("   Amministratore → stefano.leli@agilereloaded.it (Back Office)");
   console.log("   Amministratore → stefano.marello@agilereloaded.it (Back Office)");
+  console.log("   Amministratore → info@techreloaded.it (Back Office)");
   console.log("   Collaboratore  → giulia.conti@agilereloaded.it (Front Office)");
   console.log("   Collaboratore  → marco.bianchi@agilereloaded.it (Front Office)");
   console.log("   Qualsiasi altra email Google → accesso negato (messaggio generico)");
