@@ -212,7 +212,7 @@ export default function ReportMarginalita({
                             <span className={classeCodiceOfferta(null)}>{offerta.offertaCodice}</span>
                           ) : (
                             <Link
-                              href={`/anagrafiche/clienti/${cliente.clienteId}/offerte/${offerta.offertaId}`}
+                              href={`/anagrafiche/clienti/${cliente.clienteId}`}
                               className={`${classeCodiceOfferta(offerta.offertaId)} no-underline transition hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-300`}
                             >
                               {offerta.offertaCodice}

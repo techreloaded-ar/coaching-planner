@@ -157,7 +157,7 @@ test.describe("Dettaglio marginalità del cliente", () => {
     await page.waitForURL(`**/report/marginalita?da=${meseUno}&a=${meseDue}`);
   });
 
-  test("nome del cliente e codice dell'offerta aprono le anagrafiche", async ({
+  test("nome del cliente e codice dell'offerta aprono l'anagrafica del cliente", async ({
     page,
     factory,
   }) => {
@@ -173,7 +173,10 @@ test.describe("Dettaglio marginalità del cliente", () => {
 
     await page.goto(`/report/marginalita?da=${meseUno}&a=${meseDue}`);
     await scheda.getByRole("link", { name: offertaA.codice, exact: true }).click();
-    await page.waitForURL(`**/anagrafiche/clienti/${cliente.id}/offerte/${offertaA.id}`);
+    await page.waitForURL(`**/anagrafiche/clienti/${cliente.id}`);
+    await expect(
+      page.getByRole("heading", { level: 1, name: cliente.ragioneSociale }),
+    ).toBeVisible();
   });
 
   test("il nome del collaboratore apre le sue attività filtrate per mese, cliente e offerta", async ({
