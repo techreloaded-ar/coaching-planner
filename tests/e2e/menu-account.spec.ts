@@ -75,16 +75,16 @@ test.describe("Menu dell'account sull'avatar", () => {
 
 		await expect(sidebar.getByRole("navigation", { name: "Navigazione principale" })).toBeVisible();
 		await expect(sidebar.getByRole("link", { name: "Clienti", exact: true })).toBeVisible();
-		await expect(sidebar.getByText("Tech Reloaded")).toHaveCount(0);
+		await expect(sidebar.getByText("Stefano Leli")).toHaveCount(0);
 		await expect(sidebar.getByText("Amministratore", { exact: true })).toHaveCount(0);
 		await expect(sidebar.getByRole("button", { name: "Esci" })).toHaveCount(0);
-		await expect(page.getByRole("banner").getByText("Tech Reloaded")).toHaveCount(0);
+		await expect(page.getByRole("banner").getByText("Stefano Leli")).toHaveCount(0);
 
 		await expect(page.getByTestId("menu-account")).toHaveAttribute("data-idratata", "true");
 		await pulsanteMenuAccount(page).focus();
 		await page.keyboard.press("Enter");
 		await expect(pannelloAccount(page)).toBeVisible();
-		await expect(pannelloAccount(page)).toContainText("Tech Reloaded");
+		await expect(pannelloAccount(page)).toContainText("Stefano Leli");
 		await expect(pannelloAccount(page)).toContainText(EMAIL_ADMIN_E2E);
 		await expect(pannelloAccount(page).getByText("Amministratore", { exact: true })).toBeVisible();
 

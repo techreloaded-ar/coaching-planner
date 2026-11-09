@@ -45,7 +45,7 @@ test.describe("US-027 Demo", () => {
     await accediAlBackOfficeComeAdmin(page);
 
     // 5. Verifica che l'header mostri il nome utente e il ruolo
-    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+    await expect(avatarUtente(page, "Stefano Leli")).toBeVisible();
     await apriMenuAccount(page);
     await expect(pannelloAccount(page)).toContainText("Amministratore");
 

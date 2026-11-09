@@ -128,7 +128,7 @@ test.describe("US-015 Demo", () => {
 
     // ── 1. Login amministratore tramite endpoint e2e ──────────────
     await accediAlBackOfficeComeAdmin(page);
-    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+    await expect(avatarUtente(page, "Stefano Leli")).toBeVisible();
 
     // ── 2. Apre "Fatturazione clienti" dalla sidebar ───────────────
     await page

@@ -81,7 +81,7 @@ test.describe("US-025 Demo", () => {
 
     // ── 1. Login amministratore e apertura "Offerte" dalla sidebar ─
     await accediAlBackOfficeComeAdmin(page);
-    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+    await expect(avatarUtente(page, "Stefano Leli")).toBeVisible();
 
     await page
       .getByRole("link", { name: "Offerte", exact: true })

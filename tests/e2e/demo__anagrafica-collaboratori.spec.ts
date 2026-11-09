@@ -37,7 +37,7 @@ test.describe("US-047 Demo", () => {
 
     // ── 2. Naviga a Collaboratori dalla sidebar ────────────────────
 
-    await expect(avatarUtente(page, "Tech Reloaded")).toBeVisible();
+    await expect(avatarUtente(page, "Stefano Leli")).toBeVisible();
 
     await page
       .getByRole("link", { name: "Collaboratori", exact: true })
