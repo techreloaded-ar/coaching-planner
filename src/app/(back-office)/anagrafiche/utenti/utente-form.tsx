@@ -330,7 +330,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                   defaultValue={valoreIniziale("importoTariffa", "")}
                   errore={stato.errori.importoTariffa}
                   facoltativo
-                  hint="Facoltativa. Euro al giorno o al mese secondo la modalità, virgola per i decimali (massimo 2)."
+                  hint="Facoltativa. Euro al giorno o al mese, o percentuale trattenuta, secondo la modalità; virgola per i decimali (massimo 2)."
                 />
                 <Campo
                   label="Tariffa valida dal mese"

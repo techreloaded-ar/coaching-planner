@@ -6,11 +6,10 @@ import { elencaOfferteAbilitate, elencaOfferteAbilitabili } from "@/lib/abilitaz
 import { tokenMeseCorrente } from "@/domain/calendario";
 import {
   ETICHETTA_MODALITA_TARIFFA,
-  UNITA_TARIFFA,
   etichettaMeseTariffa,
   tariffaValidaNelMese,
 } from "@/domain/tariffe";
-import { formattaEuro } from "@/lib/formattazione";
+import { descriviImportoTariffa } from "@/lib/formattazione";
 import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
 import AbilitazioniOfferte from "./abilitazioni-offerte";
 import StoricoTariffe from "./storico-tariffe";
@@ -113,7 +112,7 @@ export default async function DettaglioCollaboratorePage({ params }: DettaglioCo
           {tariffaAttuale ? (
             <>
               <div className="mt-[2px] text-[16px] font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
-                {formattaEuro(tariffaAttuale.importo)} {UNITA_TARIFFA[tariffaAttuale.modalita]}
+                {descriviImportoTariffa(tariffaAttuale.modalita, tariffaAttuale.importo)}
               </div>
               <div className="text-[11.5px] text-zinc-500 dark:text-zinc-400">
                 {ETICHETTA_MODALITA_TARIFFA[tariffaAttuale.modalita]} · da{" "}

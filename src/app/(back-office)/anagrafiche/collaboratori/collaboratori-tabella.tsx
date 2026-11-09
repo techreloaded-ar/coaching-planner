@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CollaboratoreConUtente } from "@/lib/collaboratori";
-import { formattaEuro } from "@/lib/formattazione";
+import { descriviImportoTariffa, formattaEuro } from "@/lib/formattazione";
 import { UNITA_TARIFFA, type TariffaApplicata } from "@/domain/tariffe";
 
 // ── Props ──────────────────────────────────────────────────────
@@ -143,7 +143,9 @@ export default function CollaboratoriTabella({ collaboratori }: CollaboratoriTab
                   </td>
                   <td className="px-4 py-[13px] align-middle tabular-nums">{collaboratore.partitaIva ?? "—"}</td>
                   <td className="px-4 py-[13px] text-right align-middle tabular-nums">
-                    {collaboratore.tariffaInVigore ? (
+                    {collaboratore.tariffaInVigore?.modalita === "PERCENTUALE" ? (
+                      descriviImportoTariffa("PERCENTUALE", collaboratore.tariffaInVigore.importo)
+                    ) : collaboratore.tariffaInVigore ? (
                       <>
                         {formattaEuro(collaboratore.tariffaInVigore.importo)}{" "}
                         <span className="text-zinc-400 dark:text-zinc-500">

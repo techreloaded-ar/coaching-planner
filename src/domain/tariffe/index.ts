@@ -4,20 +4,33 @@
 import { normalizzaTariffaGiornaliera } from "../anagrafiche/valida-collaboratore";
 import { etichettaMeseBreve, mesePrecedente, parseTokenMese } from "../calendario";
 
-export const MODALITA_TARIFFA = ["GIORNALIERA", "FISSO_MENSILE"] as const;
+export const MODALITA_TARIFFA = ["GIORNALIERA", "FISSO_MENSILE", "PERCENTUALE"] as const;
 export type ModalitaTariffa = (typeof MODALITA_TARIFFA)[number];
 
 export const ETICHETTA_MODALITA_TARIFFA: Record<ModalitaTariffa, string> = {
   GIORNALIERA: "Giornaliera",
   FISSO_MENSILE: "Fisso mensile",
+  PERCENTUALE: "Percentuale",
 };
 
 export const UNITA_TARIFFA: Record<ModalitaTariffa, string> = {
   GIORNALIERA: "/ giorno",
   FISSO_MENSILE: "/ mese",
+  PERCENTUALE: "% trattenuta",
 };
 
-/** Tariffa applicata in un mese: modalità e importo (euro, stringa decimale) */
+/**
+ * Percentuale trattenuta in forma leggibile, es. "20% trattenuta" o
+ * "12,5% trattenuta". `importo` è la stringa decimale della voce.
+ */
+export function etichettaPercentualeTrattenuta(importo: string): string {
+  return `${Number(importo).toLocaleString("it-IT", { maximumFractionDigits: 2 })}${UNITA_TARIFFA.PERCENTUALE}`;
+}
+
+/**
+ * Tariffa applicata in un mese: modalità e importo (stringa decimale; euro, o
+ * percentuale trattenuta per la modalità Percentuale)
+ */
 export interface TariffaApplicata {
   modalita: ModalitaTariffa;
   importo: string;
@@ -83,6 +96,8 @@ export function validaVoceTariffa(dati: DatiVoceTariffaInput): ErroriValidazione
       errori.importo = "Importo non valido: usa massimo 2 decimali";
     } else if (importo.centesimi <= BigInt(0)) {
       errori.importo = "L'importo deve essere maggiore di zero";
+    } else if (dati.modalita === "PERCENTUALE" && importo.centesimi >= BigInt(10000)) {
+      errori.importo = "La percentuale trattenuta deve essere minore di 100";
     }
   }
 

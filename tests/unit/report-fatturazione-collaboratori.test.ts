@@ -94,3 +94,25 @@ describe("calcolaReportFatturazioneCollaboratori", () => {
     expect(calcolaReportFatturazioneCollaboratori([]).totali.importoAtteso).toBe("0.00");
   });
 });
+
+describe("calcolaReportFatturazioneCollaboratori con tariffa Percentuale", () => {
+  it("riporta lo stesso compenso del riepilogo, con le sole giornate Fatturabile", () => {
+    const report = calcolaReportFatturazioneCollaboratori([
+      collaboratore({
+        tariffa: { modalita: "PERCENTUALE", importo: "20.00", validaDalMese: "2026-01" },
+        righe: [
+          riga({ ore: 16, tariffaOffertaGiornaliera: "1000.00", rimborsoTrasfertaImporto: "50.00" }),
+          riga({ ore: 8, categoria: "NON_FATTURABILE", tariffaOffertaGiornaliera: "1000.00" }),
+        ],
+      }),
+    ]);
+
+    expect(report.perCollaboratore[0]).toMatchObject({
+      modalitaTariffa: "PERCENTUALE",
+      importoTariffa: "20.00",
+      giornateDaFatturare: 2,
+      prestazioni: "1600.00",
+      importoAtteso: "1650.00",
+    });
+  });
+});
