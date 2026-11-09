@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { RisultatoReportMarginalita } from "@/lib/report";
 import type { ImportiMarginalita } from "@/domain/consuntivi";
 import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
@@ -12,14 +13,14 @@ const formattatorePercentuale = new Intl.NumberFormat("it-IT", {
   maximumFractionDigits: 1,
 });
 
-const classeIntestazioneColonna =
+export const classeIntestazioneColonna =
   "border-b border-zinc-200 bg-white px-5 py-[11px] text-[10.5px] font-bold uppercase tracking-[0.05em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500";
 
 const classeCampoMese =
   "rounded-[9px] border border-zinc-200 bg-white px-3 py-[7px] text-[13.5px] text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100";
 
 /** Margine in euro, in rosso e con badge testuale quando è negativo. */
-function ImportoMargine({ importi }: { importi: ImportiMarginalita }) {
+export function ImportoMargine({ importi }: { importi: ImportiMarginalita }) {
   return (
     <span className="inline-flex flex-wrap items-center justify-end gap-2">
       <span
@@ -40,13 +41,13 @@ function ImportoMargine({ importi }: { importi: ImportiMarginalita }) {
   );
 }
 
-function percentuale(importi: ImportiMarginalita): string {
+export function percentuale(importi: ImportiMarginalita): string {
   return importi.marginePercentuale === null
     ? "—"
     : formattatorePercentuale.format(importi.marginePercentuale);
 }
 
-function Cifra({
+export function Cifra({
   etichetta,
   children,
 }: {
@@ -151,7 +152,12 @@ export default function ReportMarginalita({
                   </div>
                   <div className="min-w-0 leading-[1.3]">
                     <h2 className="text-[16px] font-bold -tracking-[0.01em] text-zinc-800 dark:text-zinc-100">
-                      {cliente.clienteRagioneSociale}
+                      <Link
+                        href={`/report/marginalita/${cliente.clienteId}?da=${da}&a=${a}`}
+                        className="text-zinc-800 no-underline transition hover:text-indigo-600 hover:underline dark:text-zinc-100 dark:hover:text-indigo-400"
+                      >
+                        {cliente.clienteRagioneSociale}
+                      </Link>
                     </h2>
                     <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">
                       {formattatoreGiornate.format(cliente.giornateFatturabili)}{" "}
@@ -261,7 +267,7 @@ export default function ReportMarginalita({
 }
 
 /** Badge del codice offerta: la voce senza offerta è evidenziata come da assegnare. */
-function classeCodiceOfferta(offertaId: string | null): string {
+export function classeCodiceOfferta(offertaId: string | null): string {
   return offertaId === null
     ? "inline-block w-fit rounded-[6px] border border-amber-200 bg-amber-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
     : "inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400";

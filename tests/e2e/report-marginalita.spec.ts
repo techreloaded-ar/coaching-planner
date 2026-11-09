@@ -103,3 +103,57 @@ test.describe("Report marginalità", () => {
     ).toContainText(formattaEuro(600));
   });
 });
+
+test.describe("Dettaglio marginalità del cliente", () => {
+  test.beforeEach(async ({ page }) => {
+    await accediComeAdmin(page);
+  });
+
+  test("dal nome del cliente mostra ricavi e costi per collaboratore e mese con le formule", async ({
+    page,
+    factory,
+  }) => {
+    const { cliente, offertaA, offertaB, collaboratore, meseUno, meseDue } =
+      await creaDatasetMarginalita(factory);
+
+    await page.goto(`/report/marginalita?da=${meseUno}&a=${meseDue}`);
+    await page
+      .getByTestId(`marginalita-cliente-${cliente.id}`)
+      .getByRole("link", { name: cliente.ragioneSociale, exact: true })
+      .click();
+    await page.waitForURL(`**/report/marginalita/${cliente.id}?da=${meseUno}&a=${meseDue}`);
+    await expect(
+      page.getByRole("heading", { name: cliente.ragioneSociale, exact: true }),
+    ).toBeVisible();
+
+    // Riepilogo identico al report: ricavi 1.200, costi 1.100, margine 100
+    const totali = page.getByTestId("dettaglio-marginalita-totali");
+    await expect(totali).toContainText(formattaEuro(1200));
+    await expect(totali).toContainText(formattaEuro(1100));
+    await expect(totali).toContainText(formattaEuro(100));
+
+    // Offerta A: una riga per mese
+    const offertaASezione = page.getByTestId(`dettaglio-marginalita-offerta-${offertaA.id}`);
+    const rigaAMeseUno = offertaASezione.getByTestId(
+      `dettaglio-marginalita-voce-${collaboratore.collaboratore.id}-${meseUno}`,
+    );
+    await expect(rigaAMeseUno).toContainText(`${formattaEuro(600)}1 gg × ${formattaEuro(600)}`);
+    await expect(rigaAMeseUno).toContainText("Giornaliera");
+    await expect(rigaAMeseUno).toContainText(`${formattaEuro(400)}1 gg × ${formattaEuro(400)}`);
+    await expect(
+      page.getByTestId(`dettaglio-marginalita-totale-${offertaA.id}`),
+    ).toContainText(formattaEuro(900));
+
+    // Offerta B: 1 gg Fatturabile + 0,25 gg Non fatturabile a 400 €/gg
+    const rigaB = page
+      .getByTestId(`dettaglio-marginalita-offerta-${offertaB.id}`)
+      .getByTestId(`dettaglio-marginalita-voce-${collaboratore.collaboratore.id}-${meseDue}`);
+    await expect(rigaB).toContainText(`(1 + 0,25 gg) × ${formattaEuro(400)}`);
+    await expect(rigaB).toContainText(formattaEuro(500));
+    await expect(rigaB.getByText("Margine negativo")).toBeVisible();
+
+    // Ritorno al report con lo stesso periodo
+    await page.getByRole("link", { name: "Marginalità per cliente e offerta", exact: true }).click();
+    await page.waitForURL(`**/report/marginalita?da=${meseUno}&a=${meseDue}`);
+  });
+});

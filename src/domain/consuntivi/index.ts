@@ -762,6 +762,8 @@ export interface RigaMarginalita {
   offertaDescrizione: string;
   tariffaOffertaGiornaliera: string | number;
   collaboratoreId: string;
+  /** Nome e cognome del collaboratore, mostrato nel dettaglio per cliente */
+  collaboratoreNominativo?: string;
   /** Token YYYY-MM della data della riga */
   mese: string;
   /** Modalità della tariffa del collaboratore valida nel mese; null se nessuna */
@@ -798,6 +800,24 @@ export interface VoceOffertaMarginalita extends ImportiMarginalita {
   offertaDescrizione: string;
   /** Quota dei costi che viene da fissi mensili ripartiti sull'offerta */
   fissoRipartito: string;
+  tariffaOffertaGiornaliera: string;
+  /** Scomposizione di ricavi e costi per collaboratore e mese, per nominativo e mese */
+  perCollaboratoreMese: VoceCollaboratoreMeseMarginalita[];
+}
+
+/** Come un collaboratore, in un mese, contribuisce a ricavi e costi di un'offerta. */
+export interface VoceCollaboratoreMeseMarginalita extends ImportiMarginalita {
+  collaboratoreId: string;
+  collaboratoreNominativo: string;
+  /** Token YYYY-MM */
+  mese: string;
+  giornateNonFatturabili: number;
+  /** null: nessuna tariffa valida nel mese, costo zero */
+  modalitaTariffaCollaboratore: ModalitaTariffa | null;
+  importoTariffaCollaboratore: string;
+  /** Solo fisso mensile: ore su questa offerta e ore totali del collaboratore nel mese */
+  oreQuotaFisso: number | null;
+  oreMeseFisso: number | null;
 }
 
 export interface VoceClienteMarginalita extends ImportiMarginalita {
@@ -900,6 +920,18 @@ export function calcolaMarginalitaClienti(
     offertaCodice: string;
     offertaDescrizione: string;
     fissoRipartitoCentesimi: number;
+    perCollaboratoreMese: Map<string, AccumulatoreCollaboratoreMese>;
+  }
+  interface AccumulatoreCollaboratoreMese extends Accumulatore {
+    offerta: AccumulatoreOfferta;
+    collaboratoreId: string;
+    collaboratoreNominativo: string;
+    mese: string;
+    oreNonFatturabili: number;
+    modalita: ModalitaTariffa | null;
+    importoTariffa: number;
+    oreQuotaFissoCentesimi: number;
+    oreMeseFissoCentesimi: number;
   }
   interface AccumulatoreCliente {
     clienteRagioneSociale: string;
@@ -907,8 +939,8 @@ export function calcolaMarginalitaClienti(
   }
 
   const clienti = new Map<string, AccumulatoreCliente>();
-  // collaboratoreId|mese → offerta → ore (in centesimi) svolte a fisso mensile
-  const oreAFisso = new Map<string, Map<AccumulatoreOfferta, number>>();
+  // collaboratoreId|mese → voce dell'offerta → ore (in centesimi) svolte a fisso mensile
+  const oreAFisso = new Map<string, Map<AccumulatoreCollaboratoreMese, number>>();
 
   for (const riga of righe) {
     if (!fatturataDalCollaboratore(riga.categoria)) {
@@ -935,28 +967,52 @@ export function calcolaMarginalitaClienti(
         ricavi: 0,
         costi: 0,
         fissoRipartitoCentesimi: 0,
+        perCollaboratoreMese: new Map(),
       };
       cliente.offerte.set(riga.offertaId, offerta);
     }
 
-    if (fatturataAlCliente(riga.categoria)) {
-      offerta.ore = sommaOre(offerta.ore, riga.ore);
+    const chiave = `${riga.collaboratoreId}|${riga.mese}`;
+    let voce = offerta.perCollaboratoreMese.get(chiave);
+    if (!voce) {
+      voce = {
+        offerta,
+        collaboratoreId: riga.collaboratoreId,
+        collaboratoreNominativo: riga.collaboratoreNominativo ?? riga.collaboratoreId,
+        mese: riga.mese,
+        modalita: riga.modalitaTariffaCollaboratore,
+        importoTariffa: tariffaNumerica(riga.importoTariffaCollaboratore),
+        ore: 0,
+        oreNonFatturabili: 0,
+        ricavi: 0,
+        costi: 0,
+        oreQuotaFissoCentesimi: 0,
+        oreMeseFissoCentesimi: 0,
+      };
+      offerta.perCollaboratoreMese.set(chiave, voce);
     }
 
+    if (fatturataAlCliente(riga.categoria)) {
+      offerta.ore = sommaOre(offerta.ore, riga.ore);
+      voce.ore = sommaOre(voce.ore, riga.ore);
+    } else {
+      voce.oreNonFatturabili = sommaOre(voce.oreNonFatturabili, riga.ore);
+    }
+
+    let costo = 0;
     if (riga.modalitaTariffaCollaboratore === "FISSO_MENSILE") {
-      const chiave = `${riga.collaboratoreId}|${riga.mese}`;
-      const perOfferta = oreAFisso.get(chiave) ?? new Map<AccumulatoreOfferta, number>();
-      perOfferta.set(offerta, (perOfferta.get(offerta) ?? 0) + oreInCentesimi(riga.ore));
-      oreAFisso.set(chiave, perOfferta);
+      const perVoce = oreAFisso.get(chiave) ?? new Map<AccumulatoreCollaboratoreMese, number>();
+      perVoce.set(voce, (perVoce.get(voce) ?? 0) + oreInCentesimi(riga.ore));
+      oreAFisso.set(chiave, perVoce);
     } else if (riga.modalitaTariffaCollaboratore === "GIORNALIERA") {
-      offerta.costi +=
+      costo =
         (riga.ore / ORE_PER_GIORNATA) *
         tariffaNumerica(riga.importoTariffaCollaboratore);
     } else if (
       riga.modalitaTariffaCollaboratore === "PERCENTUALE" &&
       fatturataAlCliente(riga.categoria)
     ) {
-      offerta.costi +=
+      costo =
         ((riga.ore / ORE_PER_GIORNATA) *
           centesimiCompensoGiornalieroPercentuale(
             offerta.tariffaOfferta,
@@ -964,24 +1020,28 @@ export function calcolaMarginalitaClienti(
           )) /
         100;
     }
+    offerta.costi += costo;
+    voce.costi += costo;
   }
 
   let fissiNonAttribuibiliCentesimi = 0;
   for (const fisso of fissiMensili) {
     const fissoCentesimi = Math.round(tariffaNumerica(fisso.importo) * 100);
-    const perOfferta = oreAFisso.get(`${fisso.collaboratoreId}|${fisso.mese}`);
-    if (!perOfferta) {
+    const perVoce = oreAFisso.get(`${fisso.collaboratoreId}|${fisso.mese}`);
+    if (!perVoce) {
       fissiNonAttribuibiliCentesimi += fissoCentesimi;
       continue;
     }
-    const offerte = [...perOfferta.keys()];
-    const quote = ripartisciInProporzione(
-      fissoCentesimi,
-      offerte.map((offerta) => perOfferta.get(offerta)!),
-    );
-    offerte.forEach((offerta, indice) => {
-      offerta.costi += quote[indice] / 100;
-      offerta.fissoRipartitoCentesimi += quote[indice];
+    const voci = [...perVoce.keys()];
+    const oreVoci = voci.map((voce) => perVoce.get(voce)!);
+    const oreMeseCentesimi = oreVoci.reduce((somma, ore) => somma + ore, 0);
+    const quote = ripartisciInProporzione(fissoCentesimi, oreVoci);
+    voci.forEach((voce, indice) => {
+      voce.costi += quote[indice] / 100;
+      voce.oreQuotaFissoCentesimi = oreVoci[indice];
+      voce.oreMeseFissoCentesimi = oreMeseCentesimi;
+      voce.offerta.costi += quote[indice] / 100;
+      voce.offerta.fissoRipartitoCentesimi += quote[indice];
     });
   }
 
@@ -1006,6 +1066,30 @@ export function calcolaMarginalitaClienti(
         offertaCodice: offerta.offertaCodice,
         offertaDescrizione: offerta.offertaDescrizione,
         fissoRipartito: (offerta.fissoRipartitoCentesimi / 100).toFixed(2),
+        tariffaOffertaGiornaliera: offerta.tariffaOfferta.toFixed(2),
+        perCollaboratoreMese: [...offerta.perCollaboratoreMese.values()]
+          .map((voce) => ({
+            collaboratoreId: voce.collaboratoreId,
+            collaboratoreNominativo: voce.collaboratoreNominativo,
+            mese: voce.mese,
+            giornateNonFatturabili: voce.oreNonFatturabili / ORE_PER_GIORNATA,
+            modalitaTariffaCollaboratore: voce.modalita,
+            importoTariffaCollaboratore: voce.importoTariffa.toFixed(2),
+            oreQuotaFisso:
+              voce.oreMeseFissoCentesimi > 0 ? voce.oreQuotaFissoCentesimi / 100 : null,
+            oreMeseFisso:
+              voce.oreMeseFissoCentesimi > 0 ? voce.oreMeseFissoCentesimi / 100 : null,
+            ...importiMarginalita(
+              voce.ore,
+              (voce.ore / ORE_PER_GIORNATA) * offerta.tariffaOfferta,
+              voce.costi,
+            ),
+          }))
+          .sort(
+            (a, b) =>
+              a.collaboratoreNominativo.localeCompare(b.collaboratoreNominativo) ||
+              a.mese.localeCompare(b.mese),
+          ),
         ...importiMarginalita(offerta.ore, offerta.ricavi, offerta.costi),
       });
     }

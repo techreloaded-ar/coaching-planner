@@ -436,3 +436,90 @@ describe("calcolaMarginalitaClienti con tariffa Percentuale", () => {
     });
   });
 });
+
+describe("calcolaMarginalitaClienti — dettaglio per collaboratore e mese", () => {
+  const report = calcolaMarginalitaClienti(
+    [
+      riga({ collaboratoreNominativo: "Marco Bianchi", mese: "2026-09", ore: 64 }),
+      riga({ collaboratoreNominativo: "Marco Bianchi", mese: "2026-09", ore: 8, categoria: "NON_FATTURABILE" }),
+      riga({ collaboratoreNominativo: "Marco Bianchi", mese: "2026-10", ore: 48 }),
+      riga({
+        collaboratoreId: "collab-perc",
+        collaboratoreNominativo: "Sara Neri",
+        mese: "2026-10",
+        ore: 16,
+        modalitaTariffaCollaboratore: "PERCENTUALE",
+        importoTariffaCollaboratore: 15,
+      }),
+      riga({
+        collaboratoreId: "collab-fisso",
+        collaboratoreNominativo: "Giulia Conti",
+        ...offertaB,
+        mese: "2026-09",
+        ore: 48,
+        modalitaTariffaCollaboratore: "FISSO_MENSILE",
+        importoTariffaCollaboratore: 4500,
+      }),
+      riga({
+        collaboratoreId: "collab-fisso",
+        clienteId: "cliente-2",
+        clienteRagioneSociale: "Cliente Due",
+        mese: "2026-09",
+        ore: 16,
+        modalitaTariffaCollaboratore: "FISSO_MENSILE",
+        importoTariffaCollaboratore: 4500,
+      }),
+      riga({
+        collaboratoreId: "collab-senza-tariffa",
+        collaboratoreNominativo: "Luca Verdi",
+        mese: "2026-10",
+        ore: 8,
+        modalitaTariffaCollaboratore: null,
+        importoTariffaCollaboratore: 0,
+      }),
+    ],
+    [{ collaboratoreId: "collab-fisso", mese: "2026-09", importo: "4500.00" }],
+  );
+  const cliente = report.perCliente.find((voce) => voce.clienteId === "cliente-1")!;
+  const [offerta1, offertaConFisso] = cliente.perOfferta;
+
+  it("scompone l'offerta per collaboratore e mese, ordinando per nominativo e mese", () => {
+    expect(
+      offerta1.perCollaboratoreMese.map((voce) => `${voce.collaboratoreNominativo} ${voce.mese}`),
+    ).toEqual(["Luca Verdi 2026-10", "Marco Bianchi 2026-09", "Marco Bianchi 2026-10", "Sara Neri 2026-10"]);
+    expect(offerta1.tariffaOffertaGiornaliera).toBe("600.00");
+  });
+
+  it("riporta giornate, ricavo e costo di ogni modalità di tariffa", () => {
+    const [senzaTariffa, giornalieraSet, giornalieraOtt, percentuale] = offerta1.perCollaboratoreMese;
+    expect(giornalieraSet).toMatchObject({
+      giornateFatturabili: 8,
+      giornateNonFatturabili: 1,
+      modalitaTariffaCollaboratore: "GIORNALIERA",
+      importoTariffaCollaboratore: "400.00",
+      ricavi: "4800.00",
+      costi: "3600.00",
+      margine: "1200.00",
+    });
+    expect(giornalieraOtt).toMatchObject({ ricavi: "3600.00", costi: "2400.00" });
+    expect(percentuale).toMatchObject({ ricavi: "1200.00", costi: "1020.00", oreQuotaFisso: null });
+    expect(senzaTariffa).toMatchObject({ modalitaTariffaCollaboratore: null, ricavi: "600.00", costi: "0.00" });
+  });
+
+  it("le voci sommano ai totali dell'offerta", () => {
+    const somma = (campo: "ricavi" | "costi") =>
+      offerta1.perCollaboratoreMese.reduce((totale, voce) => totale + Number(voce[campo]), 0).toFixed(2);
+    expect(somma("ricavi")).toBe(offerta1.ricavi);
+    expect(somma("costi")).toBe(offerta1.costi);
+  });
+
+  it("per il fisso mensile riporta quota di ore sul totale del mese, anche su altri clienti", () => {
+    expect(offertaConFisso.perCollaboratoreMese).toHaveLength(1);
+    expect(offertaConFisso.perCollaboratoreMese[0]).toMatchObject({
+      collaboratoreNominativo: "Giulia Conti",
+      oreQuotaFisso: 48,
+      oreMeseFisso: 64,
+      costi: "3375.00",
+    });
+  });
+});
