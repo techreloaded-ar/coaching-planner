@@ -116,16 +116,23 @@ periodo: la ricreazione delle giornate invalida le associazioni esistenti.
 
 ## Configurazione
 
+L'importatore è sempre disponibile agli amministratori. Le sole variabili
+obbligatorie sono documento sorgente e credenziali Google: usare il file reale
+in produzione e quello demo in preproduzione.
+
+Il formato è fisso: schede `CLIENTI`, `OFFERTE`, `COACH`, `GIORNATE`, cliente interno
+`AGILERELOADED` e cliente escluso `ND`. La tariffa iniziale del vecchio formato
+senza decorrenze parte da `2018-01`; il formato con periodi usa `DAL_MESE`.
+Queste regole non richiedono variabili d'ambiente. Le vecchie variabili
+`IMPORTER_ENABLED`, `IMPORTER_SCHEDA_*`, `IMPORTER_CLIENTE_INTERNO`,
+`IMPORTER_CLIENTI_ESCLUSI` e `IMPORTER_PRIMO_MESE_TARIFFA` non sono più lette e
+possono essere rimosse da Vercel.
+
 | Variabile | Significato |
 | --- | --- |
-| `IMPORTER_ENABLED` | `true` abilita il servizio |
 | `IMPORTER_GOOGLE_SPREADSHEET_ID` | ID del documento Google |
 | `IMPORTER_GOOGLE_SERVICE_ACCOUNT_JSON` | Chiave JSON completa del service account, segreto del server |
-| `IMPORTER_PRIMO_MESE_TARIFFA` | Mese della tariffa iniziale, predefinito `2018-01` |
 | `IMPORTER_EMAIL_AMMINISTRATORI` | Email dei nuovi coach amministratori; non cambia ruoli esistenti |
-| `IMPORTER_CLIENTE_INTERNO` | Predefinito `AGILERELOADED` |
-| `IMPORTER_CLIENTI_ESCLUSI` | Nomi separati da virgola, predefinito `ND` |
-| `IMPORTER_SCHEDA_CLIENTI`, `IMPORTER_SCHEDA_OFFERTE`, `IMPORTER_SCHEDA_COACH`, `IMPORTER_SCHEDA_GIORNATE` | Nomi delle schede |
 | `IMPORTER_AI_BASE_URL`, `IMPORTER_AI_API_KEY`, `IMPORTER_AI_MODEL` | Assistenza facoltativa via endpoint Chat Completions |
 
 Abilitare Google Sheets API e condividere il foglio come Visualizzatore con il

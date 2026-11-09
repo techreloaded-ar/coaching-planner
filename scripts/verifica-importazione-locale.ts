@@ -24,7 +24,6 @@ async function main() {
     const headers = matrix[0].map((h) => normalizzaIntestazione(String(h)));
     return [k, matrix.slice(1).map((row): Celle => Object.fromEntries(headers.map((h, i) => [h, String(row[i] ?? "").trim()])))];
   })) as unknown as Schede;
-  process.env.IMPORTER_ENABLED = "true";
   process.env.IMPORTER_GOOGLE_SERVICE_ACCOUNT_JSON = "fotografia-connettore-non-usata-per-la-lettura";
   process.env.IMPORTER_GOOGLE_SPREADSHEET_ID = "1zJxcrP_i4_VwfDhOaCZ4_IL9SquYUDLIKd9RP8SFdDI";
   const cfg = configurazioneImporter();

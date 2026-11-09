@@ -15,6 +15,6 @@ export default defineConfig({
   webServer: { command: "npm run start", url: `http://localhost:${port}`, reuseExistingServer: false,
     env: { ...costruisciAmbienteE2e(process.env, database), PORT: port,
       SESSION_SECRET: "importer-browser-session-secret-with-at-least-32-characters",
-      IMPORTER_ENABLED: "true", IMPORTER_GOOGLE_SPREADSHEET_ID: "e2e-importer",
+      IMPORTER_GOOGLE_SPREADSHEET_ID: "e2e-importer",
       IMPORTER_GOOGLE_SERVICE_ACCOUNT_JSON: "test-fixture-no-network", IMPORTER_AI_BASE_URL: "", IMPORTER_AI_API_KEY: "", IMPORTER_AI_MODEL: "" } },
 });

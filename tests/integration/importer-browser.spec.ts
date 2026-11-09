@@ -41,7 +41,7 @@ test("anteprima, confronto e importazione approvata funzionano senza AI", async 
     { ...raw, data: dataNelMeseRiservato("importer-browser", 8), "codice offerta": "OFF-SCONOSCIUTA" },
     { ...raw, data: dataNelMeseRiservato("importer-browser", 9), "codice offerta": "CORSO APM" },
   ] };
-  const cfg = { abilitato: true, configurato: true, id: "e2e-importer", credenziali: "", dalMese: "2018-01", clienteInterno: "INTERNO", esclusi: [], amministratori: [], schede: { clienti: "CLIENTI", offerte: "OFFERTE", coach: "COACH", giornate: "GIORNATE" } };
+  const cfg = { configurato: true, id: "e2e-importer", credenziali: "", dalMese: "2018-01", clienteInterno: "INTERNO", esclusi: [], amministratori: [], schede: { clienti: "CLIENTI", offerte: "OFFERTE", coach: "COACH", giornate: "GIORNATE" } };
   const piano = analizza(schede, await archivio(factory), cfg);
   const soloPresenti = analizza({ ...schede, giornate: [{ ...raw, ore: "8" }] }, await archivio(factory), cfg);
   const idSoloPresenti = randomUUID();

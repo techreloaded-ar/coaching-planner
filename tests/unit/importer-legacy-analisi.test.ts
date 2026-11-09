@@ -5,7 +5,7 @@ import { configurazioneImporter } from "@/lib/importer-legacy/config";
 import type { Archivio, Celle, Schede } from "@/lib/importer-legacy/types";
 import { appendiNote, daImportareSenzaCodice } from "@/lib/importer-legacy/senza-codice";
 
-const cfg = configurazioneImporter({ IMPORTER_GOOGLE_SPREADSHEET_ID: "test", IMPORTER_ENABLED: "true" });
+const cfg = configurazioneImporter({ IMPORTER_GOOGLE_SPREADSHEET_ID: "test" });
 function archivio(): Archivio {
   return { clienti: [{ id: "cliente", ragioneSociale: "Cliente Test" }], utenti: [{ id: "utente", email: "coach@example.com", collaboratore: { id: "coach" } }],
     offerte: [{ id: "offerta", codice: "OFF-2026", clienteId: "cliente" }], giornate: [], rimborsi: [], registro: [] };

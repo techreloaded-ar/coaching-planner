@@ -32,7 +32,7 @@ async function refresh(id: string) { return db.importazioneLegacy.findUniqueOrTh
 
 beforeEach(async () => {
   sheet = `test-${randomUUID()}`; cliente = `Cliente ${sheet}`; email = `${sheet}@example.com`;
-  vi.stubEnv("IMPORTER_ENABLED", "true"); vi.stubEnv("IMPORTER_GOOGLE_SPREADSHEET_ID", sheet);
+  vi.stubEnv("IMPORTER_GOOGLE_SPREADSHEET_ID", sheet);
   vi.stubEnv("IMPORTER_GOOGLE_SERVICE_ACCOUNT_JSON", "configurazione-test-non-usata-per-la-scrittura");
   vi.stubEnv("IMPORTER_AI_BASE_URL", "");
   vi.stubEnv("IMPORTER_EMAIL_AMMINISTRATORI", "");
