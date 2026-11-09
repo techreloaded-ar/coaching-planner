@@ -265,3 +265,56 @@ describe("calcolaRiepilogoMese — ore con offerta da definire", () => {
     expect(result.totali.oreDaFatturare).toBe(14);
   });
 });
+
+describe("calcolaRiepilogoMese con tariffa Percentuale", () => {
+  const percentuale: TariffaApplicata = { modalita: "PERCENTUALE", importo: "20.00", validaDalMese: "2026-01" };
+
+  it("paga solo le ore Fatturabile al compenso giornaliero di ciascuna offerta", () => {
+    const result = calcolaRiepilogoMese(
+      [
+        riga({ ore: 48, tariffaOffertaGiornaliera: "1000.00", rimborsoTrasfertaImporto: "120.00" }),
+        riga({ offertaId: "off-2", offertaCodice: "OFF-002", ore: 24, tariffaOffertaGiornaliera: "500.00" }),
+        riga({ offertaId: "off-2", offertaCodice: "OFF-002", ore: 8, categoria: "NON_FATTURABILE", tariffaOffertaGiornaliera: "500.00" }),
+        riga({ offertaId: "off-3", offertaCodice: "OFF-003", ore: 16, categoria: "INVESTIMENTO", tariffaOffertaGiornaliera: "800.00" }),
+      ],
+      percentuale,
+    );
+
+    expect(result.perOfferta.map((voce) => [voce.offertaCodice, voce.giornateDaFatturare, voce.compensoGiornaliero, voce.compenso])).toEqual([
+      ["OFF-001", 6, "800.00", "4800.00"],
+      ["OFF-002", 3, "400.00", "1200.00"],
+      ["OFF-003", 0, "640.00", "0.00"],
+    ]);
+    expect(result.totali.giornateDaFatturare).toBe(9);
+    expect(result.breakdown).toMatchObject({
+      modalitaTariffa: "PERCENTUALE",
+      importoTariffa: "20.00",
+      imponibileManodopera: "6000.00",
+    });
+    expect(result.importoFattura).toBe("6120.00");
+    // La tariffa venduta al cliente non esce dal calcolo.
+    expect(JSON.stringify(result)).not.toContain("1000");
+  });
+
+  it("vale zero sulle offerte senza tariffa e sulle ore senza offerta", () => {
+    const result = calcolaRiepilogoMese(
+      [riga({ tariffaOffertaGiornaliera: null }), riga({ offertaId: null, ore: 4 })],
+      percentuale,
+    );
+
+    expect(result.perOfferta.map((voce) => [voce.compensoGiornaliero, voce.compenso])).toEqual([
+      [null, "0.00"],
+      [null, "0.00"],
+    ]);
+    expect(result.importoFattura).toBe("0.00");
+  });
+
+  it("arrotonda il compenso giornaliero e calcola il compenso su giornate × compenso giornaliero", () => {
+    const result = calcolaRiepilogoMese(
+      [riga({ ore: 12, tariffaOffertaGiornaliera: "1000.00" })],
+      { ...percentuale, importo: "33.33" },
+    );
+
+    expect(result.perOfferta[0]).toMatchObject({ compensoGiornaliero: "666.70", compenso: "1000.05" });
+  });
+});

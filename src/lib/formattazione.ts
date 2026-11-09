@@ -1,3 +1,9 @@
+import {
+  UNITA_TARIFFA,
+  etichettaPercentualeTrattenuta,
+  type ModalitaTariffa,
+} from "@/domain/tariffe";
+
 const formattatoreEuro = new Intl.NumberFormat("it-IT", {
   style: "currency",
   currency: "EUR",
@@ -6,6 +12,13 @@ const formattatoreEuro = new Intl.NumberFormat("it-IT", {
 /** Formatta un importo in euro con il formato valuta italiano; «—» se assente. */
 export function formattaEuro(valore: number | string | null): string {
   return valore === null ? "—" : formattatoreEuro.format(Number(valore));
+}
+
+/** Importo di una tariffa con la sua unità, es. "450,00 € / giorno" o "20% trattenuta". */
+export function descriviImportoTariffa(modalita: ModalitaTariffa, importo: string): string {
+  return modalita === "PERCENTUALE"
+    ? etichettaPercentualeTrattenuta(importo)
+    : `${formattaEuro(importo)} ${UNITA_TARIFFA[modalita]}`;
 }
 
 /** Iniziali della ragione sociale di un cliente per avatar quadrati. */

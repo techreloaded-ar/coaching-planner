@@ -651,6 +651,7 @@ export async function riepilogoMesePerCollaboratoreAutorizzato(
     ore: Number(riga.ore),
     categoria: riga.categoria,
     rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
+    tariffaOffertaGiornaliera: riga.offerta?.tariffaGiornaliera?.toString() ?? null,
   }));
 
   const riepilogo = calcolaRiepilogoMese(righe, tariffa);

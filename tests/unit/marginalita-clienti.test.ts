@@ -419,3 +419,20 @@ describe("normalizzaPeriodoMesi", () => {
     });
   });
 });
+
+describe("calcolaMarginalitaClienti con tariffa Percentuale", () => {
+  it("costa il compenso delle sole ore Fatturabile: il margine è la percentuale trattenuta", () => {
+    const report = calcolaMarginalitaClienti([
+      riga({ ore: 16, tariffaOffertaGiornaliera: 1000, modalitaTariffaCollaboratore: "PERCENTUALE", importoTariffaCollaboratore: "20.00" }),
+      riga({ ore: 8, categoria: "NON_FATTURABILE", tariffaOffertaGiornaliera: 1000, modalitaTariffaCollaboratore: "PERCENTUALE", importoTariffaCollaboratore: "20.00" }),
+    ]);
+
+    expect(report.totali).toMatchObject({
+      giornateFatturabili: 2,
+      ricavi: "2000.00",
+      costi: "1600.00",
+      margine: "400.00",
+      marginePercentuale: 0.2,
+    });
+  });
+});

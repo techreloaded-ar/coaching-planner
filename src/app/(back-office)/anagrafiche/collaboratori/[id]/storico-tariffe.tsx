@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { PulsanteAttesa, useValoriInviati } from "@/components";
-import { formattaEuro } from "@/lib/formattazione";
+import { descriviImportoTariffa } from "@/lib/formattazione";
 import type { VoceStoricoTariffa } from "@/lib/collaboratori";
 import {
   ETICHETTA_MODALITA_TARIFFA,
@@ -93,7 +93,7 @@ export default function StoricoTariffe({ collaboratoreId, voci, meseCorrente }: 
                   <BadgeModalita modalita={voce.modalita} />
                 </td>
                 <td className="px-4 py-[12px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-800 dark:text-zinc-100">
-                  {formattaEuro(voce.importo)} {UNITA_TARIFFA[voce.modalita]}
+                  {descriviImportoTariffa(voce.modalita, voce.importo)}
                 </td>
                 <td className="px-4 py-[12px] align-middle text-zinc-500 dark:text-zinc-400">{periodi.get(voce)}</td>
                 <td className="px-4 py-[12px] text-right align-middle whitespace-nowrap">
@@ -148,7 +148,9 @@ function BadgeModalita({ modalita }: { modalita: ModalitaTariffa }) {
   const colori =
     modalita === "FISSO_MENSILE"
       ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
-      : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300";
+      : modalita === "PERCENTUALE"
+        ? "bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
+        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300";
   return (
     <span className={`rounded-full px-[9px] py-[3px] text-[11.5px] font-semibold whitespace-nowrap ${colori}`}>
       {ETICHETTA_MODALITA_TARIFFA[modalita]}
@@ -220,7 +222,9 @@ function ModuloTariffa({
                   type="radio"
                   name="modalita"
                   value={valore}
-                  checked={modalita === valore}
+                  // Non controllato: il reset del form dopo l'invio riporta la
+                  // modalità scelta, non quella del primo render.
+                  defaultChecked={modalita === valore}
                   onChange={() => setModalita(valore)}
                   className="sr-only"
                 />
@@ -233,14 +237,16 @@ function ModuloTariffa({
 
         <div>
           <label htmlFor="tariffa-importo" className={classeEtichetta}>
-            Importo (€ {UNITA_TARIFFA[modalita]})
+            {modalita === "PERCENTUALE"
+              ? "Percentuale trattenuta (%)"
+              : `Importo (€ ${UNITA_TARIFFA[modalita]})`}
           </label>
           <input
             id="tariffa-importo"
             name="importo"
             inputMode="decimal"
             autoComplete="off"
-            placeholder="Es. 450,00"
+            placeholder={modalita === "PERCENTUALE" ? "Es. 20" : "Es. 450,00"}
             required
             defaultValue={valoreIniziale("importo", voce ? voce.importo.replace(".", ",") : "")}
             aria-invalid={Boolean(stato.errori.importo)}

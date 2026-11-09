@@ -36,10 +36,13 @@ enum GestioneTrasferta {
 
 // Come Agile Reloaded compensa il collaboratore: GIORNALIERA (importo per
 // giornata da fatturare), FISSO_MENSILE (importo fisso per ogni mese in cui
-// la tariffa è in vigore, a prescindere dalle ore).
+// la tariffa è in vigore, a prescindere dalle ore), PERCENTUALE (l'importo è
+// la percentuale trattenuta da Agile Reloaded sulla tariffa giornaliera
+// dell'offerta: il collaboratore riceve il resto, solo sulle ore Fatturabile).
 enum ModalitaTariffa {
   GIORNALIERA
   FISSO_MENSILE
+  PERCENTUALE
 }
 
 model Utente {

@@ -60,6 +60,7 @@ export default function RiepilogoMese({
   riepilogo,
 }: RiepilogoMeseProps) {
   const haDati = riepilogo.perOfferta.length > 0;
+  const percentuale = riepilogo.breakdown.modalitaTariffa === "PERCENTUALE";
   const collaboratoreConsultatoId = useCollaboratoreConsultato();
 
   return (
@@ -167,7 +168,9 @@ export default function RiepilogoMese({
               ? `Tariffa giorno: ${formattaEuro(riepilogo.breakdown.importoTariffa)}`
               : riepilogo.breakdown.modalitaTariffa === "FISSO_MENSILE"
                 ? "Il fisso mensile non dipende dalle giornate"
-                : "Nessuna tariffa in vigore"}
+                : riepilogo.breakdown.modalitaTariffa === "PERCENTUALE"
+                  ? "Percentuale: solo le ore Fatturabile, compenso per offerta"
+                  : "Nessuna tariffa in vigore"}
           </div>
         </div>
 
@@ -198,6 +201,12 @@ export default function RiepilogoMese({
             <div data-testid="summary-importo-fattura-breakdown" className="flex flex-wrap items-center gap-3 text-[12.5px] font-semibold text-white/85">
               {riepilogo.breakdown.modalitaTariffa === "FISSO_MENSILE" ? (
                 <span>Fisso mensile {formattaEuro(riepilogo.breakdown.importoTariffa)}</span>
+              ) : percentuale ? (
+                <>
+                  <span>{riepilogo.breakdown.giornateDaFatturare} g fatturabili</span>
+                  <span className="h-4 w-px bg-white/25" />
+                  <span>Compenso {formattaEuro(riepilogo.breakdown.imponibileManodopera)}</span>
+                </>
               ) : (
                 <>
                   <span>{riepilogo.breakdown.giornateDaFatturare} g × {formattaEuro(riepilogo.breakdown.importoTariffa)}</span>
@@ -238,6 +247,12 @@ export default function RiepilogoMese({
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate totali</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate da fatturare</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Rimborsi trasferta</th>
+                  {percentuale && (
+                    <>
+                      <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Compenso / giorno</th>
+                      <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Compenso</th>
+                    </>
+                  )}
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giorni erogati</th>
                 </tr>
               </thead>
@@ -286,6 +301,16 @@ export default function RiepilogoMese({
                       <td className="px-3.5 py-3 text-right font-bold tabular-nums text-rose-800 dark:text-rose-300">
                         {Number(voce.rimborsiTrasferta) > 0 ? formattaEuro(voce.rimborsiTrasferta) : "—"}
                       </td>
+                      {percentuale && (
+                        <>
+                          <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
+                            {voce.compensoGiornaliero && voce.giornateDaFatturare > 0 ? formattaEuro(voce.compensoGiornaliero) : "—"}
+                          </td>
+                          <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
+                            {voce.compenso && Number(voce.compenso) > 0 ? formattaEuro(voce.compenso) : "—"}
+                          </td>
+                        </>
+                      )}
                       <td className="px-3.5 py-3 text-right align-top whitespace-nowrap">
                         {avanzamento ? (
                           <IndicatoreGiorniErogati avanzamento={avanzamento} />
@@ -304,6 +329,12 @@ export default function RiepilogoMese({
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaGiornate(riepilogo.totali.giornateTotali)}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.giornateDaFatturare > 0 ? formattaGiornate(riepilogo.totali.giornateDaFatturare) : "—"}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaEuro(riepilogo.totali.totaleRimborsi)}</td>
+                  {percentuale && (
+                    <>
+                      <td />
+                      <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaEuro(riepilogo.breakdown.imponibileManodopera)}</td>
+                    </>
+                  )}
                   <td />
                 </tr>
               </tfoot>

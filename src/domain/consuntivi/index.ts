@@ -40,6 +40,11 @@ export interface RigaRiepilogo {
   categoria: CategoriaAttivita;
   /** Importo del rimborso trasferta fotografato sulla riga (serializzabile) */
   rimborsoTrasfertaImporto: string | number | null;
+  /**
+   * Tariffa giornaliera dell'offerta; serve solo con la tariffa Percentuale.
+   * null o assente: offerta senza tariffa, compenso zero.
+   */
+  tariffaOffertaGiornaliera?: string | number | null;
 }
 
 /** Ore suddivise per categoria di attività */
@@ -63,6 +68,13 @@ export interface VoceRiepilogoOfferta {
   giornateTotali: number;
   giornateDaFatturare: number;
   rimborsiTrasferta: string;
+  /**
+   * Solo con la tariffa Percentuale: compenso per giornata sull'offerta (la
+   * tariffa dell'offerta al netto della trattenuta) e compenso della voce.
+   * `compensoGiornaliero` è null se l'offerta non ha tariffa.
+   */
+  compensoGiornaliero?: string | null;
+  compenso?: string;
 }
 
 /** Totali aggregati del riepilogo mensile */
@@ -80,7 +92,7 @@ export interface BreakdownRiepilogoMese {
   giornateDaFatturare: string;
   /** Modalità della tariffa valida nel mese; null se il mese precede la prima tariffa */
   modalitaTariffa: ModalitaTariffa | null;
-  /** Importo della tariffa: euro al giorno (giornaliera) o al mese (fisso) */
+  /** Importo della tariffa: euro al giorno (giornaliera), al mese (fisso) o percentuale trattenuta */
   importoTariffa: string;
   /** Mese YYYY-MM da cui vale la tariffa applicata */
   tariffaValidaDalMese: string | null;
@@ -145,6 +157,21 @@ function formattaImporto(valore: number): string {
   return valore.toFixed(2);
 }
 
+/**
+ * Compenso per giornata, in centesimi, di un collaboratore a tariffa
+ * Percentuale: la tariffa giornaliera dell'offerta meno la percentuale
+ * trattenuta da Agile Reloaded (1.000 € al 20% → 800 €).
+ */
+export function centesimiCompensoGiornalieroPercentuale(
+  tariffaOffertaGiornaliera: number,
+  percentualeTrattenuta: number,
+): number {
+  return Math.round(
+    (Math.round(tariffaOffertaGiornaliera * 100) * (10000 - Math.round(percentualeTrattenuta * 100))) /
+      10000,
+  );
+}
+
 export function orePerCategoriaVuote(): OrePerCategoria {
   return Object.fromEntries(
     CATEGORIE_ATTIVITA.map((categoria) => [categoria, 0]),
@@ -156,7 +183,10 @@ export function orePerCategoriaVuote(): OrePerCategoria {
  * economico complessivo del collaboratore con la tariffa valida nel mese.
  * Giornaliera: il compenso considera le ore Fatturabile e Non fatturabile,
  * mai quelle di Investimento. Fisso mensile: il compenso è il fisso, a
- * prescindere dalle ore. Senza tariffa il compenso è zero.
+ * prescindere dalle ore. Percentuale: solo le ore Fatturabile, ciascuna
+ * offerta al suo compenso giornaliero (tariffa dell'offerta meno la
+ * trattenuta); anche le giornate da fatturare contano solo il Fatturabile.
+ * Senza tariffa il compenso è zero.
  */
 export function calcolaRiepilogoMese(
   righe: RigaRiepilogo[],
@@ -164,9 +194,13 @@ export function calcolaRiepilogoMese(
 ): RiepilogoMese {
   const importo = Number(tariffa?.importo);
   const tariffaNumerica = Number.isFinite(importo) ? importo : 0;
+  const percentuale = tariffa?.modalita === "PERCENTUALE";
   const aggregati = new Map<
     string,
-    Omit<VoceRiepilogoOfferta, "rimborsiTrasferta"> & { rimborsiTrasferta: number }
+    Omit<VoceRiepilogoOfferta, "rimborsiTrasferta"> & {
+      rimborsiTrasferta: number;
+      tariffaOfferta: number | null;
+    }
   >();
 
   let oreTotali = 0;
@@ -189,6 +223,10 @@ export function calcolaRiepilogoMese(
       giornateTotali: 0,
       giornateDaFatturare: 0,
       rimborsiTrasferta: 0,
+      tariffaOfferta:
+        riga.offertaId === null || riga.tariffaOffertaGiornaliera == null
+          ? null
+          : Number(riga.tariffaOffertaGiornaliera),
     };
 
     voce.oreTotali = sommaOre(voce.oreTotali, riga.ore);
@@ -196,7 +234,7 @@ export function calcolaRiepilogoMese(
     voce.orePerCategoria[riga.categoria] = sommaOre(voce.orePerCategoria[riga.categoria], riga.ore);
     orePerCategoria[riga.categoria] = sommaOre(orePerCategoria[riga.categoria], riga.ore);
 
-    if (fatturataDalCollaboratore(riga.categoria)) {
+    if (percentuale ? fatturataAlCliente(riga.categoria) : fatturataDalCollaboratore(riga.categoria)) {
       voce.oreDaFatturare = sommaOre(voce.oreDaFatturare, riga.ore);
       oreDaFatturare = sommaOre(oreDaFatturare, riga.ore);
     }
@@ -215,17 +253,43 @@ export function calcolaRiepilogoMese(
 
   const giornateTotali = oreTotali / ORE_PER_GIORNATA;
   const giornateDaFatturare = oreDaFatturare / ORE_PER_GIORNATA;
+  let centesimiCompensoPercentuale = 0;
+
+  const perOfferta = Array.from(aggregati.values()).map(
+    ({ tariffaOfferta, ...voce }): VoceRiepilogoOfferta => {
+      const voceRiepilogo: VoceRiepilogoOfferta = {
+        ...voce,
+        giornateTotali: voce.oreTotali / ORE_PER_GIORNATA,
+        giornateDaFatturare: voce.oreDaFatturare / ORE_PER_GIORNATA,
+        rimborsiTrasferta: formattaImporto(voce.rimborsiTrasferta),
+      };
+      if (!percentuale) return voceRiepilogo;
+
+      const compensoGiornaliero =
+        tariffaOfferta === null
+          ? null
+          : centesimiCompensoGiornalieroPercentuale(tariffaOfferta, tariffaNumerica);
+      // giornate × compenso giornaliero, arrotondato una volta per voce
+      const compenso = Math.round(
+        (oreInCentesimi(voce.oreDaFatturare) * (compensoGiornaliero ?? 0)) /
+          (ORE_PER_GIORNATA * 100),
+      );
+      centesimiCompensoPercentuale += compenso;
+      return {
+        ...voceRiepilogo,
+        compensoGiornaliero:
+          compensoGiornaliero === null ? null : formattaImporto(compensoGiornaliero / 100),
+        compenso: formattaImporto(compenso / 100),
+      };
+    },
+  );
+
   const imponibileManodopera =
     tariffa?.modalita === "FISSO_MENSILE"
       ? tariffaNumerica
-      : giornateDaFatturare * tariffaNumerica;
-
-  const perOfferta = Array.from(aggregati.values()).map((voce) => ({
-    ...voce,
-    giornateTotali: voce.oreTotali / ORE_PER_GIORNATA,
-    giornateDaFatturare: voce.oreDaFatturare / ORE_PER_GIORNATA,
-    rimborsiTrasferta: formattaImporto(voce.rimborsiTrasferta),
-  }));
+      : percentuale
+        ? centesimiCompensoPercentuale / 100
+        : giornateDaFatturare * tariffaNumerica;
 
   return {
     perOfferta,
@@ -708,7 +772,7 @@ export interface RigaMarginalita {
   mese: string;
   /** Modalità della tariffa del collaboratore valida nel mese; null se nessuna */
   modalitaTariffaCollaboratore: ModalitaTariffa | null;
-  /** Importo della tariffa del collaboratore valida nel mese (giornaliera: €/giorno) */
+  /** Importo della tariffa del collaboratore valida nel mese (giornaliera: €/giorno; percentuale: % trattenuta) */
   importoTariffaCollaboratore: string | number;
   ore: number;
   categoria: CategoriaAttivita;
@@ -819,6 +883,8 @@ export function ripartisciInProporzione(
  * - Fisso mensile: ogni fisso di `fissiMensili` si ripartisce sulle offerte in
  *   proporzione alle ore Fatturabile e Non fatturabile del collaboratore in
  *   quel mese; senza ore finisce in `fissiNonAttribuibili`.
+ * - Percentuale: giornate Fatturabile × compenso giornaliero (tariffa
+ *   dell'offerta meno la trattenuta); le Non fatturabile non costano.
  *
  * Gli arrotondamenti dei ricavi seguono `calcolaReportFatturazioneClienti`,
  * così coincidono al centesimo con l'imponibile manodopera del report
@@ -892,6 +958,17 @@ export function calcolaMarginalitaClienti(
       offerta.costi +=
         (riga.ore / ORE_PER_GIORNATA) *
         tariffaNumerica(riga.importoTariffaCollaboratore);
+    } else if (
+      riga.modalitaTariffaCollaboratore === "PERCENTUALE" &&
+      fatturataAlCliente(riga.categoria)
+    ) {
+      offerta.costi +=
+        ((riga.ore / ORE_PER_GIORNATA) *
+          centesimiCompensoGiornalieroPercentuale(
+            offerta.tariffaOfferta,
+            tariffaNumerica(riga.importoTariffaCollaboratore),
+          )) /
+        100;
     }
   }
 

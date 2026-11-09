@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { richiediRuolo } from "@/lib/dal";
 import { reportFatturazioneCollaboratoriMese } from "@/lib/report";
-import { formattaEuro } from "@/lib/formattazione";
+import { descriviImportoTariffa, formattaEuro } from "@/lib/formattazione";
 import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
 import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
-import { UNITA_TARIFFA } from "@/domain/tariffe";
 import BarraMese from "./barra-mese";
 
 const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
@@ -110,7 +109,7 @@ export default async function ReportFatturazioneCollaboratoriPage({
                   </td>
                   <td className={classeCella}>
                     {voce.modalitaTariffa
-                      ? `${formattaEuro(voce.importoTariffa)} ${UNITA_TARIFFA[voce.modalitaTariffa]}`
+                      ? descriviImportoTariffa(voce.modalitaTariffa, voce.importoTariffa)
                       : "—"}
                   </td>
                   <td className={`${classeCella} text-right`}>

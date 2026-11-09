@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   etichettaMeseTariffa,
+  etichettaPercentualeTrattenuta,
   periodiDiValidita,
   tariffaValidaNelMese,
   validaVoceTariffa,
@@ -73,6 +74,13 @@ describe("validaVoceTariffa", () => {
       "Importo non valido: usa massimo 2 decimali",
     );
   });
+  it("accetta una percentuale trattenuta tra 0 e 100 esclusi", () => {
+    expect(validaVoceTariffa(voce({ modalita: "PERCENTUALE", importo: "20" }))).toEqual({});
+    expect(validaVoceTariffa(voce({ modalita: "PERCENTUALE", importo: "99,99" }))).toEqual({});
+    expect(validaVoceTariffa(voce({ modalita: "PERCENTUALE", importo: "100" })).importo).toBe(
+      "La percentuale trattenuta deve essere minore di 100",
+    );
+  });
 });
 
 describe("periodiDiValidita", () => {
@@ -103,5 +111,12 @@ describe("etichettaMeseTariffa", () => {
   it("formatta il token come mese abbreviato e anno, lasciando invariato un token non valido", () => {
     expect(etichettaMeseTariffa("2026-07")).toBe("lug 2026");
     expect(etichettaMeseTariffa("non-valido")).toBe("non-valido");
+  });
+});
+
+describe("etichettaPercentualeTrattenuta", () => {
+  it("mostra la percentuale senza decimali superflui", () => {
+    expect(etichettaPercentualeTrattenuta("20.00")).toBe("20% trattenuta");
+    expect(etichettaPercentualeTrattenuta("12.50")).toBe("12,5% trattenuta");
   });
 });
