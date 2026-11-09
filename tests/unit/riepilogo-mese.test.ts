@@ -280,10 +280,10 @@ describe("calcolaRiepilogoMese con tariffa Percentuale", () => {
       percentuale,
     );
 
-    expect(result.perOfferta.map((voce) => [voce.offertaCodice, voce.giornateDaFatturare, voce.compensoGiornaliero, voce.compenso])).toEqual([
-      ["OFF-001", 6, "800.00", "4800.00"],
-      ["OFF-002", 3, "400.00", "1200.00"],
-      ["OFF-003", 0, "640.00", "0.00"],
+    expect(result.perOfferta.map((voce) => [voce.offertaCodice, voce.giornateDaFatturare, voce.compenso])).toEqual([
+      ["OFF-001", 6, "4800.00"],
+      ["OFF-002", 3, "1200.00"],
+      ["OFF-003", 0, "0.00"],
     ]);
     expect(result.totali.giornateDaFatturare).toBe(9);
     expect(result.breakdown).toMatchObject({
@@ -302,10 +302,7 @@ describe("calcolaRiepilogoMese con tariffa Percentuale", () => {
       percentuale,
     );
 
-    expect(result.perOfferta.map((voce) => [voce.compensoGiornaliero, voce.compenso])).toEqual([
-      [null, "0.00"],
-      [null, "0.00"],
-    ]);
+    expect(result.perOfferta.map((voce) => voce.compenso)).toEqual(["0.00", "0.00"]);
     expect(result.importoFattura).toBe("0.00");
   });
 
@@ -315,6 +312,7 @@ describe("calcolaRiepilogoMese con tariffa Percentuale", () => {
       { ...percentuale, importo: "33.33" },
     );
 
-    expect(result.perOfferta[0]).toMatchObject({ compensoGiornaliero: "666.70", compenso: "1000.05" });
+    // 666,70 €/g × 1,5 g
+    expect(result.perOfferta[0].compenso).toBe("1000.05");
   });
 });

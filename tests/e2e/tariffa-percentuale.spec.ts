@@ -69,17 +69,15 @@ test.describe("Tariffa Percentuale", () => {
 		await page.goto(`/attivita/riepilogo?mese=${mese}`);
 
 		await expect(page.getByTestId("summary-giornate-da-fatturare-value")).toHaveText("2,00");
-		await expect(page.getByTestId("summary-giornate-da-fatturare")).toContainText(
-			"Percentuale: solo le ore Fatturabile, compenso per offerta",
-		);
+		await expect(page.getByTestId("summary-giornate-da-fatturare")).toContainText("Percentuale trattenuta: 20%");
 		await expect(page.getByTestId("summary-importo-fattura-value")).toContainText(/1\.?650,00/);
 		await expect(page.getByTestId("summary-importo-fattura-breakdown")).toContainText("2.00 g fatturabili");
 		await expect(page.getByTestId("summary-importo-fattura-breakdown")).toContainText(/Compenso .*1\.?600,00/);
 
 		const tabella = page.getByTestId("summary-table");
-		await expect(tabella.getByRole("columnheader", { name: "Compenso / giorno", exact: true })).toBeVisible();
-		await expect(tabella.getByRole("columnheader", { name: "Compenso", exact: true })).toBeVisible();
-		await expect(tabella.locator("tbody tr")).toContainText(/800,00/);
+		await expect(tabella.getByRole("columnheader", { name: "Compenso (20% trattenuto)", exact: true })).toBeVisible();
+		await expect(tabella.getByRole("columnheader", { name: /Compenso \/ giorno/ })).toHaveCount(0);
+		await expect(tabella.locator("tbody tr")).toContainText(/1\.?600,00/);
 		await expect(tabella.locator("tfoot tr")).toContainText(/1\.?600,00/);
 		await expect(page.getByText(/1\.?000,00/)).toHaveCount(0);
 	});

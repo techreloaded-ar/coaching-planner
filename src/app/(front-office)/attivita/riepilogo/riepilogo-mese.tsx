@@ -61,6 +61,7 @@ export default function RiepilogoMese({
 }: RiepilogoMeseProps) {
   const haDati = riepilogo.perOfferta.length > 0;
   const percentuale = riepilogo.breakdown.modalitaTariffa === "PERCENTUALE";
+  const percentualeTrattenuta = `${formattaNumero(Number(riepilogo.breakdown.importoTariffa))}%`;
   const collaboratoreConsultatoId = useCollaboratoreConsultato();
 
   return (
@@ -169,7 +170,7 @@ export default function RiepilogoMese({
               : riepilogo.breakdown.modalitaTariffa === "FISSO_MENSILE"
                 ? "Il fisso mensile non dipende dalle giornate"
                 : riepilogo.breakdown.modalitaTariffa === "PERCENTUALE"
-                  ? "Percentuale: solo le ore Fatturabile, compenso per offerta"
+                  ? `Percentuale trattenuta: ${percentualeTrattenuta}`
                   : "Nessuna tariffa in vigore"}
           </div>
         </div>
@@ -248,10 +249,7 @@ export default function RiepilogoMese({
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giornate da fatturare</th>
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Rimborsi trasferta</th>
                   {percentuale && (
-                    <>
-                      <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Compenso / giorno</th>
-                      <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Compenso</th>
-                    </>
+                    <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Compenso ({percentualeTrattenuta} trattenuto)</th>
                   )}
                   <th className="px-3.5 py-3 text-right text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Giorni erogati</th>
                 </tr>
@@ -302,14 +300,9 @@ export default function RiepilogoMese({
                         {Number(voce.rimborsiTrasferta) > 0 ? formattaEuro(voce.rimborsiTrasferta) : "—"}
                       </td>
                       {percentuale && (
-                        <>
-                          <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
-                            {voce.compensoGiornaliero && voce.giornateDaFatturare > 0 ? formattaEuro(voce.compensoGiornaliero) : "—"}
-                          </td>
-                          <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
-                            {voce.compenso && Number(voce.compenso) > 0 ? formattaEuro(voce.compenso) : "—"}
-                          </td>
-                        </>
+                        <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">
+                          {voce.compenso && Number(voce.compenso) > 0 ? formattaEuro(voce.compenso) : "—"}
+                        </td>
                       )}
                       <td className="px-3.5 py-3 text-right align-top whitespace-nowrap">
                         {avanzamento ? (
@@ -330,10 +323,7 @@ export default function RiepilogoMese({
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{riepilogo.totali.giornateDaFatturare > 0 ? formattaGiornate(riepilogo.totali.giornateDaFatturare) : "—"}</td>
                   <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaEuro(riepilogo.totali.totaleRimborsi)}</td>
                   {percentuale && (
-                    <>
-                      <td />
-                      <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaEuro(riepilogo.breakdown.imponibileManodopera)}</td>
-                    </>
+                    <td className="px-3.5 py-3 text-right font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaEuro(riepilogo.breakdown.imponibileManodopera)}</td>
                   )}
                   <td />
                 </tr>

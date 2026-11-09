@@ -69,11 +69,10 @@ export interface VoceRiepilogoOfferta {
   giornateDaFatturare: number;
   rimborsiTrasferta: string;
   /**
-   * Solo con la tariffa Percentuale: compenso per giornata sull'offerta (la
-   * tariffa dell'offerta al netto della trattenuta) e compenso della voce.
-   * `compensoGiornaliero` è null se l'offerta non ha tariffa.
+   * Solo con la tariffa Percentuale: giornate × compenso giornaliero
+   * dell'offerta (la sua tariffa al netto della trattenuta); zero se l'offerta
+   * non ha tariffa.
    */
-  compensoGiornaliero?: string | null;
   compenso?: string;
 }
 
@@ -267,20 +266,15 @@ export function calcolaRiepilogoMese(
 
       const compensoGiornaliero =
         tariffaOfferta === null
-          ? null
+          ? 0
           : centesimiCompensoGiornalieroPercentuale(tariffaOfferta, tariffaNumerica);
       // giornate × compenso giornaliero, arrotondato una volta per voce
       const compenso = Math.round(
-        (oreInCentesimi(voce.oreDaFatturare) * (compensoGiornaliero ?? 0)) /
+        (oreInCentesimi(voce.oreDaFatturare) * compensoGiornaliero) /
           (ORE_PER_GIORNATA * 100),
       );
       centesimiCompensoPercentuale += compenso;
-      return {
-        ...voceRiepilogo,
-        compensoGiornaliero:
-          compensoGiornaliero === null ? null : formattaImporto(compensoGiornaliero / 100),
-        compenso: formattaImporto(compenso / 100),
-      };
+      return { ...voceRiepilogo, compenso: formattaImporto(compenso / 100) };
     },
   );
 
