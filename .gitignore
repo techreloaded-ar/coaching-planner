@@ -45,9 +45,10 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
-.claude/skills
-.agents/skills
+.claude/*
+.agents/*
 **/.claude/transcripts
+.archetipo/shared-runtime.md
 docs/test-results
 .pi-subagents
 *.bak
