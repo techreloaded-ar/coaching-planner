@@ -11,6 +11,7 @@ import {
   giornoSpostatoDi,
   etichettaMeseBreve,
   NOMI_MESI_ABBREVIATI,
+  giornoPerFiltroData,
 } from "@/domain/calendario";
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -356,5 +357,24 @@ describe("etichettaMeseBreve", () => {
     expect(etichettaMeseBreve(0)).toBe("");
     expect(etichettaMeseBreve(13)).toBe("");
     expect(etichettaMeseBreve(1.5)).toBe("");
+  });
+});
+
+// ── giornoPerFiltroData ────────────────────────────────────────
+
+describe("giornoPerFiltroData", () => {
+  // Prisma confronta la data UTC del valore con la colonna @db.Date: il giorno
+  // deve cadere a mezzanotte UTC qualunque sia il fuso del server (il 5/11 in
+  // CET, con la mezzanotte locale, diventava il 4/11).
+  it("restituisce il giorno a mezzanotte UTC, indipendente dal fuso del server", () => {
+    expect(giornoPerFiltroData(2026, 11, 5).toISOString()).toBe("2026-11-05T00:00:00.000Z");
+  });
+
+  it("individua primo e ultimo giorno del mese con il giorno 0 del mese successivo", () => {
+    expect(giornoPerFiltroData(2026, 11, 1).toISOString()).toBe("2026-11-01T00:00:00.000Z");
+    expect(giornoPerFiltroData(2026, 12, 0).toISOString()).toBe("2026-11-30T00:00:00.000Z");
+    expect(giornoPerFiltroData(2026, 13, 0).toISOString()).toBe("2026-12-31T00:00:00.000Z");
+    expect(giornoPerFiltroData(2026, 13, 1).toISOString()).toBe("2027-01-01T00:00:00.000Z");
+    expect(giornoPerFiltroData(2024, 3, 0).toISOString()).toBe("2024-02-29T00:00:00.000Z");
   });
 });

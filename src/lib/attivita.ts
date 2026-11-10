@@ -2,7 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { richiediCollaboratoreCorrente, ErroreAutorizzazione } from "@/lib/dal";
-import { parseDataGiorno, parseTokenMese } from "@/domain/calendario";
+import { giornoPerFiltroData, parseDataGiorno, parseTokenMese } from "@/domain/calendario";
 import { sommaOre } from "@/domain/types";
 import type { RigaAttivita, Offerta, Cliente } from "@/generated/prisma/client";
 import type {
@@ -61,12 +61,16 @@ export interface RisultatoRiepilogoMese {
 // ── Helpers ─────────────────────────────────────────────────────
 
 /**
- * Formatta una Date in stringa YYYY-MM-DD.
+ * Formatta in YYYY-MM-DD la data di una riga.
+ *
+ * `RigaAttivita.data` è una colonna `@db.Date`: Prisma la restituisce alla
+ * mezzanotte UTC, quindi il giorno si legge con i getter UTC. I getter locali
+ * lo sposterebbero di un giorno con il server in un fuso negativo.
  */
 function formattaDataISO(data: Date): string {
-  const a = data.getFullYear();
-  const m = String(data.getMonth() + 1).padStart(2, "0");
-  const g = String(data.getDate()).padStart(2, "0");
+  const a = data.getUTCFullYear();
+  const m = String(data.getUTCMonth() + 1).padStart(2, "0");
+  const g = String(data.getUTCDate()).padStart(2, "0");
   return `${a}-${m}-${g}`;
 }
 
@@ -150,8 +154,8 @@ async function offerteAbilitateDelCollaboratore(
 /** Estremi half-open del mese: `[primo del mese, primo del mese successivo)`. */
 function intervalloMese(anno: number, mese: number): { inizio: Date; fine: Date } {
   return {
-    inizio: new Date(anno, mese - 1, 1),
-    fine: new Date(anno, mese, 1),
+    inizio: giornoPerFiltroData(anno, mese, 1),
+    fine: giornoPerFiltroData(anno, mese + 1, 1),
   };
 }
 
@@ -186,8 +190,8 @@ export async function attivitaDelMese(token: string): Promise<AttivitaMese> {
   const { anno, mese } = parsed;
 
   // Intervallo del mese: dal primo all'ultimo giorno
-  const inizio = new Date(anno, mese - 1, 1);
-  const fine = new Date(anno, mese, 0); // giorno 0 del mese successivo = ultimo del corrente
+  const inizio = giornoPerFiltroData(anno, mese, 1);
+  const fine = giornoPerFiltroData(anno, mese + 1, 0); // giorno 0 del mese successivo = ultimo del corrente
 
   const righe = await db.rigaAttivita.findMany({
     where: {
@@ -308,17 +312,11 @@ export async function righeDelGiornoPerCollaboratoreAutorizzato(
   }
 
   const { anno, mese, giorno } = parsed;
-  const inizio = new Date(anno, mese - 1, giorno);
-  const fine = new Date(anno, mese - 1, giorno, 23, 59, 59, 999);
-
   const [righe, offerteAbilitate] = await Promise.all([
     db.rigaAttivita.findMany({
       where: {
         collaboratoreId,
-        data: {
-          gte: inizio,
-          lte: fine,
-        },
+        data: giornoPerFiltroData(anno, mese, giorno),
       },
       include: {
         offerta: true,
@@ -612,8 +610,8 @@ export async function riepilogoMesePerCollaboratoreAutorizzato(
   }
 
   const { anno, mese } = parsed;
-  const inizio = new Date(anno, mese - 1, 1);
-  const fine = new Date(anno, mese, 0);
+  const inizio = giornoPerFiltroData(anno, mese, 1);
+  const fine = giornoPerFiltroData(anno, mese + 1, 0);
 
   const [righeDb, tariffe] = await Promise.all([
     db.rigaAttivita.findMany({

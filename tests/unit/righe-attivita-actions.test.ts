@@ -969,7 +969,7 @@ describe("eliminaRiga", () => {
       // Prima chiamata: caricaRigaDelCollaboratore
       .mockResolvedValueOnce({ collaboratoreId: "collab-giulia" })
       // Seconda chiamata: recupera la data per revalidate
-      .mockResolvedValueOnce({ data: new Date(2026, 6, 1) });
+      .mockResolvedValueOnce({ data: new Date(Date.UTC(2026, 6, 1)) });
     mockRigaAttivita.delete.mockResolvedValue({ id: "riga-1" });
 
     const result = await eliminaRiga("riga-1");
@@ -994,7 +994,7 @@ describe("eliminaRiga", () => {
         clienteId: "cliente-1",
       })
       // Seconda chiamata: recupera la data per revalidate
-      .mockResolvedValueOnce({ data: new Date(2026, 6, 1) });
+      .mockResolvedValueOnce({ data: new Date(Date.UTC(2026, 6, 1)) });
     mockAbilitazioneOfferta.findUnique.mockResolvedValue(null);
     mockRigaAttivita.delete.mockResolvedValue({ id: "riga-1" });
 
@@ -1061,7 +1061,7 @@ describe("rimuoviRimborsoTrasferta", () => {
     });
     mockRigaAttivita.findUnique
       .mockResolvedValueOnce({ collaboratoreId: "collab-giulia" })
-      .mockResolvedValueOnce({ data: new Date(2026, 6, 1) });
+      .mockResolvedValueOnce({ data: new Date(Date.UTC(2026, 6, 1)) });
     mockRigaAttivita.update.mockResolvedValue({ id: "riga-1" });
 
     const result = await rimuoviRimborsoTrasferta("riga-1");
