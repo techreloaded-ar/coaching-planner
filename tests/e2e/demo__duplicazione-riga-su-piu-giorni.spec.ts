@@ -197,7 +197,7 @@ test.describe("US-057 Demo", () => {
         rigaReplicata.getByText("Fatturabile", { exact: true }),
       ).toBeVisible();
       await expect(rigaReplicata).toContainText(ETICHETTA_RIMBORSO);
-      await expect(rigaReplicata).toContainText("85.00");
+      await expect(rigaReplicata).toContainText("85,00");
     }
 
     // ── 8. Torna sul giorno di origine e riapre il selettore ────────────

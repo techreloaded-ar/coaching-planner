@@ -678,7 +678,11 @@ export default function CalendarioMensile({
       </section>
 
       {/* ── Legenda: descrive esattamente gli stati della griglia ── */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-testo-secondario">
+      <div
+        role="group"
+        aria-label="Legenda del calendario"
+        className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-testo-secondario"
+      >
         <span className="inline-flex items-center gap-[7px]">
           <span className="h-3.5 w-3.5 rounded-[4px] border border-zinc-200 bg-zinc-50 shadow-[inset_3px_0_0] shadow-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/50 dark:shadow-zinc-500" />
           Giorno con attività registrate

@@ -154,11 +154,13 @@ test.describe("US-011 Demo", () => {
 
     // ── 12. Verifica la legenda ────────────────────────────────────
 
+    const legenda = page.getByRole("group", { name: "Legenda del calendario" });
     await expect(
-      page.getByText("Giorno con attività registrate")
+      legenda.getByText("Giorno con attività registrate")
     ).toBeVisible();
-    await expect(page.getByText("Oggi")).toBeVisible();
-    await expect(page.getByText("Nessuna attività")).toBeVisible();
+    await expect(legenda.getByText("Oggi", { exact: true })).toBeVisible();
+    await expect(legenda.getByText("Sabato e domenica")).toBeVisible();
+    await expect(legenda.getByText("Nessuna attività")).toBeVisible();
 
     // ── 13. Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
 
