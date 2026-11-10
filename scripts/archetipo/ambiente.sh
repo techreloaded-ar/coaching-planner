@@ -20,6 +20,8 @@
 #                   (login e Calendar) e Jev simulati (E2E_TEST_MODE) e dati
 #                   sintetici. "Accedi con Google" apre la scelta locale
 #                   dell'utente; "Collega Google Calendar" la scelta dell'account.
+#   rigenera-database  azzera il database applicativo del checkout e lo ricrea
+#                   con migrazioni, seed di base e dati dimostrativi
 #   esegui <cmd>    esegue un comando arbitrario con l'ambiente del checkout
 #   pulizia         rimuove gli artefatti transitori dei check (test-results, playwright-report)
 set -eu
@@ -156,7 +158,17 @@ case "$comando" in
     utenti="$(docker exec "$CONTAINER" psql -U user -d coaching_planner -tAc 'SELECT count(*) FROM "Utente"')"
     if [ "$utenti" = "0" ]; then
       npx prisma db seed
+      # Casistiche aggiuntive per le prove a mano: solo qui, mai su e2e e CI.
+      npx tsx prisma/seed-dati-demo.ts
     fi
+    ;;
+  rigenera-database)
+    # Distruttivo: butta dati e modifiche del database applicativo del checkout
+    # e lo ricostruisce da zero. Il database e2e non viene toccato.
+    esporta_ambiente
+    npx prisma migrate reset --force
+    npx prisma db seed
+    npx tsx prisma/seed-dati-demo.ts
     ;;
   probe-database)
     esporta_ambiente

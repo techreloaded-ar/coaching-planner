@@ -50,6 +50,7 @@
     "prisma/schema.prisma",
     "prisma/migrations",
     "prisma/seed.ts",
+    "prisma/seed-dati-demo.ts",
     "prisma.config.ts",
     "scripts/archetipo/ambiente.sh"
   ],

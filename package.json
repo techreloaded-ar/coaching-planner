@@ -17,6 +17,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "npm run db:generate && prisma db seed",
+    "db:seed:demo": "npm run db:seed && tsx prisma/seed-dati-demo.ts",
     "db:studio": "prisma studio",
     "db:bootstrap-amministratore": "tsx scripts/bootstrap-amministratore-iniziale.ts",
     "db:backfill-abilitazioni": "tsx scripts/backfill-abilitazioni-iniziali.ts",
