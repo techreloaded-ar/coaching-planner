@@ -1,0 +1,44 @@
+schema: archetipo/spec/v2
+code: US-107
+title: Elenco clienti con quick filter per stato
+epic:
+  code: EP-021
+  title: Nell'anagrafica di clienti, offerte e utenti dobbiamo aggiungere la gest…
+priority: HIGH
+points: 3
+status: DONE
+blocked_by:
+  - US-106
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** che l'elenco clienti mostri per default i clienti attivi e nuovi e mi permetta di includere i non attivi con un quick filter
+  **così che** mi concentri sui clienti con cui sto lavorando o che aspettano un'offerta, senza perdere l'accesso allo storico.
+
+  ### Demonstrates
+  1. L'amministratore apre «Anagrafiche › Clienti»: nel quick filter sono selezionati «Attivi» e «Nuovi», ciascuno con il proprio conteggio, e l'elenco mostra solo clienti con chip «N attive» o «Nuovo».
+  2. Attiva anche «Non attivi»: compaiono i clienti con chip «N chiuse», con aspetto attenuato. Deselezionando «Attivi» e «Nuovi» restano solo i non attivi.
+  3. Con il filtro predefinito cerca la ragione sociale di un cliente non attivo: il cliente viene restituito comunque, con il suo chip.
+  4. Ricarica la pagina o cambia pagina: filtro e ricerca restano quelli scelti.
+
+  ### Acceptance criteria
+  - [ ] La colonna dello stato nell'elenco si intitola «Offerte» e mostra il chip di stato del cliente (US-002).
+  - [ ] La toolbar offre un quick filter con tre opzioni attivabili singolarmente — «Attivi», «Nuovi», «Non attivi» — ognuna con il numero di clienti di quello stato nell'insieme cercato; i conteggi sostituiscono la frase «N clienti · X attivi · Y disattivati».
+  - [ ] All'apertura della pagina sono selezionati «Attivi» e «Nuovi»; se l'amministratore deseleziona tutte le opzioni l'elenco torna alla selezione predefinita.
+  - [ ] Quando la ricerca testuale è valorizzata, i risultati comprendono tutti i clienti corrispondenti a prescindere dal quick filter.
+  - [ ] I clienti attivi sono in evidenza, i nuovi hanno l'avatar con le iniziali in tinta indaco chiara, i non attivi hanno aspetto attenuato senza barrato.
+  - [ ] Il filtro scelto si conserva nell'URL insieme a ricerca e pagina, così che ricaricamento, paginazione e ritorno dalla scheda lo mantengano.
+  - [ ] Il testo descrittivo della pagina spiega che un cliente è attivo quando ha almeno un'offerta attiva e nuovo quando non ha ancora offerte.
+
+  <!-- archetipo-increment:inc-2619c7921cd227ed:US-003 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/16
+history:
+  - status: TODO
+    at: "2026-11-02T09:36:58Z"
+  - status: IN PROGRESS
+    at: "2026-11-02T09:36:58Z"
+  - status: REVIEW
+    at: "2026-11-02T10:17:57Z"
+  - status: DONE
+    at: "2026-11-02T10:40:19Z"

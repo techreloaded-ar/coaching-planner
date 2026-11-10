@@ -1,0 +1,41 @@
+schema: archetipo/spec/v2
+code: US-105
+title: Annotare note libere su clienti, offerte e utenti
+epic:
+  code: EP-021
+  title: Nell'anagrafica di clienti, offerte e utenti dobbiamo aggiungere la gest…
+priority: MEDIUM
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** scrivere note libere su clienti, offerte e utenti
+  **così che** le informazioni utili che non hanno un campo dedicato restino legate all'entità a cui si riferiscono.
+
+  ### Demonstrates
+  1. L'amministratore apre «Modifica» di un cliente, scrive nel campo «Note» un testo su più righe e salva: nella scheda del cliente le note compaiono con gli a capo preservati.
+  2. Ripete la stessa operazione sul form di modifica di un'offerta e verifica le note nella scheda dell'offerta.
+  3. Ripete l'operazione sul form di modifica di un utente: riaprendo il form le note salvate sono presenti.
+  4. Svuota le note di un cliente e salva: la scheda non mostra più la sezione note.
+
+  ### Acceptance criteria
+  - [ ] Clienti, offerte e utenti hanno un campo «Note» facoltativo, testuale libero, senza limite pratico di lunghezza, persistito nel database tramite migration.
+  - [ ] Il campo è un'area di testo su più righe presente nei form di creazione e modifica di cliente, offerta e utente.
+  - [ ] Le note salvate vengono mostrate nella scheda di dettaglio del cliente e dell'offerta preservando gli a capo; se vuote la sezione non compare. Per l'utente le note sono visibili nel form di modifica.
+  - [ ] Note composte solo da spazi vengono salvate come vuote.
+  - [ ] Solo l'amministratore può leggere e modificare le note; i collaboratori non le vedono in nessuna schermata.
+  - [ ] Clienti, offerte e utenti esistenti continuano a funzionare con note vuote.
+
+  <!-- archetipo-increment:inc-2619c7921cd227ed:US-001 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/16
+history:
+  - status: TODO
+    at: "2026-11-02T09:36:58Z"
+  - status: IN PROGRESS
+    at: "2026-11-02T09:36:58Z"
+  - status: REVIEW
+    at: "2026-11-02T10:17:57Z"
+  - status: DONE
+    at: "2026-11-02T10:40:18Z"

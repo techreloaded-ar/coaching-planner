@@ -1,0 +1,43 @@
+schema: archetipo/spec/v2
+code: US-106
+title: Stato del cliente derivato dalle offerte
+epic:
+  code: EP-021
+  title: Nell'anagrafica di clienti, offerte e utenti dobbiamo aggiungere la gest…
+priority: HIGH
+points: 5
+status: DONE
+scope: MVP
+body: |-
+  **Come** amministratore
+  **voglio** che lo stato di un cliente dipenda dalle sue offerte
+  **così che** non debba tenerlo allineato a mano e lo stato rifletta sempre la situazione commerciale reale.
+
+  ### Demonstrates
+  1. Un cliente con tre offerte attive mostra, nell'elenco e nella sua scheda, il chip verde «3 attive»; non esiste alcuna azione per disattivarlo.
+  2. Un cliente appena creato, senza offerte, mostra il chip indaco «Nuovo».
+  3. L'amministratore disattiva tutte le offerte di un cliente che ne ha due: il cliente mostra il chip grigio «2 chiuse» senza ulteriori azioni.
+  4. Crea una nuova offerta attiva per quel cliente (la creazione non è bloccata): il cliente torna a mostrare il chip verde «1 attiva».
+  5. Un collaboratore apre il dettaglio di un giorno: nella select «Cliente» trova anche il cliente nuovo senza offerte (in «Altri clienti») e può registrare ore «Offerta da definire».
+
+  ### Acceptance criteria
+  - [ ] Lo stato del cliente è calcolato dalle offerte e non è più memorizzato sul cliente (la colonna `attivo` del cliente viene rimossa con una migration): *attivo* se ha almeno un'offerta attiva, *nuovo* se non ha alcuna offerta, *non attivo* se ha offerte ma nessuna attiva.
+  - [ ] Lo stato è mostrato con un chip unico, riusato in elenco e scheda cliente: verde «N attive» (singolare «1 attiva») con il numero di offerte attive; indaco «Nuovo»; grigio «N chiuse» (singolare «1 chiusa») con il numero di offerte non attive.
+  - [ ] Scompaiono le azioni manuali «Attiva/Disattiva» dei clienti (selezione multipla dell'elenco, scheda e form) e la relativa action server.
+  - [ ] La creazione di un'offerta è consentita su qualunque cliente; il messaggio e il controllo «cliente disattivato» vengono rimossi.
+  - [ ] Nel foglio attività il collaboratore può selezionare qualunque cliente: «Consigliati» resta il gruppo dei clienti con offerte attive su cui è abilitato, «Altri clienti» contiene tutti gli altri; il server accetta righe su qualunque cliente esistente.
+  - [ ] Le proposte dal calendario Google e le altre selezioni operative non filtrano più per il vecchio stato del cliente.
+  - [ ] Seed, test unitari ed e2e sono aggiornati al nuovo modello senza mutare le entità seed condivise.
+
+  <!-- archetipo-increment:inc-2619c7921cd227ed:US-002 -->
+
+  Proposta di incremento: https://github.com/techreloaded-ar/coaching-planner/pull/16
+history:
+  - status: TODO
+    at: "2026-11-02T09:36:58Z"
+  - status: IN PROGRESS
+    at: "2026-11-02T09:36:58Z"
+  - status: REVIEW
+    at: "2026-11-02T10:17:57Z"
+  - status: DONE
+    at: "2026-11-02T10:40:19Z"

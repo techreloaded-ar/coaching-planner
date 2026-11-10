@@ -45,6 +45,8 @@ epics:
     title: dobbiamo modificare come vengono censite le attività. Ad oggi per censir…
   - code: EP-020
     title: Manca una funzionalità importante per gli amministratori. Gli amministra…
+  - code: EP-021
+    title: Nell'anagrafica di clienti, offerte e utenti dobbiamo aggiungere la gest…
 order:
   - US-001
   - US-004
@@ -150,3 +152,6 @@ order:
   - US-102
   - US-103
   - US-104
+  - US-105
+  - US-106
+  - US-107
