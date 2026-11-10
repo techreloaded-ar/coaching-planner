@@ -142,7 +142,7 @@ describe("importer incrementale senza ID nel foglio", () => {
     const p = analizza(schede([riga({ data: "2025-01-01" }), riga({ ore: "non numerico" }), riga({ "spese coach": "abc" })]), archivio(), cfg);
     expect(p.righe.map((r) => r.stato)).toEqual(["PRONTA", "NON_IMPORTABILE", "PRONTA"]);
   });
-  it("aggiorna le righe riconosciute e conserva quelle assenti dal foglio", () => {
+  it("aggiorna le righe riconosciute e propone di eliminare quelle assenti dal foglio", () => {
     const a = archivio(); const g = esistente(a); a.giornate.push(g);
     const row = analizza(schede([riga()]), a, cfg).righe[0];
     a.registro.push({ chiave: row.chiave, dati: row.grezzi, rigaAttivitaId: g.id, impronta: impronta(g), ignorata: false });
@@ -151,7 +151,8 @@ describe("importer incrementale senza ID nel foglio", () => {
     expect(analizza(schede([riga()]), a, cfg).righe[0].stato).toBe("AGGIORNARE");
     const senzaRiga = analizza(schede([]), a, cfg);
     expect(senzaRiga.righe.map((r) => r.stato)).toEqual(["SCOMPARSA"]);
-    expect(operazioni(senzaRiga, [])).toHaveLength(0);
+    expect(operazioni(senzaRiga, [])).toMatchObject([{ azione: "ELIMINA", destinazione: g.id }]);
+    expect(operazioni(senzaRiga, [{ chiave: senzaRiga.righe[0].chiave, azione: "IGNORA" }])).toMatchObject([{ azione: "IGNORA" }]);
     expect(a.giornate).toHaveLength(1);
   });
   it("non considera scomparse le righe manuali, i dati invalidi ancora presenti o gli aggiornamenti ambigui", () => {
@@ -177,6 +178,21 @@ describe("importer incrementale senza ID nel foglio", () => {
     expect(() => operazioni(dopo, [{ chiave: missing.chiave, azione: "NUOVA" }])).toThrow("soltanto");
     const f = new FormData(); f.set(`scelta:${missing.chiave}`, "ELIMINA");
     expect(parseDecisioni(f)).toEqual([{ chiave: missing.chiave, azione: "ELIMINA" }]);
+  });
+  it("rileva la rimozione anche se un'altra occorrenza riusa la stessa chiave del foglio", () => {
+    const a = archivio();
+    const fatturabile = riga();
+    const nonFatturabile = riga({ "tipologia fatturazione": "NON FATTURABILE" });
+    const iniziale = analizza(schede([fatturabile, nonFatturabile]), a, cfg);
+    a.giornate = iniziale.righe.map((r, i) => ({ ...r.proposta!, id: `giornata-${i}`, versione: "v1" }));
+    a.registro = iniziale.righe.map((r, i) => ({ chiave: r.chiave, dati: r.grezzi, rigaAttivitaId: a.giornate[i].id, impronta: impronta(a.giornate[i]), ignorata: false }));
+    const dopo = analizza(schede([nonFatturabile]), a, cfg);
+    expect(dopo.righe.map((r) => r.stato)).toEqual(["PRESENTE", "SCOMPARSA"]);
+    expect(new Set(dopo.righe.map((r) => r.chiave)).size).toBe(2);
+    expect(operazioni(dopo, [])).toMatchObject([
+      { azione: "COLLEGA", destinazione: "giornata-1" },
+      { azione: "ELIMINA", destinazione: "giornata-0" },
+    ]);
   });
   it("rivaluta gli scarti e le righe ignorate ad ogni lettura", () => {
     const a = archivio(); const row = analizza(schede([riga()]), a, cfg).righe[0];
@@ -261,6 +277,30 @@ describe("aggiornamenti con ID stabile nel foglio", () => {
 });
 
 describe("chiave naturale collaboratore, data, cliente, offerta e ore", () => {
+  it.each<Celle>([{}, { id: "stabile" }])("conserva il commento locale anche negli aggiornamenti (%j)", (extra) => {
+    const a = archivio();
+    const raw = riga(extra);
+    const prima = analizza(schede([raw]), a, cfg).righe[0];
+    const g = { ...prima.proposta!, id: "giornata", versione: "v1", nota: "Commento solo nell’app\n" };
+    a.giornate.push(g);
+    a.registro.push({ chiave: prima.chiave, dati: raw, rigaAttivitaId: g.id, impronta: impronta(g), ignorata: false });
+    const uguale = analizza(schede([raw]), a, cfg).righe[0];
+    expect(uguale.stato).toBe("PRESENTE");
+    expect(uguale.proposta?.nota).toBe(g.nota);
+    const aggiornata = analizza(schede([{ ...raw, ore: "4" }]), a, cfg).righe[0];
+    expect(aggiornata.stato).toBe("AGGIORNARE");
+    expect(aggiornata.proposta).toMatchObject({ ore: "4.00", nota: g.nota });
+    expect(g.ore).toBe("8.00");
+  });
+  it("aggiunge le note della fonte una sola volta conservando il commento locale", () => {
+    const a = archivio(); a.giornate.push({ ...esistente(a), nota: "Commento locale" });
+    const raw = riga({ note: "Nota dal foglio" });
+    const prima = analizza(schede([raw]), a, cfg).righe[0];
+    expect(prima.stato).toBe("AGGIORNARE");
+    expect(prima.proposta?.nota).toBe("Commento locale\nNota dal foglio");
+    a.giornate[0] = { ...a.giornate[0], ...prima.proposta! };
+    expect(analizza(schede([raw]), a, cfg).righe[0].stato).toBe("PRESENTE");
+  });
   it.each([false, true])("riserva prima le corrispondenze esatte anche con righe riordinate (%s)", (inverti) => {
     const a = archivio(); a.giornate.push(esistente(a));
     const rows = [riga({ ore: "4" }), riga()];
@@ -298,8 +338,9 @@ describe("chiave naturale collaboratore, data, cliente, offerta e ore", () => {
     const originale = analizza(schede([riga()]), a, cfg);
     const modificata = analizza(schede([riga({ data: "05/11/2026", ore: "8,00", cliente: "  cliente TEST ", extra: "cambiato" })]), a, cfg);
     expect(modificata.righe[0].chiave).toBe(originale.righe[0].chiave);
-    expect(modificata.righe[0].stato).toBe("AGGIORNARE");
-    expect(operazioni(modificata, [])).toMatchObject([{ azione: "AGGIORNA", destinazione: "giornata" }]);
+    expect(modificata.righe[0].stato).toBe("PRESENTE");
+    expect(modificata.righe[0].proposta?.nota).toBe("Nota locale");
+    expect(operazioni(modificata, [])).toMatchObject([{ azione: "COLLEGA", destinazione: "giornata" }]);
   });
 });
 

@@ -12,8 +12,8 @@ export function operazioni(piano: Piano, decisioni: Decisione[]) {
   return piano.righe.flatMap<{ riga: RigaAnteprima; azione: Decisione["azione"]; destinazione?: string }>((r) => {
     const scelta = scelte.get(r.chiave);
     if (r.stato === "SCOMPARSA") {
-      if (!scelta) return [];
-      if (scelta.azione !== "ELIMINA" || r.candidati.length !== 1 || r.collegataId !== r.candidati[0].id ||
+      if (scelta?.azione === "IGNORA") return [{ riga: r, azione: "IGNORA" }];
+      if ((scelta && scelta.azione !== "ELIMINA") || r.candidati.length !== 1 || r.collegataId !== r.candidati[0].id ||
         piano.righe.some((altra) => altra !== r && altra.stato !== "SCOMPARSA" && (altra.collegataId === r.collegataId || altra.candidati.some((g) => g.id === r.collegataId))) || targets.has(r.collegataId)) {
         throw new ErroreImporter("Puoi eliminare soltanto una giornata non più presente nel foglio e senza altri abbinamenti.");
       }

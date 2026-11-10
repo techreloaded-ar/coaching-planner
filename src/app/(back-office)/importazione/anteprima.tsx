@@ -121,7 +121,7 @@ export default function Anteprima({ piano, id, revisione, completata }: { piano:
           </details>
           {!completata && r.stato === "SCOMPARSA" && <label className="mt-3 flex flex-wrap items-center gap-2 text-sm">Decisione per giornata non più presente
             <select value={scelte[r.chiave] || ""} onChange={(e) => scelta(r, e.target.value)} className={FIELD}>
-              <option value="">Mantieni nell’app</option><option value="ELIMINA">Elimina dall’app</option>
+              <option value="IGNORA">Mantieni nell’app</option><option value="ELIMINA">Elimina dall’app</option>
             </select>
           </label>}
           {scelte[r.chiave] === "ELIMINA" && <p className="mt-2 text-sm font-medium text-red-700 dark:text-red-300">Questa giornata verrà eliminata dall’app alla conferma dell’importazione.</p>}

@@ -128,6 +128,7 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
       chiaviPerGiornata.set(voce.rigaAttivitaId, chiavi);
     }
     const chiaviDaRimuovere = new Set<string>();
+    const chiaviFonte = new Set(piano.righe.filter((r) => r.stato !== "SCOMPARSA").map((r) => r.chiave));
     function scollegaVecchieChiavi(rigaAttivitaId: string, chiave: string) {
       for (const precedente of chiaviPerGiornata.get(rigaAttivitaId) ?? []) {
         if (precedente !== chiave) chiaviDaRimuovere.add(precedente);
@@ -139,7 +140,7 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
       if (azione === "ELIMINA") {
         // Anche una decisione costruita a mano deve avere un collegamento reale
         // nel registro dell'origine corrente. Nessuna cancellazione per ID libero.
-        if (!archivio.registro.some((voce) => voce.chiave === riga.chiave && voce.rigaAttivitaId === op.destinazione)) {
+        if (!archivio.registro.some((voce) => voce.rigaAttivitaId === op.destinazione)) {
           throw new ErroreImporter("La giornata da eliminare non appartiene al registro di questo documento.");
         }
         if (await tx.importazioneLegacyRiga.count({ where: { rigaAttivitaId: op.destinazione!, origine: { not: cfg.id } } })) {
@@ -152,9 +153,10 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
       }
       let rigaAttivitaId: string | null = null;
       let fingerprint: string | null = null;
+      let chiaveRegistro = riga.chiave;
       if (azione === "NUOVA" || azione === "AGGIORNA") {
         const g = { ...riga.proposta! };
-        if (riga.senzaCodice && azione === "AGGIORNA") {
+        if (azione === "AGGIORNA") {
           g.nota = appendiNote(giornateEsistenti.get(op.destinazione!)?.nota, g.nota);
         }
         rigaAttivitaId = azione === "NUOVA" ? randomUUID() : op.destinazione!;
@@ -177,9 +179,13 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
         if (riga.stato === "SCOMPARSA" && riga.candidati[0]) {
           rigaAttivitaId = riga.candidati[0].id;
           fingerprint = impronta(riga.candidati[0]);
+          // Conserva l'ID stabile della fonte se libero; usa la chiave della
+          // sparizione solo quando un'altra occorrenza riusa quella precedente.
+          chiaveRegistro = chiaviPerGiornata.get(rigaAttivitaId)?.find((chiave) => !chiaviFonte.has(chiave)) ?? riga.chiave;
+          scollegaVecchieChiavi(rigaAttivitaId, chiaveRegistro);
         }
       }
-      registro.push({ origine: cfg.id, chiave: riga.chiave, dati: json(riga.grezzi), rigaAttivitaId, impronta: fingerprint, ignorata: azione === "IGNORA" });
+      registro.push({ origine: cfg.id, chiave: chiaveRegistro, dati: json(riga.grezzi), rigaAttivitaId, impronta: fingerprint, ignorata: azione === "IGNORA" });
     }
     await aggiornaGiornate(tx, aggiornamenti);
     for (const data of blocchi(nuove)) await tx.rigaAttivita.createMany({ data });

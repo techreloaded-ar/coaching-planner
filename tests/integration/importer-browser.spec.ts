@@ -163,7 +163,7 @@ test("anteprima, confronto e importazione approvata funzionano senza AI", async 
   const decisione = scomparse.getByRole("combobox", { name: "Decisione per giornata non più presente", exact: true });
   await expect(decisione).toHaveValue("ELIMINA");
   await expect(azioni).toContainText("Da eliminare: 1");
-  await decisione.selectOption("");
+  await decisione.selectOption("IGNORA");
   await expect(azioni).not.toContainText("Da eliminare:");
   await expect(azioni).toContainText("Giornate non più presenti che resteranno nell’app: 1.");
   await decisione.selectOption("ELIMINA");

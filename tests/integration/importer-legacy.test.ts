@@ -43,6 +43,25 @@ beforeEach(async () => {
 afterAll(async () => { vi.unstubAllEnvs(); await db.$disconnect(); });
 
 describe("persistenza reale importer (database dedicato)", () => {
+  it("riconosce i commenti locali e li conserva aggiornando ore e candidate ambigue", async () => {
+    const prima = await preview(schede([row()]));
+    await applicaAnteprima(prima.job.id, prima.job.updatedAt.toISOString(), [], [], "");
+    const g = await db.rigaAttivita.findFirstOrThrow({ where: { collaboratoreId } });
+    const nota = "Commento presente solo nel planner\n";
+    await db.rigaAttivita.update({ where: { id: g.id }, data: { nota } });
+    expect((await preview(schede([row()]))).piano.righe[0].stato).toBe("PRESENTE");
+    const seconda = await preview(schede([row({ ore: "4" })]));
+    await applicaAnteprima(seconda.job.id, seconda.job.updatedAt.toISOString(), [], [], "");
+    expect(await db.rigaAttivita.findUniqueOrThrow({ where: { id: g.id } })).toMatchObject({ nota });
+    expect((await preview(schede([row({ ore: "4" })]))).piano.righe[0].stato).toBe("PRESENTE");
+    await db.rigaAttivita.create({ data: { collaboratoreId, clienteId, offertaId, data: g.data, ore: "6", nota: "Altra candidata" } });
+    const ambigua = await preview(schede([row({ ore: "3" })]));
+    expect(ambigua.piano.righe[0].stato).toBe("VERIFICARE");
+    await applicaAnteprima(ambigua.job.id, ambigua.job.updatedAt.toISOString(), [{ chiave: ambigua.piano.righe[0].chiave, azione: "AGGIORNA", destinazione: g.id }], [], "");
+    const aggiornata = await db.rigaAttivita.findUniqueOrThrow({ where: { id: g.id } });
+    expect(aggiornata.ore.toString()).toBe("3");
+    expect(aggiornata.nota).toBe(nota);
+  });
   it("sincronizza i periodi del coach esistente e disattiva l'accesso dopo la cessazione", async () => {
     const s = schede([row()]);
     s.coach = [
@@ -66,17 +85,18 @@ describe("persistenza reale importer (database dedicato)", () => {
     expect((await db.utente.findUniqueOrThrow({ where: { email } })).attivo).toBe(true);
     expect(await db.tariffaCollaboratore.count({ where: { collaboratoreId } })).toBe(3);
   });
-  it("mantiene per default la giornata rimossa e cancella solo quella scelta, conservando le manuali", async () => {
+  it("elimina per default la giornata rimossa, permette di mantenerla e conserva le manuali", async () => {
     const prima = await preview(schede([row(), row({ data: "2026-11-06" })]));
     await applicaAnteprima(prima.job.id, prima.job.updatedAt.toISOString(), [], [], "");
     const manuale = await db.rigaAttivita.create({ data: { collaboratoreId, clienteId, offertaId, data: new Date("2026-11-07T12:00:00Z"), ore: "3" } });
     const seconda = await preview(schede([row({ ore: "4" })]));
     expect(seconda.piano.righe.map((r) => r.stato)).toEqual(["AGGIORNARE", "SCOMPARSA"]);
-    await applicaAnteprima(seconda.job.id, seconda.job.updatedAt.toISOString(), [], [], "");
+    const mantenuta = seconda.piano.righe.find((r) => r.stato === "SCOMPARSA")!;
+    await applicaAnteprima(seconda.job.id, seconda.job.updatedAt.toISOString(), [{ chiave: mantenuta.chiave, azione: "IGNORA" }], [], "");
     expect(await db.rigaAttivita.count({ where: { collaboratoreId } })).toBe(3);
     const terza = await preview(schede([row({ ore: "4" })]));
     const missing = terza.piano.righe.find((r) => r.stato === "SCOMPARSA")!;
-    const esito = await applicaAnteprima(terza.job.id, terza.job.updatedAt.toISOString(), [{ chiave: missing.chiave, azione: "ELIMINA" }], [], "");
+    const esito = await applicaAnteprima(terza.job.id, terza.job.updatedAt.toISOString(), [], [], "");
     expect(esito.eliminate).toBe(1);
     expect(await db.rigaAttivita.findUnique({ where: { id: missing.collegataId } })).toBeNull();
     expect(await db.rigaAttivita.findUnique({ where: { id: manuale.id } })).not.toBeNull();
@@ -94,6 +114,34 @@ describe("persistenza reale importer (database dedicato)", () => {
     await expect(applicaAnteprima(terza.job.id, terza.job.updatedAt.toISOString(), [{ chiave: terza.piano.righe[0].chiave, azione: "ELIMINA" }], [], "")).rejects.toThrow("altro documento");
     expect(await db.rigaAttivita.findUnique({ where: { id: missing.collegataId } })).not.toBeNull();
     expect(await refresh(terza.job.id)).toMatchObject({ stato: "ANTEPRIMA" });
+  });
+  it.each([false, true])("sincronizza un'occorrenza rimossa con chiave riutilizzata (mantieni: %s)", async (mantieni) => {
+    const rimasta = row({ "tipologia fatturazione": "NON FATTURABILE" });
+    const prima = await preview(schede([row(), rimasta]));
+    await applicaAnteprima(prima.job.id, prima.job.updatedAt.toISOString(), [], [], "");
+    const seconda = await preview(schede([rimasta]));
+    expect(seconda.piano.righe.map((r) => r.stato)).toEqual(["PRESENTE", "SCOMPARSA"]);
+    const missing = seconda.piano.righe[1];
+    await applicaAnteprima(seconda.job.id, seconda.job.updatedAt.toISOString(), mantieni ? [{ chiave: missing.chiave, azione: "IGNORA" }] : [], [], "");
+    expect(await db.rigaAttivita.count({ where: { collaboratoreId } })).toBe(mantieni ? 2 : 1);
+    const terza = await preview(schede([rimasta]));
+    expect(terza.piano.righe.map((r) => r.stato)).toEqual(mantieni ? ["PRESENTE", "SCOMPARSA"] : ["PRESENTE"]);
+    if (mantieni) {
+      expect(terza.piano.righe[1].collegataId).toBe(missing.collegataId);
+      await applicaAnteprima(terza.job.id, terza.job.updatedAt.toISOString(), [], [], "");
+      expect(await db.rigaAttivita.findUnique({ where: { id: missing.collegataId } })).toBeNull();
+      expect(await db.importazioneLegacyRiga.count({ where: { origine: sheet } })).toBe(1);
+    }
+  });
+  it("conserva l'ID stabile di una giornata mantenuta se ricompare con una data diversa", async () => {
+    const prima = await preview(schede([row({ id: "stabile" })]));
+    await applicaAnteprima(prima.job.id, prima.job.updatedAt.toISOString(), [], [], "");
+    const seconda = await preview(schede([]));
+    const missing = seconda.piano.righe[0];
+    await applicaAnteprima(seconda.job.id, seconda.job.updatedAt.toISOString(), [{ chiave: missing.chiave, azione: "IGNORA" }], [], "");
+    const terza = await preview(schede([row({ id: "stabile", data: "2026-11-09" })]));
+    expect(terza.piano.righe).toHaveLength(1);
+    expect(terza.piano.righe[0]).toMatchObject({ stato: "AGGIORNARE", collegataId: missing.collegataId });
   });
   it("conferma, crea un ripiego per cliente e reimporta senza duplicare giornate o note", async () => {
     const s = schede([row({ "codice offerta": "", note: "Nota originale" }), row({ "codice offerta": "MANCANTE", data: "2026-11-06", "spese coach": "75" })]);

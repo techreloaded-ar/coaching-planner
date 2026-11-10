@@ -3,7 +3,8 @@
 La pagina amministrativa **Importazione** (`/importazione`) legge CLIENTI,
 OFFERTE, COACH e GIORNATE dal documento Google configurato, senza modificarlo.
 Considera tutte le date. Il flusso ordinario aggiunge i dati mancanti e aggiorna
-le giornate riconosciute. Segnala quelle non più presenti senza cancellarle automaticamente.
+le giornate riconosciute. Propone di eliminare quelle non più presenti: la
+cancellazione avviene soltanto alla conferma di Importa, salvo scelta Mantieni nell’app.
 
 ## Uso
 
@@ -55,6 +56,11 @@ con riferimenti risolti, date normalizzate e ore numeriche. Le occorrenze duplic
 vengono contate: si aggiungono solo quelle mancanti. Colonne accessorie, note e
 formati del foglio non cambiano la chiave; eventuali altri valori diversi vengono
 aggiornati sulla giornata riconosciuta.
+
+I commenti già presenti nell’app vengono conservati anche quando il foglio non
+contiene note. Un commento locale da solo non rende la giornata diversa.
+Eventuali note della fonte vengono aggiunte senza duplicarle; anche gli
+aggiornamenti delle ore o degli altri campi conservano i commenti locali.
 
 Si riservano prima tutte le corrispondenze complete, indipendentemente dall’ordine
 delle righe. Per le rimanenti si cerca la chiave senza ore: una sola riga del foglio

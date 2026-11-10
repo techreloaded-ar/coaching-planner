@@ -171,7 +171,7 @@ export function analizza(s: Schede, archivio: Archivio, cfg: ConfigImporter, mod
     utilizzate.add(esistente.id);
     r.collegataId = esistente.id;
     r.candidati = [esistente];
-    if (r.senzaCodice && r.proposta) r.proposta.nota = appendiNote(esistente.nota, r.proposta.nota);
+    if (r.proposta) r.proposta.nota = appendiNote(esistente.nota, r.proposta.nota);
     r.stato = impronta(r.proposta!) === impronta(esistente) ? "PRESENTE" : "AGGIORNARE";
     r.motivo = r.stato === "PRESENTE" ? "Già presente: collaboratore, data, cliente, offerta e ore corrispondono."
       : "Giornata riconosciuta: verrà aggiornata con i valori del foglio.";
@@ -208,7 +208,7 @@ export function analizza(s: Schede, archivio: Archivio, cfg: ConfigImporter, mod
   for (const r of righe) {
     if (!r.proposta || r.collegataId || ambiguaDaDecidere(r)) continue;
     const esatte = (perChiave.get(identita(r.proposta)) ?? []).filter((g) => !utilizzate.has(g.id));
-    const esistente = esatte.find((g) => impronta(g) === impronta(r.proposta!)) ?? esatte[0];
+    const esistente = esatte.find((g) => impronta(g) === impronta({ ...r.proposta!, nota: appendiNote(g.nota, r.proposta!.nota) })) ?? esatte[0];
     if (esistente) collega(r, esistente);
   }
   const daRisolvere = new Map<string, RigaAnteprima[]>();
@@ -233,17 +233,20 @@ export function analizza(s: Schede, archivio: Archivio, cfg: ConfigImporter, mod
   // Segnala soltanto giornate collegate a questo documento dal suo registro.
   // Le righe manuali e i collegamenti già risolti/candidati non sono sparizioni.
   const protette = new Set(righe.flatMap((r) => [r.collegataId, ...r.candidati.map((g) => g.id)]).filter(Boolean));
-  const chiaviPresenti = new Set(righe.map((r) => r.chiave));
+  const nonValide = righe.filter((r) => r.stato === "NON_IMPORTABILE" || r.stato === "IGNORATA");
+  const chiaviNonValide = new Set(nonValide.map((r) => r.chiave));
   const identitaGiornoFonte = (dati: Celle) => {
     const raw = normalizzaRiga(dati);
     return hash([raw.coach, raw.cliente, raw.data]);
   };
-  const fontiNonValide = new Set(righe.filter((r) => r.stato === "NON_IMPORTABILE" || r.stato === "IGNORATA").map((r) => identitaGiornoFonte(r.grezzi)));
+  const fontiNonValide = new Set(nonValide.map((r) => identitaGiornoFonte(r.grezzi)));
   for (const voce of a.registro) {
-    if (!voce.rigaAttivitaId || protette.has(voce.rigaAttivitaId) || chiaviPresenti.has(voce.chiave) || fontiNonValide.has(identitaGiornoFonte(voce.dati))) continue;
+    if (!voce.rigaAttivitaId || protette.has(voce.rigaAttivitaId) || chiaviNonValide.has(voce.chiave) || fontiNonValide.has(identitaGiornoFonte(voce.dati))) continue;
     const esistente = giornatePerId.get(voce.rigaAttivitaId);
     if (!esistente) continue;
-    righe.push({ chiave: voce.chiave, numero: 0, grezzi: voce.dati, stato: "SCOMPARSA", proposta: null,
+    // Una riga rimasta può riusare la chiave di un'occorrenza rimossa.
+    // Le sparizioni sono identificate dalla giornata, senza collisioni con la fonte.
+    righe.push({ chiave: `scomparsa:${esistente.id}`, numero: 0, grezzi: voce.dati, stato: "SCOMPARSA", proposta: null,
       candidati: [esistente], collegataId: esistente.id,
       motivo: "Giornata importata da questo documento, non più ritrovata nel foglio. È proposta l’eliminazione alla conferma dell’importazione; puoi scegliere di mantenerla nell’app." });
     protette.add(esistente.id);
