@@ -170,27 +170,31 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
   return (
     <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-md:px-4 max-md:py-5">
       {/* ── Barra navigazione mese ── */}
-      <div className="mb-[18px] flex flex-wrap items-center gap-4">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Link href={urlDiElenco(mesePrecedente(token))} className={`${CLASSE_PULSANTE} w-9 px-0`} aria-label="Mese precedente" title="Mese precedente">
+      {/* Su smartphone la barra segue il calendario: frecce e mese, poi «Mese
+          corrente» e «Riepilogo mese», poi vista e riepilogo righe. */}
+      <div className="mb-[18px] flex flex-wrap items-center gap-4 max-sm:gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5 max-sm:grid max-sm:w-full max-sm:grid-cols-[2.75rem_1fr_1fr_2.75rem]">
+          <Link href={urlDiElenco(mesePrecedente(token))} className={`${CLASSE_PULSANTE} w-9 px-0 max-sm:h-11 max-sm:w-11`} aria-label="Mese precedente" title="Mese precedente">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-[18px] w-[18px]">
               <path d="m15 6-6 6 6 6" />
             </svg>
           </Link>
-          <SelettoreMese tokenVisualizzato={token} onScegliMese={(scelto) => router.push(urlDiElenco(scelto))} />
-          <Link href={urlDiElenco(meseSuccessivo(token))} className={`${CLASSE_PULSANTE} w-9 px-0`} aria-label="Mese successivo" title="Mese successivo">
+          <div className="max-sm:col-span-2">
+            <SelettoreMese tokenVisualizzato={token} onScegliMese={(scelto) => router.push(urlDiElenco(scelto))} />
+          </div>
+          <Link href={urlDiElenco(meseSuccessivo(token))} className={`${CLASSE_PULSANTE} w-9 px-0 max-sm:h-11 max-sm:w-11`} aria-label="Mese successivo" title="Mese successivo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-[18px] w-[18px]">
               <path d="m9 6 6 6-6 6" />
             </svg>
           </Link>
-          <Link href={urlDiElenco(null)} className={`${CLASSE_PULSANTE} ml-1`}>
+          <Link href={urlDiElenco(null)} className={`${CLASSE_PULSANTE} ml-1 max-sm:col-span-2 max-sm:ml-0 max-sm:h-11`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <circle cx="12" cy="12" r="9" />
               <path d="M12 8v4l2.5 1.5" />
             </svg>
             Mese corrente
           </Link>
-          <Link href={urlDelFoglio(`/attivita/riepilogo?mese=${token}`, collaboratoreConsultatoId)} className={CLASSE_PULSANTE}>
+          <Link href={urlDelFoglio(`/attivita/riepilogo?mese=${token}`, collaboratoreConsultatoId)} className={`${CLASSE_PULSANTE} max-sm:col-span-2 max-sm:h-11`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
@@ -199,7 +203,7 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
           </Link>
         </div>
 
-        <div className="flex-1" />
+        <div className="flex-1 max-sm:hidden" />
 
         <InterruttoreVista
           vista="elenco"

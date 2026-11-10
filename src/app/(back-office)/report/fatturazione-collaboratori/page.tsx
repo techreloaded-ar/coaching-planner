@@ -46,9 +46,9 @@ export default async function ReportFatturazioneCollaboratoriPage({
         </p>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-4">
+      <div className="mb-6 flex flex-wrap items-center gap-4 max-sm:gap-2.5">
         <BarraMese token={token} />
-        <div className="flex-1" />
+        <div className="flex-1 max-sm:hidden" />
         <div
           data-testid="riepilogo-fatture-attese"
           className="inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[14px] py-1.5 text-[12.5px] font-semibold text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-300"

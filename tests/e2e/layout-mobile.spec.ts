@@ -144,6 +144,43 @@ test.describe("Layout mobile", () => {
     });
   }
 
+  for (const larghezza of LARGHEZZE) {
+    test(`barra del mese di Elenco attività a ${larghezza} px`, async ({ page, collaboratore }) => {
+      const mese = meseRiservato("LAYOUT-MOBILE-CAL");
+
+      await page.setViewportSize({ width: larghezza, height: 900 });
+      await accediComeCollaboratore(page, collaboratore.utente.email);
+      await page.goto(`/attivita?mese=${mese}&vista=elenco`);
+      const vista = page.getByRole("navigation", { name: "Vista delle attività" });
+      await expect(vista.getByRole("link", { name: "Elenco", exact: true })).toHaveAttribute("aria-current", "page");
+      await attendiPaginaEntroViewport(page);
+      await verificaComando(page.getByRole("link", { name: "Mese precedente" }), larghezza);
+      await verificaComando(page.getByRole("link", { name: "Mese successivo" }), larghezza);
+      await verificaComando(page.getByRole("link", { name: "Mese corrente", exact: true }), larghezza);
+      await verificaComando(page.getByRole("link", { name: "Riepilogo mese", exact: true }), larghezza);
+      await verificaComando(vista.getByRole("link", { name: "Calendario", exact: true }), larghezza);
+    });
+
+    test(`barra del mese di Fatturazione collaboratori a ${larghezza} px`, async ({ page }, testInfo) => {
+      const mese = meseRiservato("LAYOUT-MOBILE-CAL");
+
+      await page.setViewportSize({ width: larghezza, height: 900 });
+      await accediAlBackOfficeComeAdmin(page);
+      await page.goto(`/report/fatturazione-collaboratori?mese=${mese}`);
+      await expect(page.getByRole("heading", { level: 1, name: "Fatture attese dai collaboratori" })).toBeVisible();
+      await attendiPaginaEntroViewport(page);
+      await verificaComando(page.getByRole("link", { name: "Mese precedente" }), larghezza);
+      await verificaComando(page.getByRole("link", { name: "Mese successivo" }), larghezza);
+      await verificaComando(page.getByRole("link", { name: "Mese corrente", exact: true }), larghezza);
+
+      if (larghezza < SMARTPHONE) {
+        const percorso = testInfo.outputPath(`fatturazione-collaboratori-${larghezza}.png`);
+        await page.screenshot({ path: percorso });
+        await testInfo.attach(`fatturazione-collaboratori-${larghezza}`, { path: percorso, contentType: "image/png" });
+      }
+    });
+  }
+
   for (const larghezza of [390, 768] as const) {
     test(`console a ${larghezza} px: menu apribile accessibile al posto della sidebar`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: larghezza, height: 900 });
