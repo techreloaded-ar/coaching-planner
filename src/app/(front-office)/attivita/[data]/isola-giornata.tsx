@@ -598,45 +598,52 @@ export default function IsolaGiornata({
     collaboratoreConsultatoId
   );
 
+  // Pulsanti giorno precedente/successivo: 40px su smartphone, 36px da sm.
+  const classePulsanteGiorno =
+    "flex h-10 w-10 flex-none items-center justify-center rounded-lg border border-zinc-200 bg-white text-testo-secondario transition-colors hover:bg-zinc-50 hover:text-testo-principale focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 sm:h-9 sm:w-9 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800";
+
   return (
-    <>
-      {/* Breadcrumb */}
-      <div className="mb-5">
+    <div className="mx-auto w-full max-w-[1280px] px-4 pt-4 pb-12 md:px-8 md:pt-6">
+      {/* ── Ritorno alla vista di provenienza e cambio giorno ── */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <Link
           href={ritornoHref}
-          className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+          className="-ml-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm text-testo-metadati transition-colors hover:text-testo-principale focus-visible:outline-2 focus-visible:outline-rose-600"
         >
           <svg
+            aria-hidden="true"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth={2}
-            className="h-[15px] w-[15px]"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
           >
             <path d="m15 18-6-6 6-6" />
           </svg>
           {ritornoAllElenco ? "Torna all'elenco" : "Torna al calendario"}
         </Link>
-      </div>
 
-      <div className="mx-auto w-full max-w-[1080px] px-8 py-7">
-        {/* ── Controllo cambio giorno ── */}
         <div
           data-testid="controllo-cambio-giorno"
-          className="mb-4 flex flex-wrap items-center gap-2.5"
+          className="flex items-center gap-2 max-sm:w-full"
         >
           <button
             type="button"
             onClick={() => navigaDiGiorni(-1)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className={classePulsanteGiorno}
             aria-label="Giorno precedente"
             title="Giorno precedente"
           >
             <svg
+              aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth={2.2}
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
               className="h-[18px] w-[18px]"
             >
               <path d="m15 6-6 6 6 6" />
@@ -667,84 +674,87 @@ export default function IsolaGiornata({
               setValoreSelettoreGiorno(scelto);
               navigaVersoGiorno(scelto);
             }}
-            className="rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-sm text-testo-principale shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800"
+            className="h-10 min-w-0 rounded-lg border border-zinc-200 bg-white px-3 text-sm tabular-nums text-testo-principale transition-colors focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 max-sm:flex-1 sm:h-9 dark:border-zinc-700 dark:bg-zinc-900"
           />
 
           <button
             type="button"
             onClick={() => navigaDiGiorni(1)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className={classePulsanteGiorno}
             aria-label="Giorno successivo"
             title="Giorno successivo"
           >
             <svg
+              aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth={2.2}
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
               className="h-[18px] w-[18px]"
             >
               <path d="m9 6 6 6-6 6" />
             </svg>
           </button>
         </div>
+      </div>
 
-        {/* ── Errore di caricamento della giornata ── */}
-        {errore && (
-          <div
-            role="alert"
-            data-testid="errore-caricamento-giornata"
-            className="mb-[14px] flex flex-wrap items-center gap-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
+      {/* ── Errore di caricamento della giornata ── */}
+      {errore && (
+        <div
+          role="alert"
+          data-testid="errore-caricamento-giornata"
+          className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <span>{errore}</span>
+          <button
+            type="button"
+            onClick={ritentaGiornata}
+            className="inline-flex h-9 items-center rounded-lg border border-amber-300 bg-white px-3 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 dark:border-amber-500/40 dark:bg-zinc-900 dark:text-amber-200 dark:hover:bg-zinc-800"
           >
-            <span>{errore}</span>
-            <button
-              type="button"
-              onClick={ritentaGiornata}
-              className="inline-flex cursor-pointer items-center rounded-[9px] border border-amber-400 bg-white px-2.5 py-1 text-sm font-medium text-amber-900 shadow-sm transition hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
-            >
-              Riprova
-            </button>
+            Riprova
+          </button>
+        </div>
+      )}
+
+      {/* ── Contenuto della giornata ── */}
+      <div
+        data-testid="contenuto-giornata"
+        className="relative mt-4"
+        aria-busy={inCaricamento}
+        data-idratata={idratata ? "true" : "false"}
+      >
+        {/* Indicatore del nuovo giorno: il contenuto precedente resta sotto */}
+        {inCaricamento && (
+          <div
+            data-testid="indicatore-caricamento-giornata"
+            role="status"
+            className="absolute inset-0 z-10 flex animate-[comparsa-caricamento_200ms_ease-out_120ms_forwards] items-start justify-center bg-white/60 pt-16 opacity-0 dark:bg-zinc-950/60"
+          >
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700 dark:border-zinc-700 dark:border-t-zinc-200" />
+            <span className="sr-only">Caricamento della giornata in corso…</span>
           </div>
         )}
 
-        {/* ── Contenuto della giornata ── */}
-        <div
-          data-testid="contenuto-giornata"
-          className="relative"
-          aria-busy={inCaricamento}
-          data-idratata={idratata ? "true" : "false"}
-        >
-          {/* Indicatore del nuovo giorno: il contenuto precedente resta sotto */}
-          {inCaricamento && (
-            <div
-              data-testid="indicatore-caricamento-giornata"
-              role="status"
-              className="absolute inset-0 z-10 flex animate-[comparsa-caricamento_200ms_ease-out_120ms_forwards] items-start justify-center bg-white/60 pt-16 opacity-0 dark:bg-zinc-900/60"
-            >
-              <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-rose-200 border-t-rose-600 dark:border-rose-900 dark:border-t-rose-400" />
-              <span className="sr-only">Caricamento della giornata in corso…</span>
-            </div>
-          )}
-
-          {/*
-            Il remount al cambio giorno resta il meccanismo che azzera lo stato
-            del form: `key` sul giorno mostrato, come faceva `page.tsx`.
-          */}
-          <DettaglioGiornata
-            key={giornoVisualizzato}
-            data={giornoVisualizzato}
-            righe={giornataVisualizzata.righe}
-            clienti={contesto.clienti}
-            vociRimborso={contesto.vociRimborso}
-            calendarioCollegato={calendarioCollegato}
-            solaLettura={solaLettura}
-            nomeCollaboratoreConsultato={nomeCollaboratoreConsultato}
-            rigaDaAprireInModifica={rigaDaAprireInModifica}
-            onRigaApertaInModifica={() => setRigaDaAprireInModifica(null)}
-            onMutazioneCompletata={invalidaDopoMutazione}
-          />
-        </div>
+        {/*
+          Il remount al cambio giorno resta il meccanismo che azzera lo stato
+          del form: `key` sul giorno mostrato, come faceva `page.tsx`.
+        */}
+        <DettaglioGiornata
+          key={giornoVisualizzato}
+          data={giornoVisualizzato}
+          righe={giornataVisualizzata.righe}
+          clienti={contesto.clienti}
+          vociRimborso={contesto.vociRimborso}
+          calendarioCollegato={calendarioCollegato}
+          solaLettura={solaLettura}
+          nomeCollaboratoreConsultato={nomeCollaboratoreConsultato}
+          rigaDaAprireInModifica={rigaDaAprireInModifica}
+          onRigaApertaInModifica={() => setRigaDaAprireInModifica(null)}
+          onMutazioneCompletata={invalidaDopoMutazione}
+        />
       </div>
-    </>
+    </div>
   );
 }

@@ -288,3 +288,14 @@ export function normalizzaPeriodoMesi(
   const a = valido(aRaw);
   return da <= a ? { da, a } : { da: a, a: da };
 }
+
+/**
+ * Giorno di calendario come estremo di un filtro sulla colonna `@db.Date`.
+ *
+ * Prisma confronta la data UTC del valore: la mezzanotte **locale** con il
+ * server in CET cadrebbe nel giorno precedente (23:00 UTC), includendo righe
+ * di un altro giorno o escludendo l'ultimo giorno del mese.
+ */
+export function giornoPerFiltroData(anno: number, mese: number, giorno: number): Date {
+  return new Date(Date.UTC(anno, mese - 1, giorno));
+}

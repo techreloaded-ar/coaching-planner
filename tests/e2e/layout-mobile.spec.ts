@@ -136,7 +136,9 @@ test.describe("Layout mobile", () => {
         );
         await cella.click();
         await page.waitForURL(`**/attivita/${data}**`);
-        await expect(page.getByText(cliente.ragioneSociale).first()).toBeVisible();
+        // Il form precede l'elenco: il nome va cercato nella riga registrata,
+        // non tra le opzioni (nascoste) del select Cliente.
+        await expect(page.getByTestId("activity-row").getByText(cliente.ragioneSociale)).toBeVisible();
       }
     });
 

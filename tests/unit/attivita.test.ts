@@ -158,16 +158,8 @@ describe("attivitaDelMese", () => {
     expect(chiamata.where.collaboratoreId).toBe("collab-1");
 
     // Intervallo del mese: 1 giugno 2026 → 30 giugno 2026
-    const inizio = chiamata.where.data.gte;
-    const fine = chiamata.where.data.lte;
-    expect(inizio).toBeInstanceOf(Date);
-    expect(fine).toBeInstanceOf(Date);
-    expect(inizio.getFullYear()).toBe(2026);
-    expect(inizio.getMonth()).toBe(5); // 0-based, giugno
-    expect(inizio.getDate()).toBe(1);
-    expect(fine.getFullYear()).toBe(2026);
-    expect(fine.getMonth()).toBe(5);
-    expect(fine.getDate()).toBe(30);
+    expect(chiamata.where.data.gte.toISOString()).toBe("2026-06-01T00:00:00.000Z");
+    expect(chiamata.where.data.lte.toISOString()).toBe("2026-06-30T00:00:00.000Z");
   });
 
   it("interroga con l'intervallo corretto per un mese di 31 giorni", async () => {
@@ -186,8 +178,7 @@ describe("attivitaDelMese", () => {
     await attivitaDelMese("2026-01");
 
     const chiamata = mockRigaAttivita.findMany.mock.calls[0][0];
-    const fine = chiamata.where.data.lte;
-    expect(fine.getDate()).toBe(31);
+    expect(chiamata.where.data.lte.toISOString()).toBe("2026-01-31T00:00:00.000Z");
   });
 
   it("interroga con l'intervallo corretto per febbraio bisestile", async () => {
@@ -206,8 +197,7 @@ describe("attivitaDelMese", () => {
     await attivitaDelMese("2024-02");
 
     const chiamata = mockRigaAttivita.findMany.mock.calls[0][0];
-    const fine = chiamata.where.data.lte;
-    expect(fine.getDate()).toBe(29);
+    expect(chiamata.where.data.lte.toISOString()).toBe("2024-02-29T00:00:00.000Z");
   });
 
   // ── Aggregazione per giorno ─────────────────────────────────
@@ -225,9 +215,9 @@ describe("attivitaDelMese", () => {
     });
 
     const righe = [
-      rigaFittizia(new Date(2026, 5, 2), 8, "TS-001", "TechSolutions Srl", "cliente-techsolutions", "offerta-ts-001"),
-      rigaFittizia(new Date(2026, 5, 2), 4, "TS-001", "TechSolutions Srl", "cliente-techsolutions", "offerta-ts-001"),
-      rigaFittizia(new Date(2026, 5, 2), 2, "DF-001", "DataFlow SpA", "cliente-dataflow", "offerta-df-001"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 2)), 8, "TS-001", "TechSolutions Srl", "cliente-techsolutions", "offerta-ts-001"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 2)), 4, "TS-001", "TechSolutions Srl", "cliente-techsolutions", "offerta-ts-001"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 2)), 2, "DF-001", "DataFlow SpA", "cliente-dataflow", "offerta-df-001"),
     ];
     mockRigaAttivita.findMany.mockResolvedValue(righe);
 
@@ -255,10 +245,10 @@ describe("attivitaDelMese", () => {
     });
 
     const righe = [
-      rigaFittizia(new Date(2026, 5, 2), 8, "TS-001", "TechSolutions Srl"),
-      rigaFittizia(new Date(2026, 5, 3), 6.5, "TS-001", "TechSolutions Srl"),
-      rigaFittizia(new Date(2026, 5, 4), 7, "DF-001", "DataFlow SpA"),
-      rigaFittizia(new Date(2026, 5, 5), 4, "TS-001", "TechSolutions Srl"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 2)), 8, "TS-001", "TechSolutions Srl"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 3)), 6.5, "TS-001", "TechSolutions Srl"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 4)), 7, "DF-001", "DataFlow SpA"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 5)), 4, "TS-001", "TechSolutions Srl"),
     ];
     mockRigaAttivita.findMany.mockResolvedValue(righe);
 
@@ -300,7 +290,7 @@ describe("attivitaDelMese", () => {
 
     const righe = [
       rigaFittizia(
-        new Date(2026, 5, 8),
+        new Date(Date.UTC(2026, 5, 8)),
         4,
         "TS-001",
         "TechSolutions Srl",
@@ -308,7 +298,7 @@ describe("attivitaDelMese", () => {
         "offerta-1",
       ),
       rigaFittizia(
-        new Date(2026, 5, 8),
+        new Date(Date.UTC(2026, 5, 8)),
         2,
         "TS-002",
         "TechSolutions Srl",
@@ -316,7 +306,7 @@ describe("attivitaDelMese", () => {
         "offerta-2",
       ),
       rigaFittizia(
-        new Date(2026, 5, 8),
+        new Date(Date.UTC(2026, 5, 8)),
         3,
         "DF-001",
         "DataFlow SpA",
@@ -359,7 +349,7 @@ describe("attivitaDelMese", () => {
 
     const righe = [
       rigaFittizia(
-        new Date(2026, 5, 9),
+        new Date(Date.UTC(2026, 5, 9)),
         2,
         "DF-001",
         "DataFlow SpA",
@@ -367,7 +357,7 @@ describe("attivitaDelMese", () => {
         "offerta-2",
       ),
       rigaFittizia(
-        new Date(2026, 5, 9),
+        new Date(Date.UTC(2026, 5, 9)),
         3,
         "TS-001",
         "TechSolutions Srl",
@@ -375,7 +365,7 @@ describe("attivitaDelMese", () => {
         "offerta-1",
       ),
       rigaFittizia(
-        new Date(2026, 5, 9),
+        new Date(Date.UTC(2026, 5, 9)),
         1,
         "AC-001",
         "Acme Spa",
@@ -408,8 +398,8 @@ describe("attivitaDelMese", () => {
     });
 
     const righe = [
-      rigaFittizia(new Date(2026, 5, 22), 4, "TS-001", "TechSolutions Srl"),
-      rigaFittizia(new Date(2026, 5, 22), 2, "TS-001", "TechSolutions Srl"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 22)), 4, "TS-001", "TechSolutions Srl"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 22)), 2, "TS-001", "TechSolutions Srl"),
     ];
     mockRigaAttivita.findMany.mockResolvedValue(righe);
 
@@ -534,8 +524,8 @@ describe("attivitaDelMese", () => {
     });
 
     const righe = [
-      rigaFittizia(new Date(2026, 5, 10), 7.25, "TS-001", "TechSolutions"),
-      rigaFittizia(new Date(2026, 5, 10), 3.75, "TS-001", "TechSolutions"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 10)), 7.25, "TS-001", "TechSolutions"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 10)), 3.75, "TS-001", "TechSolutions"),
     ];
     mockRigaAttivita.findMany.mockResolvedValue(righe);
 
@@ -583,16 +573,8 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
     expect(chiamata.where.collaboratoreId).toBe("collab-autorizzato");
 
     // Intervallo half-open: [1 giugno 2026, 1 luglio 2026)
-    const inizio = chiamata.where.data.gte;
-    const fine = chiamata.where.data.lt;
-    expect(inizio).toBeInstanceOf(Date);
-    expect(fine).toBeInstanceOf(Date);
-    expect([inizio.getFullYear(), inizio.getMonth(), inizio.getDate()]).toEqual([
-      2026, 5, 1,
-    ]);
-    expect([fine.getFullYear(), fine.getMonth(), fine.getDate()]).toEqual([
-      2026, 6, 1,
-    ]);
+    expect(chiamata.where.data.gte.toISOString()).toBe("2026-06-01T00:00:00.000Z");
+    expect(chiamata.where.data.lt.toISOString()).toBe("2026-07-01T00:00:00.000Z");
     // L'estremo superiore è esclusivo: nessun `lte` residuo.
     expect(chiamata.where.data.lte).toBeUndefined();
 
@@ -616,9 +598,7 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
     await datiCalendarioMesePerCollaboratoreAutorizzato("2026-12", "collab-1");
 
     const fine = mockRigaAttivita.findMany.mock.calls[0][0].where.data.lt;
-    expect([fine.getFullYear(), fine.getMonth(), fine.getDate()]).toEqual([
-      2027, 0, 1,
-    ]);
+    expect(fine.toISOString()).toBe("2027-01-01T00:00:00.000Z");
   });
 
   it("non accetta l'id dal chiamante per aggirare il filtro: l'id ricevuto è l'unico usato", async () => {
@@ -666,8 +646,8 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
 
   it("somma le ore dello stesso cliente su più offerte e conta le righe del giorno", async () => {
     mockRigaAttivita.findMany.mockResolvedValue([
-      rigaCalendario(new Date(2026, 5, 2), 8, "cliente-ts", "TechSolutions Srl"),
-      rigaCalendario(new Date(2026, 5, 2), 4, "cliente-ts", "TechSolutions Srl"),
+      rigaCalendario(new Date(Date.UTC(2026, 5, 2)), 8, "cliente-ts", "TechSolutions Srl"),
+      rigaCalendario(new Date(Date.UTC(2026, 5, 2)), 4, "cliente-ts", "TechSolutions Srl"),
     ]);
 
     const { sintesiPerGiorno } = await datiCalendarioMesePerCollaboratoreAutorizzato(
@@ -689,9 +669,9 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
   it("conta per giorno le righe su offerte a cui il collaboratore non è abilitato", async () => {
     mockAbilitazioneOfferta.findMany.mockResolvedValueOnce([{ offertaId: "off-abilitata" }]);
     mockRigaAttivita.findMany.mockResolvedValue([
-      { ...rigaCalendario(new Date(2026, 5, 4), 2, "cliente-ts", "TechSolutions Srl"), offertaId: "off-abilitata" },
-      { ...rigaCalendario(new Date(2026, 5, 4), 6, "cliente-df", "DataFlow SpA"), offertaId: "off-non-abilitata" },
-      { ...rigaCalendario(new Date(2026, 5, 5), 3, "cliente-ts", "TechSolutions Srl"), offertaId: null },
+      { ...rigaCalendario(new Date(Date.UTC(2026, 5, 4)), 2, "cliente-ts", "TechSolutions Srl"), offertaId: "off-abilitata" },
+      { ...rigaCalendario(new Date(Date.UTC(2026, 5, 4)), 6, "cliente-df", "DataFlow SpA"), offertaId: "off-non-abilitata" },
+      { ...rigaCalendario(new Date(Date.UTC(2026, 5, 5)), 3, "cliente-ts", "TechSolutions Srl"), offertaId: null },
     ]);
 
     const { sintesiPerGiorno } = await datiCalendarioMesePerCollaboratoreAutorizzato(
@@ -710,9 +690,9 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
 
   it("mantiene i clienti in ordine di prima apparizione nel giorno", async () => {
     mockRigaAttivita.findMany.mockResolvedValue([
-      rigaCalendario(new Date(2026, 5, 3), 2, "cliente-df", "DataFlow SpA"),
-      rigaCalendario(new Date(2026, 5, 3), 5, "cliente-ts", "TechSolutions Srl"),
-      rigaCalendario(new Date(2026, 5, 3), 1, "cliente-df", "DataFlow SpA"),
+      rigaCalendario(new Date(Date.UTC(2026, 5, 3)), 2, "cliente-df", "DataFlow SpA"),
+      rigaCalendario(new Date(Date.UTC(2026, 5, 3)), 5, "cliente-ts", "TechSolutions Srl"),
+      rigaCalendario(new Date(Date.UTC(2026, 5, 3)), 1, "cliente-df", "DataFlow SpA"),
     ]);
 
     const { sintesiPerGiorno } = await datiCalendarioMesePerCollaboratoreAutorizzato(
@@ -731,9 +711,9 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
 
   it("indicizza più giorni distinti per data YYYY-MM-DD", async () => {
     mockRigaAttivita.findMany.mockResolvedValue([
-      rigaCalendario(new Date(2026, 5, 1), 6, "cliente-ts", "TechSolutions Srl"),
-      rigaCalendario(new Date(2026, 5, 15), 3.5, "cliente-df", "DataFlow SpA"),
-      rigaCalendario(new Date(2026, 5, 30), 8, "cliente-ts", "TechSolutions Srl"),
+      rigaCalendario(new Date(Date.UTC(2026, 5, 1)), 6, "cliente-ts", "TechSolutions Srl"),
+      rigaCalendario(new Date(Date.UTC(2026, 5, 15)), 3.5, "cliente-df", "DataFlow SpA"),
+      rigaCalendario(new Date(Date.UTC(2026, 5, 30)), 8, "cliente-ts", "TechSolutions Srl"),
     ]);
 
     const { token, sintesiPerGiorno } =
@@ -750,9 +730,9 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
 
   it("produce per il calendario la stessa sintesi di attivitaDelMese sugli stessi dati", async () => {
     const righeComplete = [
-      rigaFittizia(new Date(2026, 5, 4), 7.25, "TS-001", "TechSolutions Srl", "cliente-ts", "offerta-a"),
-      rigaFittizia(new Date(2026, 5, 4), 3.75, "TS-002", "TechSolutions Srl", "cliente-ts", "offerta-b"),
-      rigaFittizia(new Date(2026, 5, 4), 2, "DF-001", "DataFlow SpA", "cliente-df", "offerta-c"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 4)), 7.25, "TS-001", "TechSolutions Srl", "cliente-ts", "offerta-a"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 4)), 3.75, "TS-002", "TechSolutions Srl", "cliente-ts", "offerta-b"),
+      rigaFittizia(new Date(Date.UTC(2026, 5, 4)), 2, "DF-001", "DataFlow SpA", "cliente-df", "offerta-c"),
     ];
 
     mockRichiediCollaboratoreCorrente.mockResolvedValue({
@@ -970,7 +950,7 @@ function rigaConContesto(
     descrizioneOfferta?: string;
   } = {},
 ) {
-  const data = modifiche.data ?? new Date(2026, 5, 10);
+  const data = modifiche.data ?? new Date(Date.UTC(2026, 5, 10));
   const clienteId = modifiche.clienteId ?? "cliente-techsolutions";
   const offertaId = modifiche.offertaId ?? "offerta-ts-001";
   return {
@@ -1032,10 +1012,9 @@ describe("righeDelGiornoPerCollaboratoreAutorizzato", () => {
     expect(mockRigaAttivita.findMany).toHaveBeenCalledWith({
       where: {
         collaboratoreId: "collab-autorizzato",
-        data: {
-          gte: new Date(2026, 5, 10),
-          lte: new Date(2026, 5, 10, 23, 59, 59, 999),
-        },
+        // Giorno di calendario a mezzanotte UTC: è la data confrontata da
+        // Prisma sulla colonna @db.Date, qualunque sia il fuso del server.
+        data: new Date("2026-06-10T00:00:00.000Z"),
       },
       include: {
         offerta: true,
@@ -1251,15 +1230,15 @@ describe("contestoInserimentoPerCollaboratoreAutorizzato", () => {
         etichetta: "Pranzo",
         // Simula il Decimal Prisma con un oggetto dotato di toString()
         importo: { toString: () => "12.50" },
-        createdAt: new Date(2026, 0, 1),
-        updatedAt: new Date(2026, 0, 1),
+        createdAt: new Date(Date.UTC(2026, 0, 1)),
+        updatedAt: new Date(Date.UTC(2026, 0, 1)),
       },
       {
         id: "voce-pernotto",
         etichetta: "Pernottamento",
         importo: { toString: () => "80.00" },
-        createdAt: new Date(2026, 0, 2),
-        updatedAt: new Date(2026, 0, 2),
+        createdAt: new Date(Date.UTC(2026, 0, 2)),
+        updatedAt: new Date(Date.UTC(2026, 0, 2)),
       },
     ]);
 

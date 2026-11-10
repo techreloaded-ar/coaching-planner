@@ -89,7 +89,7 @@ export default async function DettaglioGiornataPage({
   // componente di dettaglio, dentro l'isola.
   return (
     <>
-      {consultato && <BannerFoglioConsultato collaboratore={consultato} />}
+      {consultato && <BannerFoglioConsultato collaboratore={consultato} ampio />}
       <IsolaGiornata
         datiGiornataIniziale={datiGiornata}
         contestoIniziale={contestoInserimento}

@@ -152,15 +152,20 @@ export function SezioneProposteCalendario({
 
   const conProposte = stato === "COLLEGATO" && proposte.length > 0;
 
+  // Striscia in cima all'area di inserimento: superficie neutra, separata dal
+  // form da un filetto. Le azioni hanno un'area touch di 40px su smartphone.
+  const classePulsante =
+    "inline-flex h-10 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-testo-secondario transition-colors hover:bg-zinc-50 hover:text-testo-principale focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 sm:h-8 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800";
+
   return (
     <section
       aria-labelledby="titolo-proposte-calendario"
       aria-busy={stato === "CARICAMENTO"}
-      className="mb-8"
+      className="border-b border-zinc-200 bg-zinc-50 px-4 py-3 sm:px-5 dark:border-zinc-800 dark:bg-zinc-900/60"
     >
       <h2
         id="titolo-proposte-calendario"
-        className="mb-3 text-xs font-medium text-testo-metadati"
+        className="text-[13px] font-medium text-testo-secondario"
       >
         {conProposte ? (
           // Pattern accordion: il pulsante nel titolo apre e chiude l'elenco.
@@ -169,13 +174,22 @@ export function SezioneProposteCalendario({
             aria-expanded={aperto}
             aria-controls="elenco-proposte-calendario"
             onClick={() => setAperto((corrente) => !corrente)}
-            className="inline-flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400"
+            className="-mx-1 inline-flex min-h-10 items-center gap-1.5 rounded-md px-1 hover:text-testo-principale focus-visible:outline-2 focus-visible:outline-rose-600 sm:min-h-8"
           >
-            <span aria-hidden="true" className={`transition-transform ${aperto ? "rotate-90" : ""}`}>
-              ▸
-            </span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`h-4 w-4 text-testo-metadati transition-transform ${aperto ? "rotate-90" : ""}`}
+            >
+              <path d="m9 6 6 6-6 6" />
+            </svg>
             Proposte dal calendario
-            <span className="rounded-full bg-indigo-100 px-2 py-0.5 normal-case tracking-normal text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+            <span className="font-normal text-testo-metadati">
               · {proposte.length} da proporre
             </span>
           </button>
@@ -185,7 +199,7 @@ export function SezioneProposteCalendario({
       </h2>
 
       {stato === "CARICAMENTO" && (
-        <p className="rounded-[11px] border border-dashed border-indigo-200 bg-indigo-50/50 px-4 py-3 text-sm text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300">
+        <p className="mt-1 text-sm text-testo-metadati">
           Lettura degli impegni dal calendario…
         </p>
       )}
@@ -193,11 +207,11 @@ export function SezioneProposteCalendario({
       {stato === "ERRORE" && (
         <p
           role="alert"
-          className="rounded-[11px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+          className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
         >
           Impossibile leggere il calendario, prova a{" "}
           {/* Navigazione documentale verso il consenso Google, non una rotta client. */}
-          <a href="/api/calendario-google/collega" className="font-semibold underline">
+          <a href="/api/calendario-google/collega" className="font-medium underline">
             ricollegarlo
           </a>
           . Puoi comunque inserire le ore a mano.
@@ -205,13 +219,17 @@ export function SezioneProposteCalendario({
       )}
 
       {stato === "COLLEGATO" && proposte.length === 0 && (
-        <p className="rounded-[11px] border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800/50">
+        <p className="mt-1 text-sm text-testo-metadati">
           Nessun impegno da proporre per questa giornata.
         </p>
       )}
 
       {conProposte && (
-        <ul id="elenco-proposte-calendario" hidden={!aperto} className="space-y-2.5">
+        <ul
+          id="elenco-proposte-calendario"
+          hidden={!aperto}
+          className="mt-2 divide-y divide-zinc-200 border-t border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
+        >
           {proposte.map((proposta) => {
             const associata = proposta.cliente !== null && proposta.offerta !== null;
             const inAttesa = inAttesaId === proposta.eventoId;
@@ -220,52 +238,50 @@ export function SezioneProposteCalendario({
                 key={proposta.eventoId}
                 data-testid="proposta-calendario"
                 aria-label={`Proposta ${proposta.titolo}`}
-                className="rounded-[11px] border border-indigo-200 bg-indigo-50/40 p-[13px_15px] dark:border-indigo-800 dark:bg-indigo-950/20"
+                className="py-3"
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-testo-principale">
-                      {proposta.titolo}
-                    </div>
-                    <div className="mt-0.5 text-xs text-testo-metadati">
+                    <div className="text-xs tabular-nums text-testo-metadati">
                       {proposta.inizio}–{proposta.fine}
                     </div>
-                    <div className="mt-1.5 text-sm text-testo-secondario">
+                    <div className="mt-0.5 text-sm font-medium text-testo-principale">
+                      {proposta.titolo}
+                    </div>
+                    <div className="mt-0.5 text-[13px] text-testo-secondario [overflow-wrap:anywhere]">
                       {associata ? (
                         <>
-                          <span className="font-semibold">{proposta.cliente!.ragioneSociale}</span>
+                          {proposta.cliente!.ragioneSociale}
                           {" · "}
                           {[proposta.offerta!.codice, proposta.offerta!.descrizione].filter(Boolean).join(" — ")}
                           {/* Cliente e offerta arrivano solo da Jev sopra la soglia di confidenza. */}
-                          <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
-                            Suggerito dall&apos;AI
-                          </span>
+                          <span className="text-testo-metadati"> · Suggerito dall&apos;AI</span>
                         </>
                       ) : (
-                        <span className="italic text-amber-700 dark:text-amber-400">
+                        <span className="text-amber-800 dark:text-amber-300">
                           Cliente e offerta da scegliere
                         </span>
                       )}
                     </div>
                   </div>
-                  <span className="whitespace-nowrap text-[15px] font-semibold tabular-nums text-indigo-800 dark:text-indigo-300">
+                  <span className="whitespace-nowrap text-[15px] font-medium tabular-nums text-testo-principale">
                     {formattaOre(proposta.ore)}
                   </span>
                 </div>
 
                 {errori[proposta.eventoId] && (
-                  <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">
+                  <p role="alert" className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">
                     {errori[proposta.eventoId]}
                   </p>
                 )}
 
-                <div className="mt-[10px] flex items-center gap-2 border-t border-indigo-100 pt-[10px] dark:border-indigo-900">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   {associata && (
                     <PulsanteAttesa
                       type="button"
                       attesaEsterna={inAttesa}
                       onClick={() => conferma(proposta)}
-                      className="inline-flex items-center rounded-[8px] bg-indigo-600 px-2.5 py-1 text-sm font-medium text-white transition hover:bg-indigo-700"
+                      className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 sm:h-8 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
                     >
                       Conferma
                     </PulsanteAttesa>
@@ -274,7 +290,7 @@ export function SezioneProposteCalendario({
                     type="button"
                     attesaEsterna={inAttesa}
                     onClick={() => onModifica(proposta)}
-                    className="inline-flex items-center rounded-[8px] border border-zinc-200 bg-white px-2.5 py-1 text-sm font-medium text-testo-secondario transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
+                    className={classePulsante}
                   >
                     Modifica
                   </PulsanteAttesa>
@@ -282,7 +298,7 @@ export function SezioneProposteCalendario({
                     type="button"
                     attesaEsterna={inAttesa}
                     onClick={() => rifiuta(proposta)}
-                    className="inline-flex items-center rounded-[8px] border border-red-200 bg-white px-2.5 py-1 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:bg-zinc-800 dark:text-red-400"
+                    className={classePulsante}
                   >
                     Rifiuta
                   </PulsanteAttesa>

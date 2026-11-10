@@ -588,7 +588,7 @@ export async function eliminaRiga(
 
   if (riga) {
     const data = riga.data;
-    const dataStr = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
+    const dataStr = giornoDellaRiga(data);
     revalidatePath(`/attivita/${dataStr}`);
   }
   revalidatePath("/attivita/riepilogo");
@@ -638,7 +638,7 @@ export async function rimuoviRimborsoTrasferta(
 
   if (riga) {
     const data = riga.data;
-    const dataStr = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
+    const dataStr = giornoDellaRiga(data);
     revalidatePath(`/attivita/${dataStr}`);
   }
   revalidatePath("/attivita/riepilogo");

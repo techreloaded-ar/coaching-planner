@@ -7,7 +7,7 @@ import {
   ETICHETTA_SENZA_OFFERTA,
   fatturataAlCliente,
 } from "@/domain/types";
-import { meseSuccessivo, parseTokenMese } from "@/domain/calendario";
+import { giornoPerFiltroData, meseSuccessivo, parseTokenMese } from "@/domain/calendario";
 import { tariffaValidaNelMese } from "@/domain/tariffe";
 import type {
   RigaAttivita,
@@ -95,8 +95,8 @@ export async function reportFatturazioneClientiMese(
   const { anno, mese } = parsed;
 
   // Intervallo del mese: dal primo all'ultimo giorno
-  const inizio = new Date(anno, mese - 1, 1);
-  const fine = new Date(anno, mese, 0); // giorno 0 del mese successivo = ultimo del corrente
+  const inizio = giornoPerFiltroData(anno, mese, 1);
+  const fine = giornoPerFiltroData(anno, mese + 1, 0); // giorno 0 del mese successivo = ultimo del corrente
 
   // Nessun filtro collaboratoreId: l'amministratore vede tutti i collaboratori
   const righe = await db.rigaAttivita.findMany({
@@ -166,8 +166,8 @@ export async function reportMarginalitaPeriodo(
     return { da, a, ...calcolaMarginalitaClienti([]) };
   }
 
-  const inizio = new Date(parsedDa.anno, parsedDa.mese - 1, 1);
-  const fine = new Date(parsedA.anno, parsedA.mese, 0);
+  const inizio = giornoPerFiltroData(parsedDa.anno, parsedDa.mese, 1);
+  const fine = giornoPerFiltroData(parsedA.anno, parsedA.mese + 1, 0);
 
   const [righeDb, collaboratori] = await Promise.all([
     db.rigaAttivita.findMany({
@@ -270,8 +270,8 @@ export async function reportFatturazioneCollaboratoriMese(
     return { token, ...calcolaReportFatturazioneCollaboratori([]) };
   }
 
-  const inizio = new Date(parsed.anno, parsed.mese - 1, 1);
-  const fine = new Date(parsed.anno, parsed.mese, 0);
+  const inizio = giornoPerFiltroData(parsed.anno, parsed.mese, 1);
+  const fine = giornoPerFiltroData(parsed.anno, parsed.mese + 1, 0);
 
   const collaboratori = await db.collaboratore.findMany({
     select: {
