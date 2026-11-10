@@ -1,11 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Prisma } from "@/generated/prisma/client";
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), crea: vi.fn(), applica: vi.fn(), revalidate: vi.fn() }));
 vi.mock("@/lib/dal", () => ({ richiediRuoloApi: mocks.auth }));
 vi.mock("@/lib/importer-legacy/servizio", () => ({ creaAnteprima: mocks.crea, applicaAnteprima: mocks.applica }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`REDIRECT ${url}`); } }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { analizzaAction, importaAction } from "@/app/(back-office)/importazione/actions";
-beforeEach(() => { vi.clearAllMocks(); mocks.auth.mockResolvedValue({ utenteId: "admin" }); mocks.crea.mockResolvedValue({ id: "job" }); mocks.applica.mockResolvedValue({}); });
+afterEach(() => vi.restoreAllMocks());
+beforeEach(() => { vi.clearAllMocks(); vi.spyOn(console, "error").mockImplementation(() => {}); mocks.auth.mockResolvedValue({ utenteId: "admin" }); mocks.crea.mockResolvedValue({ id: "job" }); mocks.applica.mockResolvedValue({}); });
 describe("autorizzazione e azioni importer", () => {
   it.each([analizzaAction, importaAction])("rifiuta l'accesso prima di leggere il foglio o scrivere", async (action) => {
     mocks.auth.mockRejectedValue(new Error("Vietato"));
@@ -36,4 +38,15 @@ describe("autorizzazione e azioni importer", () => {
     const f = new FormData(); f.set("id", "job");
     await expect(importaAction(f)).rejects.toThrow("REDIRECT /importazione?id=job&errore=");
   });
+});
+
+it.each([
+  ["P2028", "Transazione di importazione interrotta o scaduta"],
+  ["P2034", "I dati sono cambiati durante l’importazione"],
+])("distingue %s e registra solo metadati senza dati riservati", async (code, messaggio) => {
+  mocks.applica.mockRejectedValue(new Prisma.PrismaClientKnownRequestError("SQL e dati riservati", { code, clientVersion: "test" }));
+  const f = new FormData(); f.set("id", "job");
+  await expect(importaAction(f)).rejects.toThrow(encodeURIComponent(messaggio));
+  expect(console.error).toHaveBeenCalledWith("[importer-legacy] Operazione fallita", expect.objectContaining({ fase: "salvataggio", codice: code, durataMs: expect.any(Number) }));
+  expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain("riservati");
 });

@@ -147,6 +147,13 @@ La conferma usa una transazione serializzabile e un lock PostgreSQL. Una revisio
 del database cambiata dopo l’analisi richiede una nuova lettura. Il server non rilegge
 Google durante la conferma. Google e AI hanno timeout espliciti; maxDuration è 120
 secondi, subordinato all’hosting. Il limite è 30.000 righe per analisi.
+Le nuove anagrafiche cliente/offerta, le giornate nuove o aggiornate e il registro
+vengono salvati in blocchi da 500; le abilitazioni collaboratore/offerta vengono
+deduplicate prima dell'inserimento. Tutti i blocchi restano nella stessa
+transazione, con limite di 60 secondi: un errore annulla anche quelli già eseguiti.
+Gli errori inattesi registrano lato server fase, durata, tipo e codice Prisma,
+senza dati del foglio o parametri SQL. Scadenza/interruzione della transazione e
+conflitti concorrenti hanno messaggi distinti nell'interfaccia.
 
 Unit test: `npm test`. I test reali distruttivi accettano esclusivamente un database
 locale dedicato chiamato `importer_test`, con le migrazioni applicate:

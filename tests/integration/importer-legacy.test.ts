@@ -291,3 +291,58 @@ it("aggiorna un PAIR preesistente senza dimezzare le ore del coach né duplicare
   expect(Number(updated.ore)).toBe(8);
   expect((await preview(s)).piano.righe[0].stato).toBe("PRESENTE");
 });
+
+it("importa 16.107 giornate in blocchi e le riconosce al secondo passaggio", async () => {
+  const rows = Array.from({ length: 16_107 }, (_, i) => row({ id: `bulk-${i}`, note: `Giornata ${i}: l’attività 'test' \\ SQL` }));
+  const s = schede(rows);
+  const { job, piano } = await preview(s);
+  expect(piano.righe.every((r) => r.stato === "PRONTA")).toBe(true);
+  const inizio = performance.now();
+  const esito = await applicaAnteprima(job.id, job.updatedAt.toISOString(), [], [], "");
+  console.info(`Importazione 16.107 giornate: ${Math.round(performance.now() - inizio)} ms`);
+  expect(esito.aggiunte).toBe(rows.length);
+  expect(await db.rigaAttivita.count({ where: { collaboratoreId } })).toBe(rows.length);
+  expect(await db.abilitazioneOfferta.count({ where: { collaboratoreId, offertaId } })).toBe(1);
+  const registro = await db.importazioneLegacyRiga.findMany({ where: { origine: sheet }, orderBy: { chiave: "asc" } });
+  expect(registro).toHaveLength(rows.length);
+  expect(registro.every((r) => r.rigaAttivitaId && r.impronta)).toBe(true);
+  const next = await preview(s);
+  expect(next.piano.righe.every((r) => r.stato === "PRESENTE")).toBe(true);
+  const secondo = await applicaAnteprima(next.job.id, next.job.updatedAt.toISOString(), [], [], "");
+  expect(secondo).toMatchObject({ aggiunte: 0, aggiornate: 0, riconosciute: rows.length });
+  expect(await db.rigaAttivita.count({ where: { collaboratoreId } })).toBe(rows.length);
+  expect((await db.importazioneLegacyRiga.findMany({ where: { origine: sheet }, orderBy: { chiave: "asc" } })).map((r) => r.id)).toEqual(registro.map((r) => r.id));
+  const campione = await db.rigaAttivita.findUniqueOrThrow({ where: { id: registro[0].rigaAttivitaId! } });
+  expect(campione.nota).toBe((registro[0].dati as Celle).note);
+}, 60_000);
+
+it("aggiorna oltre un blocco conservando ID e createdAt e azzera i campi facoltativi", async () => {
+  const rows = Array.from({ length: 501 }, (_, i) => row({ id: `update-${i}`, note: "Prima", "spese coach": "20" }));
+  const primo = await preview(schede(rows));
+  await applicaAnteprima(primo.job.id, primo.job.updatedAt.toISOString(), [], [], "");
+  const prima = await db.rigaAttivita.findMany({ where: { collaboratoreId }, orderBy: { id: "asc" } });
+  const s = schede(rows.map((r) => ({ ...r, ore: "4", note: "", "spese coach": "", "tipologia fatturazione": "PAIR" })));
+  const next = await preview(s);
+  expect(next.piano.righe.every((r) => r.stato === "AGGIORNARE")).toBe(true);
+  const esito = await applicaAnteprima(next.job.id, next.job.updatedAt.toISOString(), [], [], "");
+  expect(esito.aggiornate).toBe(rows.length);
+  const dopo = await db.rigaAttivita.findMany({ where: { collaboratoreId }, orderBy: { id: "asc" } });
+  expect(dopo.map((g) => [g.id, g.createdAt])).toEqual(prima.map((g) => [g.id, g.createdAt]));
+  expect(dopo.every((g) => Number(g.ore) === 4 && g.inAffiancamento && g.categoria === "FATTURABILE" && g.nota === next.piano.righe[0].proposta!.nota && g.rimborsoTrasfertaImporto === null && g.rimborsoTrasfertaEtichetta === null)).toBe(true);
+  expect(dopo.every((g, i) => g.updatedAt > prima[i].updatedAt)).toBe(true);
+  expect((await preview(s)).piano.righe.every((r) => r.stato === "PRESENTE")).toBe(true);
+}, 30_000);
+
+it("annulla anche i blocchi già inseriti se una giornata successiva viola un vincolo", async () => {
+  const s = schede(Array.from({ length: 501 }, (_, i) => row({ id: `rollback-${i}` })));
+  s.clienti.push({ cliente: `Cliente rollback ${sheet}` });
+  const { job, piano } = await preview(s);
+  piano.righe[500].proposta!.ore = "1000"; // Oltre Decimal(4, 2), nel secondo blocco.
+  const changed = await db.importazioneLegacy.update({ where: { id: job.id }, data: { piano: JSON.parse(JSON.stringify(piano)) } });
+  await expect(applicaAnteprima(job.id, changed.updatedAt.toISOString(), [], [], "")).rejects.toThrow();
+  expect(await db.rigaAttivita.count({ where: { collaboratoreId } })).toBe(0);
+  expect(await db.cliente.findUnique({ where: { id: piano.anagrafiche.clienti[0].id } })).toBeNull();
+  expect(await db.importazioneLegacyRiga.count({ where: { origine: sheet } })).toBe(0);
+  expect(await db.abilitazioneOfferta.count({ where: { collaboratoreId } })).toBe(0);
+  expect((await refresh(job.id)).stato).toBe("ANTEPRIMA");
+});

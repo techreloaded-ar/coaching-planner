@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { aggiornaGiornate, blocchi, salvaRegistro } from "./scritture";
 import { ErroreImporter } from "./errori";
 import "server-only";
 import { db } from "@/lib/db";
@@ -81,10 +83,11 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
       // Le altre anteprime non sono più applicabili.
       await tx.importazioneLegacy.updateMany({ where: { id: { not: id }, stato: { not: "COMPLETATA" } }, data: { stato: "SUPERATA" } });
     }
-    for (const c of piano.anagrafiche.clienti) {
-      const dati = c.verifica && !clientiAI.includes(c.id) ? { note: c.dati.note || "" } : c.dati;
-      await tx.cliente.create({ data: { id: c.id, ragioneSociale: c.ragioneSociale, ...dati } });
-    }
+    const clientiApprovati = new Set(clientiAI);
+    for (const data of blocchi(piano.anagrafiche.clienti.map((c) => ({
+      id: c.id, ragioneSociale: c.ragioneSociale,
+      ...(c.verifica && !clientiApprovati.has(c.id) ? { note: c.dati.note || "" } : c.dati),
+    })))) await tx.cliente.createMany({ data });
     for (const c of piano.anagrafiche.coach) {
       const tariffe = c.tariffe ?? [{ validaDalMese: c.dalMese, validaAlMese: null, modalita: c.modalita, importo: c.importo }];
       const profilo = { id: c.id, nome: c.nome, cognome: c.cognome, partitaIva: c.partitaIva || null, attivo: c.attivo ?? true,
@@ -105,11 +108,30 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
         await tx.utente.updateMany({ where: { id: c.userId, ruolo: { not: "AMMINISTRATORE" } }, data: { attivo: c.attivo } });
       }
     }
-    for (const o of piano.anagrafiche.offerte) {
-      if (o.ripiego && !ops.some((op) => (op.azione === "NUOVA" || op.azione === "AGGIORNA") && op.riga.proposta?.offertaId === o.id)) continue;
+    const offerteUsate = new Set(ops.filter((op) => op.azione === "NUOVA" || op.azione === "AGGIORNA").map((op) => op.riga.proposta?.offertaId));
+    const offerte = piano.anagrafiche.offerte.filter((o) => !o.ripiego || offerteUsate.has(o.id)).map((o) => {
       const { anno, ripiego, ...dati } = o;
       void ripiego;
-      await tx.offerta.create({ data: { ...dati, createdAt: new Date(Date.UTC(anno, 0, 1, 12)) } });
+      return { ...dati, createdAt: new Date(Date.UTC(anno, 0, 1, 12)) };
+    });
+    for (const data of blocchi(offerte)) await tx.offerta.createMany({ data });
+    const nuove: Prisma.RigaAttivitaCreateManyInput[] = [];
+    const aggiornamenti: Parameters<typeof aggiornaGiornate>[1] = [];
+    const registro: Parameters<typeof salvaRegistro>[1] = [];
+    const abilitazioni = new Map<string, Prisma.AbilitazioneOffertaCreateManyInput>();
+    const giornateEsistenti = new Map(archivio.giornate.map((g) => [g.id, g]));
+    const chiaviPerGiornata = new Map<string, string[]>();
+    for (const voce of archivio.registro) {
+      if (!voce.rigaAttivitaId) continue;
+      const chiavi = chiaviPerGiornata.get(voce.rigaAttivitaId) ?? [];
+      chiavi.push(voce.chiave);
+      chiaviPerGiornata.set(voce.rigaAttivitaId, chiavi);
+    }
+    const chiaviDaRimuovere = new Set<string>();
+    function scollegaVecchieChiavi(rigaAttivitaId: string, chiave: string) {
+      for (const precedente of chiaviPerGiornata.get(rigaAttivitaId) ?? []) {
+        if (precedente !== chiave) chiaviDaRimuovere.add(precedente);
+      }
     }
     const esito = { aggiunte: 0, aggiornate: 0, riconosciute: 0, ignorate: 0, eliminate: 0 };
     for (const op of ops) {
@@ -133,23 +155,21 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
       if (azione === "NUOVA" || azione === "AGGIORNA") {
         const g = { ...riga.proposta! };
         if (riga.senzaCodice && azione === "AGGIORNA") {
-          g.nota = appendiNote(archivio.giornate.find((giornata) => giornata.id === op.destinazione)?.nota, g.nota);
+          g.nota = appendiNote(giornateEsistenti.get(op.destinazione!)?.nota, g.nota);
         }
-        const saved = azione === "NUOVA"
-          ? await tx.rigaAttivita.create({ data: datiGiornata(g) })
-          : await tx.rigaAttivita.update({ where: { id: op.destinazione! }, data: datiGiornata(g) });
-        rigaAttivitaId = saved.id;
+        rigaAttivitaId = azione === "NUOVA" ? randomUUID() : op.destinazione!;
+        if (azione === "NUOVA") nuove.push({ id: rigaAttivitaId, ...datiGiornata(g) });
+        else aggiornamenti.push({ id: rigaAttivitaId, ...g });
         fingerprint = impronta(g);
         if (azione === "NUOVA") esito.aggiunte++; else esito.aggiornate++;
-        if (g.offertaId) await tx.abilitazioneOfferta.upsert({ where: { collaboratoreId_offertaId: { collaboratoreId: g.collaboratoreId, offertaId: g.offertaId } },
-          create: { collaboratoreId: g.collaboratoreId, offertaId: g.offertaId }, update: {} });
+        if (g.offertaId) abilitazioni.set(JSON.stringify([g.collaboratoreId, g.offertaId]), { collaboratoreId: g.collaboratoreId, offertaId: g.offertaId });
         // Una correzione sostituisce il vecchio collegamento, non crea righe fantasma scomparse.
-        await tx.importazioneLegacyRiga.deleteMany({ where: { origine: cfg.id, rigaAttivitaId: saved.id, chiave: { not: riga.chiave } } });
+        scollegaVecchieChiavi(rigaAttivitaId, riga.chiave);
       } else if (azione === "COLLEGA") {
         rigaAttivitaId = op.destinazione!;
         fingerprint = impronta(riga.proposta!);
         esito.riconosciute++;
-        await tx.importazioneLegacyRiga.deleteMany({ where: { origine: cfg.id, rigaAttivitaId, chiave: { not: riga.chiave } } });
+        scollegaVecchieChiavi(rigaAttivitaId, riga.chiave);
       } else {
         esito.ignorate++;
         // Presa visione di una sparizione: conserva il collegamento per
@@ -159,10 +179,16 @@ export async function applicaAnteprima(id: string, revisione: string, decisioni:
           fingerprint = impronta(riga.candidati[0]);
         }
       }
-      await tx.importazioneLegacyRiga.upsert({ where: { origine_chiave: { origine: cfg.id, chiave: riga.chiave } },
-        create: { origine: cfg.id, chiave: riga.chiave, dati: json(riga.grezzi), rigaAttivitaId, impronta: fingerprint, ignorata: azione === "IGNORA" },
-        update: { dati: json(riga.grezzi), rigaAttivitaId, impronta: fingerprint, ignorata: azione === "IGNORA" } });
+      registro.push({ origine: cfg.id, chiave: riga.chiave, dati: json(riga.grezzi), rigaAttivitaId, impronta: fingerprint, ignorata: azione === "IGNORA" });
     }
+    await aggiornaGiornate(tx, aggiornamenti);
+    for (const data of blocchi(nuove)) await tx.rigaAttivita.createMany({ data });
+    for (const data of blocchi([...abilitazioni.values()])) await tx.abilitazioneOfferta.createMany({ data, skipDuplicates: true });
+    // Le chiavi ancora descritte dal foglio vengono riscritte dall'upsert finale.
+    for (const chiavi of blocchi([...chiaviDaRimuovere])) {
+      await tx.importazioneLegacyRiga.deleteMany({ where: { origine: cfg.id, chiave: { in: chiavi } } });
+    }
+    await salvaRegistro(tx, registro);
     // L'anteprima serve soltanto per questa conferma. Il registro delle righe
     // resta disponibile per riconoscere gli import alla prossima analisi.
     // La cancellazione è atomica con le scritture: in caso di errore resta tutto.
