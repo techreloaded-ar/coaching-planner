@@ -12,7 +12,7 @@ import { test, expect } from "./support/fixtures";
  * lo sfasamento di un giorno si vede in ogni vista.
  */
 
-const MESE = meseRiservato("INC-GIORNI-MESI-FUSO");
+const MESE = meseRiservato("INC-DATE-GIORNO-FUSO");
 
 function dataDb(dataIso: string): Date {
 	return new Date(`${dataIso}T00:00:00.000Z`);
