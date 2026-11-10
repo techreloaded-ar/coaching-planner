@@ -1,24 +1,13 @@
 import { richiediRuolo } from "@/lib/dal";
 import { reportFatturazioneClientiMese } from "@/lib/report";
 import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
-import { PulsanteAttesa } from "@/components";
+import { ComeVieneCalcolato } from "@/components";
 import ReportFatturazioneClienti from "./report-fatturazione-clienti";
-import { inviaPromemoriaFineMeseOra } from "./actions";
-
-/** Conteggio dalla query string; null se assente o non numerico. */
-function conteggio(valore: string | undefined): number | null {
-  const numero = Number.parseInt(valore ?? "", 10);
-  return Number.isNaN(numero) || numero < 0 ? null : numero;
-}
 
 export default async function ReportFatturazioneClientiPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    mese?: string;
-    promemoriaInviati?: string;
-    promemoriaFalliti?: string;
-  }>;
+  searchParams: Promise<{ mese?: string }>;
 }) {
   await richiediRuolo("AMMINISTRATORE");
 
@@ -33,55 +22,47 @@ export default async function ReportFatturazioneClientiPage({
   const risultato = await reportFatturazioneClientiMese(token);
   const report = JSON.parse(JSON.stringify(risultato));
 
-  const promemoriaInviati = conteggio(params.promemoriaInviati);
-  const promemoriaFalliti = conteggio(params.promemoriaFalliti);
-
   return (
     <div>
-      {/* Intestazione view */}
-      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="mb-1 text-xs font-medium text-testo-metadati">
-            Reportistica
-          </div>
-          <h1 className="text-[23px] max-sm:text-[21px] font-semibold tracking-tight text-testo-principale">
-            Importi da fatturare per cliente
-          </h1>
-          <p className="mt-[6px] max-w-[560px] text-sm text-testo-metadati">
-            Riepilogo mensile degli importi da fatturare a ciascun cliente, con
-            manodopera e rimborsi trasferta calcolati sulle tariffe di offerta.
-          </p>
+      <div className="mb-6">
+        <div className="mb-1 text-xs font-medium text-testo-metadati">
+          Reportistica
         </div>
-        <form action={inviaPromemoriaFineMeseOra} className="flex flex-col items-end gap-[6px] max-sm:w-full max-sm:items-stretch">
-          <PulsanteAttesa
-            etichettaAttesa="Invio…"
-            className="inline-flex items-center justify-center gap-2 max-sm:min-h-11 rounded-[10px] bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-700"
-          >
-            Invia promemoria di fine mese
-          </PulsanteAttesa>
-          <p className="text-xs text-testo-metadati">
-            Invia subito l&apos;email a tutti i collaboratori attivi
-          </p>
-        </form>
+        <h1 className="text-[23px] max-sm:text-[21px] font-semibold tracking-tight text-testo-principale">
+          Importi da fatturare per cliente
+        </h1>
+        <p className="mt-1.5 max-w-[560px] text-sm text-testo-metadati">
+          Una fattura per cliente: manodopera e trasferte forfettarie del mese
+        </p>
       </div>
-
-      {/* Esito dell'invio manuale del promemoria */}
-      {promemoriaInviati !== null && promemoriaFalliti !== null && (
-        <div
-          role="status"
-          className={
-            promemoriaFalliti === 0
-              ? "mb-[18px] rounded-[11px] border border-emerald-200 bg-emerald-50 p-[15px] text-sm text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
-              : "mb-[18px] rounded-[11px] border border-amber-200 bg-amber-50 p-[15px] text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-          }
-        >
-          Promemoria inviati: {promemoriaInviati}. Non riusciti: {promemoriaFalliti}.
-        </div>
-      )}
 
       {/* Il mese iniziale arriva dal server; i cambi mese successivi sono
           serviti dalla cache client del componente. */}
       <ReportFatturazioneClienti report={report} />
+
+      <ComeVieneCalcolato>
+        <li>
+          Le giornate sono le ore Fatturabile del mese divise per 8.
+          L&apos;imponibile manodopera di ogni offerta è giornate × tariffa
+          giornaliera dell&apos;offerta.
+        </li>
+        <li>
+          Le ore registrate senza offerta compaiono come voce da assegnare con
+          importo zero; un&apos;offerta senza tariffa mostra «tariffa da
+          definire» e imponibile zero.
+        </li>
+        <li>
+          Per le offerte con trasferta forfettaria si fattura il forfait
+          dell&apos;offerta per ogni collaboratore e giorno con un rimborso
+          trasferta registrato, qualunque sia la categoria delle ore. Per le
+          altre offerte la trasferta è inclusa nella tariffa. I rimborsi pagati ai collaboratori non sono ribaltati al
+          cliente.
+        </li>
+        <li>
+          Da fatturare = imponibile manodopera + trasferte forfettarie. Il
+          totale del mese è la somma delle fatture dei clienti.
+        </li>
+      </ComeVieneCalcolato>
     </div>
   );
 }

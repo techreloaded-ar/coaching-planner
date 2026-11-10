@@ -11,6 +11,6 @@ export async function inviaPromemoriaFineMeseOra(): Promise<void> {
   const esito = await inviaPromemoriaFineMese({ modalita: "MANUALE" });
 
   redirect(
-    `/report/fatturazione-clienti?promemoriaInviati=${esito.inviati}&promemoriaFalliti=${esito.falliti}`
+    `/report/fatturazione-collaboratori?promemoriaInviati=${esito.inviati}&promemoriaFalliti=${esito.falliti}`
   );
 }

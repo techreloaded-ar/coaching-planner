@@ -29,3 +29,4 @@ export {
   IconaOffertaNonAbilitata,
   PulsanteAbilitaOfferta,
 } from "./abilitazione-offerta";
+export { ComeVieneCalcolato } from "./come-viene-calcolato";

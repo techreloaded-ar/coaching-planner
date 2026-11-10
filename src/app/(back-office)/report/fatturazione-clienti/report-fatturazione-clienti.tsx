@@ -11,7 +11,7 @@ import {
   tokenMeseCorrente,
 } from "@/domain/calendario";
 import { SelettoreMese, useIdratata } from "@/components";
-import { formattaEuro, formattaNumeroGiornate, inizialiCliente } from "@/lib/formattazione";
+import { formattaEuro, formattaNumeroGiornate } from "@/lib/formattazione";
 
 // ── Formattatori ────────────────────────────────────────────────
 
@@ -208,16 +208,16 @@ export default function ReportFatturazioneClienti({
 
   return (
     <div>
-      {/* ── Barra di navigazione del mese ── */}
-      {/* Su smartphone: frecce e mese, poi «Mese corrente», poi esportazione e
-          riepilogo, ciascuno alla larghezza disponibile. */}
-      <div className="mb-6 flex flex-wrap items-center gap-4 max-sm:gap-2.5">
-        <div className="flex items-center gap-2.5 max-sm:grid max-sm:w-full max-sm:grid-cols-[2.75rem_1fr_1fr_2.75rem]">
+      {/* ── Mese ed esportazione ── */}
+      {/* Su smartphone: frecce e mese, poi «Mese corrente» ed esportazione,
+          ciascuno alla larghezza disponibile. */}
+      <div className="mb-6 flex flex-wrap items-center gap-3 max-sm:gap-2">
+        <div className="flex items-center gap-2 max-sm:grid max-sm:w-full max-sm:grid-cols-[2.75rem_1fr_1fr_2.75rem]">
           <button
             type="button"
             // La catena dei click rapidi riparte dall'ultima intenzione.
             onClick={() => vaiA(mesePrecedente(tokenRichiesto.current), true)}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className={CLASSE_PULSANTE_NEUTRO + " h-9 w-9 max-sm:h-11 max-sm:w-11"}
             aria-label="Mese precedente"
             title="Mese precedente"
           >
@@ -225,7 +225,7 @@ export default function ReportFatturazioneClienti({
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth={2.2}
+              strokeWidth={2}
               className="h-[18px] w-[18px]"
             >
               <path d="m15 6-6 6 6 6" />
@@ -244,7 +244,7 @@ export default function ReportFatturazioneClienti({
           <button
             type="button"
             onClick={() => vaiA(meseSuccessivo(tokenRichiesto.current), true)}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className={CLASSE_PULSANTE_NEUTRO + " h-9 w-9 max-sm:h-11 max-sm:w-11"}
             aria-label="Mese successivo"
             title="Mese successivo"
           >
@@ -252,7 +252,7 @@ export default function ReportFatturazioneClienti({
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth={2.2}
+              strokeWidth={2}
               className="h-[18px] w-[18px]"
             >
               <path d="m9 6 6 6-6 6" />
@@ -262,31 +262,20 @@ export default function ReportFatturazioneClienti({
           <button
             type="button"
             onClick={() => vaiA(tokenMeseCorrente(), true, PERCORSO_REPORT)}
-            className="ml-1 inline-flex items-center gap-[7px] max-sm:col-span-4 max-sm:ml-0 max-sm:min-h-11 max-sm:justify-center rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className={
+              CLASSE_PULSANTE_NEUTRO +
+              " h-9 gap-2 px-3 text-sm font-medium max-sm:col-span-2 max-sm:h-11"
+            }
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              className="h-4 w-4"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v4l2.5 1.5" />
-            </svg>
             Mese corrente
           </button>
-        </div>
 
-        <div className="flex-1 max-sm:hidden" />
-
-        {report && !vuoto && (
-          <div className="flex flex-wrap items-center gap-3 max-sm:w-full max-sm:gap-2.5">
+          {report && !vuoto && (
             <a
               href={`/report/fatturazione-clienti/esporta?mese=${token}`}
               download
               data-testid="esporta-excel"
-              className="inline-flex items-center gap-[7px] max-sm:min-h-11 max-sm:flex-1 max-sm:justify-center rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-testo-secondario shadow-sm transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-100"
+              className="ml-2 inline-flex h-9 items-center justify-center gap-2 rounded-[10px] bg-indigo-600 px-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 max-sm:col-span-2 max-sm:ml-0 max-sm:h-11"
             >
               <svg
                 aria-hidden="true"
@@ -300,33 +289,8 @@ export default function ReportFatturazioneClienti({
               </svg>
               Esporta Excel
             </a>
-
-            {/* Pill riepilogo mese */}
-            <div className="inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[14px] py-1.5 text-sm font-medium text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-300">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                className="h-[15px] w-[15px]"
-              >
-                <path d="M3 21V8.5L9 4l6 4.5V21" />
-                <path d="M15 21h6V11l-6-3" />
-              </svg>
-              <span>
-                <b className="tabular-nums">{clienti.length}</b>{" "}
-                {clienti.length === 1 ? "cliente" : "clienti"}
-              </span>
-              <span className="h-[13px] w-px bg-indigo-200 dark:bg-indigo-500/40" />
-              <span>
-                <b className="tabular-nums">
-                  {formattaNumeroGiornate(giornateTotali)}
-                </b>{" "}
-                giornate
-              </span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── Errore di caricamento del mese ── */}
@@ -334,13 +298,13 @@ export default function ReportFatturazioneClienti({
         <div
           role="alert"
           data-testid="errore-caricamento-mese"
-          className="mb-[14px] flex flex-wrap items-center gap-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
+          className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
         >
           <span>{errore}</span>
           <button
             type="button"
             onClick={() => vaiA(tokenRichiesto.current, false)}
-            className="inline-flex items-center rounded-[9px] border border-amber-400 bg-white px-2.5 py-1 text-sm font-medium text-amber-900 shadow-sm transition hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
+            className="inline-flex items-center rounded-lg border border-amber-400 bg-white px-2.5 py-1 text-sm font-medium text-amber-900 shadow-sm transition-colors hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
           >
             Riprova
           </button>
@@ -358,7 +322,7 @@ export default function ReportFatturazioneClienti({
             <div
               data-testid="indicatore-caricamento-mese"
               role="status"
-              className="flex animate-[comparsa-caricamento_200ms_ease-out_120ms_forwards] items-center justify-center rounded-[11px] border border-zinc-200 bg-white py-14 opacity-0 shadow-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="flex animate-[comparsa-caricamento_200ms_ease-out_120ms_forwards] items-center justify-center rounded-xl border border-zinc-200 bg-white py-14 opacity-0 dark:border-zinc-700 dark:bg-zinc-800"
             >
               <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-indigo-200 border-t-indigo-600 dark:border-indigo-900 dark:border-t-indigo-400" />
               <span className="sr-only">Caricamento del mese in corso…</span>
@@ -366,23 +330,10 @@ export default function ReportFatturazioneClienti({
           )
         ) : vuoto ? (
           /* ── Stato vuoto ── */
-          <div className="rounded-[11px] border border-zinc-200 bg-white px-6 py-14 text-center shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-            <div className="mx-auto mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-[14px] bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.8}
-                className="h-6 w-6"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <path d="M14 2v6h6" />
-                <path d="M9 14h6M9 17h4" />
-              </svg>
-            </div>
-            <h3 className="mb-[7px] text-[16px] font-semibold text-testo-principale">
+          <div className="rounded-xl border border-zinc-200 bg-white px-6 py-12 text-center dark:border-zinc-700 dark:bg-zinc-800">
+            <h2 className="mb-2 text-base font-semibold text-testo-principale">
               Nessuna attività da fatturare per questo mese
-            </h3>
+            </h2>
             <p className="mx-auto max-w-[420px] text-sm leading-relaxed text-testo-metadati">
               Non risultano giornate fatturabili né trasferte forfettarie
               nel mese selezionato. Cambia mese o attendi la registrazione delle
@@ -391,88 +342,53 @@ export default function ReportFatturazioneClienti({
           </div>
         ) : (
           <>
-            {/* ── Elenco schede per cliente ── */}
-            <div className="flex flex-col gap-[18px]">
+            {/* ── Una scheda per fattura: un cliente nel mese ── */}
+            <div className="flex flex-col gap-4">
               {clienti.map((cliente) => {
                 const giornate = giornateCliente(cliente);
                 const espanso = clienteEspansoId === cliente.clienteId;
                 return (
-                  <div
+                  <article
                     key={cliente.clienteId}
                     data-testid={`report-client-${cliente.clienteId}`}
-                    className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
+                    aria-labelledby={`cliente-${cliente.clienteId}`}
+                    className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
                   >
-                    {/* Intestazione: ragione sociale + importo totale (espande il dettaglio collaboratori) */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setClienteEspansoId(
-                          espanso ? null : cliente.clienteId,
-                        )
-                      }
-                      aria-expanded={espanso}
-                      aria-controls={`dettaglio-collaboratori-${cliente.clienteId}`}
-                      aria-label={`Dettaglio collaboratori ${cliente.clienteRagioneSociale}, da fatturare ${formattaEuro(cliente.importoTotale)}`}
-                      className="flex w-full flex-wrap items-center justify-between gap-4 max-sm:gap-3 border-b border-zinc-200 bg-zinc-50 px-5 py-4 max-sm:px-4 text-left cursor-pointer dark:border-zinc-700 dark:bg-zinc-800/60"
-                    >
-                      <div className="flex min-w-0 items-center gap-[13px]">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-indigo-50 text-sm font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
-                          {inizialiCliente(cliente.clienteRagioneSociale)}
-                        </div>
-                        <div className="min-w-0 leading-[1.3]">
-                          <b className="block text-[16px] font-semibold -tracking-[0.01em] text-testo-principale">
-                            {cliente.clienteRagioneSociale}
-                          </b>
-                          <span className="text-xs tabular-nums text-testo-metadati">
-                            {formattaNumeroGiornate(giornate)} giornate
-                            fatturabili
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 max-sm:w-full max-sm:justify-between">
-                        <div className="text-right leading-[1.15] max-sm:text-left">
-                          <span className="mb-[3px] block text-xs font-medium text-testo-metadati">
-                            Da fatturare
-                          </span>
-                          <span className="text-[26px] max-sm:text-[22px] font-semibold -tracking-[0.03em] tabular-nums text-indigo-600 dark:text-indigo-400">
-                            {formattaEuro(cliente.importoTotale)}
-                          </span>
-                        </div>
-                        <svg
-                          aria-hidden="true"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.2}
-                          className={`h-5 w-5 shrink-0 text-testo-metadati transition-transform ${
-                            espanso ? "rotate-180" : ""
-                          }`}
+                    {/* Intestazione della fattura: cliente e riga di somma */}
+                    <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b border-zinc-200 px-5 py-5 max-sm:px-4 max-sm:py-4 dark:border-zinc-700">
+                      <div className="min-w-0">
+                        <h2
+                          id={`cliente-${cliente.clienteId}`}
+                          className="text-lg font-semibold text-testo-principale"
                         >
-                          <path d="m6 9 6 6 6-6" />
-                        </svg>
+                          {cliente.clienteRagioneSociale}
+                        </h2>
+                        <p className="mt-0.5 text-xs tabular-nums text-testo-metadati">
+                          <span>{etichetta}</span> ·{" "}
+                          <span>{formattaNumeroGiornate(giornate)} giornate fatturabili</span>
+                        </p>
                       </div>
-                    </button>
+                      <RigaSomma
+                        evidenza
+                        manodopera={cliente.imponibileManodopera}
+                        trasferte={cliente.trasferteForfettarie}
+                        totale={cliente.importoTotale}
+                        etichettaTotale="Da fatturare"
+                        idTrasferte={`report-client-${cliente.clienteId}-trasferte`}
+                        idTotale={`report-client-${cliente.clienteId}-totale`}
+                      />
+                    </header>
 
                     {/* Tabella dettaglio per offerta */}
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-sm">
                         <thead>
                           <tr>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-left text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
-                              Offerta
-                            </th>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
-                              Tariffa/gg
-                            </th>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
-                              Giornate
-                            </th>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
-                              Imponibile
-                            </th>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
-                              Trasferte
-                            </th>
+                            <th className={CLASSE_INTESTAZIONE + " text-left"}>Offerta</th>
+                            <th className={CLASSE_INTESTAZIONE + " text-right"}>Tariffa/gg</th>
+                            <th className={CLASSE_INTESTAZIONE + " text-right"}>Giornate</th>
+                            <th className={CLASSE_INTESTAZIONE + " text-right"}>Imponibile</th>
+                            <th className={CLASSE_INTESTAZIONE + " text-right"}>Trasferte</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -481,7 +397,7 @@ export default function ReportFatturazioneClienti({
                               key={offerta.offertaId ?? "senza-offerta"}
                               className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                             >
-                              <td className="border-b border-zinc-100 px-5 py-[13px] align-middle dark:border-zinc-700/50">
+                              <td className={CLASSE_CELLA + " max-sm:min-w-48"}>
                                 <div className="flex min-w-0 flex-col gap-1">
                                   <span className={classeCodiceOfferta(offerta.offertaId)}>
                                     {offerta.offertaCodice}
@@ -491,33 +407,33 @@ export default function ReportFatturazioneClienti({
                                   </span>
                                 </div>
                               </td>
-                              <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums whitespace-nowrap text-testo-metadati dark:border-zinc-700/50">
+                              <td className={CLASSE_CELLA + " text-right whitespace-nowrap text-testo-metadati"}>
                                 {formattaEuro(offerta.tariffaGiornaliera)}
                                 {offerta.tariffaGiornaliera === null && (
-                                  <span className="mt-[3px] block text-xs font-medium text-amber-700 dark:text-amber-400">
+                                  <span className="mt-1 block text-xs font-medium text-amber-700 dark:text-amber-400">
                                     tariffa da definire
                                   </span>
                                 )}
                               </td>
-                              <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle font-semibold tabular-nums whitespace-nowrap text-testo-principale dark:border-zinc-700/50">
+                              <td className={CLASSE_CELLA + " text-right whitespace-nowrap text-testo-principale"}>
                                 {formattaNumeroGiornate(
                                   offerta.giornateFatturabili,
                                 )}
                               </td>
-                              <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle text-sm font-semibold tabular-nums whitespace-nowrap text-testo-principale dark:border-zinc-700/50">
+                              <td className={CLASSE_CELLA + " text-right whitespace-nowrap text-testo-principale"}>
                                 {formattaEuro(offerta.imponibile)}
                               </td>
                               <td
                                 data-testid={`report-offerta-${offerta.offertaId ?? "senza-offerta"}-trasferte`}
-                                className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums whitespace-nowrap dark:border-zinc-700/50"
+                                className={CLASSE_CELLA + " text-right whitespace-nowrap"}
                               >
                                 {offerta.importoTrasfertaForfettaria === null ? (
                                   <span className="text-sm text-testo-metadati">
                                     Inclusa nella tariffa
                                   </span>
                                 ) : (
-                                  <div className="flex flex-col items-end gap-[2px]">
-                                    <span className="text-sm font-semibold text-testo-principale">
+                                  <div className="flex flex-col items-end gap-0.5">
+                                    <span className="text-sm text-testo-principale">
                                       {formattaEuro(offerta.importoTrasferte)}
                                     </span>
                                     <span className="text-xs text-testo-metadati">
@@ -533,210 +449,130 @@ export default function ReportFatturazioneClienti({
                       </table>
                     </div>
 
-                    {/* Dettaglio collaboratori per offerta (espandibile). Il nodo resta
-                        sempre nel DOM, nascosto con `hidden` quando collassato, così
+                    {/* Ore per collaboratore (espandibile). Il nodo resta sempre
+                        nel DOM, nascosto con `hidden` quando collassato, così
                         aria-controls del bottone punta sempre a un id esistente. */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setClienteEspansoId(espanso ? null : cliente.clienteId)
+                      }
+                      aria-expanded={espanso}
+                      aria-controls={`dettaglio-collaboratori-${cliente.clienteId}`}
+                      className="flex w-full cursor-pointer items-center gap-2 px-5 py-3 text-left text-sm font-medium text-testo-secondario transition-colors hover:bg-zinc-50 hover:text-testo-principale focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-500 max-sm:min-h-11 max-sm:px-4 dark:hover:bg-zinc-800/50"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        className={`h-4 w-4 shrink-0 text-testo-metadati transition-transform ${
+                          espanso ? "rotate-180" : ""
+                        }`}
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                      Ore per collaboratore
+                      <span className="sr-only"> di {cliente.clienteRagioneSociale}</span>
+                    </button>
                     <section
                       role="region"
                       id={`dettaglio-collaboratori-${cliente.clienteId}`}
                       aria-label={`Dettaglio collaboratori ${cliente.clienteRagioneSociale}`}
                       hidden={!espanso}
-                      className="border-b border-zinc-200 bg-zinc-50/60 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/40"
+                      className="border-t border-zinc-200 bg-zinc-50 px-5 py-4 max-sm:px-4 dark:border-zinc-700 dark:bg-zinc-800/60"
                     >
-                      <div className="mb-3 flex items-center gap-2 text-xs font-medium text-testo-metadati">
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            className="h-[14px] w-[14px]"
-                          >
-                            <circle cx="9" cy="8" r="3.2" />
-                            <path d="M2.8 19a6.2 6.2 0 0 1 12.4 0" />
-                            <circle cx="17.2" cy="9.2" r="2.4" />
-                            <path d="M15.5 14.3a5 5 0 0 1 5.7 4.7" />
-                          </svg>
-                          Ore erogate per collaboratore
-                        </div>
-
-                        {cliente.perOfferta.every(
-                          (offerta) => offerta.perCollaboratore.length === 0,
-                        ) ? (
-                          <p className="text-sm italic text-testo-metadati">
-                            Nessuna ora fatturabile nel mese: il cliente compare
-                            solo per trasferte forfettarie
-                          </p>
-                        ) : (
-                          <div className="flex flex-col gap-5">
-                            {cliente.perOfferta
-                              .filter((offerta) => offerta.perCollaboratore.length > 0)
-                              .map((offerta) => (
-                              <div
-                                key={offerta.offertaId ?? "senza-offerta"}
-                                data-testid={`dettaglio-offerta-${offerta.offertaCodice}`}
-                              >
-                                <div className="mb-2 flex min-w-0 flex-col gap-1">
-                                  <span className={classeCodiceOfferta(offerta.offertaId)}>
-                                    {offerta.offertaCodice}
-                                  </span>
-                                  <span className="text-sm leading-snug text-testo-metadati">
-                                    {offerta.offertaDescrizione}
-                                  </span>
-                                </div>
-                                <div className="overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-zinc-700">
-                                  <table className="w-full border-collapse text-sm">
-                                    <thead>
-                                      <tr>
-                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-left text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
-                                          Collaboratore
-                                        </th>
-                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
-                                          Ore fatturabili
-                                        </th>
-                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
-                                          Giornate
-                                        </th>
-                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
-                                          Imponibile
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {offerta.perCollaboratore.map((voce) => (
-                                        <tr
-                                          key={voce.collaboratoreId}
-                                          className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                                        >
-                                          <td className="border-b border-zinc-100 px-4 py-[9px] align-middle font-semibold text-testo-principale dark:border-zinc-700/50">
-                                            {voce.collaboratoreNome}
-                                          </td>
-                                          <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle tabular-nums whitespace-nowrap text-testo-metadati dark:border-zinc-700/50">
-                                            {formattaNumeroGiornate(
-                                              voce.oreFatturabili,
-                                            )}{" "}
-                                            h
-                                          </td>
-                                          <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle font-semibold tabular-nums whitespace-nowrap text-testo-principale dark:border-zinc-700/50">
-                                            {formattaNumeroGiornate(
-                                              voce.giornateFatturabili,
-                                            )}{" "}
-                                            gg
-                                          </td>
-                                          <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle font-semibold tabular-nums whitespace-nowrap text-testo-principale dark:border-zinc-700/50">
-                                            {formattaEuro(voce.imponibile)}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
+                      {cliente.perOfferta.every(
+                        (offerta) => offerta.perCollaboratore.length === 0,
+                      ) ? (
+                        <p className="text-sm text-testo-metadati">
+                          Nessuna ora fatturabile nel mese: il cliente compare
+                          solo per trasferte forfettarie
+                        </p>
+                      ) : (
+                        <div className="flex flex-col gap-5">
+                          {cliente.perOfferta
+                            .filter((offerta) => offerta.perCollaboratore.length > 0)
+                            .map((offerta) => (
+                            <div
+                              key={offerta.offertaId ?? "senza-offerta"}
+                              data-testid={`dettaglio-offerta-${offerta.offertaCodice}`}
+                            >
+                              <div className="mb-2 flex min-w-0 flex-col gap-1">
+                                <span className={classeCodiceOfferta(offerta.offertaId)}>
+                                  {offerta.offertaCodice}
+                                </span>
+                                <span className="text-sm leading-snug text-testo-metadati">
+                                  {offerta.offertaDescrizione}
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                        )}
+                              <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+                                <table className="w-full border-collapse text-sm">
+                                  <thead>
+                                    <tr>
+                                      <th className={CLASSE_INTESTAZIONE_COMPATTA + " text-left"}>Collaboratore</th>
+                                      <th className={CLASSE_INTESTAZIONE_COMPATTA + " text-right"}>Ore fatturabili</th>
+                                      <th className={CLASSE_INTESTAZIONE_COMPATTA + " text-right"}>Giornate</th>
+                                      <th className={CLASSE_INTESTAZIONE_COMPATTA + " text-right"}>Imponibile</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {offerta.perCollaboratore.map((voce) => (
+                                      <tr key={voce.collaboratoreId}>
+                                        <td className={CLASSE_CELLA_COMPATTA + " font-medium text-testo-principale"}>
+                                          {voce.collaboratoreNome}
+                                        </td>
+                                        <td className={CLASSE_CELLA_COMPATTA + " text-right whitespace-nowrap text-testo-metadati"}>
+                                          {formattaNumeroGiornate(
+                                            voce.oreFatturabili,
+                                          )}{" "}
+                                          h
+                                        </td>
+                                        <td className={CLASSE_CELLA_COMPATTA + " text-right whitespace-nowrap text-testo-principale"}>
+                                          {formattaNumeroGiornate(
+                                            voce.giornateFatturabili,
+                                          )}{" "}
+                                          gg
+                                        </td>
+                                        <td className={CLASSE_CELLA_COMPATTA + " text-right whitespace-nowrap text-testo-principale"}>
+                                          {formattaEuro(voce.imponibile)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </section>
-
-                    {/* Trasferte forfettarie fatturate al cliente */}
-                    <div className="flex items-center justify-between gap-[14px] border-b border-zinc-100 bg-white px-5 py-3 dark:border-zinc-700/50 dark:bg-zinc-800">
-                      <div className="flex items-center gap-[9px] text-sm font-medium text-testo-metadati">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                          className="h-4 w-4 text-testo-metadati"
-                        >
-                          <path d="M3 12h18M3 12l4-4M3 12l4 4" />
-                          <path d="M21 6v12" />
-                        </svg>
-                        Trasferte forfettarie
-                      </div>
-                      <span
-                        data-testid={`report-client-${cliente.clienteId}-trasferte`}
-                        className="text-sm font-semibold tabular-nums text-testo-principale"
-                      >
-                        {formattaEuro(cliente.trasferteForfettarie)}
-                      </span>
-                    </div>
-
-                    {/* Totale da fatturare del cliente */}
-                    <div className="flex items-center justify-between gap-[14px] border-t border-indigo-200 bg-indigo-50 px-5 py-[15px] dark:border-indigo-500/40 dark:bg-indigo-500/10">
-                      <div className="flex items-center gap-[9px] text-xs font-medium text-indigo-700 dark:text-indigo-300">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.2}
-                          className="h-4 w-4"
-                        >
-                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                        </svg>
-                        Totale da fatturare
-                      </div>
-                      <span
-                        data-testid={`report-client-${cliente.clienteId}-totale`}
-                        className="text-[20px] font-semibold -tracking-[0.02em] tabular-nums text-indigo-600 dark:text-indigo-300"
-                      >
-                        {formattaEuro(cliente.importoTotale)}
-                      </span>
-                    </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
 
-            {/* ── Scheda totale complessivo del mese ── */}
-            <div className="relative mt-[22px] overflow-hidden rounded-[11px] border border-indigo-700 bg-gradient-to-br from-indigo-500 to-indigo-700 px-6 py-[22px] text-white shadow-lg">
-              <div className="mb-4 flex items-center gap-[9px] text-xs font-medium text-white/80">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.2}
-                  className="h-4 w-4"
-                >
-                  <path d="M3 3v18h18" />
-                  <path d="M7.5 15.5v-4M12 15.5V7.5M16.5 15.5v-6" />
-                </svg>
-                Totale complessivo da fatturare — {etichetta}
+            {/* ── Totale del mese, in fondo: le fatture si emettono per cliente ── */}
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-3 rounded-xl border border-zinc-200 bg-zinc-100/60 px-5 py-4 max-sm:px-4 dark:border-zinc-700 dark:bg-zinc-800/60">
+              <div>
+                <h2 className="text-sm font-medium text-testo-principale">
+                  Totale del mese
+                </h2>
+                <p className="mt-0.5 text-xs tabular-nums text-testo-metadati">
+                  {clienti.length} {clienti.length === 1 ? "cliente" : "clienti"} ·{" "}
+                  {formattaNumeroGiornate(giornateTotali)} giornate fatturabili
+                </p>
               </div>
-              <div className="flex flex-wrap items-end justify-between gap-6">
-                <div className="flex flex-wrap items-stretch">
-                  <div className="mr-[26px] border-r border-white/20 pr-[26px]">
-                    <div className="mb-[5px] text-xs font-medium text-white/80">
-                      Imponibile manodopera
-                    </div>
-                    <div
-                      data-testid="report-total-imponibile"
-                      className="text-[19px] font-semibold -tracking-[0.02em] tabular-nums"
-                    >
-                      {formattaEuro(report.totali.imponibileManodopera)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-[5px] text-xs font-medium text-white/80">
-                      Totale trasferte forfettarie
-                    </div>
-                    <div
-                      data-testid="report-total-trasferte"
-                      className="text-[19px] font-semibold -tracking-[0.02em] tabular-nums"
-                    >
-                      {formattaEuro(report.totali.totaleTrasferteForfettarie)}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="mb-1 text-xs font-medium text-white/80">
-                    Importo totale
-                  </div>
-                  <div
-                    data-testid="report-total-importo"
-                    className="text-[38px] leading-none font-semibold -tracking-[0.04em] tabular-nums"
-                  >
-                    {formattaEuro(report.totali.importoTotale)}
-                  </div>
-                </div>
-              </div>
+              <RigaSomma
+                manodopera={report.totali.imponibileManodopera}
+                trasferte={report.totali.totaleTrasferteForfettarie}
+                totale={report.totali.importoTotale}
+                etichettaTotale="Importo totale"
+                idManodopera="report-total-imponibile"
+                idTrasferte="report-total-trasferte"
+                idTotale="report-total-importo"
+              />
             </div>
           </>
         )}
@@ -745,9 +581,99 @@ export default function ReportFatturazioneClienti({
   );
 }
 
+// ── Riga di somma: manodopera + trasferte = totale ─────────────────
+
+function RigaSomma({
+  manodopera,
+  trasferte,
+  totale,
+  etichettaTotale,
+  evidenza = false,
+  idManodopera,
+  idTrasferte,
+  idTotale,
+}: {
+  manodopera: string;
+  trasferte: string;
+  totale: string;
+  etichettaTotale: string;
+  /** Il totale della fattura del cliente: grande e in accento. */
+  evidenza?: boolean;
+  idManodopera?: string;
+  idTrasferte?: string;
+  idTotale?: string;
+}) {
+  // Su smartphone il totale viene prima e le componenti seguono in colonna.
+  const classeComponente =
+    "text-right max-sm:flex max-sm:items-baseline max-sm:justify-between max-sm:text-left";
+  const classeValore = evidenza
+    ? "block text-base text-testo-principale max-sm:inline"
+    : "block text-sm text-testo-secondario max-sm:inline";
+  return (
+    <div className="flex items-end gap-4 tabular-nums max-sm:w-full max-sm:flex-col max-sm:items-stretch max-sm:gap-1">
+      <div className={classeComponente}>
+        <span className="block text-xs font-medium text-testo-metadati max-sm:inline">
+          Manodopera
+        </span>
+        <span data-testid={idManodopera} className={classeValore}>
+          {formattaEuro(manodopera)}
+        </span>
+      </div>
+      <span aria-hidden="true" className="pb-0.5 text-zinc-400 max-sm:hidden dark:text-zinc-500">
+        +
+      </span>
+      <div className={classeComponente}>
+        <span className="block text-xs font-medium text-testo-metadati max-sm:inline">
+          Trasferte forfettarie
+        </span>
+        <span data-testid={idTrasferte} className={classeValore}>
+          {formattaEuro(trasferte)}
+        </span>
+      </div>
+      <span aria-hidden="true" className="pb-0.5 text-zinc-400 max-sm:hidden dark:text-zinc-500">
+        =
+      </span>
+      <div className="text-right max-sm:order-first max-sm:mb-2 max-sm:text-left">
+        <span
+          className={`block text-xs font-medium ${
+            evidenza ? "text-indigo-700 dark:text-indigo-300" : "text-testo-metadati"
+          }`}
+        >
+          {etichettaTotale}
+        </span>
+        <span
+          data-testid={idTotale}
+          className={
+            evidenza
+              ? "block text-[28px] leading-tight font-semibold text-indigo-600 max-sm:text-2xl dark:text-indigo-400"
+              : "block text-lg leading-tight font-semibold text-testo-principale"
+          }
+        >
+          {formattaEuro(totale)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const CLASSE_PULSANTE_NEUTRO =
+  "inline-flex items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-testo-secondario shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-100";
+
+const CLASSE_INTESTAZIONE =
+  "border-b border-zinc-200 px-5 py-2.5 text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700";
+
+const CLASSE_CELLA =
+  "border-b border-zinc-100 px-5 py-3 align-middle tabular-nums dark:border-zinc-700/50";
+
+const CLASSE_INTESTAZIONE_COMPATTA =
+  "border-b border-zinc-200 px-4 py-2 text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700";
+
+const CLASSE_CELLA_COMPATTA =
+  "border-b border-zinc-100 px-4 py-2 align-middle tabular-nums dark:border-zinc-700/50 [tr:last-child_&]:border-b-0";
+
 /** Badge del codice offerta: la voce senza offerta è evidenziata come da assegnare. */
 function classeCodiceOfferta(offertaId: string | null): string {
   return offertaId === null
-    ? "inline-block w-fit rounded-[6px] border border-amber-200 bg-amber-50 px-2 py-[2px] text-xs font-medium whitespace-nowrap text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
-    : "inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800";
+    ? "inline-block w-fit rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
+    : "inline-block w-fit rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800";
 }

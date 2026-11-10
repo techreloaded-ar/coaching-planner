@@ -124,6 +124,16 @@ async function verificaDatasetReport(
   );
 }
 
+/** «Come viene calcolato»: chiuso al caricamento, si apre con Invio. */
+async function verificaComeVieneCalcolato(page: Page, testoCriterio: string) {
+  const criterio = page.getByText(testoCriterio);
+  await expect(criterio).toBeHidden();
+  const intestazione = page.getByText("Come viene calcolato", { exact: true });
+  await intestazione.focus();
+  await page.keyboard.press("Enter");
+  await expect(criterio).toBeVisible();
+}
+
 // ── Helper US-037: dettaglio collaboratori per offerta ──────────────
 
 function regionDettaglio(page: Page, ragioneSociale: string) {
@@ -134,7 +144,8 @@ function regionDettaglio(page: Page, ragioneSociale: string) {
 
 function bottoneDettaglio(page: Page, ragioneSociale: string) {
   return page.getByRole("button", {
-    name: `Dettaglio collaboratori ${ragioneSociale}`,
+    name: `Ore per collaboratore di ${ragioneSociale}`,
+    exact: true,
   });
 }
 
@@ -227,6 +238,20 @@ test.describe("Report fatturazione clienti", () => {
 
     await verificaDatasetReport(page, dataset);
     await expect(page.getByText("TechSolutions Srl")).toHaveCount(0);
+
+    // Gerarchia: la fattura del cliente precede il totale del mese, in fondo.
+    const schedaCliente = page.getByTestId(`report-client-${dataset.cliente.id}`);
+    const fineScheda = (await schedaCliente.boundingBox())!;
+    const totaleMese = (await page.getByTestId("report-total-importo").boundingBox())!;
+    expect(totaleMese.y).toBeGreaterThan(fineScheda.y + fineScheda.height);
+
+    // Il promemoria di fine mese sta nelle fatture attese dai collaboratori.
+    await expect(
+      page.getByRole("button", { name: "Invia promemoria di fine mese" }),
+    ).toHaveCount(0);
+
+    // I criteri di calcolo sono chiusi in fondo e si aprono da tastiera.
+    await verificaComeVieneCalcolato(page, "Da fatturare = imponibile manodopera");
   });
 
   test("un mese riservato senza righe del test mostra lo stato vuoto", async ({

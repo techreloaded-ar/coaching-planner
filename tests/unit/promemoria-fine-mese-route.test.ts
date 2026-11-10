@@ -23,7 +23,7 @@ vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
 
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/cron/promemoria-fine-mese/route";
-import { inviaPromemoriaFineMeseOra } from "@/app/(back-office)/report/fatturazione-clienti/actions";
+import { inviaPromemoriaFineMeseOra } from "@/app/(back-office)/report/fatturazione-collaboratori/actions";
 
 const ESITO = { inviati: 2, giaInviati: 1, falliti: 0 };
 
@@ -89,7 +89,7 @@ describe("inviaPromemoriaFineMeseOra (US-019)", () => {
     await inviaPromemoriaFineMeseOra();
     expect(mockInviaPromemoriaFineMese).toHaveBeenCalledWith({ modalita: "MANUALE" });
     expect(mockRedirect).toHaveBeenCalledWith(
-      "/report/fatturazione-clienti?promemoriaInviati=3&promemoriaFalliti=1"
+      "/report/fatturazione-collaboratori?promemoriaInviati=3&promemoriaFalliti=1"
     );
   });
 });

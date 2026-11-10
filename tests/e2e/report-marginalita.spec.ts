@@ -81,6 +81,22 @@ test.describe("Report marginalità", () => {
     await expect(celle(rigaB).nth(5)).toContainText(formattaEuro(-200));
     await expect(rigaB.getByText("Margine negativo")).toBeVisible();
     await expect(schedaCliente.getByText("Margine negativo")).toHaveCount(1);
+
+    // Gerarchia: la sintesi del periodo precede il dettaglio per cliente.
+    const sintesi = page.getByTestId("marginalita-totali");
+    await expect(sintesi).toContainText("Ricavi totali");
+    await expect(sintesi).toContainText("Costi totali");
+    await expect(sintesi).toContainText("Margine totale");
+    const boxSintesi = (await sintesi.boundingBox())!;
+    const boxScheda = (await schedaCliente.boundingBox())!;
+    expect(boxSintesi.y + boxSintesi.height).toBeLessThan(boxScheda.y);
+
+    // La spiegazione estesa è chiusa in fondo e si apre da tastiera.
+    const criterio = page.getByText("Le ore di Investimento e i rimborsi trasferta sono esclusi.");
+    await expect(criterio).toBeHidden();
+    await page.getByText("Come viene calcolato", { exact: true }).focus();
+    await page.keyboard.press("Enter");
+    await expect(criterio).toBeVisible();
   });
 
   test("i ricavi coincidono con l'importo del report fatturazione clienti", async ({
