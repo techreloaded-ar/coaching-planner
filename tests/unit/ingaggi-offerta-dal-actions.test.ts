@@ -301,6 +301,7 @@ describe("Server Actions ingaggi offerta", () => {
       });
       expect(mockRevalidatePath.mock.calls).toEqual([
         ["/offerte/off-1/collaboratori"],
+        ["/anagrafiche/persone", "layout"],
         ["/anagrafiche/collaboratori/collab-1"],
         ["/anagrafiche/collaboratori/collab-2"],
       ]);
@@ -402,6 +403,7 @@ describe("Server Actions ingaggi offerta", () => {
       expect(mockRevalidatePath.mock.calls).toEqual([
         ["/offerte/off-1/collaboratori"],
         ["/anagrafiche/collaboratori/collab-1"],
+        ["/anagrafiche/persone", "layout"],
       ]);
       expect(result).toEqual({ errori: {}, successo: true });
     });

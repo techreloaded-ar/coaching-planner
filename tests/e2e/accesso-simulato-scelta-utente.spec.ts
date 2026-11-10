@@ -13,7 +13,9 @@ function utenteNellElenco(page: Page, email: string) {
 }
 
 async function apriSceltaUtente(page: Page): Promise<void> {
-	await page.goto("/");
+  // Dopo Esci siamo già sulla radice: non interrompere il redirect RSC
+  // con un'altra navigazione prima che il nuovo form di accesso sia pronto.
+  if (new URL(page.url()).pathname !== "/") await page.goto("/");
 	await page.getByRole("button", { name: "Accedi con Google" }).click();
 	await page.waitForURL("**/e2e-test/scegli-utente");
 	await expect(page.getByRole("heading", { name: "Scegli l'utente" })).toBeVisible();

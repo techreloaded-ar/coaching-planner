@@ -2,7 +2,8 @@ import {
   attendiOfferteCaricate,
   labelOffertaTest,
 } from "./demo__inserimento-righe-attivita.helpers";
-import { accediComeCollaboratore } from "./support/auth";
+import { accediComeCollaboratore, preparaSessioneE2e } from "./support/auth";
+import { mesePrecedente, meseSuccessivo } from "../../src/domain/calendario";
 import { dataNelMese, mesePassatoRiservato, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
 import type { Page } from "@playwright/test";
@@ -447,7 +448,15 @@ test.describe("US-052 Cambio mese servito dalla cache dei mesi", () => {
       ore: "6.00",
     });
 
-    await accediComeCollaboratore(page, primoCollaboratore.utente.email);
+    // Questo scenario verifica la cache, non il login: apriamo direttamente
+    // il mese controllato, senza prefetch di una prima pagina da abbandonare.
+    await preparaSessioneE2e(page, primoCollaboratore.utente.email);
+    const mesiAdiacenti = Promise.all([mesePrecedente(mese), meseSuccessivo(mese)].map(token =>
+      page.waitForResponse(risposta => {
+        const url = new URL(risposta.url());
+        return url.pathname === "/api/attivita/calendario" && url.searchParams.get("mese") === token;
+      }),
+    ));
     await page.goto(`/attivita?mese=${mese}`);
     await attendiCalendarioIdratato(page);
 
@@ -455,6 +464,10 @@ test.describe("US-052 Cambio mese servito dalla cache dei mesi", () => {
     await expect(
       cellaDelGiorno(page, giornoDiA, mese).getByTestId("etichetta-cliente"),
     ).toHaveText(`${clienteDiA.cliente.ragioneSociale} 4.0 h`);
+
+    // I rinnovi cookie della vecchia sessione devono essere conclusi prima
+    // del cambio account. Inoltre il click successivo deve usare un mese caldo.
+    await Promise.all((await mesiAdiacenti).map(risposta => risposta.finished()));
 
     // Accesso con un altro account nella stessa finestra: cambia solo il
     // cookie, la scheda resta montata con la cache del collaboratore

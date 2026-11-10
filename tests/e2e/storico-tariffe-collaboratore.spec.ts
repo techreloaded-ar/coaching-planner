@@ -93,11 +93,8 @@ test.describe("Storico tariffe collaboratore", () => {
 		await expect(storico(page).locator("tbody tr")).toHaveCount(2);
 		await expect(rigaStorico(page, "gen 2025")).toContainText("gen 2025 → giu 2026");
 
-		// L'elenco collaboratori mostra la tariffa in vigore con la sua unità.
-		await page.goto("/anagrafiche/collaboratori");
-		const riga = page
-			.locator("table[aria-label='Elenco collaboratori'] tbody tr")
-			.filter({ hasText: nomeCompleto });
-		await expect(riga).toContainText(/6\.?500,00\s*€\s*\/ mese/);
+    // La tariffa resta nella scheda unificata dopo una nuova navigazione.
+    await page.reload();
+    await expect(page.getByTestId("tariffa-attuale")).toContainText(/6\.?500,00\s*€\s*\/ mese/);
 	});
 });

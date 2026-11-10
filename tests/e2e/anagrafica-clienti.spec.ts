@@ -341,13 +341,13 @@ test.describe("Anagrafica clienti", () => {
 		);
 
 		const collaboratoriLink = page.getByRole("link", {
-			name: "Collaboratori",
+			name: "Persone",
 			exact: true,
 		});
 		await expect(collaboratoriLink).toBeVisible();
 		await expect(collaboratoriLink).toHaveAttribute(
 			"href",
-			"/anagrafiche/collaboratori",
+			"/anagrafiche/persone",
 		);
 
 		const vociRimborsoLink = page.getByRole("link", {

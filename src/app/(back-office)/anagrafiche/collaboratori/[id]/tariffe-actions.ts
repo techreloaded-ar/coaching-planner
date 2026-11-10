@@ -17,6 +17,7 @@ function campo(formData: FormData, nome: string): string {
 }
 
 function aggiornaPagine(collaboratoreId: string): void {
+  revalidatePath("/anagrafiche/persone", "layout");
   revalidatePath(`/anagrafiche/collaboratori/${collaboratoreId}`);
   revalidatePath("/anagrafiche/collaboratori");
 }

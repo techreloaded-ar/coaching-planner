@@ -1,8 +1,7 @@
-import UtenteForm from "@/app/(back-office)/anagrafiche/utenti/utente-form";
+import { redirect } from "next/navigation";
 import { richiediRuolo } from "@/lib/dal";
 
-export default async function NuovoUtentePage() {
+export default async function NuovoPrecedente() {
   await richiediRuolo("AMMINISTRATORE");
-
-  return <UtenteForm />;
+  redirect("/anagrafiche/persone/nuovo");
 }

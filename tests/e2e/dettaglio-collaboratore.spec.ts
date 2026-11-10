@@ -36,90 +36,19 @@ test.describe("Dettaglio collaboratore", () => {
 		await accediComeAdmin(page);
 	});
 
-	test("navigazione dalla riga, intestazione e link Modifica intatto", async ({
-		page,
-		factory,
-	}) => {
-		const collaboratoreA = await factory.createCollaboratore({
-			tariffaGiornaliera: "432.50",
-		});
-		const idA = collaboratoreA.collaboratore.id;
-		const nomeCompletoA = `${collaboratoreA.collaboratore.nome} ${collaboratoreA.collaboratore.cognome}`;
-		// Navigazione dalla riga dell'elenco al dettaglio del collaboratore A
-		await page.goto("/anagrafiche/collaboratori");
-		await expect(
-			page.getByRole("heading", { name: "Collaboratori", exact: true }),
-		).toBeVisible();
-
-		const rigaA = page.getByRole("row", {
-			name: testoLetterale(nomeCompletoA),
-		});
-
-		// AC-1 — click generico su una cella neutra della riga (email: senza link
-		// né bottoni), che attiva l'handler onClick client-side della <tr>. Il
-		// primo click dopo una navigazione documentale può cadere prima
-		// dell'idratazione di React ed essere un no-op: ritentiamo con
-		// expect.toPass finché la navigazione non è osservabile (un click no-op
-		// non muta lo stato, quindi non c'è oscillazione, nessun hard wait).
-		const cellaEmailA = rigaA.getByRole("cell", {
-			name: collaboratoreA.utente.email,
-			exact: true,
-		});
-		await expect(async () => {
-			await cellaEmailA.click();
-			await expect(page).toHaveURL(
-				new RegExp(`/anagrafiche/collaboratori/${idA}$`),
-				{ timeout: 1_000 },
-			);
-		}).toPass({ timeout: 15_000 });
-
-		// Ritorno all'elenco e click sul link del nome: affordance primaria con
-		// href nativo, che resta la via di navigazione esplicita
-		await page
-			.getByRole("main")
-			.getByRole("link", { name: "Collaboratori", exact: true })
-			.click();
-		await expect(page).toHaveURL(/\/anagrafiche\/collaboratori$/);
-		await expect(
-			page.getByRole("heading", { name: "Collaboratori", exact: true }),
-		).toBeVisible();
-
-		await page
-			.getByRole("row", { name: testoLetterale(nomeCompletoA) })
-			.getByRole("link", { name: nomeCompletoA, exact: true })
-			.click();
-		await expect(page).toHaveURL(
-			new RegExp(`/anagrafiche/collaboratori/${idA}$`),
-		);
-
-		// AC-1 — intestazione con nome completo, email e tariffa formattata
-		await expect(
-			page.getByRole("heading", { name: nomeCompletoA }),
-		).toBeVisible();
-		await expect(
-			page.getByText(collaboratoreA.utente.email, { exact: true }),
-		).toBeVisible();
-		await expect(page.getByTestId("tariffa-attuale")).toContainText(/432,50\s*€\s*\/ giorno/);
-
-		// AC-5 — ritorno all'elenco: il link Modifica sulla riga di A porta al
-		// form di modifica e non viene catturato dalla navigazione di riga
-		await page
-			.getByRole("main")
-			.getByRole("link", { name: "Collaboratori", exact: true })
-			.click();
-		await expect(page).toHaveURL(/\/anagrafiche\/collaboratori$/);
-
-		const rigaElencoA = page.getByRole("row", {
-			name: testoLetterale(nomeCompletoA),
-		});
-		await rigaElencoA.getByRole("link", { name: "Modifica" }).click();
-		await expect(page).toHaveURL(
-			new RegExp(`/anagrafiche/collaboratori/${idA}/modifica$`),
-		);
-		await expect(
-			page.getByRole("heading", { name: "Modifica collaboratore" }),
-		).toBeVisible();
-	});
+	test("dall’elenco persone alla scheda e alle attività", async ({ page, factory }) => {
+    const persona = await factory.createCollaboratore({ tariffaGiornaliera: "432.50" });
+    await page.goto("/anagrafiche/persone");
+    const nome = `${persona.utente.nome} ${persona.utente.cognome}`;
+    await page.getByRole("link", { name: nome, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/anagrafiche/persone/${persona.utente.id}$`));
+    await expect(page.getByRole("heading", { name: nome, exact: true })).toBeVisible();
+    await expect(page.getByLabel("Scheda persona", { exact: true }).filter({ has: page.getByRole("heading", { level: 1 }) })).toHaveAttribute("data-idratata", "true");
+    await page.getByRole("tab", { name: "Attività e compensi", exact: true }).click();
+    await expect(page.getByTestId("tariffa-attuale")).toContainText(/432,50\s*€\s*\/ giorno/);
+    await page.getByRole("link", { name: "Tutte le persone", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Persone", exact: true })).toBeVisible();
+  });
 
 	test("offerte abilitate attive per cliente, giorni fatturati e apertura del foglio sull'offerta", async ({
 		page,

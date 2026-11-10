@@ -50,7 +50,7 @@ function messaggioProfiloNonDisponibile(
   profilo: Exclude<StatoProfiloCollaboratore, { stato: "ATTIVO" }>
 ): string {
   return profilo.stato === "ASSENTE"
-    ? "Il tuo account non ha un profilo Collaboratore. Richiedi il censimento nell'Anagrafica collaboratori."
+    ? "Il tuo account non ha un profilo Collaboratore. Richiedi il censimento nella sezione Persone."
     : "Il tuo profilo Collaboratore è disattivato. Chiedi a un amministratore di riattivarlo.";
 }
 

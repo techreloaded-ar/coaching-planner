@@ -102,16 +102,16 @@ test.describe("Note delle anagrafiche", () => {
 		page,
 		collaboratore,
 	}) => {
-		const percorsoModifica = `/anagrafiche/utenti/${collaboratore.utente.id}/modifica`;
+		const percorsoModifica = `/anagrafiche/persone/${collaboratore.utente.id}`;
 
 		await page.goto(percorsoModifica);
-		await expect(page.getByRole("heading", { name: "Modifica utente" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: `${collaboratore.utente.nome} ${collaboratore.utente.cognome}`, exact: true })).toBeVisible();
 		await expect(campoNote(page)).toHaveValue("");
 		await campoNote(page).fill("Disponibile solo il martedì\nPreferisce email");
 		await page.getByRole("button", { name: "Salva modifiche", exact: true }).click();
 		await page.waitForURL(
 			(url) =>
-				url.pathname === "/anagrafiche/utenti" && url.searchParams.get("esito") === "salvato",
+				url.pathname === `/anagrafiche/persone/${collaboratore.utente.id}` && url.searchParams.get("esito") === "salvato",
 		);
 
 		await page.goto(percorsoModifica);

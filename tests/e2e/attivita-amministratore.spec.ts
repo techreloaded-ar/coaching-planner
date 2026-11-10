@@ -1,57 +1,11 @@
-import type { Page } from "@playwright/test";
 
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
-import { selezionaRighe } from "./support/elenchi";
+import { apriPersona, salvaPersona } from "./support/persone";
 import { test, expect } from "./support/fixtures";
 import { apriMenuAccount, pannelloAccount } from "./support/menu-account";
 
 const CODICE_SPEC = "US-030-TASK-08-ATTIVITA-AMMINISTRATORE";
-
-function rigaUtente(page: Page, email: string) {
-	return page
-		.getByRole("table", { name: "Elenco utenti" })
-		.getByRole("row")
-		.filter({ has: page.getByText(email, { exact: true }) });
-}
-
-/**
- * Commuta il checkbox di ruolo Collaboratore con un click reale sulla card
- * (l'etichetta visibile), perché il checkbox è `sr-only`. Replica localmente
- * il pattern documentato in gestione-utenti.spec.ts: il checkbox non
- * controllato reagisce subito al click nativo, ma il suo `onChange` (che
- * pilota la comparsa della sezione profilo) è attivo solo dopo l'idratazione,
- * quindi si continua a cliccare con `expect.poll` finché checkbox e sezione
- * profilo non sono coerenti, senza hard wait.
- */
-async function impostaRuoloCollaboratore(
-	page: Page,
-	selezionato: boolean,
-): Promise<void> {
-	const gruppoRuolo = page.getByRole("group", { name: /^Ruolo/ });
-	const card = gruppoRuolo.getByText("Collaboratore", { exact: true });
-	const checkbox = gruppoRuolo.getByRole("checkbox", {
-		name: /^Collaboratore\b/,
-	});
-	const sezioneProfilo = page.getByLabel(/^Cognome\b/);
-
-	async function ruoloImpostatoCorrettamente(): Promise<boolean> {
-		return (
-			(await checkbox.isChecked()) === selezionato &&
-			(await sezioneProfilo.isVisible()) === selezionato
-		);
-	}
-
-	await expect
-		.poll(async () => {
-			if (await ruoloImpostatoCorrettamente()) {
-				return true;
-			}
-			await card.click();
-			return ruoloImpostatoCorrettamente();
-		})
-		.toBe(true);
-}
 
 test.describe("US-030 Attività amministratore", () => {
 	test("amministratore con profilo attivo registra attività e naviga tra front office e console", async ({
@@ -171,33 +125,16 @@ test.describe("US-030 Attività amministratore", () => {
 				{ exact: false },
 			),
 		).toBeVisible();
-		await page
-			.getByRole("link", {
-				name: "Apri Anagrafica collaboratori",
-				exact: true,
-			})
-			.click();
-		await page.waitForURL("**/anagrafiche/collaboratori");
-
-		await page.goto("/anagrafiche/utenti");
-		await page.waitForURL("**/anagrafiche/utenti");
-		await expect(page.getByRole("heading", { name: "Utenti" })).toBeVisible();
-		const barra = await selezionaRighe(page, [
-			rigaUtente(page, amministratore.email).getByRole("checkbox"),
-		]);
-		await barra.getByRole("link", { name: "Modifica", exact: true }).click();
-		await expect(
-			page.getByRole("heading", { name: "Modifica utente" }),
-		).toBeVisible();
-
-		await impostaRuoloCollaboratore(page, true);
-		await page.getByLabel(/^Cognome\b/).fill("E2E");
-		await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
-		await page.getByLabel(/^Importo tariffa\b/).fill("450,00");
-		await page
-			.getByRole("button", { name: "Salva modifiche", exact: true })
-			.click();
-		await page.waitForURL("**/anagrafiche/utenti?esito=salvato");
+		await page.getByRole("link", { name: "Apri Persone", exact: true }).click();
+    await page.waitForURL("**/anagrafiche/persone");
+    await apriPersona(page, amministratore.id, "accesso");
+    await page.getByRole("checkbox", { name: "Registra anche attività come collaboratore", exact: true }).check();
+    await page.getByRole("tab", { name: "Anagrafica", exact: true }).click();
+    await page.getByLabel(/^Cognome\b/).fill("E2E");
+    await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
+    await page.getByRole("tab", { name: "Attività e compensi", exact: true }).click();
+    await page.getByLabel(/^Importo tariffa\b/).fill("450,00");
+    await salvaPersona(page);
 
 		await page.goto("/attivita");
 		await page.waitForURL("**/attivita");
@@ -234,7 +171,7 @@ test.describe("US-030 Attività amministratore", () => {
 		).toBeVisible();
 		await expect(
 			page.getByRole("link", {
-				name: "Apri Anagrafica collaboratori",
+				name: "Apri Persone",
 				exact: true,
 			}),
 		).toBeVisible();

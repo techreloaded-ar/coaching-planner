@@ -67,6 +67,7 @@ export async function ingaggiaCollaboratoriSuOfferta(
   });
 
   revalidatePath(`/offerte/${offertaId}/collaboratori`);
+  revalidatePath("/anagrafiche/persone", "layout");
   for (const collaboratoreId of idsCollaboratori) {
     revalidatePath(`/anagrafiche/collaboratori/${collaboratoreId}`);
   }
@@ -103,6 +104,7 @@ export async function revocaIngaggioCollaboratore(
 
   revalidatePath(`/offerte/${offertaId}/collaboratori`);
   revalidatePath(`/anagrafiche/collaboratori/${collaboratoreId}`);
+  revalidatePath("/anagrafiche/persone", "layout");
 
   return { errori: {}, successo: true };
 }

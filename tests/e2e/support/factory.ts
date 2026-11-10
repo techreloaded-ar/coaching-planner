@@ -214,8 +214,8 @@ export class E2eDataFactory {
 			[
 				randomUUID(),
 				utente.id,
-				options.nome ?? "E2E",
-				options.cognome ?? this.readableName(token),
+				options.nome ?? utente.nome,
+				options.cognome ?? utente.cognome,
 				options.partitaIva ?? this.numericCode(`partita-iva-${token}`),
 				options.attivo ?? true,
 				now,

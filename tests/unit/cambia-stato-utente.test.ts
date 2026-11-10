@@ -98,9 +98,9 @@ describe("cambiaStatoUtenteAction", () => {
       where: { id: { in: ["collaboratore-1"] } },
       data: { attivo: false },
     });
-    expect(mockRevalidatePath).toHaveBeenNthCalledWith(1, "/anagrafiche/utenti");
+    expect(mockRevalidatePath).toHaveBeenNthCalledWith(1, "/anagrafiche/persone", "layout");
     expect(mockRevalidatePath).toHaveBeenNthCalledWith(2, "/anagrafiche/collaboratori");
-    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/utenti?esito=disattivato");
+    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/persone?esito=disattivato&stato=disattivati");
   });
 
   it("disattiva più utenti in un'unica transazione, cascando solo sui profili esistenti", async () => {
@@ -124,7 +124,7 @@ describe("cambiaStatoUtenteAction", () => {
       where: { id: { in: ["collaboratore-1"] } },
       data: { attivo: false },
     });
-    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/utenti?esito=disattivato");
+    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/persone?esito=disattivato&stato=disattivati");
   });
 
   it("riattiva utente e profilo collaboratore senza contare gli amministratori", async () => {
@@ -143,7 +143,7 @@ describe("cambiaStatoUtenteAction", () => {
       where: { id: { in: ["collaboratore-1"] } },
       data: { attivo: true },
     });
-    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/utenti?esito=riattivato");
+    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/persone?esito=riattivato");
   });
 
   it("disattiva un utente senza profilo collaboratore senza tentare la cascata", async () => {
@@ -169,7 +169,7 @@ describe("cambiaStatoUtenteAction", () => {
     expect(mockDb.utente.updateMany).not.toHaveBeenCalled();
     expect(mockDb.collaboratore.updateMany).not.toHaveBeenCalled();
     expect(mockRevalidatePath).not.toHaveBeenCalled();
-    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/utenti?errore=ultimo-amministratore");
+    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/persone?errore=ultimo-amministratore");
   });
 
   it("rifiuta per intero una selezione che comprende tutti gli amministratori attivi", async () => {
@@ -189,7 +189,7 @@ describe("cambiaStatoUtenteAction", () => {
     );
     expect(mockDb.utente.updateMany).not.toHaveBeenCalled();
     expect(mockDb.collaboratore.updateMany).not.toHaveBeenCalled();
-    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/utenti?errore=ultimo-amministratore");
+    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/persone?errore=ultimo-amministratore");
   });
 
   it("disattiva un amministratore quando ne rimane almeno un altro attivo", async () => {
@@ -205,7 +205,7 @@ describe("cambiaStatoUtenteAction", () => {
       data: { attivo: false },
     });
     expect(mockRevalidatePath).toHaveBeenCalledTimes(2);
-    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/utenti?esito=disattivato");
+    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/persone?esito=disattivato&stato=disattivati");
   });
 
   it("riattiva un amministratore senza applicare la protezione dell'ultimo admin", async () => {
@@ -220,7 +220,7 @@ describe("cambiaStatoUtenteAction", () => {
       where: { id: { in: ["utente-1"] } },
       data: { attivo: true },
     });
-    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/utenti?esito=riattivato");
+    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/persone?esito=riattivato");
   });
 
   it("dopo un conflitto rilegge il numero di amministratori e blocca la disattivazione dell'ultimo", async () => {
@@ -239,7 +239,7 @@ describe("cambiaStatoUtenteAction", () => {
     expect(mockDb.utente.count).toHaveBeenCalledTimes(2);
     expect(mockDb.utente.updateMany).toHaveBeenCalledTimes(1);
     expect(mockRevalidatePath).not.toHaveBeenCalled();
-    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/utenti?errore=ultimo-amministratore");
+    expect(mockRedirect).toHaveBeenCalledWith("/anagrafiche/persone?errore=ultimo-amministratore");
   });
 
   it.each([

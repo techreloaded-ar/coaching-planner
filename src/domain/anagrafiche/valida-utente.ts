@@ -31,6 +31,8 @@ export interface DatiModificaUtenteInput {
   importoTariffa: string;
   tariffaValidaDalMese: string;
   profiloPresente: boolean;
+  /** La scheda unificata modifica anche la partita IVA di un profilo esistente. */
+  aggiornaPartitaIva?: boolean;
 }
 
 /** Mappa campo → messaggio di errore. Vuota se la validazione passa. */
@@ -42,7 +44,9 @@ const RE_EMAIL =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 /** La tariffa iniziale è facoltativa: si considera indicata solo se c'è un importo. */
-export function tariffaInizialeIndicata(dati: { importoTariffa: string }): boolean {
+export function tariffaInizialeIndicata(dati: {
+  importoTariffa: string;
+}): boolean {
   return dati.importoTariffa.trim() !== "";
 }
 
@@ -66,7 +70,10 @@ function erroriTariffaIniziale(dati: {
     importo: "importoTariffa",
   };
   return Object.fromEntries(
-    Object.entries(errori).map(([campo, messaggio]) => [campi[campo], messaggio]),
+    Object.entries(errori).map(([campo, messaggio]) => [
+      campi[campo],
+      messaggio,
+    ]),
   );
 }
 
@@ -83,7 +90,7 @@ function erroriTariffaIniziale(dati: {
  * Restituisce `{}` se tutti i controlli passano.
  */
 export function validaCensimentoUtente(
-  dati: DatiCensimentoUtenteInput
+  dati: DatiCensimentoUtenteInput,
 ): ErroriValidazione {
   const errori: ErroriValidazione = {};
 
@@ -127,13 +134,14 @@ export function validaCensimentoUtente(
  * validati con gli identici controlli e messaggi dell'anagrafica collaboratori solo
  * quando il ruolo Collaboratore è selezionato E il profilo collaboratore non
  * è ancora presente (`profiloPresente: false`). Se il profilo esiste già
- * (`profiloPresente: true`) i campi profilo vengono sempre ignorati, così
- * come quando il ruolo Collaboratore non è selezionato.
+ * (`profiloPresente: true`) la tariffa iniziale è ignorata. La partita IVA
+ * di un profilo esistente viene validata quando la scheda Persone richiede
+ * esplicitamente di aggiornarla (`aggiornaPartitaIva: true`).
  *
  * Restituisce `{}` se tutti i controlli passano.
  */
 export function validaModificaUtente(
-  dati: DatiModificaUtenteInput
+  dati: DatiModificaUtenteInput,
 ): ErroriValidazione {
   const errori: ErroriValidazione = {};
 
@@ -155,12 +163,14 @@ export function validaModificaUtente(
     errori.ruoli = "Seleziona almeno un ruolo";
   }
 
-  if (dati.ruoloCollaboratore && !dati.profiloPresente) {
+  if (
+    dati.aggiornaPartitaIva ||
+    (dati.ruoloCollaboratore && !dati.profiloPresente)
+  ) {
     const errorePartitaIva = validaCampoPartitaIva(dati.partitaIva);
-    if (errorePartitaIva) {
-      errori.partitaIva = errorePartitaIva;
-    }
-
+    if (errorePartitaIva) errori.partitaIva = errorePartitaIva;
+  }
+  if (dati.ruoloCollaboratore && !dati.profiloPresente) {
     Object.assign(errori, erroriTariffaIniziale(dati));
   }
 

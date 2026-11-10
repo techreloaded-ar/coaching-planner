@@ -1,173 +1,81 @@
-import type { Page } from "@playwright/test";
-
-import { accediComeAdmin } from "./support/auth";
+import { EMAIL_ADMIN_E2E, preparaSessioneE2e } from "./support/auth";
+import { apriPersona, salvaPersona } from "./support/persone";
 import { test, expect } from "./support/fixtures";
 
-/**
- * Test e2e — US-047: Anagrafica collaboratori a sola modifica
- *
- * Scenari:
- * - AC-1: il censimento non è più disponibile dall'anagrafica collaboratori
- * - AC-2/AC-3: lo stato attivo/disattivato è in sola lettura, senza controlli
- *   Disattiva/Riattiva
- * - AC-4: la modifica dei dati anagrafici viene persistita (la tariffa si
- *   gestisce nello storico tariffe del dettaglio collaboratore)
- * - AC-5: l'email di accesso è in sola lettura e non viene alterata dal salvataggio
- */
+test.describe("Anagrafica nella scheda persona", () => {
+  test.beforeEach(async ({ page }) => {
+    await preparaSessioneE2e(page, EMAIL_ADMIN_E2E);
+  });
 
-function tabellaCollaboratori(page: Page) {
-	return page.locator("table[aria-label='Elenco collaboratori']");
-}
+  test("salva nome, cognome, email e partita IVA insieme mantenendo tariffe e offerte", async ({
+    page,
+    collaboratore,
+    clienteConOfferta,
+    factory,
+  }) => {
+    await factory.createAbilitazioneOfferta({
+      collaboratore,
+      offerta: clienteConOfferta.offerta,
+    });
+    await apriPersona(page, collaboratore.utente.id);
+    const nome = `${factory.namespace} Aggiornata`;
+    const email = `${factory.namespace}-aggiornata@e2e.invalid`;
+    await page.getByLabel(/^Nome\b/).fill(nome);
+    await page.getByLabel(/^Cognome\b/).fill("Verdi");
+    await page.getByLabel(/^Email di accesso\b/).fill(email);
+    await page.getByLabel(/^Partita IVA\b/).fill("12345");
+    await page
+      .getByRole("button", { name: "Salva modifiche", exact: true })
+      .click();
+    await expect(
+      page.getByText("La partita IVA deve essere di 11 cifre", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByLabel(/^Nome\b/)).toHaveValue(nome);
+    await expect(page.getByLabel(/^Email di accesso\b/)).toHaveValue(email);
+    await page.getByLabel(/^Partita IVA\b/).fill("01234567890");
+    await salvaPersona(page);
+    await expect(
+      page.getByRole("heading", { name: `${nome} Verdi`, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByLabel(/^Partita IVA\b/)).toHaveValue("01234567890");
+    await page
+      .getByRole("tab", { name: "Attività e compensi", exact: true })
+      .click();
+    await expect(page.getByTestId("tariffa-attuale")).toContainText(/350,00/);
+    await expect(
+      page.getByRole("heading", { name: "Offerte abilitate", exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("link", { name: "Apri foglio attività", exact: true })
+      .click();
+    await expect(page.getByTestId("banner-foglio-consultato")).toContainText(
+      `${nome} Verdi`,
+    );
+  });
 
-function rigaCollaboratore(page: Page, nomeCompleto: string) {
-	return tabellaCollaboratori(page)
-		.locator("tbody tr")
-		.filter({ hasText: nomeCompleto });
-}
-
-test.describe("Anagrafica collaboratori", () => {
-	test.beforeEach(async ({ page }) => {
-		await accediComeAdmin(page);
-	});
-
-	test("censimento non disponibile: nessun link e redirect dalla rotta diretta", async ({
-		page,
-	}) => {
-		await page.goto("/anagrafiche/collaboratori");
-		await expect(
-			page.getByRole("heading", { name: "Collaboratori", exact: true }),
-		).toBeVisible();
-
-		// AC-1: nessun link per censire un nuovo collaboratore dall'elenco.
-		await expect(
-			page.getByRole("link", { name: "Nuovo collaboratore" }),
-		).toHaveCount(0);
-
-		// AC-1: la rotta diretta di censimento reindirizza alla schermata utenti.
-		await page.goto("/anagrafiche/collaboratori/nuovo");
-		await page.waitForURL("**/anagrafiche/utenti");
-		await expect(
-			page.getByRole("heading", { name: "Utenti", exact: true }),
-		).toBeVisible();
-	});
-
-	test("stato in sola lettura: badge visibili, nessun controllo Disattiva/Riattiva", async ({
-		page,
-		factory,
-	}) => {
-		const attivo = await factory.createCollaboratore();
-		const disattivato = await factory.createCollaboratore({ attivo: false });
-		const nomeCompletoAttivo = `${attivo.collaboratore.nome} ${attivo.collaboratore.cognome}`;
-		const nomeCompletoDisattivato = `${disattivato.collaboratore.nome} ${disattivato.collaboratore.cognome}`;
-
-		await page.goto("/anagrafiche/collaboratori");
-		await expect(
-			page.getByRole("heading", { name: "Collaboratori", exact: true }),
-		).toBeVisible();
-
-		const rigaAttiva = rigaCollaboratore(page, nomeCompletoAttivo);
-		await expect(rigaAttiva.getByText("Attivo", { exact: true })).toBeVisible();
-		await expect(
-			rigaAttiva.getByRole("button", { name: "Disattiva" }),
-		).toHaveCount(0);
-		await expect(
-			rigaAttiva.getByRole("button", { name: "Riattiva" }),
-		).toHaveCount(0);
-
-		const rigaDisattivata = rigaCollaboratore(page, nomeCompletoDisattivato);
-		await expect(
-			rigaDisattivata.getByText("Disattivato", { exact: true }),
-		).toBeVisible();
-		await expect(
-			rigaDisattivata.getByRole("button", { name: "Disattiva" }),
-		).toHaveCount(0);
-		await expect(
-			rigaDisattivata.getByRole("button", { name: "Riattiva" }),
-		).toHaveCount(0);
-
-		// Anche nella schermata di modifica non compare alcun controllo di stato.
-		await rigaAttiva.getByRole("link", { name: "Modifica" }).click();
-		await page.waitForURL(/\/anagrafiche\/collaboratori\/[^/]+\/modifica$/);
-		await expect(
-			page.getByRole("heading", { name: "Modifica collaboratore" }),
-		).toBeVisible();
-		await expect(
-			page.getByRole("button", { name: "Disattiva" }),
-		).toHaveCount(0);
-		await expect(
-			page.getByRole("button", { name: "Riattiva" }),
-		).toHaveCount(0);
-	});
-
-	test("modifica persistita: nome e partita IVA aggiornati restano dopo il reload", async ({
-		page,
-		factory,
-	}) => {
-		const { collaboratore } = await factory.createCollaboratore();
-		const nomeCompletoOriginale = `${collaboratore.nome} ${collaboratore.cognome}`;
-		const nuovoNome = `${collaboratore.nome} Aggiornato`;
-		const nuovaPartitaIva = "77777777750";
-
-		await page.goto("/anagrafiche/collaboratori");
-		const riga = rigaCollaboratore(page, nomeCompletoOriginale);
-		await riga.getByRole("link", { name: "Modifica" }).click();
-
-		await page.waitForURL(/\/anagrafiche\/collaboratori\/[^/]+\/modifica$/);
-		await expect(
-			page.getByRole("heading", { name: "Modifica collaboratore" }),
-		).toBeVisible();
-
-		await page.getByLabel(/^Nome\b/).fill(nuovoNome);
-		await expect(page.getByLabel(/tariffa/i)).toHaveCount(0);
-		const campoPartitaIva = page.getByLabel(/^Partita IVA\b/);
-		await campoPartitaIva.clear();
-		await campoPartitaIva.fill(nuovaPartitaIva);
-
-		await page.getByRole("button", { name: "Salva modifiche" }).click();
-		await page.waitForURL("**/anagrafiche/collaboratori?esito=salvato");
-
-		const nomeCompletoAggiornato = `${nuovoNome} ${collaboratore.cognome}`;
-		const rigaAggiornata = rigaCollaboratore(page, nomeCompletoAggiornato);
-		await expect(
-			rigaAggiornata.getByText(nomeCompletoAggiornato, { exact: true }),
-		).toBeVisible();
-		await expect(rigaAggiornata.getByText(nuovaPartitaIva)).toBeVisible();
-
-		await page.reload();
-		const rigaRicaricata = rigaCollaboratore(page, nomeCompletoAggiornato);
-		await expect(
-			rigaRicaricata.getByText(nomeCompletoAggiornato, { exact: true }),
-		).toBeVisible();
-		await expect(rigaRicaricata.getByText(nuovaPartitaIva)).toBeVisible();
-	});
-
-	test("email in sola lettura: campo readOnly e invariata dopo il salvataggio", async ({
-		page,
-		factory,
-	}) => {
-		const { collaboratore, utente } = await factory.createCollaboratore();
-		const nomeCompleto = `${collaboratore.nome} ${collaboratore.cognome}`;
-
-		await page.goto("/anagrafiche/collaboratori");
-		const riga = rigaCollaboratore(page, nomeCompleto);
-		await riga.getByRole("link", { name: "Modifica" }).click();
-
-		await page.waitForURL(/\/anagrafiche\/collaboratori\/[^/]+\/modifica$/);
-		await expect(
-			page.getByRole("heading", { name: "Modifica collaboratore" }),
-		).toBeVisible();
-
-		const campoEmail = page.getByLabel("Email di accesso");
-		await expect(campoEmail).toHaveValue(utente.email);
-		await expect(campoEmail).toHaveJSProperty("readOnly", true);
-
-		// Salva senza toccare l'email: deve restare quella originale in elenco.
-		await page.getByRole("button", { name: "Salva modifiche" }).click();
-		await page.waitForURL("**/anagrafiche/collaboratori?esito=salvato");
-
-		const rigaAggiornata = rigaCollaboratore(page, nomeCompleto);
-		await expect(
-			rigaAggiornata.getByText(utente.email, { exact: true }),
-		).toBeVisible();
-	});
+  test("i vecchi indirizzi confluiscono nell'elenco e nella scheda unificata", async ({
+    page,
+    collaboratore,
+  }) => {
+    await page.goto("/anagrafiche/utenti");
+    await expect(page).toHaveURL(/\/anagrafiche\/persone$/);
+    await page.goto("/anagrafiche/collaboratori");
+    await expect(page).toHaveURL(
+      /\/anagrafiche\/persone\?ruolo=COLLABORATORE$/,
+    );
+    await page.goto(
+      `/anagrafiche/collaboratori/${collaboratore.collaboratore.id}/modifica`,
+    );
+    await expect(page).toHaveURL(
+      new RegExp(
+        `/anagrafiche/persone/${collaboratore.utente.id}\\?sezione=anagrafica$`,
+      ),
+    );
+    await page.goto(`/anagrafiche/utenti/${collaboratore.utente.id}/modifica`);
+    await expect(page).toHaveURL(
+      new RegExp(`/anagrafiche/persone/${collaboratore.utente.id}$`),
+    );
+    await page.goto("/anagrafiche/collaboratori/nuovo");
+    await expect(page).toHaveURL(/\/anagrafiche\/persone\/nuovo$/);
+  });
 });

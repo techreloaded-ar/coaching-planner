@@ -21,7 +21,7 @@ export async function cambiaStatoUtenteAction(formData: FormData) {
   const attivo = formData.get("attivo") === "true";
 
   if (idUtenti.length === 0) {
-    redirect("/anagrafiche/utenti");
+    redirect("/anagrafiche/persone");
   }
 
   const esito = await eseguiConRetrySerializzazione(() =>
@@ -85,16 +85,16 @@ export async function cambiaStatoUtenteAction(formData: FormData) {
   );
 
   if (esito === "ULTIMO_AMMINISTRATORE") {
-    redirect("/anagrafiche/utenti?errore=ultimo-amministratore");
+    redirect("/anagrafiche/persone?errore=ultimo-amministratore");
   } else if (esito === "NON_TROVATO") {
-    redirect("/anagrafiche/utenti");
+    redirect("/anagrafiche/persone");
   } else {
-    revalidatePath("/anagrafiche/utenti");
+    revalidatePath("/anagrafiche/persone", "layout");
     revalidatePath("/anagrafiche/collaboratori");
     redirect(
       esito === "DISATTIVATO"
-        ? "/anagrafiche/utenti?esito=disattivato"
-        : "/anagrafiche/utenti?esito=riattivato",
+        ? "/anagrafiche/persone?esito=disattivato&stato=disattivati"
+        : "/anagrafiche/persone?esito=riattivato",
     );
   }
 }

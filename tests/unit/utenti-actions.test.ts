@@ -198,10 +198,10 @@ describe("Server Actions utenti", () => {
         },
       });
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
-      expect(mockRevalidatePath).toHaveBeenCalledTimes(1);
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(2);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=creato",
+        "/anagrafiche/persone?esito=creato",
       );
     });
 
@@ -253,9 +253,9 @@ describe("Server Actions utenti", () => {
       expect(mockRevalidatePath).toHaveBeenCalledWith(
         "/anagrafiche/collaboratori",
       );
-      expect(mockRevalidatePath).toHaveBeenCalledTimes(2);
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(3);
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=creato",
+        "/anagrafiche/persone?esito=creato",
       );
     });
 
@@ -319,7 +319,7 @@ describe("Server Actions utenti", () => {
         "/anagrafiche/collaboratori",
       );
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=creato",
+        "/anagrafiche/persone?esito=creato",
       );
     });
 
@@ -436,13 +436,13 @@ describe("Server Actions utenti", () => {
       });
       expect(mockCollaboratore.create).not.toHaveBeenCalled();
       expect(mockCollaboratore.update).not.toHaveBeenCalled();
-      expect(mockRevalidatePath).toHaveBeenCalledTimes(1);
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(2);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
       expect(mockRevalidatePath).not.toHaveBeenCalledWith(
         "/anagrafiche/collaboratori",
       );
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=salvato",
+        "/anagrafiche/persone/utente-1?esito=salvato&sezione=anagrafica",
       );
     });
 
@@ -533,7 +533,7 @@ describe("Server Actions utenti", () => {
         "/anagrafiche/collaboratori",
       );
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=salvato",
+        "/anagrafiche/persone/utente-1?esito=salvato&sezione=anagrafica",
       );
     });
 
@@ -586,9 +586,9 @@ describe("Server Actions utenti", () => {
       expect(mockRevalidatePath).toHaveBeenCalledWith(
         "/anagrafiche/collaboratori",
       );
-      expect(mockRevalidatePath).toHaveBeenCalledTimes(2);
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(3);
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=salvato",
+        "/anagrafiche/persone/utente-1?esito=salvato&sezione=anagrafica",
       );
     });
 
@@ -644,7 +644,7 @@ describe("Server Actions utenti", () => {
         "/anagrafiche/collaboratori",
       );
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=salvato",
+        "/anagrafiche/persone/utente-1?esito=salvato&sezione=anagrafica",
       );
     });
 
@@ -670,7 +670,7 @@ describe("Server Actions utenti", () => {
         "/anagrafiche/collaboratori",
       );
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=salvato",
+        "/anagrafiche/persone/utente-1?esito=salvato&sezione=anagrafica",
       );
     });
 
@@ -706,13 +706,13 @@ describe("Server Actions utenti", () => {
         data: { nome: "Laura", cognome: "Verdi" },
       });
       expect(mockCollaboratore.update).toHaveBeenCalledTimes(1);
-      expect(mockRevalidatePath).toHaveBeenCalledTimes(2);
+      expect(mockRevalidatePath).toHaveBeenCalledTimes(3);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/utenti");
       expect(mockRevalidatePath).toHaveBeenCalledWith(
         "/anagrafiche/collaboratori",
       );
       expect(mockRedirect).toHaveBeenCalledWith(
-        "/anagrafiche/utenti?esito=salvato",
+        "/anagrafiche/persone/utente-1?esito=salvato&sezione=anagrafica",
       );
     });
 
@@ -834,4 +834,57 @@ describe("Server Actions utenti", () => {
       expect(mockRedirect).not.toHaveBeenCalled();
     });
   });
+  describe("scheda unificata persona", () => {
+    function formPersona() {
+      const form = formModificaUtente();
+      form.set("gestisciAccesso", "true");
+      form.set("attivo", "on");
+      form.set("aggiornaPartitaIva", "true");
+      form.set("partitaIva", "01234567890");
+      form.set("ruoloCollaboratore", "on");
+      return form;
+    }
+
+    it("salva la partita IVA insieme all'anagrafica e invalida le nuove schede", async () => {
+      mockUtente.findUnique.mockResolvedValue({ ruolo: "COLLABORATORE", attivo: true, collaboratore: { attivo: true } });
+      await aggiornaUtente(statoIniziale(), formPersona());
+      expect(mockCollaboratore.update).toHaveBeenCalledWith({ where: { userId: "utente-1" }, data: { nome: "Laura", cognome: "Verdi", partitaIva: "01234567890", attivo: true } });
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/persone", "layout");
+    });
+
+    it("rifiuta una partita IVA non valida anche se il profilo esiste già", async () => {
+      mockUtente.findUnique.mockResolvedValue({ ruolo: "COLLABORATORE", attivo: true, collaboratore: { attivo: true } });
+      const form = formPersona(); form.set("partitaIva", "123");
+      const result = await aggiornaUtente(statoIniziale(), form);
+      expect(result.errori.partitaIva).toBe("La partita IVA deve essere di 11 cifre");
+      expect(mockDb.$transaction).not.toHaveBeenCalled();
+    });
+
+    it("impedisce di disattivare l'ultimo amministratore dalla scheda", async () => {
+      mockUtente.findUnique.mockResolvedValue({ ruolo: "AMMINISTRATORE", attivo: true, collaboratore: null });
+      mockUtente.count.mockResolvedValue(0);
+      const form = formPersona(); form.delete("attivo");
+      const result = await aggiornaUtente(statoIniziale(), form);
+      expect(result.errori._form).toContain("ultimo amministratore");
+      expect(mockUtente.update).not.toHaveBeenCalled();
+      expect(mockCollaboratore.update).not.toHaveBeenCalled();
+    });
+
+    it("disattiva accesso e profilo nella stessa transazione senza cancellare dati", async () => {
+      mockUtente.findUnique.mockResolvedValue({ ruolo: "COLLABORATORE", attivo: true, collaboratore: { attivo: true } });
+      const form = formPersona(); form.delete("attivo");
+      await aggiornaUtente(statoIniziale(), form);
+      expect(mockUtente.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ attivo: false }) }));
+      expect(mockCollaboratore.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ attivo: false }) }));
+      expect(mockCollaboratore.delete).not.toHaveBeenCalled();
+    });
+
+    it("non riattiva il profilo quando l'account rimane disattivato", async () => {
+      mockUtente.findUnique.mockResolvedValue({ ruolo: "COLLABORATORE", attivo: false, collaboratore: { attivo: false } });
+      const form = formPersona(); form.delete("attivo");
+      await aggiornaUtente(statoIniziale(), form);
+      expect(mockCollaboratore.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ attivo: false }) }));
+    });
+  });
+
 });

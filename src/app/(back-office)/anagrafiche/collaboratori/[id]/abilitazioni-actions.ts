@@ -47,6 +47,7 @@ export async function abilitaCollaboratoreSuOfferte(
     skipDuplicates: true,
   });
 
+  revalidatePath("/anagrafiche/persone", "layout");
   revalidatePath(`/anagrafiche/collaboratori/${collaboratoreId}`);
   return { errori: {}, successo: true };
 }
@@ -78,6 +79,7 @@ export async function revocaAbilitazioneCollaboratore(
     where: { collaboratoreId, offertaId },
   });
 
+  revalidatePath("/anagrafiche/persone", "layout");
   revalidatePath(`/anagrafiche/collaboratori/${collaboratoreId}`);
   return { errori: {}, successo: true };
 }

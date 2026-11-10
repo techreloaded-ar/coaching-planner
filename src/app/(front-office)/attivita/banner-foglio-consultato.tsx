@@ -9,7 +9,7 @@ import type { Collaboratore } from "@/generated/prisma/client";
 export default function BannerFoglioConsultato({
   collaboratore,
 }: {
-  collaboratore: Pick<Collaboratore, "id" | "nome" | "cognome" | "attivo">;
+  collaboratore: Pick<Collaboratore, "id" | "userId" | "nome" | "cognome" | "attivo">;
 }) {
   const nomeCompleto = `${collaboratore.nome} ${collaboratore.cognome}`;
 
@@ -27,7 +27,7 @@ export default function BannerFoglioConsultato({
             : "Il collaboratore è disattivato: il foglio è in sola lettura."}
         </span>
         <Link
-          href={`/anagrafiche/collaboratori/${collaboratore.id}`}
+          href={`/anagrafiche/persone/${collaboratore.userId}?sezione=attivita`}
           className="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
         >
           Torna alla scheda

@@ -91,6 +91,7 @@ export async function aggiornaCollaboratore(
     });
   });
 
+  revalidatePath("/anagrafiche/persone", "layout");
   revalidatePath("/anagrafiche/collaboratori");
   redirect("/anagrafiche/collaboratori?esito=salvato");
 }

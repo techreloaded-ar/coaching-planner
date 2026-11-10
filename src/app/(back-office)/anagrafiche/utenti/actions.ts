@@ -37,8 +37,9 @@ function datiCensimentoDaForm(formData: FormData): DatiCensimentoUtenteInput {
     partitaIva: ((formData.get("partitaIva") as string) ?? "").trim(),
     modalitaTariffa: ((formData.get("modalitaTariffa") as string) ?? "").trim(),
     importoTariffa: ((formData.get("importoTariffa") as string) ?? "").trim(),
-    tariffaValidaDalMese: ((formData.get("tariffaValidaDalMese") as string) ?? "")
-      .trim(),
+    tariffaValidaDalMese: (
+      (formData.get("tariffaValidaDalMese") as string) ?? ""
+    ).trim(),
   };
 }
 
@@ -54,8 +55,9 @@ function datiModificaDaForm(
     partitaIva: ((formData.get("partitaIva") as string) ?? "").trim(),
     modalitaTariffa: ((formData.get("modalitaTariffa") as string) ?? "").trim(),
     importoTariffa: ((formData.get("importoTariffa") as string) ?? "").trim(),
-    tariffaValidaDalMese: ((formData.get("tariffaValidaDalMese") as string) ?? "")
-      .trim(),
+    tariffaValidaDalMese: (
+      (formData.get("tariffaValidaDalMese") as string) ?? ""
+    ).trim(),
   };
 }
 
@@ -113,7 +115,8 @@ function erroreVincoloUnicoAggiornamento(error: unknown): StatoAction {
       ? [target]
       : [];
   const riguardaProfiloCollaboratore = campi.some(
-    (campo) => typeof campo === "string" && campo.toLowerCase().includes("userid"),
+    (campo) =>
+      typeof campo === "string" && campo.toLowerCase().includes("userid"),
   );
 
   return riguardaProfiloCollaboratore
@@ -139,7 +142,9 @@ export async function creaUtente(
   }
 
   // validaCensimentoUtente ha già validato la tariffa iniziale, se indicata.
-  const tariffaIniziale = dati.ruoloCollaboratore ? primaVoceTariffa(dati) : null;
+  const tariffaIniziale = dati.ruoloCollaboratore
+    ? primaVoceTariffa(dati)
+    : null;
 
   try {
     const esito = await db.$transaction(async (tx) => {
@@ -188,10 +193,11 @@ export async function creaUtente(
   }
 
   revalidatePath("/anagrafiche/utenti");
+  revalidatePath("/anagrafiche/persone", "layout");
   if (dati.ruoloCollaboratore) {
     revalidatePath("/anagrafiche/collaboratori");
   }
-  redirect("/anagrafiche/utenti?esito=creato");
+  redirect("/anagrafiche/persone?esito=creato");
 }
 
 type EsitoAggiornamento =
@@ -223,7 +229,13 @@ export async function aggiornaUtente(
 
   const profiloPresente = utenteCorrente.collaboratore !== null;
 
-  const errori = validaModificaUtente({ ...dati, profiloPresente });
+  const aggiornaPartitaIva = formData.get("aggiornaPartitaIva") === "true";
+  const gestisciAccesso = formData.get("gestisciAccesso") === "true";
+  const errori = validaModificaUtente({
+    ...dati,
+    profiloPresente,
+    aggiornaPartitaIva,
+  });
   if (Object.keys(errori).length > 0) {
     return { errori };
   }
@@ -251,10 +263,13 @@ export async function aggiornaUtente(
             return "NON_TROVATO";
           }
 
+          const nuovoAttivo = gestisciAccesso
+            ? formData.get("attivo") === "on"
+            : utenteEsistente.attivo;
           if (
             utenteEsistente.ruolo === "AMMINISTRATORE" &&
             utenteEsistente.attivo &&
-            nuovoRuolo !== "AMMINISTRATORE"
+            (nuovoRuolo !== "AMMINISTRATORE" || !nuovoAttivo)
           ) {
             const altriAmministratoriAttivi = await tx.utente.count({
               where: {
@@ -267,7 +282,9 @@ export async function aggiornaUtente(
             if (
               violaProtezioneUltimoAmministratore(
                 utenteEsistente,
-                { tipo: "CAMBIO_RUOLO", nuovoRuolo },
+                nuovoAttivo
+                  ? { tipo: "CAMBIO_RUOLO", nuovoRuolo }
+                  : { tipo: "INVALIDAZIONE" },
                 altriAmministratoriAttivi,
               )
             ) {
@@ -287,7 +304,8 @@ export async function aggiornaUtente(
           // assente qui lo era anche alla lettura esterna usata per la
           // validazione, quindi i campi profilo erano già stati richiesti e
           // validati quando serve crearlo.
-          const creaProfilo = dati.ruoloCollaboratore && profiloAttuale === null;
+          const creaProfilo =
+            dati.ruoloCollaboratore && profiloAttuale === null;
           const tariffaIniziale = creaProfilo ? primaVoceTariffa(dati) : null;
 
           await tx.utente.update({
@@ -295,6 +313,7 @@ export async function aggiornaUtente(
             data: {
               email: dati.email,
               ruolo: nuovoRuolo,
+              ...(gestisciAccesso && { attivo: nuovoAttivo }),
               nome: dati.nome,
               cognome: dati.cognome,
               note: leggiNoteDaForm(formData),
@@ -302,6 +321,12 @@ export async function aggiornaUtente(
           });
 
           let profiloModificato = false;
+          const datiProfilo = {
+            nome: dati.nome,
+            cognome: dati.cognome,
+            ...(aggiornaPartitaIva && { partitaIva: dati.partitaIva || null }),
+          };
+          const profiloAttivo = dati.ruoloCollaboratore && nuovoAttivo;
 
           if (creaProfilo) {
             await tx.collaboratore.create({
@@ -310,8 +335,10 @@ export async function aggiornaUtente(
                 nome: dati.nome,
                 cognome: dati.cognome,
                 partitaIva: dati.partitaIva || null,
-                attivo: true,
-                ...(tariffaIniziale && { tariffe: { create: tariffaIniziale } }),
+                attivo: gestisciAccesso ? profiloAttivo : true,
+                ...(tariffaIniziale && {
+                  tariffe: { create: tariffaIniziale },
+                }),
               },
             });
             profiloModificato = true;
@@ -322,7 +349,10 @@ export async function aggiornaUtente(
           ) {
             await tx.collaboratore.update({
               where: { userId: id },
-              data: { attivo: true, nome: dati.nome, cognome: dati.cognome },
+              data: {
+                ...datiProfilo,
+                attivo: gestisciAccesso ? profiloAttivo : true,
+              },
             });
             profiloModificato = true;
           } else if (
@@ -332,17 +362,20 @@ export async function aggiornaUtente(
           ) {
             await tx.collaboratore.update({
               where: { userId: id },
-              data: { attivo: false, nome: dati.nome, cognome: dati.cognome },
+              data: { ...datiProfilo, attivo: false },
             });
             profiloModificato = true;
           } else if (profiloAttuale !== null) {
             // Nessuna transizione di stato del profilo: manteniamo comunque
             // Collaboratore.nome/cognome allineati all'anagrafica utente
-            // aggiornata nella stessa transazione, per evitare divergenze
-            // tra le due schede senza toccare il flag `attivo`.
+            // aggiornata nella stessa transazione. La scheda Persone coordina
+            // anche lo stato operativo con lo stato di accesso.
             await tx.collaboratore.update({
               where: { userId: id },
-              data: { nome: dati.nome, cognome: dati.cognome },
+              data: {
+                ...datiProfilo,
+                ...(gestisciAccesso && { attivo: profiloAttivo }),
+              },
             });
             profiloModificato = true;
           }
@@ -368,8 +401,17 @@ export async function aggiornaUtente(
   }
 
   revalidatePath("/anagrafiche/utenti");
+  revalidatePath("/anagrafiche/persone", "layout");
   if (esito.profiloModificato) {
     revalidatePath("/anagrafiche/collaboratori");
   }
-  redirect("/anagrafiche/utenti?esito=salvato");
+  const sezione =
+    formData.get("sezione") === "accesso"
+      ? "accesso"
+      : formData.get("sezione") === "attivita"
+        ? "attivita"
+        : "anagrafica";
+  redirect(
+    `/anagrafiche/persone/${encodeURIComponent(id)}?esito=salvato&sezione=${sezione}`,
+  );
 }

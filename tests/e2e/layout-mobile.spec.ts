@@ -227,7 +227,7 @@ test.describe("Layout mobile", () => {
         "aria-current",
         "page",
       );
-      for (const voce of ["Le mie attività", "Clienti", "Offerte", "Collaboratori", "Marginalità", "Importazione"]) {
+      for (const voce of ["Le mie attività", "Clienti", "Offerte", "Persone", "Marginalità", "Importazione"]) {
         await expect(navigazione.getByRole("link", { name: voce, exact: true })).toBeVisible();
       }
       // Il focus entra nel menu all'apertura.

@@ -93,7 +93,7 @@ test.describe("Foglio attività dei collaboratori per gli amministratori", () =>
 		await expect(page.getByRole("row").filter({ hasText: offerta.codice })).toBeVisible();
 
 		await page.getByRole("link", { name: "Torna alla scheda" }).click();
-		await page.waitForURL(`**/anagrafiche/collaboratori/${mario.collaboratore.id}`);
+		await page.waitForURL(`**/anagrafiche/persone/${mario.utente.id}?sezione=attivita`);
 
 		// Mario ritrova nel proprio foglio le modifiche dell'amministratore.
 		const contestoMario = await browser.newContext();

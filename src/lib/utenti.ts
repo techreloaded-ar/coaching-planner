@@ -12,7 +12,7 @@ export interface UtenteConProfiloCollaboratore {
   ruolo: Ruolo;
   attivo: boolean;
   note: string | null;
-  collaboratore: { attivo: boolean } | null;
+  collaboratore: { id: string; attivo: boolean; partitaIva: string | null } | null;
 }
 
 const selezioneUtenteConProfiloCollaboratore = {
@@ -23,7 +23,7 @@ const selezioneUtenteConProfiloCollaboratore = {
   ruolo: true,
   attivo: true,
   note: true,
-  collaboratore: { select: { attivo: true } },
+  collaboratore: { select: { id: true, attivo: true, partitaIva: true } },
 } as const;
 
 /**

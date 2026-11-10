@@ -1,23 +1,11 @@
+import { notFound, redirect } from "next/navigation";
 import { richiediRuolo } from "@/lib/dal";
 import { collaboratorePerId } from "@/lib/collaboratori";
-import { notFound } from "next/navigation";
-import CollaboratoreForm from "@/app/(back-office)/anagrafiche/collaboratori/collaboratore-form";
 
-interface ModificaCollaboratorePageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default async function ModificaCollaboratorePage({ params }: ModificaCollaboratorePageProps) {
+export default async function CollaboratorePrecedente({ params }: { params: Promise<{ id: string }> }) {
   await richiediRuolo("AMMINISTRATORE");
-
   const { id } = await params;
   const collaboratore = await collaboratorePerId(id);
-
-  if (!collaboratore) {
-    notFound();
-  }
-
-  return (
-    <CollaboratoreForm collaboratore={collaboratore} />
-  );
+  if (!collaboratore) notFound();
+  redirect(`/anagrafiche/persone/${encodeURIComponent(collaboratore.userId)}?sezione=anagrafica`);
 }
