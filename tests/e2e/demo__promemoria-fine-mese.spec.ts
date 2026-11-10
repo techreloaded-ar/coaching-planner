@@ -28,7 +28,10 @@ test.describe("US-019 Demo", () => {
     });
     await expect(pulsante).toBeVisible();
     await expect(
-      page.getByText("Invia subito l'email a tutti i collaboratori attivi", { exact: true })
+      page.getByText(
+        "Invia subito l'email a tutti i collaboratori attivi: completare le attività ed emettere la fattura del mese in corso",
+        { exact: true },
+      )
     ).toBeVisible();
 
     // 3. Invia il promemoria

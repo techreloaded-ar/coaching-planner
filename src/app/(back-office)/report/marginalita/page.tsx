@@ -5,6 +5,7 @@ import {
   normalizzaPeriodoMesi,
   etichettaMese,
 } from "@/domain/calendario";
+import { ComeVieneCalcolato } from "@/components";
 import ReportMarginalita from "./report-marginalita";
 
 export default async function ReportMarginalitaPage({
@@ -27,21 +28,15 @@ export default async function ReportMarginalitaPage({
 
   return (
     <div>
-      <div className="mb-[22px]">
+      <div className="mb-6">
         <div className="mb-1 text-xs font-medium text-testo-metadati">
           Reportistica
         </div>
-        <h1 className="text-[23px] font-semibold tracking-tight text-testo-principale">
+        <h1 className="text-[23px] font-semibold tracking-tight text-testo-principale max-sm:text-[21px]">
           Marginalità per cliente e offerta
         </h1>
-        <p className="mt-[6px] max-w-[640px] text-sm text-testo-metadati">
-          Confronto per periodo tra i ricavi dai clienti (tariffe offerta) e i
-          costi dei collaboratori (tariffa collaboratore valida in ogni mese).
-          I ricavi considerano le sole ore Fatturabile; i costi le ore
-          Fatturabile e Non fatturabile, che il collaboratore fattura ad Agile
-          Reloaded. I fissi mensili si ripartiscono sulle offerte in proporzione
-          alle ore del collaboratore nel mese. Le ore di Investimento e i
-          rimborsi trasferta sono esclusi.
+        <p className="mt-1.5 max-w-[560px] text-sm text-testo-metadati">
+          Ricavi, costi dei collaboratori e margine di ogni cliente nei mesi scelti
         </p>
       </div>
 
@@ -51,6 +46,32 @@ export default async function ReportMarginalitaPage({
         etichettaPeriodo={etichettaPeriodo}
         report={report}
       />
+
+      <ComeVieneCalcolato>
+        <li>
+          Ricavi: giornate Fatturabile (ore divise per 8) × tariffa
+          dell&apos;offerta, arrotondati come nel report di fatturazione clienti.
+        </li>
+        <li>
+          Costi: tariffa del collaboratore valida in ciascun mese. Con tariffa
+          giornaliera contano le ore Fatturabile e Non fatturabile, che il
+          collaboratore fattura ad Agile Reloaded; con tariffa a percentuale le
+          sole Fatturabile, al compenso giornaliero (tariffa dell&apos;offerta
+          meno la trattenuta).
+        </li>
+        <li>
+          I fissi mensili si ripartiscono sulle offerte in proporzione alle ore
+          Fatturabile e Non fatturabile del collaboratore nel mese. Se nel mese
+          non ci sono ore, il fisso è tra i «Fissi non attribuibili» e pesa
+          solo sul totale.
+        </li>
+        <li>Le ore di Investimento e i rimborsi trasferta sono esclusi.</li>
+        <li>
+          Margine = ricavi − costi; il margine % è calcolato sui ricavi. Un
+          margine sotto zero è segnalato in rosso con la scritta «Margine
+          negativo».
+        </li>
+      </ComeVieneCalcolato>
     </div>
   );
 }
