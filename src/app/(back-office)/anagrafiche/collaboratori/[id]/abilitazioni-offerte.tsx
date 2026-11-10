@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { OffertaAbilitata, OffertaAbilitabile } from "@/lib/abilitazioni";
 import type { StatoAction } from "../actions";
 import { PulsanteAttesa } from "@/components";
-import { inizialiCliente } from "@/lib/formattazione";
+import { formattaNumeroGiornate, inizialiCliente } from "@/lib/formattazione";
 import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
 import {
   abilitaCollaboratoreSuOfferte,
@@ -15,7 +15,6 @@ import {
 
 const statoIniziale: StatoAction = { errori: {} };
 
-const formattaGiorni = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 });
 
 interface GruppoCliente {
   clienteId: string;
@@ -88,24 +87,24 @@ export default function AbilitazioniOfferte({
             </svg>
           </span>
           <div>
-            <h2 id="titolo-offerte-abilitate" className="text-[17px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+            <h2 id="titolo-offerte-abilitate" className="text-[17px] font-semibold tracking-tight text-testo-principale">
               Offerte abilitate
             </h2>
-            <p className="mt-[1px] text-[12.5px] text-zinc-400 dark:text-zinc-500">
+            <p className="mt-[1px] text-sm text-testo-metadati">
               Offerte attive su cui il collaboratore può inserire ore · clic su una riga per aprirne le attività
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
-            <b className="tabular-nums text-zinc-600 dark:text-zinc-300">{abilitate.length}</b>{" "}
+          <span className="text-sm font-medium text-testo-metadati">
+            <b className="tabular-nums text-testo-secondario">{abilitate.length}</b>{" "}
             {abilitate.length === 1 ? "offerta abilitata" : "offerte abilitate"}
           </span>
           <button
             type="button"
             onClick={() => setDialogAperto(true)}
-            className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[14px] py-[9px] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
+            className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[14px] py-[9px] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
@@ -119,16 +118,16 @@ export default function AbilitazioniOfferte({
         <StatoVuoto />
       ) : (
         <section className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <table className="w-full border-collapse text-[13.5px]" aria-label="Offerte abilitate">
+          <table className="w-full border-collapse text-sm" aria-label="Offerte abilitate">
             <thead>
               <tr>
-                <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                <th className="whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                   Offerta
                 </th>
-                <th className="w-[170px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                <th className="w-[170px] whitespace-nowrap px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
                   Giorni fatturati
                 </th>
-                <th className="w-[150px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                <th className="w-[150px] whitespace-nowrap px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
                   Azioni
                 </th>
               </tr>
@@ -145,16 +144,16 @@ export default function AbilitazioniOfferte({
                         aria-expanded={!compresso}
                         className="flex w-full items-center gap-[9px] px-4 py-[9px] text-left font-[inherit] transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
                       >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={`h-[14px] w-[14px] shrink-0 text-zinc-500 transition-transform ${compresso ? "" : "rotate-90"}`} strokeWidth={2.2} aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={`h-[14px] w-[14px] shrink-0 text-testo-metadati transition-transform ${compresso ? "" : "rotate-90"}`} strokeWidth={2.2} aria-hidden="true">
                           <path d="m9 6 6 6-6 6" />
                         </svg>
-                        <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[8px] border border-zinc-200 bg-white text-[10.5px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
+                        <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[8px] border border-zinc-200 bg-white text-xs font-medium text-testo-metadati dark:border-zinc-700 dark:bg-zinc-700/60">
                           {inizialiCliente(gruppo.clienteRagioneSociale)}
                         </span>
-                        <span className="text-[12.5px] font-bold text-zinc-700 dark:text-zinc-200">
+                        <span className="text-sm font-semibold text-testo-secondario">
                           {gruppo.clienteRagioneSociale}
                         </span>
-                        <span className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
+                        <span className="text-sm font-medium text-testo-metadati">
                           · {gruppo.offerte.length} {gruppo.offerte.length === 1 ? "offerta" : "offerte"}
                         </span>
                       </button>
@@ -210,33 +209,33 @@ function RigaOffertaAbilitata({
       <td className="px-4 py-[13px] align-middle">
         <Link
           href={href}
-          className="block text-[12px] font-semibold text-indigo-600 no-underline hover:underline dark:text-indigo-400"
+          className="block text-sm font-medium text-indigo-600 no-underline hover:underline dark:text-indigo-400"
         >
           {offerta.codice}
         </Link>
-        <span className="text-[12.5px] text-zinc-600 dark:text-zinc-300">
+        <span className="text-sm text-testo-secondario">
           {offerta.descrizione}
         </span>
       </td>
       <td
         className={`px-4 py-[13px] text-right align-middle font-semibold tabular-nums ${
-          offerta.giorniFatturati === 0 ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-800 dark:text-zinc-100"
+          offerta.giorniFatturati === 0 ? "text-testo-metadati" : "text-testo-principale"
         }`}
       >
-        {formattaGiorni.format(offerta.giorniFatturati)}
+        {formattaNumeroGiornate(offerta.giorniFatturati)}
       </td>
       <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
         <form action={azione} className="inline">
           <input type="hidden" name="collaboratoreId" value={collaboratoreId} />
           <input type="hidden" name="offertaId" value={offerta.offertaId} />
-          <PulsanteAttesa className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400">
+          <PulsanteAttesa className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-sm font-medium text-testo-secondario transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
               <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
             </svg>
             Revoca
           </PulsanteAttesa>
         </form>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="ml-1 inline h-[14px] w-[14px] text-zinc-400 dark:text-zinc-500" strokeWidth={2.2} aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="ml-1 inline h-[14px] w-[14px] text-testo-metadati" strokeWidth={2.2} aria-hidden="true">
           <path d="m9 6 6 6-6 6" />
         </svg>
       </td>
@@ -255,10 +254,10 @@ function StatoVuoto() {
           <path d="M14 3v6h6M8 13h8M8 17h5" />
         </svg>
       </div>
-      <p className="m-0 text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
+      <p className="m-0 text-sm font-medium text-testo-principale">
         Nessuna offerta abilitata.
       </p>
-      <p className="mx-auto mt-[6px] max-w-[440px] text-[13px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+      <p className="mx-auto mt-[6px] max-w-[440px] text-sm leading-relaxed text-testo-metadati">
         Usa &quot;Abilita offerte&quot; per selezionare le offerte attive su cui il
         collaboratore potrà inserire ore.
       </p>
@@ -372,10 +371,10 @@ function DialogAbilita({
             </svg>
           </span>
           <div className="min-w-0 flex-1">
-            <h3 id="titolo-dialog-abilita" className="text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
+            <h3 id="titolo-dialog-abilita" className="text-[16.5px] font-semibold text-testo-principale">
               Abilita offerte
             </h3>
-            <p className="mt-[1px] text-[12.5px] text-zinc-500 dark:text-zinc-400">
+            <p className="mt-[1px] text-sm text-testo-metadati">
               Seleziona le offerte attive su cui abilitare il collaboratore.
             </p>
           </div>
@@ -383,7 +382,7 @@ function DialogAbilita({
             type="button"
             onClick={onChiudi}
             aria-label="Chiudi la finestra"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-testo-metadati transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden="true">
               <path d="M6 6l12 12M18 6 6 18" />
@@ -393,7 +392,7 @@ function DialogAbilita({
 
         {/* Ricerca */}
         <div className="border-b border-zinc-200 px-[20px] py-[13px] dark:border-zinc-800">
-          <label className="flex items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-100 px-3 py-2 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800">
+          <label className="flex items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-100 px-3 py-2 text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px] shrink-0" strokeWidth={2} aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4.3-4.3" />
@@ -405,7 +404,7 @@ function DialogAbilita({
               onChange={(e) => setRicerca(e.target.value)}
               placeholder="Cerca per codice, descrizione o cliente…"
               aria-label="Cerca offerta"
-              className="w-full border-0 bg-transparent font-[inherit] text-[13.5px] text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
+              className="w-full border-0 bg-transparent font-[inherit] text-sm text-testo-principale outline-none placeholder:text-zinc-400"
             />
           </label>
         </div>
@@ -419,12 +418,12 @@ function DialogAbilita({
           {/* Elenco offerte selezionabili */}
           <div className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[14px]">
             {risultati.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-10 text-center text-zinc-400 dark:text-zinc-500">
+              <div className="flex flex-col items-center gap-2 py-10 text-center text-testo-metadati">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-6 w-6" strokeWidth={1.8} aria-hidden="true">
                   <circle cx="11" cy="11" r="7" />
                   <path d="m21 21-4.3-4.3" />
                 </svg>
-                <p className="m-0 text-[13px] font-medium">Nessuna offerta trovata.</p>
+                <p className="m-0 text-sm font-medium">Nessuna offerta trovata.</p>
               </div>
             ) : (
               <div className="flex flex-col gap-[8px]">
@@ -449,14 +448,14 @@ function DialogAbilita({
                       />
                       <span className="min-w-0 flex-1 leading-[1.4]">
                         <span className="flex flex-wrap items-center gap-x-[9px] gap-y-[2px]">
-                          <span className="text-[12px] font-semibold text-indigo-600 dark:text-indigo-400">
+                          <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
                             {offerta.codice}
                           </span>
-                          <span className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
+                          <span className="text-sm font-medium text-testo-principale">
                             {offerta.descrizione}
                           </span>
                         </span>
-                        <span className="mt-[2px] block text-[12px] text-zinc-500 dark:text-zinc-400">
+                        <span className="mt-[2px] block text-xs text-testo-metadati">
                           {offerta.clienteRagioneSociale}
                         </span>
                       </span>
@@ -469,7 +468,7 @@ function DialogAbilita({
 
           {/* Errore di forma */}
           {stato.errori?._form && (
-            <div className="mx-[20px] mb-[12px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[10px] text-[12.5px] font-semibold leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+            <div className="mx-[20px] mb-[12px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[10px] text-sm font-medium leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[1px] h-[15px] w-[15px] shrink-0" strokeWidth={2} aria-hidden="true">
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 8v5M12 16h.01" />
@@ -480,21 +479,21 @@ function DialogAbilita({
 
           {/* Piè di pagina */}
           <div className="flex flex-wrap items-center justify-end gap-[9px] border-t border-zinc-200 px-[20px] py-[14px] dark:border-zinc-800">
-            <span className="mr-auto text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
-              <b className="tabular-nums text-zinc-600 dark:text-zinc-300">{numeroSelezionate}</b>{" "}
+            <span className="mr-auto text-sm font-medium text-testo-metadati">
+              <b className="tabular-nums text-testo-secondario">{numeroSelezionate}</b>{" "}
               {numeroSelezionate === 1 ? "offerta selezionata" : "offerte selezionate"}
             </span>
             <button
               type="button"
               onClick={onChiudi}
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-sm font-medium text-testo-secondario shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
             >
               Annulla
             </button>
             <PulsanteAttesa
               disabled={numeroSelezionate === 0}
               etichettaAttesa="Abilitazione…"
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />

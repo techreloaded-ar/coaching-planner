@@ -368,7 +368,7 @@ test.describe("US-004 Conferma, modifica o rifiuto delle proposte", () => {
 
 		// Conferma: la proposta diventa riga e sparisce dalle proposte.
 		await proposta(page, "Kickoff").getByRole("button", { name: "Conferma" }).click();
-		await expect(righe.filter({ hasText: `Kickoff ${codice}` })).toContainText("1.0 h");
+		await expect(righe.filter({ hasText: `Kickoff ${codice}` })).toContainText("1 h");
 		await expect(proposta(page, "Kickoff")).toHaveCount(0);
 
 		// Modifica: form precompilato, ore cambiate prima del salvataggio.
@@ -383,7 +383,7 @@ test.describe("US-004 Conferma, modifica o rifiuto delle proposte", () => {
 		await expect(page.locator("#nota")).toHaveValue(`Workshop ${codice}`);
 		await page.locator("#ore").fill("2,5");
 		await page.getByRole("button", { name: "Aggiungi riga" }).click();
-		await expect(righe.filter({ hasText: `Workshop ${codice}` })).toContainText("2.5 h");
+		await expect(righe.filter({ hasText: `Workshop ${codice}` })).toContainText("2,5 h");
 		await expect(proposta(page, "Workshop")).toHaveCount(0);
 
 		// Rifiuta: nessuna riga creata.
@@ -407,7 +407,7 @@ test.describe("US-004 Conferma, modifica o rifiuto delle proposte", () => {
 		await expect(page.getByText("Nessun impegno da proporre per questa giornata.")).toBeVisible();
 		await expect(page.getByTestId("proposta-calendario")).toHaveCount(0);
 		// Ore totali e ore fatturabili: tutte le righe sono fatturabili.
-		await expect(page.getByText("4.5 h", { exact: true })).toHaveCount(2);
+		await expect(page.getByText("4,5 h", { exact: true })).toHaveCount(2);
 	});
 });
 

@@ -76,8 +76,8 @@ test.describe("US-011 Demo", () => {
     await expect(calendario).toBeVisible();
 
     // Verifica i giorni della settimana
-    await expect(calendario.getByText("lun")).toBeVisible();
-    await expect(calendario.getByText("dom")).toBeVisible();
+    await expect(calendario.getByText("Lun", { exact: true })).toBeVisible();
+    await expect(calendario.getByText("Dom", { exact: true })).toBeVisible();
 
     // ── 6. Verifica che ci siano giorni con attività (seed) ────────
 
@@ -96,7 +96,7 @@ test.describe("US-011 Demo", () => {
     // contiene più indicatori orari (totale giorno + etichette cliente):
     // basta che il primo sia visibile.
     await expect(
-      primaCella.locator("text=/\\d+(\\.\\d+)?\\s*h/").first()
+      primaCella.locator("text=/\\d+(,\\d+)?\\s*h/").first()
     ).toBeVisible();
     await expect(
       primaCella.getByTestId("etichetta-cliente").first()

@@ -33,7 +33,7 @@ export default function ConsensoSimulato({
         window.location.assign(urlCallback({ code: `${prefissoCodice}${email}` }));
       }}
     >
-      <fieldset className="flex flex-col gap-2 text-[13.5px] text-zinc-700 dark:text-zinc-200">
+      <fieldset className="flex flex-col gap-2 text-sm text-testo-secondario">
         <legend className="mb-1 font-semibold">Account da autorizzare</legend>
         <label className="flex items-center gap-2">
           <input
@@ -67,13 +67,13 @@ export default function ConsensoSimulato({
       <div className="flex flex-wrap gap-2">
         <button
           type="submit"
-          className="inline-flex items-center rounded-[10px] bg-indigo-600 px-3 py-1.5 text-[13px] font-semibold text-white transition hover:bg-indigo-700"
+          className="inline-flex items-center rounded-[10px] bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-700"
         >
           Autorizza
         </button>
         <a
           href={urlCallback({ error: "access_denied" })}
-          className="inline-flex items-center rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+          className="inline-flex items-center rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-testo-secondario shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
         >
           Nega il consenso
         </a>

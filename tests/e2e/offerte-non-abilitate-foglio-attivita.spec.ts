@@ -94,7 +94,7 @@ test.describe("Righe su offerte non abilitate", () => {
 
 		// Calendario ed Elenco non mostrano più il giallo.
 		await page.goto(`/attivita?mese=${MESE}&collaboratore=${idCollaboratore}`);
-		await expect(page.getByTestId("cella-giorno").filter({ hasText: "8.0 h" })).toBeVisible();
+		await expect(page.getByTestId("cella-giorno").filter({ hasText: "8 h" })).toBeVisible();
 		await expect(page.getByTestId("indicatore-offerte-non-abilitate")).toHaveCount(0);
 		await page.goto(`/attivita?mese=${MESE}&vista=elenco&collaboratore=${idCollaboratore}`);
 		await expect(elenco).toHaveAttribute("data-idratata", "true");

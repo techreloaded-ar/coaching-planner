@@ -32,7 +32,7 @@ function euroRiepilogo(valore: string): string {
 }
 
 function euroDettaglioGiornata(valore: string): RegExp {
-  return new RegExp(`€\\s*${Number(valore).toFixed(2).replace(".", "\\.")}`);
+  return new RegExp(`${Number(valore).toFixed(2).replace(".", ",")}\\s*€`);
 }
 
 function rigaConNota(page: Page, nota: string): Locator {

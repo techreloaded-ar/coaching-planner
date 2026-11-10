@@ -52,18 +52,18 @@ export function PulsanteAbilitaOfferta({ collaboratoreId, offertaId, nomeCollabo
   };
 
   const classePulsante =
-    "inline-flex h-7 cursor-pointer items-center rounded-[8px] px-2.5 text-[11.5px] font-bold transition";
+    "inline-flex h-7 cursor-pointer items-center rounded-[8px] px-2.5 text-xs font-medium transition";
 
   return (
     <span className="inline-flex flex-wrap items-center justify-end gap-2">
-      {errore && <span role="alert" className="text-[11.5px] font-semibold text-rose-700 dark:text-rose-300">{errore}</span>}
+      {errore && <span role="alert" className="text-xs font-medium text-rose-700 dark:text-rose-300">{errore}</span>}
       {inConferma ? (
         <>
           <span>Abilitare {nomeCollaboratore} a questa offerta?</span>
           <button
             type="button"
             onClick={() => setInConferma(false)}
-            className={`${classePulsante} border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300`}
+            className={`${classePulsante} border border-zinc-200 bg-white text-testo-secondario hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800`}
           >
             No
           </button>
@@ -108,7 +108,7 @@ export function AvvisoOffertaNonAbilitata({
   return (
     <div
       data-testid="avviso-offerta-non-abilitata"
-      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] font-semibold text-amber-800 dark:text-amber-300"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-medium text-amber-800 dark:text-amber-300"
     >
       <span className="inline-flex items-center gap-1.5">
         <IconaOffertaNonAbilitata />

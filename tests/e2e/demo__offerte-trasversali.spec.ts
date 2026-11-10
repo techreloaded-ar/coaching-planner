@@ -21,7 +21,7 @@ import { avatarUtente } from "./support/menu-account";
  * Valori attesi derivati dal seed (prisma/seed.ts):
  * - TS-2025-01 (TechSolutions Srl): 40 gg previste. Giulia Conti eroga 17h
  *   fatturabili (8+2,5+6,5) → 2,125 gg; Marco Bianchi eroga 16h fatturabili
- *   (8+8) → 2 gg. Totale erogato 33h → 4,1 gg (display).
+ *   (8+8) → 2 gg. Totale erogato 33h → 4,13 gg (display).
  *   Nessun altro scenario e2e tocca questa offerta (TechSolutions è un seed
  *   condiviso stabile: gli altri spec creano clienti/offerte via factory e
  *   non selezionano questa offerta), quindi i valori sono a cifra fissa.
@@ -103,7 +103,7 @@ test.describe("US-025 Demo", () => {
     );
     const giornateTs = await giornateDellaRiga(rigaTs);
     expect(giornateTs.previste).toBe(40);
-    expect(giornateTs.erogate).toBeCloseTo(4.1, 1); // 33h → 4,125 gg, display 4,1
+    expect(giornateTs.erogate).toBeCloseTo(4.13, 2); // 33h → 4,125 gg, display 4,13
     await expect(rigaTs.getByText("Attiva", { exact: true })).toBeVisible();
 
     // ── 3. DF-2025-02 (DataFlow): soglia minima sull'erogato ───────────

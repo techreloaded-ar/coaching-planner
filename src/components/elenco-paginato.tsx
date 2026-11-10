@@ -66,7 +66,7 @@ export function RicercaElenco({
 
   return (
     <label
-      className={`flex flex-1 items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-100 px-3 py-2 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 ${className}`}
+      className={`flex flex-1 items-center gap-2 rounded-[10px] border border-zinc-200 bg-zinc-100 px-3 py-2 text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800 ${className}`}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px] shrink-0" strokeWidth={2}>
         <circle cx="11" cy="11" r="7" />
@@ -77,7 +77,7 @@ export function RicercaElenco({
         placeholder={segnaposto}
         value={testo}
         onChange={(e) => cambiaTesto(e.target.value)}
-        className="w-full border-0 bg-transparent font-[inherit] text-[13.5px] text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
+        className="w-full border-0 bg-transparent font-[inherit] text-sm text-testo-principale outline-none placeholder:text-zinc-400"
         aria-label={etichetta}
       />
     </label>
@@ -98,8 +98,8 @@ export function CampiPosizioneElenco({ ricerca, pagina }: PosizioneElenco) {
 }
 
 const classeControllo =
-  "inline-flex h-8 min-w-8 items-center justify-center rounded-[8px] px-[10px] text-[12.5px] font-semibold no-underline transition";
-const classeControlloAttivo = `${classeControllo} text-zinc-600 hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400`;
+  "inline-flex h-8 min-w-8 items-center justify-center rounded-[8px] px-[10px] text-sm font-medium no-underline transition";
+const classeControlloAttivo = `${classeControllo} text-testo-secondario hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400`;
 const classeControlloDisabilitato = `${classeControllo} cursor-default text-zinc-300 dark:text-zinc-600`;
 
 /**
@@ -130,7 +130,7 @@ export function PaginazioneElenco({
 
   return (
     <div className="flex flex-wrap items-center gap-3 border-t border-zinc-200 px-4 py-[12px] dark:border-zinc-800">
-      <span className="text-[12.5px] font-medium text-zinc-400 tabular-nums dark:text-zinc-500">
+      <span className="text-sm font-medium text-testo-metadati tabular-nums">
         Mostrati {primo}–{ultimo} di {totaleElementi}
       </span>
       {totalePagine > 1 && (
@@ -146,7 +146,7 @@ export function PaginazioneElenco({
           )}
           {numeriPagineVisibili(paginaCorrente, totalePagine).map((numero, indice) =>
             numero === "…" ? (
-              <span key={`salto-${indice}`} className="px-1 text-[12.5px] text-zinc-400" aria-hidden="true">
+              <span key={`salto-${indice}`} className="px-1 text-sm text-testo-metadati" aria-hidden="true">
                 …
               </span>
             ) : numero === paginaCorrente ? (

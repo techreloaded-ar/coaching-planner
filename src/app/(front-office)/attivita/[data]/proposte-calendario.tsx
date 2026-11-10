@@ -9,6 +9,7 @@ import type {
   PropostaCalendarioClient,
   ProposteCalendarioGiornata,
 } from "@/lib/attivita-contract";
+import { formattaOre } from "@/lib/formattazione";
 
 type StatoProposte = ProposteCalendarioGiornata["stato"] | "CARICAMENTO";
 
@@ -52,10 +53,6 @@ export function useProposteCalendario(data: string, calendarioCollegato: boolean
   }, []);
 
   return { stato, proposte, rimuovi };
-}
-
-function formattaOre(ore: number): string {
-  return ore.toString().replace(".", ",");
 }
 
 interface SezioneProposteCalendarioProps {
@@ -163,7 +160,7 @@ export function SezioneProposteCalendario({
     >
       <h2
         id="titolo-proposte-calendario"
-        className="mb-3 text-[11px] font-bold uppercase tracking-[0.07em] text-zinc-400 dark:text-zinc-500"
+        className="mb-3 text-xs font-medium text-testo-metadati"
       >
         {conProposte ? (
           // Pattern accordion: il pulsante nel titolo apre e chiude l'elenco.
@@ -172,7 +169,7 @@ export function SezioneProposteCalendario({
             aria-expanded={aperto}
             aria-controls="elenco-proposte-calendario"
             onClick={() => setAperto((corrente) => !corrente)}
-            className="inline-flex items-center gap-1.5 uppercase tracking-[0.07em] hover:text-indigo-600 dark:hover:text-indigo-400"
+            className="inline-flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400"
           >
             <span aria-hidden="true" className={`transition-transform ${aperto ? "rotate-90" : ""}`}>
               ▸
@@ -188,7 +185,7 @@ export function SezioneProposteCalendario({
       </h2>
 
       {stato === "CARICAMENTO" && (
-        <p className="rounded-[11px] border border-dashed border-indigo-200 bg-indigo-50/50 px-4 py-3 text-[12.5px] text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300">
+        <p className="rounded-[11px] border border-dashed border-indigo-200 bg-indigo-50/50 px-4 py-3 text-sm text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300">
           Lettura degli impegni dal calendario…
         </p>
       )}
@@ -196,7 +193,7 @@ export function SezioneProposteCalendario({
       {stato === "ERRORE" && (
         <p
           role="alert"
-          className="rounded-[11px] border border-amber-200 bg-amber-50 px-4 py-3 text-[12.5px] text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+          className="rounded-[11px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
         >
           Impossibile leggere il calendario, prova a{" "}
           {/* Navigazione documentale verso il consenso Google, non una rotta client. */}
@@ -208,7 +205,7 @@ export function SezioneProposteCalendario({
       )}
 
       {stato === "COLLEGATO" && proposte.length === 0 && (
-        <p className="rounded-[11px] border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-[12.5px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
+        <p className="rounded-[11px] border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800/50">
           Nessun impegno da proporre per questa giornata.
         </p>
       )}
@@ -227,20 +224,20 @@ export function SezioneProposteCalendario({
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold text-zinc-800 dark:text-zinc-100">
+                    <div className="text-sm font-medium text-testo-principale">
                       {proposta.titolo}
                     </div>
-                    <div className="mt-0.5 text-[12px] text-zinc-500 dark:text-zinc-400">
+                    <div className="mt-0.5 text-xs text-testo-metadati">
                       {proposta.inizio}–{proposta.fine}
                     </div>
-                    <div className="mt-1.5 text-[12.5px] text-zinc-600 dark:text-zinc-300">
+                    <div className="mt-1.5 text-sm text-testo-secondario">
                       {associata ? (
                         <>
                           <span className="font-semibold">{proposta.cliente!.ragioneSociale}</span>
                           {" · "}
                           {[proposta.offerta!.codice, proposta.offerta!.descrizione].filter(Boolean).join(" — ")}
                           {/* Cliente e offerta arrivano solo da Jev sopra la soglia di confidenza. */}
-                          <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10.5px] font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                          <span className="ml-2 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
                             Suggerito dall&apos;AI
                           </span>
                         </>
@@ -251,13 +248,13 @@ export function SezioneProposteCalendario({
                       )}
                     </div>
                   </div>
-                  <span className="whitespace-nowrap text-[15px] font-bold tabular-nums text-indigo-800 dark:text-indigo-300">
-                    {formattaOre(proposta.ore)} h
+                  <span className="whitespace-nowrap text-[15px] font-semibold tabular-nums text-indigo-800 dark:text-indigo-300">
+                    {formattaOre(proposta.ore)}
                   </span>
                 </div>
 
                 {errori[proposta.eventoId] && (
-                  <p role="alert" className="mt-2 text-[12px] text-red-600 dark:text-red-400">
+                  <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">
                     {errori[proposta.eventoId]}
                   </p>
                 )}
@@ -268,7 +265,7 @@ export function SezioneProposteCalendario({
                       type="button"
                       attesaEsterna={inAttesa}
                       onClick={() => conferma(proposta)}
-                      className="inline-flex items-center rounded-[8px] bg-indigo-600 px-2.5 py-1 text-[11.5px] font-semibold text-white transition hover:bg-indigo-700"
+                      className="inline-flex items-center rounded-[8px] bg-indigo-600 px-2.5 py-1 text-sm font-medium text-white transition hover:bg-indigo-700"
                     >
                       Conferma
                     </PulsanteAttesa>
@@ -277,7 +274,7 @@ export function SezioneProposteCalendario({
                     type="button"
                     attesaEsterna={inAttesa}
                     onClick={() => onModifica(proposta)}
-                    className="inline-flex items-center rounded-[8px] border border-zinc-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                    className="inline-flex items-center rounded-[8px] border border-zinc-200 bg-white px-2.5 py-1 text-sm font-medium text-testo-secondario transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
                   >
                     Modifica
                   </PulsanteAttesa>
@@ -285,7 +282,7 @@ export function SezioneProposteCalendario({
                     type="button"
                     attesaEsterna={inAttesa}
                     onClick={() => rifiuta(proposta)}
-                    className="inline-flex items-center rounded-[8px] border border-red-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:bg-zinc-800 dark:text-red-400"
+                    className="inline-flex items-center rounded-[8px] border border-red-200 bg-white px-2.5 py-1 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:bg-zinc-800 dark:text-red-400"
                   >
                     Rifiuta
                   </PulsanteAttesa>

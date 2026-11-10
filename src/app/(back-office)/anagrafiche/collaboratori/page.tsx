@@ -20,7 +20,7 @@ export default async function CollaboratoriPage({ searchParams }: CollaboratoriP
     <div>
       {/* Banner di esito */}
       {messaggioEsito && (
-        <div className="mb-[18px] flex items-start gap-[11px] rounded-[11px] border border-emerald-200 bg-emerald-50 p-[15px] text-[13px] text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
+        <div className="mb-[18px] flex items-start gap-[11px] rounded-[11px] border border-emerald-200 bg-emerald-50 p-[15px] text-sm text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[2px] h-[16px] w-[16px] shrink-0" strokeWidth={2}>
             <circle cx="12" cy="12" r="9" /><path d="m8.5 12.5 2.5 2.5 5-5" />
           </svg>
@@ -31,13 +31,13 @@ export default async function CollaboratoriPage({ searchParams }: CollaboratoriP
       {/* Intestazione view */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="mb-1 text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
+          <div className="mb-1 text-xs font-medium text-testo-metadati">
             Anagrafiche
           </div>
-          <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+          <h1 className="text-[23px] font-semibold tracking-tight text-testo-principale">
             Collaboratori
           </h1>
-          <p className="mt-[6px] max-w-[560px] text-[13px] text-zinc-400 dark:text-zinc-500">
+          <p className="mt-[6px] max-w-[560px] text-sm text-testo-metadati">
             Il censimento e lo stato dei collaboratori si governano dalla schermata Utenti; qui restano
             modificabili i dati anagrafici e di costo.
           </p>

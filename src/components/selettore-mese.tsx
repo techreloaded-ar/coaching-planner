@@ -199,13 +199,13 @@ export function SelettoreMese({
         aria-expanded={aperto}
         title="Scegli il mese"
         onClick={() => (aperto ? chiudi(false) : apri())}
-        className={`inline-flex min-w-[188px] cursor-pointer max-sm:min-h-11 max-sm:w-full max-sm:min-w-0 items-center justify-center gap-2 rounded-[10px] border px-[13px] py-[5px] text-zinc-800 transition hover:border-rose-200 hover:bg-rose-50 focus-visible:border-rose-600 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-100 dark:text-zinc-100 dark:hover:border-rose-800 dark:hover:bg-rose-950/40 dark:focus-visible:ring-rose-950 ${
+        className={`inline-flex min-w-[188px] cursor-pointer max-sm:min-h-11 max-sm:w-full max-sm:min-w-0 items-center justify-center gap-2 rounded-[10px] border px-[13px] py-[5px] text-testo-principale transition hover:border-rose-200 hover:bg-rose-50 focus-visible:border-rose-600 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-100 dark:hover:border-rose-800 dark:hover:bg-rose-950/40 dark:focus-visible:ring-rose-950 ${
           aperto
             ? "border-rose-200 bg-rose-50 shadow-sm dark:border-rose-800 dark:bg-rose-950/40"
             : "border-transparent"
         }`}
       >
-        <span className="whitespace-nowrap text-[19px] font-bold capitalize -tracking-[0.02em]">
+        <span className="whitespace-nowrap text-[19px] font-semibold capitalize -tracking-[0.02em]">
           {etichettaVisualizzata}
         </span>
         <svg
@@ -250,7 +250,7 @@ export function SelettoreMese({
               aria-label="Anno precedente"
               title="Anno precedente"
               onClick={() => setAnnoMostrato(annoMostrato - 1)}
-              className="grid h-[29px] w-[29px] flex-none cursor-pointer place-items-center rounded-[9px] border border-zinc-200 bg-white text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-600 focus-visible:border-rose-600 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-750 dark:hover:text-zinc-300 dark:focus-visible:ring-rose-950"
+              className="grid h-[29px] w-[29px] flex-none cursor-pointer place-items-center rounded-[9px] border border-zinc-200 bg-white text-testo-metadati transition hover:bg-zinc-50 hover:text-zinc-600 focus-visible:border-rose-600 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-300 dark:focus-visible:ring-rose-950"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -269,14 +269,14 @@ export function SelettoreMese({
             <span className="flex-1 text-center" aria-live="polite">
               <span
                 data-testid="selettore-mese-anno"
-                className="block text-[15.5px] font-bold tabular-nums tracking-[0.01em] text-zinc-800 dark:text-zinc-100"
+                className="block text-[15.5px] font-semibold tabular-nums text-testo-principale"
               >
                 {annoMostrato}
               </span>
               {fuoriDallAnnoInGriglia && (
                 // Senza questa riga un pannello privo di evidenziazione
                 // resterebbe muto sul perché nessun mese è acceso.
-                <span className="block text-[9.5px] font-bold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">
+                <span className="block text-xs font-medium text-testo-metadati">
                   in griglia: {etichettaVisualizzata}
                 </span>
               )}
@@ -287,7 +287,7 @@ export function SelettoreMese({
               aria-label="Anno successivo"
               title="Anno successivo"
               onClick={() => setAnnoMostrato(annoMostrato + 1)}
-              className="grid h-[29px] w-[29px] flex-none cursor-pointer place-items-center rounded-[9px] border border-zinc-200 bg-white text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-600 focus-visible:border-rose-600 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-750 dark:hover:text-zinc-300 dark:focus-visible:ring-rose-950"
+              className="grid h-[29px] w-[29px] flex-none cursor-pointer place-items-center rounded-[9px] border border-zinc-200 bg-white text-testo-metadati transition hover:bg-zinc-50 hover:text-zinc-600 focus-visible:border-rose-600 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-300 dark:focus-visible:ring-rose-950"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -332,10 +332,10 @@ export function SelettoreMese({
                   aria-current={inGriglia ? "true" : undefined}
                   tabIndex={i === indiceMeseAttivo ? 0 : -1}
                   onClick={() => scegliMese(i)}
-                  className={`relative flex h-9 cursor-pointer items-center justify-center rounded-[9px] border text-[13px] font-bold transition focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-200 dark:focus-visible:ring-rose-800 ${
+                  className={`relative flex h-9 cursor-pointer items-center justify-center rounded-[9px] border text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-200 dark:focus-visible:ring-rose-800 ${
                     inGriglia
                       ? "border-rose-600 bg-rose-600 text-white shadow-sm hover:bg-rose-700 hover:border-rose-700"
-                      : "border-transparent bg-zinc-100 text-zinc-600 hover:bg-rose-50 hover:text-rose-800 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+                      : "border-transparent bg-zinc-100 text-testo-secondario hover:bg-rose-50 hover:text-rose-800 dark:bg-zinc-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
                   }`}
                 >
                   {abbreviazione}
@@ -350,7 +350,7 @@ export function SelettoreMese({
             })}
           </div>
 
-          <div className="mt-[9px] border-t border-zinc-100 pt-2 text-center text-[10.5px] font-semibold text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+          <div className="mt-[9px] border-t border-zinc-100 pt-2 text-center text-xs font-medium text-testo-metadati dark:border-zinc-800">
             Frecce per spostarsi · Invio per scegliere · Esc per chiudere
           </div>
         </div>

@@ -65,7 +65,7 @@ test.describe("Elenco attività del mese", () => {
     await expect(page.locator("#ore")).toHaveValue("2");
     await page.locator("#ore").fill("2,5");
     await page.getByRole("button", { name: "Salva modifiche" }).click();
-    await expect(page.getByTestId("activity-row").filter({ hasText: marcatore })).toContainText("2.5 h");
+    await expect(page.getByTestId("activity-row").filter({ hasText: marcatore })).toContainText("2,5 h");
 
     await page.getByRole("link", { name: "Torna all'elenco" }).click();
     await page.waitForURL(/vista=elenco/);

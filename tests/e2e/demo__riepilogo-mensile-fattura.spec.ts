@@ -408,8 +408,8 @@ test.describe("US-014 — scenari complementari", () => {
     await page.waitForURL("**/attivita/riepilogo**");
 
     await expect(page.getByText("Nessuna attività registrata per questo mese.")).toBeVisible();
-    await expect(page.getByTestId("summary-giornate-totali-value")).toHaveText("0,00");
-    await expect(page.getByTestId("summary-giornate-da-fatturare-value")).toHaveText("0,00");
+    await expect(page.getByTestId("summary-giornate-totali-value")).toHaveText("0");
+    await expect(page.getByTestId("summary-giornate-da-fatturare-value")).toHaveText("0");
     await expect(page.getByTestId("summary-rimborsi-value")).toHaveText(/€\s*0,00/);
     await expect(page.getByTestId("summary-importo-fattura-value")).toHaveText(/€\s*0,00/);
   });

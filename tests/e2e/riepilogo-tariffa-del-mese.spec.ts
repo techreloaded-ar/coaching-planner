@@ -71,7 +71,7 @@ test.describe("Riepilogo mensile con la tariffa del mese", () => {
 		// Giornaliera: 2 g × 400 + 40 di rimborsi.
 		await apriRiepilogo(page, meseGiornaliera);
 		await expect(page.getByTestId("summary-importo-fattura-value")).toContainText("840,00");
-		await expect(page.getByTestId("summary-importo-fattura-breakdown")).toContainText(/2\.00 g × .*400,00/);
+		await expect(page.getByTestId("summary-importo-fattura-breakdown")).toContainText(/2 gg × .*400,00/);
 		await expect(page.getByTestId("summary-giornate-da-fatturare")).toContainText(/Tariffa giorno: .*400,00/);
 
 		// Fisso mensile: 6.500 + 240 di rimborsi, indipendente dalle 12 ore.

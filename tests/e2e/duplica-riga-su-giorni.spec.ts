@@ -54,11 +54,11 @@ const IMPORTO_RIMBORSO = "85.00";
 const ORE_SORGENTE = "6.00";
 
 /**
- * Il dettaglio giornata stampa l'importo con `toFixed(2)` accanto al simbolo
- * («€ 85.00»), non nello stile valuta italiano: la regex assorbe solo lo spazio.
+ * Il dettaglio giornata stampa l'importo nello stile valuta italiano
+ * («85,00 €»): la regex assorbe solo lo spazio (non separabile) prima del simbolo.
  */
 const IMPORTO_RIMBORSO_A_SCHERMO = new RegExp(
-  `€\\s*${Number(IMPORTO_RIMBORSO).toFixed(2).replace(".", "\\.")}`,
+  `${Number(IMPORTO_RIMBORSO).toFixed(2).replace(".", ",")}\\s*€`,
 );
 
 /** Scrittura del giorno civile con la stessa convenzione UTC dell'applicazione. */
@@ -322,7 +322,7 @@ test.describe("US-057 Duplicazione di una riga su più giorni scelti", () => {
       await expect(rigaReplicata).toContainText(
         clienteConOfferta.offerta.codice,
       );
-      await expect(rigaReplicata).toContainText("6.0 h");
+      await expect(rigaReplicata).toContainText("6 h");
       await expect(rigaReplicata.getByText("Non fatturabile", { exact: true })).toBeVisible();
       await expect(rigaReplicata).toContainText(ETICHETTA_RIMBORSO);
       await expect(rigaReplicata).toContainText(IMPORTO_RIMBORSO_A_SCHERMO);
@@ -343,7 +343,7 @@ test.describe("US-057 Duplicazione di una riga su più giorni scelti", () => {
     const cellaAltroMese = cellaDelGiorno(page, GIORNO_ALTRO_MESE, MESE_ALTRO);
     await expect(cellaAltroMese).toHaveAttribute("data-con-attivita", "true");
     await expect(cellaAltroMese.getByTestId("etichetta-cliente")).toHaveText(
-      `${RAGIONE_SOCIALE_ORIGINE} 6.0 h`,
+      `${RAGIONE_SOCIALE_ORIGINE} 6 h`,
     );
     await expect(page).toHaveURL(`/attivita?mese=${MESE_ALTRO}`);
   });

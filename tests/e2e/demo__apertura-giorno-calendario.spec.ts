@@ -57,7 +57,7 @@ test.describe("US-031 Demo", () => {
     await page.getByRole("link", { name: "Torna al calendario" }).click();
     await expect(calendario).toBeVisible();
     await expect(cellaVuota).toHaveAttribute("data-con-attivita", "true");
-    await expect(cellaVuota).toContainText("3.0 h");
+    await expect(cellaVuota).toContainText("3 h");
 
     const celleFuoriMese = calendario.locator('a[data-fuori-mese="true"]');
     await expect(celleFuoriMese.first()).toBeVisible();

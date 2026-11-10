@@ -89,7 +89,7 @@ export default function OffertaForm({
     <div>
       <Link
         href={linkRitorno}
-        className="mb-[14px] inline-flex items-center gap-[6px] text-[13px] font-semibold text-zinc-600 no-underline transition hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400"
+        className="mb-[14px] inline-flex items-center gap-[6px] text-sm font-medium text-testo-secondario no-underline transition hover:text-indigo-600 dark:hover:text-indigo-400"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px]" strokeWidth={2.2}>
           <path d="M19 12H5m6 6-6-6 6-6" />
@@ -98,15 +98,15 @@ export default function OffertaForm({
       </Link>
 
       <div className="mb-[22px]">
-        <div className="mb-1 text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
+        <div className="mb-1 text-xs font-medium text-testo-metadati">
           {briciole}
         </div>
-        <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+        <h1 className="text-[23px] font-semibold tracking-tight text-testo-principale">
           {titolo}
         </h1>
         {cliente && (
-          <div className="mt-[10px] inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[13px] py-[5px] text-[12.5px] font-semibold text-indigo-600 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400">
-            <span className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-indigo-500 text-[9.5px] font-bold text-white">
+          <div className="mt-[10px] inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[13px] py-[5px] text-sm font-medium text-indigo-600 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400">
+            <span className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-indigo-500 text-xs font-medium text-white">
               {cliente.ragioneSociale
                 .split(/\s+/)
                 .map((parte) => parte[0])
@@ -145,7 +145,7 @@ export default function OffertaForm({
 
         <div className="px-7 pb-[10px] pt-[26px]">
           {haErrori && (
-            <div className="mb-[18px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-[13px] font-semibold leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+            <div className="mb-[18px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-sm font-medium leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[1.5px] h-[16px] w-[16px] shrink-0" strokeWidth={2}>
                 <path d="M12 9v4.5M12 17h.01" />
                 <path d="M10.3 3.9 2.6 17.4A2 2 0 0 0 4.3 20.4h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
@@ -160,7 +160,7 @@ export default function OffertaForm({
           <div className="grid grid-cols-2 gap-x-[18px] gap-y-0 max-[920px]:grid-cols-1">
             {mostraSelectCliente && (
               <>
-                <div className="col-span-2 mt-0 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500 max-[920px]:col-span-1">
+                <div className="col-span-2 mt-0 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-xs font-medium text-testo-metadati dark:border-zinc-800 max-[920px]:col-span-1">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px] text-indigo-500" strokeWidth={2}>
                     <circle cx="9" cy="8" r="3.4" />
                     <path d="M2.8 19.4a6.2 6.2 0 0 1 12.4 0" />
@@ -177,7 +177,7 @@ export default function OffertaForm({
               </>
             )}
 
-            <div className="col-span-2 mt-0 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500 max-[920px]:col-span-1">
+            <div className="col-span-2 mt-0 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-xs font-medium text-testo-metadati dark:border-zinc-800 max-[920px]:col-span-1">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px] text-indigo-500" strokeWidth={2}>
                 <path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
                 <path d="M14 3v6h6M8 13h8M8 17h5" />
@@ -220,7 +220,7 @@ export default function OffertaForm({
               facoltativo
             />
 
-            <div className="col-span-2 mt-2 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500 max-[920px]:col-span-1">
+            <div className="col-span-2 mt-2 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-xs font-medium text-testo-metadati dark:border-zinc-800 max-[920px]:col-span-1">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px] text-indigo-500" strokeWidth={2}>
                 <circle cx="12" cy="12" r="9" />
                 <path d="M14.8 8.6a3.4 3.4 0 0 0-5.6 2.6 3.4 3.4 0 0 0 5.6 2.6M7.6 10.4h4.6M7.6 13h4.6" />
@@ -277,13 +277,13 @@ export default function OffertaForm({
         <div className="flex items-center justify-end gap-[10px] rounded-b-[11px] border-t border-zinc-200 bg-zinc-50 px-7 py-4 dark:border-zinc-700 dark:bg-zinc-800/50">
           <Link
             href={linkRitorno}
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm no-underline transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-sm font-medium text-testo-secondario shadow-sm no-underline transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
           >
             Annulla
           </Link>
           <PulsanteAttesa
             etichettaAttesa={inModifica ? "Salvataggio…" : "Creazione…"}
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
               <path d="M20 6 9 17l-5-5" />
@@ -336,8 +336,8 @@ function SceltaGestioneTrasferta({
   return (
     <div className="group/trasferta col-span-2 grid grid-cols-2 gap-x-[18px] max-[920px]:col-span-1 max-[920px]:grid-cols-1">
       <fieldset className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-[6px] text-left max-[920px]:col-span-1">
-        <legend className="mb-[6px] text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400">
-          Gestione trasferte <span className="font-bold text-red-600 dark:text-red-400">*</span>
+        <legend className="mb-[6px] text-sm font-medium text-testo-secondario">
+          Gestione trasferte <span className="font-semibold text-red-600 dark:text-red-400">*</span>
         </legend>
         <div className="grid grid-cols-2 gap-[10px] max-[920px]:grid-cols-1">
           {OPZIONI_GESTIONE_TRASFERTA.map((opzione) => (
@@ -354,10 +354,10 @@ function SceltaGestioneTrasferta({
                 className="mt-[3px] accent-indigo-500"
               />
               <span className="flex flex-col gap-[2px]">
-                <span className="text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
+                <span className="text-sm font-medium text-testo-principale">
                   {opzione.etichetta}
                 </span>
-                <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
+                <span className="text-xs text-testo-metadati">
                   {opzione.descrizione}
                 </span>
               </span>
@@ -365,7 +365,7 @@ function SceltaGestioneTrasferta({
           ))}
         </div>
         {errore && (
-          <p className="m-0 inline-flex items-center gap-[5px] text-[12px] font-semibold text-red-600 dark:text-red-400">
+          <p className="m-0 inline-flex items-center gap-[5px] text-xs font-medium text-red-600 dark:text-red-400">
             {errore}
           </p>
         )}
@@ -388,9 +388,9 @@ function SelectCliente({ clienti, defaultValue, errore }: SelectClienteProps) {
     <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-[6px] text-left max-[920px]:col-span-1">
       <label
         htmlFor="clienteId"
-        className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
+        className="text-sm font-medium text-testo-secondario"
       >
-        Cliente <span className="font-bold text-red-600 dark:text-red-400">*</span>
+        Cliente <span className="font-semibold text-red-600 dark:text-red-400">*</span>
       </label>
       <select
         id="clienteId"
@@ -399,7 +399,7 @@ function SelectCliente({ clienti, defaultValue, errore }: SelectClienteProps) {
         // rimonta col cliente inviato, così sopravvive al reset del form.
         key={defaultValue}
         defaultValue={defaultValue}
-        className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition dark:bg-zinc-900 dark:text-zinc-100 ${
+        className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-sm text-testo-principale outline-none transition dark:bg-zinc-900 ${
           errore
             ? "border-red-600 shadow-[0_0_0_3px_rgb(239_68_68_/_0.08)] dark:shadow-[0_0_0_3px_rgb(239_68_68_/_0.1)]"
             : "border-zinc-200 focus:border-indigo-300 focus:shadow-[0_0_0_3px_rgb(99_102_241_/_0.12)] dark:border-zinc-700 dark:focus:border-indigo-500/50"
@@ -415,7 +415,7 @@ function SelectCliente({ clienti, defaultValue, errore }: SelectClienteProps) {
         ))}
       </select>
       {errore && (
-        <p className="m-0 inline-flex items-center gap-[5px] text-[12px] font-semibold text-red-600 dark:text-red-400">
+        <p className="m-0 inline-flex items-center gap-[5px] text-xs font-medium text-red-600 dark:text-red-400">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[13px] w-[13px] shrink-0" strokeWidth={2.2}>
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v5M12 16h.01" />
@@ -456,10 +456,10 @@ function Campo({
 }: CampoProps) {
   return (
     <div className="mb-[18px] flex min-w-0 flex-col gap-[6px] text-left">
-      <label htmlFor={name} className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400">
-        {label} {obbligatorio && <span className="font-bold text-red-600 dark:text-red-400">*</span>}
+      <label htmlFor={name} className="text-sm font-medium text-testo-secondario">
+        {label} {obbligatorio && <span className="font-semibold text-red-600 dark:text-red-400">*</span>}
         {facoltativo && (
-          <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">(facoltativo)</span>
+          <span className="text-xs font-medium text-testo-metadati">(facoltativo)</span>
         )}
       </label>
       <div className="relative">
@@ -469,7 +469,7 @@ function Campo({
           defaultValue={defaultValue}
           placeholder={placeholder}
           maxLength={maxLength}
-          className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition placeholder:text-zinc-400 dark:bg-zinc-900 dark:text-zinc-100 ${
+          className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-sm text-testo-principale outline-none transition placeholder:text-zinc-400 dark:bg-zinc-900 ${
             suffisso ? "pr-11" : ""
           } ${
             errore
@@ -479,13 +479,13 @@ function Campo({
           style={uppercase ? { textTransform: "uppercase" } : undefined}
         />
         {suffisso && (
-          <span className="pointer-events-none absolute right-[13px] top-1/2 -translate-y-1/2 text-[13px] font-semibold text-zinc-400 dark:text-zinc-500">
+          <span className="pointer-events-none absolute right-[13px] top-1/2 -translate-y-1/2 text-sm font-medium text-testo-metadati">
             {suffisso}
           </span>
         )}
       </div>
       {errore && (
-        <p className="m-0 inline-flex items-center gap-[5px] text-[12px] font-semibold text-red-600 dark:text-red-400">
+        <p className="m-0 inline-flex items-center gap-[5px] text-xs font-medium text-red-600 dark:text-red-400">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[13px] w-[13px] shrink-0" strokeWidth={2.2}>
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v5M12 16h.01" />
@@ -493,7 +493,7 @@ function Campo({
           {errore}
         </p>
       )}
-      {hint && <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">{hint}</span>}
+      {hint && <span className="text-xs text-testo-metadati">{hint}</span>}
     </div>
   );
 }

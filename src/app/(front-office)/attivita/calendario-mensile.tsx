@@ -15,6 +15,7 @@ import {
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
 import { IconaOffertaNonAbilitata, SelettoreMese, useIdratata } from "@/components";
 import { ORE_PER_GIORNATA, sommaOre } from "@/domain/types";
+import { formattaGiornate, formattaNumeroOre, formattaOre } from "@/lib/formattazione";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
   ErroreIdentitaSchedaCambiata,
@@ -339,7 +340,7 @@ export default function CalendarioMensile({
   }, [sintesi]);
 
   // Giorni della settimana
-  const giorniSettimana = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];
+  const giorniSettimana = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
   return (
     <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-sm:px-4 max-sm:py-5">
@@ -347,12 +348,12 @@ export default function CalendarioMensile({
       {/* Su smartphone la barra è compatta, su due righe: frecce e mese, poi
           «Mese corrente», «Riepilogo mese» e vista a sola icona (il testo resta
           come nome accessibile) con il riepilogo righe a destra. */}
-      <div className="mb-[18px] flex flex-wrap items-center gap-4 max-sm:gap-2.5">
-        <div className="flex items-center gap-2.5 max-sm:contents">
+      <div className="mb-[18px] flex flex-wrap items-center gap-3 max-sm:gap-2.5">
+        <div className="flex items-center gap-2 max-sm:contents">
           <button
             type="button"
             onClick={() => navigaVersoMese(mesePrecedente)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese precedente"
             title="Mese precedente"
           >
@@ -380,7 +381,7 @@ export default function CalendarioMensile({
           <button
             type="button"
             onClick={() => navigaVersoMese(meseSuccessivo)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese successivo"
             title="Mese successivo"
           >
@@ -399,7 +400,7 @@ export default function CalendarioMensile({
             type="button"
             onClick={navigaVersoMeseCorrente}
             title="Mese corrente"
-            className="ml-1 inline-flex cursor-pointer items-center gap-[7px] max-sm:ml-0 max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="inline-flex cursor-pointer items-center gap-[7px] max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
               viewBox="0 0 24 24"
@@ -420,7 +421,7 @@ export default function CalendarioMensile({
               collaboratoreConsultatoId
             )}
             title="Riepilogo mese"
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-testo-metadati shadow-sm max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
               viewBox="0 0 24 24"
@@ -444,24 +445,23 @@ export default function CalendarioMensile({
           hrefElenco={urlDelFoglio(urlElenco(tokenVisualizzato, FILTRI_VUOTI), collaboratoreConsultatoId)}
         />
 
-        {/* Riepilogo mese */}
+        {/* Riepilogo mese: neutro, il rosa resta l'accento di oggi */}
         {totaleRighe > 0 && (
-          <div className="inline-flex items-center gap-[9px] max-sm:ml-auto rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-[12.5px] font-semibold text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+          <div className="inline-flex items-center gap-[9px] whitespace-nowrap max-sm:ml-auto max-sm:gap-1.5 max-sm:px-2.5 max-sm:text-[13px] rounded-full border border-zinc-200 bg-white px-[13px] py-1.5 text-sm font-semibold text-testo-principale dark:border-zinc-700 dark:bg-zinc-800">
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
-              className="h-[15px] w-[15px] max-sm:hidden"
+              className="h-[15px] w-[15px] text-testo-metadati max-sm:hidden"
+              aria-hidden="true"
             >
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <path d="M16 2v4M8 2v4M3 10h18" />
             </svg>
-            <b className="tabular-nums">{totaleRighe} righe</b>
-            <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
-            <b className="tabular-nums">
-              {(totaleOre / ORE_PER_GIORNATA).toLocaleString("it-IT", { maximumFractionDigits: 2 })} gg
-            </b>
+            <span className="tabular-nums">{totaleRighe} righe</span>
+            <span className="block h-[13px] w-px bg-zinc-200 dark:bg-zinc-700" />
+            <span className="tabular-nums">{formattaGiornate(totaleOre / ORE_PER_GIORNATA)}</span>
           </div>
         )}
       </div>
@@ -471,13 +471,13 @@ export default function CalendarioMensile({
         <div
           role="alert"
           data-testid="errore-caricamento-mese"
-          className="mb-[14px] flex flex-wrap items-center gap-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-[13px] font-semibold text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
+          className="mb-[14px] flex flex-wrap items-center gap-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
         >
           <span>{errore}</span>
           <button
             type="button"
             onClick={ritentaMese}
-            className="inline-flex cursor-pointer items-center rounded-[9px] border border-amber-400 bg-white px-2.5 py-1 text-[12.5px] font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
+            className="inline-flex cursor-pointer items-center rounded-[9px] border border-amber-400 bg-white px-2.5 py-1 text-sm font-medium text-amber-900 shadow-sm transition hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
           >
             Riprova
           </button>
@@ -503,15 +503,13 @@ export default function CalendarioMensile({
           </div>
         )}
 
-        {/* Intestazione giorni settimana */}
+        {/* Intestazione giorni settimana: il weekend è più tenue, non rosa */}
         <div className="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-700">
           {giorniSettimana.map((nome, i) => (
             <div
               key={nome}
-              className={`px-3 py-[11px] text-left text-[11px] font-bold uppercase tracking-[0.07em] ${
-                i >= 5
-                  ? "text-rose-600 dark:text-rose-400"
-                  : "text-zinc-400 dark:text-zinc-500"
+              className={`px-3 py-2.5 text-left text-sm max-sm:px-0 max-sm:text-center max-sm:text-xs ${
+                i >= 5 ? "font-normal text-testo-metadati" : "font-medium text-testo-secondario"
               }`}
             >
               {nome}
@@ -520,7 +518,7 @@ export default function CalendarioMensile({
         </div>
 
         {/* Corpo griglia */}
-        <div className="grid grid-cols-7 auto-rows-[minmax(116px,auto)] max-sm:auto-rows-[minmax(64px,auto)]">
+        <div className="grid grid-cols-7 auto-rows-[minmax(124px,auto)] max-sm:auto-rows-[minmax(64px,auto)]">
           {griglia.map((cella, idx) => {
             const cellaData = dataCalendario(cella.data);
             const key = formattaDataISO(cellaData);
@@ -531,116 +529,125 @@ export default function CalendarioMensile({
             const isToday = stessoGiorno(cellaData, oggiDate);
             const isLastRow = idx >= griglia.length - 7;
 
+            // Superfici: neutra appena distinta per i giorni con attività,
+            // trama diagonale tenue per il weekend vuoto; il rosa resta a oggi.
             const classiGiorno = [
-              "relative flex flex-col items-start gap-[7px] p-[9px_10px_10px] min-w-0 w-full overflow-hidden transition-colors cursor-pointer max-sm:items-center max-sm:gap-1 max-sm:p-1",
+              "relative flex flex-col items-start gap-1.5 p-[9px_10px_10px_12px] min-w-0 w-full overflow-hidden transition-colors cursor-pointer focus-visible:z-[1] focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-indigo-500 dark:focus-visible:outline-indigo-400 max-sm:items-center max-sm:gap-1 max-sm:p-1",
               (idx + 1) % 7 !== 0 ? "border-r border-zinc-100 dark:border-zinc-800" : "",
               !isLastRow ? "border-b border-zinc-100 dark:border-zinc-800" : "",
-              cella.fuoriMese
-                ? "bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800/70"
-                : "",
-              !cella.fuoriMese && cella.isWeekend && !haAttivita
-                ? "bg-zinc-50/45 dark:bg-zinc-800/30"
-                : "",
               righeNonAbilitate > 0
-                ? "bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100/70 dark:hover:bg-amber-950/50"
+                ? "bg-amber-50 hover:bg-amber-100/70 dark:bg-amber-950/30 dark:hover:bg-amber-950/50"
                 : haAttivita
-                  ? "bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100/70 dark:hover:bg-rose-950/60"
-                  : (!cella.fuoriMese ? "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60" : ""),
-              isToday
-                ? "shadow-[inset_0_0_0_2px] shadow-rose-600 dark:shadow-rose-400"
-                : "",
+                  ? "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:hover:bg-zinc-800"
+                  : cella.fuoriMese
+                    ? "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-950/40 dark:hover:bg-zinc-800/70"
+                    : cella.isWeekend
+                      ? "bg-[repeating-linear-gradient(135deg,rgb(113_113_122/0.07)_0_6px,transparent_6px_12px)] hover:bg-zinc-100 dark:bg-[repeating-linear-gradient(135deg,rgb(161_161_170/0.07)_0_6px,transparent_6px_12px)] dark:hover:bg-zinc-800"
+                      : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
             ]
               .filter(Boolean)
               .join(" ");
 
+            const sintesiGiorno = haAttivita ? sintesi[key] : null;
+
             const contenuto = (
               <>
-                {haAttivita && (
+                {sintesiGiorno && (
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-[3px] ${
-                      righeNonAbilitate > 0 ? "bg-amber-500 dark:bg-amber-400" : "bg-rose-600 dark:bg-rose-400"
+                      righeNonAbilitate > 0 ? "bg-amber-500 dark:bg-amber-400" : "bg-zinc-400 dark:bg-zinc-500"
                     }`}
                   />
                 )}
-                {righeNonAbilitate > 0 && (
-                  <span
-                    data-testid="indicatore-offerte-non-abilitate"
-                    title={`${righeNonAbilitate} ${righeNonAbilitate === 1 ? "riga" : "righe"} su offerte non abilitate`}
-                    className="absolute right-[9px] top-[9px] inline-flex items-center gap-1 rounded-full max-sm:hidden border border-amber-300 bg-amber-100 px-[7px] py-[1px] text-[10.5px] font-bold tabular-nums text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                  >
-                    <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />
-                    {righeNonAbilitate}
-                  </span>
-                )}
-                {/* In cima: numero del giorno e, a destra, i totali della giornata. */}
-                <div className="flex w-full flex-wrap items-center justify-between gap-1.5 max-sm:flex-col max-sm:gap-0.5">
+                {/* In cima: numero del giorno (con «Oggi») e, a destra, il conteggio righe. */}
+                <div className="flex w-full items-center gap-1.5 max-sm:flex-col max-sm:gap-0.5">
                   <span
                     data-testid="numero-giorno"
-                    className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded-lg text-[13px] font-semibold tabular-nums ${
-                      cella.fuoriMese
-                        ? "text-zinc-400/65 dark:text-zinc-500/65"
-                        : isToday
-                          ? "bg-rose-600 text-white dark:bg-rose-400 dark:text-white"
-                          : "text-zinc-600 dark:text-zinc-400"
+                    className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm tabular-nums max-sm:h-[26px] max-sm:w-[26px] max-sm:text-[13px] ${
+                      isToday
+                        ? "bg-rose-600 font-semibold text-white dark:bg-rose-400 dark:text-zinc-900"
+                        : cella.fuoriMese
+                          ? "font-normal text-testo-metadati"
+                          : cella.isWeekend
+                            ? "font-medium text-testo-metadati"
+                            : "font-medium text-testo-secondario"
                     }`}
                   >
                     {cellaData.getDate()}
                   </span>
-                  {haAttivita && (
-                    <div data-testid="totali-giorno" className="flex flex-wrap items-center gap-1.5 max-sm:justify-center">
-                      <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-white px-[7px] py-[3px] text-[11px] font-bold tabular-nums text-rose-800 max-sm:hidden dark:border-rose-800 dark:bg-zinc-800 dark:text-rose-300">
+                  {isToday && (
+                    <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 max-sm:sr-only">
+                      Oggi
+                    </span>
+                  )}
+                  {sintesiGiorno && (
+                    <span className="ml-auto inline-flex items-center gap-1.5 max-sm:hidden">
+                      {righeNonAbilitate > 0 && (
+                        <span
+                          data-testid="indicatore-offerte-non-abilitate"
+                          title={`${righeNonAbilitate} ${righeNonAbilitate === 1 ? "riga" : "righe"} su offerte non abilitate`}
+                          className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-1.5 text-xs font-medium tabular-nums text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                        >
+                          <IconaOffertaNonAbilitata className="h-3 w-3" />
+                          {righeNonAbilitate}
+                        </span>
+                      )}
+                      <span
+                        data-testid="numero-righe"
+                        title={`${sintesiGiorno.righe} ${sintesiGiorno.righe === 1 ? "riga" : "righe"}`}
+                        className="inline-flex items-center gap-[3px] text-xs font-medium tabular-nums text-testo-metadati"
+                      >
                         <svg
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth={2.4}
-                          className="h-[11px] w-[11px]"
+                          strokeWidth={2}
+                          className="h-[13px] w-[13px]"
+                          aria-hidden="true"
                         >
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                           <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
                         </svg>
-                        {sintesi[key].righe}
+                        <span>{sintesiGiorno.righe}</span>
+                        <span className="sr-only">{sintesiGiorno.righe === 1 ? "riga" : "righe"}</span>
                       </span>
-                      <span className="inline-flex items-center whitespace-nowrap rounded-md bg-rose-600 px-[7px] py-[3px] text-[11px] font-bold tabular-nums text-white dark:bg-rose-400 dark:text-zinc-900 max-sm:bg-transparent max-sm:p-0 max-sm:text-[10.5px] max-sm:text-rose-800 dark:max-sm:bg-transparent dark:max-sm:text-rose-300">
-                        {sintesi[key].oreTotali.toFixed(1)} h
-                      </span>
-                    </div>
+                    </span>
                   )}
                 </div>
-                {/* In fondo: i clienti su cui si è lavorato nella giornata. */}
-                {/* Su smartphone i clienti restano nella pagina della giornata:
-                    la cella mostra solo un indicatore discreto. */}
-                {haAttivita && (
-                  <span
-                    aria-hidden="true"
-                    data-testid="indicatore-attivita"
-                    className={`mt-auto h-1.5 w-1.5 shrink-0 rounded-full sm:hidden ${
-                      righeNonAbilitate > 0 ? "bg-amber-500 dark:bg-amber-400" : "bg-rose-600 dark:bg-rose-400"
-                    }`}
-                  />
-                )}
-                {haAttivita && (
-                  <div className="mt-auto flex min-w-0 max-w-full flex-wrap gap-1 max-sm:hidden">
-                    {sintesi[key].clienti.slice(0, 2).map((cliente) => (
+                {/* Al centro: i clienti della giornata, come testo secondario.
+                    Su smartphone restano nella pagina della giornata. */}
+                {sintesiGiorno && (
+                  <div className="flex w-full min-w-0 flex-col gap-0.5 max-sm:hidden">
+                    {sintesiGiorno.clienti.slice(0, 2).map((cliente) => (
                       <span
                         key={cliente.clienteId}
                         data-testid="etichetta-cliente"
-                        className="max-w-full truncate rounded-md border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                        className="flex min-w-0 items-baseline gap-1.5 text-xs leading-[1.35] text-testo-secondario"
                       >
-                        {cliente.ragioneSociale}{" "}
-                        <span className="tabular-nums">
-                          {cliente.ore.toFixed(1)} h
-                        </span>
+                        <span className="min-w-0 flex-1 truncate">{cliente.ragioneSociale}</span>{" "}
+                        <span className="shrink-0 tabular-nums">{formattaOre(cliente.ore)}</span>
                       </span>
                     ))}
-                    {sintesi[key].clienti.length > 2 && (
+                    {sintesiGiorno.clienti.length > 2 && (
                       <span
                         data-testid="indicatore-altri-clienti"
-                        className="px-0.5 py-0.5 text-[10px] font-bold text-rose-800 dark:text-rose-300"
+                        className="text-xs font-medium text-testo-metadati"
                       >
-                        +{sintesi[key].clienti.length - 2}
+                        +{sintesiGiorno.clienti.length - 2}
                       </span>
                     )}
+                  </div>
+                )}
+                {/* In fondo: le ore totali, il dato dominante della giornata. */}
+                {sintesiGiorno && (
+                  <div
+                    data-testid="totali-giorno"
+                    className="mt-auto whitespace-nowrap text-[22px] font-semibold leading-none tabular-nums text-testo-principale max-sm:mt-0 max-sm:text-[13px]"
+                  >
+                    {formattaNumeroOre(sintesiGiorno.oreTotali)}
+                    <span className="text-sm font-medium text-testo-secondario max-sm:text-xs max-sm:font-normal max-sm:text-testo-metadati">
+                      {" "}h
+                    </span>
                   </div>
                 )}
               </>
@@ -658,6 +665,7 @@ export default function CalendarioMensile({
                 prefetch={false}
                 className={classiGiorno}
                 style={{ textDecoration: "none" }}
+                aria-current={isToday ? "date" : undefined}
                 data-testid="cella-giorno"
                 data-con-attivita={haAttivita ? "true" : "false"}
                 data-fuori-mese={cella.fuoriMese ? "true" : "false"}
@@ -669,24 +677,46 @@ export default function CalendarioMensile({
         </div>
       </section>
 
-      {/* ── Legenda ── */}
-      <div className="mt-4 flex flex-wrap items-center gap-[14px]">
-        <span className="inline-flex items-center gap-[7px] text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-          <span className="h-[11px] w-[11px] rounded-[4px] border border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/40" />
+      {/* ── Legenda: descrive esattamente gli stati della griglia ── */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-testo-secondario">
+        <span className="inline-flex items-center gap-[7px]">
+          <span className="h-3.5 w-3.5 rounded-[4px] border border-zinc-200 bg-zinc-50 shadow-[inset_3px_0_0] shadow-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/50 dark:shadow-zinc-500" />
           Giorno con attività registrate
         </span>
-        <span className="inline-flex items-center gap-[7px] text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-          <span className="h-[11px] w-[11px] rounded-[4px] bg-rose-600 dark:bg-rose-400" />
+        <span className="inline-flex items-center gap-[7px]">
+          <span className="h-3.5 w-3.5 rounded-full bg-rose-600 dark:bg-rose-400" />
           Oggi
         </span>
-        <span className="inline-flex items-center gap-[7px] text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-          <span className="h-[11px] w-[11px] rounded-[4px] border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800" />
+        <span className="inline-flex items-center gap-[7px]">
+          <span className="h-3.5 w-3.5 rounded-[4px] border border-amber-300 bg-amber-50 shadow-[inset_3px_0_0] shadow-amber-500 dark:border-amber-700 dark:bg-amber-950/30 dark:shadow-amber-400" />
+          Righe su offerte non abilitate
+        </span>
+        <span className="inline-flex items-center gap-[7px]">
+          <span className="h-3.5 w-3.5 rounded-[4px] border border-zinc-200 bg-[repeating-linear-gradient(135deg,rgb(113_113_122/0.3)_0_2px,transparent_2px_5px)] dark:border-zinc-700 dark:bg-[repeating-linear-gradient(135deg,rgb(161_161_170/0.3)_0_2px,transparent_2px_5px)]" />
+          Sabato e domenica
+        </span>
+        <span className="inline-flex items-center gap-[7px]">
+          <span className="h-3.5 w-3.5 rounded-[4px] border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" />
           Nessuna attività
         </span>
-        <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">
-          Clicca un giorno qualsiasi per inserire o modificare le righe
+        <span className="inline-flex items-center gap-[7px]">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            className="h-3.5 w-3.5 text-testo-metadati"
+            aria-hidden="true"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+          </svg>
+          Numero di righe
         </span>
       </div>
+      <p className="mt-2 text-sm text-testo-metadati">
+        Clicca un giorno qualsiasi per inserire o modificare le righe
+      </p>
     </div>
   );
 }

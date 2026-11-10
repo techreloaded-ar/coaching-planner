@@ -21,12 +21,22 @@
   --altezza-banner-ambiente: 0px;
   --background: #ffffff;
   --foreground: #171717;
+  /*
+   * Ruoli di colore del testo, ciascuno ≥ 4,5:1 sulle superfici dell'app
+   * (bianco, zinc-50/100, fondi tenui colorati in chiaro; zinc-950/900/800 in scuro).
+   */
+  --testo-principale: #27272a;
+  --testo-secondario: #52525b;
+  --testo-metadati: #6b6b73;
   /* Controlli nativi (date picker, select, scrollbar) allineati al tema. */
   color-scheme: light;
 
   @variant dark {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --testo-principale: #f4f4f5;
+    --testo-secondario: #d4d4d8;
+    --testo-metadati: #a1a1aa;
     color-scheme: dark;
   }
 }
@@ -46,6 +56,9 @@ html[data-ambiente="pre-prod"] {
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-testo-principale: var(--testo-principale);
+  --color-testo-secondario: var(--testo-secondario);
+  --color-testo-metadati: var(--testo-metadati);
 }
 
 /* Comparsa ritardata dell'indicatore di caricamento: evita il flash sulle transizioni veloci. */
@@ -59,7 +72,7 @@ body {
   padding-top: var(--altezza-banner-ambiente);
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
 /*
@@ -72,6 +85,12 @@ body {
  * continuano a prevalere perché stanno in un layer più specifico.
  */
 @layer base {
+  /* Enfasi mirata a 600: `<b>` e `<strong>` non salgono al grassetto 700. */
+  b,
+  strong {
+    font-weight: 600;
+  }
+
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]) {
     cursor: pointer;

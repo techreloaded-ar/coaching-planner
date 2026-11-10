@@ -23,10 +23,10 @@ export default async function ImpostazioniConnettoriPage({
   return (
     <section aria-labelledby="titolo-connettori" className="flex flex-col gap-3">
       <div>
-        <h2 id="titolo-connettori" className="text-[15px] font-semibold text-zinc-800 dark:text-zinc-100">
+        <h2 id="titolo-connettori" className="text-[15px] font-semibold text-testo-principale">
           Connettori
         </h2>
-        <p className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
+        <p className="text-sm text-testo-metadati">
           Collegamenti con servizi esterni.
         </p>
       </div>

@@ -45,6 +45,7 @@ import {
   type ApiOfferteCliente,
   type OffertaAttivaCliente,
 } from "../attivita-cache-provider";
+import { formattaEuro, formattaOre } from "@/lib/formattazione";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -183,7 +184,7 @@ function AvvisoAbilitazioneMancante({
   return (
     <div
       data-testid={testId}
-      className={`flex items-start gap-2 rounded-[9px] border border-amber-200 bg-amber-50 p-[10px_13px] text-[12.5px] font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400 ${className}`}
+      className={`flex items-start gap-2 rounded-[9px] border border-amber-200 bg-amber-50 p-[10px_13px] text-sm font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400 ${className}`}
     >
       <svg
         viewBox="0 0 24 24"
@@ -764,10 +765,10 @@ export default function DettaglioGiornata({
     <>
       {/* ── Intestazione giornata ── */}
       <div className="mb-7">
-        <div className="text-xs font-semibold capitalize text-rose-800 dark:text-rose-300">
+        <div className="text-xs font-medium capitalize text-rose-800 dark:text-rose-300">
           {nomeGiorno(data)}
         </div>
-        <h1 className="mt-0.5 text-2xl font-bold capitalize text-zinc-800 dark:text-zinc-100">
+        <h1 className="mt-0.5 text-2xl font-semibold capitalize text-testo-principale">
           {dataEstesa(data)}
         </h1>
       </div>
@@ -790,10 +791,10 @@ export default function DettaglioGiornata({
           >
             <path d="M20 6 9 17l-5-5" />
           </svg>
-          <div className="flex-1 text-[13px] font-bold text-emerald-700 dark:text-emerald-400">
+          <div className="flex-1 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
             Riga replicata su {esitoDuplicazione.giorniCreati}{" "}
             {esitoDuplicazione.giorniCreati === 1 ? "giorno" : "giorni"}.
-            <div className="mt-[5px] text-[12px] font-semibold opacity-90">
+            <div className="mt-[5px] text-xs font-medium opacity-90">
               {esitoDuplicazione.giorni.map(dataEstesa).join(" · ")}
             </div>
           </div>
@@ -820,38 +821,38 @@ export default function DettaglioGiornata({
       {/* ── Riepilogo dinamico ── */}
       <div className="mb-7 flex flex-wrap gap-3">
         <div className="flex-1 min-w-[120px] rounded-[11px] border border-rose-200 bg-rose-50 p-[14px_16px] dark:border-rose-800 dark:bg-rose-950/40">
-          <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
+          <div className="text-xs font-medium text-testo-metadati">
             Righe registrate
           </div>
-          <div className="mt-0.5 text-[22px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
+          <div className="mt-0.5 text-[22px] font-semibold tabular-nums text-rose-800 dark:text-rose-300">
             {riepilogo.nRighe}
           </div>
         </div>
         <div className="flex-1 min-w-[120px] rounded-[11px] border border-rose-200 bg-rose-50 p-[14px_16px] dark:border-rose-800 dark:bg-rose-950/40">
-          <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
+          <div className="text-xs font-medium text-testo-metadati">
             Ore totali
           </div>
-          <div className="mt-0.5 text-[22px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
-            {riepilogo.oreTotali.toFixed(1)} h
+          <div className="mt-0.5 text-[22px] font-semibold tabular-nums text-rose-800 dark:text-rose-300">
+            {formattaOre(riepilogo.oreTotali)}
           </div>
         </div>
         <div className="flex-1 min-w-[120px] rounded-[11px] border border-rose-200 bg-rose-50 p-[14px_16px] dark:border-rose-800 dark:bg-rose-950/40">
-          <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
+          <div className="text-xs font-medium text-testo-metadati">
             Ore da fatturare ad Agile Reloaded
           </div>
-          <div className="mt-0.5 text-[22px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
-            {riepilogo.oreDaFatturare.toFixed(1)} h
+          <div className="mt-0.5 text-[22px] font-semibold tabular-nums text-rose-800 dark:text-rose-300">
+            {formattaOre(riepilogo.oreDaFatturare)}
           </div>
         </div>
         <div className="flex-1 min-w-[120px] rounded-[11px] border border-rose-200 bg-rose-50 p-[14px_16px] dark:border-rose-800 dark:bg-rose-950/40">
-          <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
+          <div className="text-xs font-medium text-testo-metadati">
             Totale rimborsi
           </div>
           <div
             data-testid="day-summary-rimborsi"
-            className="mt-0.5 text-[22px] font-bold tabular-nums text-rose-800 dark:text-rose-300"
+            className="mt-0.5 text-[22px] font-semibold tabular-nums text-rose-800 dark:text-rose-300"
           >
-            € {riepilogo.totaleRimborsi.toFixed(2)}
+            {formattaEuro(riepilogo.totaleRimborsi)}
           </div>
         </div>
       </div>
@@ -870,12 +871,12 @@ export default function DettaglioGiornata({
 
       {/* ── Lista righe registrate ── */}
       <section className="mb-8">
-        <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.07em] text-zinc-400 dark:text-zinc-500">
+        <h2 className="mb-3 text-xs font-medium text-testo-metadati">
           Attività della giornata
         </h2>
 
         {righe.length === 0 ? (
-          <div className="rounded-[11px] border border-dashed border-zinc-200 bg-zinc-50 p-[28px_20px] text-center text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-500">
+          <div className="rounded-[11px] border border-dashed border-zinc-200 bg-zinc-50 p-[28px_20px] text-center text-sm text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800/50">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -905,16 +906,16 @@ export default function DettaglioGiornata({
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold text-zinc-800 dark:text-zinc-100">
+                    <div className="text-sm font-medium text-testo-principale">
                       {riga.cliente.ragioneSociale}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       {riga.offerta ? (
                         <span
-                          className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] ${
+                          className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium ${
                             riga.offertaNonAbilitata
                               ? "border border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                              : "bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400"
+                              : "bg-zinc-100 text-testo-secondario dark:bg-zinc-700"
                           }`}
                         >
                           {riga.offertaNonAbilitata && <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />}
@@ -923,14 +924,14 @@ export default function DettaglioGiornata({
                       ) : (
                         <span
                           data-testid="offerta-da-definire"
-                          className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.02em] text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                          className="rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
                         >
                           {ETICHETTA_OFFERTA_DA_DEFINIRE}
                         </span>
                       )}
                     </div>
                     {riga.nota && (
-                      <div className="mt-[7px] text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                      <div className="mt-[7px] text-sm leading-relaxed text-testo-metadati">
                         {riga.nota}
                       </div>
                     )}
@@ -938,8 +939,8 @@ export default function DettaglioGiornata({
 
                   <div className="flex flex-none items-center gap-2.5">
                     <BadgeCategoriaAttivita categoria={riga.categoria} />
-                    <span className="whitespace-nowrap text-[15px] font-bold tabular-nums text-rose-800 dark:text-rose-300">
-                      {riga.ore.toFixed(1)} h
+                    <span className="whitespace-nowrap text-[15px] font-semibold tabular-nums text-rose-800 dark:text-rose-300">
+                      {formattaOre(riga.ore)}
                     </span>
                   </div>
                 </div>
@@ -952,17 +953,17 @@ export default function DettaglioGiornata({
                       fill="none"
                       stroke="currentColor"
                       strokeWidth={2}
-                      className="h-[13px] w-[13px] text-amber-600 dark:text-amber-400"
+                      className="h-[13px] w-[13px] text-amber-700 dark:text-amber-400"
                     >
                       <path d="M6 17h12l1.5-5.5A2 2 0 0 0 17.6 9H6.4a2 2 0 0 0-1.9 2.5L6 17Z" />
                       <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
                     </svg>
-                    <span className="text-[11.5px] font-semibold text-amber-800 dark:text-amber-300">
+                    <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
                       {riga.rimborsoTrasfertaEtichetta}
                     </span>
                     {riga.rimborsoTrasfertaImporto != null && (
-                      <span className="ml-auto text-[13px] font-bold tabular-nums text-amber-800 dark:text-amber-300">
-                        € {parseFloat(riga.rimborsoTrasfertaImporto).toFixed(2)}
+                      <span className="ml-auto text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-300">
+                        {formattaEuro(riga.rimborsoTrasfertaImporto)}
                       </span>
                     )}
                   </div>
@@ -989,7 +990,7 @@ export default function DettaglioGiornata({
                     type="button"
                     attesaEsterna={rigaInAttesaId === riga.id}
                     onClick={() => handleModifica(riga)}
-                    className="inline-flex items-center gap-[5px] rounded-[8px] border border-zinc-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+                    className="inline-flex items-center gap-[5px] rounded-[8px] border border-zinc-200 bg-white px-2.5 py-1 text-sm font-medium text-testo-secondario transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -1010,7 +1011,7 @@ export default function DettaglioGiornata({
                       setEsitoDuplicazione(null);
                       setRigaDaDuplicare(riga);
                     }}
-                    className="inline-flex items-center gap-[5px] rounded-[8px] border border-rose-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-rose-700 transition hover:bg-rose-50 hover:text-rose-800 dark:border-rose-800 dark:bg-zinc-800 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
+                    className="inline-flex items-center gap-[5px] rounded-[8px] border border-rose-200 bg-white px-2.5 py-1 text-sm font-medium text-rose-700 transition hover:bg-rose-50 hover:text-rose-800 dark:border-rose-800 dark:bg-zinc-800 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -1029,7 +1030,7 @@ export default function DettaglioGiornata({
                       type="button"
                       attesaEsterna={rigaInAttesaId === riga.id}
                       onClick={() => handleRimuoviRimborso(riga.id)}
-                      className="inline-flex items-center gap-[5px] rounded-[8px] border border-amber-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-amber-700 transition hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300"
+                      className="inline-flex items-center gap-[5px] rounded-[8px] border border-amber-200 bg-white px-2.5 py-1 text-sm font-medium text-amber-700 transition hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300"
                     >
                       <svg
                         viewBox="0 0 24 24"
@@ -1048,7 +1049,7 @@ export default function DettaglioGiornata({
                     type="button"
                     attesaEsterna={rigaInAttesaId === riga.id}
                     onClick={() => handleElimina(riga.id)}
-                    className="inline-flex items-center gap-[5px] rounded-[8px] border border-red-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
+                    className="inline-flex items-center gap-[5px] rounded-[8px] border border-red-200 bg-white px-2.5 py-1 text-sm font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -1075,7 +1076,7 @@ export default function DettaglioGiornata({
         id="form-riga"
         className="rounded-[11px] border border-zinc-200 bg-white p-[18px_20px_22px] shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
       >
-        <h2 className="mb-[15px] text-[13px] font-bold uppercase tracking-[0.04em] text-zinc-500 dark:text-zinc-400">
+        <h2 className="mb-[15px] text-sm font-semibold text-testo-metadati">
           {modificaId
             ? "Modifica riga"
             : eventoDaProposta
@@ -1089,15 +1090,15 @@ export default function DettaglioGiornata({
             {/* Senza select non c'è alcun controllo da etichettare: la voce
                 "Cliente" resta visibile come intestazione, non come label */}
             {nessunClienteConOfferteAttive ? (
-              <p className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400">
-                Cliente <span className="text-rose-600">*</span>
+              <p className="mb-[5px] block text-xs font-medium text-testo-secondario">
+                Cliente <span className="text-rose-600 dark:text-rose-400">*</span>
               </p>
             ) : (
               <label
                 htmlFor="cliente"
-                className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+                className="mb-[5px] block text-xs font-medium text-testo-secondario"
               >
-                Cliente <span className="text-rose-600">*</span>
+                Cliente <span className="text-rose-600 dark:text-rose-400">*</span>
               </label>
             )}
             {nessunClienteConOfferteAttive ? (
@@ -1111,7 +1112,7 @@ export default function DettaglioGiornata({
                 id="cliente"
                 value={clienteId}
                 onChange={(e) => handleCambioCliente(e.target.value)}
-                className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-sm text-testo-principale shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800"
               >
                 <option value="">Seleziona un cliente</option>
                 {clientiSelezionabili.consigliati.length > 0 && (
@@ -1142,9 +1143,9 @@ export default function DettaglioGiornata({
             <div className="mb-[5px] flex items-center justify-between gap-3">
               <label
                 htmlFor="offerta"
-                className="block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+                className="block text-xs font-medium text-testo-secondario"
               >
-                Offerta <span className="text-rose-600">*</span>
+                Offerta <span className="text-rose-600 dark:text-rose-400">*</span>
               </label>
               {avanzamentoOffertaSelezionata && (
                 <span className="text-[12.5px]">
@@ -1157,7 +1158,7 @@ export default function DettaglioGiornata({
               value={offertaId}
               onChange={(e) => setOffertaId(e.target.value)}
               disabled={!clienteId || offerteLoading}
-              className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:disabled:bg-zinc-800/50"
+              className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-sm text-testo-principale shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:disabled:bg-zinc-800/50"
             >
               {/* Segnaposto non selezionabile: l'offerta è obbligatoria. */}
               <option value="" disabled>
@@ -1204,7 +1205,7 @@ export default function DettaglioGiornata({
               <p
                 role="alert"
                 data-testid="errore-offerte-cliente"
-                className="mt-1 text-[11.5px] font-medium text-red-600 dark:text-red-400"
+                className="mt-1 text-xs font-medium text-red-600 dark:text-red-400"
               >
                 {erroreOfferte}
               </p>
@@ -1215,9 +1216,9 @@ export default function DettaglioGiornata({
           <div>
             <label
               htmlFor="ore"
-              className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+              className="mb-[5px] block text-xs font-medium text-testo-secondario"
             >
-              Ore <span className="text-rose-600">*</span>
+              Ore <span className="text-rose-600 dark:text-rose-400">*</span>
             </label>
             <input
               id="ore"
@@ -1226,14 +1227,14 @@ export default function DettaglioGiornata({
               placeholder="es. 8 o 3,5"
               value={ore}
               onChange={(e) => handleCambioOre(e.target.value)}
-              className={`w-full rounded-[8px] border bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:outline-none focus:ring-1 ${
+              className={`w-full rounded-[8px] border bg-white px-3 py-2 text-sm text-testo-principale shadow-sm transition focus:outline-none focus:ring-1 ${
                 erroreOre
                   ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-800"
                   : "border-zinc-200 focus:border-rose-500 focus:ring-rose-500 dark:border-zinc-700"
               } dark:bg-zinc-800 dark:text-zinc-200`}
             />
             {erroreOre && (
-              <p className="mt-1 text-[11.5px] font-medium text-red-600 dark:text-red-400">
+              <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
                 {erroreOre}
               </p>
             )}
@@ -1243,16 +1244,16 @@ export default function DettaglioGiornata({
           <div>
             <label
               htmlFor="voceRimborsoTrasferta"
-              className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+              className="mb-[5px] block text-xs font-medium text-testo-secondario"
             >
-              Rimborso trasferta <span className="text-zinc-400 font-normal">(opzionale)</span>
+              Rimborso trasferta <span className="text-testo-metadati font-normal">(opzionale)</span>
             </label>
             <select
               id="voceRimborsoTrasferta"
               data-testid="voce-rimborso-trasferta"
               value={selezioneRimborso}
               onChange={(e) => setSelezioneRimborso(e.target.value)}
-              className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+              className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-sm text-testo-principale shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800"
             >
               {modificaId && (
                 <option value={SELEZIONE_RIMBORSO_INVARIATO}>
@@ -1269,11 +1270,11 @@ export default function DettaglioGiornata({
             {modificaId && rigaInModifica?.rimborsoTrasfertaEtichetta != null && (
               <p
                 data-testid="rimborso-attuale"
-                className="mt-1 text-[11.5px] font-medium text-zinc-500 dark:text-zinc-400"
+                className="mt-1 text-xs font-medium text-testo-metadati"
               >
                 Rimborso attuale: {rigaInModifica.rimborsoTrasfertaEtichetta}
                 {rigaInModifica.rimborsoTrasfertaImporto != null &&
-                  ` — €${parseFloat(rigaInModifica.rimborsoTrasfertaImporto).toFixed(2)}`}
+                  ` — ${formattaEuro(rigaInModifica.rimborsoTrasfertaImporto)}`}
               </p>
             )}
             {voceRimborsoSelezionata && (
@@ -1283,16 +1284,16 @@ export default function DettaglioGiornata({
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={2}
-                  className="h-[13px] w-[13px] text-amber-600 dark:text-amber-400"
+                  className="h-[13px] w-[13px] text-amber-700 dark:text-amber-400"
                 >
                   <path d="M6 17h12l1.5-5.5A2 2 0 0 0 17.6 9H6.4a2 2 0 0 0-1.9 2.5L6 17Z" />
                   <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
                 </svg>
-                <span className="text-[11.5px] font-semibold text-amber-800 dark:text-amber-300">
+                <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
                   {voceRimborsoSelezionata.etichetta}
                 </span>
-                <span className="text-[13px] font-bold tabular-nums text-amber-800 dark:text-amber-300">
-                  € {parseFloat(voceRimborsoSelezionata.importo).toFixed(2)}
+                <span className="text-sm font-semibold tabular-nums text-amber-800 dark:text-amber-300">
+                  {formattaEuro(voceRimborsoSelezionata.importo)}
                 </span>
               </div>
             )}
@@ -1303,7 +1304,7 @@ export default function DettaglioGiornata({
             <div className="w-full sm:w-[260px]">
               <label
                 htmlFor="categoria"
-                className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+                className="mb-[5px] block text-xs font-medium text-testo-secondario"
               >
                 Categoria
               </label>
@@ -1312,7 +1313,7 @@ export default function DettaglioGiornata({
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value as CategoriaAttivita)}
                 aria-describedby="significato-categoria"
-                className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-sm text-testo-principale shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800"
               >
                 {CATEGORIE_ATTIVITA.map((opzione) => (
                   <option key={opzione} value={opzione}>
@@ -1322,7 +1323,7 @@ export default function DettaglioGiornata({
               </select>
               <p
                 id="significato-categoria"
-                className="mt-[5px] text-[11.5px] leading-snug text-zinc-500 dark:text-zinc-400"
+                className="mt-[5px] text-xs leading-snug text-testo-metadati"
               >
                 {DESCRIZIONE_CATEGORIA_ATTIVITA[categoria].significato}
               </p>
@@ -1331,7 +1332,7 @@ export default function DettaglioGiornata({
             <div className="flex-1 min-w-[200px]">
               <label
                 htmlFor="nota"
-                className="mb-[5px] block text-[12px] font-semibold text-zinc-600 dark:text-zinc-400"
+                className="mb-[5px] block text-xs font-medium text-testo-secondario"
               >
                 Nota
               </label>
@@ -1341,14 +1342,14 @@ export default function DettaglioGiornata({
                 placeholder="Nota descrittiva (opzionale)"
                 value={nota}
                 onChange={(e) => setNota(e.target.value)}
-                className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                className="w-full rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-sm text-testo-principale shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800"
               />
             </div>
           </div>
 
           {/* Errore submit */}
           {erroreSubmit && (
-            <div className="flex items-start gap-2 rounded-[9px] border border-red-200 bg-red-50 p-[10px_13px] text-[12.5px] font-medium text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-400">
+            <div className="flex items-start gap-2 rounded-[9px] border border-red-200 bg-red-50 p-[10px_13px] text-sm font-medium text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-400">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -1370,7 +1371,7 @@ export default function DettaglioGiornata({
               attesaEsterna={salvataggioInCorso || isPending}
               etichettaAttesa="Salvataggio…"
               disabled={offerteLoading || nessunClienteConOfferteAttive}
-              className="inline-flex items-center gap-[7px] rounded-[10px] bg-rose-600 px-[18px] py-[9px] text-[13.5px] font-bold text-white shadow-sm transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+              className="inline-flex items-center gap-[7px] rounded-[10px] bg-rose-600 px-[18px] py-[9px] text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-700"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -1392,7 +1393,7 @@ export default function DettaglioGiornata({
               <button
                 type="button"
                 onClick={handleAnnulla}
-                className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[18px] py-[9px] text-[13.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+                className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[18px] py-[9px] text-sm font-medium text-testo-secondario shadow-sm transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
               >
                 Annulla
               </button>

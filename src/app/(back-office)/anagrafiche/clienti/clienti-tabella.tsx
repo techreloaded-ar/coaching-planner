@@ -62,22 +62,22 @@ export default function ClientiTabella({ elenco, ricerca }: ClientiTabellaProps)
         </BarraElencoSelezionabile>
 
         {/* Tabella */}
-        <table className="w-full border-collapse text-[13.5px]" aria-label="Elenco clienti">
+        <table className="w-full border-collapse text-sm" aria-label="Elenco clienti">
           <thead>
             <tr>
               <th className="w-[44px] px-4 py-[11px] text-left">
                 <CasellaSelezioneTutti />
               </th>
-              <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                 Ragione sociale
               </th>
-              <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                 P.IVA
               </th>
-              <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                 Città
               </th>
-              <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                 Offerte
               </th>
             </tr>
@@ -85,7 +85,7 @@ export default function ClientiTabella({ elenco, ricerca }: ClientiTabellaProps)
           <tbody>
             {clienti.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
+                <td colSpan={5} className="px-4 py-[34px] text-center text-sm text-testo-metadati">
                   {ricerca
                     ? "Nessun cliente corrisponde alla ricerca."
                     : "Nessun cliente negli stati selezionati."}
@@ -123,7 +123,7 @@ function FiltroStatoClienti({ elenco, ricerca }: { elenco: ElencoClientiPaginato
   return (
     <div className="ml-auto flex flex-wrap items-center gap-3">
       {ricerca && (
-        <span className="text-[12px] text-zinc-400 dark:text-zinc-500">
+        <span className="text-xs text-testo-metadati">
           La ricerca include tutti gli stati
         </span>
       )}
@@ -152,14 +152,14 @@ function FiltroStatoClienti({ elenco, ricerca }: { elenco: ElencoClientiPaginato
                 )
               }
               aria-pressed={selezionato}
-              className={`whitespace-nowrap cursor-pointer rounded-[7px] px-[11px] py-[5px] font-[inherit] text-[12.5px] font-semibold transition ${
+              className={`whitespace-nowrap cursor-pointer rounded-[7px] px-[11px] py-[5px] font-[inherit] text-sm font-medium transition ${
                 selezionato
-                  ? "bg-white text-zinc-800 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  ? "bg-white text-testo-principale shadow-sm dark:bg-zinc-700"
+                  : "text-testo-metadati hover:text-zinc-700 dark:hover:text-zinc-200"
               }`}
             >
               {ETICHETTE_FILTRO[tipo]}
-              <span className="ml-[5px] font-medium text-zinc-400 tabular-nums dark:text-zinc-500">
+              <span className="ml-[5px] font-medium text-testo-metadati tabular-nums">
                 {conteggiPerStato[tipo]}
               </span>
             </button>
@@ -189,7 +189,7 @@ function RigaCliente({ cliente }: { cliente: ElencoClientiPaginato["clienti"][nu
   return (
     <tr
       className={`transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 ${
-        nonAttivo ? "text-zinc-400 dark:text-zinc-500" : ""
+        nonAttivo ? "text-testo-metadati" : ""
       } ${isSelezionato(cliente.id) ? "bg-indigo-50/60 dark:bg-indigo-500/10" : ""}`}
     >
       <td className="px-4 py-[13px] align-middle">
@@ -201,27 +201,27 @@ function RigaCliente({ cliente }: { cliente: ElencoClientiPaginato["clienti"][nu
           className="flex min-w-0 items-center gap-[11px] rounded-[10px] no-underline outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-indigo-400 dark:hover:bg-zinc-800/40"
         >
           <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-[11.5px] font-bold ${
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-xs font-medium ${
               cliente.stato.tipo === "ATTIVO"
                 ? "bg-indigo-500 text-white"
                 : cliente.stato.tipo === "NUOVO"
                   ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300"
-                  : "border border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+                  : "border border-zinc-200 bg-zinc-100 text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800"
             }`}
           >
             {iniziali}
           </div>
           <div className="min-w-0 leading-[1.3]">
             <b
-              className={`block overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold ${
+              className={`block overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium ${
                 nonAttivo
-                  ? "text-zinc-500 dark:text-zinc-400"
-                  : "text-zinc-800 dark:text-zinc-100"
+                  ? "text-testo-metadati"
+                  : "text-testo-principale"
               }`}
             >
               {cliente.ragioneSociale}
             </b>
-            <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
+            <span className="text-xs text-testo-metadati">
               {cliente.pec || cliente.codiceDestinatario
                 ? "Fatturazione elettronica configurata"
                 : "Dati fatturazione da completare"}
