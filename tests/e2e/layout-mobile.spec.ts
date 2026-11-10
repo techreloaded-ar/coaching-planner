@@ -52,6 +52,29 @@ async function fotografaNeiTemi(page: Page, testInfo: TestInfo, nome: string, at
   }
 }
 
+/**
+ * Su smartphone la barra del mese è compatta: frecce e mese sulla prima riga,
+ * poi comandi e vista a sola icona (il testo resta come nome accessibile).
+ */
+async function verificaBarraCompatta(page: Page, larghezza: number) {
+  if (larghezza >= SMARTPHONE) return;
+  const vista = page.getByRole("navigation", { name: "Vista delle attività" });
+  const mese = (await page.getByTestId("calendar-month-label").boundingBox())!;
+  const comandi = [
+    page.getByRole("button", { name: "Mese corrente", exact: true }).or(page.getByRole("link", { name: "Mese corrente", exact: true })),
+    page.getByRole("link", { name: "Riepilogo mese", exact: true }),
+    vista.getByRole("link", { name: "Calendario", exact: true }),
+    vista.getByRole("link", { name: "Elenco", exact: true }),
+  ];
+  const primo = (await comandi[0].boundingBox())!;
+  for (const comando of comandi) {
+    const box = (await comando.boundingBox())!;
+    expect(box.width).toBeLessThanOrEqual(AREA_TOCCO_MINIMA + 1);
+    expect(box.y).toBeGreaterThanOrEqual(mese.y + mese.height);
+    expect(Math.abs(box.y + box.height / 2 - (primo.y + primo.height / 2))).toBeLessThanOrEqual(2);
+  }
+}
+
 test.describe("Layout mobile", () => {
   for (const larghezza of LARGHEZZE) {
     test(`calendario a ${larghezza} px: toolbar utilizzabile e celle confinate`, async ({
@@ -83,6 +106,7 @@ test.describe("Layout mobile", () => {
       const vista = page.getByRole("navigation", { name: "Vista delle attività" });
       await verificaComando(vista.getByRole("link", { name: "Calendario", exact: true }), larghezza);
       await verificaComando(vista.getByRole("link", { name: "Elenco", exact: true }), larghezza);
+      await verificaBarraCompatta(page, larghezza);
 
       const cella = page.locator(`a[href="/attivita/${data}?mese=${mese}"]`);
       await expect(cella).toHaveAttribute("data-con-attivita", "true");
@@ -159,6 +183,7 @@ test.describe("Layout mobile", () => {
       await verificaComando(page.getByRole("link", { name: "Mese corrente", exact: true }), larghezza);
       await verificaComando(page.getByRole("link", { name: "Riepilogo mese", exact: true }), larghezza);
       await verificaComando(vista.getByRole("link", { name: "Calendario", exact: true }), larghezza);
+      await verificaBarraCompatta(page, larghezza);
     });
 
     test(`barra del mese di Fatturazione collaboratori a ${larghezza} px`, async ({ page }, testInfo) => {

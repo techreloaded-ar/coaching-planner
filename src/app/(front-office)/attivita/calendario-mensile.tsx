@@ -344,10 +344,11 @@ export default function CalendarioMensile({
   return (
     <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-sm:px-4 max-sm:py-5">
       {/* ── Barra navigazione mese ── */}
-      {/* Su smartphone la barra va su tre righe: frecce e mese, poi «Mese
-          corrente» e «Riepilogo mese», poi vista e riepilogo righe. */}
+      {/* Su smartphone la barra è compatta, su due righe: frecce e mese, poi
+          «Mese corrente», «Riepilogo mese» e vista a sola icona (il testo resta
+          come nome accessibile) con il riepilogo righe a destra. */}
       <div className="mb-[18px] flex flex-wrap items-center gap-4 max-sm:gap-2.5">
-        <div className="flex items-center gap-2.5 max-sm:grid max-sm:w-full max-sm:grid-cols-[2.75rem_1fr_1fr_2.75rem]">
+        <div className="flex items-center gap-2.5 max-sm:contents">
           <button
             type="button"
             onClick={() => navigaVersoMese(mesePrecedente)}
@@ -369,7 +370,7 @@ export default function CalendarioMensile({
           {/* L'etichetta del mese è anche l'unico ingresso al salto diretto:
               la scelta entra nello stesso intento di navigazione delle frecce,
               quindi cache, attesa e URL restano quelli esistenti. */}
-          <div className="max-sm:col-span-2">
+          <div className="max-sm:basis-[calc(100%-6.75rem)]">
             <SelettoreMese
               tokenVisualizzato={tokenVisualizzato}
               onScegliMese={(token) => vaiA({ token, registraHistory: true })}
@@ -397,7 +398,8 @@ export default function CalendarioMensile({
           <button
             type="button"
             onClick={navigaVersoMeseCorrente}
-            className="ml-1 inline-flex cursor-pointer items-center gap-[7px] max-sm:col-span-2 max-sm:ml-0 max-sm:min-h-11 max-sm:justify-center rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            title="Mese corrente"
+            className="ml-1 inline-flex cursor-pointer items-center gap-[7px] max-sm:ml-0 max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
               viewBox="0 0 24 24"
@@ -409,7 +411,7 @@ export default function CalendarioMensile({
               <circle cx="12" cy="12" r="9" />
               <path d="M12 8v4l2.5 1.5" />
             </svg>
-            Mese corrente
+            <span className="max-sm:sr-only">Mese corrente</span>
           </button>
 
           <Link
@@ -417,7 +419,8 @@ export default function CalendarioMensile({
               `/attivita/riepilogo?mese=${tokenVisualizzato}`,
               collaboratoreConsultatoId
             )}
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm max-sm:col-span-2 max-sm:min-h-11 max-sm:justify-center transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            title="Riepilogo mese"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
               viewBox="0 0 24 24"
@@ -429,7 +432,7 @@ export default function CalendarioMensile({
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
             </svg>
-            Riepilogo mese
+            <span className="max-sm:sr-only">Riepilogo mese</span>
           </Link>
         </div>
 
@@ -443,13 +446,13 @@ export default function CalendarioMensile({
 
         {/* Riepilogo mese */}
         {totaleRighe > 0 && (
-          <div className="inline-flex items-center gap-[9px] rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-[12.5px] font-semibold text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+          <div className="inline-flex items-center gap-[9px] max-sm:ml-auto rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-[12.5px] font-semibold text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
-              className="h-[15px] w-[15px]"
+              className="h-[15px] w-[15px] max-sm:hidden"
             >
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <path d="M16 2v4M8 2v4M3 10h18" />
