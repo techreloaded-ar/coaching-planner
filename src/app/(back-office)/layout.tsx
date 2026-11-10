@@ -18,7 +18,7 @@ export default async function BackOfficeLayout({
       <div className="ml-[248px] max-[920px]:ml-0 flex min-h-[calc(100dvh-var(--altezza-banner-ambiente))] flex-col">
         {/* Il brand resta nella sidebar; l'header ospita il menu dell'account
             e, sotto 920 px, il pulsante del menu di navigazione. */}
-        <header className="sticky top-[var(--altezza-banner-ambiente)] z-10 flex min-h-[57px] items-center justify-end gap-4 border-b border-zinc-200 bg-white/80 px-8 py-2.5 max-sm:gap-2 max-sm:px-4 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
+        <header className="sticky top-[var(--altezza-banner-ambiente)] z-10 flex min-h-[57px] items-center justify-end gap-4 border-b border-zinc-200 bg-white/80 px-8 py-2.5 max-[920px]:py-1.5 max-sm:gap-2 max-sm:px-4 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
           <MenuConsoleMobile />
           <MenuAccount
             nome={sessione.nome}
