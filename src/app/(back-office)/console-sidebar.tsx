@@ -77,7 +77,7 @@ const NAV_ITEMS = [
 
 const CLASSI_LINK_ATTIVO = "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400";
 const CLASSI_LINK_INATTIVO =
-  "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100";
+  "text-testo-secondario hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100";
 
 /** Marchio della console: logo, nome del prodotto e area. */
 function BrandConsole() {
@@ -85,10 +85,10 @@ function BrandConsole() {
     <div className="flex min-w-0 items-center gap-[11px]">
       <LogoCoachingPlanner mostraNome={false} />
       <div className="min-w-0 leading-[1.25]">
-        <b className="block text-[14px] font-bold tracking-tight whitespace-nowrap text-zinc-800 dark:text-zinc-100">
+        <b className="block text-sm font-semibold tracking-tight whitespace-nowrap text-testo-principale">
           Coaching Planner
         </b>
-        <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+        <span className="text-xs font-medium text-testo-metadati">
           Amministrazione
         </span>
       </div>
@@ -107,7 +107,7 @@ function NavigazioneConsole({ suNavigazione }: { suNavigazione?: () => void }) {
         href="/attivita"
         onClick={suNavigazione}
         aria-current={attivitaAttiva ? "page" : undefined}
-        className={`relative flex items-center gap-[11px] max-[920px]:min-h-11 rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-semibold no-underline transition-colors ${
+        className={`relative flex items-center gap-[11px] max-[920px]:min-h-11 rounded-[10px] px-[11px] py-[9px] text-sm font-medium no-underline transition-colors ${
           attivitaAttiva ? CLASSI_LINK_ATTIVO : CLASSI_LINK_INATTIVO
         }`}
       >
@@ -117,7 +117,7 @@ function NavigazioneConsole({ suNavigazione }: { suNavigazione?: () => void }) {
         </span>
       </Link>
 
-      <span className="px-[10px] pb-[7px] pt-4 text-[10.5px] font-bold uppercase tracking-[.09em] text-zinc-400 dark:text-zinc-500">
+      <span className="px-[10px] pb-[7px] pt-4 text-xs font-medium text-testo-metadati">
         Gestione
       </span>
 
@@ -130,7 +130,7 @@ function NavigazioneConsole({ suNavigazione }: { suNavigazione?: () => void }) {
             href={item.href}
             onClick={suNavigazione}
             aria-current={isActive ? "page" : undefined}
-            className={`relative flex items-center gap-[11px] max-[920px]:min-h-11 rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-semibold no-underline transition-colors ${
+            className={`relative flex items-center gap-[11px] max-[920px]:min-h-11 rounded-[10px] px-[11px] py-[9px] text-sm font-medium no-underline transition-colors ${
               isActive ? CLASSI_LINK_ATTIVO : CLASSI_LINK_INATTIVO
             }`}
           >
@@ -187,7 +187,7 @@ export function MenuConsoleMobile() {
         aria-haspopup="dialog"
         aria-expanded={aperto}
         aria-controls="menu-navigazione-console"
-        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750 dark:hover:text-zinc-100"
+        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-testo-secondario shadow-sm transition hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-100"
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
           <path d="M4 6h16M4 12h16M4 18h16" />
@@ -213,7 +213,7 @@ export function MenuConsoleMobile() {
               type="button"
               onClick={chiudi}
               aria-label="Chiudi menu di navigazione"
-              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[10px] text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[10px] text-testo-metadati transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
                 <path d="M6 6l12 12M18 6 6 18" />

@@ -31,7 +31,7 @@ export function LogoCoachingPlanner({
       {mostraNome && (
         <span
           aria-hidden="true"
-          className={`whitespace-nowrap text-[15px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100 ${compattoSuMobile ? "max-sm:hidden" : ""}`}
+          className={`whitespace-nowrap text-[15px] font-semibold tracking-tight text-testo-principale ${compattoSuMobile ? "max-sm:hidden" : ""}`}
         >
           Coaching Planner
         </span>

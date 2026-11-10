@@ -604,7 +604,7 @@ export default function IsolaGiornata({
       <div className="mb-5">
         <Link
           href={ritornoHref}
-          className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+          className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
         >
           <svg
             viewBox="0 0 24 24"
@@ -628,7 +628,7 @@ export default function IsolaGiornata({
           <button
             type="button"
             onClick={() => navigaDiGiorni(-1)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Giorno precedente"
             title="Giorno precedente"
           >
@@ -667,13 +667,13 @@ export default function IsolaGiornata({
               setValoreSelettoreGiorno(scelto);
               navigaVersoGiorno(scelto);
             }}
-            className="rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-[13.5px] text-zinc-800 shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            className="rounded-[8px] border border-zinc-200 bg-white px-3 py-2 text-sm text-testo-principale shadow-sm transition focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800"
           />
 
           <button
             type="button"
             onClick={() => navigaDiGiorni(1)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Giorno successivo"
             title="Giorno successivo"
           >
@@ -694,13 +694,13 @@ export default function IsolaGiornata({
           <div
             role="alert"
             data-testid="errore-caricamento-giornata"
-            className="mb-[14px] flex flex-wrap items-center gap-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-[13px] font-semibold text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
+            className="mb-[14px] flex flex-wrap items-center gap-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
           >
             <span>{errore}</span>
             <button
               type="button"
               onClick={ritentaGiornata}
-              className="inline-flex cursor-pointer items-center rounded-[9px] border border-amber-400 bg-white px-2.5 py-1 text-[12.5px] font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
+              className="inline-flex cursor-pointer items-center rounded-[9px] border border-amber-400 bg-white px-2.5 py-1 text-sm font-medium text-amber-900 shadow-sm transition hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
             >
               Riprova
             </button>

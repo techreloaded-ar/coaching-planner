@@ -31,20 +31,20 @@ export default async function Home({
         <LogoCoachingPlanner mostraNome={false} grande />
 
         {/* Titolo e filo brand */}
-        <h1 className="mt-[26px] text-[38px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+        <h1 className="mt-[26px] text-[38px] font-semibold tracking-tight text-testo-principale">
           Coaching Planner
         </h1>
         <div
           aria-hidden="true"
           className="mt-[18px] h-1 w-11 rounded-full bg-gradient-to-r from-teal-600 to-emerald-500"
         />
-        <p className="mt-[14px] max-w-[340px] text-base text-zinc-600 dark:text-zinc-400">
+        <p className="mt-[14px] max-w-[340px] text-base text-testo-secondario">
           Consuntivi mensili di collaboratori, clienti e offerte.
         </p>
 
         {/* Messaggio post-logout */}
         {showLogout && (
-          <div className="mt-[26px] flex w-full max-w-[340px] items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[13.5px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+          <div className="mt-[26px] flex w-full max-w-[340px] items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
             <svg
               className="mt-0.5 h-[17px] w-[17px] shrink-0"
               viewBox="0 0 24 24"
@@ -62,7 +62,7 @@ export default async function Home({
         {/* Errore accesso negato */}
         {showError && (
           <div
-            className="mt-[26px] flex w-full max-w-[340px] items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-[13.5px] font-semibold text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300"
+            className="mt-[26px] flex w-full max-w-[340px] items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300"
             role="alert"
           >
             <svg
@@ -94,7 +94,7 @@ export default async function Home({
         </div>
 
         {/* Nota a piè di pagina */}
-        <p className="mt-[22px] text-xs text-zinc-400 dark:text-zinc-500">
+        <p className="mt-[22px] text-xs text-testo-metadati">
           Area riservata · accesso consentito solo al personale autorizzato
         </p>
       </main>

@@ -41,13 +41,13 @@ export default async function ReportFatturazioneClientiPage({
       {/* Intestazione view */}
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="mb-1 text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
+          <div className="mb-1 text-xs font-medium text-testo-metadati">
             Reportistica
           </div>
-          <h1 className="text-[23px] max-sm:text-[21px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+          <h1 className="text-[23px] max-sm:text-[21px] font-semibold tracking-tight text-testo-principale">
             Importi da fatturare per cliente
           </h1>
-          <p className="mt-[6px] max-w-[560px] text-[13px] text-zinc-400 dark:text-zinc-500">
+          <p className="mt-[6px] max-w-[560px] text-sm text-testo-metadati">
             Riepilogo mensile degli importi da fatturare a ciascun cliente, con
             manodopera e rimborsi trasferta calcolati sulle tariffe di offerta.
           </p>
@@ -55,11 +55,11 @@ export default async function ReportFatturazioneClientiPage({
         <form action={inviaPromemoriaFineMeseOra} className="flex flex-col items-end gap-[6px] max-sm:w-full max-sm:items-stretch">
           <PulsanteAttesa
             etichettaAttesa="Invio…"
-            className="inline-flex items-center justify-center gap-2 max-sm:min-h-11 rounded-[10px] bg-indigo-600 px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:bg-indigo-700"
+            className="inline-flex items-center justify-center gap-2 max-sm:min-h-11 rounded-[10px] bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-700"
           >
             Invia promemoria di fine mese
           </PulsanteAttesa>
-          <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
+          <p className="text-xs text-testo-metadati">
             Invia subito l&apos;email a tutti i collaboratori attivi
           </p>
         </form>
@@ -71,8 +71,8 @@ export default async function ReportFatturazioneClientiPage({
           role="status"
           className={
             promemoriaFalliti === 0
-              ? "mb-[18px] rounded-[11px] border border-emerald-200 bg-emerald-50 p-[15px] text-[13px] text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
-              : "mb-[18px] rounded-[11px] border border-amber-200 bg-amber-50 p-[15px] text-[13px] text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+              ? "mb-[18px] rounded-[11px] border border-emerald-200 bg-emerald-50 p-[15px] text-sm text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+              : "mb-[18px] rounded-[11px] border border-amber-200 bg-amber-50 p-[15px] text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
           }
         >
           Promemoria inviati: {promemoriaInviati}. Non riusciti: {promemoriaFalliti}.

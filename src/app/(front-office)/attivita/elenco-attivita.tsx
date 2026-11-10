@@ -40,6 +40,7 @@ import {
   urlElenco,
   type FiltriElenco,
 } from "./filtri-elenco";
+import { formattaGiornate, formattaNumeroOre } from "@/lib/formattazione";
 
 interface ElencoAttivitaProps {
   /** Token YYYY-MM del mese mostrato. */
@@ -52,10 +53,6 @@ interface ElencoAttivitaProps {
   solaLettura: boolean;
   /** Nome del collaboratore il cui foglio è consultato da un amministratore, `null` sul proprio foglio. */
   nomeCollaboratoreConsultato: string | null;
-}
-
-function formattaOre(ore: number): string {
-  return ore.toLocaleString("it-IT", { maximumFractionDigits: 2 });
 }
 
 function formattaEuro(importo: string): string {
@@ -88,10 +85,10 @@ function giornoPredefinito(token: string): string {
 }
 
 const CLASSE_PULSANTE =
-  "inline-flex h-9 cursor-pointer items-center justify-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200";
+  "inline-flex h-9 cursor-pointer items-center justify-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 text-sm font-medium text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:text-zinc-200";
 const CLASSE_CAMPO =
-  "h-9 rounded-[10px] border border-zinc-200 bg-white px-3 text-[13px] text-zinc-800 shadow-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200";
-const CLASSE_ETICHETTA = "text-[11px] font-bold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500";
+  "h-9 rounded-[10px] border border-zinc-200 bg-white px-3 text-sm text-testo-principale shadow-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800";
+const CLASSE_ETICHETTA = "text-xs font-medium text-testo-metadati";
 
 export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettura, nomeCollaboratoreConsultato }: ElencoAttivitaProps) {
   const router = useRouter();
@@ -212,10 +209,10 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
         />
 
         {righe.length > 0 && (
-          <div className="inline-flex items-center gap-[9px] max-sm:ml-auto rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-[12.5px] font-semibold text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+          <div className="inline-flex items-center gap-[9px] max-sm:ml-auto rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-sm font-medium text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
             <b className="tabular-nums">{righe.length} righe</b>
             <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
-            <b className="tabular-nums">{formattaOre(totaliMese.ore / ORE_PER_GIORNATA)} gg</b>
+            <b className="tabular-nums">{formattaGiornate(totaliMese.ore / ORE_PER_GIORNATA)}</b>
           </div>
         )}
       </div>
@@ -271,7 +268,7 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
             type="button"
             aria-expanded={aggiuntaAperta}
             onClick={() => setAggiuntaAperta((aperta) => !aperta)}
-            className="ml-auto inline-flex h-9 cursor-pointer items-center gap-[7px] rounded-[10px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white shadow-sm transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+            className="ml-auto inline-flex h-9 cursor-pointer items-center gap-[7px] rounded-[10px] bg-rose-600 px-3 text-sm font-medium text-white shadow-sm transition hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-700"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="h-4 w-4" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
@@ -301,14 +298,14 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
                 className={CLASSE_CAMPO}
               />
             </label>
-            <p className="mt-1.5 text-[11.5px] text-zinc-400 dark:text-zinc-500">
+            <p className="mt-1.5 text-xs text-testo-metadati">
               Solo giorni di {etichettaMese(token)}
             </p>
             <div className="mt-2.5 flex justify-end gap-2">
               <button type="button" className={CLASSE_PULSANTE} onClick={() => setAggiuntaAperta(false)}>
                 Annulla
               </button>
-              <button type="submit" className="inline-flex h-9 cursor-pointer items-center rounded-[10px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white hover:bg-rose-700">
+              <button type="submit" className="inline-flex h-9 cursor-pointer items-center rounded-[10px] bg-rose-600 px-3 text-sm font-medium text-white hover:bg-rose-700">
                 Apri giornata
               </button>
             </div>
@@ -317,7 +314,7 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
       </div>
 
       {erroreEliminazione && (
-        <div role="alert" className="mb-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-[13px] font-semibold text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200">
+        <div role="alert" className="mb-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200">
           {erroreEliminazione}
         </div>
       )}
@@ -325,11 +322,11 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
       {/* ── Tabella ── */}
       <section aria-label="Elenco delle attività del mese" data-idratata={idratata ? "true" : "false"}>
         {righe.length === 0 ? (
-          <div className="rounded-[11px] border border-dashed border-zinc-200 bg-zinc-50 p-[32px_20px] text-center text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-500">
+          <div className="rounded-[11px] border border-dashed border-zinc-200 bg-zinc-50 p-[32px_20px] text-center text-sm text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800/50">
             Nessuna attività registrata per questo mese.
           </div>
         ) : righeVisibili.length === 0 ? (
-          <div className="rounded-[11px] border border-dashed border-zinc-200 bg-zinc-50 p-[32px_20px] text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400">
+          <div className="rounded-[11px] border border-dashed border-zinc-200 bg-zinc-50 p-[32px_20px] text-center text-sm text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800/50">
             Nessuna riga corrisponde ai filtri.{" "}
             <button type="button" className="cursor-pointer font-semibold text-rose-700 underline dark:text-rose-300" onClick={() => aggiornaFiltri(FILTRI_VUOTI)}>
               Azzera filtri
@@ -337,7 +334,7 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
           </div>
         ) : (
           <div className="overflow-x-auto rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <table className="min-w-full border-collapse text-[13px]">
+            <table className="min-w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/80">
                   {["Giorno", "Cliente", "Offerta", "Categoria", "Nota"].map((titolo) => (
@@ -361,33 +358,33 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
                         className={`dark:border-zinc-800 ${nonAbilitata ? CLASSE_RIGA_OFFERTA_NON_ABILITATA : "border-b border-zinc-100"} ${inConferma ? "bg-rose-50 dark:bg-rose-950/40" : nonAbilitata ? "" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"}`}
                       >
                         <td className="whitespace-nowrap px-3.5 py-3 align-top">
-                          <span className="block font-bold text-zinc-800 dark:text-zinc-100">{giorno}</span>
-                          <span className="block text-[11.5px] text-zinc-400 dark:text-zinc-500">{settimana}</span>
+                          <span className="block font-semibold text-testo-principale">{giorno}</span>
+                          <span className="block text-xs text-testo-metadati">{settimana}</span>
                         </td>
-                        <td className="px-3.5 py-3 align-top font-bold text-zinc-800 dark:text-zinc-100">{riga.cliente.ragioneSociale}</td>
+                        <td className="px-3.5 py-3 align-top font-semibold text-testo-principale">{riga.cliente.ragioneSociale}</td>
                         <td className="px-3.5 py-3 align-top">
                           {riga.offerta ? (
                             <>
                               <span
-                                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-bold ${
+                                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
                                   riga.offertaNonAbilitata
                                     ? "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                                    : "border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                                    : "border-zinc-200 bg-zinc-50 text-testo-secondario dark:border-zinc-700 dark:bg-zinc-800"
                                 }`}
                               >
                                 {riga.offertaNonAbilitata && <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />}
                                 {riga.offerta.codice}
                               </span>
-                              <span className="mt-1 block text-[12px] text-zinc-500 dark:text-zinc-400">{riga.offerta.descrizione}</span>
+                              <span className="mt-1 block text-xs text-testo-metadati">{riga.offerta.descrizione}</span>
                             </>
                           ) : (
-                            <span className="inline-block rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                            <span className="inline-block rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
                               {ETICHETTA_OFFERTA_DA_DEFINIRE}
                             </span>
                           )}
                         </td>
                         <td className="px-3.5 py-3 align-top"><BadgeCategoriaAttivita categoria={riga.categoria} /></td>
-                        <td className="max-w-[280px] px-3.5 py-3 align-top text-zinc-600 dark:text-zinc-300">
+                        <td className="max-w-[280px] px-3.5 py-3 align-top text-testo-secondario">
                           {riga.nota
                             ? segmentiNota(riga.nota, filtri.nota).map((segmento, indice) =>
                                 segmento.trovato ? (
@@ -398,14 +395,14 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
                               )
                             : <span className="text-zinc-300 dark:text-zinc-600">—</span>}
                         </td>
-                        <td className="px-3.5 py-3 text-right align-top font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{formattaOre(riga.ore)}</td>
-                        <td className="whitespace-nowrap px-3.5 py-3 text-right align-top tabular-nums text-zinc-700 dark:text-zinc-300">
+                        <td className="px-3.5 py-3 text-right align-top font-semibold tabular-nums text-testo-principale">{formattaNumeroOre(riga.ore)}</td>
+                        <td className="whitespace-nowrap px-3.5 py-3 text-right align-top tabular-nums text-testo-secondario">
                           {riga.rimborsoTrasfertaImporto ? formattaEuro(riga.rimborsoTrasfertaImporto) : "—"}
                         </td>
                         {!solaLettura && (
                           <td className="whitespace-nowrap px-3.5 py-2 text-right align-top">
                             {inConferma ? (
-                              <span className="inline-flex items-center gap-2 text-[12.5px] font-semibold text-rose-800 dark:text-rose-300">
+                              <span className="inline-flex items-center gap-2 text-sm font-medium text-rose-800 dark:text-rose-300">
                                 Eliminare la riga?
                                 <button type="button" className={`${CLASSE_PULSANTE} h-8`} onClick={() => setRigaInConferma(null)}>No</button>
                                 <PulsanteAttesa
@@ -413,7 +410,7 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
                                   attesaEsterna={rigaInEliminazione === riga.id}
                                   etichettaAttesa="Elimino…"
                                   onClick={() => void elimina(riga)}
-                                  className="inline-flex h-8 cursor-pointer items-center rounded-[10px] bg-rose-600 px-3 text-[12.5px] font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                                  className="inline-flex h-8 cursor-pointer items-center rounded-[10px] bg-rose-600 px-3 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60"
                                 >
                                   Elimina
                                 </PulsanteAttesa>
@@ -467,13 +464,13 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
                 })}
               </tbody>
               <tfoot>
-                <tr className="bg-zinc-50 font-bold dark:bg-zinc-800/80">
-                  <td colSpan={5} data-testid="totale-elenco" className="px-3.5 py-3 text-[12.5px] text-zinc-500 dark:text-zinc-400">
+                <tr className="bg-zinc-50 font-semibold dark:bg-zinc-800/80">
+                  <td colSpan={5} data-testid="totale-elenco" className="px-3.5 py-3 text-sm text-testo-metadati">
                     {righeVisibili.length} righe su {righe.length}
                     {filtriAttivi && " · totale filtrato"}
                   </td>
-                  <td data-testid="totale-ore-elenco" className="whitespace-nowrap px-3.5 py-3 text-right tabular-nums text-zinc-800 dark:text-zinc-100">{formattaOre(totaliVisibili.ore)} h</td>
-                  <td data-testid="totale-rimborsi-elenco" className="whitespace-nowrap px-3.5 py-3 text-right tabular-nums text-zinc-800 dark:text-zinc-100">{formattaEuro(totaliVisibili.rimborsi)}</td>
+                  <td data-testid="totale-ore-elenco" className="whitespace-nowrap px-3.5 py-3 text-right tabular-nums text-testo-principale">{formattaNumeroOre(totaliVisibili.ore)} h</td>
+                  <td data-testid="totale-rimborsi-elenco" className="whitespace-nowrap px-3.5 py-3 text-right tabular-nums text-testo-principale">{formattaEuro(totaliVisibili.rimborsi)}</td>
                   {!solaLettura && <td />}
                 </tr>
               </tfoot>

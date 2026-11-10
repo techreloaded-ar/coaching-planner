@@ -10,15 +10,15 @@ const DESCRIZIONI: Record<StatoCliente["tipo"], string> = {
 export function ChipStatoCliente({ stato }: { stato: StatoCliente }) {
   const classi =
     stato.tipo === "ATTIVO"
-      ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
       : stato.tipo === "NUOVO"
         ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
-        : "border border-zinc-200 bg-zinc-100 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400";
+        : "border border-zinc-200 bg-zinc-100 text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800";
 
   return (
     <span
       title={DESCRIZIONI[stato.tipo]}
-      className={`inline-flex items-center gap-[5px] whitespace-nowrap rounded-full px-[9px] py-[3px] text-[11.5px] font-semibold ${classi}`}
+      className={`inline-flex items-center gap-[5px] whitespace-nowrap rounded-full px-[9px] py-[3px] text-xs font-medium ${classi}`}
     >
       {stato.tipo === "ATTIVO" && <span className="h-[6px] w-[6px] rounded-full bg-current" aria-hidden="true" />}
       {stato.tipo === "NON_ATTIVO" && (

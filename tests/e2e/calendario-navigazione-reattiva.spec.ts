@@ -85,7 +85,7 @@ test.describe("US-050 Navigazione mese reattiva", () => {
     const cella = page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`);
     await expect(cella).toHaveAttribute("data-con-attivita", "true");
     await expect(cella.getByTestId("etichetta-cliente")).toHaveText(
-      `${clienteConOfferta.cliente.ragioneSociale} 3.0 h`,
+      `${clienteConOfferta.cliente.ragioneSociale} 3 h`,
     );
     await expect(page.getByTestId("indicatore-caricamento-mese")).toBeHidden();
     await expect(calendario).toHaveAttribute("aria-busy", "false");
@@ -128,7 +128,7 @@ test.describe("US-050 Navigazione mese reattiva", () => {
     const cella = page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`);
     await expect(cella).toHaveAttribute("data-con-attivita", "true");
     await expect(cella.getByTestId("etichetta-cliente")).toHaveText(
-      `${clienteConOfferta.cliente.ragioneSociale} 3.0 h`,
+      `${clienteConOfferta.cliente.ragioneSociale} 3 h`,
     );
   });
 });

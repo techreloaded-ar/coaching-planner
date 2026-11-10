@@ -192,12 +192,12 @@ test.describe("US-057 Demo", () => {
       await expect(rigaReplicata).toBeVisible();
       await expect(rigaReplicata).toContainText(RAGIONE_SOCIALE_ORIGINE);
       await expect(rigaReplicata).toContainText(clienteConOfferta.offerta.codice);
-      await expect(rigaReplicata).toContainText("6.0 h");
+      await expect(rigaReplicata).toContainText("6 h");
       await expect(
         rigaReplicata.getByText("Fatturabile", { exact: true }),
       ).toBeVisible();
       await expect(rigaReplicata).toContainText(ETICHETTA_RIMBORSO);
-      await expect(rigaReplicata).toContainText("85.00");
+      await expect(rigaReplicata).toContainText("85,00");
     }
 
     // ── 8. Torna sul giorno di origine e riapre il selettore ────────────

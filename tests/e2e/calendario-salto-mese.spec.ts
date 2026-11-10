@@ -155,7 +155,7 @@ test.describe("US-058 Selettore di mese compatto sull'etichetta", () => {
     const cella = page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`);
     await expect(cella).toHaveAttribute("data-con-attivita", "true");
     await expect(cella.getByTestId("etichetta-cliente")).toHaveText(
-      `${clienteConOfferta.cliente.ragioneSociale} 4.0 h`,
+      `${clienteConOfferta.cliente.ragioneSociale} 4 h`,
     );
 
     // ── AC-4: il mese raggiunto vive nel token dell'indirizzo… ──
@@ -320,7 +320,7 @@ test.describe("US-058 Selettore di mese compatto sull'etichetta", () => {
     const cella = page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`);
     await expect(cella).toHaveAttribute("data-con-attivita", "true");
     await expect(cella.getByTestId("etichetta-cliente")).toHaveText(
-      `${clienteConOfferta.cliente.ragioneSociale} 2.0 h`,
+      `${clienteConOfferta.cliente.ragioneSociale} 2 h`,
     );
     await expect(page.getByTestId("indicatore-caricamento-mese")).toBeHidden();
     await expect(calendario).toHaveAttribute("aria-busy", "false");

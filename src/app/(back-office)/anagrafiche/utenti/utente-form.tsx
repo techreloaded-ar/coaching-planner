@@ -85,7 +85,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
     <div>
       <Link
         href="/anagrafiche/utenti"
-        className="mb-[14px] inline-flex items-center gap-[6px] text-[13px] font-semibold text-zinc-600 no-underline transition hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400"
+        className="mb-[14px] inline-flex items-center gap-[6px] text-sm font-medium text-testo-secondario no-underline transition hover:text-indigo-600 dark:hover:text-indigo-400"
       >
         <svg
           viewBox="0 0 24 24"
@@ -101,13 +101,13 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
       </Link>
 
       <div className="mb-[22px]">
-        <div className="mb-1 text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
+        <div className="mb-1 text-xs font-medium text-testo-metadati">
           Amministrazione · Utenti
         </div>
-        <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+        <h1 className="text-[23px] font-semibold tracking-tight text-testo-principale">
           {inModifica ? "Modifica utente" : "Nuovo utente"}
         </h1>
-        <p className="mt-[6px] max-w-[580px] text-[13px] leading-[1.55] text-zinc-400 dark:text-zinc-500">
+        <p className="mt-[6px] max-w-[580px] text-sm leading-[1.55] text-testo-metadati">
           {inModifica
             ? "Aggiorna nome, email e ruoli dell'utente: Amministratore e Collaboratore sono combinabili. Il nuovo assetto ha effetto al primo accesso protetto successivo."
             : "Indica nome, email e ruolo. L'utente comparirà in elenco con stato attivo e la sua email sarà riconosciuta dal flusso di accesso."}
@@ -125,7 +125,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
           {haErrori && (
             <div
               role="alert"
-              className="mb-5 flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-[13px] font-semibold leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+              className="mb-5 flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-sm font-medium leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -146,7 +146,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
           )}
 
           {inModifica && utente.collaboratore && (
-            <div className="mb-5 flex items-start gap-[11px] rounded-[11px] border border-amber-200 bg-amber-50 p-[13px] text-[13px] leading-[1.5] text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+            <div className="mb-5 flex items-start gap-[11px] rounded-[11px] border border-amber-200 bg-amber-50 p-[13px] text-sm leading-[1.5] text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -204,8 +204,8 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
               aria-describedby={stato.errori.ruoli ? "errore-ruoli" : undefined}
               className="col-span-2 mb-[18px] min-w-0 max-[640px]:col-span-1"
             >
-                <legend className="mb-1.5 text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400">
-                  Ruolo <span className="font-bold text-red-600 dark:text-red-400">*</span>
+                <legend className="mb-1.5 text-sm font-medium text-testo-secondario">
+                  Ruolo <span className="font-semibold text-red-600 dark:text-red-400">*</span>
                 </legend>
                 <div className="grid grid-cols-2 gap-3 max-[640px]:grid-cols-1">
                   {RUOLI_AMMESSI.map((ruolo) => {
@@ -246,19 +246,19 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                               : "border-zinc-200 dark:border-zinc-700"
                           }`}
                         >
-                          <span className="ruolo-icona grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] border border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                          <span className="ruolo-icona grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] border border-zinc-200 bg-zinc-50 text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                             <IconaRuolo ruolo={ruolo} usaColoreCorrente />
                           </span>
                           <span className="min-w-0 leading-[1.3]">
                             <span
                               id={etichettaId}
-                              className="block text-[13.5px] font-bold text-zinc-800 dark:text-zinc-100"
+                              className="block text-sm font-semibold text-testo-principale"
                             >
                               {ETICHETTE_RUOLO[ruolo]}
                             </span>
                             <span
                               id={descrizioneId}
-                              className="mt-0.5 block text-[12px] text-zinc-400 dark:text-zinc-500"
+                              className="mt-0.5 block text-xs text-testo-metadati"
                             >
                               {DESCRIZIONI_RUOLO[ruolo]}
                             </span>
@@ -302,7 +302,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                 <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-1.5 max-[640px]:col-span-1">
                   <label
                     htmlFor="modalitaTariffa"
-                    className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
+                    className="text-sm font-medium text-testo-secondario"
                   >
                     Modalità tariffa
                   </label>
@@ -311,7 +311,7 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
                     name="modalitaTariffa"
                     defaultValue={valoreIniziale("modalitaTariffa", "GIORNALIERA")}
                     aria-invalid={!!stato.errori.modalitaTariffa}
-                    className="w-full rounded-[10px] border border-zinc-200 bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition focus:border-indigo-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-[10px] border border-zinc-200 bg-white px-[13px] py-[10px] font-[inherit] text-sm text-testo-principale outline-none transition focus:border-indigo-300 dark:border-zinc-700 dark:bg-zinc-900"
                   >
                     {MODALITA_TARIFFA.map((modalita) => (
                       <option key={modalita} value={modalita}>
@@ -354,13 +354,13 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
 
         <div className="flex items-center justify-end gap-[10px] border-t border-zinc-200 bg-zinc-50 px-7 py-4 dark:border-zinc-700 dark:bg-zinc-800/50 max-[520px]:flex-wrap">
           {inModifica && (
-            <span className="mr-auto flex items-center gap-2 text-[12.5px] text-zinc-400 dark:text-zinc-500 max-[520px]:w-full">
+            <span className="mr-auto flex items-center gap-2 text-sm text-testo-metadati max-[520px]:w-full">
               Stato attuale:
               <span
-                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-[9px] py-[3px] text-[11.5px] font-semibold ${
+                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-[9px] py-[3px] text-xs font-medium ${
                   utente.attivo
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-400"
-                    : "border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-400"
+                    : "border-zinc-200 bg-zinc-100 text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800"
                 }`}
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
@@ -370,13 +370,13 @@ export default function UtenteForm({ utente }: UtenteFormProps) {
           )}
           <Link
             href="/anagrafiche/utenti"
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm no-underline transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-sm font-medium text-testo-secondario shadow-sm no-underline transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
           >
             Annulla
           </Link>
           <PulsanteAttesa
             etichettaAttesa={inModifica ? "Salvataggio…" : "Censimento…"}
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
           >
             <svg
               viewBox="0 0 24 24"
@@ -430,9 +430,9 @@ function Campo({
     <div className="col-span-2 mb-[18px] flex min-w-0 flex-col gap-1.5 max-[640px]:col-span-1">
       <label
         htmlFor={name}
-        className="text-[12.5px] font-semibold tracking-[.01em] text-zinc-600 dark:text-zinc-400"
+        className="text-sm font-medium text-testo-secondario"
       >
-        {label} {!facoltativo && <span className="font-bold text-red-600 dark:text-red-400">*</span>}
+        {label} {!facoltativo && <span className="font-semibold text-red-600 dark:text-red-400">*</span>}
       </label>
       <input
         id={name}
@@ -443,7 +443,7 @@ function Campo({
         placeholder={placeholder}
         aria-invalid={!!errore}
         aria-describedby={errore ? erroreId : hint ? hintId : undefined}
-        className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-[14px] text-zinc-800 outline-none transition placeholder:text-zinc-400 dark:bg-zinc-900 dark:text-zinc-100 ${
+        className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-sm text-testo-principale outline-none transition placeholder:text-zinc-400 dark:bg-zinc-900 ${
           errore
             ? "border-red-600 shadow-[0_0_0_3px_rgb(239_68_68_/_0.08)]"
             : "border-zinc-200 focus:border-indigo-300 focus:shadow-[0_0_0_3px_rgb(99_102_241_/_0.12)] dark:border-zinc-700 dark:focus:border-indigo-500/50"
@@ -453,7 +453,7 @@ function Campo({
         <ErroreCampo id={erroreId}>{errore}</ErroreCampo>
       ) : (
         hint && (
-          <p id={hintId} className="m-0 text-[12px] text-zinc-400 dark:text-zinc-500">
+          <p id={hintId} className="m-0 text-xs text-testo-metadati">
             {hint}
           </p>
         )
@@ -466,7 +466,7 @@ function ErroreCampo({ id, children }: { id: string; children: string }) {
   return (
     <p
       id={id}
-      className="m-0 inline-flex items-center gap-[5px] text-[12px] font-semibold text-red-600 dark:text-red-400"
+      className="m-0 inline-flex items-center gap-[5px] text-xs font-medium text-red-600 dark:text-red-400"
     >
       <svg
         viewBox="0 0 24 24"
@@ -492,7 +492,7 @@ function SezioneForm({
   children: string;
 }) {
   return (
-    <div className="col-span-2 mt-2 flex items-center gap-2 border-b border-zinc-100 pb-3 pt-1.5 text-[11px] font-bold uppercase tracking-[.08em] text-zinc-400 first:mt-0 dark:border-zinc-800 dark:text-zinc-500 max-[640px]:col-span-1">
+    <div className="col-span-2 mt-2 flex items-center gap-2 border-b border-zinc-100 pb-3 pt-1.5 text-xs font-medium text-testo-metadati first:mt-0 dark:border-zinc-800 max-[640px]:col-span-1">
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -543,7 +543,7 @@ function IconaRuolo({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      className={`h-4 w-4 ${usaColoreCorrente ? "text-current" : "text-zinc-500 dark:text-zinc-400"}`}
+      className={`h-4 w-4 ${usaColoreCorrente ? "text-current" : "text-testo-metadati"}`}
       strokeWidth={2.2}
       aria-hidden="true"
     >

@@ -199,12 +199,12 @@ export function CasellaSelezione({ id, nome }: { id: string; nome: string }) {
 export function ChipStato({ attivo, femminile = false }: { attivo: boolean; femminile?: boolean }) {
   const desinenza = femminile ? "a" : "o";
   return attivo ? (
-    <span className="inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+    <span className="inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-emerald-50 px-[9px] py-[3px] text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
       <span className="h-[6px] w-[6px] rounded-full bg-current" aria-hidden="true" />
       {`Attiv${desinenza}`}
     </span>
   ) : (
-    <span className="inline-flex items-center gap-[5px] whitespace-nowrap rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-[11.5px] font-semibold text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+    <span className="inline-flex items-center gap-[5px] whitespace-nowrap rounded-full border border-zinc-200 bg-zinc-100 px-[9px] py-[3px] text-xs font-medium text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
       <span className="h-[6px] w-[6px] rounded-full bg-current" aria-hidden="true" />
       {`Disattivat${desinenza}`}
     </span>
@@ -235,10 +235,10 @@ const ICONA_ELIMINA = (
 );
 
 const classePulsante =
-  "inline-flex items-center gap-[6px] rounded-[9px] border border-zinc-200 bg-white px-[11px] py-[6px] font-[inherit] text-[12.5px] font-semibold no-underline shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-zinc-700 dark:bg-zinc-900";
-const tonoNeutro = "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800";
+  "inline-flex items-center gap-[6px] rounded-[9px] border border-zinc-200 bg-white px-[11px] py-[6px] font-[inherit] text-sm font-medium no-underline shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-zinc-700 dark:bg-zinc-900";
+const tonoNeutro = "text-testo-secondario hover:bg-zinc-50 dark:hover:bg-zinc-800";
 const tonoRosso = "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10";
-const tonoVerde = "text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10";
+const tonoVerde = "text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10";
 
 /** «Disattiva» con una sola selezione, «Disattiva (2)» con più elementi selezionati. */
 function etichettaConConteggio(etichetta: string, conteggio: number, selezionati: number) {
@@ -291,7 +291,7 @@ export function BarraElencoSelezionabile({ children }: { children: ReactNode }) 
       aria-label="Azioni sulla selezione"
       className="flex min-h-[61px] flex-wrap items-center gap-2 border-b border-indigo-200 bg-indigo-50 px-4 py-[12px] dark:border-indigo-500/30 dark:bg-indigo-500/10"
     >
-      <span aria-live="polite" className="mr-1 text-[13px] font-bold text-indigo-700 dark:text-indigo-300">
+      <span aria-live="polite" className="mr-1 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
         {`${n} ${n === 1 ? nomi.singolare : nomi.plurale} selezionat${desinenza}`}
       </span>
       <span className="mx-1 h-[22px] w-px bg-indigo-200 dark:bg-indigo-500/30" aria-hidden="true" />
@@ -381,7 +381,7 @@ export function BarraElencoSelezionabile({ children }: { children: ReactNode }) 
       <button
         type="button"
         onClick={() => impostaSelezione(new Set())}
-        className="ml-auto inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-indigo-600 transition hover:bg-indigo-100 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+        className="ml-auto inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-sm font-medium text-indigo-600 transition hover:bg-indigo-100 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
       >
         <Icona><path d="M6 6l12 12M18 6 6 18" /></Icona>
         Annulla selezione
@@ -421,10 +421,10 @@ function DialogDisattivazione({ onChiudi }: { onChiudi: () => void }) {
         <div className="mb-[13px] flex h-10 w-10 items-center justify-center rounded-[12px] bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
           {ICONA_DISATTIVA}
         </div>
-        <h3 id="dialog-disattivazione-titolo" className="mb-[7px] text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
+        <h3 id="dialog-disattivazione-titolo" className="mb-[7px] text-[16.5px] font-semibold text-testo-principale">
           {titolo}
         </h3>
-        <p className="mb-[18px] text-[13px] leading-[1.55] text-zinc-600 dark:text-zinc-400">
+        <p className="mb-[18px] text-sm leading-[1.55] text-testo-secondario">
           {stato.descrizioneDisattivazione
             ? stato.descrizioneDisattivazione(daDisattivare)
             : "Gli elementi disattivati restano nello storico e potrai riattivarli in qualsiasi momento; nessun dato viene eliminato."}
@@ -434,7 +434,7 @@ function DialogDisattivazione({ onChiudi }: { onChiudi: () => void }) {
             type="button"
             autoFocus
             onClick={onChiudi}
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-sm font-medium text-testo-secondario shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
           >
             Annulla
           </button>
@@ -446,7 +446,7 @@ function DialogDisattivazione({ onChiudi }: { onChiudi: () => void }) {
             {stato.campiNascosti}
             <PulsanteAttesa
               etichettaAttesa="Disattivazione…"
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:brightness-[.92]"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:brightness-[.92]"
             >
               Disattiva
             </PulsanteAttesa>

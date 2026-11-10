@@ -36,11 +36,11 @@ export default function StatoProfiloCollaboratore({
       <div>
         <h2
           id="titolo-stato-profilo"
-          className="text-xl font-bold text-zinc-800 dark:text-zinc-100"
+          className="text-xl font-semibold text-testo-principale"
         >
           Attività non disponibili
         </h2>
-        <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        <p className="mt-2 text-sm leading-6 text-testo-secondario">
           {profiloAssente
             ? "Il tuo account non è collegato a un profilo Collaboratore. Per registrare e consultare le attività, richiedi il censimento nell'Anagrafica collaboratori."
             : "Il tuo profilo Collaboratore è disattivato. Non puoi registrare o consultare attività finché non viene riattivato."}
@@ -49,7 +49,7 @@ export default function StatoProfiloCollaboratore({
       {amministratore && (
         <Link
           href="/anagrafiche/collaboratori"
-          className="inline-flex rounded-[10px] bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          className="inline-flex rounded-[10px] bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
         >
           Apri Anagrafica collaboratori
         </Link>

@@ -108,7 +108,7 @@ test.describe("Offerte abilitate e non abilitate nel form riga attività", () =>
 
     const rigaCard = page.getByTestId("activity-row").filter({ hasText: nota });
     await expect(rigaCard).toContainText(clienteConOfferta.offerta.codice);
-    await expect(rigaCard).toContainText("3.0 h");
+    await expect(rigaCard).toContainText("3 h");
   });
 
   test("AC-4: una riga su offerta non abilitata resta modificabile ed eliminabile", async ({
@@ -138,7 +138,7 @@ test.describe("Offerte abilitate e non abilitate nel form riga attività", () =>
       .getByTestId("activity-row")
       .filter({ hasText: rigaEsistente.nota ?? "" });
     await expect(rigaCard).toBeVisible();
-    await expect(rigaCard).toContainText("4.0 h");
+    await expect(rigaCard).toContainText("4 h");
 
     // Modifica: cambia le ore e salva
     await rigaCard.getByRole("button", { name: "Modifica" }).click();
@@ -156,7 +156,7 @@ test.describe("Offerte abilitate e non abilitate nel form riga attività", () =>
     const rigaCardAggiornata = page
       .getByTestId("activity-row")
       .filter({ hasText: rigaEsistente.nota ?? "" });
-    await expect(rigaCardAggiornata).toContainText("6.0 h");
+    await expect(rigaCardAggiornata).toContainText("6 h");
 
     // Elimina: gestisci il confirm nativo
     page.once("dialog", (dialog) => {

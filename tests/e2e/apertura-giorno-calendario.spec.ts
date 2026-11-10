@@ -68,7 +68,7 @@ test.describe("US-031 Apertura di qualsiasi giorno dal calendario", () => {
     await page.waitForURL(`**/attivita?mese=${mese}**`);
 
     await expect(cella).toHaveAttribute("data-con-attivita", "true");
-    await expect(cella).toContainText("3.0 h");
+    await expect(cella).toContainText("3 h");
 
     // AC-2 (continuazione): ri-click sulla cella → dettaglio con la card della riga
     await cella.click();

@@ -54,7 +54,7 @@ test.describe("US-030 Demo", () => {
 		// non più il codice offerta.
 		await expect(
 			giornoConAttivita.getByTestId("etichetta-cliente"),
-		).toHaveText(`${cliente.ragioneSociale} 6.0 h`);
+		).toHaveText(`${cliente.ragioneSociale} 6 h`);
 		await giornoConAttivita.click();
 		await expect(page.getByText(nota, { exact: true })).toBeVisible();
 

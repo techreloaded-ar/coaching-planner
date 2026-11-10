@@ -22,7 +22,7 @@ export function BadgeCategoriaAttivita({
   return (
     <span
       title={significato}
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-[9px] py-[3px] text-[11px] font-bold ${STILE_CATEGORIA[categoria]}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-full px-[9px] py-[3px] text-xs font-medium ${STILE_CATEGORIA[categoria]}`}
     >
       {etichetta}
     </span>

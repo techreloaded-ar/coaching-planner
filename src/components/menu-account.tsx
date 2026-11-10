@@ -72,7 +72,7 @@ export function MenuAccount({ nome, email, ruolo, azioneEsci }: MenuAccountProps
         aria-controls="pannello-account"
         title={nome}
         onClick={() => setAperto((valore) => !valore)}
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white ring-offset-2 transition hover:ring-2 hover:ring-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 aria-expanded:ring-2 aria-expanded:ring-zinc-300 dark:ring-offset-zinc-950 dark:hover:ring-zinc-600 dark:aria-expanded:ring-zinc-600 ${coloreAvatar}`}
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ring-offset-2 transition hover:ring-2 hover:ring-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 aria-expanded:ring-2 aria-expanded:ring-zinc-300 dark:ring-offset-zinc-950 dark:hover:ring-zinc-600 dark:aria-expanded:ring-zinc-600 ${coloreAvatar}`}
       >
         {iniziali}
       </button>
@@ -87,18 +87,18 @@ export function MenuAccount({ nome, email, ruolo, azioneEsci }: MenuAccountProps
           <div className="flex items-center gap-2.5 px-2 py-2">
             <div
               aria-hidden="true"
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white ${coloreAvatar}`}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${coloreAvatar}`}
             >
               {iniziali}
             </div>
             <div className="min-w-0 leading-tight">
-              <b className="block truncate text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
+              <b className="block truncate text-sm font-medium text-testo-principale">
                 {nome}
               </b>
-              <span className="block truncate text-[12px] text-zinc-500 dark:text-zinc-400">
+              <span className="block truncate text-xs text-testo-metadati">
                 {email}
               </span>
-              <span className="block text-[11.5px] text-zinc-400 dark:text-zinc-500">
+              <span className="block text-xs text-testo-metadati">
                 {ruolo}
               </span>
             </div>
@@ -107,7 +107,7 @@ export function MenuAccount({ nome, email, ruolo, azioneEsci }: MenuAccountProps
           <Link
             href="/impostazioni/tema"
             onClick={() => setAperto(false)}
-            className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+            className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm font-medium text-testo-secondario transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
               <circle cx="12" cy="12" r="3" />
@@ -119,7 +119,7 @@ export function MenuAccount({ nome, email, ruolo, azioneEsci }: MenuAccountProps
             <PulsanteAttesa
               data-esci
               etichettaAttesa="Uscita…"
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm font-medium text-testo-secondario transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 shrink-0">
                 <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" />

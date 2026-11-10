@@ -76,28 +76,32 @@ test.describe("US-034 Etichette cliente nel calendario mensile", () => {
     const etichetteCliente = cella.getByTestId("etichetta-cliente");
     await expect(etichetteCliente).toHaveCount(2);
     await expect(etichetteCliente.nth(0)).toHaveText(
-      `${clienteAConOffertaUno.cliente.ragioneSociale} 6.0 h`,
+      `${clienteAConOffertaUno.cliente.ragioneSociale} 6 h`,
     );
     await expect(etichetteCliente.nth(1)).toHaveText(
-      `${clienteBConOfferta.cliente.ragioneSociale} 3.0 h`,
+      `${clienteBConOfferta.cliente.ragioneSociale} 3 h`,
     );
     await expect(cella).not.toContainText(
       clienteAConOffertaUno.offerta.codice,
     );
 
-    // AC-4: il riepilogo giorno (numero righe, ore totali) resta invariato.
-    await expect(cella.getByText("3", { exact: true })).toBeVisible();
-    await expect(cella.getByText("9.0 h", { exact: true })).toBeVisible();
+    // AC-4: il riepilogo giorno (numero righe, ore totali) resta visibile.
+    await expect(cella.getByTestId("numero-righe")).toHaveAttribute("title", "3 righe");
+    await expect(cella.getByTestId("numero-righe").getByText("3", { exact: true })).toBeVisible();
+    await expect(cella.getByTestId("totali-giorno")).toHaveText("9 h");
 
-    // I totali stanno in cima, sulla riga del numero del giorno; i clienti in
-    // fondo alla cella.
+    // Il numero di righe sta in cima, sulla riga del numero del giorno; i
+    // clienti al centro e le ore totali, dato dominante, in fondo alla cella.
     const numeroGiorno = await cella.getByTestId("numero-giorno").boundingBox();
+    const numeroRighe = await cella.getByTestId("numero-righe").boundingBox();
     const totaliGiorno = await cella.getByTestId("totali-giorno").boundingBox();
     const primoCliente = await etichetteCliente.first().boundingBox();
-    expect(totaliGiorno!.y).toBeLessThan(numeroGiorno!.y + numeroGiorno!.height);
-    expect(totaliGiorno!.x).toBeGreaterThan(numeroGiorno!.x);
-    expect(primoCliente!.y).toBeGreaterThanOrEqual(
-      totaliGiorno!.y + totaliGiorno!.height,
+    const ultimoCliente = await etichetteCliente.last().boundingBox();
+    expect(numeroRighe!.y).toBeLessThan(numeroGiorno!.y + numeroGiorno!.height);
+    expect(numeroRighe!.x).toBeGreaterThan(numeroGiorno!.x);
+    expect(primoCliente!.y).toBeGreaterThanOrEqual(numeroGiorno!.y + numeroGiorno!.height);
+    expect(totaliGiorno!.y).toBeGreaterThanOrEqual(
+      ultimoCliente!.y + ultimoCliente!.height,
     );
 
     // AC-3: un terzo cliente nello stesso giorno introduce l'indicatore "+1"
@@ -119,10 +123,10 @@ test.describe("US-034 Etichette cliente nel calendario mensile", () => {
 
     await expect(etichetteCliente).toHaveCount(2);
     await expect(etichetteCliente.nth(0)).toHaveText(
-      `${clienteAConOffertaUno.cliente.ragioneSociale} 6.0 h`,
+      `${clienteAConOffertaUno.cliente.ragioneSociale} 6 h`,
     );
     await expect(etichetteCliente.nth(1)).toHaveText(
-      `${clienteBConOfferta.cliente.ragioneSociale} 3.0 h`,
+      `${clienteBConOfferta.cliente.ragioneSociale} 3 h`,
     );
     await expect(cella.getByTestId("indicatore-altri-clienti")).toHaveText(
       "+1",

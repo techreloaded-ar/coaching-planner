@@ -16,7 +16,7 @@ export function BannerPreproduzione() {
       >
         <path d="M9 3h6M10 3v7l-5.2 8.5A2.3 2.3 0 0 0 6.8 22h10.4a2.3 2.3 0 0 0 2-3.5L14 10V3M8 15h8" />
       </svg>
-      <span className="rounded-full bg-amber-200/70 px-2 py-0.5 text-[11px] font-bold tracking-wider dark:bg-amber-800/70">
+      <span className="rounded-full bg-amber-200/70 px-2 py-0.5 text-xs font-medium dark:bg-amber-800/70">
         PRE-PROD
       </span>
       <span aria-hidden="true" className="text-amber-400 dark:text-amber-600">·</span>

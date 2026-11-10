@@ -136,7 +136,7 @@ test.describe("US-052 Cambio mese servito dalla cache dei mesi", () => {
     const cellaA = cellaDelGiorno(page, giornoA, meseA);
     await expect(cellaA).toHaveAttribute("data-con-attivita", "true");
     await expect(cellaA.getByTestId("etichetta-cliente")).toHaveText(
-      `${clienteA.cliente.ragioneSociale} 4.0 h`,
+      `${clienteA.cliente.ragioneSociale} 4 h`,
     );
     // Nessun indicatore: il mese non è mai stato in caricamento.
     await expect(page.getByTestId("indicatore-caricamento-mese")).toBeHidden();
@@ -311,7 +311,7 @@ test.describe("US-052 Cambio mese servito dalla cache dei mesi", () => {
     const cellaC = cellaDelGiorno(page, giornoC, meseC);
     await expect(cellaC).toHaveAttribute("data-con-attivita", "true");
     await expect(cellaC.getByTestId("etichetta-cliente")).toHaveText(
-      `${clienteConOfferta.cliente.ragioneSociale} 7.5 h`,
+      `${clienteConOfferta.cliente.ragioneSociale} 7,5 h`,
     );
     await expect(page.getByTestId("indicatore-caricamento-mese")).toBeHidden();
     await expect(calendario).toHaveAttribute("aria-busy", "false");
@@ -454,7 +454,7 @@ test.describe("US-052 Cambio mese servito dalla cache dei mesi", () => {
     // Il mese del primo collaboratore è in cache e visibile.
     await expect(
       cellaDelGiorno(page, giornoDiA, mese).getByTestId("etichetta-cliente"),
-    ).toHaveText(`${clienteDiA.cliente.ragioneSociale} 4.0 h`);
+    ).toHaveText(`${clienteDiA.cliente.ragioneSociale} 4 h`);
 
     // Accesso con un altro account nella stessa finestra: cambia solo il
     // cookie, la scheda resta montata con la cache del collaboratore
@@ -501,7 +501,7 @@ test.describe("US-052 Cambio mese servito dalla cache dei mesi", () => {
     await attendiCalendarioIdratato(page);
     await expect(
       cellaDelGiorno(page, giornoDiB, mese).getByTestId("etichetta-cliente"),
-    ).toHaveText(`${clienteDiB.cliente.ragioneSociale} 6.0 h`);
+    ).toHaveText(`${clienteDiB.cliente.ragioneSociale} 6 h`);
     await expect(
       page.getByText(clienteDiA.cliente.ragioneSociale),
     ).toHaveCount(0);
@@ -535,7 +535,7 @@ test.describe("US-052 Cambio mese servito dalla cache dei mesi", () => {
 
     const cella = cellaDelGiorno(page, giorno, mese);
     await expect(cella.getByTestId("etichetta-cliente")).toHaveText(
-      `${cliente.ragioneSociale} 3.0 h`,
+      `${cliente.ragioneSociale} 3 h`,
     );
 
     // Il mese è ora in cache: la mutazione deve invalidarlo.
@@ -568,6 +568,6 @@ test.describe("US-052 Cambio mese servito dalla cache dei mesi", () => {
     // La entry precedente alla modifica non può mascherare il nuovo totale.
     await expect(
       cellaDelGiorno(page, giorno, mese).getByTestId("etichetta-cliente"),
-    ).toHaveText(`${cliente.ragioneSociale} 5.0 h`);
+    ).toHaveText(`${cliente.ragioneSociale} 5 h`);
   });
 });

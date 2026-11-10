@@ -93,7 +93,7 @@ test.describe("Selezione cliente con gruppo Consigliati", () => {
 			.getByTestId("activity-row")
 			.filter({ hasText: rigaEsistente.nota ?? "" });
 		await expect(rigaCard).toBeVisible();
-		await expect(rigaCard).toContainText("4.0 h");
+		await expect(rigaCard).toContainText("4 h");
 
 		await rigaCard.getByRole("button", { name: "Modifica" }).click();
 
@@ -115,6 +115,6 @@ test.describe("Selezione cliente con gruppo Consigliati", () => {
 		const rigaCardAggiornata = page
 			.getByTestId("activity-row")
 			.filter({ hasText: rigaEsistente.nota ?? "" });
-		await expect(rigaCardAggiornata).toContainText("6.0 h");
+		await expect(rigaCardAggiornata).toContainText("6 h");
 	});
 });
