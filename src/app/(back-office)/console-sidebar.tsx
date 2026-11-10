@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoCoachingPlanner } from "@/components/logo-coaching-planner";
@@ -72,72 +73,156 @@ const NAV_ITEMS = [
   { href: "/importazione", label: "Importazione", icon: IconRigheSospese },
 ] as const;
 
-// ── Componente ─────────────────────────────────────────────────
+// ── Componenti ─────────────────────────────────────────────────
 
-export default function ConsoleSidebar() {
+const CLASSI_LINK_ATTIVO = "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400";
+const CLASSI_LINK_INATTIVO =
+  "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100";
+
+/** Marchio della console: logo, nome del prodotto e area. */
+function BrandConsole() {
+  return (
+    <div className="flex min-w-0 items-center gap-[11px]">
+      <LogoCoachingPlanner mostraNome={false} />
+      <div className="min-w-0 leading-[1.25]">
+        <b className="block text-[14px] font-bold tracking-tight whitespace-nowrap text-zinc-800 dark:text-zinc-100">
+          Coaching Planner
+        </b>
+        <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+          Amministrazione
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Link della console, condivisi da sidebar desktop e menu apribile. */
+function NavigazioneConsole({ suNavigazione }: { suNavigazione?: () => void }) {
   const pathname = usePathname();
+  const attivitaAttiva = pathname === "/attivita" || pathname.startsWith("/attivita/");
 
   return (
-    <aside className="fixed bottom-0 top-[var(--altezza-banner-ambiente)] left-0 z-20 flex w-[248px] flex-col border-r border-zinc-200 bg-white transition-colors dark:border-zinc-800 dark:bg-zinc-900 max-[920px]:w-[66px]">
-      {/* Brand */}
-      <div className="flex items-center gap-[11px] border-b border-zinc-100 px-4 py-[18px] dark:border-zinc-800 max-[920px]:justify-center max-[920px]:px-0">
-        <LogoCoachingPlanner mostraNome={false} />
-        <div className="min-w-0 leading-[1.25] max-[920px]:hidden">
-          <b className="block text-[14px] font-bold tracking-tight whitespace-nowrap text-zinc-800 dark:text-zinc-100">
-            Coaching Planner
-          </b>
-          <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-            Amministrazione
-          </span>
-        </div>
-      </div>
-
-      {/* Navigazione */}
-      <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto px-[10px] py-[14px]" aria-label="Navigazione principale">
-        <Link
-          href="/attivita"
-          aria-current={pathname === "/attivita" || pathname.startsWith("/attivita/") ? "page" : undefined}
-          className={`relative flex items-center gap-[11px] rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-semibold no-underline transition-colors max-[920px]:justify-center max-[920px]:px-[10px] ${
-            pathname === "/attivita" || pathname.startsWith("/attivita/")
-              ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
-              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-          }`}
-        >
-          {IconAttivita}
-          <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap max-[920px]:hidden">
-            Le mie attività
-          </span>
-        </Link>
-
-        <span className="px-[10px] pb-[7px] pt-4 text-[10.5px] font-bold uppercase tracking-[.09em] text-zinc-400 dark:text-zinc-500 max-[920px]:hidden">
-          Gestione
+    <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto px-[10px] py-[14px]" aria-label="Navigazione principale">
+      <Link
+        href="/attivita"
+        onClick={suNavigazione}
+        aria-current={attivitaAttiva ? "page" : undefined}
+        className={`relative flex items-center gap-[11px] max-[920px]:min-h-11 rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-semibold no-underline transition-colors ${
+          attivitaAttiva ? CLASSI_LINK_ATTIVO : CLASSI_LINK_INATTIVO
+        }`}
+      >
+        {IconAttivita}
+        <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+          Le mie attività
         </span>
+      </Link>
 
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+      <span className="px-[10px] pb-[7px] pt-4 text-[10.5px] font-bold uppercase tracking-[.09em] text-zinc-400 dark:text-zinc-500">
+        Gestione
+      </span>
 
-          return (
-            <a
-              key={item.label}
-              href={item.href}
-              aria-current={isActive ? "page" : undefined}
-              className={`relative flex items-center gap-[11px] rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-semibold no-underline transition-colors max-[920px]:justify-center max-[920px]:px-[10px] ${
-                isActive
-                  ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
-                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-              }`}
-            >
-              {isActive && (
-                <span className="absolute -left-[10px] top-2 bottom-2 w-[3px] rounded-full bg-indigo-500 dark:bg-indigo-400" />
-              )}
-              {item.icon}
-              <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap max-[920px]:hidden">
-                {item.label}
-              </span>
-            </a>
-          );
-        })}
-      </nav>
+      {NAV_ITEMS.map((item) => {
+        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+        return (
+          <a
+            key={item.label}
+            href={item.href}
+            onClick={suNavigazione}
+            aria-current={isActive ? "page" : undefined}
+            className={`relative flex items-center gap-[11px] max-[920px]:min-h-11 rounded-[10px] px-[11px] py-[9px] text-[13.5px] font-semibold no-underline transition-colors ${
+              isActive ? CLASSI_LINK_ATTIVO : CLASSI_LINK_INATTIVO
+            }`}
+          >
+            {isActive && (
+              <span className="absolute -left-[10px] top-2 bottom-2 w-[3px] rounded-full bg-indigo-500 dark:bg-indigo-400" />
+            )}
+            {item.icon}
+            <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+              {item.label}
+            </span>
+          </a>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** Sidebar fissa, da 920 px in su. */
+export default function ConsoleSidebar() {
+  return (
+    <aside className="fixed bottom-0 top-[var(--altezza-banner-ambiente)] left-0 z-20 flex w-[248px] flex-col border-r border-zinc-200 bg-white transition-colors dark:border-zinc-800 dark:bg-zinc-900 max-[920px]:hidden">
+      <div className="border-b border-zinc-100 px-4 py-[18px] dark:border-zinc-800">
+        <BrandConsole />
+      </div>
+      <NavigazioneConsole />
     </aside>
+  );
+}
+
+/**
+ * Sotto 920 px la sidebar diventa un menu apribile dall'intestazione.
+ * Il `<dialog>` modale rende inerte il resto della pagina, chiude con Escape
+ * e alla chiusura riporta il focus sul pulsante che l'ha aperto.
+ */
+export function MenuConsoleMobile() {
+  const riferimentoDialog = useRef<HTMLDialogElement>(null);
+  const [aperto, setAperto] = useState(false);
+
+  function apri() {
+    riferimentoDialog.current?.showModal();
+    setAperto(true);
+  }
+
+  function chiudi() {
+    riferimentoDialog.current?.close();
+  }
+
+  return (
+    <div className="mr-auto flex items-center gap-3 min-[920px]:hidden">
+      <button
+        type="button"
+        onClick={apri}
+        aria-label="Apri menu di navigazione"
+        aria-haspopup="dialog"
+        aria-expanded={aperto}
+        aria-controls="menu-navigazione-console"
+        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750 dark:hover:text-zinc-100"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <LogoCoachingPlanner mostraNome={false} />
+
+      <dialog
+        id="menu-navigazione-console"
+        ref={riferimentoDialog}
+        aria-label="Menu di navigazione"
+        onClose={() => setAperto(false)}
+        // Il tocco sullo sfondo arriva al dialog stesso, non al suo contenuto.
+        onClick={(evento) => {
+          if (evento.target === evento.currentTarget) chiudi();
+        }}
+        className="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-[290px] max-w-[85vw] border-r border-zinc-200 bg-white p-0 shadow-xl backdrop:bg-zinc-900/40 dark:border-zinc-800 dark:bg-zinc-900"
+      >
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between gap-2 border-b border-zinc-100 py-2.5 pl-4 pr-2.5 dark:border-zinc-800">
+            <BrandConsole />
+            <button
+              type="button"
+              onClick={chiudi}
+              aria-label="Chiudi menu di navigazione"
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[10px] text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
+          </div>
+          <NavigazioneConsole suNavigazione={chiudi} />
+        </div>
+      </dialog>
+    </div>
   );
 }

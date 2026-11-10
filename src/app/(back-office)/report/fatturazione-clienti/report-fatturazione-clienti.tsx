@@ -214,13 +214,15 @@ export default function ReportFatturazioneClienti({
   return (
     <div>
       {/* ── Barra di navigazione del mese ── */}
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2.5">
+      {/* Su smartphone: frecce e mese, poi «Mese corrente», poi esportazione e
+          riepilogo, ciascuno alla larghezza disponibile. */}
+      <div className="mb-6 flex flex-wrap items-center gap-4 max-sm:gap-2.5">
+        <div className="flex items-center gap-2.5 max-sm:grid max-sm:w-full max-sm:grid-cols-[2.75rem_1fr_1fr_2.75rem]">
           <button
             type="button"
             // La catena dei click rapidi riparte dall'ultima intenzione.
             onClick={() => vaiA(mesePrecedente(tokenRichiesto.current), true)}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese precedente"
             title="Mese precedente"
           >
@@ -237,15 +239,17 @@ export default function ReportFatturazioneClienti({
 
           {/* L'etichetta del mese è anche l'ingresso al salto diretto, con lo
               stesso selettore del calendario attività. */}
-          <SelettoreMese
-            tokenVisualizzato={token}
-            onScegliMese={(mese) => vaiA(mese, true)}
-          />
+          <div className="max-sm:col-span-2">
+            <SelettoreMese
+              tokenVisualizzato={token}
+              onScegliMese={(mese) => vaiA(mese, true)}
+            />
+          </div>
 
           <button
             type="button"
             onClick={() => vaiA(meseSuccessivo(tokenRichiesto.current), true)}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese successivo"
             title="Mese successivo"
           >
@@ -263,7 +267,7 @@ export default function ReportFatturazioneClienti({
           <button
             type="button"
             onClick={() => vaiA(tokenMeseCorrente(), true, PERCORSO_REPORT)}
-            className="ml-1 inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="ml-1 inline-flex items-center gap-[7px] max-sm:col-span-4 max-sm:ml-0 max-sm:min-h-11 max-sm:justify-center rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
               viewBox="0 0 24 24"
@@ -279,15 +283,15 @@ export default function ReportFatturazioneClienti({
           </button>
         </div>
 
-        <div className="flex-1" />
+        <div className="flex-1 max-sm:hidden" />
 
         {report && !vuoto && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 max-sm:w-full max-sm:gap-2.5">
             <a
               href={`/report/fatturazione-clienti/esporta?mese=${token}`}
               download
               data-testid="esporta-excel"
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750 dark:hover:text-zinc-100"
+              className="inline-flex items-center gap-[7px] max-sm:min-h-11 max-sm:flex-1 max-sm:justify-center rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750 dark:hover:text-zinc-100"
             >
               <svg
                 aria-hidden="true"
@@ -414,7 +418,7 @@ export default function ReportFatturazioneClienti({
                       aria-expanded={espanso}
                       aria-controls={`dettaglio-collaboratori-${cliente.clienteId}`}
                       aria-label={`Dettaglio collaboratori ${cliente.clienteRagioneSociale}, da fatturare ${formattaEuro(cliente.importoTotale)}`}
-                      className="flex w-full flex-wrap items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50 px-5 py-4 text-left cursor-pointer dark:border-zinc-700 dark:bg-zinc-800/60"
+                      className="flex w-full flex-wrap items-center justify-between gap-4 max-sm:gap-3 border-b border-zinc-200 bg-zinc-50 px-5 py-4 max-sm:px-4 text-left cursor-pointer dark:border-zinc-700 dark:bg-zinc-800/60"
                     >
                       <div className="flex min-w-0 items-center gap-[13px]">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-indigo-50 text-[14px] font-extrabold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
@@ -430,12 +434,12 @@ export default function ReportFatturazioneClienti({
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right leading-[1.15]">
+                      <div className="flex items-center gap-4 max-sm:w-full max-sm:justify-between">
+                        <div className="text-right leading-[1.15] max-sm:text-left">
                           <span className="mb-[3px] block text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
                             Da fatturare
                           </span>
-                          <span className="text-[26px] font-extrabold -tracking-[0.03em] tabular-nums text-indigo-600 dark:text-indigo-400">
+                          <span className="text-[26px] max-sm:text-[22px] font-extrabold -tracking-[0.03em] tabular-nums text-indigo-600 dark:text-indigo-400">
                             {formattaEuro(cliente.importoTotale)}
                           </span>
                         </div>

@@ -190,7 +190,7 @@ export function SelettoreMese({
   }, [aperto, chiudi]);
 
   return (
-    <div className="relative" ref={riferimentoContenitore}>
+    <div className="relative max-sm:w-full" ref={riferimentoContenitore}>
       <button
         type="button"
         ref={riferimentoTrigger}
@@ -199,7 +199,7 @@ export function SelettoreMese({
         aria-expanded={aperto}
         title="Scegli il mese"
         onClick={() => (aperto ? chiudi(false) : apri())}
-        className={`inline-flex min-w-[188px] cursor-pointer items-center justify-center gap-2 rounded-[10px] border px-[13px] py-[5px] text-zinc-800 transition hover:border-rose-200 hover:bg-rose-50 focus-visible:border-rose-600 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-100 dark:text-zinc-100 dark:hover:border-rose-800 dark:hover:bg-rose-950/40 dark:focus-visible:ring-rose-950 ${
+        className={`inline-flex min-w-[188px] cursor-pointer max-sm:min-h-11 max-sm:w-full max-sm:min-w-0 items-center justify-center gap-2 rounded-[10px] border px-[13px] py-[5px] text-zinc-800 transition hover:border-rose-200 hover:bg-rose-50 focus-visible:border-rose-600 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-rose-100 dark:text-zinc-100 dark:hover:border-rose-800 dark:hover:bg-rose-950/40 dark:focus-visible:ring-rose-950 ${
           aperto
             ? "border-rose-200 bg-rose-50 shadow-sm dark:border-rose-800 dark:bg-rose-950/40"
             : "border-transparent"

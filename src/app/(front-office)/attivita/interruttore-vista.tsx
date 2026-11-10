@@ -31,7 +31,7 @@ export default function InterruttoreVista({
             // esiste proprio per evitare.
             prefetch={false}
             aria-current={attiva ? "page" : undefined}
-            className={`inline-flex items-center gap-1.5 rounded-[8px] px-3 py-[5px] text-[12.5px] font-semibold transition ${
+            className={`inline-flex items-center gap-1.5 rounded-[8px] px-3 py-[5px] max-sm:min-h-11 text-[12.5px] font-semibold transition ${
               attiva
                 ? "bg-white text-rose-800 shadow-sm dark:bg-zinc-900 dark:text-rose-300"
                 : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
