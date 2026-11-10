@@ -8,13 +8,16 @@ import type { Collaboratore } from "@/generated/prisma/client";
  */
 export default function BannerFoglioConsultato({
   collaboratore,
+  ampio = false,
 }: {
   collaboratore: Pick<Collaboratore, "id" | "userId" | "nome" | "cognome" | "attivo">;
+  /** Allinea il banner al contenitore più largo del dettaglio giornata. */
+  ampio?: boolean;
 }) {
   const nomeCompleto = `${collaboratore.nome} ${collaboratore.cognome}`;
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] px-8 pt-4 max-md:px-4">
+    <div className={`mx-auto w-full ${ampio ? "max-w-[1280px]" : "max-w-[1080px]"} px-8 pt-4 max-md:px-4`}>
       <div
         role="status"
         data-testid="banner-foglio-consultato"
