@@ -31,7 +31,9 @@ async function verificaIntestazione(page: Page, altezzaMassima: number) {
   expect(simbolo).not.toBeNull();
   expect(simbolo!.width).toBe(36);
   expect(simbolo!.height).toBe(36);
-  const marchio = await page.getByTestId("logo-coaching-planner").boundingBox();
+  // La console ha un marchio nella sidebar (da 920 px) e uno accanto al
+  // pulsante del menu (sotto 920 px): conta quello visibile.
+  const marchio = await page.getByTestId("logo-coaching-planner").filter({ visible: true }).boundingBox();
   const account = await pulsanteMenuAccount(page).boundingBox();
   expect(marchio).not.toBeNull();
   expect(account).not.toBeNull();

@@ -31,7 +31,8 @@ export default function InterruttoreVista({
             // esiste proprio per evitare.
             prefetch={false}
             aria-current={attiva ? "page" : undefined}
-            className={`inline-flex items-center gap-1.5 rounded-[8px] px-3 py-[5px] text-[12.5px] font-semibold transition ${
+            title={voce.etichetta}
+            className={`inline-flex items-center gap-1.5 rounded-[8px] px-3 py-[5px] max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 text-[12.5px] font-semibold transition ${
               attiva
                 ? "bg-white text-rose-800 shadow-sm dark:bg-zinc-900 dark:text-rose-300"
                 : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -40,7 +41,7 @@ export default function InterruttoreVista({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-[15px] w-[15px]" aria-hidden="true">
               <path d={voce.icona} />
             </svg>
-            {voce.etichetta}
+            <span className="max-sm:sr-only">{voce.etichetta}</span>
           </Link>
         );
       })}

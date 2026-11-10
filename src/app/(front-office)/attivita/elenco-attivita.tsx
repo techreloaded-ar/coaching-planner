@@ -170,36 +170,40 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
   return (
     <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-md:px-4 max-md:py-5">
       {/* ── Barra navigazione mese ── */}
-      <div className="mb-[18px] flex flex-wrap items-center gap-4">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Link href={urlDiElenco(mesePrecedente(token))} className={`${CLASSE_PULSANTE} w-9 px-0`} aria-label="Mese precedente" title="Mese precedente">
+      {/* Su smartphone la barra segue il calendario: frecce e mese, poi
+          comandi e vista a sola icona con il riepilogo righe a destra. */}
+      <div className="mb-[18px] flex flex-wrap items-center gap-4 max-sm:gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5 max-sm:contents">
+          <Link href={urlDiElenco(mesePrecedente(token))} className={`${CLASSE_PULSANTE} w-9 px-0 max-sm:h-11 max-sm:w-11`} aria-label="Mese precedente" title="Mese precedente">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-[18px] w-[18px]">
               <path d="m15 6-6 6 6 6" />
             </svg>
           </Link>
-          <SelettoreMese tokenVisualizzato={token} onScegliMese={(scelto) => router.push(urlDiElenco(scelto))} />
-          <Link href={urlDiElenco(meseSuccessivo(token))} className={`${CLASSE_PULSANTE} w-9 px-0`} aria-label="Mese successivo" title="Mese successivo">
+          <div className="max-sm:basis-[calc(100%-6.75rem)]">
+            <SelettoreMese tokenVisualizzato={token} onScegliMese={(scelto) => router.push(urlDiElenco(scelto))} />
+          </div>
+          <Link href={urlDiElenco(meseSuccessivo(token))} className={`${CLASSE_PULSANTE} w-9 px-0 max-sm:h-11 max-sm:w-11`} aria-label="Mese successivo" title="Mese successivo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-[18px] w-[18px]">
               <path d="m9 6 6 6-6 6" />
             </svg>
           </Link>
-          <Link href={urlDiElenco(null)} className={`${CLASSE_PULSANTE} ml-1`}>
+          <Link href={urlDiElenco(null)} className={`${CLASSE_PULSANTE} ml-1 max-sm:ml-0 max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0`} title="Mese corrente">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <circle cx="12" cy="12" r="9" />
               <path d="M12 8v4l2.5 1.5" />
             </svg>
-            Mese corrente
+            <span className="max-sm:sr-only">Mese corrente</span>
           </Link>
-          <Link href={urlDelFoglio(`/attivita/riepilogo?mese=${token}`, collaboratoreConsultatoId)} className={CLASSE_PULSANTE}>
+          <Link href={urlDelFoglio(`/attivita/riepilogo?mese=${token}`, collaboratoreConsultatoId)} className={`${CLASSE_PULSANTE} max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0`} title="Riepilogo mese">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
             </svg>
-            Riepilogo mese
+            <span className="max-sm:sr-only">Riepilogo mese</span>
           </Link>
         </div>
 
-        <div className="flex-1" />
+        <div className="flex-1 max-sm:hidden" />
 
         <InterruttoreVista
           vista="elenco"
@@ -208,7 +212,7 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
         />
 
         {righe.length > 0 && (
-          <div className="inline-flex items-center gap-[9px] rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-[12.5px] font-semibold text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+          <div className="inline-flex items-center gap-[9px] max-sm:ml-auto rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-[12.5px] font-semibold text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
             <b className="tabular-nums">{righe.length} righe</b>
             <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
             <b className="tabular-nums">{formattaOre(totaliMese.ore / ORE_PER_GIORNATA)} gg</b>

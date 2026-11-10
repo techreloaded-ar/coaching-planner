@@ -342,14 +342,17 @@ export default function CalendarioMensile({
   const giorniSettimana = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] px-8 py-7">
+    <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-sm:px-4 max-sm:py-5">
       {/* ── Barra navigazione mese ── */}
-      <div className="mb-[18px] flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2.5">
+      {/* Su smartphone la barra è compatta, su due righe: frecce e mese, poi
+          «Mese corrente», «Riepilogo mese» e vista a sola icona (il testo resta
+          come nome accessibile) con il riepilogo righe a destra. */}
+      <div className="mb-[18px] flex flex-wrap items-center gap-4 max-sm:gap-2.5">
+        <div className="flex items-center gap-2.5 max-sm:contents">
           <button
             type="button"
             onClick={() => navigaVersoMese(mesePrecedente)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese precedente"
             title="Mese precedente"
           >
@@ -367,15 +370,17 @@ export default function CalendarioMensile({
           {/* L'etichetta del mese è anche l'unico ingresso al salto diretto:
               la scelta entra nello stesso intento di navigazione delle frecce,
               quindi cache, attesa e URL restano quelli esistenti. */}
-          <SelettoreMese
-            tokenVisualizzato={tokenVisualizzato}
-            onScegliMese={(token) => vaiA({ token, registraHistory: true })}
-          />
+          <div className="max-sm:basis-[calc(100%-6.75rem)]">
+            <SelettoreMese
+              tokenVisualizzato={tokenVisualizzato}
+              onScegliMese={(token) => vaiA({ token, registraHistory: true })}
+            />
+          </div>
 
           <button
             type="button"
             onClick={() => navigaVersoMese(meseSuccessivo)}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese successivo"
             title="Mese successivo"
           >
@@ -393,7 +398,8 @@ export default function CalendarioMensile({
           <button
             type="button"
             onClick={navigaVersoMeseCorrente}
-            className="ml-1 inline-flex cursor-pointer items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            title="Mese corrente"
+            className="ml-1 inline-flex cursor-pointer items-center gap-[7px] max-sm:ml-0 max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
               viewBox="0 0 24 24"
@@ -405,7 +411,7 @@ export default function CalendarioMensile({
               <circle cx="12" cy="12" r="9" />
               <path d="M12 8v4l2.5 1.5" />
             </svg>
-            Mese corrente
+            <span className="max-sm:sr-only">Mese corrente</span>
           </button>
 
           <Link
@@ -413,7 +419,8 @@ export default function CalendarioMensile({
               `/attivita/riepilogo?mese=${tokenVisualizzato}`,
               collaboratoreConsultatoId
             )}
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            title="Riepilogo mese"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
               viewBox="0 0 24 24"
@@ -425,11 +432,11 @@ export default function CalendarioMensile({
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
             </svg>
-            Riepilogo mese
+            <span className="max-sm:sr-only">Riepilogo mese</span>
           </Link>
         </div>
 
-        <div className="flex-1" />
+        <div className="flex-1 max-sm:hidden" />
 
         <InterruttoreVista
           vista="calendario"
@@ -439,13 +446,13 @@ export default function CalendarioMensile({
 
         {/* Riepilogo mese */}
         {totaleRighe > 0 && (
-          <div className="inline-flex items-center gap-[9px] rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-[12.5px] font-semibold text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+          <div className="inline-flex items-center gap-[9px] max-sm:ml-auto rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-[12.5px] font-semibold text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
-              className="h-[15px] w-[15px]"
+              className="h-[15px] w-[15px] max-sm:hidden"
             >
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <path d="M16 2v4M8 2v4M3 10h18" />
@@ -513,7 +520,7 @@ export default function CalendarioMensile({
         </div>
 
         {/* Corpo griglia */}
-        <div className="grid grid-cols-7 auto-rows-[minmax(116px,auto)]">
+        <div className="grid grid-cols-7 auto-rows-[minmax(116px,auto)] max-sm:auto-rows-[minmax(64px,auto)]">
           {griglia.map((cella, idx) => {
             const cellaData = dataCalendario(cella.data);
             const key = formattaDataISO(cellaData);
@@ -525,7 +532,7 @@ export default function CalendarioMensile({
             const isLastRow = idx >= griglia.length - 7;
 
             const classiGiorno = [
-              "relative flex flex-col items-start gap-[7px] p-[9px_10px_10px] min-w-0 w-full transition-colors cursor-pointer",
+              "relative flex flex-col items-start gap-[7px] p-[9px_10px_10px] min-w-0 w-full overflow-hidden transition-colors cursor-pointer max-sm:items-center max-sm:gap-1 max-sm:p-1",
               (idx + 1) % 7 !== 0 ? "border-r border-zinc-100 dark:border-zinc-800" : "",
               !isLastRow ? "border-b border-zinc-100 dark:border-zinc-800" : "",
               cella.fuoriMese
@@ -559,14 +566,14 @@ export default function CalendarioMensile({
                   <span
                     data-testid="indicatore-offerte-non-abilitate"
                     title={`${righeNonAbilitate} ${righeNonAbilitate === 1 ? "riga" : "righe"} su offerte non abilitate`}
-                    className="absolute right-[9px] top-[9px] inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-[7px] py-[1px] text-[10.5px] font-bold tabular-nums text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                    className="absolute right-[9px] top-[9px] inline-flex items-center gap-1 rounded-full max-sm:hidden border border-amber-300 bg-amber-100 px-[7px] py-[1px] text-[10.5px] font-bold tabular-nums text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
                   >
                     <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />
                     {righeNonAbilitate}
                   </span>
                 )}
                 {/* In cima: numero del giorno e, a destra, i totali della giornata. */}
-                <div className="flex w-full flex-wrap items-center justify-between gap-1.5">
+                <div className="flex w-full flex-wrap items-center justify-between gap-1.5 max-sm:flex-col max-sm:gap-0.5">
                   <span
                     data-testid="numero-giorno"
                     className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded-lg text-[13px] font-semibold tabular-nums ${
@@ -580,8 +587,8 @@ export default function CalendarioMensile({
                     {cellaData.getDate()}
                   </span>
                   {haAttivita && (
-                    <div data-testid="totali-giorno" className="flex flex-wrap items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-white px-[7px] py-[3px] text-[11px] font-bold tabular-nums text-rose-800 dark:border-rose-800 dark:bg-zinc-800 dark:text-rose-300">
+                    <div data-testid="totali-giorno" className="flex flex-wrap items-center gap-1.5 max-sm:justify-center">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-white px-[7px] py-[3px] text-[11px] font-bold tabular-nums text-rose-800 max-sm:hidden dark:border-rose-800 dark:bg-zinc-800 dark:text-rose-300">
                         <svg
                           viewBox="0 0 24 24"
                           fill="none"
@@ -594,15 +601,26 @@ export default function CalendarioMensile({
                         </svg>
                         {sintesi[key].righe}
                       </span>
-                      <span className="inline-flex items-center rounded-md bg-rose-600 px-[7px] py-[3px] text-[11px] font-bold tabular-nums text-white dark:bg-rose-400 dark:text-zinc-900">
+                      <span className="inline-flex items-center whitespace-nowrap rounded-md bg-rose-600 px-[7px] py-[3px] text-[11px] font-bold tabular-nums text-white dark:bg-rose-400 dark:text-zinc-900 max-sm:bg-transparent max-sm:p-0 max-sm:text-[10.5px] max-sm:text-rose-800 dark:max-sm:bg-transparent dark:max-sm:text-rose-300">
                         {sintesi[key].oreTotali.toFixed(1)} h
                       </span>
                     </div>
                   )}
                 </div>
                 {/* In fondo: i clienti su cui si è lavorato nella giornata. */}
+                {/* Su smartphone i clienti restano nella pagina della giornata:
+                    la cella mostra solo un indicatore discreto. */}
                 {haAttivita && (
-                  <div className="mt-auto flex min-w-0 max-w-full flex-wrap gap-1">
+                  <span
+                    aria-hidden="true"
+                    data-testid="indicatore-attivita"
+                    className={`mt-auto h-1.5 w-1.5 shrink-0 rounded-full sm:hidden ${
+                      righeNonAbilitate > 0 ? "bg-amber-500 dark:bg-amber-400" : "bg-rose-600 dark:bg-rose-400"
+                    }`}
+                  />
+                )}
+                {haAttivita && (
+                  <div className="mt-auto flex min-w-0 max-w-full flex-wrap gap-1 max-sm:hidden">
                     {sintesi[key].clienti.slice(0, 2).map((cliente) => (
                       <span
                         key={cliente.clienteId}

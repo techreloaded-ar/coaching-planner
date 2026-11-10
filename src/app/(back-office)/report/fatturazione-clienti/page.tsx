@@ -44,7 +44,7 @@ export default async function ReportFatturazioneClientiPage({
           <div className="mb-1 text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
             Reportistica
           </div>
-          <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+          <h1 className="text-[23px] max-sm:text-[21px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
             Importi da fatturare per cliente
           </h1>
           <p className="mt-[6px] max-w-[560px] text-[13px] text-zinc-400 dark:text-zinc-500">
@@ -52,10 +52,10 @@ export default async function ReportFatturazioneClientiPage({
             manodopera e rimborsi trasferta calcolati sulle tariffe di offerta.
           </p>
         </div>
-        <form action={inviaPromemoriaFineMeseOra} className="flex flex-col items-end gap-[6px]">
+        <form action={inviaPromemoriaFineMeseOra} className="flex flex-col items-end gap-[6px] max-sm:w-full max-sm:items-stretch">
           <PulsanteAttesa
             etichettaAttesa="Invio…"
-            className="inline-flex items-center gap-2 rounded-[10px] bg-indigo-600 px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:bg-indigo-700"
+            className="inline-flex items-center justify-center gap-2 max-sm:min-h-11 rounded-[10px] bg-indigo-600 px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:bg-indigo-700"
           >
             Invia promemoria di fine mese
           </PulsanteAttesa>
