@@ -4,7 +4,12 @@ import { proposteDaEventi, type PropostaEvento } from "@/domain/calendario-googl
 
 const GIORNO = "2026-10-21";
 
-const proposta = (eventoId: string, titolo: string, dominiPartecipanti: string[] = []): PropostaEvento => ({
+const proposta = (
+  eventoId: string,
+  titolo: string,
+  dominiPartecipanti: string[] = [],
+  organizzazioniPartecipanti: string[] = []
+): PropostaEvento => ({
   eventoId,
   titolo,
   descrizione: "",
@@ -12,6 +17,7 @@ const proposta = (eventoId: string, titolo: string, dominiPartecipanti: string[]
   fine: "10:00",
   ore: 1,
   dominiPartecipanti,
+  organizzazioniPartecipanti,
 });
 
 const OFFERTE: OffertaAssociabile[] = [
@@ -120,6 +126,7 @@ describe("analizzaEventiCalendario con Jev", () => {
         timeZone: "Europe/Rome",
         description: "Sala 3",
         attendeeDomains: ["bancavaldostana.it"],
+        attendeeOrganizations: [],
       },
     });
     expect(Object.keys(corpo.questions)).toEqual(["clientIdentified", "offer", "notWorkRelated"]);
@@ -133,6 +140,7 @@ describe("analizzaEventiCalendario con Jev", () => {
     expect(corpo.questions.offer.type).toBe("choice");
     expect(corpo.questions.offer.criteria[ETICHETTA_FRR]).toEqual({
       client: "Ferramenta Rossi S.r.l.",
+      clientAcronym: "fr",
       offerCode: "FRR-KANBAN",
       offerDescription: "Introduzione Kanban magazzino",
       status: "closed",
@@ -204,6 +212,47 @@ describe("analizzaEventiCalendario con Jev", () => {
       ["bancavaldostana.it"],
       ["bancavaldostana.it"],
     ]);
+  });
+
+  it("invia le organizzazioni degli invitati e le sigle dei clienti", async () => {
+    mockFetch.mockImplementation(async () => rispostaJev(ETICHETTA_BVL, 0.9, 0.9));
+    const [daCalendario] = proposteDaEventi(
+      [
+        {
+          id: "ev-sdb",
+          summary: "Claude x Data platform",
+          start: { dateTime: `${GIORNO}T16:00:00+02:00` },
+          end: { dateTime: `${GIORNO}T17:30:00+02:00` },
+          attendees: [
+            { email: "io@agilereloaded.it", displayName: "Io - Agile Reloaded", self: true },
+            { email: "paolo.samori@tech.sdb.it", displayName: "Paolo Samori - Savino Del Bene IT Srl" },
+            { email: "davide.chini@tech.sdb.it", displayName: "Davide Chini - Savino Del Bene IT Srl" },
+            { email: "edoardo.bonanni@tech.sdb.it" },
+          ],
+        },
+      ],
+      GIORNO
+    );
+    const offertaSdb: OffertaAssociabile = {
+      ...OFFERTE[0],
+      id: "off-sdb",
+      codice: "SDB-AI",
+      cliente: { id: "cli-sdb", ragioneSociale: "Savino Del Bene S.p.A." },
+    };
+
+    await analizzaEventiCalendario([daCalendario], [offertaSdb, OFFERTE[1]], GIORNO);
+
+    const corpo = (mockFetch.mock.calls[0][1] as RequestInit).body as string;
+    const { state, questions } = JSON.parse(corpo);
+    expect(state.calendarEvent.attendeeDomains).toEqual(["tech.sdb.it"]);
+    expect(state.calendarEvent.attendeeOrganizations).toEqual(["Savino Del Bene IT Srl"]);
+    expect(corpo).not.toContain("Samori");
+    expect(corpo).not.toContain("Chini");
+    expect(questions.clientIdentified.instructions.clientAcronyms).toEqual({
+      "Savino Del Bene S.p.A.": "sdb",
+      "Ferramenta Rossi S.r.l.": "fr",
+    });
+    expect(questions.offer.criteria["Savino Del Bene S.p.A. – SDB-AI"].clientAcronym).toBe("sdb");
   });
 
   it("non invia mai indirizzi email né righe di esempio (AC-5)", async () => {

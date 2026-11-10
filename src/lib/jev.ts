@@ -10,9 +10,10 @@ import { FUSO_GIORNATA, type PropostaEvento } from "@/domain/calendario-google";
 //
 // Il coaching planner usa un'unica chiave di server (OPENROUTER_API_KEY) per
 // tutti i collaboratori. A Jev arrivano, un evento per richiesta, titolo,
-// descrizione, orario e domini degli invitati esterni (mai gli indirizzi; i
-// DOMINI_INTERNI sono tolti qui) e le offerte abilitate per il collaboratore,
-// comprese le chiuse. Forma della richiesta, istruzioni e regola di decisione
+// descrizione, orario, domini degli invitati esterni (mai gli indirizzi; i
+// DOMINI_INTERNI sono tolti qui) e organizzazioni ricavate dai loro nomi
+// visualizzati (mai il nome della persona), più le offerte abilitate per il
+// collaboratore, comprese le chiuse, con la sigla di ogni cliente. Forma della richiesta, istruzioni e regola di decisione
 // sono quelle validate con lo script di valutazione offline di Jev sul dataset
 // di prova (valuta-jev-associazioni.ts, fuori dal repository). Qualsiasi errore
 // degrada a «nessuna associazione e nessun evento escluso» per l'evento
@@ -186,6 +187,30 @@ function sogliaConfidenzaConfigurata(): number {
 
 // ── Richiesta ───────────────────────────────────────────────────
 
+const FORMA_SOCIETARIA = /^(spa|srl|srls|sas|snc|sapa)$/i;
+
+/**
+ * Sigla dalle iniziali della ragione sociale senza forma societaria
+ * («Savino Del Bene S.p.A.» → «sdb»): i domini dei clienti la usano spesso
+ * (tech.sdb.it). `null` sotto le due lettere.
+ * ponytail: solo iniziali; se servono sigle irregolari, campo dedicato sul Cliente.
+ */
+function siglaCliente(ragioneSociale: string): string | null {
+  const sigla = ragioneSociale
+    .replaceAll(".", "")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((parola) => parola && !FORMA_SOCIETARIA.test(parola))
+    .map((parola) => parola[0])
+    .join("")
+    .toLowerCase();
+  return sigla.length >= 2 ? sigla : null;
+}
+
+const conSigla = (ragioneSociale: string) => {
+  const sigla = siglaCliente(ragioneSociale);
+  return sigla ? { clientAcronym: sigla } : {};
+};
+
 const etichettaOfferta = (o: OffertaAssociabile) =>
   `${o.cliente.ragioneSociale} – ${o.codice}`;
 
@@ -221,6 +246,7 @@ function corpoRichiesta(
         timeZone: FUSO_GIORNATA,
         description: proposta.descrizione.slice(0, LUNGHEZZA_MASSIMA_DESCRIZIONE),
         attendeeDomains: proposta.dominiPartecipanti,
+        attendeeOrganizations: proposta.organizzazioniPartecipanti,
       },
     },
     questions: {
@@ -229,15 +255,24 @@ function corpoRichiesta(
         instructions: {
           statement: "This calendar event clearly refers to one of the listed clients",
           clients: clienti,
+          clientAcronyms: Object.fromEntries(
+            clienti.flatMap((cliente) => {
+              const sigla = siglaCliente(cliente);
+              return sigla ? [[cliente, sigla]] : [];
+            })
+          ),
         },
         criteria: {
           true:
-            "An attendee email domain belongs to a listed client (for example rossi-spa.it belongs to Rossi S.p.A.), " +
+            "An attendee email domain belongs to a listed client: it contains the client name (for example " +
+            "rossi-spa.it belongs to Rossi S.p.A.) or one of its labels is the client acronym (for example " +
+            "tech.frm.it belongs to the client whose acronym is frm). Or an attendee organization names a listed " +
+            "client or one of its group companies (for example «Rossi IT Srl» for Rossi S.p.A.), " +
             "or the title or description explicitly names a listed client, even when only colleagues attend " +
             "(for example «Preparazione workshop per Rossi»).",
           false:
-            "No attendee domain belongs to a listed client (domains are missing, personal like gmail.com, " +
-            "suppliers, partners or prospects not in the list) and neither the title nor the description " +
+            "No attendee domain or organization belongs to a listed client (they are missing, personal like " +
+            "gmail.com, suppliers, partners or prospects not in the list) and neither the title nor the description " +
             "names a listed client: generic titles such as «Allineamento settimanale» or bare meeting links.",
         },
       },
@@ -245,8 +280,10 @@ function corpoRichiesta(
         type: "choice",
         instructions:
           "Which client offer should the consultant log the time spent on this calendar event against? " +
-          "Identify the client mainly from the attendee email domains, matching each domain to a client name " +
-          "(for example rossi-spa.it belongs to Rossi S.p.A.); when no domain matches, a client explicitly " +
+          "Identify the client mainly from the attendee email domains and organizations, matching each domain " +
+          "to a client name (for example rossi-spa.it belongs to Rossi S.p.A.) or to a client acronym (for example " +
+          "tech.frm.it belongs to the client whose acronym is frm), and each organization to a client name " +
+          "(for example «Rossi IT Srl» belongs to Rossi S.p.A.); when none matches, a client explicitly " +
           "named in the title or description identifies it. Use title and description to choose among offers " +
           "of that client, and the event date to exclude offers created after the event.",
         criteria: Object.fromEntries(
@@ -254,6 +291,7 @@ function corpoRichiesta(
             etichette.get(o.id)!,
             {
               client: o.cliente.ragioneSociale,
+              ...conSigla(o.cliente.ragioneSociale),
               offerCode: o.codice,
               offerDescription: o.descrizione,
               status: o.attiva ? "active" : "closed",

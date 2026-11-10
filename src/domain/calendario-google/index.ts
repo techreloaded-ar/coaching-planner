@@ -14,7 +14,7 @@ export interface EventoGoogle {
   description?: string;
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
-  attendees?: { email?: string; self?: boolean; responseStatus?: string }[];
+  attendees?: { email?: string; displayName?: string; self?: boolean; responseStatus?: string }[];
 }
 
 /** Impegno del giorno proposto come riga attività, prima dell'associazione. */
@@ -29,6 +29,8 @@ export interface PropostaEvento {
   ore: number;
   /** Domini email degli altri partecipanti, senza duplicati (mai gli indirizzi) */
   dominiPartecipanti: string[];
+  /** Organizzazioni degli altri partecipanti ricavate dal nome visualizzato (mai il nome della persona) */
+  organizzazioniPartecipanti: string[];
 }
 
 // ── Costanti ────────────────────────────────────────────────────
@@ -131,6 +133,7 @@ export function proposteDaEventi(
       fine: formattatoreOrario.format(fine),
       ore,
       dominiPartecipanti: dominiPartecipanti(evento),
+      organizzazioniPartecipanti: organizzazioniPartecipanti(evento),
     });
   }
 
@@ -143,17 +146,33 @@ export function proposteDaEventi(
  * cliente.
  */
 function dominiPartecipanti(evento: EventoGoogle): string[] {
+  return [...new Set(partecipantiEsterni(evento).map((p) => p.dominio))];
+}
+
+/**
+ * Organizzazioni dei partecipanti diversi dal collaboratore e dai suoi
+ * colleghi, senza duplicati: la parte del nome visualizzato dopo il primo
+ * trattino tra spazi («Paolo Rossi - Rossi IT Srl» → «Rossi IT Srl»). Senza
+ * trattino non si ricava nulla, così il nome della persona non esce mai.
+ */
+function organizzazioniPartecipanti(evento: EventoGoogle): string[] {
+  const organizzazioni = partecipantiEsterni(evento)
+    .map((p) => p.displayName?.split(/\s[-–—]\s/).slice(1).join(" - ").trim())
+    .filter((organizzazione): organizzazione is string => Boolean(organizzazione));
+  return [...new Set(organizzazioni)];
+}
+
+/** Partecipanti con un dominio email diverso da quello del collaboratore. */
+function partecipantiEsterni(evento: EventoGoogle) {
   const dominio = (email?: string) => email?.split("@")[1]?.trim().toLowerCase() || null;
   const partecipanti = evento.attendees ?? [];
   const dominiPropri = new Set(
     partecipanti.filter((p) => p.self === true).map((p) => dominio(p.email))
   );
-  const domini = new Set<string>();
-  for (const partecipante of partecipanti) {
-    const d = dominio(partecipante.email);
-    if (d && !dominiPropri.has(d)) domini.add(d);
-  }
-  return [...domini];
+  return partecipanti.flatMap((p) => {
+    const d = dominio(p.email);
+    return d && !dominiPropri.has(d) ? [{ ...p, dominio: d }] : [];
+  });
 }
 
 /**

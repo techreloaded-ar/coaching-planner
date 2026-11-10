@@ -59,8 +59,8 @@ describe("proposteDaEventi (US-002)", () => {
     );
 
     expect(proposte).toEqual([
-      { eventoId: "riunione", titolo: "Riunione", descrizione: "Agenda", inizio: "09:00", fine: "10:30", ore: 1.5, dominiPartecipanti: [] },
-      { eventoId: "workshop", titolo: "Workshop", descrizione: "", inizio: "14:00", fine: "17:00", ore: 3, dominiPartecipanti: [] },
+      { eventoId: "riunione", titolo: "Riunione", descrizione: "Agenda", inizio: "09:00", fine: "10:30", ore: 1.5, dominiPartecipanti: [], organizzazioniPartecipanti: [] },
+      { eventoId: "workshop", titolo: "Workshop", descrizione: "", inizio: "14:00", fine: "17:00", ore: 3, dominiPartecipanti: [], organizzazioniPartecipanti: [] },
     ]);
   });
 
@@ -156,6 +156,31 @@ describe("proposteDaEventi (US-002)", () => {
     );
 
     expect(proposta.dominiPartecipanti).toEqual(["pippo.com", "beta.it"]);
+  });
+
+  it("ricava le organizzazioni dalla parte del nome visualizzato dopo il trattino", () => {
+    const [proposta] = proposteDaEventi(
+      [
+        evento({
+          id: "sync",
+          attendees: [
+            { email: "io@agilereloaded.it", displayName: "Io - Agile Reloaded", self: true },
+            { email: "collega@agilereloaded.it", displayName: "Collega - Agile Reloaded" },
+            { email: "paolo@tech.sdb.it", displayName: "Paolo Samori - Savino Del Bene IT Srl" },
+            { email: "davide@tech.sdb.it", displayName: "Davide Chini - Savino Del Bene IT Srl" },
+            { email: "anna@beta.it", displayName: "Anna Maria Bianchi-Verdi" },
+            { email: "luca@gamma.it", displayName: "Luca Neri – Gamma - Divisione IT" },
+            { email: "senza.nome@tech.sdb.it" },
+          ],
+        }),
+      ],
+      GIORNO
+    );
+
+    expect(proposta.organizzazioniPartecipanti).toEqual([
+      "Savino Del Bene IT Srl",
+      "Gamma - Divisione IT",
+    ]);
   });
 
   it("usa un titolo di ripiego per gli eventi senza titolo", () => {
