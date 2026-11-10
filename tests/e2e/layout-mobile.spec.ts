@@ -158,7 +158,6 @@ test.describe("Layout mobile", () => {
       await verificaComando(page.getByRole("button", { name: "Mese successivo" }), larghezza);
       await verificaComando(page.getByRole("button", { name: "Mese corrente", exact: true }), larghezza);
       await verificaComando(page.getByTestId("esporta-excel"), larghezza);
-      await verificaComando(page.getByRole("button", { name: "Invia promemoria di fine mese" }), larghezza);
 
       const boxScheda = (await schedaCliente.boundingBox())!;
       expect(boxScheda.x + boxScheda.width).toBeLessThanOrEqual(larghezza);
@@ -197,6 +196,7 @@ test.describe("Layout mobile", () => {
       await page.goto(`/report/fatturazione-collaboratori?mese=${mese}`);
       await expect(page.getByRole("heading", { level: 1, name: "Fatture attese dai collaboratori" })).toBeVisible();
       await attendiPaginaEntroViewport(page);
+      await verificaComando(page.getByRole("button", { name: "Invia promemoria di fine mese" }), larghezza);
       await verificaComando(page.getByRole("link", { name: "Mese precedente" }), larghezza);
       await verificaComando(page.getByRole("link", { name: "Mese successivo" }), larghezza);
       await verificaComando(page.getByRole("link", { name: "Mese corrente", exact: true }), larghezza);

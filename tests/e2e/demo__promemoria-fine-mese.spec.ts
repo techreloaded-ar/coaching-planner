@@ -4,7 +4,7 @@ import { test, expect } from "./support/fixtures";
 /**
  * Demo scenario — US-019: Promemoria email di fine mese.
  *
- * L'amministratore apre il report di fatturazione mensile, preme "Invia
+ * L'amministratore apre le fatture attese dai collaboratori, preme "Invia
  * promemoria di fine mese" e vede quante email sono partite e quante no.
  * In E2E_TEST_MODE nessuna email parte davvero e l'invio manuale non scrive
  * sul database: il numero di inviati dipende dai collaboratori attivi creati
@@ -14,12 +14,12 @@ import { test, expect } from "./support/fixtures";
  */
 
 test.describe("US-019 Demo", () => {
-  test("l'amministratore invia il promemoria di fine mese dal report di fatturazione", async ({
+  test("l'amministratore invia il promemoria di fine mese dalle fatture attese dai collaboratori", async ({
     page,
   }) => {
-    // 1. Accede come amministratore e apre il report di fatturazione mensile
+    // 1. Accede come amministratore e apre le fatture attese dai collaboratori
     await accediAlBackOfficeComeAdmin(page);
-    await page.goto("/report/fatturazione-clienti");
+    await page.goto("/report/fatturazione-collaboratori");
 
     // 2. Il pulsante e l'avviso sui destinatari sono nell'intestazione
     const pulsante = page.getByRole("button", {

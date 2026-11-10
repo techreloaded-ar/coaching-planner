@@ -245,6 +245,11 @@ test.describe("Report fatturazione clienti", () => {
     const totaleMese = (await page.getByTestId("report-total-importo").boundingBox())!;
     expect(totaleMese.y).toBeGreaterThan(fineScheda.y + fineScheda.height);
 
+    // Il promemoria di fine mese sta nelle fatture attese dai collaboratori.
+    await expect(
+      page.getByRole("button", { name: "Invia promemoria di fine mese" }),
+    ).toHaveCount(0);
+
     // I criteri di calcolo sono chiusi in fondo e si aprono da tastiera.
     await verificaComeVieneCalcolato(page, "Da fatturare = imponibile manodopera");
   });

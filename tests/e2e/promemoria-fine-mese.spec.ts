@@ -11,7 +11,7 @@ import { test, expect } from "./support/fixtures";
 
 test("l'amministratore invia il promemoria di fine mese e vede l'esito", async ({ page }) => {
   await accediComeAdmin(page);
-  await page.goto("/report/fatturazione-clienti");
+  await page.goto("/report/fatturazione-collaboratori");
 
   await page.getByRole("button", { name: "Invia promemoria di fine mese", exact: true }).click();
 
