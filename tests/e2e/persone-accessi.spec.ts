@@ -105,18 +105,12 @@ test.describe("Persone: validazione e sessioni", () => {
       await expect(sessione).toHaveURL(/\/attivita$/);
       await apriPersona(page, collaboratore.utente.id, "accesso");
       await page.getByRole("button", { name: /^Amministratore/ }).click();
-      await page
-        .getByRole("checkbox", {
-          name: "Registra anche attività come collaboratore",
-          exact: true,
-        })
-        .check();
       await salvaPersona(page);
       await sessione.goto("/anagrafiche/persone");
       await expect(
         sessione.getByRole("heading", { name: "Persone", exact: true }),
       ).toBeVisible();
-      await page.getByRole("button", { name: /^Collaboratore/ }).click();
+      await page.getByRole("button", { name: /^Amministratore/ }).click();
       await salvaPersona(page);
       await sessione.goto("/anagrafiche/persone");
       await expect(sessione).toHaveURL(/\/attivita$/);

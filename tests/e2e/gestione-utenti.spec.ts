@@ -104,7 +104,7 @@ test.describe("Persone: gestione unificata", () => {
     ).toBeVisible();
   });
 
-  test("i due pulsanti di ruolo gestiscono l'amministratore e la collaborazione facoltativa", async ({
+  test("i pulsanti indipendenti salvano entrambi i ruoli e conservano lo storico alle transizioni", async ({
     page,
     factory,
   }) => {
@@ -116,12 +116,7 @@ test.describe("Persone: gestione unificata", () => {
     await expect(
       page.getByRole("button", { name: /^Amministratore/ }),
     ).toHaveAttribute("aria-pressed", "true");
-    await page
-      .getByRole("checkbox", {
-        name: "Registra anche attività come collaboratore",
-        exact: true,
-      })
-      .check();
+    await page.getByRole("button", { name: /^Collaboratore/ }).click();
     await page.getByRole("tab", { name: "Anagrafica", exact: true }).click();
     await page.getByLabel(/^Partita IVA\b/).fill("12345678901");
     await page
@@ -134,17 +129,9 @@ test.describe("Persone: gestione unificata", () => {
       .getByRole("tab", { name: "Accesso e permessi", exact: true })
       .click();
     await expect(
-      page.getByRole("checkbox", {
-        name: "Registra anche attività come collaboratore",
-        exact: true,
-      }),
-    ).toBeChecked();
-    await page
-      .getByRole("checkbox", {
-        name: "Registra anche attività come collaboratore",
-        exact: true,
-      })
-      .uncheck();
+      page.getByRole("button", { name: /^Collaboratore/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: /^Collaboratore/ }).click();
     await salvaPersona(page);
     await page
       .getByRole("tab", { name: "Attività e compensi", exact: true })
@@ -153,14 +140,9 @@ test.describe("Persone: gestione unificata", () => {
     await page
       .getByRole("tab", { name: "Accesso e permessi", exact: true })
       .click();
-    await page
-      .getByRole("checkbox", {
-        name: "Registra anche attività come collaboratore",
-        exact: true,
-      })
-      .check();
-    await salvaPersona(page);
     await page.getByRole("button", { name: /^Collaboratore/ }).click();
+    await salvaPersona(page);
+    await page.getByRole("button", { name: /^Amministratore/ }).click();
     await expect(
       page.getByRole("button", { name: /^Collaboratore/ }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -188,11 +170,9 @@ test.describe("Persone: gestione unificata", () => {
       .click();
     await page.getByRole("button", { name: /^Amministratore/ }).click();
     await expect(
-      page.getByRole("checkbox", {
-        name: "Registra anche attività come collaboratore",
-        exact: true,
-      }),
-    ).not.toBeChecked();
+      page.getByRole("button", { name: /^Collaboratore/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: /^Collaboratore/ }).click();
     await page.getByRole("tab", { name: "Anagrafica", exact: true }).click();
     await expect(page.getByLabel(/^Partita IVA\b/)).toHaveCount(0);
     await page.getByLabel(/^Nome\b/).fill(factory.namespace);
@@ -209,6 +189,84 @@ test.describe("Persone: gestione unificata", () => {
     await expect(
       rigaPersona(page, email).getByText("Collaboratore", { exact: true }),
     ).toHaveCount(0);
+  });
+
+  test("crea una persona con entrambi i ruoli e li ritrova dopo il salvataggio", async ({
+    page,
+    factory,
+  }) => {
+    await page.goto("/anagrafiche/persone/nuovo");
+    await attendiSchedaPersona(page);
+    await page.getByLabel(/^Nome\b/).fill(factory.namespace);
+    await page.getByLabel(/^Cognome\b/).fill("Ruoli combinati");
+    const email = `${factory.namespace}-entrambi@e2e.invalid`;
+    await page.getByLabel(/^Email di accesso\b/).fill(email);
+    await page
+      .getByRole("tab", { name: "Accesso e permessi", exact: true })
+      .click();
+    await page.getByRole("button", { name: /^Amministratore/ }).click();
+    await expect(
+      page.getByRole("button", { name: /^Amministratore/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: /^Collaboratore/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page
+      .getByRole("button", { name: "Crea persona", exact: true })
+      .click();
+    await page.waitForURL("**/anagrafiche/persone?esito=creato");
+    await expect(rigaPersona(page, email)).toContainText("Amministratore");
+    await expect(rigaPersona(page, email)).toContainText("Abilitata");
+    await rigaPersona(page, email)
+      .getByRole("link", {
+        name: `${factory.namespace} Ruoli combinati`,
+        exact: true,
+      })
+      .click();
+    await attendiSchedaPersona(page);
+    await page
+      .getByRole("tab", { name: "Accesso e permessi", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: /^Amministratore/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: /^Collaboratore/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("richiede almeno un ruolo e permette di correggere la selezione senza perdere i dati", async ({
+    page,
+    factory,
+  }) => {
+    const persona = await factory.createUtente({ ruolo: "AMMINISTRATORE" });
+    await apriPersona(page, persona.id, "accesso");
+    await page.getByRole("button", { name: /^Amministratore/ }).click();
+    await page
+      .getByRole("button", { name: "Salva modifiche", exact: true })
+      .click();
+    await expect(
+      page.getByText("Seleziona almeno un ruolo", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Amministratore/ }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByRole("button", { name: /^Collaboratore/ }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await page.getByRole("button", { name: /^Collaboratore/ }).click();
+    await salvaPersona(page);
+    await apriPersona(page, persona.id, "accesso");
+    await expect(
+      page.getByRole("button", { name: /^Amministratore/ }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByRole("button", { name: /^Collaboratore/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("tab", { name: "Anagrafica", exact: true }).click();
+    await expect(page.getByLabel(/^Email di accesso\b/)).toHaveValue(
+      persona.email,
+    );
   });
 
   test("disattiva e riattiva dalla scheda preservando partita IVA e tariffe", async ({

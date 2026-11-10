@@ -128,7 +128,7 @@ test.describe("US-030 Attività amministratore", () => {
 		await page.getByRole("link", { name: "Apri Persone", exact: true }).click();
     await page.waitForURL("**/anagrafiche/persone");
     await apriPersona(page, amministratore.id, "accesso");
-    await page.getByRole("checkbox", { name: "Registra anche attività come collaboratore", exact: true }).check();
+    await page.getByRole("button", { name: /^Collaboratore/ }).click();
     await page.getByRole("tab", { name: "Anagrafica", exact: true }).click();
     await page.getByLabel(/^Cognome\b/).fill("E2E");
     await page.getByLabel(/^Partita IVA\b/).fill("01234567890");

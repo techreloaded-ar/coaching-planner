@@ -44,7 +44,9 @@ export default function PersonaForm({
   const [sezione, setSezione] = useState<Sezione>(
     SEZIONI.find((s) => s.id === sezioneIniziale)?.id ?? "anagrafica",
   );
-  const [ruolo, setRuolo] = useState(utente?.ruolo ?? "COLLABORATORE");
+  const [amministratore, setAmministratore] = useState(
+    utente?.ruolo === "AMMINISTRATORE",
+  );
   const [collaboratore, setCollaboratore] = useState(
     utente
       ? utente.ruolo === "COLLABORATORE" ||
@@ -187,7 +189,7 @@ export default function PersonaForm({
           </>
         )}
         <input type="hidden" name="sezione" value={sezione} />
-        {ruolo === "AMMINISTRATORE" && (
+        {amministratore && (
           <input type="hidden" name="ruoloAmministratore" value="on" />
         )}
         {collaboratore && (
@@ -351,45 +353,54 @@ export default function PersonaForm({
           hidden={sezione !== "accesso"}
           className="rounded-[11px] border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 max-[640px]:p-4"
         >
-          <fieldset>
+          <fieldset
+            aria-describedby={
+              stato.errori.ruoli ? "errore-ruoli" : "hint-ruoli"
+            }
+          >
             <legend className="mb-3 text-[16px] font-medium text-testo-principale ">
-              Ruolo
+              Ruoli
             </legend>
+            <p id="hint-ruoli" className="mb-3 text-sm text-testo-metadati">
+              Seleziona uno o entrambi i ruoli.
+            </p>
             <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
-              {(["AMMINISTRATORE", "COLLABORATORE"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  aria-pressed={ruolo === r}
-                  onClick={() => {
-                    if (r !== ruolo) {
-                      setRuolo(r);
-                      setCollaboratore(r === "COLLABORATORE");
-                    }
-                  }}
-                  className={`rounded-xl border p-4 text-left text-sm font-medium focus-visible:outline-2 focus-visible:outline-indigo-500 ${ruolo === r ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300" : "border-zinc-200 text-testo-secondario hover:border-indigo-300 dark:border-zinc-700 "}`}
-                >
-                  {r === "AMMINISTRATORE" ? "Amministratore" : "Collaboratore"}
-                  <span className="mt-1 block text-xs font-normal text-testo-metadati ">
+              {(["AMMINISTRATORE", "COLLABORATORE"] as const).map((r) => {
+                const selezionato =
+                  r === "AMMINISTRATORE" ? amministratore : collaboratore;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    aria-pressed={selezionato}
+                    onClick={() => {
+                      if (r === "AMMINISTRATORE")
+                        setAmministratore(!amministratore);
+                      else setCollaboratore(!collaboratore);
+                    }}
+                    className={`rounded-xl border p-4 text-left text-sm font-medium focus-visible:outline-2 focus-visible:outline-indigo-500 ${selezionato ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300" : "border-zinc-200 text-testo-secondario hover:border-indigo-300 dark:border-zinc-700 "}`}
+                  >
                     {r === "AMMINISTRATORE"
-                      ? "Gestisce persone, clienti, offerte e report."
-                      : "Registra e consulta le proprie attività."}
-                  </span>
-                </button>
-              ))}
+                      ? "Amministratore"
+                      : "Collaboratore"}
+                    <span className="mt-1 block text-xs font-normal text-testo-metadati ">
+                      {r === "AMMINISTRATORE"
+                        ? "Gestisce persone, clienti, offerte e report."
+                        : "Registra e consulta le proprie attività."}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+            {stato.errori.ruoli && (
+              <p
+                id="errore-ruoli"
+                className="mt-2 text-sm text-red-600 dark:text-red-400"
+              >
+                {stato.errori.ruoli}
+              </p>
+            )}
           </fieldset>
-          {ruolo === "AMMINISTRATORE" && (
-            <label className="mt-5 flex items-center gap-3 text-sm text-testo-secondario ">
-              <input
-                type="checkbox"
-                checked={collaboratore}
-                onChange={(e) => setCollaboratore(e.target.checked)}
-                className="h-4 w-4 accent-indigo-500"
-              />
-              Registra anche attività come collaboratore
-            </label>
-          )}
           {utente && (
             <div className="mt-6 border-t border-zinc-200 pt-5 dark:border-zinc-800">
               <label className="flex items-center gap-3 text-sm font-medium text-testo-secondario ">
