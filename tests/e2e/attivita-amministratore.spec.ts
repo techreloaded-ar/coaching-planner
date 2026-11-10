@@ -50,7 +50,7 @@ test.describe("US-030 Attività amministratore", () => {
 			.filter({ has: page.getByText(nota, { exact: true }) });
 		await expect(rigaCreata).toBeVisible();
 		await expect(rigaCreata).toContainText(offerta.codice);
-		await expect(rigaCreata).toContainText("7.5 h");
+		await expect(rigaCreata).toContainText("7,5 h");
 		// Codice e descrizione dell'offerta in un'unica chip.
 		await expect(
 			rigaCreata.getByText(`${offerta.codice} — ${offerta.descrizione}`, { exact: true }),
@@ -65,7 +65,7 @@ test.describe("US-030 Attività amministratore", () => {
 		// non più il codice offerta.
 		await expect(
 			giornoConAttivita.getByTestId("etichetta-cliente"),
-		).toHaveText(`${cliente.ragioneSociale} 7.5 h`);
+		).toHaveText(`${cliente.ragioneSociale} 7,5 h`);
 
 		await giornoConAttivita.click();
 		await page.waitForURL(`**/attivita/${data}?mese=${mese}`);

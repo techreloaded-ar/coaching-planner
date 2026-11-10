@@ -34,13 +34,13 @@ export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabell
       <section className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-4 py-[14px] dark:border-zinc-800">
-          <span className="inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[13px] py-[5px] text-[12.5px] font-semibold text-indigo-600 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400">
+          <span className="inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[13px] py-[5px] text-sm font-medium text-indigo-600 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[13px] w-[13px]" strokeWidth={2}>
               <path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z" /><circle cx="12" cy="10" r="2.6" />
             </svg>
             Configurazione rimborsi trasferta
           </span>
-          <span className="ml-auto text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
+          <span className="ml-auto text-sm font-medium text-testo-metadati">
             {vociRimborso.length === 0
               ? "Nessuna voce di rimborso"
               : `${vociRimborso.length} voci di rimborso`}
@@ -55,25 +55,25 @@ export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabell
                 <path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z" /><circle cx="12" cy="10" r="2.6" />
               </svg>
             </div>
-            <h3 className="text-[15px] font-bold text-zinc-800 dark:text-zinc-100">
+            <h3 className="text-[15px] font-semibold text-testo-principale">
               Nessuna voce di rimborso configurata
             </h3>
-            <p className="max-w-[420px] text-[13px] leading-[1.55] text-zinc-400 dark:text-zinc-500">
+            <p className="max-w-[420px] text-sm leading-[1.55] text-testo-metadati">
               Finché non definisci almeno una voce di rimborso, i rimborsi trasferta non possono
               essere riconosciuti.
             </p>
           </div>
         ) : (
-          <table className="w-full border-collapse text-[13.5px]" aria-label="Elenco voci di rimborso trasferta">
+          <table className="w-full border-collapse text-sm" aria-label="Elenco voci di rimborso trasferta">
             <thead>
               <tr>
-                <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                <th className="whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                   Etichetta
                 </th>
-                <th className="w-[180px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                <th className="w-[180px] whitespace-nowrap px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
                   Importo forfettario
                 </th>
-                <th className="w-[180px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+                <th className="w-[180px] whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                   <span className="sr-only">Azioni</span>
                 </th>
               </tr>
@@ -89,10 +89,10 @@ export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabell
                         </svg>
                       </div>
                       <div className="min-w-0 leading-[1.3]">
-                        <b className="block overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100">
+                        <b className="block overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-testo-principale">
                           {voce.etichetta}
                         </b>
-                        <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
+                        <span className="text-xs text-testo-metadati">
                           Rimborso forfettario di trasferta
                         </span>
                       </div>
@@ -104,7 +104,7 @@ export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabell
                   <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
                     <a
                       href={`/anagrafiche/voci-rimborso/${voce.id}`}
-                      className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-zinc-400 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+                      className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-sm font-medium text-testo-secondario no-underline transition hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
                         <path d="M16.5 3.7a2.2 2.2 0 0 1 3.1 3.1L7.5 18.9 3 20l1.1-4.5L16.5 3.7Z" />
@@ -114,7 +114,7 @@ export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabell
                     <button
                       type="button"
                       onClick={() => apriModaleElimina(voce)}
-                      className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-[12.5px] font-semibold text-zinc-600 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                      className="inline-flex items-center gap-[5px] rounded-[8px] border-0 bg-transparent px-2 py-[5px] font-[inherit] text-sm font-medium text-testo-secondario transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
                         <path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
@@ -155,19 +155,19 @@ export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabell
               <path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
             </svg>
           </div>
-          <h3 id="modale-titolo" className="mb-[7px] text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
+          <h3 id="modale-titolo" className="mb-[7px] text-[16.5px] font-semibold text-testo-principale">
             {voceDaEliminare
               ? `Eliminare la voce «${voceDaEliminare.etichetta}»?`
               : "Eliminare la voce di rimborso?"}
           </h3>
-          <p className="mb-[18px] text-[13px] leading-[1.55] text-zinc-600 dark:text-zinc-400">
+          <p className="mb-[18px] text-sm leading-[1.55] text-testo-secondario">
             La voce verrà rimossa dalla configurazione e non sarà più selezionabile per le nuove
             trasferte. L&apos;operazione è definitiva.
           </p>
           <div className="flex justify-end gap-[9px]">
             <button
               type="button"
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-sm font-medium text-testo-secondario shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750"
               onClick={chiudiModale}
             >
               Annulla
@@ -180,7 +180,7 @@ export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabell
                 <input type="hidden" name="id" value={voceDaEliminare.id} />
                 <PulsanteAttesa
                   etichettaAttesa="Eliminazione…"
-                  className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:brightness-[.92]"
+                  className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:brightness-[.92]"
                 >
                   Elimina voce
                 </PulsanteAttesa>

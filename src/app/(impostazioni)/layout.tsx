@@ -24,7 +24,7 @@ export default async function ImpostazioniLayout({
         <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 md:flex md:gap-5 md:px-8">
           <LogoCoachingPlanner />
           <div aria-hidden="true" className="hidden h-[26px] w-px shrink-0 bg-zinc-200 md:block dark:bg-zinc-700" />
-          <h1 className="col-span-2 row-start-2 text-[22px] font-bold tracking-tight text-zinc-800 md:text-lg md:font-medium dark:text-zinc-100">
+          <h1 className="col-span-2 row-start-2 text-[22px] font-semibold tracking-tight text-testo-principale md:text-lg md:font-medium">
             Impostazioni
           </h1>
           <div className="col-start-2 row-start-1 justify-self-end md:ml-auto">

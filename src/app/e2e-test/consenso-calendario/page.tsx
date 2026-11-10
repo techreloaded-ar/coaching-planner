@@ -25,10 +25,10 @@ export default async function ConsensoCalendarioPage({
 
   return (
     <main className="mx-auto w-full max-w-[480px] px-5 py-12">
-      <h1 className="text-[26px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+      <h1 className="text-[26px] font-semibold tracking-tight text-testo-principale">
         Scegli l&apos;account Google
       </h1>
-      <p className="mt-2 text-[13.5px] text-zinc-600 dark:text-zinc-400">
+      <p className="mt-2 text-sm text-testo-secondario">
         Consenso simulato: Google non è contattato. Scegli quale account
         autorizzare alla lettura del calendario.
       </p>

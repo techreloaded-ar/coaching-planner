@@ -35,7 +35,7 @@ export default async function PersonePage({ searchParams }: PersonePageProps) {
       {messaggioEsito && (
         <div
           role="status"
-          className="mb-[18px] flex items-start gap-[11px] rounded-[11px] border border-emerald-200 bg-emerald-50 p-[15px] text-[13px] text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+          className="mb-[18px] flex items-start gap-[11px] rounded-[11px] border border-emerald-200 bg-emerald-50 p-[15px] text-sm text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
         >
           <svg
             viewBox="0 0 24 24"
@@ -55,7 +55,7 @@ export default async function PersonePage({ searchParams }: PersonePageProps) {
       {erroreUltimoAmministratore && (
         <div
           role="alert"
-          className="mb-[18px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-[13px] font-semibold leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+          className="mb-[18px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-sm font-medium leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
         >
           <svg
             viewBox="0 0 24 24"
@@ -74,20 +74,20 @@ export default async function PersonePage({ searchParams }: PersonePageProps) {
 
       <div className="mb-[22px] flex flex-wrap items-start gap-[18px]">
         <div className="min-w-0 flex-1">
-          <div className="mb-[5px] text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
+          <div className="mb-[5px] text-xs font-medium text-testo-metadati ">
             Anagrafiche
           </div>
-          <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+          <h1 className="text-[23px] font-semibold tracking-tight text-testo-principale ">
             Persone
           </h1>
-          <p className="mt-[7px] max-w-[580px] text-[13px] leading-[1.55] text-zinc-400 dark:text-zinc-500">
+          <p className="mt-[7px] max-w-[580px] text-sm leading-[1.55] text-testo-metadati ">
             Anagrafica, accessi e collaborazione in un unico posto.
           </p>
         </div>
         <div className="shrink-0 pt-0.5 max-[640px]:w-full">
           <Link
             href="/anagrafiche/persone/nuovo"
-            className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[15px] py-[9px] text-[13.5px] font-semibold text-white shadow-sm no-underline transition hover:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 max-[640px]:w-full max-[640px]:justify-center"
+            className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[15px] py-[9px] text-sm font-medium text-white shadow-sm no-underline transition hover:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 max-[640px]:w-full max-[640px]:justify-center"
           >
             <svg
               viewBox="0 0 24 24"

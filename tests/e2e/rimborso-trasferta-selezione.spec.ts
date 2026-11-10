@@ -38,12 +38,9 @@ function euroRiepilogo(valore: string): string {
   })}`;
 }
 
-/**
- * Formato usato nel dettaglio giornata, dove l'importo è stampato con
- * `toFixed(2)` accanto al simbolo: «€ 33.00», non «33,00 €».
- */
+/** Formato valuta italiano usato nel dettaglio giornata: «33,00 €». */
 function euroDettaglioGiornata(valore: string): RegExp {
-  return new RegExp(`€\\s*${Number(valore).toFixed(2).replace(".", "\\.")}`);
+  return new RegExp(`${Number(valore).toFixed(2).replace(".", ",")}\\s*€`);
 }
 
 function rigaConNota(page: Page, nota: string): Locator {

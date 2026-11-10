@@ -36,10 +36,10 @@ export default async function ScegliUtentePage() {
 
   return (
     <main className="mx-auto w-full max-w-[560px] px-5 py-12">
-      <h1 className="text-[26px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+      <h1 className="text-[26px] font-semibold tracking-tight text-testo-principale">
         Scegli l&apos;utente
       </h1>
-      <p className="mt-2 text-[13.5px] text-zinc-600 dark:text-zinc-400">
+      <p className="mt-2 text-sm text-testo-secondario">
         Accesso simulato: Google non è contattato. Entri come l&apos;utente scelto,
         con i suoi permessi.
       </p>

@@ -33,10 +33,10 @@ function Cambiamenti({ prima, dopo, piano }: { prima: Giornata; dopo: Giornata; 
   }
   return <table aria-label="Campi modificati" className="mt-4 w-full table-fixed border-collapse text-left text-sm">
     <caption className="mb-2 text-left font-semibold">Campi modificati</caption>
-    <thead className="text-xs text-zinc-500"><tr><th scope="col" className="w-1/4 py-2 pr-2">Campo</th><th scope="col" className="px-2 py-2">Nell’app</th><th scope="col" className="py-2 pl-2">Dal foglio</th></tr></thead>
+    <thead className="text-xs text-testo-metadati"><tr><th scope="col" className="w-1/4 py-2 pr-2">Campo</th><th scope="col" className="px-2 py-2">Nell’app</th><th scope="col" className="py-2 pl-2">Dal foglio</th></tr></thead>
     <tbody>{modificati.map(([campo, etichetta]) => <tr key={campo} className="border-t border-zinc-200 align-top dark:border-zinc-700">
       <th scope="row" className="py-2 pr-2 font-medium">{etichetta}</th>
-      <td className="whitespace-pre-wrap break-words px-2 py-2 text-zinc-500">{valore(prima, campo)}</td>
+      <td className="whitespace-pre-wrap break-words px-2 py-2 text-testo-metadati">{valore(prima, campo)}</td>
       <td className="whitespace-pre-wrap break-words py-2 pl-2 font-medium">{valore(dopo, campo)}</td>
     </tr>)}</tbody>
   </table>;
@@ -98,14 +98,14 @@ export default function Anteprima({ piano, id, revisione, completata }: { piano:
     return <article key={r.chiave} className="min-w-0 break-words rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <h3 className="font-semibold">{r.grezzi.coach || "Coach non indicato"} · {r.grezzi.cliente || "Cliente non indicato"}</h3>
-            <span className="text-xs text-zinc-500">{r.numero ? `Riga ${r.numero} del foglio` : "Riga precedente"}</span>
+            <span className="text-xs text-testo-metadati">{r.numero ? `Riga ${r.numero} del foglio` : "Riga precedente"}</span>
           </div>
           <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
-            <div><dt className="text-xs text-zinc-500">Data</dt><dd>{dati?.data || r.grezzi.data || "Non indicata"}</dd></div>
-            <div><dt className="text-xs text-zinc-500">Ore</dt><dd>{dati?.ore || r.grezzi.ore || "—"}</dd></div>
-            <div><dt className="text-xs text-zinc-500">Offerta</dt><dd className="break-words">{dati ? piano.riferimenti.offerte.find((o) => o.id === dati.offertaId)?.codice || "Da definire" : r.grezzi["codice offerta"] || "Non indicata"}</dd></div>
+            <div><dt className="text-xs text-testo-metadati">Data</dt><dd>{dati?.data || r.grezzi.data || "Non indicata"}</dd></div>
+            <div><dt className="text-xs text-testo-metadati">Ore</dt><dd>{dati?.ore || r.grezzi.ore || "—"}</dd></div>
+            <div><dt className="text-xs text-testo-metadati">Offerta</dt><dd className="break-words">{dati ? piano.riferimenti.offerte.find((o) => o.id === dati.offertaId)?.codice || "Da definire" : r.grezzi["codice offerta"] || "Non indicata"}</dd></div>
           </dl>
-          {r.stato !== "AGGIORNARE" && r.stato !== "PRESENTE" && <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">{r.motivo}</p>}
+          {r.stato !== "AGGIORNARE" && r.stato !== "PRESENTE" && <p className="mt-3 text-sm text-testo-secondario">{r.motivo}</p>}
           {(r.stato === "AGGIORNARE" || scelte[r.chiave]?.startsWith("AGGIORNA:")) && r.proposta && r.candidati[0] && <Cambiamenti prima={r.candidati.find((g) => scelte[r.chiave] === `AGGIORNA:${g.id}`) ?? r.candidati[0]} dopo={r.proposta} piano={piano} />}
           {r.senzaCodice && r.proposta && <div className="mt-3 space-y-2 rounded-lg border border-amber-300 p-3 text-sm dark:border-amber-700">
             <p><strong>Codice originale:</strong> {r.senzaCodice.codiceOriginale || "Non indicato"}</p>
@@ -140,7 +140,7 @@ export default function Anteprima({ piano, id, revisione, completata }: { piano:
     <section aria-label="Riepilogo analisi" className="flex shrink-0 flex-wrap gap-x-6 gap-y-2 border-b border-zinc-200 pb-3 text-sm dark:border-zinc-800">
       {[{ nome: "Nuove giornate", valore: nuoveGiornate }, { nome: "Aggiornamenti", valore: aggiornamenti }, { nome: "Da controllare", valore: daControllare }].map(({ nome, valore }) =>
         <div key={nome} className="flex items-baseline gap-2">
-          <p className="text-zinc-500 dark:text-zinc-400">{nome}</p><p className="font-semibold tabular-nums">{valore}</p>
+          <p className="text-testo-metadati">{nome}</p><p className="font-semibold tabular-nums">{valore}</p>
         </div>)}
     </section>
     {piano.modalita === "RESET" && <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:bg-red-950 dark:text-red-100">
@@ -160,7 +160,7 @@ export default function Anteprima({ piano, id, revisione, completata }: { piano:
       <section aria-label="Dettaglio importazione" tabIndex={0} className="space-y-4 focus-visible:outline-2 focus-visible:outline-indigo-500 [@media(min-width:1024px)_and_(min-height:640px)]:min-h-0 [@media(min-width:1024px)_and_(min-height:640px)]:flex-1 [@media(min-width:1024px)_and_(min-height:640px)]:overflow-y-auto [@media(min-width:1024px)_and_(min-height:640px)]:overscroll-contain [@media(min-width:1024px)_and_(min-height:640px)]:pr-2">
       {allineato && <p role="status" className="rounded-lg bg-green-50 p-4 text-sm text-green-900 dark:bg-green-950 dark:text-green-100">Il foglio è già allineato. Nessuna modifica da importare.</p>}
       {gruppiVisibili.length > 0 && <section aria-label={ETICHETTE[filtroAttivo]} className="space-y-3">
-        {!filtrate.length && <p className="py-6 text-sm text-zinc-500">Nessuna giornata da esaminare.</p>}
+        {!filtrate.length && <p className="py-6 text-sm text-testo-metadati">Nessuna giornata da esaminare.</p>}
         {filtrate.slice((pagina - 1) * 30, pagina * 30).map(mostraRiga)}
         {pagine > 1 && <div className="flex items-center gap-3 text-sm"><button type="button" disabled={pagina <= 1} onClick={() => setPagina((p) => p - 1)} className={FIELD}>Precedente</button><span>Pagina {pagina} di {pagine}</span><button type="button" disabled={pagina >= pagine} onClick={() => setPagina((p) => p + 1)} className={FIELD}>Successiva</button></div>}
       </section>}
@@ -169,7 +169,7 @@ export default function Anteprima({ piano, id, revisione, completata }: { piano:
         const paginaSecondaria = pagineSecondarie[stato];
         const totalePagine = Math.ceil(righe.length / 30);
         return <details key={stato} className="rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800">
-          <summary className="cursor-pointer text-zinc-600 dark:text-zinc-400">{counts[stato]} {counts[stato] === 1 ? (stato === "PRESENTE" ? "giornata già presente" : "giornata ignorata") : (stato === "PRESENTE" ? "giornate già presenti" : "giornate ignorate")} · Mostra</summary>
+          <summary className="cursor-pointer text-testo-secondario">{counts[stato]} {counts[stato] === 1 ? (stato === "PRESENTE" ? "giornata già presente" : "giornata ignorata") : (stato === "PRESENTE" ? "giornate già presenti" : "giornate ignorate")} · Mostra</summary>
           <section aria-label={ETICHETTE[stato]} className="mt-3 space-y-3">
             {righe.slice((paginaSecondaria - 1) * 30, paginaSecondaria * 30).map(mostraRiga)}
             {totalePagine > 1 && <div className="flex items-center gap-3"><button type="button" disabled={paginaSecondaria <= 1} onClick={() => setPagineSecondarie((p) => ({ ...p, [stato]: paginaSecondaria - 1 }))} className={FIELD}>Precedente</button><span>Pagina {paginaSecondaria} di {totalePagine}</span><button type="button" disabled={paginaSecondaria >= totalePagine} onClick={() => setPagineSecondarie((p) => ({ ...p, [stato]: paginaSecondaria + 1 }))} className={FIELD}>Successiva</button></div>}
@@ -184,8 +184,8 @@ export default function Anteprima({ piano, id, revisione, completata }: { piano:
         <p className="my-3 text-sm">{piano.modalita === "RESET" ? "Il reset sostituirà le anagrafiche con quelle mostrate, conservando gli amministratori e i loro accessi." : "Identità e ruoli degli utenti esistenti restano invariati. I periodi e lo stato dei coach del foglio verranno sincronizzati. Agli utenti senza profilo collaboratore verrà aggiunto il profilo indicato. Le nuove anagrafiche verranno aggiunte insieme alle giornate approvate."}</p>
         {an.clienti.map((c) => <details key={c.id} className="my-2 rounded border border-zinc-200 p-3 dark:border-zinc-700">
           <summary>{c.ragioneSociale}{c.verifica ? " — estrazione AI da verificare" : ""}</summary>
-          <h3 className="mt-3 text-sm font-semibold">Testo originale</h3><dl className="text-sm">{Object.entries(c.dettagli).filter(([, v]) => v).map(([k, v]) => <div key={k}><dt className="font-medium">{k}</dt><dd className="whitespace-pre-wrap">{v}</dd></div>)}</dl>
-          {c.verifica && <><h3 className="mt-3 text-sm font-semibold">Campi proposti dall’AI</h3><dl className="text-sm">{Object.entries(c.dati).filter(([k]) => k !== "note").map(([k, v]) => <div key={k}><dt className="font-medium">{k}</dt><dd>{v}</dd></div>)}</dl>
+          <h3 className="mt-3 text-sm font-medium">Testo originale</h3><dl className="text-sm">{Object.entries(c.dettagli).filter(([, v]) => v).map(([k, v]) => <div key={k}><dt className="font-medium">{k}</dt><dd className="whitespace-pre-wrap">{v}</dd></div>)}</dl>
+          {c.verifica && <><h3 className="mt-3 text-sm font-medium">Campi proposti dall’AI</h3><dl className="text-sm">{Object.entries(c.dati).filter(([k]) => k !== "note").map(([k, v]) => <div key={k}><dt className="font-medium">{k}</dt><dd>{v}</dd></div>)}</dl>
             <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" name="clienteAI" value={c.id} disabled={completata} />Confermo i dati AI di {c.ragioneSociale}</label><p className="text-xs">Senza conferma viene conservato soltanto il testo originale nelle note.</p></>}
         </details>)}
         {offerteDaCreare.map((o) => <p key={o.id} className="my-2 text-sm">Offerta {o.codice} — {piano.riferimenti.clienti.find((c) => c.id === o.clienteId)?.ragioneSociale} · {o.tariffaGiornaliera} €/giorno · {o.giorniPrevisti} giorni · {o.attiva ? "Aperta" : "Chiusa"} · Trasferte {o.gestioneTrasferta}{o.importoTrasfertaForfettaria ? ` ${o.importoTrasfertaForfettaria} €` : ""}</p>)}
@@ -200,8 +200,8 @@ export default function Anteprima({ piano, id, revisione, completata }: { piano:
           <p className="text-sm">Da aggiungere: <strong>{nuoveGiornate}</strong>. Da aggiornare: <strong>{aggiornamenti}</strong>. {eliminazioni > 0 && <span className="font-semibold text-red-700 dark:text-red-300">Da eliminare: {eliminazioni}. </span>}<span className="hidden sm:inline">{nuoveAnagrafiche > 0 && `Nuove anagrafiche: ${nuoveAnagrafiche}.`}</span></p>
           <Submit attesa="Importazione in corso…" pericolo={piano.modalita === "RESET"} disabilitato={importazioneDisabilitata}>{piano.modalita === "RESET" ? "Azzera e reimporta i dati approvati" : "Importa"}</Submit>
         </div>
-        {(daVerificare + counts.NON_IMPORTABILE + ignorate > 0) && <p className="text-xs text-zinc-500">Escluse: {[daVerificare > 0 && `${daVerificare} da verificare`, counts.NON_IMPORTABILE > 0 && `${counts.NON_IMPORTABILE} ${counts.NON_IMPORTABILE === 1 ? "scarto" : "scarti"}`, ignorate > 0 && `${ignorate} ignorate per tua scelta`].filter(Boolean).join(", ")}.</p>}
-        {counts.SCOMPARSA - eliminazioni > 0 && <p className="text-xs text-zinc-500">Giornate non più presenti che resteranno nell’app: {counts.SCOMPARSA - eliminazioni}.</p>}
+        {(daVerificare + counts.NON_IMPORTABILE + ignorate > 0) && <p className="text-xs text-testo-metadati">Escluse: {[daVerificare > 0 && `${daVerificare} da verificare`, counts.NON_IMPORTABILE > 0 && `${counts.NON_IMPORTABILE} ${counts.NON_IMPORTABILE === 1 ? "scarto" : "scarti"}`, ignorate > 0 && `${ignorate} ignorate per tua scelta`].filter(Boolean).join(", ")}.</p>}
+        {counts.SCOMPARSA - eliminazioni > 0 && <p className="text-xs text-testo-metadati">Giornate non più presenti che resteranno nell’app: {counts.SCOMPARSA - eliminazioni}.</p>}
         {conferme}
       </section>}
     </form>

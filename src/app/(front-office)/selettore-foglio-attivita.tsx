@@ -169,7 +169,7 @@ export default function SelettoreFoglioAttivita({
       data-idratata={idratata ? "true" : "false"}
       className="relative"
     >
-      <h1 className="mt-0.5 text-[22px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+      <h1 className="mt-0.5 text-[22px] font-semibold tracking-tight text-testo-principale">
         <button
           ref={riferimentoPulsante}
           type="button"
@@ -186,7 +186,7 @@ export default function SelettoreFoglioAttivita({
             fill="none"
             stroke="currentColor"
             strokeWidth={2.4}
-            className="h-4 w-4 text-zinc-400 dark:text-zinc-500"
+            className="h-4 w-4 text-testo-metadati"
           >
             <path d="m6 9 6 6 6-6" />
           </svg>
@@ -213,7 +213,7 @@ export default function SelettoreFoglioAttivita({
               setIndiceAttivo(0);
             }}
             onKeyDown={alTastoRicerca}
-            className="mb-1.5 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-[13px] text-zinc-800 outline-none focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="mb-1.5 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-sm text-testo-principale outline-none focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-900"
           />
           <div
             id={idElenco}
@@ -222,7 +222,7 @@ export default function SelettoreFoglioAttivita({
             className="max-h-80 overflow-y-auto"
           >
             {voci.length === 0 && (
-              <p className="px-2 py-2 text-[13px] text-zinc-500 dark:text-zinc-400">
+              <p className="px-2 py-2 text-sm text-testo-metadati">
                 Nessun collaboratore trovato
               </p>
             )}
@@ -234,7 +234,7 @@ export default function SelettoreFoglioAttivita({
                 <div key={gruppo} role="group" aria-labelledby={idGruppo}>
                   <div
                     id={idGruppo}
-                    className="px-2 pb-1 pt-2 text-[10.5px] font-bold uppercase tracking-[.07em] text-zinc-400 dark:text-zinc-500"
+                    className="px-2 pb-1 pt-2 text-xs font-medium text-testo-metadati"
                   >
                     {ETICHETTA_GRUPPO[gruppo]}
                   </div>
@@ -251,16 +251,16 @@ export default function SelettoreFoglioAttivita({
                         onMouseDown={(evento) => evento.preventDefault()}
                         onMouseEnter={() => setIndiceAttivo(voci.indexOf(voce))}
                         onClick={() => scegli(voce)}
-                        className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[13.5px] ${
+                        className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm ${
                           selezionata
                             ? "font-semibold text-indigo-700 dark:text-indigo-300"
                             : voce.gruppo === "DISATTIVATI"
-                              ? "text-zinc-400 dark:text-zinc-500"
-                              : "text-zinc-700 dark:text-zinc-200"
+                              ? "text-testo-metadati"
+                              : "text-testo-secondario"
                         } ${attiva ? "bg-indigo-50 dark:bg-indigo-500/15" : ""}`}
                       >
                         <span>{voce.etichetta}</span>
-                        <span className="text-[12px] font-normal text-zinc-400 dark:text-zinc-500">
+                        <span className="text-xs font-normal text-testo-metadati">
                           {selezionata ? "✓" : voce.dettaglio}
                         </span>
                       </div>

@@ -68,10 +68,10 @@ test.describe("Tariffa Percentuale", () => {
 		await accediComeCollaboratore(page, collaboratore.utente.email);
 		await page.goto(`/attivita/riepilogo?mese=${mese}`);
 
-		await expect(page.getByTestId("summary-giornate-da-fatturare-value")).toHaveText("2,00");
+		await expect(page.getByTestId("summary-giornate-da-fatturare-value")).toHaveText("2");
 		await expect(page.getByTestId("summary-giornate-da-fatturare")).toContainText("Percentuale trattenuta: 20%");
 		await expect(page.getByTestId("summary-importo-fattura-value")).toContainText(/1\.?650,00/);
-		await expect(page.getByTestId("summary-importo-fattura-breakdown")).toContainText("2.00 g fatturabili");
+		await expect(page.getByTestId("summary-importo-fattura-breakdown")).toContainText("2 gg fatturabili");
 		await expect(page.getByTestId("summary-importo-fattura-breakdown")).toContainText(/Compenso .*1\.?600,00/);
 
 		const tabella = page.getByTestId("summary-table");

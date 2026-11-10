@@ -46,7 +46,7 @@ export default async function PersonaPage({
         <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <Link
             href={urlFoglioDaAmministrazione(collaboratoreId)}
-            className="inline-flex rounded-[10px] bg-indigo-500 px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-indigo-600"
+            className="inline-flex rounded-[10px] bg-indigo-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-600"
           >
             Apri foglio attività
           </Link>
@@ -54,24 +54,24 @@ export default async function PersonaPage({
             data-testid="tariffa-attuale"
             className="rounded-[11px] border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900"
           >
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            <div className="text-xs font-medium text-testo-metadati ">
               Tariffa attuale
             </div>
             {tariffaAttuale ? (
               <>
-                <div className="text-[18px] font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
+                <div className="text-[18px] font-semibold tabular-nums text-testo-principale ">
                   {descriviImportoTariffa(
                     tariffaAttuale.modalita,
                     tariffaAttuale.importo,
                   )}
                 </div>
-                <div className="text-[12px] text-zinc-500 dark:text-zinc-400">
+                <div className="text-xs text-testo-metadati ">
                   {ETICHETTA_MODALITA_TARIFFA[tariffaAttuale.modalita]} · da{" "}
                   {etichettaMeseTariffa(tariffaAttuale.validaDalMese)}
                 </div>
               </>
             ) : (
-              <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-testo-metadati ">
                 Nessuna tariffa in vigore
               </p>
             )}

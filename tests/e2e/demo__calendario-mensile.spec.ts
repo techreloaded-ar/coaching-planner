@@ -76,8 +76,8 @@ test.describe("US-011 Demo", () => {
     await expect(calendario).toBeVisible();
 
     // Verifica i giorni della settimana
-    await expect(calendario.getByText("lun")).toBeVisible();
-    await expect(calendario.getByText("dom")).toBeVisible();
+    await expect(calendario.getByText("Lun", { exact: true })).toBeVisible();
+    await expect(calendario.getByText("Dom", { exact: true })).toBeVisible();
 
     // ── 6. Verifica che ci siano giorni con attività (seed) ────────
 
@@ -96,7 +96,7 @@ test.describe("US-011 Demo", () => {
     // contiene più indicatori orari (totale giorno + etichette cliente):
     // basta che il primo sia visibile.
     await expect(
-      primaCella.locator("text=/\\d+(\\.\\d+)?\\s*h/").first()
+      primaCella.locator("text=/\\d+(,\\d+)?\\s*h/").first()
     ).toBeVisible();
     await expect(
       primaCella.getByTestId("etichetta-cliente").first()
@@ -154,11 +154,13 @@ test.describe("US-011 Demo", () => {
 
     // ── 12. Verifica la legenda ────────────────────────────────────
 
+    const legenda = page.getByRole("group", { name: "Legenda del calendario" });
     await expect(
-      page.getByText("Giorno con attività registrate")
+      legenda.getByText("Giorno con attività registrate")
     ).toBeVisible();
-    await expect(page.getByText("Oggi")).toBeVisible();
-    await expect(page.getByText("Nessuna attività")).toBeVisible();
+    await expect(legenda.getByText("Oggi", { exact: true })).toBeVisible();
+    await expect(legenda.getByText("Sabato e domenica")).toBeVisible();
+    await expect(legenda.getByText("Nessuna attività")).toBeVisible();
 
     // ── 13. Pausa finale solo per ritmo video demo, non per sincronizzazione funzionale.
 

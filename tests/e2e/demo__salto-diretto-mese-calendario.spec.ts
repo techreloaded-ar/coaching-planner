@@ -152,7 +152,7 @@ test.describe("US-058 Demo — Selettore di mese compatto sull'etichetta", () =>
     const cella = page.locator(`a[href="/attivita/${data}?mese=${meseArrivo}"]`);
     await expect(cella).toHaveAttribute("data-con-attivita", "true");
     await expect(cella.getByTestId("etichetta-cliente")).toHaveText(
-      `${clienteConOfferta.cliente.ragioneSociale} 4.0 h`,
+      `${clienteConOfferta.cliente.ragioneSociale} 4 h`,
     );
     await expect(page).toHaveURL(new RegExp(`mese=${meseArrivo}`));
 

@@ -125,14 +125,14 @@ async function attendiCalendarioIdratato(page: Page) {
 /**
  * Ore totali della giornata popolata da `creaGiornataConDueRighe`.
  *
- * Il valore non coincide con nessun badge di riga (1.0 h e 3.0 h) né con le ore
- * da fatturare (1.0 h): il testo compare quindi una sola volta nella pagina, ed è
+ * Il valore non coincide con nessun badge di riga (1 h e 3 h) né con le ore
+ * da fatturare (1 h): il testo compare quindi una sola volta nella pagina, ed è
  * esattamente il riquadro «Ore totali». È così che il totale viene asserito
  * senza appoggiarsi a classi di stile.
  */
-const ORE_TOTALI_GIORNATA_POPOLATA = "4.0 h";
+const ORE_TOTALI_GIORNATA_POPOLATA = "4 h";
 
-/** Due righe sullo stesso giorno: 1.0 h Fatturabile e 3.0 h di Investimento. */
+/** Due righe sullo stesso giorno: 1 h Fatturabile e 3 h di Investimento. */
 async function creaGiornataConDueRighe(
   factory: E2eDataFactory,
   collaboratore: CollaboratoreTestData,
@@ -412,7 +412,7 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
       clienteConOfferta,
       giornoPartenza,
     );
-    // Una sola riga sul giorno lontano: il suo totale «6.0 h» distingue la
+    // Una sola riga sul giorno lontano: il suo totale «6 h» distingue la
     // giornata di arrivo da quella di partenza.
     await factory.createRigaAttivita({
       collaboratore,
@@ -666,7 +666,7 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
     const cellaSalvataggio = cellaDelGiorno(page, giornoSalvataggio, mese);
     await expect(cellaSalvataggio).toHaveAttribute("data-con-attivita", "true");
     await expect(cellaSalvataggio.getByTestId("etichetta-cliente")).toHaveText(
-      `${clienteConOfferta.cliente.ragioneSociale} 6.0 h`,
+      `${clienteConOfferta.cliente.ragioneSociale} 6 h`,
     );
   });
 

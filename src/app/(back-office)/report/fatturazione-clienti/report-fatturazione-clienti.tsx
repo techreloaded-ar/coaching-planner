@@ -11,14 +11,9 @@ import {
   tokenMeseCorrente,
 } from "@/domain/calendario";
 import { SelettoreMese, useIdratata } from "@/components";
-import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
+import { formattaEuro, formattaNumeroGiornate, inizialiCliente } from "@/lib/formattazione";
 
 // ── Formattatori ────────────────────────────────────────────────
-
-const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 1,
-});
 
 /** Somma le giornate fatturabili di tutte le offerte di un cliente. */
 function giornateCliente(cliente: VoceClienteReport): number {
@@ -222,7 +217,7 @@ export default function ReportFatturazioneClienti({
             type="button"
             // La catena dei click rapidi riparte dall'ultima intenzione.
             onClick={() => vaiA(mesePrecedente(tokenRichiesto.current), true)}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese precedente"
             title="Mese precedente"
           >
@@ -249,7 +244,7 @@ export default function ReportFatturazioneClienti({
           <button
             type="button"
             onClick={() => vaiA(meseSuccessivo(tokenRichiesto.current), true)}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] max-sm:h-11 max-sm:w-11 border border-zinc-200 bg-white text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
             aria-label="Mese successivo"
             title="Mese successivo"
           >
@@ -267,7 +262,7 @@ export default function ReportFatturazioneClienti({
           <button
             type="button"
             onClick={() => vaiA(tokenMeseCorrente(), true, PERCORSO_REPORT)}
-            className="ml-1 inline-flex items-center gap-[7px] max-sm:col-span-4 max-sm:ml-0 max-sm:min-h-11 max-sm:justify-center rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-[12.5px] font-semibold text-zinc-500 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
+            className="ml-1 inline-flex items-center gap-[7px] max-sm:col-span-4 max-sm:ml-0 max-sm:min-h-11 max-sm:justify-center rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-testo-metadati shadow-sm transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
           >
             <svg
               viewBox="0 0 24 24"
@@ -291,7 +286,7 @@ export default function ReportFatturazioneClienti({
               href={`/report/fatturazione-clienti/esporta?mese=${token}`}
               download
               data-testid="esporta-excel"
-              className="inline-flex items-center gap-[7px] max-sm:min-h-11 max-sm:flex-1 max-sm:justify-center rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-750 dark:hover:text-zinc-100"
+              className="inline-flex items-center gap-[7px] max-sm:min-h-11 max-sm:flex-1 max-sm:justify-center rounded-[10px] border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-testo-secondario shadow-sm transition hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-100"
             >
               <svg
                 aria-hidden="true"
@@ -307,7 +302,7 @@ export default function ReportFatturazioneClienti({
             </a>
 
             {/* Pill riepilogo mese */}
-            <div className="inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[14px] py-1.5 text-[12.5px] font-semibold text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-300">
+            <div className="inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[14px] py-1.5 text-sm font-medium text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-300">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -325,7 +320,7 @@ export default function ReportFatturazioneClienti({
               <span className="h-[13px] w-px bg-indigo-200 dark:bg-indigo-500/40" />
               <span>
                 <b className="tabular-nums">
-                  {formattatoreGiornate.format(giornateTotali)}
+                  {formattaNumeroGiornate(giornateTotali)}
                 </b>{" "}
                 giornate
               </span>
@@ -339,13 +334,13 @@ export default function ReportFatturazioneClienti({
         <div
           role="alert"
           data-testid="errore-caricamento-mese"
-          className="mb-[14px] flex flex-wrap items-center gap-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-[13px] font-semibold text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
+          className="mb-[14px] flex flex-wrap items-center gap-3 rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
         >
           <span>{errore}</span>
           <button
             type="button"
             onClick={() => vaiA(tokenRichiesto.current, false)}
-            className="inline-flex items-center rounded-[9px] border border-amber-400 bg-white px-2.5 py-1 text-[12.5px] font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
+            className="inline-flex items-center rounded-[9px] border border-amber-400 bg-white px-2.5 py-1 text-sm font-medium text-amber-900 shadow-sm transition hover:bg-amber-100 dark:border-amber-600 dark:bg-zinc-800 dark:text-amber-200 dark:hover:bg-zinc-750"
           >
             Riprova
           </button>
@@ -385,10 +380,10 @@ export default function ReportFatturazioneClienti({
                 <path d="M9 14h6M9 17h4" />
               </svg>
             </div>
-            <h3 className="mb-[7px] text-[16px] font-bold text-zinc-800 dark:text-zinc-100">
+            <h3 className="mb-[7px] text-[16px] font-semibold text-testo-principale">
               Nessuna attività da fatturare per questo mese
             </h3>
-            <p className="mx-auto max-w-[420px] text-[13px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+            <p className="mx-auto max-w-[420px] text-sm leading-relaxed text-testo-metadati">
               Non risultano giornate fatturabili né trasferte forfettarie
               nel mese selezionato. Cambia mese o attendi la registrazione delle
               attività dei collaboratori.
@@ -421,25 +416,25 @@ export default function ReportFatturazioneClienti({
                       className="flex w-full flex-wrap items-center justify-between gap-4 max-sm:gap-3 border-b border-zinc-200 bg-zinc-50 px-5 py-4 max-sm:px-4 text-left cursor-pointer dark:border-zinc-700 dark:bg-zinc-800/60"
                     >
                       <div className="flex min-w-0 items-center gap-[13px]">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-indigo-50 text-[14px] font-extrabold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-indigo-50 text-sm font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
                           {inizialiCliente(cliente.clienteRagioneSociale)}
                         </div>
                         <div className="min-w-0 leading-[1.3]">
-                          <b className="block text-[16px] font-bold -tracking-[0.01em] text-zinc-800 dark:text-zinc-100">
+                          <b className="block text-[16px] font-semibold -tracking-[0.01em] text-testo-principale">
                             {cliente.clienteRagioneSociale}
                           </b>
-                          <span className="text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                            {formattatoreGiornate.format(giornate)} giornate
+                          <span className="text-xs tabular-nums text-testo-metadati">
+                            {formattaNumeroGiornate(giornate)} giornate
                             fatturabili
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 max-sm:w-full max-sm:justify-between">
                         <div className="text-right leading-[1.15] max-sm:text-left">
-                          <span className="mb-[3px] block text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
+                          <span className="mb-[3px] block text-xs font-medium text-testo-metadati">
                             Da fatturare
                           </span>
-                          <span className="text-[26px] max-sm:text-[22px] font-extrabold -tracking-[0.03em] tabular-nums text-indigo-600 dark:text-indigo-400">
+                          <span className="text-[26px] max-sm:text-[22px] font-semibold -tracking-[0.03em] tabular-nums text-indigo-600 dark:text-indigo-400">
                             {formattaEuro(cliente.importoTotale)}
                           </span>
                         </div>
@@ -449,7 +444,7 @@ export default function ReportFatturazioneClienti({
                           fill="none"
                           stroke="currentColor"
                           strokeWidth={2.2}
-                          className={`h-5 w-5 shrink-0 text-zinc-400 transition-transform dark:text-zinc-500 ${
+                          className={`h-5 w-5 shrink-0 text-testo-metadati transition-transform ${
                             espanso ? "rotate-180" : ""
                           }`}
                         >
@@ -460,22 +455,22 @@ export default function ReportFatturazioneClienti({
 
                     {/* Tabella dettaglio per offerta */}
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-[13.5px]">
+                      <table className="w-full border-collapse text-sm">
                         <thead>
                           <tr>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-left text-[10.5px] font-bold uppercase tracking-[0.05em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-left text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                               Offerta
                             </th>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-[10.5px] font-bold uppercase tracking-[0.05em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                               Tariffa/gg
                             </th>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-[10.5px] font-bold uppercase tracking-[0.05em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                               Giornate
                             </th>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-[10.5px] font-bold uppercase tracking-[0.05em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                               Imponibile
                             </th>
-                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-[10.5px] font-bold uppercase tracking-[0.05em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                            <th className="border-b border-zinc-200 bg-white px-5 py-[11px] text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                               Trasferte
                             </th>
                           </tr>
@@ -491,25 +486,25 @@ export default function ReportFatturazioneClienti({
                                   <span className={classeCodiceOfferta(offerta.offertaId)}>
                                     {offerta.offertaCodice}
                                   </span>
-                                  <span className="text-[12.5px] leading-snug text-zinc-500 dark:text-zinc-400">
+                                  <span className="text-sm leading-snug text-testo-metadati">
                                     {offerta.offertaDescrizione}
                                   </span>
                                 </div>
                               </td>
-                              <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-500 dark:border-zinc-700/50 dark:text-zinc-400">
+                              <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums whitespace-nowrap text-testo-metadati dark:border-zinc-700/50">
                                 {formattaEuro(offerta.tariffaGiornaliera)}
                                 {offerta.tariffaGiornaliera === null && (
-                                  <span className="mt-[3px] block text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                  <span className="mt-[3px] block text-xs font-medium text-amber-700 dark:text-amber-400">
                                     tariffa da definire
                                   </span>
                                 )}
                               </td>
-                              <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
-                                {formattatoreGiornate.format(
+                              <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle font-semibold tabular-nums whitespace-nowrap text-testo-principale dark:border-zinc-700/50">
+                                {formattaNumeroGiornate(
                                   offerta.giornateFatturabili,
                                 )}
                               </td>
-                              <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle text-[14px] font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
+                              <td className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle text-sm font-semibold tabular-nums whitespace-nowrap text-testo-principale dark:border-zinc-700/50">
                                 {formattaEuro(offerta.imponibile)}
                               </td>
                               <td
@@ -517,15 +512,15 @@ export default function ReportFatturazioneClienti({
                                 className="border-b border-zinc-100 px-5 py-[13px] text-right align-middle tabular-nums whitespace-nowrap dark:border-zinc-700/50"
                               >
                                 {offerta.importoTrasfertaForfettaria === null ? (
-                                  <span className="text-[12.5px] text-zinc-400 dark:text-zinc-500">
+                                  <span className="text-sm text-testo-metadati">
                                     Inclusa nella tariffa
                                   </span>
                                 ) : (
                                   <div className="flex flex-col items-end gap-[2px]">
-                                    <span className="text-[14px] font-bold text-zinc-800 dark:text-zinc-100">
+                                    <span className="text-sm font-semibold text-testo-principale">
                                       {formattaEuro(offerta.importoTrasferte)}
                                     </span>
-                                    <span className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
+                                    <span className="text-xs text-testo-metadati">
                                       {offerta.giorniTrasferta} gg ×{" "}
                                       {formattaEuro(offerta.importoTrasfertaForfettaria)}
                                     </span>
@@ -548,7 +543,7 @@ export default function ReportFatturazioneClienti({
                       hidden={!espanso}
                       className="border-b border-zinc-200 bg-zinc-50/60 px-5 py-4 dark:border-zinc-700 dark:bg-zinc-800/40"
                     >
-                      <div className="mb-3 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-zinc-400 dark:text-zinc-500">
+                      <div className="mb-3 flex items-center gap-2 text-xs font-medium text-testo-metadati">
                           <svg
                             viewBox="0 0 24 24"
                             fill="none"
@@ -567,7 +562,7 @@ export default function ReportFatturazioneClienti({
                         {cliente.perOfferta.every(
                           (offerta) => offerta.perCollaboratore.length === 0,
                         ) ? (
-                          <p className="text-[13px] italic text-zinc-400 dark:text-zinc-500">
+                          <p className="text-sm italic text-testo-metadati">
                             Nessuna ora fatturabile nel mese: il cliente compare
                             solo per trasferte forfettarie
                           </p>
@@ -584,24 +579,24 @@ export default function ReportFatturazioneClienti({
                                   <span className={classeCodiceOfferta(offerta.offertaId)}>
                                     {offerta.offertaCodice}
                                   </span>
-                                  <span className="text-[12.5px] leading-snug text-zinc-500 dark:text-zinc-400">
+                                  <span className="text-sm leading-snug text-testo-metadati">
                                     {offerta.offertaDescrizione}
                                   </span>
                                 </div>
                                 <div className="overflow-x-auto rounded-[8px] border border-zinc-200 dark:border-zinc-700">
-                                  <table className="w-full border-collapse text-[13px]">
+                                  <table className="w-full border-collapse text-sm">
                                     <thead>
                                       <tr>
-                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-left text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-left text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                                           Collaboratore
                                         </th>
-                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                                           Ore fatturabili
                                         </th>
-                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                                           Giornate
                                         </th>
-                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500">
+                                        <th className="border-b border-zinc-200 bg-white px-4 py-2 text-right text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800">
                                           Imponibile
                                         </th>
                                       </tr>
@@ -612,22 +607,22 @@ export default function ReportFatturazioneClienti({
                                           key={voce.collaboratoreId}
                                           className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                                         >
-                                          <td className="border-b border-zinc-100 px-4 py-[9px] align-middle font-semibold text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
+                                          <td className="border-b border-zinc-100 px-4 py-[9px] align-middle font-semibold text-testo-principale dark:border-zinc-700/50">
                                             {voce.collaboratoreNome}
                                           </td>
-                                          <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle tabular-nums whitespace-nowrap text-zinc-500 dark:border-zinc-700/50 dark:text-zinc-400">
-                                            {formattatoreGiornate.format(
+                                          <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle tabular-nums whitespace-nowrap text-testo-metadati dark:border-zinc-700/50">
+                                            {formattaNumeroGiornate(
                                               voce.oreFatturabili,
                                             )}{" "}
                                             h
                                           </td>
-                                          <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
-                                            {formattatoreGiornate.format(
+                                          <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle font-semibold tabular-nums whitespace-nowrap text-testo-principale dark:border-zinc-700/50">
+                                            {formattaNumeroGiornate(
                                               voce.giornateFatturabili,
                                             )}{" "}
                                             gg
                                           </td>
-                                          <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle font-bold tabular-nums whitespace-nowrap text-zinc-800 dark:border-zinc-700/50 dark:text-zinc-100">
+                                          <td className="border-b border-zinc-100 px-4 py-[9px] text-right align-middle font-semibold tabular-nums whitespace-nowrap text-testo-principale dark:border-zinc-700/50">
                                             {formattaEuro(voce.imponibile)}
                                           </td>
                                         </tr>
@@ -643,13 +638,13 @@ export default function ReportFatturazioneClienti({
 
                     {/* Trasferte forfettarie fatturate al cliente */}
                     <div className="flex items-center justify-between gap-[14px] border-b border-zinc-100 bg-white px-5 py-3 dark:border-zinc-700/50 dark:bg-zinc-800">
-                      <div className="flex items-center gap-[9px] text-[13px] font-semibold text-zinc-500 dark:text-zinc-400">
+                      <div className="flex items-center gap-[9px] text-sm font-medium text-testo-metadati">
                         <svg
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
                           strokeWidth={2}
-                          className="h-4 w-4 text-zinc-400 dark:text-zinc-500"
+                          className="h-4 w-4 text-testo-metadati"
                         >
                           <path d="M3 12h18M3 12l4-4M3 12l4 4" />
                           <path d="M21 6v12" />
@@ -658,7 +653,7 @@ export default function ReportFatturazioneClienti({
                       </div>
                       <span
                         data-testid={`report-client-${cliente.clienteId}-trasferte`}
-                        className="text-[14px] font-bold tabular-nums text-zinc-800 dark:text-zinc-100"
+                        className="text-sm font-semibold tabular-nums text-testo-principale"
                       >
                         {formattaEuro(cliente.trasferteForfettarie)}
                       </span>
@@ -666,7 +661,7 @@ export default function ReportFatturazioneClienti({
 
                     {/* Totale da fatturare del cliente */}
                     <div className="flex items-center justify-between gap-[14px] border-t border-indigo-200 bg-indigo-50 px-5 py-[15px] dark:border-indigo-500/40 dark:bg-indigo-500/10">
-                      <div className="flex items-center gap-[9px] text-[12px] font-bold uppercase tracking-[0.04em] text-indigo-700 dark:text-indigo-300">
+                      <div className="flex items-center gap-[9px] text-xs font-medium text-indigo-700 dark:text-indigo-300">
                         <svg
                           viewBox="0 0 24 24"
                           fill="none"
@@ -680,7 +675,7 @@ export default function ReportFatturazioneClienti({
                       </div>
                       <span
                         data-testid={`report-client-${cliente.clienteId}-totale`}
-                        className="text-[20px] font-extrabold -tracking-[0.02em] tabular-nums text-indigo-600 dark:text-indigo-400"
+                        className="text-[20px] font-semibold -tracking-[0.02em] tabular-nums text-indigo-600 dark:text-indigo-300"
                       >
                         {formattaEuro(cliente.importoTotale)}
                       </span>
@@ -692,7 +687,7 @@ export default function ReportFatturazioneClienti({
 
             {/* ── Scheda totale complessivo del mese ── */}
             <div className="relative mt-[22px] overflow-hidden rounded-[11px] border border-indigo-700 bg-gradient-to-br from-indigo-500 to-indigo-700 px-6 py-[22px] text-white shadow-lg">
-              <div className="mb-4 flex items-center gap-[9px] text-[11.5px] font-bold uppercase tracking-[0.06em] text-white/80">
+              <div className="mb-4 flex items-center gap-[9px] text-xs font-medium text-white/80">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -708,35 +703,35 @@ export default function ReportFatturazioneClienti({
               <div className="flex flex-wrap items-end justify-between gap-6">
                 <div className="flex flex-wrap items-stretch">
                   <div className="mr-[26px] border-r border-white/20 pr-[26px]">
-                    <div className="mb-[5px] text-[11.5px] font-semibold text-white/80">
+                    <div className="mb-[5px] text-xs font-medium text-white/80">
                       Imponibile manodopera
                     </div>
                     <div
                       data-testid="report-total-imponibile"
-                      className="text-[19px] font-bold -tracking-[0.02em] tabular-nums"
+                      className="text-[19px] font-semibold -tracking-[0.02em] tabular-nums"
                     >
                       {formattaEuro(report.totali.imponibileManodopera)}
                     </div>
                   </div>
                   <div>
-                    <div className="mb-[5px] text-[11.5px] font-semibold text-white/80">
+                    <div className="mb-[5px] text-xs font-medium text-white/80">
                       Totale trasferte forfettarie
                     </div>
                     <div
                       data-testid="report-total-trasferte"
-                      className="text-[19px] font-bold -tracking-[0.02em] tabular-nums"
+                      className="text-[19px] font-semibold -tracking-[0.02em] tabular-nums"
                     >
                       {formattaEuro(report.totali.totaleTrasferteForfettarie)}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="mb-1 text-[11.5px] font-bold uppercase tracking-[0.05em] text-white/80">
+                  <div className="mb-1 text-xs font-medium text-white/80">
                     Importo totale
                   </div>
                   <div
                     data-testid="report-total-importo"
-                    className="text-[38px] leading-none font-extrabold -tracking-[0.04em] tabular-nums"
+                    className="text-[38px] leading-none font-semibold -tracking-[0.04em] tabular-nums"
                   >
                     {formattaEuro(report.totali.importoTotale)}
                   </div>
@@ -753,6 +748,6 @@ export default function ReportFatturazioneClienti({
 /** Badge del codice offerta: la voce senza offerta è evidenziata come da assegnare. */
 function classeCodiceOfferta(offertaId: string | null): string {
   return offertaId === null
-    ? "inline-block w-fit rounded-[6px] border border-amber-200 bg-amber-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
-    : "inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-[11px] font-bold whitespace-nowrap text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400";
+    ? "inline-block w-fit rounded-[6px] border border-amber-200 bg-amber-50 px-2 py-[2px] text-xs font-medium whitespace-nowrap text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
+    : "inline-block w-fit rounded-[6px] border border-zinc-200 bg-zinc-50 px-2 py-[2px] text-xs font-medium whitespace-nowrap text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800";
 }

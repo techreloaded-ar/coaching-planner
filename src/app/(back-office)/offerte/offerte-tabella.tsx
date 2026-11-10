@@ -97,7 +97,7 @@ export default function OfferteTabella({
           className="max-w-[360px]"
         />
         {critiche > 0 && (
-          <span className="inline-flex items-center gap-[7px] rounded-full border border-red-200 bg-red-50 px-[12px] py-[5px] text-[12px] font-semibold text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
+          <span className="inline-flex items-center gap-[7px] rounded-full border border-red-200 bg-red-50 px-[12px] py-[5px] text-xs font-medium text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
               <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
               <path d="M12 9v4M12 17h.01" />
@@ -107,7 +107,7 @@ export default function OfferteTabella({
             </span>
           </span>
         )}
-        <span className="ml-auto text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
+        <span className="ml-auto text-sm font-medium text-testo-metadati">
           {totaleElementi}{" "}
           {totaleElementi === 1 ? "offerta" : "offerte"} · {attive} attive ·{" "}
           {nonAttive} disattivate
@@ -117,7 +117,7 @@ export default function OfferteTabella({
       {/* Tabella trasversale */}
       <div className="overflow-x-auto" data-testid="contenitore-tabella-offerte">
         <table
-          className="w-full min-w-[960px] table-fixed border-collapse text-[13.5px]"
+          className="w-full min-w-[960px] table-fixed border-collapse text-sm"
           aria-label="Elenco offerte"
           data-idratata={idratata ? "true" : "false"}
         >
@@ -126,19 +126,19 @@ export default function OfferteTabella({
               <th className="w-[44px] px-4 py-[11px] text-left">
                 <CasellaSelezioneTutti />
               </th>
-              <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                 Offerta
               </th>
-              <th className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                 Cliente
               </th>
-              <th className="w-[170px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="w-[170px] whitespace-nowrap px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
                 Tariffa giornaliera
               </th>
-              <th className="w-[140px] whitespace-nowrap px-4 py-[11px] text-right text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="w-[140px] whitespace-nowrap px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
                 Giorni erogati
               </th>
-              <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500">
+              <th className="w-[130px] whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                 Stato
               </th>
             </tr>
@@ -146,7 +146,7 @@ export default function OfferteTabella({
           <tbody>
             {offerte.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
+                <td colSpan={6} className="px-4 py-[34px] text-center text-sm text-testo-metadati">
                   Nessuna offerta corrisponde alla ricerca.
                 </td>
               </tr>
@@ -198,7 +198,8 @@ function RigaOfferta({
       <tr
         onClick={onToggleEspansione}
         className={`cursor-pointer border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 ${
-          !offerta.attiva ? "opacity-60" : ""
+          // Disattivata: dati a pieno contrasto, lo stato lo dice il chip.
+          !offerta.attiva ? "bg-zinc-50/70 dark:bg-zinc-800/30" : ""
         } ${isSelezionato(offerta.offertaId) ? "bg-indigo-50/60 dark:bg-indigo-500/10" : ""}`}
       >
         {/* Selezione: il click sulla casella non espande la riga */}
@@ -217,7 +218,7 @@ function RigaOfferta({
                 e.stopPropagation();
                 onToggleEspansione();
               }}
-              className="mt-[2px] flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+              className="mt-[2px] flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] text-testo-metadati transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -232,13 +233,13 @@ function RigaOfferta({
             </button>
             <div className="flex min-w-0 flex-col gap-[5px]">
               <span
-                className="block max-w-full truncate rounded-[6px] border border-zinc-200 bg-white px-2 py-[2px] text-[11px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                className="block max-w-full truncate rounded-[6px] border border-zinc-200 bg-white px-2 py-[2px] text-xs font-medium text-testo-metadati dark:border-zinc-700 dark:bg-zinc-800"
                 title={offerta.codice}
               >
                 {offerta.codice}
               </span>
               <span
-                className="max-w-[340px] truncate text-[13.5px] font-semibold text-zinc-800 dark:text-zinc-100"
+                className="max-w-[340px] truncate text-sm font-medium text-testo-principale"
                 title={offerta.descrizione}
               >
                 {offerta.descrizione || "—"}
@@ -250,11 +251,11 @@ function RigaOfferta({
       {/* Cliente */}
       <td className="px-4 py-[13px] align-middle">
         <div className="flex min-w-0 items-center gap-[10px]">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] border border-zinc-200 bg-zinc-50 text-[11px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] border border-zinc-200 bg-zinc-50 text-xs font-medium text-testo-metadati dark:border-zinc-700 dark:bg-zinc-700/60">
             {inizialiCliente(offerta.clienteRagioneSociale)}
           </span>
           <span
-            className="min-w-0 truncate text-[13.5px] text-zinc-700 dark:text-zinc-200"
+            className="min-w-0 truncate text-sm text-testo-secondario"
             title={offerta.clienteRagioneSociale}
           >
             {offerta.clienteRagioneSociale}
@@ -263,9 +264,9 @@ function RigaOfferta({
       </td>
 
       {/* Tariffa giornaliera */}
-      <td className="px-4 py-[13px] text-right align-middle tabular-nums whitespace-nowrap font-semibold text-zinc-700 dark:text-zinc-200">
+      <td className="px-4 py-[13px] text-right align-middle tabular-nums whitespace-nowrap font-semibold text-testo-secondario">
         {formattaEuro(offerta.tariffaGiornaliera)}
-        <div className="mt-[3px] text-[11.5px] font-medium text-zinc-400 dark:text-zinc-500">
+        <div className="mt-[3px] text-xs font-medium text-testo-metadati">
           {descriviGestioneTrasferta(
             offerta.gestioneTrasferta,
             offerta.importoTrasfertaForfettaria,
@@ -352,15 +353,15 @@ function ModaleElimina({
           <>
             {/* Riquadro con l'offerta oggetto dell'azione */}
             <div className="mb-[18px] flex items-center gap-[11px] rounded-[11px] border border-zinc-200 bg-zinc-50 px-[13px] py-[10px] dark:border-zinc-700 dark:bg-zinc-800/60">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] border border-zinc-200 bg-white text-[11px] font-bold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-700/60 dark:text-zinc-300">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] border border-zinc-200 bg-white text-xs font-medium text-testo-metadati dark:border-zinc-700 dark:bg-zinc-700/60">
                 {inizialiCliente(offerta.clienteRagioneSociale)}
               </span>
               <div className="min-w-0 leading-[1.35]">
-                <span className="block text-[12.5px] font-bold text-zinc-800 dark:text-zinc-100">
+                <span className="block text-sm font-semibold text-testo-principale">
                   {offerta.codice}
                 </span>
                 <span
-                  className="block truncate text-[12px] text-zinc-500 dark:text-zinc-400"
+                  className="block truncate text-xs text-testo-metadati"
                   title={[offerta.clienteRagioneSociale, offerta.descrizione].filter(Boolean).join(" · ")}
                 >
                   {[offerta.clienteRagioneSociale, offerta.descrizione].filter(Boolean).join(" · ")}
@@ -371,21 +372,21 @@ function ModaleElimina({
             {bloccata ? (
               /* Variante bloccata: offerta con attività collegate */
               <>
-                <div className="mb-[13px] flex h-10 w-10 items-center justify-center rounded-[12px] bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                <div className="mb-[13px] flex h-10 w-10 items-center justify-center rounded-[12px] bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-5 w-5" strokeWidth={2}>
                     <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
                     <path d="M12 9v4M12 17h.01" />
                   </svg>
                 </div>
-                <h3 id="modale-elimina-titolo" className="mb-[7px] text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
+                <h3 id="modale-elimina-titolo" className="mb-[7px] text-[16.5px] font-semibold text-testo-principale">
                   Non è possibile eliminare l&apos;offerta
                 </h3>
-                <p className="mb-[14px] text-[13px] leading-[1.55] text-zinc-600 dark:text-zinc-400">
+                <p className="mb-[14px] text-sm leading-[1.55] text-testo-secondario">
                   Questa offerta ha già delle attività registrate dai collaboratori:
                   eliminarla cancellerebbe dati di lavoro consuntivati. Per toglierla
                   dal lavoro in corso <b>disattivala</b> invece di eliminarla.
                 </p>
-                <div className="mb-[14px] flex items-start gap-[9px] rounded-[11px] border border-amber-200 bg-amber-50 px-[13px] py-[11px] text-[12.5px] leading-[1.5] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400">
+                <div className="mb-[14px] flex items-start gap-[9px] rounded-[11px] border border-amber-200 bg-amber-50 px-[13px] py-[11px] text-sm leading-[1.5] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[1px] h-[15px] w-[15px] shrink-0" strokeWidth={2}>
                     <path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
                     <path d="M8 13h8M8 17h5" />
@@ -402,7 +403,7 @@ function ModaleElimina({
                   </span>
                 </div>
                 {!offerta.attiva && (
-                  <p className="mb-[14px] text-[13px] leading-[1.5] text-zinc-600 dark:text-zinc-400">
+                  <p className="mb-[14px] text-sm leading-[1.5] text-testo-secondario">
                     L&apos;offerta è già <b>non attiva</b>: non concorre più al lavoro
                     in corso.
                   </p>
@@ -411,7 +412,7 @@ function ModaleElimina({
                   <button
                     type="button"
                     onClick={onChiudi}
-                    className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                    className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-sm font-medium text-testo-secondario shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
                   >
                     Chiudi
                   </button>
@@ -427,7 +428,7 @@ function ModaleElimina({
                       <CampiPosizioneElenco {...posizione} />
                       <PulsanteAttesa
                         etichettaAttesa="Disattivazione…"
-                        className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-indigo-600"
+                        className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
                           <path d="M18.4 12A6.4 6.4 0 1 1 12 5.6M12 3v5l3.5-1" />
@@ -446,15 +447,15 @@ function ModaleElimina({
                     <path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
                   </svg>
                 </div>
-                <h3 id="modale-elimina-titolo" className="mb-[7px] text-[16.5px] font-bold text-zinc-800 dark:text-zinc-100">
+                <h3 id="modale-elimina-titolo" className="mb-[7px] text-[16.5px] font-semibold text-testo-principale">
                   Elimina questa offerta?
                 </h3>
-                <p className="mb-[18px] text-[13px] leading-[1.55] text-zinc-600 dark:text-zinc-400">
+                <p className="mb-[18px] text-sm leading-[1.55] text-testo-secondario">
                   L&apos;offerta non ha righe di attività collegate e può essere
                   eliminata definitivamente. <b>L&apos;operazione non è reversibile.</b>
                 </p>
                 {stato.errore && (
-                  <div className="mb-[14px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-[12.5px] font-semibold leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+                  <div className="mb-[14px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[11px] text-sm font-medium leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[1px] h-[15px] w-[15px] shrink-0" strokeWidth={2}>
                       <circle cx="12" cy="12" r="9" />
                       <path d="M12 8v5M12 16h.01" />
@@ -466,7 +467,7 @@ function ModaleElimina({
                   <button
                     type="button"
                     onClick={onChiudi}
-                    className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                    className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] font-[inherit] text-sm font-medium text-testo-secondario shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
                   >
                     Annulla
                   </button>
@@ -475,7 +476,7 @@ function ModaleElimina({
                     <CampiPosizioneElenco {...posizione} />
                     <PulsanteAttesa
                       etichettaAttesa="Eliminazione…"
-                      className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-[13.5px] font-semibold text-white shadow-sm transition hover:brightness-[.92]"
+                      className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:brightness-[.92]"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
                         <path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
@@ -504,10 +505,10 @@ function StatoVuoto() {
           <path d="M14 3v6h6M8 13h8M8 17h5" />
         </svg>
       </div>
-      <h3 className="mb-[7px] text-[16px] font-bold text-zinc-800 dark:text-zinc-100">
+      <h3 className="mb-[7px] text-[16px] font-semibold text-testo-principale">
         Nessuna offerta presente
       </h3>
-      <p className="mx-auto max-w-[440px] text-[13px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+      <p className="mx-auto max-w-[440px] text-sm leading-relaxed text-testo-metadati">
         Non risultano offerte per nessun cliente. Crea la prima offerta scegliendo
         il cliente e indicando codice, descrizione, tariffa giornaliera e giorni
         previsti.
@@ -515,7 +516,7 @@ function StatoVuoto() {
       <div className="mt-5">
         <Link
           href="/offerte/nuova"
-          className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[15px] py-[9px] text-[13.5px] font-semibold text-white no-underline shadow-sm transition hover:bg-indigo-600"
+          className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[15px] py-[9px] text-sm font-medium text-white no-underline shadow-sm transition hover:bg-indigo-600"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
             <path d="M12 5v14M5 12h14" />

@@ -1,13 +1,9 @@
 import type { AvanzamentoGiornateOfferta } from "@/domain/consuntivi";
-
-const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 1,
-});
+import { formattaNumeroGiornate } from "@/lib/formattazione";
 
 /** Formatta un numero di giornate con al massimo un decimale, stile it-IT. */
 function formattaGiornate(valore: number | null): string {
-  return valore === null ? "—" : formattatoreGiornate.format(valore);
+  return valore === null ? "—" : formattaNumeroGiornate(valore);
 }
 
 interface IndicatoreGiorniErogatiProps {
@@ -40,11 +36,11 @@ export function IndicatoreGiorniErogati({
         inRiga ? "items-center gap-2" : "flex-col items-end gap-[5px]"
       }`}
     >
-      <span className="tabular-nums font-bold text-zinc-800 dark:text-zinc-100">
+      <span className="tabular-nums font-semibold text-testo-principale">
         {formattaGiornate(giornateErogate)}
-        <span className="font-semibold text-zinc-400 dark:text-zinc-500">/</span>
+        <span className="font-semibold text-testo-metadati">/</span>
         {formattaGiornate(giorniPrevisti)}
-        <span className="ml-[3px] text-[11.5px] font-semibold text-zinc-400 dark:text-zinc-500">
+        <span className="ml-[3px] text-xs font-medium text-testo-metadati">
           gg
         </span>
       </span>
@@ -67,7 +63,7 @@ export function IndicatoreGiorniErogati({
         </span>
       )}
       {oltreBudget && (
-        <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-red-600 dark:text-red-400">
+        <span className="inline-flex items-center gap-[4px] text-xs font-medium text-red-600 dark:text-red-400">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[12px] w-[12px]" strokeWidth={2.2}>
             <path d="M12 5v14M5 12l7-7 7 7" />
           </svg>
@@ -75,7 +71,7 @@ export function IndicatoreGiorniErogati({
         </span>
       )}
       {esaurita && (
-        <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-red-600 dark:text-red-400">
+        <span className="inline-flex items-center gap-[4px] text-xs font-medium text-red-600 dark:text-red-400">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[12px] w-[12px]" strokeWidth={2.2}>
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v5M12 16h.01" />

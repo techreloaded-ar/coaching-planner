@@ -71,7 +71,7 @@ export default function RigheSospeseTabella({ elenco }: { elenco: ElencoRigheSos
         </BarraElencoSelezionabile>
 
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-[13.5px]" aria-label="Elenco righe sospese">
+          <table className="w-full border-collapse text-sm" aria-label="Elenco righe sospese">
             <thead>
               <tr>
                 <th className="w-[44px] px-4 py-[11px] text-left">
@@ -80,7 +80,7 @@ export default function RigheSospeseTabella({ elenco }: { elenco: ElencoRigheSos
                 {COLONNE.map((colonna) => (
                   <th
                     key={colonna}
-                    className="whitespace-nowrap px-4 py-[11px] text-left text-[11px] font-semibold uppercase tracking-[.06em] text-zinc-400 dark:text-zinc-500"
+                    className="whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati"
                   >
                     {colonna}
                   </th>
@@ -90,7 +90,7 @@ export default function RigheSospeseTabella({ elenco }: { elenco: ElencoRigheSos
             <tbody>
               {righe.length === 0 ? (
                 <tr>
-                  <td colSpan={COLONNE.length + 1} className="px-4 py-[34px] text-center text-[13px] text-zinc-400 dark:text-zinc-500">
+                  <td colSpan={COLONNE.length + 1} className="px-4 py-[34px] text-center text-sm text-testo-metadati">
                     Nessuna riga sospesa con i filtri selezionati.
                   </td>
                 </tr>
@@ -137,17 +137,17 @@ function FiltriRigheSospese({ filtro }: { filtro: FiltroRigheSospese }) {
             onClick={() => vai({ ...filtro, stato })}
             disabled={!idratata}
             aria-pressed={filtro.stato === stato}
-            className={`whitespace-nowrap cursor-pointer rounded-[7px] px-[11px] py-[5px] font-[inherit] text-[12.5px] font-semibold transition ${
+            className={`whitespace-nowrap cursor-pointer rounded-[7px] px-[11px] py-[5px] font-[inherit] text-sm font-medium transition ${
               filtro.stato === stato
-                ? "bg-white text-zinc-800 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                ? "bg-white text-testo-principale shadow-sm dark:bg-zinc-700"
+                : "text-testo-metadati hover:text-zinc-700 dark:hover:text-zinc-200"
             }`}
           >
             {ETICHETTE_STATO[stato]}
           </button>
         ))}
       </div>
-      <label className="ml-auto flex items-center gap-2 text-[12.5px] font-semibold text-zinc-500 dark:text-zinc-400">
+      <label className="ml-auto flex items-center gap-2 text-sm font-medium text-testo-metadati">
         Motivo
         <select
           value={filtro.motivo ?? ""}
@@ -158,7 +158,7 @@ function FiltriRigheSospese({ filtro }: { filtro: FiltroRigheSospese }) {
               motivo: MOTIVI_SOSPENSIONE.find((motivo) => motivo === evento.target.value) ?? null,
             })
           }
-          className="rounded-[9px] border border-zinc-200 bg-white px-[10px] py-[6px] font-[inherit] text-[12.5px] text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+          className="rounded-[9px] border border-zinc-200 bg-white px-[10px] py-[6px] font-[inherit] text-sm text-testo-secondario dark:border-zinc-700 dark:bg-zinc-900"
         >
           <option value="">Tutti i motivi</option>
           {MOTIVI_SOSPENSIONE.map((motivo) => (
@@ -181,7 +181,7 @@ function RigaSospesa({ riga }: { riga: RigaSospesaInElenco }) {
   return (
     <tr
       className={`border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 ${
-        riga.risoltaIl ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-700 dark:text-zinc-200"
+        riga.risoltaIl ? "text-testo-metadati" : "text-testo-secondario"
       } ${isSelezionato(riga.id) ? "bg-indigo-50/60 dark:bg-indigo-500/10" : ""}`}
     >
       <td className="px-4 py-[13px] align-middle">
@@ -195,11 +195,11 @@ function RigaSospesa({ riga }: { riga: RigaSospesaInElenco }) {
       <td className="px-4 py-[13px] align-middle">{valore(riga.tipologiaFatturazione)}</td>
       <td className="px-4 py-[13px] align-middle">
         <div className="flex flex-wrap items-center gap-[6px]">
-          <span className="whitespace-nowrap rounded-full bg-amber-50 px-[9px] py-[3px] text-[11.5px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+          <span className="whitespace-nowrap rounded-full bg-amber-50 px-[9px] py-[3px] text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
             {DESCRIZIONE_MOTIVO_SOSPENSIONE[riga.motivo]}
           </span>
           {riga.risoltaIl && (
-            <span className="whitespace-nowrap rounded-full bg-emerald-50 px-[9px] py-[3px] text-[11.5px] font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+            <span className="whitespace-nowrap rounded-full bg-emerald-50 px-[9px] py-[3px] text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
               Risolta il {formattatoreData.format(riga.risoltaIl)}
             </span>
           )}

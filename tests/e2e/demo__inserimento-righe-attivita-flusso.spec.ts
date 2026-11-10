@@ -66,7 +66,7 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     await expect(rigaCreata).toBeVisible();
     await expect(rigaCreata).toContainText(clienteLabel);
     await expect(rigaCreata).toContainText(clienteConOfferta.offerta.codice);
-    await expect(rigaCreata).toContainText("2.5 h");
+    await expect(rigaCreata).toContainText("2,5 h");
   });
 
   test("flusso completo: aggiunta, modifica ed eliminazione righe", async ({
@@ -212,7 +212,7 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     await inputOre.fill("7,25");
 
     await bottoneSalvaModifiche.click();
-    await expect(primaRigaCard).toContainText("7.3 h");
+    await expect(primaRigaCard).toContainText("7,25 h");
 
     page.once("dialog", (dialog) => dialog.accept());
     await secondaRigaCard.getByRole("button", { name: "Elimina" }).click();
@@ -221,7 +221,7 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
     await expect(primaRigaCard).toBeVisible();
 
     await expect(
-      page.locator("text=/[1-9]\\d*(\\.\\d+)?\\s*h/").first()
+      page.locator("text=/[1-9]\\d*(,\\d+)?\\s*h/").first()
     ).toBeVisible();
   });
   test("attende le offerte prima di consentire il salvataggio di una modifica", async ({
@@ -276,7 +276,7 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
       await expect(salva).toBeEnabled();
       await expect(page.locator("#ore")).toHaveValue("7,25");
       await salva.click();
-      await expect(riga).toContainText("7.3 h");
+      await expect(riga).toContainText("7,25 h");
     } finally {
       consegnaOfferte();
       await page.unrouteAll({ behavior: "wait" });
@@ -339,9 +339,9 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
       await (await rispostaConsegnata).finished();
       await page.locator("#ore").fill("7,25");
       await page.getByRole("button", { name: "Salva modifiche", exact: true }).click();
-      await expect(secondaRiga).toContainText("7.3 h");
+      await expect(secondaRiga).toContainText("7,25 h");
       await expect(secondaRiga).toContainText(secondaClienteConOfferta.offerta.codice);
-      await expect(primaRiga).toContainText("3.5 h");
+      await expect(primaRiga).toContainText("3,5 h");
     } finally {
       consegnaOfferte();
       await page.unrouteAll({ behavior: "wait" });

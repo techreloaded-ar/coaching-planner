@@ -28,13 +28,13 @@ export default async function ReportMarginalitaPage({
   return (
     <div>
       <div className="mb-[22px]">
-        <div className="mb-1 text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
+        <div className="mb-1 text-xs font-medium text-testo-metadati">
           Reportistica
         </div>
-        <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+        <h1 className="text-[23px] font-semibold tracking-tight text-testo-principale">
           Marginalità per cliente e offerta
         </h1>
-        <p className="mt-[6px] max-w-[640px] text-[13px] text-zinc-400 dark:text-zinc-500">
+        <p className="mt-[6px] max-w-[640px] text-sm text-testo-metadati">
           Confronto per periodo tra i ricavi dai clienti (tariffe offerta) e i
           costi dei collaboratori (tariffa collaboratore valida in ogni mese).
           I ricavi considerano le sole ore Fatturabile; i costi le ore

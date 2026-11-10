@@ -25,9 +25,9 @@ const SEZIONI = [
 ] as const;
 type Sezione = (typeof SEZIONI)[number]["id"];
 const inputClass =
-  "w-full rounded-[10px] border border-zinc-200 bg-white px-[13px] py-[10px] text-[14px] text-zinc-800 focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
+  "w-full rounded-[10px] border border-zinc-200 bg-white px-[13px] py-[10px] text-sm text-testo-principale focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-900 ";
 const buttonClass =
-  "inline-flex items-center justify-center rounded-[10px] px-4 py-2.5 text-[13.5px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500";
+  "inline-flex items-center justify-center rounded-[10px] px-4 py-2.5 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500";
 
 export default function PersonaForm({
   utente,
@@ -101,7 +101,7 @@ export default function PersonaForm({
     >
       <Link
         href="/anagrafiche/persone"
-        className="mb-5 inline-flex gap-2 text-[13px] font-semibold text-zinc-600 hover:text-indigo-600 dark:text-zinc-400"
+        className="mb-5 inline-flex gap-2 text-sm font-medium text-testo-secondario hover:text-indigo-600 "
       >
         <span aria-hidden="true">←</span> Tutte le persone
       </Link>
@@ -109,20 +109,20 @@ export default function PersonaForm({
         {utente && (
           <div
             aria-hidden="true"
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-indigo-500 text-[16px] font-bold text-white"
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-indigo-500 text-[16px] font-semibold text-white"
           >
             {utente.nome[0]}
             {utente.cognome[0]}
           </div>
         )}
         <div className="min-w-0">
-          <div className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+          <div className="mb-1 text-xs font-medium text-testo-metadati ">
             Anagrafiche · Persone
           </div>
-          <h1 className="text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+          <h1 className="text-[23px] font-semibold tracking-tight text-testo-principale ">
             {utente ? `${utente.nome} ${utente.cognome}` : "Nuova persona"}
           </h1>
-          <p className="mt-1 break-words text-[13px] text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 break-words text-sm text-testo-metadati ">
             {utente?.email ??
               "Anagrafica, accessi e collaborazione in un unico posto."}
           </p>
@@ -132,7 +132,7 @@ export default function PersonaForm({
       {salvato && (
         <p
           role="status"
-          className="mb-5 rounded-[10px] bg-emerald-50 p-3 text-[13px] text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+          className="mb-5 rounded-[10px] bg-emerald-50 p-3 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
         >
           Modifiche alla persona salvate
         </p>
@@ -169,7 +169,7 @@ export default function PersonaForm({
                 document.getElementById(`tab-${SEZIONI[indice].id}`)?.focus();
               }
             }}
-            className={`min-h-11 border-b-2 py-3 text-[13.5px] font-semibold focus-visible:outline-2 focus-visible:outline-indigo-500 ${sezione === s.id ? "border-indigo-500 text-indigo-600 dark:text-indigo-400" : "border-transparent text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100"}`}
+            className={`min-h-11 border-b-2 py-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-indigo-500 ${sezione === s.id ? "border-indigo-500 text-indigo-600 dark:text-indigo-400" : "border-transparent text-testo-metadati hover:text-testo-principale  "}`}
           >
             {s.etichetta}
           </button>
@@ -199,7 +199,7 @@ export default function PersonaForm({
         {Object.keys(stato.errori).length > 0 && (
           <div
             role="alert"
-            className="mb-5 rounded-[10px] border border-red-200 bg-red-50 p-4 text-[13px] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+            className="mb-5 rounded-[10px] border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
           >
             {stato.errori._form ??
               "Controlla i campi evidenziati: alcuni dati mancano o non sono validi."}
@@ -212,7 +212,7 @@ export default function PersonaForm({
           hidden={sezione !== "anagrafica"}
           className="rounded-[11px] border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 max-[640px]:p-4"
         >
-          <h2 className="mb-5 text-[16px] font-semibold text-zinc-800 dark:text-zinc-100">
+          <h2 className="mb-5 text-[16px] font-semibold text-testo-principale ">
             Dati della persona
           </h2>
           <div className="grid grid-cols-2 gap-x-5 max-[640px]:grid-cols-1">
@@ -270,16 +270,16 @@ export default function PersonaForm({
           >
             {tariffaIniziale ? (
               <>
-                <h2 className="mb-2 text-[16px] font-semibold text-zinc-800 dark:text-zinc-100">
+                <h2 className="mb-2 text-[16px] font-semibold text-testo-principale ">
                   Tariffa iniziale
                 </h2>
-                <p className="mb-5 text-[13px] text-zinc-500 dark:text-zinc-400">
+                <p className="mb-5 text-sm text-testo-metadati ">
                   Facoltativa. Dopo il salvataggio potrai gestire lo storico
                   tariffe e le offerte abilitate da questa sezione.
                 </p>
                 <label
                   htmlFor="modalitaTariffa"
-                  className="mb-2 block text-[12.5px] font-semibold text-zinc-600 dark:text-zinc-400"
+                  className="mb-2 block text-sm font-medium text-testo-secondario "
                 >
                   Modalità tariffa
                 </label>
@@ -307,7 +307,7 @@ export default function PersonaForm({
                 {stato.errori.modalitaTariffa && (
                   <p
                     id="errore-modalitaTariffa"
-                    className="mb-4 text-[12px] text-red-600 dark:text-red-400"
+                    className="mb-4 text-xs text-red-600 dark:text-red-400"
                   >
                     {stato.errori.modalitaTariffa}
                   </p>
@@ -333,10 +333,10 @@ export default function PersonaForm({
               </>
             ) : (
               <>
-                <h2 className="mb-2 text-[16px] font-semibold text-zinc-800 dark:text-zinc-100">
+                <h2 className="mb-2 text-[16px] font-semibold text-testo-principale ">
                   Nessuna attività da consuntivare
                 </h2>
-                <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
+                <p className="text-sm text-testo-metadati ">
                   In Accesso e permessi puoi abilitare la registrazione delle
                   attività come collaboratore.
                 </p>
@@ -352,7 +352,7 @@ export default function PersonaForm({
           className="rounded-[11px] border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 max-[640px]:p-4"
         >
           <fieldset>
-            <legend className="mb-3 text-[16px] font-semibold text-zinc-800 dark:text-zinc-100">
+            <legend className="mb-3 text-[16px] font-medium text-testo-principale ">
               Ruolo
             </legend>
             <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
@@ -367,10 +367,10 @@ export default function PersonaForm({
                       setCollaboratore(r === "COLLABORATORE");
                     }
                   }}
-                  className={`rounded-xl border p-4 text-left text-[13.5px] font-semibold focus-visible:outline-2 focus-visible:outline-indigo-500 ${ruolo === r ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300" : "border-zinc-200 text-zinc-700 hover:border-indigo-300 dark:border-zinc-700 dark:text-zinc-300"}`}
+                  className={`rounded-xl border p-4 text-left text-sm font-medium focus-visible:outline-2 focus-visible:outline-indigo-500 ${ruolo === r ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300" : "border-zinc-200 text-testo-secondario hover:border-indigo-300 dark:border-zinc-700 "}`}
                 >
                   {r === "AMMINISTRATORE" ? "Amministratore" : "Collaboratore"}
-                  <span className="mt-1 block text-[12px] font-normal text-zinc-500 dark:text-zinc-400">
+                  <span className="mt-1 block text-xs font-normal text-testo-metadati ">
                     {r === "AMMINISTRATORE"
                       ? "Gestisce persone, clienti, offerte e report."
                       : "Registra e consulta le proprie attività."}
@@ -380,7 +380,7 @@ export default function PersonaForm({
             </div>
           </fieldset>
           {ruolo === "AMMINISTRATORE" && (
-            <label className="mt-5 flex items-center gap-3 text-[13px] text-zinc-700 dark:text-zinc-300">
+            <label className="mt-5 flex items-center gap-3 text-sm text-testo-secondario ">
               <input
                 type="checkbox"
                 checked={collaboratore}
@@ -392,7 +392,7 @@ export default function PersonaForm({
           )}
           {utente && (
             <div className="mt-6 border-t border-zinc-200 pt-5 dark:border-zinc-800">
-              <label className="flex items-center gap-3 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">
+              <label className="flex items-center gap-3 text-sm font-medium text-testo-secondario ">
                 <input
                   type="checkbox"
                   name="attivo"
@@ -402,7 +402,7 @@ export default function PersonaForm({
                 />
                 Accesso attivo
               </label>
-              <p className="mt-2 text-[12px] text-zinc-500 dark:text-zinc-400">
+              <p className="mt-2 text-xs text-testo-metadati ">
                 Disattivando l’accesso, i consuntivi e lo storico restano
                 disponibili.
               </p>
@@ -415,7 +415,7 @@ export default function PersonaForm({
         >
           <Link
             href="/anagrafiche/persone"
-            className={`${buttonClass} border border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300`}
+            className={`${buttonClass} border border-zinc-200 bg-white text-testo-secondario dark:border-zinc-700 dark:bg-zinc-900 `}
           >
             Annulla
           </Link>
@@ -462,11 +462,13 @@ function Campo({
     <div className="mb-[18px] min-w-0">
       <label
         htmlFor={name}
-        className="mb-1.5 block text-[12.5px] font-semibold text-zinc-600 dark:text-zinc-400"
+        className="mb-1.5 block text-sm font-medium text-testo-secondario "
       >
         {label}
         {facoltativo ? (
-          <span className="ml-1 font-normal text-zinc-500">(facoltativo)</span>
+          <span className="ml-1 font-normal text-testo-metadati">
+            (facoltativo)
+          </span>
         ) : (
           <span className="ml-1 text-red-600">*</span>
         )}
@@ -484,7 +486,7 @@ function Campo({
       {errore && (
         <p
           id={`errore-${name}`}
-          className="mt-1 text-[12px] text-red-600 dark:text-red-400"
+          className="mt-1 text-xs text-red-600 dark:text-red-400"
         >
           {errore}
         </p>

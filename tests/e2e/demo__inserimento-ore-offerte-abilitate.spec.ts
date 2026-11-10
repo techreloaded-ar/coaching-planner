@@ -90,7 +90,7 @@ test("il collaboratore vede le offerte abilitate e non abilitate e l'avviso non 
 		.getByTestId("activity-row")
 		.filter({ hasText: rigaStorica.nota ?? "" });
 	await expect(rigaCard).toBeVisible();
-	await expect(rigaCard).toContainText("3.0 h");
+	await expect(rigaCard).toContainText("3 h");
 
 	// 3) Una riga storica su un'offerta non abilitata resta modificabile ed eliminabile.
 	await rigaCard.getByRole("button", { name: "Modifica" }).click();
@@ -104,7 +104,7 @@ test("il collaboratore vede le offerte abilitate e non abilitate e l'avviso non 
 	const rigaAggiornata = page
 		.getByTestId("activity-row")
 		.filter({ hasText: rigaStorica.nota ?? "" });
-	await expect(rigaAggiornata).toContainText("5.0 h");
+	await expect(rigaAggiornata).toContainText("5 h");
 
 	page.once("dialog", (dialog) => {
 		void dialog.accept();

@@ -37,7 +37,7 @@ export default function SceltaUtente({ utenti }: { utenti: UtenteSelezionabile[]
       {errore && (
         <p
           role="alert"
-          className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300"
+          className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300"
         >
           {errore}
         </p>
@@ -52,10 +52,10 @@ export default function SceltaUtente({ utenti }: { utenti: UtenteSelezionabile[]
               aria-busy={emailInAccesso === utente.email}
               className="flex w-full flex-col items-start rounded-xl border border-zinc-200 bg-white px-4 py-3 text-left shadow-sm transition hover:bg-zinc-50 disabled:opacity-70 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750"
             >
-              <span className="text-[14.5px] font-semibold text-zinc-800 dark:text-zinc-100">
+              <span className="text-[14.5px] font-semibold text-testo-principale">
                 {utente.nomeCompleto}
               </span>
-              <span className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
+              <span className="text-sm text-testo-metadati">
                 {utente.email} · {utente.profili}
               </span>
             </button>

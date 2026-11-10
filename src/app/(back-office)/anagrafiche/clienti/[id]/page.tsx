@@ -52,7 +52,7 @@ export default async function DettaglioClientePage({
     <div>
       <Link
         href="/anagrafiche/clienti"
-        className="mb-[14px] inline-flex items-center gap-[6px] text-[13px] font-semibold text-zinc-600 no-underline transition hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400"
+        className="mb-[14px] inline-flex items-center gap-[6px] text-sm font-medium text-testo-secondario no-underline transition hover:text-indigo-600 dark:hover:text-indigo-400"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px]" strokeWidth={2.2}>
           <path d="M19 12H5m6 6-6-6 6-6" />
@@ -62,7 +62,7 @@ export default async function DettaglioClientePage({
 
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-[14px]">
-          <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[12px] bg-indigo-500 text-[15px] font-bold text-white">
+          <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[12px] bg-indigo-500 text-[15px] font-semibold text-white">
             {cliente.ragioneSociale
               .split(/\s+/)
               .map((parte) => parte[0])
@@ -71,10 +71,10 @@ export default async function DettaglioClientePage({
               .slice(0, 2)}
           </div>
           <div>
-            <div className="mb-1 text-[12px] font-semibold uppercase tracking-[.04em] text-zinc-400 dark:text-zinc-500">
+            <div className="mb-1 text-xs font-medium text-testo-metadati">
               Anagrafiche · Clienti
             </div>
-            <h1 className="flex flex-wrap items-center gap-[10px] text-[23px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+            <h1 className="flex flex-wrap items-center gap-[10px] text-[23px] font-semibold tracking-tight text-testo-principale">
               {cliente.ragioneSociale}
               <ChipStatoCliente stato={cliente.stato} />
             </h1>
@@ -84,7 +84,7 @@ export default async function DettaglioClientePage({
         <div className="mt-1 flex shrink-0 items-center gap-[10px]">
           <Link
             href={`/anagrafiche/clienti/${cliente.id}/modifica`}
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] text-[13.5px] font-semibold text-zinc-600 shadow-sm no-underline transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-[15px] py-[9px] text-sm font-medium text-testo-secondario shadow-sm no-underline transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
               <path d="M16.5 3.7a2.2 2.2 0 0 1 3.1 3.1L7.5 18.9 3 20l1.1-4.5L16.5 3.7Z" />
@@ -95,7 +95,7 @@ export default async function DettaglioClientePage({
       </div>
 
       {messaggioEsito && (
-        <div className="mb-[18px] flex max-w-[840px] items-start gap-[9px] rounded-[11px] border border-emerald-200 bg-emerald-50 px-[13px] py-[11px] text-[13px] font-semibold leading-[1.45] text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
+        <div className="mb-[18px] flex max-w-[840px] items-start gap-[9px] rounded-[11px] border border-emerald-200 bg-emerald-50 px-[13px] py-[11px] text-sm font-medium leading-[1.45] text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[1.5px] h-[16px] w-[16px] shrink-0" strokeWidth={2}>
             <path d="M20 6 9 17l-5-5" />
           </svg>
@@ -105,7 +105,7 @@ export default async function DettaglioClientePage({
 
       <section className="mb-[22px] rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="border-b border-zinc-200 px-[18px] py-[15px] dark:border-zinc-800">
-          <span className="inline-flex items-center gap-[9px] text-[15px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+          <span className="inline-flex items-center gap-[9px] text-[15px] font-semibold tracking-tight text-testo-principale">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] text-indigo-500" strokeWidth={2}>
               <path d="M3 21V8.5L9 4l6 4.5V21" />
               <path d="M15 21h6V11l-6-3" />
@@ -129,14 +129,14 @@ export default async function DettaglioClientePage({
 
       <section className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-[18px] py-[15px] dark:border-zinc-800">
-          <span className="inline-flex items-center gap-[9px] text-[15px] font-bold tracking-tight text-zinc-800 dark:text-zinc-100">
+          <span className="inline-flex items-center gap-[9px] text-[15px] font-semibold tracking-tight text-testo-principale">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[17px] w-[17px] text-indigo-500" strokeWidth={2}>
               <path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
               <path d="M14 3v6h6M8 13h8M8 17h5" />
             </svg>
             Offerte
           </span>
-          <span className="text-[12.5px] font-medium text-zinc-400 dark:text-zinc-500">
+          <span className="text-sm font-medium text-testo-metadati">
             {offerte.length === 1 ? "1 offerta" : `${offerte.length} offerte`}
             {offerte.length > 0 &&
               ` · ${offerteAttive} ${offerteAttive === 1 ? "attiva" : "attive"} · ${offerte.length - offerteAttive} ${offerte.length - offerteAttive === 1 ? "disattivata" : "disattivate"}`}
@@ -144,7 +144,7 @@ export default async function DettaglioClientePage({
           <span className="ml-auto">
             <Link
               href={`/anagrafiche/clienti/${cliente.id}/offerte/nuova`}
-              className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[10px] py-[6px] text-[12.5px] font-semibold text-white shadow-sm no-underline transition hover:bg-indigo-600"
+              className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[10px] py-[6px] text-sm font-medium text-white shadow-sm no-underline transition hover:bg-indigo-600"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px]" strokeWidth={2}>
                 <path d="M12 5v14M5 12h14" />
@@ -162,10 +162,10 @@ export default async function DettaglioClientePage({
                 <path d="M14 3v6h6M8 13h8M8 17h5" />
               </svg>
             </div>
-            <b className="mb-1 block text-[14px] text-zinc-800 dark:text-zinc-100">
+            <b className="mb-1 block text-sm text-testo-principale">
               Nessuna offerta per questo cliente
             </b>
-            <p className="m-0 text-[12.5px] text-zinc-400 dark:text-zinc-500">
+            <p className="m-0 text-sm text-testo-metadati">
               Crea la prima offerta con codice, descrizione, tariffa giornaliera e giorni previsti.
             </p>
           </div>
@@ -188,14 +188,14 @@ function Dato({
 }) {
   return (
     <div className="min-w-0 leading-[1.35]">
-      <div className="mb-[3px] text-[10.5px] font-bold uppercase tracking-[.07em] text-zinc-400 dark:text-zinc-500">
+      <div className="mb-[3px] text-xs font-medium text-testo-metadati">
         {label}
       </div>
       <div
-        className={`truncate text-[13.5px] ${
+        className={`truncate text-sm ${
           valore
-            ? "font-semibold text-zinc-800 dark:text-zinc-100"
-            : "font-medium text-zinc-400 dark:text-zinc-500"
+            ? "font-semibold text-testo-principale"
+            : "font-medium text-testo-metadati"
         }`}
         title={valore ?? ""}
       >

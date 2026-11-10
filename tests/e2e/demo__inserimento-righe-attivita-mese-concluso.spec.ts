@@ -58,6 +58,6 @@ test.describe("US-012 Mese concluso — nessun blocco temporale", () => {
     await expect(rigaCreata).toBeVisible();
     await expect(rigaCreata).toContainText(clienteConOfferta.cliente.ragioneSociale);
     await expect(rigaCreata).toContainText(clienteConOfferta.offerta.codice);
-    await expect(rigaCreata).toContainText("4.0 h");
+    await expect(rigaCreata).toContainText("4 h");
   });
 });

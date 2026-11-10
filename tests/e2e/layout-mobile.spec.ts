@@ -110,15 +110,16 @@ test.describe("Layout mobile", () => {
 
       const cella = page.locator(`a[href="/attivita/${data}?mese=${mese}"]`);
       await expect(cella).toHaveAttribute("data-con-attivita", "true");
-      await expect(cella.getByTestId("totali-giorno").getByText("8.0 h", { exact: true })).toBeVisible();
+      await expect(cella.getByTestId("totali-giorno")).toHaveText("8 h");
+      await expect(cella.getByTestId("totali-giorno")).toBeVisible();
       const boxCella = (await cella.boundingBox())!;
 
       if (larghezza < SMARTPHONE) {
-        // Su smartphone: giorno, ore e indicatore; i clienti restano nella giornata.
-        await expect(cella.getByTestId("indicatore-attivita")).toBeVisible();
+        // Su smartphone: giorno e ore; clienti e righe restano nella giornata.
         await expect(cella.getByTestId("etichetta-cliente")).toBeHidden();
+        await expect(cella.getByTestId("numero-righe")).toBeHidden();
       } else {
-        await expect(cella.getByTestId("indicatore-attivita")).toBeHidden();
+        await expect(cella.getByTestId("numero-righe")).toBeVisible();
         const etichetta = cella.getByTestId("etichetta-cliente");
         await expect(etichetta).toBeVisible();
         const boxEtichetta = (await etichetta.boundingBox())!;

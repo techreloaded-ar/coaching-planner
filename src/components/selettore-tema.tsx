@@ -63,7 +63,7 @@ export function SelettoreTema({ temaIniziale }: { temaIniziale: Tema }) {
       {OPZIONI_TEMA.map(({ tema, etichetta, icona }) => (
         <label
           key={tema}
-          className="flex cursor-pointer items-center gap-2 rounded-[10px] border border-zinc-200 bg-white px-3.5 py-2 text-[13px] font-medium text-zinc-600 transition hover:bg-zinc-50 has-checked:border-indigo-500 has-checked:bg-indigo-50 has-checked:font-semibold has-checked:text-indigo-700 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:has-checked:border-indigo-400 dark:has-checked:bg-indigo-500/15 dark:has-checked:text-indigo-300"
+          className="flex cursor-pointer items-center gap-2 rounded-[10px] border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-testo-secondario transition hover:bg-zinc-50 has-checked:border-indigo-500 has-checked:bg-indigo-50 has-checked:font-medium has-checked:text-indigo-700 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:has-checked:border-indigo-400 dark:has-checked:bg-indigo-500/15 dark:has-checked:text-indigo-300"
         >
           <input
             type="radio"

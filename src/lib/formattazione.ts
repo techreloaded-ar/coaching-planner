@@ -9,6 +9,32 @@ const formattatoreEuro = new Intl.NumberFormat("it-IT", {
   currency: "EUR",
 });
 
+/** Ore e giornate: virgola decimale, al massimo due decimali, senza zeri finali. */
+const formattatoreQuantita = new Intl.NumberFormat("it-IT", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+/** Numero di ore senza unità, es. "6,5", "8", "7,25". */
+export function formattaNumeroOre(ore: number): string {
+  return formattatoreQuantita.format(ore);
+}
+
+/** Ore con unità, es. "6,5 h", "8 h", "7,25 h". */
+export function formattaOre(ore: number): string {
+  return `${formattaNumeroOre(ore)} h`;
+}
+
+/** Numero di giornate senza unità, es. "3,63", "2". */
+export function formattaNumeroGiornate(giornate: number): string {
+  return formattatoreQuantita.format(giornate);
+}
+
+/** Giornate con unità, es. "3,63 gg", "2 gg". */
+export function formattaGiornate(giornate: number): string {
+  return `${formattaNumeroGiornate(giornate)} gg`;
+}
+
 /** Formatta un importo in euro con il formato valuta italiano; «—» se assente. */
 export function formattaEuro(valore: number | string | null): string {
   return valore === null ? "—" : formattatoreEuro.format(Number(valore));
