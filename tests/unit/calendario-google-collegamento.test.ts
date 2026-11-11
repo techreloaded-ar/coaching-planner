@@ -162,8 +162,7 @@ describe("azioni del calendario", () => {
     expect(mockCollegamento.deleteMany).toHaveBeenCalledWith({
       where: { collaboratoreId: "collab-1" },
     });
-    expect(mockRevalidate).toHaveBeenCalledWith("/impostazioni/connettori");
-    expect(mockRevalidate).toHaveBeenCalledWith("/attivita");
+    expect(mockRevalidate).toHaveBeenCalledWith("/", "layout");
   });
 
   it("senza profilo operativo scollega e rifiuta nulla", async () => {

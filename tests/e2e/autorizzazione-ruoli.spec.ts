@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
+import { voceNavigazione } from "./support/navigazione";
 
 /**
  * Test e2e — US-006: Autorizzazione per ruolo e segregazione dei dati
@@ -41,10 +42,10 @@ test.describe("US-006 Autorizzazione ruoli", () => {
       page.getByRole("heading", { name: "Attività non disponibili" })
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Console amministrativa", exact: true })
+      voceNavigazione(page, "Clienti")
     ).toBeVisible();
 
-    await page.getByRole("link", { name: "Console amministrativa", exact: true }).click();
+    await voceNavigazione(page, "Clienti").click();
     await page.waitForURL("**/anagrafiche**");
     await expect(
       page.getByRole("heading", { name: "Clienti" })

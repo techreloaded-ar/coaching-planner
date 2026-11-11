@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { test, expect } from "./support/fixtures";
 import { esci } from "./support/menu-account";
+import { voceNavigazione } from "./support/navigazione";
 
 /**
  * Login simulato delle anteprime (E2E_TEST_MODE=true): «Accedi con Google»
@@ -38,7 +39,7 @@ test.describe("Login simulato con scelta dell'utente", () => {
 
 		await page.waitForURL("**/attivita");
 		await expect(
-			page.getByRole("link", { name: "Console amministrativa", exact: true }),
+			voceNavigazione(page, "Clienti"),
 		).toHaveCount(0);
 
 		await esci(page);
@@ -49,7 +50,7 @@ test.describe("Login simulato con scelta dell'utente", () => {
 		await utenteNellElenco(page, amministratore.email).getByRole("button").click();
 
 		await page.waitForURL("**/attivita");
-		await page.getByRole("link", { name: "Console amministrativa", exact: true }).click();
+		await voceNavigazione(page, "Clienti").click();
 		await page.waitForURL("**/anagrafiche**");
 	});
 

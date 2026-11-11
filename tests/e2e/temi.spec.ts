@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
-import { apriImpostazioni, esci, pannelloAccount, pulsanteMenuAccount } from "./support/menu-account";
+import { apriImpostazioni, esci, modaleImpostazioni, pannelloAccount, pulsanteMenuAccount } from "./support/menu-account";
 import { attendiAspetto, opzioneTema, scegliTema, selettoreTema } from "./support/tema";
 
 /**
- * Test e2e — Temi Chiaro, Scuro e Browser, scelti dalla pagina Impostazioni.
+ * Test e2e — Temi Chiaro, Scuro e Browser, scelti dalla modale Impostazioni.
  *
  * Scenari read-only: la preferenza vive solo nel cookie del contesto browser
  * di ciascun test, nessun dato applicativo viene scritto.
@@ -53,7 +53,9 @@ test.describe("Tema nelle Impostazioni", () => {
 		await page.reload();
 		await expect(page.locator("html")).toHaveAttribute("data-tema", "scuro");
 		await attendiAspetto(page, "scuro");
+		await apriImpostazioni(page);
 		await expect(opzioneTema(page, "Scuro")).toBeChecked();
+		await page.keyboard.press("Escape");
 
 		await page.goto("/attivita");
 		await attendiAspetto(page, "scuro");
@@ -90,10 +92,9 @@ test.describe("Tema nelle Impostazioni", () => {
 		await pulsanteMenuAccount(page).focus();
 		await page.keyboard.press("Enter");
 		await expect(pannelloAccount(page)).toBeVisible();
-		await pannelloAccount(page).getByRole("link", { name: "Impostazioni", exact: true }).focus();
+		await pannelloAccount(page).getByRole("button", { name: "Impostazioni", exact: true }).focus();
 		await page.keyboard.press("Enter");
-		await page.waitForURL("**/impostazioni/tema");
-		await expect(page.getByRole("heading", { name: "Impostazioni", level: 1 })).toBeVisible();
+		await expect(modaleImpostazioni(page).getByRole("heading", { name: "Impostazioni", level: 2 })).toBeVisible();
 
 		await expect(page.getByTestId("selettore-tema")).toHaveAttribute("data-idratata", "true");
 		await opzioneTema(page, "Browser").focus();

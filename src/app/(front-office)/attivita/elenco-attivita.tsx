@@ -168,7 +168,8 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
     <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-md:px-4 max-md:py-5">
       {/* ── Barra navigazione mese ── */}
       {/* Su smartphone la barra segue il calendario: frecce e mese, poi
-          comandi e vista a sola icona con il riepilogo righe a destra. */}
+          «Mese corrente» e vista a sola icona con il riepilogo righe a destra.
+          Il riepilogo del mese si apre dalla sidebar. */}
       <div className="mb-[18px] flex flex-wrap items-center gap-4 max-sm:gap-2.5">
         <div className="flex flex-wrap items-center gap-2.5 max-sm:contents">
           <Link href={urlDiElenco(mesePrecedente(token))} className={`${CLASSE_PULSANTE} w-9 px-0 max-sm:h-11 max-sm:w-11`} aria-label="Mese precedente" title="Mese precedente">
@@ -190,13 +191,6 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
               <path d="M12 8v4l2.5 1.5" />
             </svg>
             <span className="max-sm:sr-only">Mese corrente</span>
-          </Link>
-          <Link href={urlDelFoglio(`/attivita/riepilogo?mese=${token}`, collaboratoreConsultatoId)} className={`${CLASSE_PULSANTE} max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0`} title="Riepilogo mese">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-            </svg>
-            <span className="max-sm:sr-only">Riepilogo mese</span>
           </Link>
         </div>
 

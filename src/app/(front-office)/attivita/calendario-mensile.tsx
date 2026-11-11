@@ -346,8 +346,9 @@ export default function CalendarioMensile({
     <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-sm:px-4 max-sm:py-5">
       {/* ── Barra navigazione mese ── */}
       {/* Su smartphone la barra è compatta, su due righe: frecce e mese, poi
-          «Mese corrente», «Riepilogo mese» e vista a sola icona (il testo resta
-          come nome accessibile) con il riepilogo righe a destra. */}
+          «Mese corrente» e vista a sola icona (il testo resta come nome
+          accessibile) con il riepilogo righe a destra. Il riepilogo del mese
+          si apre dalla sidebar. */}
       <div className="mb-[18px] flex flex-wrap items-center gap-3 max-sm:gap-2.5">
         <div className="flex items-center gap-2 max-sm:contents">
           <button
@@ -415,26 +416,6 @@ export default function CalendarioMensile({
             <span className="max-sm:sr-only">Mese corrente</span>
           </button>
 
-          <Link
-            href={urlDelFoglio(
-              `/attivita/riepilogo?mese=${tokenVisualizzato}`,
-              collaboratoreConsultatoId
-            )}
-            title="Riepilogo mese"
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-testo-metadati shadow-sm max-sm:h-11 max-sm:w-11 max-sm:justify-center max-sm:p-0 transition hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:hover:text-zinc-200"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              className="h-4 w-4"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-            </svg>
-            <span className="max-sm:sr-only">Riepilogo mese</span>
-          </Link>
         </div>
 
         <div className="flex-1 max-sm:hidden" />

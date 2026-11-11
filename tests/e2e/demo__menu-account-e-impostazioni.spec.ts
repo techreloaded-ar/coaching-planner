@@ -5,18 +5,21 @@ import {
 	apriImpostazioni,
 	apriMenuAccount,
 	esci,
+	modaleImpostazioni,
 	pannelloAccount,
+	voceCategoriaImpostazioni,
 } from "./support/menu-account";
 import { attendiAspetto, scegliTema } from "./support/tema";
 
 /**
  * Demo scenario — Menu dell'account, Impostazioni e connettore Google Calendar
  *
- * Un collaboratore creato dalla factory vede nella barra solo l'avatar; apre
- * il menu con nome, email e ruolo, va nelle Impostazioni, sceglie il tema
- * scuro, collega Google Calendar dalla sezione Connettori (consenso simulato)
- * e torna alla pagina attività, dove lo stato è solo un'indicazione discreta
- * che riporta alle Impostazioni. Infine esce dal menu dell'avatar.
+ * Un collaboratore creato dalla factory trova l'avatar in fondo alla sidebar;
+ * apre il menu con nome, email e ruolo, apre la modale Impostazioni, sceglie
+ * il tema scuro, collega Google Calendar dalla sezione Connettori (consenso
+ * simulato) e torna alle attività con la modale riaperta sull'esito. Nella
+ * pagina lo stato è solo un'indicazione discreta che riapre le Impostazioni.
+ * Infine esce dal menu dell'avatar.
  *
  * Registra un video per la review.
  */
@@ -49,15 +52,18 @@ test.describe("Impostazioni utente Demo", () => {
 		await page.getByRole("link", { name: "Collega Google Calendar" }).click();
 		await page.waitForURL("**/e2e-test/consenso-calendario**");
 		await page.getByRole("button", { name: "Autorizza" }).click();
-		await page.waitForURL("**/impostazioni/connettori?calendario=collegato");
+		await page.waitForURL("**/attivita");
+		await expect(voceCategoriaImpostazioni(page, "Connettori")).toHaveAttribute("aria-current", "true");
 		await expect(page.getByText("Calendario Google collegato", { exact: true })).toBeVisible();
+		await page.keyboard.press("Escape");
+		await expect(modaleImpostazioni(page)).toHaveCount(0);
 
-		await page.goto("/attivita");
 		const indicatore = page.getByRole("link", { name: "Google Calendar collegato", exact: true });
 		await expect(indicatore).toBeVisible();
 		await expect(page.getByRole("button", { name: "Scollega" })).toHaveCount(0);
 		await indicatore.click();
-		await page.waitForURL("**/impostazioni/connettori");
+		await expect(voceCategoriaImpostazioni(page, "Connettori")).toHaveAttribute("aria-current", "true");
+		await page.keyboard.press("Escape");
 
 		await esci(page);
 		await attendiAspetto(page, "scuro");

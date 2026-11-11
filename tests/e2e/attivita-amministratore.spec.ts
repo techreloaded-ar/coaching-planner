@@ -4,6 +4,7 @@ import { dataNelMeseRiservato, meseRiservato } from "./support/date";
 import { apriPersona, salvaPersona } from "./support/persone";
 import { test, expect } from "./support/fixtures";
 import { apriMenuAccount, pannelloAccount } from "./support/menu-account";
+import { voceNavigazione } from "./support/navigazione";
 
 const CODICE_SPEC = "US-030-TASK-08-ATTIVITA-AMMINISTRATORE";
 
@@ -30,10 +31,7 @@ test.describe("US-030 Attività amministratore", () => {
 		await expect(pannelloAccount(page)).toContainText("Amministratore");
 		await page.keyboard.press("Escape");
 		await expect(
-			page.getByRole("link", {
-				name: "Console amministrativa",
-				exact: true,
-			}),
+			voceNavigazione(page, "Clienti"),
 		).toBeVisible();
 
 		await page.goto(`/attivita/${data}?mese=${mese}`);
@@ -76,7 +74,7 @@ test.describe("US-030 Attività amministratore", () => {
 
 		await page.getByRole("link", { name: "Torna al calendario", exact: true }).click();
 		await page.waitForURL(`**/attivita?mese=${mese}`);
-		await page.getByRole("link", { name: "Riepilogo mese", exact: true }).click();
+		await page.getByRole("link", { name: "Riepilogo mensile", exact: true }).click();
 		await page.waitForURL(`**/attivita/riepilogo?mese=${mese}`);
 		await expect(page.getByTestId("summary-giornate-totali-value")).toHaveText("0,94");
 		await expect(page.getByText("0,94 gg", { exact: true })).toBeVisible();
@@ -87,8 +85,7 @@ test.describe("US-030 Attività amministratore", () => {
 			page.getByTestId("summary-table").getByText(`${offerta.codice} — ${offerta.descrizione}`, { exact: true }),
 		).toBeVisible();
 
-		await page
-			.getByRole("link", { name: "Console amministrativa", exact: true })
+		await voceNavigazione(page, "Clienti")
 			.click();
 		await page.waitForURL("**/anagrafiche/clienti");
 		await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
@@ -101,7 +98,7 @@ test.describe("US-030 Attività amministratore", () => {
 			.filter({ has: page.getByText(offerta.codice, { exact: true }) });
 		await expect(rigaReport).toHaveCount(1);
 
-		await page.getByRole("link", { name: "Le mie attività", exact: true }).click();
+		await page.getByRole("link", { name: "Registro attività", exact: true }).click();
 		await page.waitForURL("**/attivita");
 		await expect(
 			page.getByRole("heading", { name: "Le mie attività", exact: true }),
@@ -144,8 +141,7 @@ test.describe("US-030 Attività amministratore", () => {
 		await apriMenuAccount(page);
 		await expect(pannelloAccount(page)).toContainText("Amministratore");
 		await page.keyboard.press("Escape");
-		await page
-			.getByRole("link", { name: "Console amministrativa", exact: true })
+		await voceNavigazione(page, "Clienti")
 			.click();
 		await page.waitForURL("**/anagrafiche/clienti");
 	});
@@ -183,10 +179,7 @@ test.describe("US-030 Attività amministratore", () => {
 		const paginaCollaboratore = await contestoCollaboratore.newPage();
 		await accediComeCollaboratore(paginaCollaboratore, collaboratore.utente.email);
 		await expect(
-			paginaCollaboratore.getByRole("link", {
-				name: "Console amministrativa",
-				exact: true,
-			}),
+			voceNavigazione(paginaCollaboratore, "Clienti"),
 		).toHaveCount(0);
 		await paginaCollaboratore.goto("/anagrafiche");
 		await paginaCollaboratore.waitForURL("**/attivita**");

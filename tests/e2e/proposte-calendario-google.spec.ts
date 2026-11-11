@@ -5,7 +5,12 @@ import {
 	labelOffertaTest,
 } from "./demo__inserimento-righe-attivita.helpers";
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
-import { apriCategoriaImpostazioni, apriImpostazioni } from "./support/menu-account";
+import {
+	apriCategoriaImpostazioni,
+	apriImpostazioni,
+	modaleImpostazioni,
+	voceCategoriaImpostazioni,
+} from "./support/menu-account";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
 
@@ -106,7 +111,9 @@ test.describe("Google Calendar nelle Impostazioni", () => {
 		).toBeChecked();
 		await page.getByRole("button", { name: "Autorizza" }).click();
 
-		await page.waitForURL("**/impostazioni/connettori?calendario=collegato");
+		// Il ritorno dal consenso riapre la modale sulle attività; i parametri escono dall'URL.
+		await page.waitForURL("**/attivita");
+		await expect(voceCategoriaImpostazioni(page, "Connettori")).toHaveAttribute("aria-current", "true");
 		await expect(page.getByText("Calendario Google collegato", { exact: true })).toBeVisible();
 
 		await connettoreCalendario(page).getByRole("button", { name: "Scollega" }).click();
@@ -128,7 +135,9 @@ test.describe("Google Calendar nelle Impostazioni", () => {
 		await page.waitForURL("**/e2e-test/consenso-calendario**");
 		await page.getByRole("link", { name: "Nega il consenso" }).click();
 
-		await page.waitForURL("**/impostazioni/connettori?calendario=negato");
+		// Il ritorno dal consenso riapre la modale sulle attività; i parametri escono dall'URL.
+		await page.waitForURL("**/attivita");
+		await expect(voceCategoriaImpostazioni(page, "Connettori")).toHaveAttribute("aria-current", "true");
 		await expect(
 			page.getByRole("alert").filter({ hasText: "Collegamento non completato" }),
 		).toBeVisible();
@@ -191,7 +200,9 @@ test.describe("Verifica dell'account Google al collegamento", () => {
 			.fill("altro-account@esempio.test");
 		await page.getByRole("button", { name: "Autorizza" }).click();
 
-		await page.waitForURL("**/impostazioni/connettori?calendario=account-diverso");
+		// Il ritorno dal consenso riapre la modale sulle attività; i parametri escono dall'URL.
+		await page.waitForURL("**/attivita");
+		await expect(voceCategoriaImpostazioni(page, "Connettori")).toHaveAttribute("aria-current", "true");
 		await expect(
 			page.getByRole("alert").filter({ hasText: "account Google diverso" }),
 		).toContainText(collaboratore.utente.email);
@@ -214,11 +225,13 @@ test.describe("Indicatore discreto nella pagina attività", () => {
 		await expect(page.getByRole("group", { name: "Calendario Google" })).toHaveCount(0);
 
 		await indicatoreCalendario(page).click();
-		await page.waitForURL("**/impostazioni/connettori");
+		await expect(modaleImpostazioni(page)).toBeVisible();
+		await expect(voceCategoriaImpostazioni(page, "Connettori")).toHaveAttribute("aria-current", "true");
 		await connettoreCalendario(page).getByRole("button", { name: "Scollega" }).click();
 		await expect(page.getByText("Calendario Google non collegato")).toBeVisible();
 
-		await page.goto("/attivita");
+		await page.keyboard.press("Escape");
+		await expect(modaleImpostazioni(page)).toHaveCount(0);
 		await expect(indicatoreCalendario(page)).toHaveAccessibleName("Google Calendar non collegato");
 		await expect(page.getByRole("link", { name: "Collega Google Calendar" })).toHaveCount(0);
 		await expect(indicatoreCalendario(page)).toHaveAttribute("href", "/impostazioni/connettori");
