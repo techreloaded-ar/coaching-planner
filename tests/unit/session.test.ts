@@ -34,7 +34,6 @@ describe("session-token", () => {
     const sessione = await creaTokenSessione(
       {
         utenteId: "abc-123",
-        ruolo: "AMMINISTRATORE",
         nome: "Test User",
         email: "test@example.com",
       },
@@ -62,7 +61,6 @@ describe("session-token", () => {
     const originale = await creaTokenSessione(
       {
         utenteId: "user-2",
-        ruolo: "COLLABORATORE",
         nome: "Collab",
         email: "collab@example.com",
       },
@@ -89,8 +87,7 @@ describe("session-token", () => {
   it("rifiuta token firmati ma con claim malformati", async () => {
     const now = 1_700_000_000;
     const token = await new SignJWT({
-      utenteId: "user-3",
-      ruolo: "RUOLO_SCONOSCIUTO",
+      utenteId: "",
       nome: "Broken",
       email: "broken@example.com",
       expiresAt: now + DURATA_SESSIONE_SECONDI,
@@ -102,6 +99,52 @@ describe("session-token", () => {
 
     const payload = await verificaTokenSessione(token, { now });
     expect(payload).toBeNull();
+  });
+
+  it("accetta e rinnova un token emesso prima della rimozione del ruolo, ignorando il claim", async () => {
+    const now = 1_700_000_000;
+    const expiresAt = now + DURATA_SESSIONE_SECONDI;
+    const token = await firmaTokenLegacy({
+      utenteId: "legacy-1",
+      ruolo: "AMMINISTRATORE",
+      nome: "Legacy",
+      email: "legacy@example.com",
+      expiresAt,
+      iat: now,
+    });
+
+    const payload = await verificaTokenSessione(token, { now: now + 60 });
+    expect(payload).toEqual({
+      utenteId: "legacy-1",
+      nome: "Legacy",
+      email: "legacy@example.com",
+      expiresAt,
+    });
+
+    const rinnovata = await verificaERinnovaTokenSessione(token, {
+      now: now + 60,
+    });
+    expect(rinnovata).not.toBeNull();
+    expect(decodeJwt(rinnovata!.token)).not.toHaveProperty("ruolo");
+
+    expect(
+      await verificaTokenSessione(token, { now: expiresAt + 1 })
+    ).toBeNull();
+  });
+
+  it("accetta un token con un valore di ruolo non elencato", async () => {
+    const now = 1_700_000_000;
+    const token = await firmaTokenLegacy({
+      utenteId: "futuro-1",
+      ruolo: "RUOLO_FUTURO",
+      nome: "Futuro",
+      email: "futuro@example.com",
+      expiresAt: now + DURATA_SESSIONE_SECONDI,
+      iat: now,
+    });
+
+    const payload = await verificaTokenSessione(token, { now });
+    expect(payload).not.toBeNull();
   });
 
   it("rifiuta token firmati con una chiave diversa", async () => {
@@ -126,3 +169,21 @@ describe("session-token", () => {
     expect(payload).toBeNull();
   });
 });
+
+async function firmaTokenLegacy({
+  iat,
+  ...claims
+}: {
+  utenteId: string;
+  ruolo: string;
+  nome: string;
+  email: string;
+  expiresAt: number;
+  iat: number;
+}) {
+  return new SignJWT(claims)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt(iat)
+    .setExpirationTime(claims.expiresAt)
+    .sign(new TextEncoder().encode(SESSION_SECRET_VALIDA));
+}

@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { scambiaCodice } from "@/lib/google-oauth";
 import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
-import type { Ruolo } from "@/domain/types";
 import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 
 // ── URL base ────────────────────────────────────────────────────
@@ -117,7 +116,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // 7. Crea la sessione
     await createSession(
       utente.id,
-      utente.ruolo as Ruolo,
       `${utente.nome} ${utente.cognome}`,
       utente.email
     );

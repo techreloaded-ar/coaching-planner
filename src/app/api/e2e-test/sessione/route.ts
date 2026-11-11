@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
-import type { Ruolo } from "@/domain/types";
 import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 
 /**
@@ -30,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const utente = await db.utente.findUnique({
       where: { email },
-      select: { id: true, ruolo: true, nome: true, cognome: true, email: true },
+      select: { id: true, nome: true, cognome: true, email: true },
     });
 
     if (!utente) {
@@ -57,7 +56,6 @@ export async function POST(request: NextRequest) {
 
     await createSession(
       utente.id,
-      utente.ruolo as Ruolo,
       `${utente.nome} ${utente.cognome}`,
       utente.email
     );

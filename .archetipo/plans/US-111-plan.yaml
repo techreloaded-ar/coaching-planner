@@ -1,0 +1,286 @@
+schema: archetipo/plan/v2
+spec_code: US-111
+body: |-
+  # US-111: Rimozione della policy di rotta inutilizzata e del ruolo cablato nella sessione — Piano di implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-11-11
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-001 — Autenticazione e Ruoli
+  **Priorità:** LOW | **Punti:** 2 | **Blocked by:** US-109 (DONE)
+
+  **User Story**
+  **Come** sviluppatore che mantiene l'autorizzazione **voglio** eliminare la policy di rotta mai usata e l'elenco dei ruoli cablato nella validazione del token di sessione **così che** aggiungere un ruolo non richieda di ricordarsi di aggiornare punti che non decidono alcun accesso.
+
+  **Criteri di accettazione**
+  - AC-1 — La mappatura rotta → policy di accesso e l'elenco dei prefissi di back office, usati soltanto dal proprio test, sono rimossi insieme a quel test.
+  - AC-2 — La costante della landing autenticata (`/attivita`) resta disponibile ai suoi consumer attuali.
+  - AC-3 — La validazione del token di sessione non contiene più un elenco dei valori di ruolo ammessi.
+  - AC-4 — Un token di sessione emesso prima della modifica resta valido fino alla sua scadenza naturale.
+  - AC-5 — L'autorizzazione continua a basarsi sul ruolo riletto a database: un cambio di ruolo ha effetto al primo accesso protetto successivo, senza nuovo login.
+  - AC-6 — Le suite unitarie ed e2e esistenti passano.
+
+  ---
+
+  ## Soluzione tecnica
+
+  Pura cancellazione di codice morto, in due punti indipendenti.
+
+  **1. `src/lib/policy-rotte.ts`.** `politicaAccessoPerRotta`, `ruoloRichiestoPerRotta` (deprecata), `PoliticaAccesso`, `ROTTE_BACK_OFFICE`, `ROTTE_FRONT_OFFICE` e l'helper privato `matchPrefisso` non hanno consumer in `src/` (verificato con grep: l'unico import è `tests/unit/policy-rotte.test.ts`). Il proxy non li usa: classifica le rotte da sé e non decide per ruolo. Restano nel modulo solo `HOME_AUTENTICATA` e il commento d'intestazione; il path del modulo non cambia, quindi i sei consumer attuali (`src/app/page.tsx`, `src/app/api/auth/google/callback/route.ts`, `src/app/api/e2e-test/sessione/route.ts`, `src/lib/foglio-attivita.ts`, `src/lib/dal.ts`, più i test `google-callback` e `auth-helpers`) restano invariati. `tests/unit/policy-rotte.test.ts` viene eliminato per intero: la sua asserzione su `HOME_AUTENTICATA` è già coperta da `tests/unit/auth-helpers.test.ts` e `tests/unit/google-callback.test.ts`, e il compilatore garantisce AC-2.
+
+  **2. Claim `ruolo` del token di sessione.** Il ruolo nel JWT non decide nulla: `_risolviSessione` in `src/lib/dal.ts` rilegge ruolo e permessi dal record `Utente` a ogni richiesta e il proxy usa solo validità e scadenza. Il claim viene quindi **rimosso dal payload**, non solo dalla validazione:
+  - `PayloadSessione` in `src/domain/types.ts` perde `ruolo`;
+  - `src/lib/session-token.ts` perde `DatiSessione.ruolo`, `isRuolo` e i tre controlli `isRuolo(...)`; `validaPayloadSessioneFirmata` continua a ricostruire il payload dai soli campi noti, perciò un claim `ruolo` presente in un token legacy viene ignorato senza invalidare il token (AC-4);
+  - `createSession(utenteId, nome, email)` in `src/lib/session.ts` perde il parametro `ruolo`; i due chiamanti (callback Google, route e2e `sessione`) smettono di passarlo e di importare `Ruolo`.
+
+  Fuori perimetro (come da spec): proxy, durata e rinnovo della sessione, enum `Ruolo` a database. Il proxy non va toccato: importa solo `verificaTokenSessione` / `verificaERinnovaTokenSessione`, le cui firme restano invariate.
+
+  ### Decisioni architetturali
+
+  Alternativa scartata: tenere `ruolo` nel payload come stringa non validata. È un diff più piccolo, ma lascia nel token un dato che nessuno legge, tipizzato `Ruolo` senza esserlo davvero, e destinato a diventare falso con i ruoli multipli introdotti da US-108. Rimuoverlo è la scelta coerente con AC-3 e con la regola già in vigore («ruolo e permessi dal record a DB, mai dal cookie»).
+
+  Compatibilità: un token pre-deploy (con `ruolo`) resta valido e al primo rinnovo viene riemesso senza il claim. Nel verso opposto, in caso di rollback, un token emesso dalla nuova versione (senza `ruolo`) verrebbe rifiutato dalla vecchia validazione: l'utente rifarebbe il login una volta. Rischio accettato, nessuna migrazione necessaria.
+
+  Nessuna ADR: la scelta non cambia il modello di sicurezza (l'autorizzazione era già basata sul DB) ed è reversibile. Wiki disattivata (`wiki.enabled: false`): nessun contratto di Wiki impact. Nota non bloccante: `docs/wiki/domains/identita-accesso.md` e `docs/wiki/decisions/unica-app-ruoli.md` citano ancora `policy-rotte`; vanno riconciliate quando la Wiki verrà riattivata.
+
+  ---
+
+  ## Baseline
+
+  Eseguita il 2026-11-11 su `main` (d904c32), working directory = project root.
+
+  | Check | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npx vitest run tests/unit/policy-rotte.test.ts tests/unit/session.test.ts tests/unit/proxy.test.ts tests/unit/rinnova-token.test.ts tests/unit/google-callback.test.ts tests/unit/auth-helpers.test.ts tests/unit/dal-guards.test.ts tests/unit/dal-permessi.test.ts` | 8 file, 91 test passati | I task possono attendersi verde sui file toccati |
+  | `npm test` (`vitest run`) | 87 file, 1261 test passati | Atteso verde; il conteggio cala di 1 file e 2 test per la rimozione di `policy-rotte.test.ts`, più i test aggiunti |
+  | `npx tsc --noEmit -p .` | exit 0, nessuna diagnostica | Atteso exit 0 dopo ogni task |
+  | `npm run lint` | exit 0 (warning informativi «chiave riservata non risolvibile staticamente» del guardrail e2e preesistenti, guardrail passed) | Atteso exit 0, nessun nuovo warning ESLint |
+  | `npm run build` | non eseguito in planning | Eseguito nel gate finale |
+  | `npm run test:e2e` | non eseguito in planning (suite lunga, richiede DB migrato e seed) | Eseguito nel gate finale; eventuali fallimenti vanno confrontati con le instabilità note (logo secondo accesso, gestione-utenti 40001, inserimento righe Fast Refresh, cache mesi al cambio account) con `--repeat-each` sulla base |
+
+  Prerequisiti di ambiente (non difetti di codice): per l'e2e servono `DATABASE_URL` verso un Postgres migrato e seedato (`npx prisma migrate deploy && npx prisma db seed`) e la porta del web server libera; se la 3000 è occupata da un `next dev`, usare `E2E_PORT=<porta libera>` (letta da `playwright.config.ts`).
+
+  ---
+
+  ## Mappa delle evidenze di accettazione
+
+  | Criterio | Stato iniziale / fixture | Livello di test | Oracolo osservabile | Task |
+  |---|---|---|---|---|
+  | AC-1 | Codice attuale | Statico (grep) + unit suite | `grep -rn "politicaAccessoPerRotta\|ruoloRichiestoPerRotta\|ROTTE_BACK_OFFICE" src tests` non produce output; `tests/unit/policy-rotte.test.ts` non esiste | TASK-01, TASK-04 |
+  | AC-2 | Consumer di `HOME_AUTENTICATA` invariati | Typecheck + unit | `npx tsc --noEmit -p .` exit 0; `auth-helpers.test.ts` e `google-callback.test.ts` verdi (asseriscono il redirect a `/attivita` tramite la costante) | TASK-01, TASK-04 |
+  | AC-3 | `session-token.ts` senza `isRuolo` | Statico + unit con JWT reale (jose) | `grep -n "AMMINISTRATORE\|COLLABORATORE\|isRuolo" src/lib/session-token.ts` vuoto; un token firmato con `ruolo: "RUOLO_FUTURO"` viene verificato e restituisce un payload privo di `ruolo` | TASK-02, TASK-03 |
+  | AC-4 | Token legacy firmato con `SignJWT` e la chiave di test, con claim `ruolo: "AMMINISTRATORE"` e `exp` futuro | Unit con JWT reale + unit del proxy | `verificaTokenSessione` restituisce `{utenteId, nome, email, expiresAt}`; `verificaERinnovaTokenSessione` restituisce un nuovo token; `proxy` su `/attivita` con quel cookie risponde senza header `location` e con `Set-Cookie` di rinnovo; lo stesso token oltre `exp` resta rifiutato | TASK-03 |
+  | AC-5 | Mock cookie con ruolo legacy diverso dal ruolo a DB | Unit (DAL) | Test esistenti in `tests/unit/dal-permessi.test.ts` «seguono il ruolo a DB …» restano verdi: i permessi seguono `utente.ruolo` del mock DB; nessuna lettura del ruolo dal cookie (`grep -n "cookie.ruolo" src/lib/dal.ts` vuoto) | TASK-04 |
+  | AC-6 | Suite complete | Unit + e2e | `npm test` ed `npm run test:e2e` verdi (al netto delle instabilità note documentate) | TASK-04 |
+
+  ---
+
+  ## Strategia di test
+
+  Il cambiamento è una cancellazione: la strategia è soprattutto di regressione, più due test nuovi che fissano il contratto di compatibilità del token.
+
+  - I test di `session-token` usano jose reale e la chiave di test, quindi l'oracolo di AC-3/AC-4 è il comportamento vero della verifica, non un mock.
+  - Il test del proxy con token legacy prova la Demonstrates 3 (sessione pre-deploy che ricarica `/attivita` senza passare dall'accesso) al confine dove viene decisa la redirect.
+  - AC-5 è già coperto dai test DAL con cookie e DB discordanti: non si aggiungono duplicati.
+  - **Waiver e2e browser:** nessuna superficie UI né flusso nuovo; il confine rotta/server coinvolto (proxy) è provato con il token JWT reale nei test unitari. La suite e2e esistente si esegue come regressione (AC-6). Demonstrates non filmabile in modo significativo (refactoring senza cambiamenti visibili): la registrazione video è a discrezione di `archetipo-review`.
+  - Nessun mockup: nessuna interfaccia toccata.
+tasks:
+  - id: TASK-01
+    title: Ridurre src/lib/policy-rotte.ts alla sola HOME_AUTENTICATA ed eliminare tests/unit/policy-rotte.test.ts
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Il modulo `src/lib/policy-rotte.ts` esporta soltanto `HOME_AUTENTICATA`; la policy di rotta mai usata e il suo test non esistono più.
+
+      ## Read
+      - src/lib/policy-rotte.ts — intero file: `PoliticaAccesso`, `HOME_AUTENTICATA`, `ROTTE_BACK_OFFICE`, `ROTTE_FRONT_OFFICE`, `politicaAccessoPerRotta`, `ruoloRichiestoPerRotta`, `matchPrefisso`.
+      - tests/unit/policy-rotte.test.ts — unico consumer della policy.
+      - Consumer di `HOME_AUTENTICATA` da NON toccare: src/app/page.tsx, src/app/api/auth/google/callback/route.ts, src/app/api/e2e-test/sessione/route.ts, src/lib/foglio-attivita.ts, src/lib/dal.ts, tests/unit/google-callback.test.ts, tests/unit/auth-helpers.test.ts.
+
+      ## Change
+      - src/lib/policy-rotte.ts — rimuovere `import type { Ruolo }`, `PoliticaAccesso`, `ROTTE_BACK_OFFICE`, `ROTTE_FRONT_OFFICE`, `politicaAccessoPerRotta`, `ruoloRichiestoPerRotta`, `matchPrefisso` e i separatori di sezione ormai vuoti. Conservare `export const HOME_AUTENTICATA = "/attivita";` con il suo commento JSDoc e il commento d'intestazione del modulo (aggiornarlo: il modulo contiene la landing autenticata comune, importabile ovunque, anche da proxy.ts). Non rinominare né spostare il file.
+      - tests/unit/policy-rotte.test.ts — eliminare il file.
+      - Non-goal: nessuna modifica ai consumer di `HOME_AUTENTICATA`, a `src/proxy.ts` o alla Wiki.
+
+      ## Steps
+      1. Riscrivere `src/lib/policy-rotte.ts` lasciando solo intestazione e `HOME_AUTENTICATA`.
+      2. `git rm tests/unit/policy-rotte.test.ts`.
+      3. Verificare con grep che nessun simbolo rimosso sia ancora referenziato.
+
+      ## Verify
+      - Run: `grep -rn "politicaAccessoPerRotta\|ruoloRichiestoPerRotta\|ROTTE_BACK_OFFICE\|ROTTE_FRONT_OFFICE\|PoliticaAccesso" src tests`
+      - Expect: nessun output (exit 1).
+      - Run: `npx tsc --noEmit -p .`
+      - Expect: exit 0, nessuna diagnostica (come da baseline).
+      - Run: `npx vitest run tests/unit/google-callback.test.ts tests/unit/auth-helpers.test.ts`
+      - Expect: tutti verdi.
+
+      ## Done
+      - [ ] AC-1 — Mappatura rotta → policy, prefissi di back office e relativo test rimossi; grep vuoto.
+      - [ ] AC-2 — `HOME_AUTENTICATA` esportata dallo stesso path; typecheck verde e test dei consumer verdi.
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Rimuovere il claim ruolo e l'elenco isRuolo dal token di sessione e dai chiamanti di createSession
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Il token di sessione non contiene né valida più un ruolo: `PayloadSessione` è `{utenteId, nome, email, expiresAt}` e `src/lib/session-token.ts` non elenca alcun valore di ruolo.
+
+      ## Read
+      - src/domain/types.ts — `interface PayloadSessione` (riga ~106).
+      - src/lib/session-token.ts — `DatiSessione`, `creaPayloadSessione`, `validaPayloadPerFirma`, `validaPayloadSessioneFirmata`, `isRuolo`.
+      - src/lib/session.ts — `createSession(utenteId, ruolo, nome, email)`.
+      - src/app/api/auth/google/callback/route.ts — chiamata a `createSession` (riga ~118) e import `Ruolo`; `utente.ruolo` resta usato per il controllo del collaboratore disattivato.
+      - src/app/api/e2e-test/sessione/route.ts — chiamata a `createSession` (riga ~58), `select` con `ruolo: true`, import `Ruolo`.
+      - src/lib/dal.ts — `_risolviSessione`: conferma che legge solo `cookie.utenteId` e prende ruolo/permessi dal DB (non va modificato).
+
+      ## Change
+      - src/domain/types.ts — togliere `ruolo: Ruolo;` da `PayloadSessione`. Non toccare il tipo `Ruolo`.
+      - src/lib/session-token.ts — togliere `ruolo` da `DatiSessione`; rimuovere `!isRuolo(...)` da `creaPayloadSessione`, `validaPayloadPerFirma` e `validaPayloadSessioneFirmata`; rimuovere `ruolo: candidato.ruolo` dall'oggetto restituito da `validaPayloadSessioneFirmata` (che deve continuare a copiare solo i campi noti, così un claim `ruolo` legacy viene ignorato); eliminare la funzione `isRuolo` e l'import di `Ruolo`. Nessun altro cambiamento a firma, scadenza o rinnovo.
+      - src/lib/session.ts — `createSession(utenteId: string, nome: string, email: string)`; passare `{ utenteId, nome, email }` a `creaTokenSessione`; rimuovere `Ruolo` dall'import.
+      - src/app/api/auth/google/callback/route.ts — chiamare `createSession(utente.id, \`${utente.nome} ${utente.cognome}\`, utente.email)`; rimuovere l'import di `Ruolo` se non più usato. Lasciare `ruolo: true` nella select (serve al controllo collaboratore).
+      - src/app/api/e2e-test/sessione/route.ts — stessa modifica della chiamata; togliere `ruolo: true` dalla select e l'import di `Ruolo` se non più usati.
+      - Non-goal: `src/proxy.ts`, `src/lib/session-config.ts`, `src/lib/rinnova-token.ts`, `src/lib/dal.ts`, schema Prisma restano invariati.
+
+      ## Steps
+      1. Modificare `PayloadSessione` in `src/domain/types.ts`.
+      2. Modificare `src/lib/session-token.ts` come descritto.
+      3. Modificare la firma di `createSession` in `src/lib/session.ts`.
+      4. Aggiornare i due chiamanti.
+      5. Eseguire typecheck e i test unitari: i test che passano ancora `ruolo` a `creaTokenSessione` o asseriscono la vecchia firma falliranno o daranno errori di tipo; vengono adeguati in TASK-03 (non correggerli qui).
+
+      ## Verify
+      - Run: `grep -n "AMMINISTRATORE\|COLLABORATORE\|isRuolo\|Ruolo" src/lib/session-token.ts src/lib/session.ts`
+      - Expect: nessun output.
+      - Run: `npx tsc --noEmit -p . 2>&1 | grep -v "^tests/"`
+      - Expect: nessuna diagnostica fuori da `tests/` (gli errori residui in `tests/unit/proxy.test.ts`, `session.test.ts`, `google-callback.test.ts` sono attesi e chiusi da TASK-03).
+      - Run: `npm run lint`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-3 — Nessun elenco di valori di ruolo in `src/lib/session-token.ts`; `isRuolo` eliminata.
+      - [ ] AC-4 — `validaPayloadSessioneFirmata` accetta un payload che contiene ancora `ruolo` (campo ignorato, non rifiutato).
+      - [ ] AC-5 — `src/lib/dal.ts` invariato: ruolo e permessi continuano a provenire dal DB.
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Adeguare i test di session-token, rinnova-token, proxy e google-callback e fissare la compatibilità dei token legacy
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+    body: |-
+      ## Objective
+      I test unitari riflettono il token senza `ruolo` e provano con jose reale che un token emesso prima della modifica (con claim `ruolo`, anche sconosciuto) resta valido, rinnovabile e accettato dal proxy fino alla scadenza.
+
+      ## Read
+      - tests/unit/session.test.ts — fixture con `ruolo`, test «rifiuta token firmati ma con claim malformati» (usa `ruolo: "RUOLO_SCONOSCIUTO"`), uso di `SignJWT`/`decodeJwt`.
+      - tests/unit/rinnova-token.test.ts — helper `creaTokenValido({ now, ruolo })` e asserzione `claims.ruolo`.
+      - tests/unit/proxy.test.ts — `it.each` parametrizzato per ruolo (riga ~105) e chiamate a `creaTokenSessione` con `ruolo`; helper `creaRequest`.
+      - tests/unit/google-callback.test.ts — `expect(mockCreateSession).toHaveBeenCalledWith(...)` con 4 argomenti (riga ~127).
+      - tests/unit/dal-guards.test.ts, tests/unit/dal-permessi.test.ts — helper `sessioneCookie(utenteId, ruolo)` non tipizzati: lasciarli invariati (rappresentano cookie legacy con ruolo discordante dal DB e sono l'evidenza di AC-5).
+
+      ## Change
+      - tests/unit/session.test.ts:
+        - togliere `ruolo` dalle fixture passate a `creaTokenSessione` e dai payload attesi;
+        - il test «claim malformati» deve continuare a provare un rifiuto: sostituire `ruolo: "RUOLO_SCONOSCIUTO"` con un claim davvero malformato (es. `utenteId: ""`), senza `ruolo`;
+        - aggiungere `it("accetta e rinnova un token emesso prima della rimozione del ruolo, ignorando il claim")`: firmare con `SignJWT` e `SESSION_SECRET_VALIDA` un token con `utenteId`, `ruolo: "AMMINISTRATORE"`, `nome`, `email`, `expiresAt = exp = now + DURATA_SESSIONE_SECONDI`, `iat = now`; asserire che `verificaTokenSessione(token, { now: now + 60 })` sia `toEqual({ utenteId, nome, email, expiresAt })` (quindi senza `ruolo`), che `verificaERinnovaTokenSessione(token, { now: now + 60 })` non sia null e che `decodeJwt` del token rinnovato non abbia la proprietà `ruolo`; asserire infine che lo stesso token sia `null` con `{ now: expiresAt + 1 }` (scadenza naturale invariata);
+        - aggiungere `it("accetta un token con un valore di ruolo non elencato")` con `ruolo: "RUOLO_FUTURO"`: `verificaTokenSessione` restituisce un payload non null.
+      - tests/unit/rinnova-token.test.ts — `creaTokenValido` continua a firmare token con `ruolo` (sono token legacy, devono restare validi); sostituire `expect(claims.ruolo).toBe("AMMINISTRATORE")` con `expect(claims).not.toHaveProperty("ruolo")` e rimuovere `ruolo` dal tipo dei claim decodificati.
+      - tests/unit/proxy.test.ts — togliere `ruolo` dalle chiamate a `creaTokenSessione`; nell'`it.each` togliere la colonna ruolo mantenendo i due utenti (admin-1, collab-1) e rinominare il test in «lascia passare %s sulla rotta autenticata rinnovando il cookie» usando `utenteId`; aggiungere `it("lascia passare su /attivita un token emesso prima della rimozione del ruolo")` che firma con `SignJWT` un token legacy con `ruolo: "COLLABORATORE"` (iat `now - 60`, exp `now - 60 + DURATA_SESSIONE_SECONDI`) e asserisce `location` null e `set-cookie` contenente `NOME_COOKIE_SESSIONE`.
+      - tests/unit/google-callback.test.ts — `toHaveBeenCalledWith("utente-attivo", "Utente Attivo", "utente@test.local")`.
+      - Non-goal: nessuna modifica a codice in `src/`, nessun nuovo file di test.
+
+      ## Steps
+      1. Aggiornare `session.test.ts` e aggiungere i due test nuovi.
+      2. Aggiornare `rinnova-token.test.ts`.
+      3. Aggiornare `proxy.test.ts` e aggiungere il test del token legacy.
+      4. Aggiornare `google-callback.test.ts`.
+      5. Eseguire i comandi di verifica.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/session.test.ts tests/unit/rinnova-token.test.ts tests/unit/proxy.test.ts tests/unit/google-callback.test.ts tests/unit/dal-guards.test.ts tests/unit/dal-permessi.test.ts tests/unit/auth-helpers.test.ts`
+      - Expect: tutti verdi, inclusi i tre test nuovi.
+      - Run: `npx tsc --noEmit -p .`
+      - Expect: exit 0, nessuna diagnostica (torna alla baseline).
+      - Run: `npm run lint`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-3 — Un token con `ruolo: "RUOLO_FUTURO"` viene accettato da `verificaTokenSessione`.
+      - [ ] AC-4 — Un token legacy con `ruolo` è verificato (payload senza `ruolo`), rinnovato senza il claim, accettato dal proxy su `/attivita` senza redirect e rifiutato solo dopo `expiresAt`.
+      - [ ] AC-5 — `dal-permessi.test.ts` («seguono il ruolo a DB …») verde senza modifiche.
+      - [ ] AC-6 — Test unitari toccati verdi; il test sui claim malformati continua a provare un rifiuto.
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Gate finale — lint, unit, typecheck, build, e2e e verifica stato dei task
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+    body: |-
+      ## Objective
+      Dimostrare che la cancellazione non introduce regressioni nella pipeline CI e che tutti i task di US-111 sono `DONE` prima di chiedere la review.
+
+      ## Read
+      - .github/workflows/ci.yml — sequenza: `npm ci`, `prisma migrate deploy`, `prisma db seed`, `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e`.
+      - tests/e2e/README.md — prerequisiti e contratto della suite e2e.
+      - playwright.config.ts — variabile `E2E_PORT` per usare una porta diversa dalla 3000.
+
+      ## Change
+      - Nessun file. Se un check fallisce per causa di questa spec, correggere nel task responsabile (TASK-01..03) e rieseguire il gate.
+
+      ## Steps
+      1. Controlli statici AC-1/AC-3: `grep -rn "politicaAccessoPerRotta\|ruoloRichiestoPerRotta\|ROTTE_BACK_OFFICE" src tests` (atteso nessun output) e `grep -n "AMMINISTRATORE\|COLLABORATORE\|isRuolo" src/lib/session-token.ts` (atteso nessun output); `test ! -e tests/unit/policy-rotte.test.ts`.
+      2. Controllo AC-5: `grep -n "cookie.ruolo" src/lib/dal.ts` (atteso nessun output).
+      3. `npm run lint`.
+      4. `npm test`.
+      5. `npx tsc --noEmit -p .`.
+      6. `npm run build`.
+      7. `npm run test:e2e` (con DB migrato e seedato; se la porta 3000 è occupata `E2E_PORT=3100 npm run test:e2e`). Un fallimento va confrontato con le instabilità note (logo secondo accesso, gestione-utenti 40001, inserimento righe Fast Refresh, cache mesi al cambio account) rieseguendo lo stesso spec con `--repeat-each` su `main`: è accettabile solo se riproducibile anche sulla base.
+      8. Marcare questo task `DONE`, poi da `data.project_root` eseguire `archetipo spec show US-111` e confermare che nessun task sia `TODO`. Solo allora richiedere la review.
+
+      ## Verify
+      - Run: `npm run lint`
+      - Expect: exit 0 (i warning informativi del guardrail e2e preesistenti in baseline sono ammessi; nessun nuovo warning ESLint).
+      - Run: `npm test`
+      - Expect: tutti verdi; 86 file (87 di baseline meno `policy-rotte.test.ts`), nessun fallimento.
+      - Run: `npx tsc --noEmit -p .`
+      - Expect: exit 0.
+      - Run: `npm run build`
+      - Expect: build completata senza errori di tipo.
+      - Run: `npm run test:e2e`
+      - Expect: tutti verdi, al netto delle sole instabilità note riprodotte anche su `main`.
+      - Run: `archetipo spec show US-111` (da project root)
+      - Expect: TASK-01..TASK-04 tutti `DONE`.
+
+      ## Done
+      - [ ] AC-1 — grep dei simboli rimossi vuoto e test eliminato.
+      - [ ] AC-2 — typecheck e build verdi con i consumer di `HOME_AUTENTICATA` invariati.
+      - [ ] AC-3 — grep dei valori di ruolo in `session-token.ts` vuoto.
+      - [ ] AC-4 — test dei token legacy (session-token e proxy) verdi nella suite completa.
+      - [ ] AC-5 — `dal.ts` non legge il ruolo dal cookie; `dal-permessi.test.ts` verde.
+      - [ ] AC-6 — `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e` verdi.
+      - [ ] Tutti i task di US-111 risultano `DONE` in `archetipo spec show US-111` prima di `archetipo spec review`.
+
+      ## Blockers
+      None.
+    ref: TASK-04

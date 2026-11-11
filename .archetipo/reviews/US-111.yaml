@@ -1,0 +1,35 @@
+schema: archetipo/review/v1
+spec_code: US-111
+comments: []
+dossier:
+  execution_id: exec-cdf7f7a05c81116cec0d40a713146e5c
+  prepared_at: "2026-11-11T17:42:44Z"
+  summary: 'US-111 è una pura cancellazione di codice morto, consegnata sul working tree di main (worktree disattivato; modifiche non ancora committate, fork_base d904c32). 1) src/lib/policy-rotte.ts è ridotto alla sola HOME_AUTENTICATA: rimossi PoliticaAccesso, ROTTE_BACK_OFFICE, ROTTE_FRONT_OFFICE, politicaAccessoPerRotta, ruoloRichiestoPerRotta (deprecata) e matchPrefisso; tests/unit/policy-rotte.test.ts eliminato (11 test). 2) Il claim ruolo esce dal token di sessione: PayloadSessione, DatiSessione, createSession e i due chiamanti (callback Google, rotta e2e-test/sessione) non lo passano più; isRuolo e i tre controlli sull''elenco AMMINISTRATORE/COLLABORATORE sono rimossi da session-token.ts. Nuovi test con JWT reale (jose): token legacy con ruolo accettato, rinnovato senza ruolo e rifiutato oltre exp; token con ruolo non elencato accettato; proxy che lascia passare /attivita con un token legacy rinnovando il cookie. Task 4/4 DONE. Evidenze rieseguite in review: grep dei simboli rimossi vuoto su src e tests; grep di AMMINISTRATORE/COLLABORATORE/isRuolo/ruolo in session-token.ts vuoto; npx tsc --noEmit exit 0; npm run lint exit 0 (solo i warning informativi preesistenti del guardrail, guardrail passed); npm test 86 file / 1253 test verdi (baseline 1261 − 11 rimossi + 3 nuovi); e2e completa via scripts/archetipo/ambiente.sh e2e (DB sandbox coaching_planner_e2e, porta libera perché la 3000 è occupata dal next dev locale) 310/310 verdi in 1.3m, inclusa la npm run build di produzione lanciata dal web server di Playwright. Demo video: registrazione abilitata in config, ma non registrata perché la spec è tecnica (Demonstrates = grep ed esecuzione di suite, nessuna superficie visibile cambiata); non è un finding. Wiki disattivata (wiki.enabled: false): nessun gate Wiki. CI statica (.github/workflows/ci.yml): install, migrate/seed, lint, unit, build, e2e → would pass; nessuna nuova dipendenza, nessuna modifica di schema Prisma né di seed, nessun test e2e nuovo o modificato.'
+  criteria:
+    - id: AC-1
+      verdict: met
+      note: 'grep -rn di politicaAccessoPerRotta|ruoloRichiestoPerRotta|ROTTE_BACK_OFFICE|ROTTE_FRONT_OFFICE|PoliticaAccesso su src e tests: nessun risultato. tests/unit/policy-rotte.test.ts eliminato (staged come D).'
+    - id: AC-2
+      verdict: met
+      note: src/lib/policy-rotte.ts esporta ancora HOME_AUTENTICATA = "/attivita" dallo stesso path; i consumer (page.tsx, callback Google, e2e-test/sessione, foglio-attivita.ts, dal.ts, test google-callback e auth-helpers) sono invariati negli import. tsc exit 0, auth-helpers e google-callback verdi, build di produzione verde.
+    - id: AC-3
+      verdict: met
+      note: isRuolo e i tre controlli rimossi da session-token.ts; grep di AMMINISTRATORE|COLLABORATORE|isRuolo|ruolo nel file vuoto. Test 'accetta un token con un valore di ruolo non elencato' (RUOLO_FUTURO) verde.
+    - id: AC-4
+      verdict: met
+      note: 'Test con JWT reale firmato con la chiave di test e claim ruolo legacy: verificaTokenSessione restituisce {utenteId,nome,email,expiresAt}, verificaERinnovaTokenSessione emette un nuovo token senza ruolo, lo stesso token oltre exp è rifiutato (tests/unit/session.test.ts). Proxy su /attivita con token legacy: nessun redirect e Set-Cookie di rinnovo (tests/unit/proxy.test.ts). Verificato a livello unit, non con un cookie reale emesso dalla build precedente.'
+    - id: AC-5
+      verdict: met
+      note: src/lib/dal.ts rilegge ruolo e permessi dal record Utente ('Ruolo e permessi dal record a DB, mai dal cookie'); nessuna lettura del ruolo dal cookie. tests/unit/dal-permessi.test.ts 'seguono il ruolo a DB ... anche con cookie ...' verdi nella suite completa. Il proxy usa solo validità e scadenza del token.
+    - id: AC-6
+      verdict: met
+      note: 'npm test: 86 file / 1253 test verdi. Suite e2e completa: 310 passed (1.3m) via ambiente.sh e2e sul DB sandbox dedicato. Lint e typecheck verdi.'
+  minor_findings:
+    - 'Le modifiche sono sul working tree di main e non ancora committate (worktree disattivato): con l''approvazione andranno committate a mano; nel working tree ci sono anche cartelle docs/mockups/ non tracciate e non legate a US-111, da non includere nel commit.'
+    - 'Wiki disattivata (wiki.enabled: false), nota non bloccante: docs/wiki/domains/identita-accesso.md (righe 123 e 129) e docs/wiki/decisions/unica-app-ruoli.md (righe 14 e 49) citano ancora policy-rotte.ts come policy anticipata delle rotte e il test policy-rotte: da riconciliare quando la Wiki verrà riattivata.'
+    - 'Ambiente locale: E2E_DATABASE_URL della .env coincide con DATABASE_URL, quindi ''npm run test:e2e'' lanciato direttamente viene rifiutato dalla guardia di sicurezza; la suite è stata eseguita con la ricetta della sandbox (scripts/archetipo/ambiente.sh e2e). Non dipende dal diff.'
+    - 'Alcuni test unitari (es. dal-permessi) costruiscono ancora cookie mock con un campo ruolo: è innocuo e anzi documenta che il ruolo del cookie è ignorato.'
+verdict:
+  decision: approved
+  decided_at: "2026-11-11T17:48:01Z"
+  execution_id: exec-cdf7f7a05c81116cec0d40a713146e5c

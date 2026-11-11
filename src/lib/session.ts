@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import type { PayloadSessione, Ruolo } from "@/domain/types";
+import type { PayloadSessione } from "@/domain/types";
 import {
   NOME_COOKIE_SESSIONE,
   dataScadenzaSessione,
@@ -19,13 +19,11 @@ export { DURATA_SESSIONE_ORE, NOME_COOKIE_SESSIONE } from "@/lib/session-config"
 
 export async function createSession(
   utenteId: string,
-  ruolo: Ruolo,
   nome: string,
   email: string
 ): Promise<void> {
   const { payload, token } = await creaTokenSessione({
     utenteId,
-    ruolo,
     nome,
     email,
   });

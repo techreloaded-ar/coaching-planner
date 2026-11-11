@@ -105,7 +105,6 @@ export function isGestioneTrasferta(valore: unknown): valore is GestioneTrasfert
 /** Payload JWT della sessione stateless */
 export interface PayloadSessione {
   utenteId: string;
-  ruolo: Ruolo;
   nome: string;
   email: string;
   expiresAt: number; // timestamp Unix in secondi

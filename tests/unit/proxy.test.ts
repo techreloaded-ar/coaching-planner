@@ -5,6 +5,7 @@ import {
   DURATA_SESSIONE_SECONDI,
   NOME_COOKIE_SESSIONE,
 } from "@/lib/session-config";
+import { SignJWT } from "jose";
 import { creaTokenSessione } from "@/lib/session-token";
 
 const BASE_URL = "https://coaching-planner.test";
@@ -69,7 +70,6 @@ describe("proxy", () => {
     const sessione = await creaTokenSessione(
       {
         utenteId: "admin-1",
-        ruolo: "AMMINISTRATORE",
         nome: "Admin",
         email: "admin@example.com",
       },
@@ -102,15 +102,15 @@ describe("proxy", () => {
   });
 
   it.each([
-    ["AMMINISTRATORE", "admin-1", "Admin", "admin@example.com"],
-    ["COLLABORATORE", "collab-1", "Collab", "collab@example.com"],
+    ["admin-1", "Admin", "admin@example.com"],
+    ["collab-1", "Collab", "collab@example.com"],
   ] as const)(
-    "lascia passare %s sulla rotta AUTENTICATO rinnovando il cookie",
-    async (ruolo, utenteId, nome, email) => {
+    "lascia passare %s sulla rotta autenticata rinnovando il cookie",
+    async (utenteId, nome, email) => {
       const now = 1_700_000_000;
       vi.setSystemTime(new Date(now * 1000));
       const sessione = await creaTokenSessione(
-        { utenteId, ruolo, nome, email },
+        { utenteId, nome, email },
         { now: now - 60 }
       );
 
@@ -121,13 +121,34 @@ describe("proxy", () => {
     }
   );
 
+  it("lascia passare su /attivita un token emesso prima della rimozione del ruolo", async () => {
+    const now = 1_700_000_000;
+    vi.setSystemTime(new Date(now * 1000));
+    const emessoIl = now - 60;
+    const token = await new SignJWT({
+      utenteId: "collab-legacy",
+      ruolo: "COLLABORATORE",
+      nome: "Collab",
+      email: "collab-legacy@example.com",
+      expiresAt: emessoIl + DURATA_SESSIONE_SECONDI,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt(emessoIl)
+      .setExpirationTime(emessoIl + DURATA_SESSIONE_SECONDI)
+      .sign(new TextEncoder().encode(SESSION_SECRET_VALIDA));
+
+    const response = await proxy(creaRequest("/attivita", token));
+
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("set-cookie")).toContain(NOME_COOKIE_SESSIONE);
+  });
+
   it("lascia passare il collaboratore sulla rotta AMMINISTRATORE rinnovando il cookie", async () => {
     const now = 1_700_000_000;
     vi.setSystemTime(new Date(now * 1000));
     const sessione = await creaTokenSessione(
       {
         utenteId: "collab-1",
-        ruolo: "COLLABORATORE",
         nome: "Collab",
         email: "collab@example.com",
       },
@@ -146,7 +167,6 @@ describe("proxy", () => {
     const sessione = await creaTokenSessione(
       {
         utenteId: "admin-2",
-        ruolo: "AMMINISTRATORE",
         nome: "Admin",
         email: "admin2@example.com",
       },
@@ -165,7 +185,6 @@ describe("proxy", () => {
     const sessione = await creaTokenSessione(
       {
         utenteId: "admin-3",
-        ruolo: "AMMINISTRATORE",
         nome: "Admin",
         email: "admin3@example.com",
       },

@@ -43,7 +43,6 @@ describe("rinnovaToken", () => {
 
       const claims = decodeJwt(rinnovato!) as {
         utenteId: string;
-        ruolo: string;
         nome: string;
         email: string;
         expiresAt: number;
@@ -52,7 +51,7 @@ describe("rinnovaToken", () => {
       };
 
       expect(claims.utenteId).toBe("user-1");
-      expect(claims.ruolo).toBe("AMMINISTRATORE");
+      expect(claims).not.toHaveProperty("ruolo");
       expect(claims.expiresAt).toBe(renewedAt + DURATA_SESSIONE_SECONDI);
       expect(claims.exp).toBe(claims.expiresAt);
       expect(claims.iat).toBe(renewedAt);

@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
-import type { PayloadSessione, Ruolo } from "@/domain/types";
+import type { PayloadSessione } from "@/domain/types";
 import {
   calcolaScadenzaSessione,
   chiaveSessioneSegreta,
@@ -7,7 +7,6 @@ import {
 
 interface DatiSessione {
   utenteId: string;
-  ruolo: Ruolo;
   nome: string;
   email: string;
 }
@@ -88,7 +87,6 @@ function creaPayloadSessione(
 ): PayloadSessione {
   if (
     !isStringaNonVuota(dati.utenteId) ||
-    !isRuolo(dati.ruolo) ||
     !isStringaNonVuota(dati.nome) ||
     !isStringaNonVuota(dati.email)
   ) {
@@ -138,7 +136,6 @@ function validaPayloadPerFirma(
 ): PayloadSessione {
   if (
     !isStringaNonVuota(payload.utenteId) ||
-    !isRuolo(payload.ruolo) ||
     !isStringaNonVuota(payload.nome) ||
     !isStringaNonVuota(payload.email) ||
     !isTimestampUnix(payload.expiresAt) ||
@@ -161,7 +158,6 @@ function validaPayloadSessioneFirmata(
 
   if (
     !isStringaNonVuota(candidato.utenteId) ||
-    !isRuolo(candidato.ruolo) ||
     !isStringaNonVuota(candidato.nome) ||
     !isStringaNonVuota(candidato.email) ||
     !isTimestampUnix(candidato.expiresAt) ||
@@ -175,7 +171,6 @@ function validaPayloadSessioneFirmata(
 
   return {
     utenteId: candidato.utenteId,
-    ruolo: candidato.ruolo,
     nome: candidato.nome,
     email: candidato.email,
     expiresAt: candidato.expiresAt,
@@ -188,10 +183,6 @@ function risolviNow(now?: number): number {
 
 function isStringaNonVuota(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
-}
-
-function isRuolo(value: unknown): value is Ruolo {
-  return value === "AMMINISTRATORE" || value === "COLLABORATORE";
 }
 
 function isTimestampUnix(value: unknown): value is number {

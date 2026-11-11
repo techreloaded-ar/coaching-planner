@@ -126,7 +126,6 @@ describe("GET /api/auth/google/callback", () => {
     );
     expect(mockCreateSession).toHaveBeenCalledWith(
       "utente-attivo",
-      "AMMINISTRATORE",
       "Utente Attivo",
       "utente@test.local"
     );
