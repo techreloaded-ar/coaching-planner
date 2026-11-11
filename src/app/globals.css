@@ -19,6 +19,8 @@
 
 :root {
   --altezza-banner-ambiente: 0px;
+  /* Intestazioni affiancate di sidebar e contenuto: la linea sotto è un'unica riga. */
+  --altezza-intestazione: 69px;
   --background: #ffffff;
   --foreground: #171717;
   /*

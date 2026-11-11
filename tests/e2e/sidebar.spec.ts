@@ -66,6 +66,22 @@ test.describe("Sidebar comune", () => {
 		await expect(voceNavigazione(page, "Registro attività")).toHaveAttribute("aria-current", "page");
 	});
 
+	for (const [ruolo, accedi] of [
+		["amministratore", accediComeAdmin],
+		["collaboratore", accediComeCollaboratore],
+	] as const) {
+		test(`${ruolo}: la linea sotto il logo è alla stessa altezza di quella dell'intestazione del contenuto`, async ({ page }) => {
+			await page.setViewportSize({ width: 1280, height: 800 });
+			await accedi(page);
+
+			const intestazioneSidebar = (await sidebar(page).getByTestId("intestazione-sidebar").boundingBox())!;
+			const intestazioneContenuto = (await page.getByRole("banner").boundingBox())!;
+			// Altezza fissa, quella con la riga «Amministrazione»: non dipende dal ruolo.
+			expect(intestazioneSidebar.height).toBe(69);
+			expect(intestazioneContenuto.y + intestazioneContenuto.height).toBe(intestazioneSidebar.y + intestazioneSidebar.height);
+		});
+	}
+
 	test("si collassa a sole icone, resta collassata dopo il ricaricamento e si riespande", async ({ page }) => {
 		await page.setViewportSize({ width: 1280, height: 800 });
 		await accediAlBackOfficeComeAdmin(page);
@@ -73,7 +89,7 @@ test.describe("Sidebar comune", () => {
 		const larghezzaSidebar = async () => (await sidebar(page).boundingBox())!.width;
 		expect(await larghezzaSidebar()).toBe(248);
 
-		await sidebar(page).getByRole("button", { name: "Comprimi barra laterale", exact: true }).click();
+		await sidebar(page).getByRole("button", { name: "Nascondi barra laterale", exact: true }).click();
 		await expect.poll(larghezzaSidebar).toBe(64);
 		// Le etichette restano come nome accessibile e nel title delle icone.
 		await expect(voceNavigazione(page, "Clienti")).toHaveAttribute("title", "Clienti");
