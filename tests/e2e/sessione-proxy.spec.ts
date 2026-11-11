@@ -2,6 +2,7 @@ import { decodeJwt } from "jose";
 import { expect, test, type Page } from "@playwright/test";
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { esci } from "./support/menu-account";
+import { voceNavigazione } from "./support/navigazione";
 
 const BASE_URL = "http://localhost:3000";
 const COOKIE_SESSIONE = "cp_sessione";
@@ -111,7 +112,7 @@ test.describe("US-029 Proxy e sessione sliding", () => {
       page.getByRole("heading", { name: "Attività non disponibili" })
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Console amministrativa", exact: true })
+      voceNavigazione(page, "Clienti")
     ).toBeVisible();
   });
 

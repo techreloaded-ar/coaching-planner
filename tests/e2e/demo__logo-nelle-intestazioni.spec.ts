@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 
 import { accediComeAdmin } from "./support/auth";
 import { pulsanteMenuAccount } from "./support/menu-account";
+import { voceNavigazione } from "./support/navigazione";
 
 /**
  * Demo scenario — US-028: logo Coaching Planner nelle intestazioni delle aree interne.
@@ -23,7 +24,7 @@ test.describe("US-028 Demo", () => {
 		await expect(page.getByRole("heading", { name: "Le mie attività" })).toBeVisible();
 		await expect(logo(page)).toBeVisible();
 
-		await page.getByRole("link", { name: "Console amministrativa", exact: true }).click();
+		await voceNavigazione(page, "Clienti").click();
 		await page.waitForURL("**/anagrafiche**");
 		await expect(logo(page)).toBeVisible();
 

@@ -29,7 +29,7 @@ test.describe("Demo US-032 — dettaglio avanzamento nelle Offerte", () => {
 
     // 1. L'amministratore apre l'elenco delle offerte.
     await accediAlBackOfficeComeAdmin(page);
-    await expect(page.getByRole("banner")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Navigazione principale" })).toBeVisible();
     await page
       .getByRole("navigation", { name: "Navigazione principale" })
       .getByRole("link", { name: "Offerte", exact: true })

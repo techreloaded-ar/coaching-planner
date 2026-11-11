@@ -58,7 +58,7 @@ test.describe("Demo US-036 — matrice mensile per collaboratore nel dettaglio a
 
     // 1. L'amministratore apre l'elenco delle offerte.
     await accediAlBackOfficeComeAdmin(page);
-    await expect(page.getByRole("banner")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Navigazione principale" })).toBeVisible();
     await apriPaginaOfferte(page);
     // L'elenco è paginato: le offerte della demo si ritrovano con la ricerca.
     await cercaNellElenco(page, "/offerte", token);

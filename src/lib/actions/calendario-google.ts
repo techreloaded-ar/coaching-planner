@@ -16,8 +16,9 @@ export async function scollegaCalendarioGoogle(): Promise<void> {
     where: { collaboratoreId: collaboratore.id },
   });
 
-  revalidatePath("/impostazioni/connettori");
-  revalidatePath("/attivita");
+  // Lo stato del connettore arriva alla modale Impostazioni dalla struttura
+  // dell'applicazione, comune a tutte le aree: si rinnova dal layout radice.
+  revalidatePath("/", "layout");
 }
 
 /**

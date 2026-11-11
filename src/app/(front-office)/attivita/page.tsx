@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   risolviProfiloCollaboratoreCorrente,
   verificaSessione,
@@ -10,6 +9,7 @@ import {
 import { collaboratoreConsultatoDellaPagina } from "@/lib/foglio-attivita";
 import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
 import CalendarioMensile from "./calendario-mensile";
+import IndicatoreCalendario from "./indicatore-calendario";
 import StatoProfiloCollaboratore from "./stato-profilo-collaboratore";
 import BannerFoglioConsultato from "./banner-foglio-consultato";
 import { calendarioCollegato } from "@/lib/proposte-calendario";
@@ -129,16 +129,7 @@ export default async function AttivitaPage({
     <>
       {/* Solo stato, discreto: il collegamento si gestisce dalle Impostazioni. */}
       <div className="mx-auto flex w-full max-w-[1080px] justify-end px-8 pt-4">
-        <Link
-          href="/impostazioni/connettori"
-          className="inline-flex items-center gap-1.5 text-sm text-testo-metadati transition hover:text-zinc-600 dark:hover:text-zinc-300"
-        >
-          <span
-            aria-hidden="true"
-            className={`h-1.5 w-1.5 rounded-full ${collegato ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"}`}
-          />
-          {collegato ? "Google Calendar collegato" : "Google Calendar non collegato"}
-        </Link>
+        <IndicatoreCalendario collegato={collegato} />
       </div>
       {vista}
     </>

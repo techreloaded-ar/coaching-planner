@@ -2,6 +2,7 @@ import type { Locator, Page, TestInfo } from "@playwright/test";
 import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { apriMenuNavigazione, sidebar } from "./support/menu-account";
 import { creaDatasetReportFatturazioneClienti } from "./support/report-data";
 
 /**
@@ -9,8 +10,8 @@ import { creaDatasetReportFatturazioneClienti } from "./support/report-data";
  *
  * A ogni larghezza la pagina resta entro il viewport (le tabelle scorrono nel
  * proprio contenitore), i comandi principali restano visibili e, su
- * smartphone, toccabili su almeno 44 × 44 px. Sotto 920 px la sidebar della
- * console diventa un menu apribile accessibile.
+ * smartphone, toccabili su almeno 44 × 44 px. Sotto 920 px la sidebar comune
+ * diventa un menu a scomparsa che entra dal bordo sinistro.
  */
 
 const LARGHEZZE = [375, 390, 768, 1280] as const;
@@ -55,6 +56,7 @@ async function fotografaNeiTemi(page: Page, testInfo: TestInfo, nome: string, at
 /**
  * Su smartphone la barra del mese è compatta: frecce e mese sulla prima riga,
  * poi comandi e vista a sola icona (il testo resta come nome accessibile).
+ * «Riepilogo mese» non è più nella barra: si apre dalla sidebar.
  */
 async function verificaBarraCompatta(page: Page, larghezza: number) {
   if (larghezza >= SMARTPHONE) return;
@@ -62,7 +64,6 @@ async function verificaBarraCompatta(page: Page, larghezza: number) {
   const mese = (await page.getByTestId("calendar-month-label").boundingBox())!;
   const comandi = [
     page.getByRole("button", { name: "Mese corrente", exact: true }).or(page.getByRole("link", { name: "Mese corrente", exact: true })),
-    page.getByRole("link", { name: "Riepilogo mese", exact: true }),
     vista.getByRole("link", { name: "Calendario", exact: true }),
     vista.getByRole("link", { name: "Elenco", exact: true }),
   ];
@@ -102,7 +103,7 @@ test.describe("Layout mobile", () => {
       await verificaComando(page.getByTestId("calendar-month-label"), larghezza);
       await verificaComando(page.getByRole("button", { name: "Mese successivo" }), larghezza);
       await verificaComando(page.getByRole("button", { name: "Mese corrente", exact: true }), larghezza);
-      await verificaComando(page.getByRole("link", { name: "Riepilogo mese", exact: true }), larghezza);
+      await expect(page.getByRole("main").getByRole("link", { name: "Riepilogo mese" })).toHaveCount(0);
       const vista = page.getByRole("navigation", { name: "Vista delle attività" });
       await verificaComando(vista.getByRole("link", { name: "Calendario", exact: true }), larghezza);
       await verificaComando(vista.getByRole("link", { name: "Elenco", exact: true }), larghezza);
@@ -183,7 +184,7 @@ test.describe("Layout mobile", () => {
       await verificaComando(page.getByRole("link", { name: "Mese precedente" }), larghezza);
       await verificaComando(page.getByRole("link", { name: "Mese successivo" }), larghezza);
       await verificaComando(page.getByRole("link", { name: "Mese corrente", exact: true }), larghezza);
-      await verificaComando(page.getByRole("link", { name: "Riepilogo mese", exact: true }), larghezza);
+      await expect(page.getByRole("main").getByRole("link", { name: "Riepilogo mese" })).toHaveCount(0);
       await verificaComando(vista.getByRole("link", { name: "Calendario", exact: true }), larghezza);
       await verificaBarraCompatta(page, larghezza);
     });
@@ -210,33 +211,36 @@ test.describe("Layout mobile", () => {
   }
 
   for (const larghezza of [390, 768] as const) {
-    test(`console a ${larghezza} px: menu apribile accessibile al posto della sidebar`, async ({ page }, testInfo) => {
+    test(`console a ${larghezza} px: la sidebar diventa un menu a scomparsa dal bordo sinistro`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: larghezza, height: 900 });
       await accediAlBackOfficeComeAdmin(page);
       await page.goto("/report/fatturazione-clienti");
 
-      await expect(page.getByRole("complementary")).toBeHidden();
+      await expect(sidebar(page)).toBeHidden();
       const apriMenu = page.getByRole("button", { name: "Apri menu di navigazione" });
       await verificaComando(apriMenu, larghezza);
       await expect(apriMenu).toHaveAttribute("aria-expanded", "false");
 
+      await expect(page.getByTestId("menu-account")).toHaveAttribute("data-idratata", "true");
       await apriMenu.focus();
       await page.keyboard.press("Enter");
-      const menu = page.getByRole("dialog", { name: "Menu di navigazione" });
+      const menu = sidebar(page);
       await expect(menu).toBeVisible();
-      await expect(apriMenu).toHaveAttribute("aria-expanded", "true");
+      const boxMenu = (await menu.boundingBox())!;
+      expect(boxMenu.x).toBe(0);
+      expect(boxMenu.width).toBeLessThan(larghezza);
       const navigazione = menu.getByRole("navigation", { name: "Navigazione principale" });
       await expect(navigazione.getByRole("link", { name: "Fatturazione clienti", exact: true })).toHaveAttribute(
         "aria-current",
         "page",
       );
-      for (const voce of ["Le mie attività", "Clienti", "Offerte", "Persone", "Marginalità", "Importazione"]) {
+      for (const voce of ["Le mie attività", "Riepilogo mese", "Clienti", "Offerte", "Persone", "Marginalità", "Importazione"]) {
         await expect(navigazione.getByRole("link", { name: voce, exact: true })).toBeVisible();
       }
+      await expect(menu.getByRole("button", { name: "Menu dell'account", exact: true })).toBeVisible();
+      await expect(menu.getByRole("button", { name: /barra laterale/ })).toBeHidden();
       // Il focus entra nel menu all'apertura.
-      await expect
-        .poll(() => menu.evaluate((dialogo) => dialogo.contains(document.activeElement)))
-        .toBe(true);
+      await expect(menu.getByRole("button", { name: "Chiudi menu di navigazione" })).toBeFocused();
 
       const percorso = testInfo.outputPath(`menu-console-${larghezza}.png`);
       await page.screenshot({ path: percorso });
@@ -253,6 +257,20 @@ test.describe("Layout mobile", () => {
       await expect(apriMenu).toBeFocused();
     });
   }
+
+  test("collaboratore a 390 px: il menu a scomparsa ha solo le voci delle attività e si chiude scegliendo una voce", async ({
+    page,
+    collaboratore,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await accediComeCollaboratore(page, collaboratore.utente.email);
+    await apriMenuNavigazione(page);
+    const navigazione = sidebar(page).getByRole("navigation", { name: "Navigazione principale" });
+    await expect(navigazione.getByRole("link")).toHaveCount(2);
+    await navigazione.getByRole("link", { name: "Riepilogo mese", exact: true }).click();
+    await page.waitForURL("**/attivita/riepilogo**");
+    await expect(sidebar(page)).toBeHidden();
+  });
 
   test("console a 1280 px: sidebar fissa con etichette, senza pulsante menu", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });

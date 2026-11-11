@@ -1,11 +1,9 @@
-import Link from "next/link";
 import {
-  disconnetti,
   risolviProfiloCollaboratoreCorrente,
   verificaSessione,
 } from "@/lib/dal";
 import { collaboratoriDelSelettore } from "@/lib/foglio-attivita";
-import { LogoCoachingPlanner, MenuAccount } from "@/components";
+import StrutturaApplicazione from "@/app/struttura-applicazione";
 import SelettoreFoglioAttivita from "./selettore-foglio-attivita";
 
 export default async function FrontOfficeLayout({
@@ -26,48 +24,25 @@ export default async function FrontOfficeLayout({
     : [[], null];
 
   return (
-    <div className="flex min-h-[calc(100dvh-var(--altezza-banner-ambiente))] flex-col">
-      <header className="sticky top-[var(--altezza-banner-ambiente)] z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 md:flex md:gap-5 md:px-8">
-          <LogoCoachingPlanner />
-          <div aria-hidden="true" className="hidden h-[26px] w-px shrink-0 bg-zinc-200 md:block dark:bg-zinc-700" />
-          <div className="col-span-2 row-start-2">
-            {amministratore ? (
-              <SelettoreFoglioAttivita
-                collaboratori={collaboratori}
-                proprioCollaboratoreId={
-                  profilo?.stato === "ATTIVO" ? profilo.collaboratore.id : null
-                }
-                nomeUtente={sessione.nome}
-              />
-            ) : (
-              <h1 className="text-[22px] font-semibold tracking-tight text-testo-principale md:text-lg md:font-medium">
-                Le mie attività
-              </h1>
-            )}
-          </div>
-          <div className="col-start-2 row-start-1 flex items-center gap-3.5 md:ml-auto">
-            {amministratore && (
-              <Link
-                href="/anagrafiche"
-                className="inline-flex items-center rounded-[10px] border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-sm font-medium text-indigo-700 shadow-sm transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/15 dark:text-indigo-300 dark:hover:bg-indigo-500/25"
-              >
-                <span className="max-lg:sr-only">Console amministrativa</span>
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4 lg:hidden">
-                  <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" />
-                </svg>
-              </Link>
-            )}
-            <MenuAccount
-              nome={sessione.nome}
-              email={sessione.email}
-              ruolo={sessione.ruolo === "AMMINISTRATORE" ? "Amministratore" : "Collaboratore"}
-              azioneEsci={disconnetti}
-            />
-          </div>
-        </div>
-      </header>
+    <StrutturaApplicazione
+      sessione={sessione}
+      intestazione={
+        amministratore ? (
+          <SelettoreFoglioAttivita
+            collaboratori={collaboratori}
+            proprioCollaboratoreId={
+              profilo?.stato === "ATTIVO" ? profilo.collaboratore.id : null
+            }
+            nomeUtente={sessione.nome}
+          />
+        ) : (
+          <h1 className="text-lg font-medium tracking-tight text-testo-principale">
+            Le mie attività
+          </h1>
+        )
+      }
+    >
       <main className="flex-1">{children}</main>
-    </div>
+    </StrutturaApplicazione>
   );
 }

@@ -68,10 +68,10 @@ export async function accediAlBackOfficeComeAdmin(
 	email = EMAIL_ADMIN_E2E,
 ): Promise<void> {
 	await accediComeAdmin(page, email);
-	await page
-		.getByRole("link", { name: "Console amministrativa", exact: true })
-		.click();
-	await page.waitForURL("**/anagrafiche**");
+	// L'indirizzo, non la voce della sidebar: sotto 920 px la sidebar è un
+	// menu a scomparsa chiuso.
+	await page.goto("/anagrafiche");
+	await page.waitForURL("**/anagrafiche/clienti");
 }
 
 export async function accediComeCollaboratore(

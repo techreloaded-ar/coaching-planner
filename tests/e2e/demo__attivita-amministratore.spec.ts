@@ -1,6 +1,7 @@
 import { accediComeAdmin } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { voceNavigazione } from "./support/navigazione";
 
 const CODICE_SPEC_DEMO = "US-030-TASK-08-ATTIVITA-AMMINISTRATORE-DEMO";
 
@@ -29,10 +30,7 @@ test.describe("US-030 Demo", () => {
 			page.getByRole("heading", { name: "Le mie attività", exact: true }),
 		).toBeVisible();
 		await expect(
-			page.getByRole("link", {
-				name: "Console amministrativa",
-				exact: true,
-			}),
+			voceNavigazione(page, "Clienti"),
 		).toBeVisible();
 
 		await page.goto(`/attivita/${data}?mese=${mese}`);
@@ -59,14 +57,14 @@ test.describe("US-030 Demo", () => {
 		await expect(page.getByText(nota, { exact: true })).toBeVisible();
 
 		await page.getByRole("link", { name: "Torna al calendario", exact: true }).click();
+		await page.waitForURL(`**/attivita?mese=${mese}`);
 		await page.getByRole("link", { name: "Riepilogo mese", exact: true }).click();
 		await expect(page.getByTestId("summary-giornate-totali-value")).toHaveText("0,75");
 		await expect(page.getByTestId("summary-table")).toContainText(
 			cliente.ragioneSociale,
 		);
 
-		await page
-			.getByRole("link", { name: "Console amministrativa", exact: true })
+		await voceNavigazione(page, "Clienti")
 			.click();
 		await page.waitForURL("**/anagrafiche/clienti");
 		await page.getByRole("link", { name: "Le mie attività", exact: true }).click();

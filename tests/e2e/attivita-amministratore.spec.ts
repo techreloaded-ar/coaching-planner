@@ -4,6 +4,7 @@ import { dataNelMeseRiservato, meseRiservato } from "./support/date";
 import { apriPersona, salvaPersona } from "./support/persone";
 import { test, expect } from "./support/fixtures";
 import { apriMenuAccount, pannelloAccount } from "./support/menu-account";
+import { voceNavigazione } from "./support/navigazione";
 
 const CODICE_SPEC = "US-030-TASK-08-ATTIVITA-AMMINISTRATORE";
 
@@ -30,10 +31,7 @@ test.describe("US-030 Attività amministratore", () => {
 		await expect(pannelloAccount(page)).toContainText("Amministratore");
 		await page.keyboard.press("Escape");
 		await expect(
-			page.getByRole("link", {
-				name: "Console amministrativa",
-				exact: true,
-			}),
+			voceNavigazione(page, "Clienti"),
 		).toBeVisible();
 
 		await page.goto(`/attivita/${data}?mese=${mese}`);
@@ -87,8 +85,7 @@ test.describe("US-030 Attività amministratore", () => {
 			page.getByTestId("summary-table").getByText(`${offerta.codice} — ${offerta.descrizione}`, { exact: true }),
 		).toBeVisible();
 
-		await page
-			.getByRole("link", { name: "Console amministrativa", exact: true })
+		await voceNavigazione(page, "Clienti")
 			.click();
 		await page.waitForURL("**/anagrafiche/clienti");
 		await expect(page.getByRole("heading", { name: "Clienti" })).toBeVisible();
@@ -144,8 +141,7 @@ test.describe("US-030 Attività amministratore", () => {
 		await apriMenuAccount(page);
 		await expect(pannelloAccount(page)).toContainText("Amministratore");
 		await page.keyboard.press("Escape");
-		await page
-			.getByRole("link", { name: "Console amministrativa", exact: true })
+		await voceNavigazione(page, "Clienti")
 			.click();
 		await page.waitForURL("**/anagrafiche/clienti");
 	});
@@ -183,10 +179,7 @@ test.describe("US-030 Attività amministratore", () => {
 		const paginaCollaboratore = await contestoCollaboratore.newPage();
 		await accediComeCollaboratore(paginaCollaboratore, collaboratore.utente.email);
 		await expect(
-			paginaCollaboratore.getByRole("link", {
-				name: "Console amministrativa",
-				exact: true,
-			}),
+			voceNavigazione(paginaCollaboratore, "Clienti"),
 		).toHaveCount(0);
 		await paginaCollaboratore.goto("/anagrafiche");
 		await paginaCollaboratore.waitForURL("**/attivita**");
