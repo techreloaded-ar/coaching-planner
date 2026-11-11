@@ -67,7 +67,7 @@ test.describe("US-030 Demo", () => {
 		await voceNavigazione(page, "Clienti")
 			.click();
 		await page.waitForURL("**/anagrafiche/clienti");
-		await page.getByRole("link", { name: "Registro Attività", exact: true }).click();
+		await page.getByRole("link", { name: "Registro attività", exact: true }).click();
 		await page.waitForURL("**/attivita");
 	});
 });

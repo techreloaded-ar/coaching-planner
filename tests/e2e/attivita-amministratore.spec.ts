@@ -98,7 +98,7 @@ test.describe("US-030 Attività amministratore", () => {
 			.filter({ has: page.getByText(offerta.codice, { exact: true }) });
 		await expect(rigaReport).toHaveCount(1);
 
-		await page.getByRole("link", { name: "Registro Attività", exact: true }).click();
+		await page.getByRole("link", { name: "Registro attività", exact: true }).click();
 		await page.waitForURL("**/attivita");
 		await expect(
 			page.getByRole("heading", { name: "Le mie attività", exact: true }),

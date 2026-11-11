@@ -8,7 +8,7 @@ import { navigazionePrincipale, voceNavigazione } from "./support/navigazione";
  * Test e2e — Sidebar comune a collaboratori e amministratori: voci per ruolo
  * raggruppate (Attività; per l'amministratore anche Anagrafica e Reportistica),
  * collassabile a sole icone con la scelta ricordata nel browser, «Registro
- * Attività» e «Riepilogo mensile» che seguono il mese e il foglio consultati.
+ * attività» e «Riepilogo mensile» che seguono il mese e il foglio consultati.
  *
  * Gli scenari navigano senza scrivere righe; il foglio consultato è di un
  * collaboratore creato dalla factory.
@@ -17,12 +17,12 @@ import { navigazionePrincipale, voceNavigazione } from "./support/navigazione";
 const MESE = meseRiservato("INC-SIDEBAR-COMUNE");
 
 test.describe("Sidebar comune", () => {
-	test("collaboratore: solo il gruppo Attività con Registro Attività e Riepilogo mensile", async ({ page }) => {
+	test("collaboratore: solo il gruppo Attività con Registro attività e Riepilogo mensile", async ({ page }) => {
 		await accediComeCollaboratore(page);
 
-		await expect(navigazionePrincipale(page).getByRole("link")).toHaveText(["Registro Attività", "Riepilogo mensile"]);
+		await expect(navigazionePrincipale(page).getByRole("link")).toHaveText(["Registro attività", "Riepilogo mensile"]);
 		await expect(navigazionePrincipale(page).getByText("Attività", { exact: true })).toBeVisible();
-		await expect(voceNavigazione(page, "Registro Attività")).toHaveAttribute("aria-current", "page");
+		await expect(voceNavigazione(page, "Registro attività")).toHaveAttribute("aria-current", "page");
 		await expect(navigazionePrincipale(page).getByRole("link", { name: "Calendario" })).toHaveCount(0);
 
 		// Nella barra del mese resta lo switch Calendario/Elenco, il riepilogo è nella sidebar.
@@ -34,14 +34,14 @@ test.describe("Sidebar comune", () => {
 		await voceNavigazione(page, "Riepilogo mensile").click();
 		await page.waitForURL("**/attivita/riepilogo");
 		await expect(voceNavigazione(page, "Riepilogo mensile")).toHaveAttribute("aria-current", "page");
-		await expect(voceNavigazione(page, "Registro Attività")).not.toHaveAttribute("aria-current", "page");
+		await expect(voceNavigazione(page, "Registro attività")).not.toHaveAttribute("aria-current", "page");
 	});
 
 	test("amministratore: gruppi Attività, Anagrafica (con Importazione) e Reportistica", async ({ page }) => {
 		await accediComeAdmin(page);
 
 		await expect(navigazionePrincipale(page).getByRole("link")).toHaveText([
-			"Registro Attività",
+			"Registro attività",
 			"Riepilogo mensile",
 			"Clienti",
 			"Offerte",
@@ -61,9 +61,9 @@ test.describe("Sidebar comune", () => {
 		await voceNavigazione(page, "Marginalità").click();
 		await page.waitForURL("**/report/marginalita**");
 		await expect(voceNavigazione(page, "Marginalità")).toHaveAttribute("aria-current", "page");
-		await voceNavigazione(page, "Registro Attività").click();
+		await voceNavigazione(page, "Registro attività").click();
 		await page.waitForURL("**/attivita");
-		await expect(voceNavigazione(page, "Registro Attività")).toHaveAttribute("aria-current", "page");
+		await expect(voceNavigazione(page, "Registro attività")).toHaveAttribute("aria-current", "page");
 	});
 
 	test("si collassa a sole icone, resta collassata dopo il ricaricamento e si riespande", async ({ page }) => {
@@ -121,11 +121,11 @@ test.describe("Sidebar comune", () => {
 		await expect(page.getByTestId("banner-foglio-consultato")).toBeVisible();
 
 		// E viceversa: dal riepilogo il registro resta sullo stesso foglio e mese.
-		await expect(voceNavigazione(page, "Registro Attività")).toHaveAttribute(
+		await expect(voceNavigazione(page, "Registro attività")).toHaveAttribute(
 			"href",
 			`/attivita?mese=${MESE}&collaboratore=${collaboratore.id}`,
 		);
-		await voceNavigazione(page, "Registro Attività").click();
+		await voceNavigazione(page, "Registro attività").click();
 		await page.waitForURL(`**/attivita?mese=${MESE}&collaboratore=${collaboratore.id}`);
 		await expect(page.getByTestId("banner-foglio-consultato")).toBeVisible();
 	});

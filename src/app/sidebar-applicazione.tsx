@@ -58,7 +58,7 @@ const PERCORSO_ATTIVITA = "/attivita";
 const PERCORSO_RIEPILOGO = "/attivita/riepilogo";
 
 /**
- * Nell'area attività «Registro Attività» e «Riepilogo mensile» restano sul
+ * Nell'area attività «Registro attività» e «Riepilogo mensile» restano sul
  * mese che si sta guardando (calendario/elenco/riepilogo con `?mese=`,
  * dettaglio giornata `/attivita/AAAA-MM-GG`) e sul foglio consultato
  * dall'amministratore, in entrambe le direzioni; altrove aprono il mese
@@ -223,10 +223,10 @@ export default function SidebarApplicazione({
             prefetch={false}
             onClick={suNavigazione}
             aria-current={attivitaAttiva ? "page" : undefined}
-            title={compressa ? "Registro Attività" : undefined}
+            title={compressa ? "Registro attività" : undefined}
             className={`${CLASSI_VOCE} ${attivitaAttiva ? CLASSI_VOCE_ATTIVA : CLASSI_VOCE_INATTIVA}`}
           >
-            <ContenutoVoce etichetta="Registro Attività" icona={ICONA_ATTIVITA} attiva={attivitaAttiva} compressa={compressa} />
+            <ContenutoVoce etichetta="Registro attività" icona={ICONA_ATTIVITA} attiva={attivitaAttiva} compressa={compressa} />
           </Link>
           <Link
             href={hrefNelFoglio(PERCORSO_RIEPILOGO, pathname, searchParams)}

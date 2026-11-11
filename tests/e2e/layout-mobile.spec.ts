@@ -234,7 +234,7 @@ test.describe("Layout mobile", () => {
         "aria-current",
         "page",
       );
-      for (const voce of ["Registro Attività", "Riepilogo mensile", "Clienti", "Offerte", "Persone", "Marginalità", "Importazione"]) {
+      for (const voce of ["Registro attività", "Riepilogo mensile", "Clienti", "Offerte", "Persone", "Marginalità", "Importazione"]) {
         await expect(navigazione.getByRole("link", { name: voce, exact: true })).toBeVisible();
       }
       await expect(menu.getByRole("button", { name: "Menu dell'account", exact: true })).toBeVisible();
