@@ -93,6 +93,8 @@ interface CalendarioMensileProps {
   datiMeseIniziale: DatiCalendarioMese;
   /** Data corrente in formato ISO string */
   oggi: string;
+  /** Stato di Google Calendar in fondo alla barra del mese; assente sul foglio di un altro collaboratore. */
+  indicatoreCalendario?: React.ReactNode;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -102,6 +104,7 @@ interface CalendarioMensileProps {
 export default function CalendarioMensile({
   datiMeseIniziale,
   oggi,
+  indicatoreCalendario,
 }: CalendarioMensileProps) {
   const oggiDate = new Date(oggi);
 
@@ -426,25 +429,29 @@ export default function CalendarioMensile({
           hrefElenco={urlDelFoglio(urlElenco(tokenVisualizzato, FILTRI_VUOTI), collaboratoreConsultatoId)}
         />
 
-        {/* Riepilogo mese: neutro, il rosa resta l'accento di oggi */}
-        {totaleRighe > 0 && (
-          <div className="inline-flex items-center gap-[9px] whitespace-nowrap max-sm:ml-auto max-sm:gap-1.5 max-sm:px-2.5 max-sm:text-[13px] rounded-full border border-zinc-200 bg-white px-[13px] py-1.5 text-sm font-semibold text-testo-principale dark:border-zinc-700 dark:bg-zinc-800">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              className="h-[15px] w-[15px] text-testo-metadati max-sm:hidden"
-              aria-hidden="true"
-            >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-            <span className="tabular-nums">{totaleRighe} righe</span>
-            <span className="block h-[13px] w-px bg-zinc-200 dark:bg-zinc-700" />
-            <span className="tabular-nums">{formattaGiornate(totaleOre / ORE_PER_GIORNATA)}</span>
-          </div>
-        )}
+        {/* Riepilogo mese e stato di Google Calendar, a destra anche su smartphone */}
+        <div className="flex items-center gap-3 max-sm:ml-auto max-sm:gap-2.5">
+          {/* Riepilogo mese: neutro, il rosa resta l'accento di oggi */}
+          {totaleRighe > 0 && (
+            <div className="inline-flex items-center gap-[9px] whitespace-nowrap max-sm:gap-1.5 max-sm:px-2.5 max-sm:text-[13px] rounded-full border border-zinc-200 bg-white px-[13px] py-1.5 text-sm font-semibold text-testo-principale dark:border-zinc-700 dark:bg-zinc-800">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                className="h-[15px] w-[15px] text-testo-metadati max-sm:hidden"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              <span className="tabular-nums">{totaleRighe} righe</span>
+              <span className="block h-[13px] w-px bg-zinc-200 dark:bg-zinc-700" />
+              <span className="tabular-nums">{formattaGiornate(totaleOre / ORE_PER_GIORNATA)}</span>
+            </div>
+          )}
+          {indicatoreCalendario}
+        </div>
       </div>
 
       {/* ── Errore di caricamento del mese ── */}
