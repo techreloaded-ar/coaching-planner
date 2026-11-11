@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { elencaVociRimborso } from "@/lib/voci-rimborso";
 import VociRimborsoTabella from "./voci-rimborso-tabella";
 
@@ -8,7 +8,7 @@ interface VociRimborsoPageProps {
 }
 
 export default async function VociRimborsoPage({ searchParams }: VociRimborsoPageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_VOCI_RIMBORSO");
   const vociRimborso = await elencaVociRimborso();
   const { esito } = await searchParams;
 

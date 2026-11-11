@@ -14,14 +14,16 @@ vi.mock("@/lib/db", () => ({
   db: { cliente: mockCliente },
 }));
 
-// ── Mock di richiediRuoloApi ───────────────────────────────────────
+// ── Mock di richiediPermessoApi ────────────────────────────────────
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-  mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi, mockRichiediAlmenoUnPermessoApi } = vi.hoisted(() => ({
+  mockRichiediPermessoApi: vi.fn(),
+  mockRichiediAlmenoUnPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-  richiediRuoloApi: mockRichiediRuoloApi,
+  richiediPermessoApi: mockRichiediPermessoApi,
+  richiediAlmenoUnPermessoApi: mockRichiediAlmenoUnPermessoApi,
 }));
 
 // ── Mock del cookie di sessione ────────────────────────────────────
@@ -93,7 +95,8 @@ function statoIniziale() {
 describe("DAL clienti", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
+    mockRichiediAlmenoUnPermessoApi.mockResolvedValue(undefined);
   });
 
   // ── 1. elencaClientiPaginati ──────────────────────────────────
@@ -109,7 +112,7 @@ describe("DAL clienti", () => {
 
       const result = await elencaClientiPaginati({ ricerca: "", pagina: 2 });
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_CLIENTI");
       expect(mockCliente.findMany).toHaveBeenCalledWith({
         where: {
           OR: [
@@ -216,7 +219,10 @@ describe("DAL clienti", () => {
 
       const result = await elencaClientiSelezionabili();
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediAlmenoUnPermessoApi).toHaveBeenCalledWith([
+        "GESTIRE_CLIENTI",
+        "GESTIRE_OFFERTE",
+      ]);
       expect(mockCliente.findMany).toHaveBeenCalledWith({
         orderBy: { ragioneSociale: "asc" },
       });
@@ -249,7 +255,11 @@ describe("DAL clienti", () => {
 
       const result = await clientePerId("cliente-1");
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediAlmenoUnPermessoApi).toHaveBeenCalledWith([
+        "GESTIRE_CLIENTI",
+        "GESTIRE_OFFERTE",
+        "CONSULTARE_REPORT_MARGINALITA",
+      ]);
       expect(mockCliente.findUnique).toHaveBeenCalledWith({
         where: { id: "cliente-1" },
         include: { offerte: { select: { attiva: true } } },
@@ -273,9 +283,9 @@ describe("DAL clienti", () => {
 
   // ── 5. Guardie di ruolo DAL ───────────────────────────────────
 
-  describe("guardie di ruolo — DAL", () => {
-    it("elencaClientiPaginati propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+  describe("guardie di permesso — DAL", () => {
+    it("elencaClientiPaginati propaga l'errore di richiediPermessoApi", async () => {
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(
         elencaClientiPaginati({ ricerca: "", pagina: 1 }),
@@ -283,15 +293,15 @@ describe("DAL clienti", () => {
       expect(mockCliente.findMany).not.toHaveBeenCalled();
     });
 
-    it("elencaClientiSelezionabili propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+    it("elencaClientiSelezionabili propaga l'errore di richiediAlmenoUnPermessoApi", async () => {
+      mockRichiediAlmenoUnPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(elencaClientiSelezionabili()).rejects.toThrow("Accesso negato");
       expect(mockCliente.findMany).not.toHaveBeenCalled();
     });
 
-    it("clientePerId propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+    it("clientePerId propaga l'errore di richiediAlmenoUnPermessoApi", async () => {
+      mockRichiediAlmenoUnPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(clientePerId("cliente-1")).rejects.toThrow("Accesso negato");
       expect(mockCliente.findUnique).not.toHaveBeenCalled();
@@ -306,7 +316,7 @@ describe("DAL clienti", () => {
 describe("Server Actions clienti", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
   });
 
   // ── 6-7. creaCliente ──────────────────────────────────────────
@@ -324,7 +334,7 @@ describe("Server Actions clienti", () => {
 
       const result = await creaCliente(statoIniziale(), formData);
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_CLIENTI");
       expect(mockValidaCliente).toHaveBeenCalled();
       expect(result.errori).toHaveProperty("ragioneSociale");
       expect(result.errori).toHaveProperty("partitaIva");
@@ -369,7 +379,7 @@ describe("Server Actions clienti", () => {
 
       await creaCliente(statoIniziale(), formData);
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_CLIENTI");
       expect(mockCliente.create).toHaveBeenCalledWith({
         data: {
           ragioneSociale: "Test SRL",
@@ -412,7 +422,7 @@ describe("Server Actions clienti", () => {
 
       await aggiornaCliente(statoIniziale(), formData);
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_CLIENTI");
       expect(mockCliente.update).toHaveBeenCalledWith({
         where: { id: "cliente-1" },
         data: {
@@ -436,9 +446,9 @@ describe("Server Actions clienti", () => {
 
   // ── 11. Guardie di ruolo Server Actions ───────────────────────
 
-  describe("guardie di ruolo — Server Actions", () => {
-    it("creaCliente propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+  describe("guardie di permesso — Server Actions", () => {
+    it("creaCliente propaga l'errore di richiediPermessoApi", async () => {
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       const formData = new FormData();
       formData.set("ragioneSociale", "Test");
@@ -449,8 +459,8 @@ describe("Server Actions clienti", () => {
       expect(mockCliente.create).not.toHaveBeenCalled();
     });
 
-    it("aggiornaCliente propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+    it("aggiornaCliente propaga l'errore di richiediPermessoApi", async () => {
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       const formData = new FormData();
       formData.set("id", "cliente-1");

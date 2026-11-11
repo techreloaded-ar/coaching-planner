@@ -22,12 +22,14 @@ vi.mock("@/lib/db", () => ({
 	},
 }));
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-	mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi, mockRichiediAlmenoUnPermessoApi } = vi.hoisted(() => ({
+	mockRichiediPermessoApi: vi.fn(),
+	mockRichiediAlmenoUnPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-	richiediRuoloApi: mockRichiediRuoloApi,
+	richiediPermessoApi: mockRichiediPermessoApi,
+	richiediAlmenoUnPermessoApi: mockRichiediAlmenoUnPermessoApi,
 }));
 
 import {
@@ -134,17 +136,17 @@ function impostaRigheAttivita(righe: ReturnType<typeof rigaConCollaboratore>[]) 
 describe("elencaOfferteConAvanzamento", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockRichiediPermessoApi.mockResolvedValue(undefined);
 		mockOfferta.findMany.mockResolvedValue([]);
 		impostaRigheAttivita([]);
 	});
 
-	// (a) guardia di ruolo ──────────────────────────────────────────
+	// (a) guardia di permesso ──────────────────────────────────────────
 
-	it("richiede il ruolo AMMINISTRATORE prima di leggere i dati", async () => {
+	it("richiede il permesso GESTIRE_OFFERTE prima di leggere i dati", async () => {
 		await elencaOfferteConAvanzamento();
 
-		expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+		expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_OFFERTE");
 		expect(mockOfferta.findMany).toHaveBeenCalledWith({
 			where: {},
 			include: { cliente: true },
@@ -154,7 +156,7 @@ describe("elencaOfferteConAvanzamento", () => {
 	});
 
 	it("propaga l'errore della guardia senza leggere le offerte", async () => {
-		mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+		mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
 		await expect(elencaOfferteConAvanzamento()).rejects.toThrow(
 			"Accesso negato",
@@ -599,7 +601,7 @@ describe("elencaOfferteConAvanzamento", () => {
 describe("elencaOfferteConAvanzamentoPaginate", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockRichiediPermessoApi.mockResolvedValue(undefined);
 	});
 
 	/** 60 offerte attive dello stesso cliente, codici OFF-01 … OFF-60. */
@@ -716,7 +718,7 @@ describe("elencaOfferteConAvanzamentoPaginate", () => {
 describe("elencaOffertePerClienteConAvanzamento", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockRichiediAlmenoUnPermessoApi.mockResolvedValue(undefined);
 		mockOfferta.findMany.mockResolvedValue([]);
 		impostaRigheAttivita([]);
 	});
@@ -731,6 +733,10 @@ describe("elencaOffertePerClienteConAvanzamento", () => {
 
 		const [voce] = await elencaOffertePerClienteConAvanzamento("cli-1");
 
+		expect(mockRichiediAlmenoUnPermessoApi).toHaveBeenCalledWith([
+			"GESTIRE_CLIENTI",
+			"GESTIRE_OFFERTE",
+		]);
 		expect(mockOfferta.findMany).toHaveBeenCalledWith({
 			where: { clienteId: "cli-1" },
 			include: { cliente: true },
@@ -798,7 +804,7 @@ describe("elencaOffertePerClienteConAvanzamento", () => {
 	});
 
 	it("propaga l'errore della guardia senza leggere le offerte", async () => {
-		mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+		mockRichiediAlmenoUnPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
 		await expect(
 			elencaOffertePerClienteConAvanzamento("cli-1"),

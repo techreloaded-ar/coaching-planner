@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 
 interface ActionResult {
   success: boolean;
@@ -13,7 +13,7 @@ interface ActionResult {
  * Abilita un collaboratore a un'offerta su cui ha già registrato attività,
  * direttamente dal foglio attività o dal dettaglio offerta.
  *
- * Stesse regole delle abilitazioni dall'anagrafica: solo amministratore,
+ * Stesse regole delle abilitazioni dall'anagrafica: permesso GESTIRE_ABILITAZIONI,
  * offerta attiva, collaboratore attivo. Idempotente grazie al vincolo unico
  * (collaboratoreId, offertaId).
  */
@@ -21,7 +21,7 @@ export async function abilitaCollaboratoreSuOfferta(
   collaboratoreId: string,
   offertaId: string
 ): Promise<ActionResult> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_ABILITAZIONI");
 
   const [offerta, collaboratore] = await Promise.all([
     db.offerta.findUnique({ where: { id: offertaId }, select: { attiva: true } }),

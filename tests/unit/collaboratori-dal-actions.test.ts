@@ -30,14 +30,14 @@ vi.mock("@/lib/db", () => ({
   db: mockDb,
 }));
 
-// ── Mock di richiediRuoloApi ───────────────────────────────────────
+// ── Mock di richiediPermessoApi ────────────────────────────────────
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-  mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi } = vi.hoisted(() => ({
+  mockRichiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-  richiediRuoloApi: mockRichiediRuoloApi,
+  richiediPermessoApi: mockRichiediPermessoApi,
 }));
 
 // ── Mock del cookie di sessione ────────────────────────────────────
@@ -107,7 +107,7 @@ function statoIniziale() {
 describe("DAL collaboratori", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
     mockDb.$transaction.mockImplementation((cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
   });
 
@@ -149,7 +149,7 @@ describe("DAL collaboratori", () => {
 
       const result = await elencaCollaboratori();
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_COLLABORATORI");
       expect(mockCollaboratore.findMany).toHaveBeenCalledWith({
         orderBy: { cognome: "asc" },
         include: {
@@ -197,7 +197,7 @@ describe("DAL collaboratori", () => {
 
       const result = await elencaCollaboratoriSelezionabili();
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_COLLABORATORI");
       expect(mockCollaboratore.findMany).toHaveBeenCalledWith({
         where: { attivo: true },
         orderBy: { cognome: "asc" },
@@ -229,7 +229,7 @@ describe("DAL collaboratori", () => {
 
       const result = await collaboratorePerId("collab-1");
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_COLLABORATORI");
       expect(mockCollaboratore.findUnique).toHaveBeenCalledWith({
         where: { id: "collab-1" },
         include: { utente: { select: { email: true } } },
@@ -262,7 +262,7 @@ describe("DAL collaboratori", () => {
 
       const result = await storicoTariffeCollaboratore("collab-1");
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_COLLABORATORI");
       expect(mockTariffaCollaboratore.findMany).toHaveBeenCalledWith({
         where: { collaboratoreId: "collab-1" },
         orderBy: { validaDalMese: "desc" },
@@ -274,8 +274,8 @@ describe("DAL collaboratori", () => {
       ]);
     });
 
-    it("propaga l'errore di richiediRuoloApi senza toccare il database", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+    it("propaga l'errore di richiediPermessoApi senza toccare il database", async () => {
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(storicoTariffeCollaboratore("collab-1")).rejects.toThrow("Accesso negato");
       expect(mockTariffaCollaboratore.findMany).not.toHaveBeenCalled();
@@ -284,23 +284,23 @@ describe("DAL collaboratori", () => {
 
   // ── 1. Guardie di ruolo DAL ────────────────────────────────────
 
-  describe("guardie di ruolo — DAL", () => {
-    it("elencaCollaboratori propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+  describe("guardie di permesso — DAL", () => {
+    it("elencaCollaboratori propaga l'errore di richiediPermessoApi", async () => {
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(elencaCollaboratori()).rejects.toThrow("Accesso negato");
       expect(mockCollaboratore.findMany).not.toHaveBeenCalled();
     });
 
-    it("elencaCollaboratoriSelezionabili propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+    it("elencaCollaboratoriSelezionabili propaga l'errore di richiediPermessoApi", async () => {
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(elencaCollaboratoriSelezionabili()).rejects.toThrow("Accesso negato");
       expect(mockCollaboratore.findMany).not.toHaveBeenCalled();
     });
 
-    it("collaboratorePerId propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+    it("collaboratorePerId propaga l'errore di richiediPermessoApi", async () => {
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(collaboratorePerId("collab-1")).rejects.toThrow("Accesso negato");
       expect(mockCollaboratore.findUnique).not.toHaveBeenCalled();
@@ -315,7 +315,7 @@ describe("DAL collaboratori", () => {
 describe("Server Actions collaboratori", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
     mockDb.$transaction.mockImplementation((cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
   });
 
@@ -336,7 +336,7 @@ describe("Server Actions collaboratori", () => {
 
       await aggiornaCollaboratore(statoIniziale(), formData);
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_COLLABORATORI");
       expect(mockCollaboratore.findUnique).toHaveBeenCalledWith({
         where: { id: "collab-1" },
         select: { userId: true },
@@ -399,9 +399,9 @@ describe("Server Actions collaboratori", () => {
 
   // ── 1. Guardie di ruolo Server Actions ───────────────────────────
 
-  describe("guardie di ruolo — Server Actions", () => {
-    it("aggiornaCollaboratore propaga l'errore di richiediRuoloApi", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+  describe("guardie di permesso — Server Actions", () => {
+    it("aggiornaCollaboratore propaga l'errore di richiediPermessoApi", async () => {
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       const formData = new FormData();
       formData.set("id", "collab-1");

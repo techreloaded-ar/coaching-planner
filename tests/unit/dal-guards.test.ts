@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   ErroreAutorizzazione,
   richiediSessioneApi,
-  richiediRuoloApi,
+  richiediPermessoApi,
   richiediCollaboratoreCorrente,
   risolviProfiloCollaboratoreCorrente,
   verificaAccessoDatiCollaboratore,
@@ -37,7 +37,7 @@ vi.mock("@/lib/session", () => ({
   DURATA_SESSIONE_ORE: 8,
 }));
 
-// ── Mock di next/navigation (serve per richiediRuolo nelle guardie page, ma qui siamo isolati) ─
+// ── Mock di next/navigation (serve per richiediPermesso nelle guardie page, ma qui siamo isolati) ─
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
@@ -249,10 +249,10 @@ describe("richiediSessioneApi", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// richiediRuoloApi
+// richiediPermessoApi
 // ═══════════════════════════════════════════════════════════════
 
-describe("richiediRuoloApi", () => {
+describe("richiediPermessoApi", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -268,12 +268,12 @@ describe("richiediRuoloApi", () => {
       email: "giulia@test.local",
     });
 
-    await expect(richiediRuoloApi("AMMINISTRATORE")).rejects.toMatchObject({
+    await expect(richiediPermessoApi("GESTIRE_CLIENTI")).rejects.toMatchObject({
       statusCode: 403,
     });
   });
 
-  it("restituisce la sessione se il ruolo corrisponde", async () => {
+  it("restituisce la sessione all'amministratore, che ha il permesso", async () => {
     mockGetSessionCookie.mockResolvedValue(
       sessioneCookie("admin-1", "AMMINISTRATORE")
     );
@@ -284,7 +284,7 @@ describe("richiediRuoloApi", () => {
       email: "admin@test.local",
     });
 
-    const sessione = await richiediRuoloApi("AMMINISTRATORE");
+    const sessione = await richiediPermessoApi("GESTIRE_CLIENTI");
     expect(sessione.ruolo).toBe("AMMINISTRATORE");
   });
 });
@@ -408,6 +408,7 @@ describe("risolviProfiloCollaboratoreCorrente e richiediCollaboratoreCorrente", 
       ruolo: "COLLABORATORE",
       nome: "Giulia Conti",
       email: "giulia@test.local",
+      permessi: [],
     });
 
     expect(profilo).toMatchObject({
@@ -432,6 +433,7 @@ describe("risolviProfiloCollaboratoreCorrente e richiediCollaboratoreCorrente", 
       ruolo: "COLLABORATORE" as const,
       nome: "Marco Bianchi",
       email: "marco@test.local",
+      permessi: [],
     };
 
     mockCollaboratore.findUnique.mockResolvedValue(null);

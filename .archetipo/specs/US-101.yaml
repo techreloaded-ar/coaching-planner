@@ -6,7 +6,7 @@ epic:
   title: dobbiamo modificare come vengono censite le attività. Ad oggi per censir…
 priority: MEDIUM
 points: 3
-status: REVIEW
+status: DONE
 blocked_by:
   - US-099
 scope: MVP
@@ -37,3 +37,5 @@ history:
     at: "2026-10-30T14:29:18Z"
   - status: REVIEW
     at: "2026-10-30T15:15:06Z"
+  - status: DONE
+    at: "2026-11-11T08:55:23Z"

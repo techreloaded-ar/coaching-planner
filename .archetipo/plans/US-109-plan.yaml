@@ -1,0 +1,488 @@
+schema: archetipo/plan/v2
+spec_code: US-109
+body: |-
+  # US-109: Guardie del back office espresse per permesso anziché per ruolo — Piano di implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-11-11
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-001 — Autenticazione e Ruoli
+  **Priorità:** HIGH | **Punti:** 5 | **Blocked by:** US-108 (DONE: catalogo `src/domain/permessi.ts`, `richiediPermesso`, `richiediPermessoApi`, `SessioneUtente.permessi`)
+
+  **User Story**
+  **Come** sviluppatore che mantiene l'autorizzazione **voglio** che ogni pagina, query e Server Action del back office dichiari il permesso specifico che richiede **così che** l'accesso a ciascuna funzionalità si possa concedere separatamente, senza più dipendere dal controllo «è amministratore».
+
+  **Criteri di accettazione**
+  - AC-1 — Nessuna pagina, query o Server Action applicativa richiama più le guardie per ruolo con `AMMINISTRATORE`: ognuna richiede un permesso del catalogo.
+  - AC-2 — Ogni funzionalità richiede il permesso della propria area (offerte, abilitazioni e ingaggi, clienti, collaboratori e tariffe, utenti, voci di rimborso, righe sospese, importazione, un permesso per ciascuno dei tre report).
+  - AC-3 — Esportazione Excel ed endpoint dati del report di fatturazione clienti richiedono lo stesso permesso della pagina del report.
+  - AC-4 — Un amministratore accede a tutto il back office esattamente come prima.
+  - AC-5 — Un collaboratore su una pagina del back office viene reindirizzato a `/attivita`; su un'API/action del back office riceve 403.
+  - AC-6 — Le guardie per ruolo non più utilizzate vengono rimosse dal DAL.
+  - AC-7 — Le suite unitarie ed e2e passano; i test sulle guardie per ruolo sono adattati alle guardie per permesso senza ridurre i casi coperti.
+
+  ---
+
+  ## Soluzione tecnica
+
+  Sostituzione meccanica, area per area, di `richiediRuolo("AMMINISTRATORE")` → `richiediPermesso(<permesso>)` (pagine RSC) e di `richiediRuoloApi("AMMINISTRATORE")` → `richiediPermessoApi(<permesso>)` (query del DAL in `src/lib`, Server Action, route handler). Alla fine `richiediRuolo` e `richiediRuoloApi` vengono cancellati da `src/lib/dal.ts`: da quel momento è il compilatore a garantire AC-1.
+
+  **Mappa area → permesso** (vale per pagine, action e query dell'area):
+
+  | Area / percorso sotto `src/app/(back-office)/` | Permesso |
+  |---|---|
+  | `anagrafiche/page.tsx` (redirect a clienti), `anagrafiche/clienti/**` esclusa la sotto-area offerte | `GESTIRE_CLIENTI` |
+  | `anagrafiche/clienti/[id]/offerte/**`, `offerte/**` esclusa la sotto-area collaboratori, `report/avanzamento-offerte/page.tsx` | `GESTIRE_OFFERTE` |
+  | `offerte/[offertaId]/collaboratori/**`, `anagrafiche/collaboratori/[id]/abilitazioni-actions.ts`, `src/lib/abilitazioni.ts`, `src/lib/actions/abilitazioni-offerte.ts` | `GESTIRE_ABILITAZIONI` |
+  | `anagrafiche/collaboratori/**` (tranne abilitazioni-actions), `src/lib/collaboratori.ts` | `GESTIRE_COLLABORATORI` |
+  | `anagrafiche/persone/**`, `anagrafiche/utenti/**`, `src/lib/utenti.ts` | `GESTIRE_UTENTI` |
+  | `anagrafiche/voci-rimborso/**`, `src/lib/voci-rimborso.ts` | `GESTIRE_VOCI_RIMBORSO` |
+  | `righe-sospese/**`, `src/lib/righe-sospese.ts` | `GESTIRE_RIGHE_SOSPESE` |
+  | `importazione/**` | `GESTIRE_IMPORTAZIONE` |
+  | `report/fatturazione-clienti/**` (pagina, `dati/route.ts`; `esporta/route.ts` tramite la query), `reportFatturazioneClientiMese` | `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI` |
+  | `report/fatturazione-collaboratori/**` (pagina e action promemoria), `reportFatturazioneCollaboratoriMese` | `CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI` |
+  | `report/marginalita/**`, `reportMarginalitaPeriodo` | `CONSULTARE_REPORT_MARGINALITA` |
+
+  **Query condivise tra aree.** Tre query del DAL servono pagine di aree diverse; per non legare un'area al permesso di un'altra, dichiarano l'elenco delle aree che le consumano tramite una nuova guardia `richiediAlmenoUnPermessoApi(permessiAmmessi)` (401 senza sessione, 403 se l'utente non ne ha nessuno):
+  - `clientePerId` → `["GESTIRE_CLIENTI", "GESTIRE_OFFERTE", "CONSULTARE_REPORT_MARGINALITA"]` (dettaglio cliente, offerte del cliente, dettaglio marginalità);
+  - `elencaClientiSelezionabili` e `elencaOffertePerClienteConAvanzamento` → `["GESTIRE_CLIENTI", "GESTIRE_OFFERTE"]`;
+  - `offertaPerId` → `["GESTIRE_OFFERTE", "GESTIRE_ABILITAZIONI"]` (dettaglio offerta e pagina ingaggi).
+
+  Le altre query hanno un solo consumatore o appartengono alla sola area che le usa e richiedono il permesso singolo.
+
+  **Layout del back office (decisione dell'utente, 2026-11-11).** `src/app/(back-office)/layout.tsx` passa a `verificaSessione()`: solo autenticazione. L'autorizzazione è responsabilità della guardia per permesso di ciascuna pagina, e un test-guardrail (TASK-06) fa fallire la suite se una `page.tsx` del back office non chiama `richiediPermesso` con il permesso della propria area. Il proxy continua a respingere in modo ottimistico i non amministratori in base al cookie (`src/lib/policy-rotte.ts`, invariato). La guardia d'ingresso «almeno un permesso di back office» arriverà con US-110. Per questo `report/avanzamento-offerte/page.tsx`, oggi un semplice redirect senza guardia, riceve `richiediPermesso("GESTIRE_OFFERTE")`.
+
+  **Fuori perimetro (da non toccare):** i controlli `ruolo === "AMMINISTRATORE"` in `src/lib/foglio-attivita.ts`, in `verificaAccessoDatiCollaboratore` (`src/lib/dal.ts`), in `src/app/struttura-applicazione.tsx` e nei layout/pagine del front office (US-110); la protezione dell'ultimo amministratore e il form persone/utenti (restano basati sul ruolo); `policy-rotte.ts`/proxy; l'importer legacy.
+
+  **Limite noto, accettato:** `anagrafiche/persone/[id]/page.tsx` (`GESTIRE_UTENTI`) legge anche tariffe (`GESTIRE_COLLABORATORI`) e abilitazioni (`GESTIRE_ABILITAZIONI`). Per l'amministratore il comportamento non cambia; un futuro ruolo parziale con il solo `GESTIRE_UTENTI` riceverebbe 403 sulle sezioni del collaboratore. Oggi non esistono ruoli parziali (fuori scope), quindi niente rendering condizionale per ora.
+
+  ### Decisioni architetturali
+
+  Nessuna ADR. La guardia «almeno uno dei permessi» estende in modo additivo le guardie di US-108 seguendo lo stesso pattern (`ErroreAutorizzazione`), e la scelta del layout è stata presa dall'utente come transizione verso US-110. La Wiki è disattivata (`wiki.enabled: false`).
+
+  ---
+
+  ## Baseline
+
+  Misurata il 2026-11-11 dalla radice del progetto, con le modifiche di US-108 nel working tree.
+
+  | Check | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm test` | 84 file, 1193 test passati | Dopo ogni task: tutti passati (più i nuovi test) |
+  | `npx tsc --noEmit -p tsconfig.json 2>&1 \| grep "error TS" \| grep -v "^\.next/"` | output vuoto (zero errori in `src/` e `tests/`; eventuali errori stale in `.next/types` sono esclusi) | Deve restare vuoto |
+  | `npx eslint src/lib "src/app/(back-office)" tests/unit` | exit 0 | Deve restare exit 0 |
+  | `npm run lint` | da eseguire nel gate (include il guardrail e2e) | Nessun file e2e viene toccato: deve passare |
+  | `npm run build` / `npm run test:e2e` | non eseguiti in planning (servono Postgres migrato e seminato e la porta 3000 libera) | Eseguiti nel gate finale come in CI |
+
+  **Prerequisiti d'ambiente (non sono guasti del codice):** `npm ci` (il `postinstall` genera il client Prisma). Per build ed e2e serve un Postgres raggiungibile con `npx prisma migrate deploy && npx prisma db seed`. Per l'e2e serve la porta 3000 libera: se è occupata dal `next dev` del checkout principale, usare una porta dedicata con `NEXT_PUBLIC_APP_URL` coerente.
+
+  ---
+
+  ## Mappa delle evidenze di accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task |
+  |---|---|---|---|---|
+  | AC-1 | Sorgente dopo la rimozione delle guardie per ruolo | Compilatore + ricerca + unit guardrail | `tsc` senza errori in `src/`/`tests/` con `richiediRuolo`/`richiediRuoloApi` non più esportati; `grep -rnE 'richiediRuolo(Api)?\(' src --exclude-dir=generated` vuoto; il guardrail delle pagine passa | TASK-06, TASK-07, TASK-08 |
+  | AC-2 | `@/lib/dal` mockato nei test unitari esistenti delle query/action; file `page.tsx` reali | Unit | Ogni test di query/action verifica `toHaveBeenCalledWith("<permesso dell'area>")` (o l'elenco per le query condivise); il guardrail verifica che ogni `page.tsx` contenga `richiediPermesso("<permesso atteso>")` secondo la mappa area → permesso | TASK-02, TASK-03, TASK-04, TASK-05, TASK-06 |
+  | AC-3 | Route `dati` ed `esporta` con `@/lib/dal` mockato; query reale del report | Unit + e2e esistente | `report-fatturazione-dati-route.test.ts` verifica la chiamata con `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI`; `reportFatturazioneClientiMese` (usata da `esporta`) la richiede; e2e esistenti: status 403 per il collaboratore su entrambe le rotte | TASK-05, TASK-08 |
+  | AC-4 | Seed: amministratore con tutti i permessi | E2E esistente | La suite e2e di back office (anagrafiche, offerte, report, righe sospese, importazione, esportazione) passa invariata | TASK-08 |
+  | AC-5 | Seed: collaboratore senza permessi | Unit + e2e esistente | `richiediPermesso` → redirect a `/attivita` e `richiediPermessoApi`/`richiediAlmenoUnPermessoApi` → `ErroreAutorizzazione(403)` (unit DAL); e2e `abilitazioni-collaboratore.spec.ts` (`toHaveURL(/\/attivita$/)`), `esportazione-fatturazione.spec.ts` e `report-fatturazione-navigazione-mese.spec.ts` (403) | TASK-01, TASK-07, TASK-08 |
+  | AC-6 | `src/lib/dal.ts` | Compilatore + ricerca | `grep -nE "export (const\|async function) richiediRuolo" src/lib/dal.ts` vuoto | TASK-07 |
+  | AC-7 | Suite esistenti | Unit + e2e | `npm test` verde con lo stesso numero di casi o più; i casi su `richiediRuoloApi` in `dal-guards.test.ts` sono convertiti uno a uno in casi su `richiediPermessoApi`; `npm run test:e2e` verde | TASK-07, TASK-08 |
+
+  ---
+
+  ## Strategia di test
+
+  Il comportamento per i due ruoli esistenti non cambia. La strategia quindi: (1) adatta i test unitari che mockano `@/lib/dal`, così che ognuno affermi il permesso **specifico** dell'area, con il massimo dettaglio per AC-2; (2) aggiunge un guardrail statico che collega ogni pagina del back office al suo permesso, indispensabile ora che il layout verifica solo la sessione; (3) usa la suite e2e esistente come regressione per amministratore e collaboratore.
+
+  - I mock di `@/lib/dal` cambiano solo la chiave (`richiediRuoloApi` → `richiediPermessoApi` / `richiediAlmenoUnPermessoApi`) e l'argomento atteso. I casi «propaga l'errore della guardia senza toccare il database» restano tutti.
+  - Nei test di utenti e persone (`utenti-actions`, `cambia-stato-utente`) le stringhe `"AMMINISTRATORE"` che descrivono il **ruolo dei dati** (protezione dell'ultimo amministratore) non si toccano: si aggiornano solo le asserzioni sulla guardia.
+  - La nuova guardia `richiediAlmenoUnPermessoApi` ha test unitari dedicati sul DAL reale (solo db e cookie mockati).
+
+  ### Test E2E — simulazione utente
+
+  **Framework:** Playwright (esistente, `tests/e2e`). Nessuno scenario nuovo: le guardie cambiano forma, non comportamento, e i flussi di AC-4/AC-5 sono già coperti dagli spec esistenti, che vanno eseguiti invariati.
+  **Video demo:** filmabile solo il punto 4 di Demonstrates (navigazione dell'amministratore e redirect del collaboratore da `/anagrafiche/clienti`); i punti 1-3 si dimostrano da codice e terminale. La decisione spetta a `archetipo-review`.
+
+  | Scenario | Flusso utente |
+  |---|---|
+  | Amministratore nel back office | Spec e2e esistenti su anagrafiche, offerte, report, righe sospese, importazione: tutte le pagine si aprono come prima |
+  | Collaboratore respinto | `abilitazioni-collaboratore.spec.ts` (redirect a `/attivita`), `esportazione-fatturazione.spec.ts` e `report-fatturazione-navigazione-mese.spec.ts` (403) |
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: []
+    update: []
+    create: []
+  ```
+
+  Wiki disattivata nel config (`wiki.enabled: false`).
+
+  _Piano generato con ARchetipo Planning — 2026-11-11_
+tasks:
+  - id: TASK-01
+    title: Guardia richiediAlmenoUnPermessoApi nel DAL per le query condivise tra aree
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Il DAL espone `richiediAlmenoUnPermessoApi(permessiAmmessi)`: 401 senza sessione, 403 se l'utente non possiede nessuno dei permessi indicati, altrimenti restituisce la sessione.
+
+      ## Read
+      - src/lib/dal.ts — `richiediSessioneApi`, `richiediPermessoApi`, `ErroreAutorizzazione` (aggiunti da US-108)
+      - tests/unit/dal-permessi.test.ts — setup dei mock (db, cookie, next/navigation) e `describe("richiediPermessoApi")`
+      - src/domain/permessi.ts — tipo `Permesso`
+
+      ## Change
+      - src/lib/dal.ts — aggiungere subito dopo `richiediPermessoApi` la funzione esportata `richiediAlmenoUnPermessoApi(permessiAmmessi: readonly Permesso[]): Promise<SessioneUtente>`, con JSDoc di una riga o due nello stile esistente. Non toccare le altre guardie.
+      - tests/unit/dal-permessi.test.ts — nuovo `describe("richiediAlmenoUnPermessoApi")`.
+      - Non-goal: nessuna variante RSC «almeno uno» (arriverà con US-110 se servirà); nessuna modifica a `richiediRuolo`/`richiediRuoloApi` in questo task.
+
+      ## Steps
+      1. Implementare: `const sessione = await richiediSessioneApi(); if (!permessiAmmessi.some((p) => sessione.permessi.includes(p))) throw new ErroreAutorizzazione(403, \`Permesso richiesto: uno tra ${permessiAmmessi.join(", ")}\`); return sessione;`.
+      2. Aggiungere i test riusando gli helper/mock già presenti nel file: (a) senza sessione → rejects `{ statusCode: 401 }`; (b) utente COLLABORATORE a DB (permessi vuoti) con `["GESTIRE_CLIENTI", "GESTIRE_OFFERTE"]` → rejects `{ statusCode: 403 }`; (c) AMMINISTRATORE a DB → resolves con la sessione che contiene `permessi` e `utenteId` attesi.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/dal-permessi.test.ts tests/unit/dal-guards.test.ts`
+      - Expect: tutti verdi, compresi i 3 nuovi casi.
+      - Run: `npx eslint src/lib/dal.ts tests/unit/dal-permessi.test.ts`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-5 — `richiediAlmenoUnPermessoApi` lancia 403 a un collaboratore e 401 senza sessione (test b e a)
+      - [ ] AC-4 — l'amministratore ottiene la sessione (test c)
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Aree clienti e offerte — guardie per permesso su pagine, action e query
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Pagine, Server Action e query delle aree clienti e offerte richiedono `GESTIRE_CLIENTI` / `GESTIRE_OFFERTE` (o l'elenco condiviso), e i loro test unitari affermano il permesso specifico.
+
+      ## Read
+      - src/lib/clienti.ts — `elencaClientiPaginati`, `clientePerId`, `elencaClientiSelezionabili`
+      - src/lib/offerte.ts — `offertaPerId`, `elencaOfferteConAvanzamentoPaginate`, `elencaOffertePerClienteConAvanzamento`, più il commento JSDoc alla riga ~297 che cita `richiediRuoloApi("AMMINISTRATORE")`
+      - Piano, sezione «Mappa area → permesso» e «Query condivise tra aree»
+      - tests/unit/clienti-dal-actions.test.ts, tests/unit/offerte-dal-actions.test.ts, tests/unit/elenca-offerte-con-avanzamento.test.ts, tests/unit/gestione-offerte-actions.test.ts — mock di `@/lib/dal` e asserzioni sulla guardia
+
+      ## Change
+      - src/lib/clienti.ts — `elencaClientiPaginati` → `richiediPermessoApi("GESTIRE_CLIENTI")`; `clientePerId` → `richiediAlmenoUnPermessoApi(["GESTIRE_CLIENTI", "GESTIRE_OFFERTE", "CONSULTARE_REPORT_MARGINALITA"])`; `elencaClientiSelezionabili` → `richiediAlmenoUnPermessoApi(["GESTIRE_CLIENTI", "GESTIRE_OFFERTE"])`. Aggiornare l'import e i commenti «Accesso riservato all'amministratore» indicando il permesso.
+      - src/lib/offerte.ts — `offertaPerId` → `richiediAlmenoUnPermessoApi(["GESTIRE_OFFERTE", "GESTIRE_ABILITAZIONI"])`; `elencaOfferteConAvanzamentoPaginate` → `richiediPermessoApi("GESTIRE_OFFERTE")`; `elencaOffertePerClienteConAvanzamento` → `richiediAlmenoUnPermessoApi(["GESTIRE_CLIENTI", "GESTIRE_OFFERTE"])`; aggiornare i commenti JSDoc che citano la guardia per ruolo.
+      - `src/app/(back-office)/anagrafiche/page.tsx`, `anagrafiche/clienti/page.tsx`, `anagrafiche/clienti/nuovo/page.tsx`, `anagrafiche/clienti/[id]/page.tsx`, `anagrafiche/clienti/[id]/modifica/page.tsx` → `richiediPermesso("GESTIRE_CLIENTI")`.
+      - `anagrafiche/clienti/actions.ts` → `richiediPermessoApi("GESTIRE_CLIENTI")`.
+      - `anagrafiche/clienti/[id]/offerte/[offertaId]/page.tsx`, `anagrafiche/clienti/[id]/offerte/nuova/page.tsx`, `offerte/page.tsx`, `offerte/nuova/page.tsx`, `offerte/[offertaId]/page.tsx` → `richiediPermesso("GESTIRE_OFFERTE")`.
+      - `anagrafiche/clienti/[id]/offerte/actions.ts`, `offerte/actions.ts` → `richiediPermessoApi("GESTIRE_OFFERTE")`.
+      - `report/avanzamento-offerte/page.tsx` → diventa `async` e chiama `await richiediPermesso("GESTIRE_OFFERTE")` prima del redirect a `/offerte`.
+      - I 4 file di test elencati in Read: rinominare la chiave del mock (`richiediRuoloApi` → `richiediPermessoApi`, aggiungendo `richiediAlmenoUnPermessoApi` dove il modulo testato lo usa) e sostituire le asserzioni `toHaveBeenCalledWith("AMMINISTRATORE")` con il permesso o l'elenco atteso. Rinominare variabili e titoli dei test (`mockRichiediRuoloApi` → `mockRichiediPermessoApi`, «propaga l'errore di richiediRuoloApi» → «… di richiediPermessoApi»).
+      - Non-goal: non toccare `offerte/[offertaId]/collaboratori/**` (TASK-03); non cambiare logica di dominio né query Prisma.
+
+      ## Steps
+      1. Modificare `src/lib/clienti.ts` e `src/lib/offerte.ts` (import da `@/lib/dal`: `richiediPermessoApi`, `richiediAlmenoUnPermessoApi`).
+      2. Modificare pagine e action elencate (import `richiediPermesso` / `richiediPermessoApi` al posto delle guardie per ruolo).
+      3. Adattare i 4 file di test senza eliminare nessun caso; ogni caso che prima verificava la guardia ora verifica il permesso specifico.
+      4. Controllare che in queste aree non resti nulla: `grep -rnE 'richiediRuolo(Api)?\(' src/lib/clienti.ts src/lib/offerte.ts "src/app/(back-office)/anagrafiche/clienti" "src/app/(back-office)/anagrafiche/page.tsx" "src/app/(back-office)/offerte/actions.ts" "src/app/(back-office)/offerte/page.tsx" "src/app/(back-office)/offerte/nuova" "src/app/(back-office)/offerte/[offertaId]/page.tsx"` deve essere vuoto.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/clienti-dal-actions.test.ts tests/unit/offerte-dal-actions.test.ts tests/unit/elenca-offerte-con-avanzamento.test.ts tests/unit/gestione-offerte-actions.test.ts`
+      - Expect: tutti verdi, con lo stesso numero di casi di prima.
+      - Run: `npm test` e `npx tsc --noEmit -p tsconfig.json 2>&1 | grep "error TS" | grep -v "^\.next/"`
+      - Expect: suite verde; output tsc vuoto.
+
+      ## Done
+      - [ ] AC-2 — query, action e pagine di clienti e offerte richiedono `GESTIRE_CLIENTI`/`GESTIRE_OFFERTE`; i test affermano l'argomento esatto
+      - [ ] AC-1 — nessuna guardia per ruolo rimasta nei file del task
+      - [ ] AC-7 — nessun caso di test rimosso
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Area abilitazioni e ingaggi — guardie GESTIRE_ABILITAZIONI
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Query, action e pagina di abilitazioni e ingaggi richiedono `GESTIRE_ABILITAZIONI`, e i test unitari lo affermano.
+
+      ## Read
+      - src/lib/abilitazioni.ts — `elencaOfferteAbilitate`, `elencaOfferteAbilitabili`, `elencaCollaboratoriIngaggiati`, `elencaCollaboratoriIngaggiabili`
+      - src/lib/actions/abilitazioni-offerte.ts — `abilitaCollaboratoreSuOfferta`
+      - `src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-actions.ts`, `src/app/(back-office)/offerte/[offertaId]/collaboratori/ingaggi-actions.ts`, `src/app/(back-office)/offerte/[offertaId]/collaboratori/page.tsx`
+      - tests/unit/abilita-collaboratore-su-offerta-action.test.ts, tests/unit/abilitazioni-dal-actions.test.ts, tests/unit/ingaggi-offerta-dal-actions.test.ts
+
+      ## Change
+      - Le 4 query di `src/lib/abilitazioni.ts`, `src/lib/actions/abilitazioni-offerte.ts`, le 2 chiamate di `abilitazioni-actions.ts` e le 2 di `ingaggi-actions.ts` → `richiediPermessoApi("GESTIRE_ABILITAZIONI")`.
+      - `offerte/[offertaId]/collaboratori/page.tsx` → `richiediPermesso("GESTIRE_ABILITAZIONI")` (la pagina chiama anche `offertaPerId`, che da TASK-02 accetta `GESTIRE_ABILITAZIONI`).
+      - I 3 file di test: chiave del mock `richiediRuoloApi` → `richiediPermessoApi`, asserzioni `"AMMINISTRATORE"` → `"GESTIRE_ABILITAZIONI"`, messaggi di errore simulati e titoli dei casi aggiornati («non abilita se il chiamante non ha il permesso»). Nessun caso rimosso.
+      - Non-goal: nessuna modifica alla logica di abilitazione o ingaggio.
+
+      ## Steps
+      1. Sostituire import e chiamate nei 6 file sorgente.
+      2. Adattare i 3 file di test.
+      3. `grep -rnE 'richiediRuolo(Api)?\(' src/lib/abilitazioni.ts src/lib/actions "src/app/(back-office)/anagrafiche/collaboratori/[id]/abilitazioni-actions.ts" "src/app/(back-office)/offerte/[offertaId]/collaboratori"` deve essere vuoto.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/abilita-collaboratore-su-offerta-action.test.ts tests/unit/abilitazioni-dal-actions.test.ts tests/unit/ingaggi-offerta-dal-actions.test.ts`
+      - Expect: tutti verdi, stesso numero di casi.
+      - Run: `npm test`
+      - Expect: suite verde.
+
+      ## Done
+      - [ ] AC-2 — abilitazioni e ingaggi richiedono `GESTIRE_ABILITAZIONI` (i test affermano `toHaveBeenCalledWith("GESTIRE_ABILITAZIONI")`)
+      - [ ] AC-1 — nessuna guardia per ruolo nei file del task
+      - [ ] AC-7 — nessun caso rimosso
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Aree collaboratori e tariffe, utenti e persone, voci di rimborso — guardie per permesso
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Collaboratori e tariffe richiedono `GESTIRE_COLLABORATORI`, persone e utenti `GESTIRE_UTENTI`, voci di rimborso `GESTIRE_VOCI_RIMBORSO`, e i test unitari lo affermano senza toccare le regole basate sul ruolo dei dati.
+
+      ## Read
+      - src/lib/collaboratori.ts (4 guardie), src/lib/utenti.ts (2), src/lib/voci-rimborso.ts (2)
+      - `src/app/(back-office)/anagrafiche/collaboratori/` — `page.tsx`, `nuovo/page.tsx`, `[id]/page.tsx`, `[id]/modifica/page.tsx`, `actions.ts`, `[id]/tariffe-actions.ts` (2 guardie)
+      - `src/app/(back-office)/anagrafiche/persone/` — `page.tsx`, `nuovo/page.tsx`, `[id]/page.tsx`
+      - `src/app/(back-office)/anagrafiche/utenti/` — `page.tsx`, `nuovo/page.tsx`, `[id]/modifica/page.tsx`, `actions.ts`, `cambia-stato-utente-action.ts`
+      - `src/app/(back-office)/anagrafiche/voci-rimborso/` — `page.tsx`, `nuovo/page.tsx`, `[id]/page.tsx`, `actions.ts`
+      - tests/unit/collaboratori-dal-actions.test.ts, tests/unit/tariffe-actions.test.ts, tests/unit/utenti-actions.test.ts, tests/unit/cambia-stato-utente.test.ts, tests/unit/voci-rimborso-dal-actions.test.ts
+
+      ## Change
+      - `src/lib/collaboratori.ts`, `anagrafiche/collaboratori/actions.ts`, `anagrafiche/collaboratori/[id]/tariffe-actions.ts` → `richiediPermessoApi("GESTIRE_COLLABORATORI")`; le 4 pagine `anagrafiche/collaboratori/**/page.tsx` → `richiediPermesso("GESTIRE_COLLABORATORI")`.
+      - `src/lib/utenti.ts`, `anagrafiche/utenti/actions.ts`, `anagrafiche/utenti/cambia-stato-utente-action.ts` → `richiediPermessoApi("GESTIRE_UTENTI")`; le pagine `anagrafiche/persone/**/page.tsx` e `anagrafiche/utenti/**/page.tsx` → `richiediPermesso("GESTIRE_UTENTI")`.
+      - `src/lib/voci-rimborso.ts`, `anagrafiche/voci-rimborso/actions.ts` → `richiediPermessoApi("GESTIRE_VOCI_RIMBORSO")`; le 3 pagine `anagrafiche/voci-rimborso/**/page.tsx` → `richiediPermesso("GESTIRE_VOCI_RIMBORSO")`.
+      - I 5 file di test: chiave del mock → `richiediPermessoApi`, asserzioni sulla guardia → permesso specifico, titoli «propaga l'errore di richiediRuoloApi» → «… di richiediPermessoApi».
+      - Non-goal: in `utenti/actions.ts`, `cambia-stato-utente-action.ts`, `persona-form.tsx`, `persone-tabella.tsx` e in `src/domain/anagrafiche/protezione-amministratore.ts` i confronti con `"AMMINISTRATORE"` sul **ruolo dei dati** (protezione dell'ultimo amministratore, scelta del ruolo nel form) restano invariati, e così le loro asserzioni nei test `utenti-actions` e `cambia-stato-utente`.
+
+      ## Steps
+      1. Sostituire import e chiamate nei file sorgente dell'area collaboratori e tariffe.
+      2. Fare lo stesso per utenti e persone, poi per le voci di rimborso.
+      3. Adattare i 5 file di test, cambiando solo le righe che riguardano la guardia (mock, `toHaveBeenCalledWith`, titoli).
+      4. `grep -rnE 'richiediRuolo(Api)?\(' src/lib/collaboratori.ts src/lib/utenti.ts src/lib/voci-rimborso.ts "src/app/(back-office)/anagrafiche/collaboratori" "src/app/(back-office)/anagrafiche/persone" "src/app/(back-office)/anagrafiche/utenti" "src/app/(back-office)/anagrafiche/voci-rimborso"` deve essere vuoto.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/collaboratori-dal-actions.test.ts tests/unit/tariffe-actions.test.ts tests/unit/utenti-actions.test.ts tests/unit/cambia-stato-utente.test.ts tests/unit/voci-rimborso-dal-actions.test.ts`
+      - Expect: tutti verdi, stesso numero di casi; i casi sull'ultimo amministratore passano senza modifiche.
+      - Run: `npm test`
+      - Expect: suite verde.
+
+      ## Done
+      - [ ] AC-2 — collaboratori e tariffe, utenti e persone, voci di rimborso richiedono il permesso della propria area; i test affermano l'argomento esatto
+      - [ ] AC-1 — nessuna guardia per ruolo nei file del task
+      - [ ] AC-7 — nessun caso rimosso; le regole sull'ultimo amministratore restano basate sul ruolo
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Report, righe sospese e importazione — un permesso per ciascun report, export e dati inclusi
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Ognuno dei tre report richiede il proprio permesso su pagina, query e action; export ed endpoint dati del report clienti richiedono `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI`; righe sospese e importazione richiedono `GESTIRE_RIGHE_SOSPESE` e `GESTIRE_IMPORTAZIONE`.
+
+      ## Read
+      - src/lib/report.ts — `reportFatturazioneClientiMese` (~r.80), `reportMarginalitaPeriodo` (~r.161), `reportFatturazioneCollaboratoriMese` (~r.266), più il JSDoc a r.~68 che cita la guardia per ruolo
+      - src/lib/righe-sospese.ts — `elencaRigheSospese`
+      - `src/app/(back-office)/report/fatturazione-clienti/page.tsx`, `dati/route.ts` (guardia + JSDoc sugli esiti), `esporta/route.ts` (solo JSDoc r.~24)
+      - `src/app/(back-office)/report/fatturazione-collaboratori/page.tsx`, `actions.ts` (`inviaPromemoriaFineMeseOra`)
+      - `src/app/(back-office)/report/marginalita/page.tsx`, `[clienteId]/page.tsx`
+      - `src/app/(back-office)/righe-sospese/page.tsx`, `actions.ts`; `src/app/(back-office)/importazione/page.tsx`, `actions.ts` (2 guardie; la prima usa la sessione restituita)
+      - tests/unit/report-fatturazione-dati-route.test.ts, tests/unit/esportazione-fatturazione-route.test.ts, tests/unit/promemoria-fine-mese-route.test.ts, tests/unit/righe-sospese-actions.test.ts, tests/unit/importer-legacy-actions.test.ts
+
+      ## Change
+      - `src/lib/report.ts`: le tre query → `richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI")`, `("CONSULTARE_REPORT_MARGINALITA")`, `("CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI")`; aggiornare il JSDoc.
+      - `report/fatturazione-clienti/page.tsx` → `richiediPermesso("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI")`; `dati/route.ts` → `richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI")`, con il JSDoc riscritto («permesso» al posto di «ruolo»); `esporta/route.ts` → solo il commento, che deve citare `richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI")` dentro la query.
+      - `report/fatturazione-collaboratori/page.tsx` → `richiediPermesso("CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI")`; `actions.ts` → `richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI")`.
+      - `report/marginalita/page.tsx` e `[clienteId]/page.tsx` → `richiediPermesso("CONSULTARE_REPORT_MARGINALITA")`.
+      - `src/lib/righe-sospese.ts`, `righe-sospese/actions.ts` → `richiediPermessoApi("GESTIRE_RIGHE_SOSPESE")`; `righe-sospese/page.tsx` → `richiediPermesso("GESTIRE_RIGHE_SOSPESE")`.
+      - `importazione/actions.ts` (2) → `richiediPermessoApi("GESTIRE_IMPORTAZIONE")` (la sessione restituita resta usata come prima); `importazione/page.tsx` → `richiediPermesso("GESTIRE_IMPORTAZIONE")`.
+      - Test: in `report-fatturazione-dati-route` asserire `toHaveBeenCalledWith("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI")`; in `promemoria-fine-mese-route` la chiave del mock diventa `richiediPermessoApi` e il caso dell'invio manuale asserisce `"CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI"`; in `righe-sospese-actions` `"GESTIRE_RIGHE_SOSPESE"`; in `importer-legacy-actions` il mock `vi.mock("@/lib/dal", () => ({ richiediPermessoApi: mocks.auth }))` più un'asserzione `expect(mocks.auth).toHaveBeenCalledWith("GESTIRE_IMPORTAZIONE")` in un caso esistente; in `esportazione-fatturazione-route` aggiornare il commento d'intestazione (r.~12) e il nome della guardia citata.
+      - Non-goal: nessuna modifica a cosa mostrano i report né al cron dei promemoria (`src/app/api/cron/**`, autenticato con il segreto).
+
+      ## Steps
+      1. Modificare `src/lib/report.ts` e `src/lib/righe-sospese.ts`.
+      2. Modificare pagine, action e route di report, righe sospese e importazione.
+      3. Adattare i 5 file di test.
+      4. `grep -rnE 'richiediRuolo(Api)?\(' src/lib/report.ts src/lib/righe-sospese.ts "src/app/(back-office)/report" "src/app/(back-office)/righe-sospese" "src/app/(back-office)/importazione"` deve essere vuoto.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/report-fatturazione-dati-route.test.ts tests/unit/esportazione-fatturazione-route.test.ts tests/unit/promemoria-fine-mese-route.test.ts tests/unit/righe-sospese-actions.test.ts tests/unit/importer-legacy-actions.test.ts`
+      - Expect: tutti verdi, stesso numero di casi (più l'eventuale asserzione aggiunta sull'importazione).
+      - Run: `npm test`
+      - Expect: suite verde.
+
+      ## Done
+      - [ ] AC-2 — un permesso distinto per ciascuno dei tre report; righe sospese e importazione con il proprio permesso
+      - [ ] AC-3 — `dati/route.ts` e `reportFatturazioneClientiMese` (usata da `esporta`) richiedono `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI`, lo stesso della pagina; il test della route lo afferma
+      - [ ] AC-1 — nessuna guardia per ruolo nei file del task
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Guardrail unitario — ogni pagina del back office richiede il permesso della propria area
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+    body: |-
+      ## Objective
+      Un test unitario fallisce se una `page.tsx` sotto `src/app/(back-office)` non chiama `richiediPermesso("<permesso atteso>")` secondo la mappa area → permesso. È la rete di sicurezza necessaria ora che il layout verifica solo la sessione.
+
+      ## Read
+      - Piano, sezione «Mappa area → permesso»
+      - `find "src/app/(back-office)" -name page.tsx` — 31 pagine attese
+      - src/domain/permessi.ts — tipo `Permesso`
+      - vitest.config.* — conferma che `tests/unit/**` gira in ambiente node
+
+      ## Change
+      - tests/unit/permessi-pagine-back-office.test.ts — nuovo file. Nessuna modifica ai sorgenti.
+
+      ## Steps
+      1. Elencare i file con `fs.readdirSync(radice, { recursive: true })` (radice = `path.join(process.cwd(), "src/app/(back-office)")`), tenendo solo quelli che finiscono con `page.tsx` e normalizzando i separatori in `/`.
+      2. Definire `const PERMESSO_PER_PREFISSO: ReadonlyArray<readonly [string, Permesso]>`, ordinato dal prefisso più specifico: `["anagrafiche/clienti/[id]/offerte/", "GESTIRE_OFFERTE"]`, `["anagrafiche/clienti/", "GESTIRE_CLIENTI"]`, `["anagrafiche/collaboratori/", "GESTIRE_COLLABORATORI"]`, `["anagrafiche/persone/", "GESTIRE_UTENTI"]`, `["anagrafiche/utenti/", "GESTIRE_UTENTI"]`, `["anagrafiche/voci-rimborso/", "GESTIRE_VOCI_RIMBORSO"]`, `["anagrafiche/page.tsx", "GESTIRE_CLIENTI"]`, `["offerte/[offertaId]/collaboratori/", "GESTIRE_ABILITAZIONI"]`, `["offerte/", "GESTIRE_OFFERTE"]`, `["report/avanzamento-offerte/", "GESTIRE_OFFERTE"]`, `["report/fatturazione-clienti/", "CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"]`, `["report/fatturazione-collaboratori/", "CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI"]`, `["report/marginalita/", "CONSULTARE_REPORT_MARGINALITA"]`, `["righe-sospese/", "GESTIRE_RIGHE_SOSPESE"]`, `["importazione/", "GESTIRE_IMPORTAZIONE"]`.
+      3. `it.each(pagine)`: trovare il primo prefisso che corrisponde (`startsWith`); se nessuno corrisponde il test fallisce con «pagina senza area: <percorso>», così una pagina nuova obbliga ad aggiornare la mappa. Leggere il sorgente e verificare `toContain(\`richiediPermesso("${permessoAtteso}")\`)`.
+      4. Un caso aggiuntivo verifica che l'elenco non sia vuoto (`pagine.length` ≥ 31), così un percorso di radice sbagliato non fa passare il test a vuoto.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/permessi-pagine-back-office.test.ts`
+      - Expect: verde. Prova di non-tautologia: cambiare temporaneamente il permesso atteso di una voce della mappa deve far fallire il caso della pagina corrispondente; poi ripristinare.
+      - Run: `npx eslint tests/unit/permessi-pagine-back-office.test.ts`
+      - Expect: exit 0.
+
+      ## Done
+      - [ ] AC-2 — le 31 pagine del back office sono collegate ciascuna al permesso della propria area, verificato dal test
+      - [ ] AC-1 — nessuna pagina senza guardia per permesso (il test fallisce per una pagina non mappata o senza la chiamata)
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Layout del back office con sola sessione e rimozione di richiediRuolo/richiediRuoloApi dal DAL
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-06
+    body: |-
+      ## Objective
+      Il layout del back office verifica solo la sessione, `richiediRuolo` e `richiediRuoloApi` non esistono più nel DAL, e i casi che le testavano sono convertiti uno a uno in casi su `richiediPermessoApi`.
+
+      ## Read
+      - `src/app/(back-office)/layout.tsx` — usa `richiediRuolo("AMMINISTRATORE")` e passa la sessione a `StrutturaApplicazione`
+      - src/lib/dal.ts — `richiediRuolo` (r.~113), `richiediRuoloApi` (r.~194), JSDoc di `ErroreAutorizzazione`, import di `Ruolo` (ancora usato da `SessioneUtente`)
+      - tests/unit/dal-guards.test.ts — `describe("richiediRuoloApi")` (r.~252-293: «lancia 403 se il collaboratore prova ad accedere a un'area admin», «restituisce la sessione se il ruolo corrisponde») e l'import di `richiediRuoloApi`
+      - tests/unit/permessi-pagine-back-office.test.ts (TASK-06)
+
+      ## Change
+      - `src/app/(back-office)/layout.tsx` — `const sessione = await verificaSessione();` al posto di `richiediRuolo("AMMINISTRATORE")`, con un commento di una riga: l'autorizzazione è delle singole pagine (guardia per permesso); la guardia d'ingresso arriverà con US-110. Rendering invariato.
+      - src/lib/dal.ts — cancellare `richiediRuolo` e `richiediRuoloApi` con i loro JSDoc. Aggiornare il JSDoc di `ErroreAutorizzazione` («non ha il permesso richiesto (403)»). Togliere `import type { Ruolo }` solo se non resta nessun uso (resta in `SessioneUtente.ruolo`, quindi probabilmente rimane).
+      - tests/unit/dal-guards.test.ts — sostituire il `describe("richiediRuoloApi")` con `describe("richiediPermessoApi")`, mantenendo i due casi con lo stesso setup: il collaboratore → rejects `{ statusCode: 403 }` su `richiediPermessoApi("GESTIRE_CLIENTI")`; l'amministratore → resolves con la sessione. Aggiornare l'import e il commento del mock di `next/navigation` (r.~40).
+      - tests/unit/permessi-pagine-back-office.test.ts — aggiungere un caso: `layout.tsx` contiene `verificaSessione()` e non contiene `richiediRuolo`.
+      - Non-goal: non toccare `verificaAccessoDatiCollaboratore`, `foglio-attivita.ts`, `struttura-applicazione.tsx`, `policy-rotte.ts`/proxy (US-110 o invariati).
+
+      ## Steps
+      1. Aggiornare il layout.
+      2. Cancellare le due guardie dal DAL e sistemare i JSDoc.
+      3. Convertire il `describe` in `dal-guards.test.ts` e aggiungere il caso del layout al guardrail.
+      4. `grep -rnE 'richiediRuolo(Api)?\b' src tests --exclude-dir=generated` deve essere vuoto: anche commenti e mock residui vanno aggiornati, compresi i commenti in `src/lib/offerte.ts`, `src/lib/report.ts` e nelle route del report già toccati in TASK-02 e TASK-05.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p tsconfig.json 2>&1 | grep "error TS" | grep -v "^\.next/"`
+      - Expect: output vuoto (nessun consumer residuo delle guardie rimosse).
+      - Run: `npx vitest run tests/unit/dal-guards.test.ts tests/unit/dal-permessi.test.ts tests/unit/permessi-pagine-back-office.test.ts`
+      - Expect: verdi; `dal-guards` ha lo stesso numero di casi di prima.
+      - Run: `npm test`
+      - Expect: suite verde, con un numero di test ≥ 1193 più i nuovi.
+
+      ## Done
+      - [ ] AC-6 — `grep -nE "richiediRuolo" src/lib/dal.ts` vuoto
+      - [ ] AC-1 — `grep -rnE 'richiediRuolo(Api)?\(' src --exclude-dir=generated` vuoto; tsc pulito
+      - [ ] AC-5 — layout con sola sessione: le pagine continuano a reindirizzare il collaboratore tramite `richiediPermesso` (guardrail verde)
+      - [ ] AC-7 — i casi su `richiediRuoloApi` sono convertiti uno a uno, nessuno rimosso
+
+      ## Blockers
+      None.
+    ref: TASK-07
+  - id: TASK-08
+    title: Gate finale — unit, tipi, lint, build ed e2e come in CI
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+      - TASK-07
+    body: |-
+      ## Objective
+      Dimostrare che US-109 passa ogni step della CI (`.github/workflows/ci.yml`: lint, unit, build, e2e) e che tutti i task sono `DONE` prima di chiedere la review.
+
+      ## Read
+      - .github/workflows/ci.yml — ordine degli step
+      - Piano, sezioni «Baseline» e «Mappa delle evidenze di accettazione»
+      - tests/e2e/README.md — prerequisiti e regole e2e
+
+      ## Change
+      - Nessuna modifica al codice. Se un check fallisce, correggere nel task che ha introdotto il problema e ripetere il gate.
+
+      ## Steps
+      1. `grep -rnE 'richiediRuolo(Api)?\(' src --exclude-dir=generated` → vuoto (Demonstrates 1, AC-1).
+      2. `npx tsc --noEmit -p tsconfig.json 2>&1 | grep "error TS" | grep -v "^\.next/"` → vuoto.
+      3. `npm run lint` → exit 0 (include il guardrail e2e; nessuno spec e2e è stato toccato).
+      4. `npm test` → tutti verdi, test ≥ 1193 + i nuovi.
+      5. Prerequisiti: Postgres raggiungibile, `npx prisma migrate deploy && npx prisma db seed`, porta 3000 libera (altrimenti porta dedicata con `NEXT_PUBLIC_APP_URL` coerente).
+      6. `npm run build` → exit 0.
+      7. `npm run test:e2e` → verde. In particolare: `abilitazioni-collaboratore.spec.ts` (collaboratore riportato a `/attivita`), `esportazione-fatturazione.spec.ts` e `report-fatturazione-navigazione-mese.spec.ts` (403 per il collaboratore), e gli spec di back office per l'amministratore. Se un test fallisce, confrontarlo con la base usando `--repeat-each` prima di attribuirlo a US-109 (instabilità note preesistenti).
+      8. Segnare questo task `DONE`, poi da `/Users/smarello/repo/coaching-planner` eseguire `archetipo spec show US-109` e verificare che nessun task sia `TODO`. Solo allora chiedere la review.
+
+      ## Verify
+      - Run: i comandi degli step 1-7 nell'ordine indicato, dalla radice del progetto.
+      - Expect: grep e tsc vuoti; lint, unit, build ed e2e con exit 0.
+      - Run: `archetipo spec show US-109`
+      - Expect: tutti i task in `data.tasks` hanno `status: DONE`.
+
+      ## Done
+      - [ ] AC-1 — grep vuoto e tsc pulito
+      - [ ] AC-2 — unit verdi, compreso il guardrail delle pagine
+      - [ ] AC-3 — test della route dati e e2e di export/dati (403 per il collaboratore) verdi
+      - [ ] AC-4 — e2e di back office per l'amministratore verdi senza modifiche
+      - [ ] AC-5 — e2e su redirect a `/attivita` e 403 per il collaboratore verdi
+      - [ ] AC-6 — nessuna guardia per ruolo nel DAL
+      - [ ] AC-7 — `npm test` e `npm run test:e2e` verdi
+      - [ ] Tutti i task risultano `DONE` in `archetipo spec show US-109` prima di `archetipo spec review`
+
+      ## Blockers
+      Per build ed e2e serve un Postgres migrato e seminato. Se manca, è un prerequisito d'ambiente da sistemare, non un guasto del codice.
+    ref: TASK-08

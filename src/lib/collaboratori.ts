@@ -1,11 +1,11 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import type { Collaboratore } from "@/generated/prisma/client";
 import type { TariffaApplicata } from "@/domain/tariffe";
 
-// ── API collaboratori (back office, solo amministratore) ─────────
+// ── API collaboratori (back office, permesso GESTIRE_COLLABORATORI) 
 
 export interface CollaboratoreConUtente extends Collaboratore {
   utente: { email: string };
@@ -23,10 +23,10 @@ export interface VoceStoricoTariffa extends TariffaApplicata {
 /**
  * Elenca tutti i collaboratori (attivi e disattivati), con l'email
  * dell'utente associato e lo storico delle tariffe.
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_COLLABORATORI.
  */
 export async function elencaCollaboratori(): Promise<CollaboratoreConTariffe[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_COLLABORATORI");
 
   const collaboratori = await db.collaboratore.findMany({
     orderBy: { cognome: "asc" },
@@ -47,12 +47,12 @@ export async function elencaCollaboratori(): Promise<CollaboratoreConTariffe[]> 
 
 /**
  * Storico tariffe di un collaboratore, dalla più recente.
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_COLLABORATORI.
  */
 export async function storicoTariffeCollaboratore(
   collaboratoreId: string,
 ): Promise<VoceStoricoTariffa[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_COLLABORATORI");
 
   const tariffe = await db.tariffaCollaboratore.findMany({
     where: { collaboratoreId },
@@ -65,13 +65,13 @@ export async function storicoTariffeCollaboratore(
 
 /**
  * Restituisce un collaboratore per ID, con l'email dell'utente associato.
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_COLLABORATORI.
  * Restituisce null se il collaboratore non esiste.
  */
 export async function collaboratorePerId(
   id: string,
 ): Promise<CollaboratoreConUtente | null> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_COLLABORATORI");
 
   return db.collaboratore.findUnique({
     where: { id },
@@ -82,10 +82,10 @@ export async function collaboratorePerId(
 /**
  * Elenca i soli collaboratori attivi, ordinati per cognome.
  * Unica fonte per le selezioni operative (attività, report, ecc.).
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_COLLABORATORI.
  */
 export async function elencaCollaboratoriSelezionabili(): Promise<Collaboratore[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_COLLABORATORI");
 
   return db.collaboratore.findMany({
     where: { attivo: true },

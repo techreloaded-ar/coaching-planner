@@ -1,4 +1,4 @@
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { elencaRigheSospese } from "@/lib/righe-sospese";
 import { leggiPosizioneElenco } from "@/lib/paginazione";
 import { leggiFiltroRigheSospese } from "@/domain/righe-sospese";
@@ -14,7 +14,7 @@ interface RigheSospesePageProps {
 }
 
 export default async function RigheSospesePage({ searchParams }: RigheSospesePageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_RIGHE_SOSPESE");
   const parametri = await searchParams;
   const { pagina } = leggiPosizioneElenco(parametri);
   const elenco = await elencaRigheSospese({ pagina, filtro: leggiFiltroRigheSospese(parametri) });

@@ -1,8 +1,8 @@
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import ClienteForm from "@/app/(back-office)/anagrafiche/clienti/cliente-form";
 
 export default async function NuovoClientePage() {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_CLIENTI");
 
   return <ClienteForm />;
 }

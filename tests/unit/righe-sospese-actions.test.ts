@@ -6,9 +6,9 @@ const mockDb = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({ mockRichiediRuoloApi: vi.fn() }));
+const { mockRichiediPermessoApi } = vi.hoisted(() => ({ mockRichiediPermessoApi: vi.fn() }));
 
-vi.mock("@/lib/dal", () => ({ richiediRuoloApi: mockRichiediRuoloApi }));
+vi.mock("@/lib/dal", () => ({ richiediPermessoApi: mockRichiediPermessoApi }));
 
 const { mockRevalidatePath } = vi.hoisted(() => ({ mockRevalidatePath: vi.fn() }));
 
@@ -26,13 +26,13 @@ function formRisoluzione(risolta: boolean, id: string[]): FormData {
 describe("cambiaRisoluzioneRigheSospeseAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
   });
 
   it("valorizza risoltaIl solo sulle righe selezionate ancora aperte", async () => {
     await cambiaRisoluzioneRigheSospeseAction(formRisoluzione(true, ["riga-1", "riga-2", "riga-1"]));
 
-    expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+    expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_RIGHE_SOSPESE");
     expect(mockDb.rigaAttivitaSospesa.updateMany).toHaveBeenCalledWith({
       where: { id: { in: ["riga-1", "riga-2"] }, risoltaIl: null },
       data: { risoltaIl: expect.any(Date) },
@@ -56,7 +56,7 @@ describe("cambiaRisoluzioneRigheSospeseAction", () => {
   });
 
   it("rifiuta chi non è amministratore prima di scrivere", async () => {
-    mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+    mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
     await expect(
       cambiaRisoluzioneRigheSospeseAction(formRisoluzione(true, ["riga-1"])),

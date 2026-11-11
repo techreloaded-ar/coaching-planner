@@ -11,12 +11,14 @@ vi.mock("@/lib/db", () => ({
 	db: { offerta: mockOfferta },
 }));
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-	mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi, mockRichiediAlmenoUnPermessoApi } = vi.hoisted(() => ({
+	mockRichiediPermessoApi: vi.fn(),
+	mockRichiediAlmenoUnPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-	richiediRuoloApi: mockRichiediRuoloApi,
+	richiediPermessoApi: mockRichiediPermessoApi,
+	richiediAlmenoUnPermessoApi: mockRichiediAlmenoUnPermessoApi,
 }));
 
 const { mockRevalidatePath } = vi.hoisted(() => ({
@@ -62,7 +64,7 @@ import {
 describe("DAL offerte", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockRichiediAlmenoUnPermessoApi.mockResolvedValue(undefined);
 	});
 
 	it("restituisce un'offerta per id con il cliente incluso", async () => {
@@ -86,6 +88,10 @@ describe("DAL offerte", () => {
 
 		const result = await offertaPerId("off-1");
 
+		expect(mockRichiediAlmenoUnPermessoApi).toHaveBeenCalledWith([
+			"GESTIRE_OFFERTE",
+			"GESTIRE_ABILITAZIONI",
+		]);
 		expect(mockOfferta.findUnique).toHaveBeenCalledWith({
 			where: { id: "off-1" },
 			include: { cliente: true },
@@ -97,7 +103,7 @@ describe("DAL offerte", () => {
 describe("Server Actions offerte", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockRichiediPermessoApi.mockResolvedValue(undefined);
 		mockValidaOfferta.mockReturnValue({});
 		mockNormalizzaTariffa.mockReturnValue({
 			valore: "650.00",
@@ -145,6 +151,7 @@ describe("Server Actions offerte", () => {
 
 		await creaOfferta({ errori: {} }, formData);
 
+		expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_OFFERTE");
 		expect(mockOfferta.create).toHaveBeenCalledWith({
 			data: expect.objectContaining({ clienteId: "cli-1", attiva: true }),
 		});
@@ -349,8 +356,9 @@ describe("Server Actions offerte", () => {
 		expect(mockRevalidatePath).not.toHaveBeenCalledWith("/offerte");
 	});
 
-	it("applica la guardia di ruolo su DAL e actions", async () => {
-		mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+	it("applica la guardia di permesso su DAL e actions", async () => {
+		mockRichiediAlmenoUnPermessoApi.mockRejectedValue(new Error("Accesso negato"));
+		mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
 		await expect(offertaPerId("off-1")).rejects.toThrow("Accesso negato");
 

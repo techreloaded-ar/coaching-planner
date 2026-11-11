@@ -1,0 +1,38 @@
+schema: archetipo/review/v1
+spec_code: US-108
+comments: []
+dossier:
+  execution_id: exec-d2ca31f6ec67b9db82cb93e4b03a27e2
+  prepared_at: "2026-11-11T14:37:57Z"
+  summary: 'US-108 aggiunge il catalogo tipizzato dei permessi (src/domain/permessi.ts: 12 permessi, PERMESSI_PER_RUOLO con AMMINISTRATORE = tutti e COLLABORATORE = [], permessiDelRuolo) e lo collega al DAL (src/lib/dal.ts): SessioneUtente espone ora `permessi`, calcolati in _risolviSessione dal ruolo riletto a DB; ci sono due nuove guardie, richiediPermesso (RSC: redirect a / senza sessione, a /attivita senza permesso) e richiediPermessoApi (API/Server Action: 401/403). Il lavoro è additivo: nessuna guardia esistente né alcun chiamante cambia (la sostituzione è US-109). I test nuovi sono tests/unit/permessi.test.ts (15 casi, senza mock) e tests/unit/dal-permessi.test.ts (8 casi sul DAL reale con I/O simulato). In tests/unit/dal-guards.test.ts sono stati aggiunti solo `permessi: []` a due fixture tipizzate SessioneUtente, come previsto dal piano; nessuna `expect` è cambiata. Task: 5/5 DONE. Le verifiche eseguite in questa review sul working tree attuale sono verdi: npm test (84 file, 1193 test; baseline 82/1170, +23 nuovi), npm run lint (guardrail e2e incluso), tsc filtrato (nessun errore fuori da .next/) e npm run build. La suite e2e non è stata rieseguita perché il database locale non è raggiungibile. Wiki disattivata (wiki.enabled: false) e wiki_impact vuoto: nessuna modifica Wiki attesa. La registrazione della demo è abilitata nel config, ma non viene registrata: la spec è tecnica e non ha una superficie visibile all''utente; la demo si fa da codice e terminale. Valutazione statica della CI: npm ci, migrate e seed passerebbero (nessuna dipendenza né schema nuovi); lint, unit e build passano perché verificati; l''e2e dovrebbe passare (nessuna rotta usa le nuove guardie e il campo aggiunto alla sessione è un array serializzabile), ma è incerta perché non eseguita.'
+  criteria:
+    - id: AC-1
+      verdict: met
+      note: 'src/domain/permessi.ts ha un solo import, `import type { Ruolo } from "@/domain/types"`: nessuna dipendenza da Next, Prisma o cookie. PERMESSI è una tupla `as const` di 12 valori con tipo derivato Permesso. tests/unit/permessi.test.ts lo importa senza alcun vi.mock e verifica l''elenco esatto e l''assenza di duplicati.'
+    - id: AC-2
+      verdict: met
+      note: 'Esiste un''unica mappa PERMESSI_PER_RUOLO: Record<Ruolo, readonly Permesso[]>, con AMMINISTRATORE = PERMESSI e COLLABORATORE = []. Il tipo Record<Ruolo,…> obbliga ad aggiungere una riga per ogni ruolo nuovo. I test verificano la mappa e permessiDelRuolo per entrambi i ruoli.'
+    - id: AC-3
+      verdict: met
+      note: 'it.each(PERMESSI)("AMMINISTRATORE possiede %s") asserisce toContain su PERMESSI_PER_RUOLO.AMMINISTRATORE per ciascun permesso: se ne togliamo uno dalla riga AMMINISTRATORE, fallisce il caso relativo. Anche l''asserzione su permessiDelRuolo("AMMINISTRATORE") toEqual [...PERMESSI] fallirebbe. In questa review non è stata eseguita una prova di mutazione: la conclusione viene dalla lettura del codice.'
+    - id: AC-4
+      verdict: met
+      note: '_risolviSessione calcola `permessi: permessiDelRuolo(ruolo)` con `ruolo = utente.ruolo` dal record Prisma riletto a ogni richiesta, mai dal cookie. In dal-permessi.test.ts, con cookie COLLABORATORE e DB AMMINISTRATORE la sessione ha tutti i permessi; con cookie AMMINISTRATORE e DB COLLABORATORE ha []. La regola vale per tutte le guardie che passano da _risolviSessione.'
+    - id: AC-5
+      verdict: met
+      note: richiediPermesso (cache di React) chiama verificaSessione, che porta a redirect('/') senza sessione, e fa redirect(HOME_AUTENTICATA = /attivita) se manca il permesso. I test simulano redirect come throw, come in Next, e osservano REDIRECT:/ senza cookie, REDIRECT:/attivita per un collaboratore e la sessione restituita, senza redirect, per un amministratore.
+    - id: AC-6
+      verdict: met
+      note: 'richiediPermessoApi chiama richiediSessioneApi, che dà ErroreAutorizzazione 401 senza sessione, e lancia ErroreAutorizzazione(403, ''Permesso richiesto: …'') se manca il permesso. I test verificano 401 senza cookie, 403 per un collaboratore su GESTIRE_OFFERTE e, per un amministratore, la sessione con permessi di lunghezza PERMESSI.length che include il permesso.'
+    - id: AC-7
+      verdict: unclear
+      note: 'Unit: npm test è verde (84 file, 1193 test) e `git diff -- tests | grep ''^[-+].*expect''` è vuoto. Le sole modifiche a test preesistenti sono due fixture `permessi: []` in dal-guards.test.ts, richieste dal nuovo campo obbligatorio. E2E: non rieseguita in questa review, perché Postgres su localhost:5432 non è raggiungibile (P1001), e in docs/test-results/US-108 non c''è alcuna evidenza persistita del run previsto dal gate TASK-05. Dalla lettura del codice ci si aspetta che passi: nessuna rotta usa le nuove guardie e il comportamento delle esistenti è invariato. Resta però da confermare con l''esecuzione.'
+  minor_findings:
+    - 'La suite e2e esistente (parte di AC-7) non è stata eseguita in questa review: database locale non raggiungibile. Si consiglia di lanciarla con l''ambiente sandbox (sh scripts/archetipo/ambiente.sh e2e) prima di approvare, o di affidarsi alla CI.'
+    - 'Nessuna evidenza persistita in docs/test-results/US-108: il gate TASK-05 è marcato DONE ma non ha lasciato output dei test.'
+    - 'Le modifiche non sono committate. Con worktree.enabled=false, il lavoro di US-108 (src/domain/permessi.ts, src/lib/dal.ts, tests/unit/permessi.test.ts, tests/unit/dal-permessi.test.ts, tests/unit/dal-guards.test.ts) sta nel working tree del branch `prod`, insieme ad altre modifiche non correlate: spec US-099/100/101/109/110/111 e mockup in docs/mockups. Al commit vanno selezionati solo i file di US-108.'
+    - 'Demo video non registrata, anche se e2e.record_demo_video è true: la spec è tecnica e il Demonstrates riguarda codice e terminale. Non è un difetto.'
+verdict:
+  decision: approved
+  decided_at: "2026-11-11T14:38:44Z"
+  execution_id: exec-d2ca31f6ec67b9db82cb93e4b03a27e2

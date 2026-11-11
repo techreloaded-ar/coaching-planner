@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import {
   DESCRIZIONE_SENZA_OFFERTA,
   ETICHETTA_SENZA_OFFERTA,
@@ -65,7 +65,7 @@ interface RigaAttivitaConContesto extends RigaAttivita {
  * Calcola il report di fatturazione clienti per un intero mese, aggregando le
  * righe attività di TUTTI i collaboratori.
  *
- * Accesso riservato all'amministratore (`richiediRuoloApi("AMMINISTRATORE")`).
+ * Richiede il permesso del report (`richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI")`).
  * Se il token mese non è valido restituisce un risultato vuoto senza errori.
  *
  * L'importo da fatturare usa la tariffa giornaliera dell'OFFERTA (non del
@@ -77,7 +77,7 @@ interface RigaAttivitaConContesto extends RigaAttivita {
 export async function reportFatturazioneClientiMese(
   token: string,
 ): Promise<RisultatoReportFatturazione> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI");
 
   const parsed = parseTokenMese(token);
   if (!parsed) {
@@ -146,7 +146,7 @@ export async function reportFatturazioneClientiMese(
  * un periodo di mesi interi, aggregando le righe fatturabili di TUTTI i
  * collaboratori.
  *
- * Accesso riservato all'amministratore. I ricavi usano la tariffa
+ * Richiede CONSULTARE_REPORT_MARGINALITA. I ricavi usano la tariffa
  * dell'OFFERTA, i costi la tariffa del COLLABORATORE autore della riga valida
  * nel mese della riga; i fissi mensili si ripartiscono sulle offerte del mese.
  * Se un token non è valido restituisce un report vuoto senza errori.
@@ -158,7 +158,7 @@ export async function reportMarginalitaPeriodo(
   da: string,
   a: string,
 ): Promise<RisultatoReportMarginalita> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("CONSULTARE_REPORT_MARGINALITA");
 
   const parsedDa = parseTokenMese(da);
   const parsedA = parseTokenMese(a);
@@ -255,7 +255,7 @@ export async function reportMarginalitaPeriodo(
  * Fatture attese dai collaboratori per un mese: per ciascuno lo stesso importo
  * fattura del suo riepilogo mensile (tariffa valida nel mese più rimborsi).
  *
- * Accesso riservato all'amministratore. Se il token non è valido restituisce
+ * Richiede CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI. Se il token non è valido restituisce
  * un report vuoto senza errori.
  *
  * @param token - Token YYYY-MM del mese
@@ -263,7 +263,7 @@ export async function reportMarginalitaPeriodo(
 export async function reportFatturazioneCollaboratoriMese(
   token: string,
 ): Promise<RisultatoReportFatturazioneCollaboratori> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI");
 
   const parsed = parseTokenMese(token);
   if (!parsed) {

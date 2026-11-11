@@ -1,0 +1,43 @@
+schema: archetipo/spec/v2
+code: US-108
+title: Catalogo dei permessi e guardie per permesso nel DAL
+epic:
+  code: EP-001
+  title: Autenticazione e Ruoli
+priority: HIGH
+points: 3
+status: DONE
+scope: MVP
+body: |-
+  **Come** sviluppatore che mantiene l'autorizzazione
+  **voglio** un catalogo di permessi nominati, una mappa ruolo → permessi e guardie del DAL che chiedono un permesso
+  **così che** un ruolo nuovo si possa introdurre in futuro aggiungendo una riga alla mappa, senza toccare le guardie sparse nel codice.
+
+  ### Demonstrates
+  1. Lo sviluppatore apre `src/domain/permessi.ts` e trova l'elenco tipizzato dei permessi (gestione di offerte, abilitazioni, clienti, collaboratori, utenti, voci di rimborso, righe sospese, importazione; consultazione dei tre report; consultazione dei fogli attività altrui) e la mappa che assegna a ciascun ruolo il suo insieme di permessi.
+  2. Esegue `npm run test`: il test della mappa mostra che `AMMINISTRATORE` possiede tutti i permessi del catalogo e `COLLABORATORE` nessuno.
+  3. Lo stesso run mostra i test delle nuove guardie: sessione assente → 401, permesso mancante → 403, permesso presente → sessione restituita con l'elenco dei permessi dell'utente.
+  4. L'applicazione si comporta come prima: nessuna guardia esistente è stata ancora sostituita.
+
+  ### Acceptance criteria
+  - [ ] AC-1 — Esiste un catalogo tipizzato dei permessi in un modulo puro di dominio, importabile senza dipendenze da framework, database o cookie.
+  - [ ] AC-2 — Esiste un'unica mappa ruolo → permessi: `AMMINISTRATORE` ha tutti i permessi del catalogo, `COLLABORATORE` ha l'insieme vuoto.
+  - [ ] AC-3 — Un test unitario fallisce se un permesso del catalogo non è assegnato ad `AMMINISTRATORE`.
+  - [ ] AC-4 — La sessione risolta dal DAL espone i permessi dell'utente, calcolati dal ruolo riletto a database a ogni richiesta.
+  - [ ] AC-5 — Il DAL offre una guardia per pagine RSC che, senza il permesso richiesto, reindirizza all'area autenticata comune (`/attivita`) e, senza sessione, alla radice.
+  - [ ] AC-6 — Il DAL offre una guardia per API e Server Action che lancia `ErroreAutorizzazione(401)` senza sessione e `ErroreAutorizzazione(403)` senza il permesso richiesto.
+  - [ ] AC-7 — Le suite unitarie ed e2e esistenti passano senza modifiche alle loro asserzioni.
+
+  ### Out of scope
+  Sostituzione delle guardie esistenti (US-109). Tabelle ruoli/permessi a database e schermate di configurazione dei ruoli. Ruoli nuovi. «Consuntivare» non è un permesso: resta derivato dal profilo Collaboratore attivo.
+history:
+  - status: TODO
+    at: "2026-11-11T10:58:03Z"
+  - status: PLANNED
+    at: "2026-11-11T11:03:31Z"
+  - status: IN PROGRESS
+    at: "2026-11-11T13:21:49Z"
+  - status: REVIEW
+    at: "2026-11-11T13:26:21Z"
+  - status: DONE
+    at: "2026-11-11T14:38:44Z"

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 
 export default async function NuovoPrecedente() {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_UTENTI");
   redirect("/anagrafiche/persone/nuovo");
 }

@@ -4,18 +4,18 @@ import { ErroreAutorizzazione } from "@/lib/dal";
 
 /**
  * Contratto di `GET /report/fatturazione-clienti/dati`, la rotta letta dalla
- * cache client del report per il cambio mese. Report e guardia di ruolo sono
+ * cache client del report per il cambio mese. Report e guardia di permesso sono
  * mockati ai rispettivi confini: la guardia reale è provata end-to-end in `tests/e2e/report-fatturazione-navigazione-mese.spec.ts`.
  */
 
-const { mockReportFatturazioneClientiMese, mockRichiediRuoloApi } = vi.hoisted(() => ({
+const { mockReportFatturazioneClientiMese, mockRichiediPermessoApi } = vi.hoisted(() => ({
   mockReportFatturazioneClientiMese: vi.fn(),
-  mockRichiediRuoloApi: vi.fn(),
+  mockRichiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/dal")>()),
-  richiediRuoloApi: mockRichiediRuoloApi,
+  richiediPermessoApi: mockRichiediPermessoApi,
 }));
 
 vi.mock("@/lib/report", () => ({
@@ -36,7 +36,7 @@ function reportVuoto(token: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockRichiediRuoloApi.mockResolvedValue({ ruolo: "AMMINISTRATORE" });
+  mockRichiediPermessoApi.mockResolvedValue({ ruolo: "AMMINISTRATORE" });
   mockReportFatturazioneClientiMese.mockImplementation(async (token: string) =>
     reportVuoto(token),
   );
@@ -48,6 +48,9 @@ describe("GET /report/fatturazione-clienti/dati", () => {
 
     expect(risposta.status).toBe(200);
     expect(risposta.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(mockRichiediPermessoApi).toHaveBeenCalledWith(
+      "CONSULTARE_REPORT_FATTURAZIONE_CLIENTI",
+    );
     expect(mockReportFatturazioneClientiMese).toHaveBeenCalledWith("2026-05");
     expect(await risposta.json()).toEqual(reportVuoto("2026-05"));
   });
@@ -66,7 +69,7 @@ describe("GET /report/fatturazione-clienti/dati", () => {
   it.each([401, 403] as const)(
     "propaga l'errore di autorizzazione %i senza dati, anche con mese non valido",
     async (stato) => {
-      mockRichiediRuoloApi.mockRejectedValue(
+      mockRichiediPermessoApi.mockRejectedValue(
         new ErroreAutorizzazione(stato, "Accesso negato"),
       );
 

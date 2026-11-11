@@ -21,12 +21,12 @@ vi.mock("@/lib/db", () => ({
   db: mockDb,
 }));
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-  mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi } = vi.hoisted(() => ({
+  mockRichiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-  richiediRuoloApi: mockRichiediRuoloApi,
+  richiediPermessoApi: mockRichiediPermessoApi,
 }));
 
 const { mockRevalidatePath } = vi.hoisted(() => ({
@@ -91,7 +91,7 @@ function formModificaUtente(): FormData {
 describe("Server Actions utenti", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
     mockDb.$transaction.mockImplementation(
       async (callback: (tx: typeof mockDb) => unknown) => callback(mockDb),
     );
@@ -99,13 +99,13 @@ describe("Server Actions utenti", () => {
 
   describe("creaUtente", () => {
     it("invoca la guardia amministratore e ne propaga gli errori senza accedere al database", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(
         creaUtente(statoIniziale(), formNuovoUtente()),
       ).rejects.toThrow("Accesso negato");
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_UTENTI");
       expect(mockUtente.findUnique).not.toHaveBeenCalled();
       expect(mockUtente.create).not.toHaveBeenCalled();
     });
@@ -117,7 +117,7 @@ describe("Server Actions utenti", () => {
 
       const result = await creaUtente(statoIniziale(), formData);
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_UTENTI");
       expect(result.errori).toEqual({
         nome: "Il nome è obbligatorio",
         cognome: "Il cognome è obbligatorio",
@@ -371,13 +371,13 @@ describe("Server Actions utenti", () => {
 
   describe("aggiornaUtente", () => {
     it("invoca la guardia amministratore e ne propaga gli errori senza accedere al database", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+      mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
       await expect(
         aggiornaUtente(statoIniziale(), formModificaUtente()),
       ).rejects.toThrow("Accesso negato");
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_UTENTI");
       expect(mockDb.$transaction).not.toHaveBeenCalled();
       expect(mockUtente.findUnique).not.toHaveBeenCalled();
       expect(mockUtente.update).not.toHaveBeenCalled();

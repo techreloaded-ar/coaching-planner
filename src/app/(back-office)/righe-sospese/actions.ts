@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import { leggiIdSelezionati } from "@/lib/selezione-elenco";
 
 /**
@@ -11,7 +11,7 @@ import { leggiIdSelezionati } from "@/lib/selezione-elenco";
  * la data di risoluzione originale.
  */
 export async function cambiaRisoluzioneRigheSospeseAction(formData: FormData) {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_RIGHE_SOSPESE");
 
   const idRighe = leggiIdSelezionati(formData);
   const risolta = formData.get("risolta") === "true";

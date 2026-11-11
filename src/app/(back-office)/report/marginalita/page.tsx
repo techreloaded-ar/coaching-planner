@@ -1,4 +1,4 @@
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { reportMarginalitaPeriodo } from "@/lib/report";
 import {
   tokenMeseCorrente,
@@ -13,7 +13,7 @@ export default async function ReportMarginalitaPage({
 }: {
   searchParams: Promise<{ da?: string; a?: string }>;
 }) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("CONSULTARE_REPORT_MARGINALITA");
 
   const params = await searchParams;
   const { da, a } = normalizzaPeriodoMesi(

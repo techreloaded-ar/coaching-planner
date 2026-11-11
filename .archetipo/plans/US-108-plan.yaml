@@ -1,0 +1,353 @@
+schema: archetipo/plan/v2
+spec_code: US-108
+body: |-
+  # US-108: Catalogo dei permessi e guardie per permesso nel DAL — Piano di implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-11-11
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-001 — Autenticazione e Ruoli
+  **Priorità:** HIGH | **Punti:** 3
+
+  **User Story**
+  **Come** sviluppatore che mantiene l'autorizzazione **voglio** un catalogo di permessi nominati, una mappa ruolo → permessi e guardie del DAL che chiedono un permesso **così che** un ruolo nuovo si possa introdurre in futuro aggiungendo una riga alla mappa, senza toccare le guardie sparse nel codice.
+
+  **Criteri di accettazione**
+  - AC-1 — Catalogo tipizzato dei permessi in un modulo puro di dominio, senza dipendenze da framework, database o cookie.
+  - AC-2 — Un'unica mappa ruolo → permessi: `AMMINISTRATORE` tutti, `COLLABORATORE` nessuno.
+  - AC-3 — Un test unitario fallisce se un permesso del catalogo non è assegnato ad `AMMINISTRATORE`.
+  - AC-4 — La sessione risolta dal DAL espone i permessi, calcolati dal ruolo riletto a database a ogni richiesta.
+  - AC-5 — Guardia RSC: senza permesso → redirect a `/attivita`; senza sessione → redirect a `/`.
+  - AC-6 — Guardia API/Server Action: `ErroreAutorizzazione(401)` senza sessione, `ErroreAutorizzazione(403)` senza permesso.
+  - AC-7 — Le suite unitarie ed e2e esistenti passano senza modifiche alle loro asserzioni.
+
+  ---
+
+  ## Soluzione tecnica
+
+  Lavoro puramente additivo: un nuovo modulo di dominio `src/domain/permessi.ts` e l'estensione di `src/lib/dal.ts`. Nessun consumer esistente cambia comportamento: `richiediRuolo`, `richiediRuoloApi`, `verificaSessione` e le altre guardie restano identiche (la sostituzione è US-109).
+
+  - **Catalogo** — `export const PERMESSI = [...] as const` e `export type Permesso = (typeof PERMESSI)[number]`, lo stesso idioma di `CATEGORIE_ATTIVITA` in `src/domain/types.ts`. Dodici valori in SCREAMING_SNAKE_CASE italiano, ciascuno con un commento JSDoc di una riga:
+    `GESTIRE_OFFERTE`, `GESTIRE_ABILITAZIONI` (abilitazioni e ingaggi), `GESTIRE_CLIENTI`, `GESTIRE_COLLABORATORI` (collaboratori e tariffe), `GESTIRE_UTENTI`, `GESTIRE_VOCI_RIMBORSO`, `GESTIRE_RIGHE_SOSPESE`, `GESTIRE_IMPORTAZIONE`, `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI`, `CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI`, `CONSULTARE_REPORT_MARGINALITA`, `CONSULTARE_FOGLI_ATTIVITA_ALTRUI`.
+    «Consuntivare» non è un permesso (resta derivato dal profilo Collaboratore attivo).
+  - **Mappa** — `export const PERMESSI_PER_RUOLO: Record<Ruolo, readonly Permesso[]> = { AMMINISTRATORE: PERMESSI, COLLABORATORE: [] }`. Il tipo `Record<Ruolo, …>` fa fallire la compilazione se un ruolo aggiunto all'unione `Ruolo` non ha la sua riga: è proprio il punto di estensione richiesto dalla storia. Unica funzione esportata: `permessiDelRuolo(ruolo: Ruolo): readonly Permesso[]`. Il modulo importa soltanto `import type { Ruolo } from "@/domain/types"`.
+  - **Sessione** — `SessioneUtente` acquista il campo obbligatorio `permessi: readonly Permesso[]`, valorizzato in `_risolviSessione()` con `permessiDelRuolo(utente.ruolo)` sul ruolo **letto a DB** (mai quello del cookie). Vale automaticamente per `verificaSessione`, `utenteCorrente`, `richiediSessioneApi` e tutte le guardie che passano di lì.
+  - **Guardia RSC** — `export const richiediPermesso = cache(async (permesso: Permesso) => …)`: chiama `verificaSessione()` (che reindirizza a `/` senza sessione) e, se `!sessione.permessi.includes(permesso)`, `redirect(HOME_AUTENTICATA)` (`/attivita`). Restituisce la sessione.
+  - **Guardia API / Server Action** — `export async function richiediPermessoApi(permesso: Permesso)`: chiama `richiediSessioneApi()` (401) e lancia `new ErroreAutorizzazione(403, \`Permesso richiesto: ${permesso}\`)` se il permesso manca. Restituisce la sessione.
+  - Niente helper `possiedePermesso`: `Array.includes` basta; lo introdurrà US-110 se la sidebar ne avrà bisogno.
+
+  ### Decisioni architetturali
+
+  Nessuna ADR: la scelta «mappa nel codice» rispetto a «tabelle ruoli/permessi a database» è già fissata dalla spec (le tabelle sono esplicitamente fuori scope) e il resto segue i pattern esistenti del DAL (`cache`, `ErroreAutorizzazione`, `HOME_AUTENTICATA`). La Wiki è disattivata nel config (`wiki.enabled: false`), quindi nessun impatto Wiki.
+
+  ---
+
+  ## Baseline
+
+  Misurata il 2026-11-11 sul branch corrente, dalla radice del progetto.
+
+  | Check | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm test` | 82 file, 1170 test passati | Dopo il lavoro: tutti passati, più i nuovi test |
+  | `npx eslint src/lib/dal.ts src/domain tests/unit/dal-guards.test.ts` | exit 0 | I file toccati devono restare a exit 0 |
+  | `npx tsc --noEmit -p tsconfig.json` | exit 2, ma **solo** 8 errori `TS2307` in `.next/types/validator.ts` (tipi generati stale delle rotte `(impostazioni)`); zero errori in `src/` e `tests/` | Si verifica con `npx tsc --noEmit -p tsconfig.json 2>&1 \| grep "error TS" \| grep -v "^\.next/"`, che deve restare vuoto |
+  | `npm run lint` | da eseguire nel gate (comprende il guardrail e2e) | Nessun file e2e viene toccato: deve passare |
+  | `npm run build` / `npm run test:e2e` | non eseguiti in planning (richiedono Postgres migrato e seminato e la porta 3000 libera) | Eseguiti nel gate finale come in CI |
+
+  **Prerequisiti d'ambiente (non sono guasti del codice):** `npm ci` (genera il client Prisma via `postinstall`); per build/e2e un Postgres raggiungibile con `npx prisma migrate deploy && npx prisma db seed`; per l'e2e la porta 3000 libera (se occupata dal `next dev` del checkout principale, usare una porta dedicata con `NEXT_PUBLIC_APP_URL` coerente).
+
+  ---
+
+  ## Mappa delle evidenze di accettazione
+
+  | Criterio | Stato di partenza / fixture | Livello di test | Oracolo osservabile | Task |
+  |---|---|---|---|---|
+  | AC-1 | `src/domain/permessi.ts` importato senza alcun `vi.mock` | Unit + controllo statico | Il test importa `PERMESSI` senza mock di db/session/next; `grep -n "^import" src/domain/permessi.ts` mostra solo `import type { Ruolo } from "@/domain/types"`; `PERMESSI` contiene i 12 valori attesi | TASK-01, TASK-02 |
+  | AC-2 | Mappa reale | Unit | `PERMESSI_PER_RUOLO.AMMINISTRATORE` ha gli stessi elementi di `PERMESSI`; `PERMESSI_PER_RUOLO.COLLABORATORE` è `[]`; `permessiDelRuolo` restituisce gli stessi insiemi | TASK-01, TASK-02 |
+  | AC-3 | Mappa reale | Unit | `it.each(PERMESSI)` asserisce `PERMESSI_PER_RUOLO.AMMINISTRATORE` contiene ciascun permesso: togliere un elemento fa fallire il caso relativo | TASK-02 |
+  | AC-4 | Cookie con ruolo diverso da quello a DB (mock Prisma `utente.findUnique`) | Unit sul DAL reale | `richiediSessioneApi()` restituisce `permessi` pari a tutti i permessi quando il DB dice `AMMINISTRATORE` (cookie `COLLABORATORE`) e `[]` nel caso inverso | TASK-03, TASK-04 |
+  | AC-5 | `redirect` di `next/navigation` simulato in modo che lanci un errore con l'URL, come fa Next | Unit sul DAL reale | Nessun cookie → `richiediPermesso` rifiuta con redirect a `/`; collaboratore → redirect a `/attivita`; amministratore → sessione restituita con `permessi` | TASK-03, TASK-04 |
+  | AC-6 | Mock Prisma e cookie | Unit sul DAL reale | Nessun cookie → `ErroreAutorizzazione` con `statusCode: 401`; collaboratore → `statusCode: 403`; amministratore → sessione con `permessi` che include il permesso richiesto | TASK-03, TASK-04 |
+  | AC-7 | Suite esistenti | Unit + e2e (Playwright) | `npm test` e `npm run test:e2e` passano; `git diff` non tocca nessuna `expect` nei file di test preesistenti | TASK-05 |
+
+  ---
+
+  ## Strategia di test
+
+  Tutto il comportamento nuovo è logica di dominio pura o logica del DAL con dipendenze di I/O (Prisma, cookie, `redirect`) sostituite da mock: i test Vitest esercitano il codice reale di `permessi.ts` e `dal.ts`.
+
+  - `tests/unit/permessi.test.ts` — catalogo e mappa, senza mock (AC-1, AC-2, AC-3).
+  - `tests/unit/dal-permessi.test.ts` — file **nuovo**, così `tests/unit/dal-guards.test.ts` resta intatto (AC-7). Riprende lo schema di mock di `dal-guards.test.ts` (`@/lib/db`, `@/lib/session`), ma `redirect` lancia un `Error` con l'URL per riprodurre l'interruzione del flusso di Next: altrimenti `verificaSessione` proseguirebbe con una sessione `undefined` e l'oracolo del redirect non sarebbe osservabile.
+  - Le suite esistenti (unit ed e2e) si rieseguono intere nel gate finale.
+
+  ### Esenzione dall'e2e browser
+
+  **Motivo:** nessuna guardia esistente viene sostituita e nessuna superficie utente cambia; le nuove guardie non sono ancora usate da alcuna rotta, quindi un flusso browser non potrebbe osservarle. Le osservabili di AC-4/5/6 (permessi in sessione, URL di redirect, status code) sono contratti del DAL verificabili direttamente.
+  **Livello di evidenza usato:** unit test Vitest sul DAL reale con I/O simulato; per AC-7 la suite e2e esistente rieseguita nel gate. La demo è dimostrativa da codice e terminale, non filmabile.
+
+  ---
+
+  ## Impatto Wiki
+
+  ```yaml
+  wiki_impact:
+    read: []
+    update: []
+    create: []
+  ```
+
+  La Wiki è disattivata (`wiki.enabled: false`) e nessuna scelta supera la soglia ADR.
+
+  _Piano generato con ARchetipo Planning — 2026-11-11_
+tasks:
+  - id: TASK-01
+    title: Catalogo PERMESSI e mappa PERMESSI_PER_RUOLO in src/domain/permessi.ts
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Esiste il modulo puro `src/domain/permessi.ts` con il catalogo tipizzato dei permessi, la mappa ruolo → permessi e la funzione `permessiDelRuolo`.
+
+      ## Read
+      - src/domain/types.ts — `Ruolo` e l'idioma `CATEGORIE_ATTIVITA` (`as const` + tipo derivato) da replicare
+      - src/domain/anagrafiche/protezione-amministratore.ts — esempio di modulo di dominio che importa solo tipi da `@/domain/types`
+
+      ## Change
+      - src/domain/permessi.ts — file nuovo. Nessun'altra modifica. Il modulo NON importa nulla da `next`, `react`, `@/lib/*`, `@/generated/*` o Prisma: solo `import type { Ruolo } from "@/domain/types"`.
+
+      ## Steps
+      1. Crea `src/domain/permessi.ts` con un commento di testa di 2-3 righe: catalogo dei permessi, mappa ruolo → permessi; per introdurre un ruolo si aggiunge una riga alla mappa.
+      2. Esporta `PERMESSI` come tupla `as const`, nell'ordine, ciascun valore con JSDoc di una riga:
+         `GESTIRE_OFFERTE`, `GESTIRE_ABILITAZIONI` (abilitazioni e ingaggi), `GESTIRE_CLIENTI`, `GESTIRE_COLLABORATORI` (collaboratori e tariffe), `GESTIRE_UTENTI`, `GESTIRE_VOCI_RIMBORSO`, `GESTIRE_RIGHE_SOSPESE`, `GESTIRE_IMPORTAZIONE`, `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI`, `CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI`, `CONSULTARE_REPORT_MARGINALITA`, `CONSULTARE_FOGLI_ATTIVITA_ALTRUI`.
+      3. Esporta `type Permesso = (typeof PERMESSI)[number]`.
+      4. Esporta `PERMESSI_PER_RUOLO: Record<Ruolo, readonly Permesso[]> = { AMMINISTRATORE: PERMESSI, COLLABORATORE: [] }`, con un commento che ricordi che «consuntivare» non è un permesso ma deriva dal profilo Collaboratore attivo.
+      5. Esporta `function permessiDelRuolo(ruolo: Ruolo): readonly Permesso[]` che restituisce `PERMESSI_PER_RUOLO[ruolo]`.
+
+      ## Verify
+      - Run: `grep -n "^import" src/domain/permessi.ts`
+      - Expect: un'unica riga, `import type { Ruolo } from "@/domain/types";`
+      - Run: `npx eslint src/domain/permessi.ts`
+      - Expect: exit 0
+      - Run: `npx tsc --noEmit -p tsconfig.json 2>&1 | grep "error TS" | grep -v "^\.next/"`
+      - Expect: output vuoto (baseline: gli unici errori sono in `.next/types`)
+
+      ## Done
+      - [ ] AC-1 — `src/domain/permessi.ts` esporta `PERMESSI` e `Permesso` con i 12 permessi e importa solo il tipo `Ruolo`
+      - [ ] AC-2 — `PERMESSI_PER_RUOLO` è l'unica mappa: `AMMINISTRATORE` → `PERMESSI`, `COLLABORATORE` → `[]`
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Test unitari del catalogo e della mappa in tests/unit/permessi.test.ts
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Un test Vitest senza mock dimostra il contenuto del catalogo e che `AMMINISTRATORE` possiede ogni permesso e `COLLABORATORE` nessuno, e fallisce se un permesso non è assegnato all'amministratore.
+
+      ## Read
+      - src/domain/permessi.ts — esportazioni da TASK-01
+      - tests/unit/protezione-amministratore.test.ts — stile dei test di dominio puro (import da `@/domain/...`, niente `vi.mock`)
+
+      ## Change
+      - tests/unit/permessi.test.ts — file nuovo. Nessun `vi.mock`: l'import senza mock è parte dell'evidenza di AC-1.
+
+      ## Steps
+      1. Importa `PERMESSI`, `PERMESSI_PER_RUOLO`, `permessiDelRuolo` da `@/domain/permessi`.
+      2. Caso «catalogo»: `expect([...PERMESSI]).toEqual([...])` con i 12 valori nell'ordine di TASK-01, e `new Set(PERMESSI).size === PERMESSI.length` (nessun duplicato).
+      3. Caso AC-3: `it.each(PERMESSI)("AMMINISTRATORE possiede %s", (permesso) => expect(PERMESSI_PER_RUOLO.AMMINISTRATORE).toContain(permesso))`.
+      4. Caso AC-2: `expect(PERMESSI_PER_RUOLO.COLLABORATORE).toEqual([])`; `expect(permessiDelRuolo("AMMINISTRATORE")).toEqual([...PERMESSI])`; `expect(permessiDelRuolo("COLLABORATORE")).toEqual([])`.
+      5. Verifica a mano che il test fallisca: rimuovi temporaneamente un permesso dalla riga `AMMINISTRATORE` (es. sostituisci `PERMESSI` con `PERMESSI.slice(1)`), esegui il test, osserva il fallimento, ripristina.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/permessi.test.ts`
+      - Expect: tutti i casi passati (12 casi `AMMINISTRATORE possiede …` più gli altri)
+      - Run: `npx eslint tests/unit/permessi.test.ts`
+      - Expect: exit 0
+
+      ## Done
+      - [ ] AC-1 — il test importa il modulo senza alcun mock e verifica i 12 permessi del catalogo
+      - [ ] AC-2 — asserzioni su `AMMINISTRATORE` = tutti e `COLLABORATORE` = `[]`, sia sulla mappa sia su `permessiDelRuolo`
+      - [ ] AC-3 — il caso `it.each(PERMESSI)` fallisce, verificato a mano, se un permesso manca all'amministratore
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Permessi in SessioneUtente e guardie richiediPermesso / richiediPermessoApi in src/lib/dal.ts
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      La sessione risolta dal DAL espone `permessi` calcolati dal ruolo riletto a DB, e il DAL offre le guardie `richiediPermesso` (RSC) e `richiediPermessoApi` (API/Server Action), senza alterare le guardie esistenti.
+
+      ## Read
+      - src/lib/dal.ts — `SessioneUtente`, `_risolviSessione`, `verificaSessione`, `richiediRuolo` (pattern `cache` + `redirect(HOME_AUTENTICATA)`), `richiediSessioneApi`, `richiediRuoloApi`, `ErroreAutorizzazione`
+      - src/lib/policy-rotte.ts — `HOME_AUTENTICATA` (`/attivita`)
+      - src/app/struttura-applicazione.tsx, src/lib/foglio-attivita.ts — consumer di `SessioneUtente` (devono continuare a compilare)
+
+      ## Change
+      - src/lib/dal.ts — soltanto:
+        - import `{ permessiDelRuolo, type Permesso } from "@/domain/permessi"`;
+        - campo `permessi: readonly Permesso[]` in `SessioneUtente`;
+        - `permessi: permessiDelRuolo(utente.ruolo as Ruolo)` nell'oggetto restituito da `_risolviSessione` (ruolo dal record DB, mai dal cookie);
+        - due nuove funzioni esportate, sotto le rispettive sezioni.
+      - Non modificare `verificaSessione`, `utenteCorrente`, `richiediRuolo`, `richiediSessioneApi`, `richiediRuoloApi`, `verificaAccessoDatiCollaboratore` né alcun chiamante: la sostituzione è US-109.
+      - Fixture di test esistenti: solo se `tsc` segnala che un oggetto tipizzato `SessioneUtente` manca di `permessi`, aggiungi lì il campo; mai toccare un'`expect`.
+
+      ## Steps
+      1. Aggiungi l'import e il campo `permessi` a `SessioneUtente`, con commento «Permessi derivati dal ruolo riletto a DB a ogni richiesta».
+      2. In `_risolviSessione` calcola `const ruolo = utente.ruolo as Ruolo` e restituisci `ruolo` e `permessi: permessiDelRuolo(ruolo)`.
+      3. Dopo `richiediRuolo` aggiungi, con JSDoc nello stile delle guardie vicine:
+         ```ts
+         export const richiediPermesso = cache(
+           async (permesso: Permesso): Promise<SessioneUtente> => {
+             const sessione = await verificaSessione();
+             if (!sessione.permessi.includes(permesso)) {
+               redirect(HOME_AUTENTICATA);
+             }
+             return sessione;
+           }
+         );
+         ```
+      4. Dopo `richiediRuoloApi` aggiungi:
+         ```ts
+         export async function richiediPermessoApi(permesso: Permesso): Promise<SessioneUtente> {
+           const sessione = await richiediSessioneApi();
+           if (!sessione.permessi.includes(permesso)) {
+             throw new ErroreAutorizzazione(403, `Permesso richiesto: ${permesso}`);
+           }
+           return sessione;
+         }
+         ```
+      5. Aggiorna il JSDoc di `ErroreAutorizzazione`: «non ha il ruolo o il permesso richiesto (403)».
+      6. Esegui `tsc` filtrato; se compaiono errori in fixture di test per il campo mancante, aggiungi `permessi` alla fixture con il valore coerente al ruolo (`[...PERMESSI]` o `[]`).
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p tsconfig.json 2>&1 | grep "error TS" | grep -v "^\.next/"`
+      - Expect: output vuoto
+      - Run: `npx eslint src/lib/dal.ts`
+      - Expect: exit 0
+      - Run: `npm test`
+      - Expect: 82 file / 1170 test passati come in baseline (nessuna regressione)
+      - Run: `git diff --stat`
+      - Expect: modificato `src/lib/dal.ts` (più eventuali fixture di test segnalate da `tsc`, senza righe `expect` cambiate)
+
+      ## Done
+      - [ ] AC-4 — `SessioneUtente.permessi` valorizzato in `_risolviSessione` dal ruolo del record DB
+      - [ ] AC-5 — `richiediPermesso` esportata: redirect a `/` via `verificaSessione`, a `/attivita` senza permesso
+      - [ ] AC-6 — `richiediPermessoApi` esportata: 401 via `richiediSessioneApi`, 403 senza permesso
+      - [ ] AC-7 — guardie esistenti e chiamanti invariati; `npm test` verde come in baseline
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Test unitari delle guardie per permesso in tests/unit/dal-permessi.test.ts
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      Un nuovo file di test esercita il DAL reale e dimostra: permessi in sessione dal ruolo a DB, guardia RSC con redirect a `/` e `/attivita`, guardia API con 401/403 e sessione restituita con i permessi.
+
+      ## Read
+      - tests/unit/dal-guards.test.ts — righe 1-60: schema dei mock `@/lib/db`, `@/lib/session`, `next/navigation` e helper `sessioneCookie` da replicare (NON modificare questo file)
+      - src/lib/dal.ts — `richiediPermesso`, `richiediPermessoApi`, `richiediSessioneApi`
+      - src/domain/permessi.ts — `PERMESSI`
+
+      ## Change
+      - tests/unit/dal-permessi.test.ts — file nuovo. Nessuna modifica a `tests/unit/dal-guards.test.ts` né ad altri test esistenti.
+
+      ## Steps
+      1. Replica i mock di `dal-guards.test.ts` per `@/lib/db` (`utente.findUnique`, `collaboratore.findUnique`) e `@/lib/session` (`getSessionCookie`, `deleteSession`) con `vi.hoisted`.
+      2. Mock di `next/navigation` con `redirect: vi.fn((url: string) => { throw new Error(\`REDIRECT:${url}\`); })`: riproduce l'interruzione del flusso di Next, così il caso «senza sessione» non prosegue con `undefined`.
+      3. Helper `utenteDb(id, ruolo)` che restituisce `{ id, ruolo, nome: "Test", cognome: "User", email: "t@test.local", attivo: true, collaboratore: null }`, più l'helper `sessioneCookie` copiato.
+      4. `beforeEach(() => vi.clearAllMocks())`.
+      5. `describe("permessi in sessione")` (AC-4):
+         - cookie `COLLABORATORE`, DB `AMMINISTRATORE` → `(await richiediSessioneApi()).permessi` uguale a `[...PERMESSI]`;
+         - cookie `AMMINISTRATORE`, DB `COLLABORATORE` → `permessi` uguale a `[]`.
+      6. `describe("richiediPermessoApi")` (AC-6):
+         - nessun cookie → `rejects.toMatchObject({ name: "ErroreAutorizzazione", statusCode: 401 })`;
+         - collaboratore → `rejects.toMatchObject({ statusCode: 403 })` per `GESTIRE_OFFERTE`;
+         - amministratore → risolve con `utenteId` atteso e `permessi` che contiene `GESTIRE_OFFERTE` e ha lunghezza `PERMESSI.length`.
+      7. `describe("richiediPermesso")` (AC-5): usa ID utente diversi per caso, perché `cache` di React non memoizzi tra un caso e l'altro.
+         - nessun cookie → `rejects.toThrow("REDIRECT:/")` e `redirect` chiamato con `"/"`;
+         - collaboratore → `rejects.toThrow("REDIRECT:/attivita")`;
+         - amministratore → risolve con la sessione, `permessi` include il permesso richiesto, `redirect` non chiamato.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/dal-permessi.test.ts tests/unit/dal-guards.test.ts`
+      - Expect: tutti i casi passati in entrambi i file
+      - Run: `npx eslint tests/unit/dal-permessi.test.ts`
+      - Expect: exit 0
+      - Run: `git diff --quiet -- tests/unit/dal-guards.test.ts && echo invariato`
+      - Expect: `invariato`
+
+      ## Done
+      - [ ] AC-4 — il test dimostra che `permessi` segue il ruolo a DB anche quando il cookie dice il contrario
+      - [ ] AC-5 — redirect osservato a `/` senza sessione e a `/attivita` senza permesso; sessione restituita con permesso
+      - [ ] AC-6 — `statusCode` 401 senza sessione e 403 senza permesso; sessione con l'elenco dei permessi quando il permesso c'è
+      - [ ] AC-7 — `tests/unit/dal-guards.test.ts` non modificato e verde
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Gate finale — unit, lint, typecheck, build ed e2e esistenti
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+    body: |-
+      ## Objective
+      Tutti i check usati in CI passano con le modifiche di US-108 e nessuna asserzione dei test preesistenti è cambiata; solo dopo la spec può andare in review.
+
+      ## Read
+      - .github/workflows/ci.yml — sequenza: `npm ci`, `prisma migrate deploy`, `prisma db seed`, `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e`
+      - Sezione Baseline del piano — errori `.next/types` preesistenti e prerequisiti d'ambiente
+
+      ## Change
+      - Nessun file applicativo. Solo correzioni ai file di US-108 se un check fallisce per causa loro.
+
+      ## Steps
+      1. `npm test` — tutti verdi (baseline 1170 test più i nuovi di TASK-02 e TASK-04).
+      2. `npm run lint` — exit 0 (include il guardrail e2e).
+      3. `npx tsc --noEmit -p tsconfig.json 2>&1 | grep "error TS" | grep -v "^\.next/"` — output vuoto.
+      4. `npm run build` — completata.
+      5. Con Postgres migrato e seminato (`npx prisma migrate deploy && npx prisma db seed`) e porta 3000 libera: `npm run test:e2e` — tutto verde. Se un test fallisce, confrontalo con la base tramite `--repeat-each` prima di attribuirlo a US-108 (le guardie nuove non sono usate da nessuna rotta).
+      6. `git diff -- tests/ ':!tests/unit/permessi.test.ts' ':!tests/unit/dal-permessi.test.ts' | grep "^[-+].*expect"` — output vuoto (nessuna asserzione preesistente modificata).
+      7. Segna questo task `DONE`, poi da `/Users/smarello/repo/coaching-planner` esegui `archetipo spec show US-108` e conferma che tutti i task risultano `DONE`; solo allora richiedi `archetipo spec review`.
+
+      ## Verify
+      - Run: `npm test && npm run lint && npm run build`
+      - Expect: exit 0
+      - Run: `npx tsc --noEmit -p tsconfig.json 2>&1 | grep "error TS" | grep -v "^\.next/"`
+      - Expect: output vuoto
+      - Run: `npm run test:e2e`
+      - Expect: tutti i test passati
+      - Run: `archetipo spec show US-108`
+      - Expect: nessun task in stato `TODO`
+
+      ## Done
+      - [ ] AC-1 — AC-2 — AC-3 — `tests/unit/permessi.test.ts` verde nel run completo
+      - [ ] AC-4 — AC-5 — AC-6 — `tests/unit/dal-permessi.test.ts` verde nel run completo
+      - [ ] AC-7 — `npm test`, `npm run lint`, `npm run build`, `npm run test:e2e` verdi; nessuna `expect` preesistente modificata
+      - [ ] Gate segnato `DONE` e `archetipo spec show US-108` senza task `TODO` prima di `spec review`
+
+      ## Blockers
+      None.
+    ref: TASK-05

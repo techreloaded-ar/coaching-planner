@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import { normalizzaTariffaGiornaliera } from "@/domain/anagrafiche/valida-offerta";
 import {
   validaVoceRimborso,
@@ -22,15 +22,15 @@ function datiDaForm(formData: FormData): DatiVoceRimborsoInput {
   };
 }
 
-async function guardiaAmministratore(): Promise<void> {
-  await richiediRuoloApi("AMMINISTRATORE");
+async function guardiaGestioneVociRimborso(): Promise<void> {
+  await richiediPermessoApi("GESTIRE_VOCI_RIMBORSO");
 }
 
 export async function creaVoceRimborso(
   _prevState: StatoActionVoceRimborso,
   formData: FormData
 ): Promise<StatoActionVoceRimborso> {
-  await guardiaAmministratore();
+  await guardiaGestioneVociRimborso();
 
   const dati = datiDaForm(formData);
   const errori = validaVoceRimborso(dati);
@@ -56,7 +56,7 @@ export async function aggiornaVoceRimborso(
   _prevState: StatoActionVoceRimborso,
   formData: FormData
 ): Promise<StatoActionVoceRimborso> {
-  await guardiaAmministratore();
+  await guardiaGestioneVociRimborso();
 
   const id = formData.get("id") as string;
   if (!id) {
@@ -89,7 +89,7 @@ export async function aggiornaVoceRimborso(
  * Chiamata direttamente dal form di conferma nella tabella.
  */
 export async function eliminaVoceRimborso(formData: FormData): Promise<void> {
-  await guardiaAmministratore();
+  await guardiaGestioneVociRimborso();
 
   const id = formData.get("id") as string;
   if (!id) {

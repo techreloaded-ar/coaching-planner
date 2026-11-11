@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ErroreAutorizzazione, richiediRuoloApi } from "@/lib/dal";
+import { ErroreAutorizzazione, richiediPermessoApi } from "@/lib/dal";
 import { reportFatturazioneClientiMese } from "@/lib/report";
 import { rispostaDatiPrivati } from "@/lib/risposta-dati-privati";
 import { parseTokenMese } from "@/domain/calendario";
@@ -10,11 +10,11 @@ import { parseTokenMese } from "@/domain/calendario";
  * Dati del report di fatturazione clienti di un mese, letti dalla cache client
  * della pagina per il cambio mese senza navigazione RSC. Usa lo stesso
  * `reportFatturazioneClientiMese` della pagina e dell'esportazione, quindi la
- * guardia `richiediRuoloApi("AMMINISTRATORE")` vale anche qui.
+ * guardia `richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI")` vale anche qui.
  *
- * Esiti (il ruolo è verificato prima del parametro: un non amministratore
- * riceve sempre `403`):
- * - `401`/`403` sessione assente o ruolo diverso da amministratore
+ * Esiti (il permesso è verificato prima del parametro: chi non ha
+ * `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI` riceve sempre `403`):
+ * - `401`/`403` sessione assente o permesso del report mancante
  * - `400` token `mese` assente o non nel formato `YYYY-MM`
  * - `200` `RisultatoReportFatturazione` del mese richiesto
  * - `500` errore interno (nessun dettaglio verso il client)
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const mese = request.nextUrl.searchParams.get("mese");
 
   try {
-    await richiediRuoloApi("AMMINISTRATORE");
+    await richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI");
 
     if (!mese || !parseTokenMese(mese)) {
       return rispostaDatiPrivati(

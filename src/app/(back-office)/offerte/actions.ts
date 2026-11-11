@@ -4,7 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import {
   leggiPosizioneElencoDaForm,
   urlPosizioneElenco,
@@ -14,8 +14,8 @@ import { leggiIdSelezionati } from "@/lib/selezione-elenco";
 const MESSAGGIO_BLOCCO_ELIMINAZIONE =
   "Impossibile eliminare l'offerta: esistono righe attività collegate. Disattiva l'offerta invece di eliminarla.";
 
-async function guardiaAmministratore(): Promise<void> {
-  await richiediRuoloApi("AMMINISTRATORE");
+async function guardiaGestioneOfferte(): Promise<void> {
+  await richiediPermessoApi("GESTIRE_OFFERTE");
 }
 
 function isPrismaForeignKeyConstraintError(error: unknown): boolean {
@@ -33,7 +33,7 @@ function isPrismaForeignKeyConstraintError(error: unknown): boolean {
  * modale di eliminazione bloccata nella pagina offerte.
  */
 export async function cambiaStatoOfferta(formData: FormData): Promise<void> {
-  await guardiaAmministratore();
+  await guardiaGestioneOfferte();
 
   const idOfferte = leggiIdSelezionati(formData);
   const attiva = formData.get("attivo") === "true";
@@ -78,7 +78,7 @@ export async function eliminaOfferta(
   _prevState: StatoEliminazioneOfferta,
   formData: FormData
 ): Promise<StatoEliminazioneOfferta> {
-  await guardiaAmministratore();
+  await guardiaGestioneOfferte();
 
   const offertaId = formData.get("id") as string;
   if (!offertaId) {

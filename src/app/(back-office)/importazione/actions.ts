@@ -3,7 +3,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import { ErroreImporter } from "@/lib/importer-legacy/errori";
 import { parseDecisioni } from "@/lib/importer-legacy/decisioni";
 import { applicaAnteprima, creaAnteprima } from "@/lib/importer-legacy/servizio";
@@ -22,7 +22,7 @@ function messaggioErrore(error: unknown, fase: "analisi" | "salvataggio", inizio
 }
 
 export async function analizzaAction(form: FormData) {
-  const user = await richiediRuoloApi("AMMINISTRATORE");
+  const user = await richiediPermessoApi("GESTIRE_IMPORTAZIONE");
   const inizio = Date.now();
   let id: string;
   try {
@@ -37,7 +37,7 @@ export async function analizzaAction(form: FormData) {
 }
 
 export async function importaAction(form: FormData) {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_IMPORTAZIONE");
   const inizio = Date.now();
   const id = String(form.get("id") || "");
   try {

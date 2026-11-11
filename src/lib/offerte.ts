@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediAlmenoUnPermessoApi, richiediPermessoApi } from "@/lib/dal";
 import { fatturataAlCliente, type GestioneTrasferta } from "@/domain/types";
 import {
   ELEMENTI_PER_PAGINA,
@@ -76,12 +76,12 @@ export interface VoceElencoOfferta {
 
 /**
  * Restituisce un'offerta per ID, includendo il cliente di appartenenza.
- * Accesso riservato all'amministratore.
+ * Condivisa da dettaglio offerta e pagina ingaggi: basta uno dei due permessi.
  */
 export async function offertaPerId(
   id: string
 ): Promise<OffertaConCliente | null> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediAlmenoUnPermessoApi(["GESTIRE_OFFERTE", "GESTIRE_ABILITAZIONI"]);
 
   return db.offerta.findUnique({
     where: { id },
@@ -294,7 +294,7 @@ export interface ElencoOffertePaginato extends PaginaElenco {
  * loro avanzamento (giornate erogate, residuo, stato), riusando il calcolo di
  * dominio `calcolaAvanzamentoOfferte` senza duplicare alcuna logica.
  *
- * Accesso riservato all'amministratore (`richiediRuoloApi("AMMINISTRATORE")`).
+ * Richiede il permesso GESTIRE_OFFERTE (`richiediPermessoApi("GESTIRE_OFFERTE")`).
  * La ricerca, senza distinzione maiuscole/minuscole, filtra per ragione sociale
  * del cliente, codice o descrizione su tutto l'archivio. Le offerte senza righe
  * attività compaiono con giornate erogate 0 e residuo pari alle previste.
@@ -311,7 +311,7 @@ export async function elencaOfferteConAvanzamentoPaginate({
   ricerca,
   pagina,
 }: PosizioneElenco): Promise<ElencoOffertePaginato> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_OFFERTE");
 
   const filtro = { contains: ricerca, mode: "insensitive" } as const;
   const where: Prisma.OffertaWhereInput = ricerca
@@ -401,12 +401,12 @@ export async function elencaOfferteConAvanzamentoPaginate({
  * attive, poi le disattivate, ciascun gruppo ordinato per codice. Il risultato è interamente serializzabile: la tariffa è una stringa
  * e non espone valori Decimal o Date grezzi.
  *
- * Accesso riservato all'amministratore.
+ * Condivisa dalle aree clienti e offerte: basta uno dei due permessi.
  */
 export async function elencaOffertePerClienteConAvanzamento(
   clienteId: string,
 ): Promise<VoceElencoOfferta[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediAlmenoUnPermessoApi(["GESTIRE_CLIENTI", "GESTIRE_OFFERTE"]);
 
   const offerte = await db.offerta.findMany({
     where: { clienteId },

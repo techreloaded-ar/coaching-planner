@@ -1,4 +1,4 @@
-import { richiediRuolo } from "@/lib/dal";
+import { verificaSessione } from "@/lib/dal";
 import StrutturaApplicazione from "@/app/struttura-applicazione";
 
 export default async function BackOfficeLayout({
@@ -6,7 +6,9 @@ export default async function BackOfficeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const sessione = await richiediRuolo("AMMINISTRATORE");
+  // Solo autenticazione: ogni pagina richiede il permesso della propria area;
+  // la guardia d'ingresso al back office arriverà con US-110.
+  const sessione = await verificaSessione();
 
   return (
     <StrutturaApplicazione sessione={sessione}>

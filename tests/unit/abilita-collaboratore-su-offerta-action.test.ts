@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({
   offerta: { findUnique: vi.fn() },
   collaboratore: { findUnique: vi.fn() },
   abilitazioneOfferta: { createMany: vi.fn() },
-  richiediRuoloApi: vi.fn(),
+  richiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -14,7 +14,7 @@ vi.mock("@/lib/db", () => ({
     abilitazioneOfferta: mocks.abilitazioneOfferta,
   },
 }));
-vi.mock("@/lib/dal", () => ({ richiediRuoloApi: mocks.richiediRuoloApi }));
+vi.mock("@/lib/dal", () => ({ richiediPermessoApi: mocks.richiediPermessoApi }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { abilitaCollaboratoreSuOfferta } from "@/lib/actions/abilitazioni-offerte";
@@ -26,19 +26,19 @@ describe("abilitaCollaboratoreSuOfferta", () => {
     mocks.collaboratore.findUnique.mockResolvedValue({ attivo: true });
   });
 
-  it("abilita la coppia in modo idempotente, solo per l'amministratore", async () => {
+  it("abilita la coppia in modo idempotente, solo con il permesso GESTIRE_ABILITAZIONI", async () => {
     const esito = await abilitaCollaboratoreSuOfferta("collab-1", "off-1");
 
     expect(esito).toEqual({ success: true });
-    expect(mocks.richiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+    expect(mocks.richiediPermessoApi).toHaveBeenCalledWith("GESTIRE_ABILITAZIONI");
     expect(mocks.abilitazioneOfferta.createMany).toHaveBeenCalledWith({
       data: [{ collaboratoreId: "collab-1", offertaId: "off-1" }],
       skipDuplicates: true,
     });
   });
 
-  it("non abilita se il chiamante non è amministratore", async () => {
-    mocks.richiediRuoloApi.mockRejectedValueOnce(new Error("Ruolo richiesto: AMMINISTRATORE"));
+  it("non abilita se il chiamante non ha il permesso", async () => {
+    mocks.richiediPermessoApi.mockRejectedValueOnce(new Error("Permesso richiesto: GESTIRE_ABILITAZIONI"));
 
     await expect(abilitaCollaboratoreSuOfferta("collab-1", "off-1")).rejects.toThrow();
     expect(mocks.abilitazioneOfferta.createMany).not.toHaveBeenCalled();

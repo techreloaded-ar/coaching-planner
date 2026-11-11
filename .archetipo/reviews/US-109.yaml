@@ -1,0 +1,39 @@
+schema: archetipo/review/v1
+spec_code: US-109
+comments: []
+dossier:
+  execution_id: exec-4cada1e17c74096d66f9d9f1091df2fd
+  prepared_at: "2026-11-11T16:52:10Z"
+  summary: 'US-109 sostituisce in tutto il back office le guardie per ruolo con guardie per permesso, usando il catalogo di US-108. Le pagine RSC chiamano richiediPermesso(<permesso dell''area>); le query DAL in src/lib, le Server Action e i route handler chiamano richiediPermessoApi(<permesso>). Le query condivise tra aree (clientePerId, elencaClientiSelezionabili, elencaOffertePerClienteConAvanzamento, offertaPerId) usano la nuova guardia richiediAlmenoUnPermessoApi(elenco), che restituisce 401 senza sessione e 403 se l''utente non ha nessuno dei permessi. richiediRuolo e richiediRuoloApi sono stati rimossi da src/lib/dal.ts. Il layout del back office ora chiama solo verificaSessione() (decisione dell''utente, transizione verso US-110). Il nuovo guardrail tests/unit/permessi-pagine-back-office.test.ts fa fallire la suite se una page.tsx non richiede il permesso della propria area. report/avanzamento-offerte/page.tsx, che prima era un redirect senza guardia, ora richiede GESTIRE_OFFERTE. Task: 8/8 DONE. Diff sul working tree rispetto a 30552b5: 79 file, +456/-395, worktree disattivato. Evidenze in docs/test-results/US-109 (check del 2026-11-11, tutti passed e stable): lint exit 0 (2 warning preesistenti non correlati), unit 85 file e 1229 test (baseline 84/1193), build exit 0, e2e 308/308. In questa review è stata registrata la demo del punto 4 di Demonstrates, riusando lo spec esistente demo__autorizzazione-ruoli.spec.ts nell''ambiente sandbox del checkout: passed, video in docs/test-results/US-109/demo__autorizzazione-ruoli-f4c23-ccato-amministratore-dentro-chromium/video.webm. Wiki disattivata (wiki.enabled false) e wiki_impact vuoto: nessuna modifica Wiki attesa. Valutazione statica della CI: passerebbe. npm ci, migrate e seed sono invariati: nessuna dipendenza, schema o seed modificato. Lint, unit, build ed e2e sono verdi nelle evidenze e nessun file e2e è stato toccato. C''è però una condizione: il commit deve includere anche i file di US-108 ancora non tracciati (src/domain/permessi.ts, tests/unit/permessi.test.ts, tests/unit/dal-permessi.test.ts), senza i quali tsc e build fallirebbero.'
+  criteria:
+    - id: AC-1
+      verdict: met
+      note: '`grep -rnE ''richiediRuolo(Api)?\b'' src tests --exclude-dir=generated` trova un solo risultato, l''asserzione negativa nel guardrail. Le funzioni non sono più esportate dal DAL, quindi il compilatore lo garantisce (build verde). Le occorrenze di "AMMINISTRATORE" ancora presenti nel back office riguardano il ruolo come dato: protezione dell''ultimo amministratore, form persone e filtro della tabella persone. Sono esplicitamente fuori perimetro.'
+    - id: AC-2
+      verdict: met
+      note: 'Ogni guardia (richiediPermesso, richiediPermessoApi, richiediAlmenoUnPermessoApi) in src è stata confrontata con la mappa area → permesso del piano, e corrispondono tutte: clienti → GESTIRE_CLIENTI; offerte, incluso report/avanzamento-offerte → GESTIRE_OFFERTE; ingaggi e abilitazioni → GESTIRE_ABILITAZIONI; collaboratori e tariffe → GESTIRE_COLLABORATORI; persone e utenti → GESTIRE_UTENTI; voci di rimborso, righe sospese e importazione → il permesso dedicato; un CONSULTARE_REPORT_* distinto per ciascuno dei tre report. Tutte le 31 o più page.tsx chiamano richiediPermesso, e il guardrail unitario lo verifica per ogni pagina con il prefisso più specifico.'
+    - id: AC-3
+      verdict: met
+      note: La pagina report/fatturazione-clienti, dati/route.ts (righe 13 e 26), esporta/route.ts (riga 24) e reportFatturazioneClientiMese in src/lib/report.ts richiedono tutti CONSULTARE_REPORT_FATTURAZIONE_CLIENTI. Gli e2e esportazione-fatturazione.spec.ts:108 e report-fatturazione-navigazione-mese.spec.ts:200 si aspettano 403 per il collaboratore e sono verdi nel run 308/308.
+    - id: AC-4
+      verdict: met
+      note: Il seed dà all'amministratore tutti i permessi (US-108). La suite e2e completa, 308 test verdi con gli spec di back office invariati, copre anagrafiche, offerte, report, righe sospese, importazione ed export. Nella demo registrata l'amministratore entra nel back office e vede Clienti.
+    - id: AC-5
+      verdict: met
+      note: 'richiediPermesso rimanda a /attivita se manca il permesso. richiediPermessoApi e richiediAlmenoUnPermessoApi lanciano ErroreAutorizzazione(403); i test unitari sul DAL reale sono in dal-permessi.test.ts, con 3 nuovi casi per la guardia «almeno uno». E2E verdi: abilitazioni-collaboratore.spec.ts:196 (toHaveURL /attivita) e i due spec sui 403. Nella demo registrata la collaboratrice che apre /anagrafiche viene riportata a /attivita.'
+    - id: AC-6
+      verdict: met
+      note: src/lib/dal.ts esporta solo verificaSessione, utenteCorrente, richiediPermesso, richiediSessioneApi, richiediPermessoApi, richiediAlmenoUnPermessoApi e le funzioni sul profilo collaboratore. richiediRuolo e richiediRuoloApi, presenti nella base 30552b5 (righe 107 e 171), sono stati rimossi.
+    - id: AC-7
+      verdict: met
+      note: Gli e2e sono 308/308 e gli unit 1229/1229 (+36 rispetto alla baseline). Per ogni file di tests/unit modificato rispetto a 30552b5 il numero di casi it/test non è cambiato (nessun file con conteggio diverso), e dal-guards.test.ts ha 28 casi prima e dopo. Le modifiche ai test sostituiscono la chiave del mock e il permesso atteso, senza eliminare casi.
+  minor_findings:
+    - Commento non aggiornato in src/app/(back-office)/report/fatturazione-clienti/esporta/route.ts:29. Il JSDoc dice ancora «401/403 sessione assente o ruolo diverso da amministratore», mentre la guardia ora è il permesso CONSULTARE_REPORT_FATTURAZIONE_CLIENTI. È solo documentazione.
+    - 'Limite noto, accettato nel piano: anagrafiche/persone/[id]/page.tsx (GESTIRE_UTENTI) legge anche tariffe (GESTIRE_COLLABORATORI) e abilitazioni (GESTIRE_ABILITAZIONI). Oggi non cambia nulla perché non esistono ruoli parziali, ma andrà gestito quando arriveranno.'
+    - Con il layout limitato a verificaSessione(), l'autorizzazione dipende dalla guardia di ciascuna pagina. Il guardrail unitario la protegge, e il proxy continua a respingere in modo ottimistico i non amministratori. È una scelta dell'utente, in attesa della guardia d'ingresso di US-110.
+    - 'La demo riusa lo spec esistente di US-006, che fa aprire alla collaboratrice /anagrafiche e non /anagrafiche/clienti come dice Demonstrates. La redirect a /anagrafiche/clienti avviene sotto GESTIRE_CLIENTI, quindi il comportamento è equivalente. Inoltre l''amministratore apre solo Clienti: il «tutte le pagine» è coperto dalla suite e2e.'
+    - 'Le modifiche non sono committate (worktree disattivato, branch prod). Il working tree contiene anche i file di US-108 non tracciati, da cui US-109 dipende (src/domain/permessi.ts e i test relativi), insieme a modifiche non correlate: backlog, spec US-099/100/101/110/111 e mockup. Al commit vanno inclusi i file di US-108 e US-109 ed esclusi gli altri.'
+verdict:
+  decision: approved
+  decided_at: "2026-11-11T16:53:18Z"
+  execution_id: exec-4cada1e17c74096d66f9d9f1091df2fd

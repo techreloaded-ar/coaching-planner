@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Ruolo } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 
 export interface UtenteConProfiloCollaboratore {
   id: string;
@@ -28,12 +28,12 @@ const selezioneUtenteConProfiloCollaboratore = {
 
 /**
  * Elenca tutti gli utenti, incluso lo stato del profilo collaboratore collegato.
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_UTENTI.
  */
 export async function elencaUtenti(): Promise<
   UtenteConProfiloCollaboratore[]
 > {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_UTENTI");
 
   return db.utente.findMany({
     orderBy: { nome: "asc" },
@@ -43,12 +43,12 @@ export async function elencaUtenti(): Promise<
 
 /**
  * Restituisce un utente per ID con lo stato del profilo collaboratore collegato.
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_UTENTI.
  */
 export async function utentePerId(
   id: string
 ): Promise<UtenteConProfiloCollaboratore | null> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_UTENTI");
 
   return db.utente.findUnique({
     where: { id },

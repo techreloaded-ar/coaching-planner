@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import {
   validaCliente,
   type DatiClienteInput,
@@ -41,11 +41,11 @@ function datiDaForm(formData: FormData): DatiClienteInput {
 }
 
 /**
- * Verifica che l'utente sia amministratore.
- * Lancia ErroreAutorizzazione se non lo è.
+ * Verifica che l'utente abbia il permesso GESTIRE_CLIENTI.
+ * Lancia ErroreAutorizzazione se non lo ha.
  */
-async function guardiaAmministratore(): Promise<void> {
-  await richiediRuoloApi("AMMINISTRATORE");
+async function guardiaGestioneClienti(): Promise<void> {
+  await richiediPermessoApi("GESTIRE_CLIENTI");
 }
 
 // ── Server Actions ──────────────────────────────────────────────
@@ -59,7 +59,7 @@ export async function creaCliente(
   _prevState: StatoAction,
   formData: FormData
 ): Promise<StatoAction> {
-  await guardiaAmministratore();
+  await guardiaGestioneClienti();
 
   const dati = datiDaForm(formData);
   const errori = validaCliente(dati);
@@ -97,7 +97,7 @@ export async function aggiornaCliente(
   _prevState: StatoAction,
   formData: FormData
 ): Promise<StatoAction> {
-  await guardiaAmministratore();
+  await guardiaGestioneClienti();
 
   const id = formData.get("id") as string;
   if (!id) {

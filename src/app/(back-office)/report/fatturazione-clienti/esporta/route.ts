@@ -21,7 +21,7 @@ const CONTENT_TYPE_XLSX =
  *
  * Scarica il report mensile di fatturazione clienti in formato Excel. Usa lo
  * stesso `reportFatturazioneClientiMese` della pagina, quindi i dati coincidono
- * con lo schermo e la guardia `richiediRuoloApi("AMMINISTRATORE")` vale anche
+ * con lo schermo e la guardia `richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI")` vale anche
  * per l'esportazione.
  *
  * Esiti:

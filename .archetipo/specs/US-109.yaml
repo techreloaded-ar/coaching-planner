@@ -1,0 +1,45 @@
+schema: archetipo/spec/v2
+code: US-109
+title: Guardie del back office espresse per permesso anziché per ruolo
+epic:
+  code: EP-001
+  title: Autenticazione e Ruoli
+priority: HIGH
+points: 5
+status: DONE
+blocked_by:
+  - US-108
+scope: MVP
+body: |-
+  **Come** sviluppatore che mantiene l'autorizzazione
+  **voglio** che ogni pagina, query e Server Action del back office dichiari il permesso specifico che richiede
+  **così che** l'accesso a ciascuna funzionalità si possa concedere separatamente, senza più dipendere dal controllo «è amministratore».
+
+  ### Demonstrates
+  1. Lo sviluppatore cerca nel codice sorgente (`src/`, escluso il codice generato) le chiamate `richiediRuolo("AMMINISTRATORE")` e `richiediRuoloApi("AMMINISTRATORE")`: la ricerca non restituisce risultati.
+  2. Apre a campione la pagina delle offerte, la query del report di fatturazione clienti e l'action di gestione utenti: ciascuna richiede il permesso della propria area (gestione offerte, report fatturazione clienti, gestione utenti).
+  3. Esegue `npm run lint`, `npm run test` e la suite e2e: tutto passa.
+  4. Accede come amministratore: tutte le pagine del back office si aprono come prima. Accede come collaboratore e apre `/anagrafiche/clienti`: viene riportato a `/attivita`, come prima.
+
+  ### Acceptance criteria
+  - [ ] AC-1 — Nessuna pagina, query o Server Action applicativa richiama più le guardie per ruolo con `AMMINISTRATORE`: ognuna richiede un permesso del catalogo.
+  - [ ] AC-2 — Ogni funzionalità richiede il permesso della propria area: offerte, abilitazioni e ingaggi, clienti, collaboratori e tariffe, utenti, voci di rimborso, righe sospese, importazione, e un permesso distinto per ciascuno dei tre report (fatturazione clienti, fatturazione collaboratori, marginalità).
+  - [ ] AC-3 — L'esportazione Excel e l'endpoint dati del report di fatturazione clienti richiedono lo stesso permesso della pagina del report.
+  - [ ] AC-4 — Un amministratore accede a tutte le funzionalità del back office esattamente come prima.
+  - [ ] AC-5 — Un collaboratore che apre una pagina del back office viene reindirizzato a `/attivita`; una sua chiamata a un'API o action del back office riceve 403.
+  - [ ] AC-6 — Le guardie per ruolo non più utilizzate vengono rimosse dal DAL.
+  - [ ] AC-7 — Le suite unitarie ed e2e esistenti passano; i test che verificavano le guardie per ruolo sono adattati alle guardie per permesso senza ridurre i casi coperti.
+
+  ### Out of scope
+  Layout del back office, sidebar e foglio attività (US-110). Modifiche a cosa mostrano i report. Regole sulla protezione dell'ultimo amministratore e sul form utenti, che restano basate sul ruolo.
+history:
+  - status: TODO
+    at: "2026-11-11T10:58:03Z"
+  - status: PLANNED
+    at: "2026-11-11T16:39:23Z"
+  - status: IN PROGRESS
+    at: "2026-11-11T16:40:44Z"
+  - status: REVIEW
+    at: "2026-11-11T16:49:16Z"
+  - status: DONE
+    at: "2026-11-11T16:53:18Z"

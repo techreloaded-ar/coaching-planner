@@ -14,14 +14,14 @@ vi.mock("@/lib/db", () => ({
   db: { tariffaCollaboratore: mockTariffaCollaboratore },
 }));
 
-// ── Mock di richiediRuoloApi ───────────────────────────────────────
+// ── Mock di richiediPermessoApi ────────────────────────────────────
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-  mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi } = vi.hoisted(() => ({
+  mockRichiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-  richiediRuoloApi: mockRichiediRuoloApi,
+  richiediPermessoApi: mockRichiediPermessoApi,
 }));
 
 // ── Mock di next/cache ─────────────────────────────────────────────
@@ -65,7 +65,7 @@ function formTariffa(campi: Record<string, string> = {}): FormData {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockRichiediRuoloApi.mockResolvedValue(undefined);
+  mockRichiediPermessoApi.mockResolvedValue(undefined);
   mockTariffaCollaboratore.findFirst.mockResolvedValue(null);
   mockTariffaCollaboratore.updateMany.mockResolvedValue({ count: 1 });
 });
@@ -75,13 +75,13 @@ beforeEach(() => {
 // ═══════════════════════════════════════════════════════════════════
 
 describe("salvaTariffaCollaboratore", () => {
-  it("propaga l'errore di richiediRuoloApi senza toccare il database", async () => {
-    mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+  it("propaga l'errore di richiediPermessoApi senza toccare il database", async () => {
+    mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
     await expect(salvaTariffaCollaboratore(statoIniziale(), formTariffa())).rejects.toThrow(
       "Accesso negato",
     );
-    expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+    expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_COLLABORATORI");
     expect(mockTariffaCollaboratore.findFirst).not.toHaveBeenCalled();
     expect(mockTariffaCollaboratore.create).not.toHaveBeenCalled();
   });
@@ -191,13 +191,13 @@ describe("eliminaTariffaCollaboratore", () => {
     return formData;
   }
 
-  it("propaga l'errore di richiediRuoloApi senza toccare il database", async () => {
-    mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+  it("propaga l'errore di richiediPermessoApi senza toccare il database", async () => {
+    mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
     await expect(
       eliminaTariffaCollaboratore(statoIniziale(), formEliminazione("tariffa-2")),
     ).rejects.toThrow("Accesso negato");
-    expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+    expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_COLLABORATORI");
     expect(mockTariffaCollaboratore.deleteMany).not.toHaveBeenCalled();
   });
 

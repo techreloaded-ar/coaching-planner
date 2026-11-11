@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { elencaClientiPaginati } from "@/lib/clienti";
 import { leggiPosizioneElenco } from "@/lib/paginazione";
 import { leggiFiltroStatoCliente } from "@/domain/anagrafiche/stato-cliente";
@@ -14,7 +14,7 @@ interface ClientiPageProps {
 }
 
 export default async function ClientiPage({ searchParams }: ClientiPageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_CLIENTI");
   const parametri = await searchParams;
   const { ricerca, pagina } = leggiPosizioneElenco(parametri);
   const stati = leggiFiltroStatoCliente(parametri.stato);

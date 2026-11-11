@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { clientePerId } from "@/lib/clienti";
 import { elencaOffertePerClienteConAvanzamento } from "@/lib/offerte";
 import { ChipStatoCliente, NoteAnagrafica } from "@/components";
@@ -15,7 +15,7 @@ export default async function DettaglioClientePage({
   params,
   searchParams,
 }: DettaglioClientePageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_CLIENTI");
 
   const { id } = await params;
   const cliente = await clientePerId(id);

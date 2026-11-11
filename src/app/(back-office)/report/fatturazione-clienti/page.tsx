@@ -1,4 +1,4 @@
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { reportFatturazioneClientiMese } from "@/lib/report";
 import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
 import { ComeVieneCalcolato } from "@/components";
@@ -9,7 +9,7 @@ export default async function ReportFatturazioneClientiPage({
 }: {
   searchParams: Promise<{ mese?: string }>;
 }) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI");
 
   const params = await searchParams;
 

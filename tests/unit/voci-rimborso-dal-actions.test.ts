@@ -12,12 +12,12 @@ vi.mock("@/lib/db", () => ({
 	db: { voceRimborsoTrasferta: mockVoceRimborsoTrasferta },
 }));
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-	mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi } = vi.hoisted(() => ({
+	mockRichiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-	richiediRuoloApi: mockRichiediRuoloApi,
+	richiediPermessoApi: mockRichiediPermessoApi,
 }));
 
 const { mockRevalidatePath } = vi.hoisted(() => ({
@@ -62,7 +62,7 @@ import {
 describe("DAL voci di rimborso trasferta", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockRichiediPermessoApi.mockResolvedValue(undefined);
 	});
 
 	it("elenca le voci di rimborso in ordine di creazione", async () => {
@@ -86,7 +86,7 @@ describe("DAL voci di rimborso trasferta", () => {
 
 		const result = await elencaVociRimborso();
 
-		expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+		expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_VOCI_RIMBORSO");
 		expect(mockVoceRimborsoTrasferta.findMany).toHaveBeenCalledWith({
 			orderBy: { createdAt: "asc" },
 		});
@@ -115,7 +115,7 @@ describe("DAL voci di rimborso trasferta", () => {
 describe("Server Actions voci di rimborso trasferta", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockRichiediPermessoApi.mockResolvedValue(undefined);
 		mockValidaVoceRimborso.mockReturnValue({});
 		mockNormalizzaTariffa.mockReturnValue({
 			valore: "28.00",
@@ -215,8 +215,8 @@ describe("Server Actions voci di rimborso trasferta", () => {
 		);
 	});
 
-	it("applica la guardia di ruolo su DAL e Server Actions", async () => {
-		mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+	it("applica la guardia di permesso su DAL e Server Actions", async () => {
+		mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
 		await expect(elencaVociRimborso()).rejects.toThrow("Accesso negato");
 		await expect(vocePerId("vrt-1")).rejects.toThrow("Accesso negato");

@@ -19,7 +19,7 @@ import { normalizzaTariffaGiornaliera } from "@/domain/anagrafiche/valida-collab
 import type { ModalitaTariffa } from "@/domain/tariffe";
 import { db } from "@/lib/db";
 import { eseguiConRetrySerializzazione } from "@/lib/retry-serializzazione";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import { leggiNoteDaForm } from "@/domain/anagrafiche/note";
 
 export interface StatoAction {
@@ -80,8 +80,8 @@ function primaVoceTariffa(dati: {
   };
 }
 
-async function guardiaAmministratore(): Promise<void> {
-  await richiediRuoloApi("AMMINISTRATORE");
+async function guardiaGestioneUtenti(): Promise<void> {
+  await richiediPermessoApi("GESTIRE_UTENTI");
 }
 
 function isPrismaUniqueConstraintError(error: unknown): boolean {
@@ -132,7 +132,7 @@ export async function creaUtente(
   _prevState: StatoAction,
   formData: FormData,
 ): Promise<StatoAction> {
-  await guardiaAmministratore();
+  await guardiaGestioneUtenti();
 
   const dati = datiCensimentoDaForm(formData);
   const errori = validaCensimentoUtente(dati);
@@ -209,7 +209,7 @@ export async function aggiornaUtente(
   _prevState: StatoAction,
   formData: FormData,
 ): Promise<StatoAction> {
-  await guardiaAmministratore();
+  await guardiaGestioneUtenti();
 
   const id = formData.get("id") as string;
   if (!id) {

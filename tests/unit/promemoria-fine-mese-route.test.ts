@@ -12,12 +12,12 @@ vi.mock("@/lib/promemoria-fine-mese", () => ({
   inviaPromemoriaFineMese: mockInviaPromemoriaFineMese,
 }));
 
-const { mockRichiediRuoloApi, mockRedirect } = vi.hoisted(() => ({
-  mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi, mockRedirect } = vi.hoisted(() => ({
+  mockRichiediPermessoApi: vi.fn(),
   mockRedirect: vi.fn(),
 }));
 
-vi.mock("@/lib/dal", () => ({ richiediRuoloApi: mockRichiediRuoloApi }));
+vi.mock("@/lib/dal", () => ({ richiediPermessoApi: mockRichiediPermessoApi }));
 
 vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
 
@@ -72,15 +72,15 @@ describe("GET /api/cron/promemoria-fine-mese (US-019)", () => {
 
 describe("inviaPromemoriaFineMeseOra (US-019)", () => {
   beforeEach(() => {
-    mockRichiediRuoloApi.mockReset().mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockReset().mockResolvedValue(undefined);
     mockRedirect.mockReset();
     mockInviaPromemoriaFineMese.mockReset().mockResolvedValue({ inviati: 3, giaInviati: 0, falliti: 1 });
   });
 
   it("senza ruolo amministratore non invia nulla", async () => {
-    mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+    mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
     await expect(inviaPromemoriaFineMeseOra()).rejects.toThrow("Accesso negato");
-    expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+    expect(mockRichiediPermessoApi).toHaveBeenCalledWith("CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI");
     expect(mockInviaPromemoriaFineMese).not.toHaveBeenCalled();
     expect(mockRedirect).not.toHaveBeenCalled();
   });

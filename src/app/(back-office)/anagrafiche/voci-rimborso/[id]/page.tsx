@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { vocePerId } from "@/lib/voci-rimborso";
 import VoceRimborsoForm from "../voce-rimborso-form";
 
@@ -8,7 +8,7 @@ interface ModificaVoceRimborsoPageProps {
 }
 
 export default async function ModificaVoceRimborsoPage({ params }: ModificaVoceRimborsoPageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_VOCI_RIMBORSO");
 
   const { id } = await params;
   const voce = await vocePerId(id);

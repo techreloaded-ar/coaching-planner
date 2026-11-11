@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediAlmenoUnPermessoApi, richiediPermessoApi } from "@/lib/dal";
 import type { Cliente, Prisma } from "@/generated/prisma/client";
 import {
   ELEMENTI_PER_PAGINA,
@@ -18,7 +18,7 @@ import {
   type TipoStatoCliente,
 } from "@/domain/anagrafiche/stato-cliente";
 
-// ── API clienti (back office, solo amministratore) ──────────────
+// ── API clienti (back office, guardie per permesso) ─────────────
 
 /** Cliente con lo stato derivato dalle sue offerte. */
 export type ClienteConStato = Cliente & { stato: StatoCliente };
@@ -51,14 +51,14 @@ function conStato({ offerte, ...cliente }: Cliente & { offerte: { attiva: boolea
  * città su tutto l'archivio a prescindere dallo stato. I conteggi per stato
  * riguardano l'insieme cercato. Una pagina oltre l'ultima restituisce
  * l'ultima pagina valida.
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_CLIENTI.
  */
 export async function elencaClientiPaginati({
   ricerca,
   pagina,
   stati = [...TIPI_STATO_CLIENTE_PREDEFINITI],
 }: PosizioneElenco & { stati?: TipoStatoCliente[] }): Promise<ElencoClientiPaginato> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_CLIENTI");
 
   const filtro = { contains: ricerca, mode: "insensitive" } as const;
   const whereRicerca: Prisma.ClienteWhereInput = ricerca
@@ -102,11 +102,16 @@ export async function elencaClientiPaginati({
 
 /**
  * Restituisce un cliente per ID con il suo stato derivato.
- * Accesso riservato all'amministratore.
+ * Condivisa da dettaglio cliente, offerte del cliente e dettaglio marginalità:
+ * basta uno dei permessi di queste aree.
  * Restituisce null se il cliente non esiste.
  */
 export async function clientePerId(id: string): Promise<ClienteConStato | null> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediAlmenoUnPermessoApi([
+    "GESTIRE_CLIENTI",
+    "GESTIRE_OFFERTE",
+    "CONSULTARE_REPORT_MARGINALITA",
+  ]);
 
   const cliente = await db.cliente.findUnique({
     where: { id },
@@ -118,10 +123,10 @@ export async function clientePerId(id: string): Promise<ClienteConStato | null> 
 /**
  * Elenca tutti i clienti, ordinati per ragione sociale: ogni cliente può
  * ricevere nuove offerte, qualunque sia il suo stato.
- * Accesso riservato all'amministratore.
+ * Condivisa dalle aree clienti e offerte: basta uno dei due permessi.
  */
 export async function elencaClientiSelezionabili(): Promise<Cliente[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediAlmenoUnPermessoApi(["GESTIRE_CLIENTI", "GESTIRE_OFFERTE"]);
 
   return db.cliente.findMany({
     orderBy: { ragioneSociale: "asc" },

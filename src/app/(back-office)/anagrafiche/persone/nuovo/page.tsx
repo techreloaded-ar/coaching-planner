@@ -1,7 +1,7 @@
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import PersonaForm from "../persona-form";
 
 export default async function NuovaPersonaPage() {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_UTENTI");
   return <PersonaForm />;
 }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import type { StatoAction } from "../actions";
 
 /**
@@ -16,7 +16,7 @@ export async function abilitaCollaboratoreSuOfferte(
   _prevState: StatoAction,
   formData: FormData
 ): Promise<StatoAction> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_ABILITAZIONI");
 
   const collaboratoreId = formData.get("collaboratoreId") as string;
   if (!collaboratoreId) {
@@ -62,7 +62,7 @@ export async function revocaAbilitazioneCollaboratore(
   _prevState: StatoAction,
   formData: FormData
 ): Promise<StatoAction> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_ABILITAZIONI");
 
   const collaboratoreId = formData.get("collaboratoreId") as string;
   const offertaId = formData.get("offertaId") as string;

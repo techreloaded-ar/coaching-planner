@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionCookie, deleteSession } from "@/lib/session";
 import type { Ruolo } from "@/domain/types";
+import { permessiDelRuolo, type Permesso } from "@/domain/permessi";
 import type { Collaboratore } from "@/generated/prisma/client";
 import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 
@@ -15,6 +16,8 @@ export interface SessioneUtente {
   ruolo: Ruolo;
   nome: string;
   email: string;
+  /** Permessi derivati dal ruolo riletto a DB a ogni richiesta */
+  permessi: readonly Permesso[];
 }
 
 // ── Helpers privati ─────────────────────────────────────────────
@@ -57,11 +60,14 @@ async function _risolviSessione(): Promise<SessioneUtente | null> {
     return null;
   }
 
+  // Ruolo e permessi dal record a DB, mai dal cookie
+  const ruolo = utente.ruolo as Ruolo;
   return {
     utenteId: utente.id,
-    ruolo: utente.ruolo as Ruolo,
+    ruolo,
     nome: `${utente.nome} ${utente.cognome}`,
     email: utente.email,
+    permessi: permessiDelRuolo(ruolo),
   };
 }
 
@@ -96,25 +102,18 @@ export const utenteCorrente = cache(
 );
 
 /**
- * Richiede l'accesso amministrativo quando necessario. Il valore storico
- * COLLABORATORE equivale all'area autenticata comune, accessibile a entrambi
- * i ruoli.
+ * Richiede un permesso del catalogo.
  *
  * Se l'utente non è autenticato reindirizza alla radice (pagina di accesso);
- * un non amministratore diretto al back office viene reindirizzato all'area
- * autenticata comune. Pensato per l'uso nei layout e nelle pagine RSC.
+ * senza il permesso richiesto reindirizza all'area autenticata comune.
+ * Pensato per l'uso nei layout e nelle pagine RSC.
  */
-export const richiediRuolo = cache(
-  async (ruoloRichiesto: Ruolo): Promise<SessioneUtente> => {
+export const richiediPermesso = cache(
+  async (permesso: Permesso): Promise<SessioneUtente> => {
     const sessione = await verificaSessione();
-
-    if (
-      ruoloRichiesto === "AMMINISTRATORE" &&
-      sessione.ruolo !== "AMMINISTRATORE"
-    ) {
+    if (!sessione.permessi.includes(permesso)) {
       redirect(HOME_AUTENTICATA);
     }
-
     return sessione;
   }
 );
@@ -133,7 +132,7 @@ export async function disconnetti(): Promise<void> {
 
 /**
  * Errore lanciato dalle guardie API quando l'utente non è autenticato
- * (401) o non ha il ruolo richiesto (403).
+ * (401) o non ha il permesso richiesto (403).
  *
  * Le route handler o le Server Action chiamate via fetch possono
  * catturarlo e restituire la risposta HTTP appropriata.
@@ -164,22 +163,34 @@ export async function richiediSessioneApi(): Promise<SessioneUtente> {
 }
 
 /**
- * Versione API di richiediRuolo: lancia ErroreAutorizzazione(403)
- * se il ruolo non corrisponde. Pensata per route handler e
- * Server Action chiamate via fetch.
+ * Versione API di richiediPermesso: lancia ErroreAutorizzazione(401) senza
+ * sessione e ErroreAutorizzazione(403) senza il permesso richiesto. Pensata
+ * per route handler e Server Action chiamate via fetch.
  */
-export async function richiediRuoloApi(
-  ruoloRichiesto: Ruolo
+export async function richiediPermessoApi(
+  permesso: Permesso
 ): Promise<SessioneUtente> {
   const sessione = await richiediSessioneApi();
+  if (!sessione.permessi.includes(permesso)) {
+    throw new ErroreAutorizzazione(403, `Permesso richiesto: ${permesso}`);
+  }
+  return sessione;
+}
 
-  if (sessione.ruolo !== ruoloRichiesto) {
+/**
+ * Variante di richiediPermessoApi per le query condivise tra aree: basta uno
+ * qualsiasi dei permessi ammessi. 401 senza sessione, 403 se non ne ha nessuno.
+ */
+export async function richiediAlmenoUnPermessoApi(
+  permessiAmmessi: readonly Permesso[]
+): Promise<SessioneUtente> {
+  const sessione = await richiediSessioneApi();
+  if (!permessiAmmessi.some((p) => sessione.permessi.includes(p))) {
     throw new ErroreAutorizzazione(
       403,
-      `Ruolo richiesto: ${ruoloRichiesto}, ruolo effettivo: ${sessione.ruolo}`
+      `Permesso richiesto: uno tra ${permessiAmmessi.join(", ")}`
     );
   }
-
   return sessione;
 }
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { statoConfigurazione, configurazioneImporter } from "@/lib/importer-legacy/config";
 import { leggiPiano } from "@/lib/importer-legacy/servizio";
@@ -11,7 +11,7 @@ export const maxDuration = 120;
 export default async function ImportazionePage({ searchParams }: {
   searchParams: Promise<{ id?: string; errore?: string; salvata?: string }>;
 }) {
-  const user = await richiediRuolo("AMMINISTRATORE");
+  const user = await richiediPermesso("GESTIRE_IMPORTAZIONE");
   const params = await searchParams;
   const stato = statoConfigurazione();
   const cfg = configurazioneImporter();

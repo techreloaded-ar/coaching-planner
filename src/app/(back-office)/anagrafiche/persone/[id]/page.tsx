@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { utentePerId } from "@/lib/utenti";
 import { storicoTariffeCollaboratore } from "@/lib/collaboratori";
 import {
@@ -26,7 +26,7 @@ export default async function PersonaPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ sezione?: string; esito?: string }>;
 }) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_UTENTI");
   const { id } = await params;
   const { sezione, esito } = await searchParams;
   const utente = await utentePerId(id);

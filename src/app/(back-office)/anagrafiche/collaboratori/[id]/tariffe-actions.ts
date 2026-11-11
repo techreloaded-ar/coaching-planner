@@ -3,7 +3,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import { normalizzaTariffaGiornaliera } from "@/domain/anagrafiche/valida-collaboratore";
 import {
   MESSAGGIO_MESE_TARIFFA_OCCUPATO,
@@ -32,7 +32,7 @@ export async function salvaTariffaCollaboratore(
   _prevState: StatoAction,
   formData: FormData,
 ): Promise<StatoAction> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_COLLABORATORI");
 
   const collaboratoreId = campo(formData, "collaboratoreId");
   if (!collaboratoreId) {
@@ -110,7 +110,7 @@ export async function eliminaTariffaCollaboratore(
   _prevState: StatoAction,
   formData: FormData,
 ): Promise<StatoAction> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_COLLABORATORI");
 
   const collaboratoreId = campo(formData, "collaboratoreId");
   const tariffaId = campo(formData, "tariffaId");

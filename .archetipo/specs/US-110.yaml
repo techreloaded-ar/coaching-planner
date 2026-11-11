@@ -1,0 +1,37 @@
+schema: archetipo/spec/v2
+code: US-110
+title: Navigazione e fogli attività altrui governati dai permessi
+epic:
+  code: EP-001
+  title: Autenticazione e Ruoli
+priority: MEDIUM
+points: 5
+status: TODO
+blocked_by:
+  - US-109
+scope: MVP
+body: |-
+  **Come** sviluppatore che mantiene l'autorizzazione
+  **voglio** che l'ingresso nel back office, le voci della sidebar e la consultazione dei fogli attività altrui dipendano dai permessi dell'utente
+  **così che** un futuro ruolo con accesso parziale veda soltanto le aree che gli competono, senza interventi sulla navigazione.
+
+  ### Demonstrates
+  1. Lo sviluppatore esegue `npm run test`: un test con un insieme di permessi fittizio contenente il solo permesso del report di fatturazione clienti mostra che la sidebar elenca la sola voce di quel report e nessun'altra voce di amministrazione.
+  2. Lo stesso run mostra che, con un insieme di permessi privo di «consultare fogli attività altrui», la richiesta del foglio di un altro collaboratore riceve 403 e il selettore del foglio non viene caricato.
+  3. Accede come amministratore: la sidebar mostra tutti i gruppi di amministrazione e l'etichetta «Amministrazione», e il titolo del foglio attività è il selettore dei collaboratori, come prima.
+  4. Accede come collaboratore: la sidebar mostra solo «Registro attività» e «Riepilogo mensile», il titolo è «Le mie attività», e l'URL `/attivita?collaboratore=<id altrui>` lo riporta al proprio foglio, come prima.
+
+  ### Acceptance criteria
+  - [ ] AC-1 — Il back office è accessibile a chi possiede almeno un permesso di back office; chi non ne possiede alcuno viene reindirizzato a `/attivita`.
+  - [ ] AC-2 — Ogni voce di amministrazione della sidebar è visibile solo se l'utente possiede il permesso della pagina a cui porta.
+  - [ ] AC-3 — Un gruppo della sidebar senza alcuna voce visibile non mostra il proprio titolo.
+  - [ ] AC-4 — L'etichetta «Amministrazione» sotto il nome dell'applicazione compare solo a chi possiede almeno un permesso di back office.
+  - [ ] AC-5 — Consultare o modificare il foglio attività di un altro collaboratore richiede il permesso «consultare fogli attività altrui»; senza, le API rispondono 403 e le pagine riportano al proprio foglio.
+  - [ ] AC-6 — Il selettore del foglio nel titolo del front office compare, e l'elenco dei collaboratori viene letto, solo per chi possiede quel permesso.
+  - [ ] AC-7 — Per amministratore e collaboratore la navigazione e il foglio attività sono identici a prima; le suite unitarie ed e2e esistenti passano.
+
+  ### Out of scope
+  Ruoli nuovi con accesso parziale: i casi parziali sono verificati solo nei test, con insiemi di permessi fittizi. Etichetta del ruolo e colore dell'avatar nel menu account. Pagina indice `/anagrafiche` ridisegnata per permessi parziali.
+history:
+  - status: TODO
+    at: "2026-11-11T10:58:03Z"

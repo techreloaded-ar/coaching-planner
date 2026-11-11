@@ -9,8 +9,9 @@ import { leggiXlsx } from "../e2e/support/xlsx-lettura";
  *
  * Il report è mockato solo al confine `@/lib/report`: writer e builder sono
  * reali, così il corpo della risposta è un vero xlsx che viene riletto. La
- * guardia reale dell'autorizzazione (`richiediRuoloApi` dentro il report) è
- * provata end-to-end in `tests/e2e/esportazione-fatturazione.spec.ts`.
+ * guardia reale dell'autorizzazione
+ * (`richiediPermessoApi("CONSULTARE_REPORT_FATTURAZIONE_CLIENTI")` dentro il
+ * report) è provata end-to-end in `tests/e2e/esportazione-fatturazione.spec.ts`.
  */
 
 const { mockReportFatturazioneClientiMese } = vi.hoisted(() => ({

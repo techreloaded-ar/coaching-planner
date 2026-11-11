@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { clientePerId } from "@/lib/clienti";
 import OffertaForm from "../offerta-form";
 
@@ -8,7 +8,7 @@ interface NuovaOffertaPageProps {
 }
 
 export default async function NuovaOffertaPage({ params }: NuovaOffertaPageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_OFFERTE");
 
   const { id } = await params;
   const cliente = await clientePerId(id);

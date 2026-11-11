@@ -4,7 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import { clientePerId } from "@/lib/clienti";
 import {
   normalizzaTariffaGiornaliera,
@@ -65,8 +65,8 @@ function valoriFacoltativi(dati: DatiOffertaInput): {
   };
 }
 
-async function guardiaAmministratore(): Promise<void> {
-  await richiediRuoloApi("AMMINISTRATORE");
+async function guardiaGestioneOfferte(): Promise<void> {
+  await richiediPermessoApi("GESTIRE_OFFERTE");
 }
 
 function erroreCodiceDuplicato(): StatoActionOfferta {
@@ -90,7 +90,7 @@ export async function creaOfferta(
   _prevState: StatoActionOfferta,
   formData: FormData
 ): Promise<StatoActionOfferta> {
-  await guardiaAmministratore();
+  await guardiaGestioneOfferte();
 
   const clienteId = formData.get("clienteId") as string;
   if (!clienteId) {
@@ -148,7 +148,7 @@ export async function aggiornaOfferta(
   _prevState: StatoActionOfferta,
   formData: FormData
 ): Promise<StatoActionOfferta> {
-  await guardiaAmministratore();
+  await guardiaGestioneOfferte();
 
   const id = formData.get("id") as string;
   const clienteId = formData.get("clienteId") as string;
@@ -208,7 +208,7 @@ export async function aggiornaOfferta(
  * Il filtro su `clienteId` impedisce di toccare offerte di altri clienti.
  */
 export async function cambiaStatoOffertaCliente(formData: FormData): Promise<void> {
-  await guardiaAmministratore();
+  await guardiaGestioneOfferte();
 
   const id = formData.get("id");
   const clienteId = formData.get("clienteId");

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { violaProtezioneUltimoAmministratore } from "@/domain/anagrafiche/protezione-amministratore";
 import { db } from "@/lib/db";
 import { eseguiConRetrySerializzazione } from "@/lib/retry-serializzazione";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import { leggiIdSelezionati } from "@/lib/selezione-elenco";
 
 /**
@@ -15,7 +15,7 @@ import { leggiIdSelezionati } from "@/lib/selezione-elenco";
  * non resterebbe alcun amministratore attivo.
  */
 export async function cambiaStatoUtenteAction(formData: FormData) {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_UTENTI");
 
   const idUtenti = leggiIdSelezionati(formData);
   const attivo = formData.get("attivo") === "true";

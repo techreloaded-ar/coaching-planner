@@ -16,12 +16,12 @@ vi.mock("@/lib/db", () => ({
   db: mockDb,
 }));
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-  mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi } = vi.hoisted(() => ({
+  mockRichiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-  richiediRuoloApi: mockRichiediRuoloApi,
+  richiediPermessoApi: mockRichiediPermessoApi,
 }));
 
 const { mockRevalidatePath } = vi.hoisted(() => ({
@@ -69,7 +69,7 @@ function contaAltriAmministratori(id: string[] = ["utente-1"]) {
 describe("cambiaStatoUtenteAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
     mockDb.$transaction.mockImplementation(
       async (callback: (tx: typeof mockDb) => unknown) => callback(mockDb),
     );
@@ -83,7 +83,7 @@ describe("cambiaStatoUtenteAction", () => {
 
     await cambiaStatoUtenteAction(formCambioStato(false));
 
-    expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+    expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_UTENTI");
     expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
     expect(mockDb.utente.findMany).toHaveBeenCalledWith({
       where: { id: { in: ["utente-1"] } },
@@ -270,11 +270,11 @@ describe("cambiaStatoUtenteAction", () => {
   });
 
   it("propaga il fallimento della guardia senza accedere al database", async () => {
-    mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+    mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
     await expect(cambiaStatoUtenteAction(formCambioStato(false))).rejects.toThrow("Accesso negato");
 
-    expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+    expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_UTENTI");
     expect(mockDb.$transaction).not.toHaveBeenCalled();
     expect(mockDb.utente.findMany).not.toHaveBeenCalled();
     expect(mockDb.utente.updateMany).not.toHaveBeenCalled();

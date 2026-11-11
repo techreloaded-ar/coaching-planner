@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { elencaOfferteConAvanzamentoPaginate } from "@/lib/offerte";
 import { leggiPosizioneElenco } from "@/lib/paginazione";
 import OfferteTabella from "./offerte-tabella";
@@ -34,7 +34,7 @@ function messaggioPerEsito(esito?: string): string | null {
 }
 
 export default async function OffertePage({ searchParams }: OffertePageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_OFFERTE");
   const parametri = await searchParams;
   const { esito, offertaEspansaId } = parametri;
   const { ricerca, pagina } = leggiPosizioneElenco(parametri);

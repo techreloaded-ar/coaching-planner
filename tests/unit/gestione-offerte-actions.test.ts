@@ -15,12 +15,12 @@ vi.mock("@/lib/db", () => ({
 	db: { offerta: mockOfferta, rigaAttivita: mockRigaAttivita },
 }));
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-	mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi } = vi.hoisted(() => ({
+	mockRichiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-	richiediRuoloApi: mockRichiediRuoloApi,
+	richiediPermessoApi: mockRichiediPermessoApi,
 }));
 
 const { mockRevalidatePath } = vi.hoisted(() => ({
@@ -50,7 +50,7 @@ const MESSAGGIO_BLOCCO_ELIMINAZIONE =
 describe("cambiaStatoOfferta", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockRichiediPermessoApi.mockResolvedValue(undefined);
 		mockOfferta.updateMany.mockResolvedValue({ count: 1 });
 	});
 
@@ -134,9 +134,9 @@ describe("cambiaStatoOfferta", () => {
 		});
 	});
 
-	// (e) guardia di ruolo
+	// (e) guardia di permesso
 	it("applica la guardia AMMINISTRATORE prima di aggiornare", async () => {
-		mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+		mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
 		const formData = new FormData();
 		formData.set("id", "off-1");
@@ -145,7 +145,7 @@ describe("cambiaStatoOfferta", () => {
 		await expect(cambiaStatoOfferta(formData)).rejects.toThrow(
 			"Accesso negato",
 		);
-		expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+		expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_OFFERTE");
 		expect(mockOfferta.updateMany).not.toHaveBeenCalled();
 	});
 });
@@ -153,7 +153,7 @@ describe("cambiaStatoOfferta", () => {
 describe("eliminaOfferta", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockRichiediRuoloApi.mockResolvedValue(undefined);
+		mockRichiediPermessoApi.mockResolvedValue(undefined);
 		mockRigaAttivita.count.mockResolvedValue(0);
 		mockOfferta.delete.mockResolvedValue(undefined);
 	});
@@ -242,9 +242,9 @@ describe("eliminaOfferta", () => {
 		expect(mockOfferta.delete).not.toHaveBeenCalled();
 	});
 
-	// (e) guardia di ruolo
+	// (e) guardia di permesso
 	it("applica la guardia AMMINISTRATORE prima di qualsiasi accesso a DB", async () => {
-		mockRichiediRuoloApi.mockRejectedValue(new Error("Accesso negato"));
+		mockRichiediPermessoApi.mockRejectedValue(new Error("Accesso negato"));
 
 		const formData = new FormData();
 		formData.set("id", "off-1");
@@ -252,7 +252,7 @@ describe("eliminaOfferta", () => {
 		await expect(eliminaOfferta({}, formData)).rejects.toThrow(
 			"Accesso negato",
 		);
-		expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+		expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_OFFERTE");
 		expect(mockRigaAttivita.count).not.toHaveBeenCalled();
 		expect(mockOfferta.delete).not.toHaveBeenCalled();
 	});

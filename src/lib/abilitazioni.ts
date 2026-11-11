@@ -1,10 +1,10 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import { ORE_PER_GIORNATA, fatturataDalCollaboratore, sommaOre } from "@/domain/types";
 
-// ── API abilitazioni (back office, solo amministratore) ──────────
+// ── API abilitazioni (back office, permesso GESTIRE_ABILITAZIONI) 
 
 export interface OffertaAbilitata {
   offertaId: string;
@@ -33,12 +33,12 @@ export interface OffertaAbilitabile {
  * Le abilitazioni su offerte non attive restano nel database ma non vengono
  * elencate.
  *
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_ABILITAZIONI.
  */
 export async function elencaOfferteAbilitate(
   collaboratoreId: string,
 ): Promise<OffertaAbilitata[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_ABILITAZIONI");
 
   const abilitazioni = await db.abilitazioneOfferta.findMany({
     where: { collaboratoreId, offerta: { attiva: true } },
@@ -100,12 +100,12 @@ export async function elencaOfferteAbilitate(
  * codice offerta e ragione sociale del cliente, ordinate per ragione sociale e
  * poi per codice. Fonte per il dialog di ricerca e selezione.
  *
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_ABILITAZIONI.
  */
 export async function elencaOfferteAbilitabili(
   collaboratoreId: string,
 ): Promise<OffertaAbilitabile[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_ABILITAZIONI");
 
   const offerte = await db.offerta.findMany({
     where: {
@@ -146,12 +146,12 @@ export interface CollaboratoreIngaggiabile {
  * Un collaboratore ingaggiato e poi disattivato resta elencato (con
  * collaboratoreAttivo a false): l'ingaggio storico non viene rimosso.
  *
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_ABILITAZIONI.
  */
 export async function elencaCollaboratoriIngaggiati(
   offertaId: string,
 ): Promise<CollaboratoreIngaggiato[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_ABILITAZIONI");
 
   const abilitazioni = await db.abilitazioneOfferta.findMany({
     where: { offertaId },
@@ -186,12 +186,12 @@ export async function elencaCollaboratoriIngaggiati(
  * cognome ed email, ordinati per cognome e poi per nome. Fonte per il dialog
  * di ricerca e selezione.
  *
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_ABILITAZIONI.
  */
 export async function elencaCollaboratoriIngaggiabili(
   offertaId: string,
 ): Promise<CollaboratoreIngaggiabile[]> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_ABILITAZIONI");
 
   const collaboratori = await db.collaboratore.findMany({
     where: {

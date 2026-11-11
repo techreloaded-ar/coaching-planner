@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { offertaPerId } from "@/lib/offerte";
 import {
   elencaCollaboratoriIngaggiati,
@@ -16,7 +16,7 @@ interface CollaboratoriOffertaPageProps {
 export default async function CollaboratoriOffertaPage({
   params,
 }: CollaboratoriOffertaPageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_ABILITAZIONI");
 
   const { offertaId } = await params;
   const offerta = await offertaPerId(offertaId);

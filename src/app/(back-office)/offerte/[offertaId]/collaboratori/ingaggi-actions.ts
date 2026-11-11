@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 
 // ── Tipi per useActionState ─────────────────────────────────────
 
@@ -22,7 +22,7 @@ export async function ingaggiaCollaboratoriSuOfferta(
   _prevState: StatoIngaggiAction,
   formData: FormData
 ): Promise<StatoIngaggiAction> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_ABILITAZIONI");
 
   const offertaId = formData.get("offertaId") as string;
   if (!offertaId) {
@@ -85,7 +85,7 @@ export async function revocaIngaggioCollaboratore(
   _prevState: StatoIngaggiAction,
   formData: FormData
 ): Promise<StatoIngaggiAction> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_ABILITAZIONI");
 
   const offertaId = formData.get("offertaId") as string;
   const collaboratoreId = formData.get("collaboratoreId") as string;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { MESSAGGIO_ULTIMO_AMMINISTRATORE } from "@/domain/anagrafiche/protezione-amministratore";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { elencaUtenti } from "@/lib/utenti";
 import PersoneTabella from "./persone-tabella";
 
@@ -14,7 +14,7 @@ interface PersonePageProps {
 }
 
 export default async function PersonePage({ searchParams }: PersonePageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_UTENTI");
   const utenti = await elencaUtenti();
   const { esito, errore, stato, ruolo } = await searchParams;
 

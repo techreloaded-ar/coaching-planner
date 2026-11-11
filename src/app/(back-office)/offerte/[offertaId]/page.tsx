@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { offertaPerId } from "@/lib/offerte";
 import OffertaForm from "../../anagrafiche/clienti/[id]/offerte/offerta-form";
 
@@ -10,7 +10,7 @@ interface ModificaOffertaDaOffertePageProps {
 export default async function ModificaOffertaDaOffertePage({
   params,
 }: ModificaOffertaDaOffertePageProps) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_OFFERTE");
 
   const { offertaId } = await params;
   const offerta = await offertaPerId(offertaId);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { reportFatturazioneCollaboratoriMese } from "@/lib/report";
 import { descriviImportoTariffa, formattaEuro, formattaNumeroGiornate } from "@/lib/formattazione";
 import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
@@ -28,7 +28,7 @@ export default async function ReportFatturazioneCollaboratoriPage({
     promemoriaFalliti?: string;
   }>;
 }) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI");
 
   const params = await searchParams;
   const tokenRaw = params.mese ?? tokenMeseCorrente();

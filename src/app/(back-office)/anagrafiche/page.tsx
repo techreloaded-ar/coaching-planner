@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 
 export default async function AnagrafichePage() {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("GESTIRE_CLIENTI");
   redirect("/anagrafiche/clienti");
 }

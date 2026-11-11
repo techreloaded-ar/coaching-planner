@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Prisma } from "@/generated/prisma/client";
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), crea: vi.fn(), applica: vi.fn(), revalidate: vi.fn() }));
-vi.mock("@/lib/dal", () => ({ richiediRuoloApi: mocks.auth }));
+vi.mock("@/lib/dal", () => ({ richiediPermessoApi: mocks.auth }));
 vi.mock("@/lib/importer-legacy/servizio", () => ({ creaAnteprima: mocks.crea, applicaAnteprima: mocks.applica }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`REDIRECT ${url}`); } }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
@@ -21,6 +21,7 @@ describe("autorizzazione e azioni importer", () => {
   it("apre solo l'anteprima appena creata dall'analisi", async () => {
     const f = new FormData(); f.set("modalita", "INCREMENTALE");
     await expect(analizzaAction(f)).rejects.toThrow("REDIRECT /importazione?id=job");
+    expect(mocks.auth).toHaveBeenCalledWith("GESTIRE_IMPORTAZIONE");
     expect(mocks.crea).toHaveBeenCalledWith("admin", "INCREMENTALE");
   });
   it("invia solo le decisioni esplicite e la revisione al servizio protetto", async () => {

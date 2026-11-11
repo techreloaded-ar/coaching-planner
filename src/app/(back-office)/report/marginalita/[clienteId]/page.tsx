@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { richiediRuolo } from "@/lib/dal";
+import { richiediPermesso } from "@/lib/dal";
 import { clientePerId } from "@/lib/clienti";
 import { reportMarginalitaPeriodo } from "@/lib/report";
 import {
@@ -72,7 +72,7 @@ export default async function DettaglioMarginalitaClientePage({
   params: Promise<{ clienteId: string }>;
   searchParams: Promise<{ da?: string; a?: string }>;
 }) {
-  await richiediRuolo("AMMINISTRATORE");
+  await richiediPermesso("CONSULTARE_REPORT_MARGINALITA");
 
   const { clienteId } = await params;
   const cliente = await clientePerId(clienteId);

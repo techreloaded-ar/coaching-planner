@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { richiediRuoloApi } from "@/lib/dal";
+import { richiediPermessoApi } from "@/lib/dal";
 import type { Prisma, RigaAttivitaSospesa } from "@/generated/prisma/client";
 import {
   ELEMENTI_PER_PAGINA,
@@ -11,7 +11,7 @@ import {
 } from "@/lib/paginazione";
 import type { FiltroRigheSospese, StatoRigaSospesa } from "@/domain/righe-sospese";
 
-// ── API righe sospese dell'import (back office, solo amministratore) ──
+// ── API righe sospese dell'import (back office, permesso GESTIRE_RIGHE_SOSPESE) 
 
 /** Riga mostrata in elenco: la nota per ora resta solo nel database. */
 export type RigaSospesaInElenco = Omit<RigaAttivitaSospesa, "nota">;
@@ -33,7 +33,7 @@ const CONDIZIONE_STATO: Record<StatoRigaSospesa, Prisma.RigaAttivitaSospesaWhere
  * Elenca le righe sospese a pagine secondo stato e motivo. Le righe di un
  * import condividono `createdAt` (una sola transazione): le più recenti per
  * prime, poi per data, collaboratore e cliente grezzi.
- * Accesso riservato all'amministratore.
+ * Richiede il permesso GESTIRE_RIGHE_SOSPESE.
  */
 export async function elencaRigheSospese({
   pagina,
@@ -42,7 +42,7 @@ export async function elencaRigheSospese({
   pagina: number;
   filtro: FiltroRigheSospese;
 }): Promise<ElencoRigheSospese> {
-  await richiediRuoloApi("AMMINISTRATORE");
+  await richiediPermessoApi("GESTIRE_RIGHE_SOSPESE");
 
   const where: Prisma.RigaAttivitaSospesaWhereInput = {
     ...CONDIZIONE_STATO[filtro.stato],

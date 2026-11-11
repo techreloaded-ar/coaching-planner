@@ -1,0 +1,36 @@
+schema: archetipo/spec/v2
+code: US-111
+title: Rimozione della policy di rotta inutilizzata e del ruolo cablato nella sessione
+epic:
+  code: EP-001
+  title: Autenticazione e Ruoli
+priority: LOW
+points: 2
+status: TODO
+blocked_by:
+  - US-109
+scope: MVP
+body: |-
+  **Come** sviluppatore che mantiene l'autorizzazione
+  **voglio** eliminare la policy di rotta mai usata e l'elenco dei ruoli cablato nella validazione del token di sessione
+  **così che** aggiungere un ruolo non richieda di ricordarsi di aggiornare punti che non decidono alcun accesso.
+
+  ### Demonstrates
+  1. Lo sviluppatore cerca `politicaAccessoPerRotta`, `ruoloRichiestoPerRotta` e `ROTTE_BACK_OFFICE` in `src/` e `tests/`: nessun risultato.
+  2. Cerca nella validazione del token di sessione un elenco esplicito dei valori di ruolo: non lo trova.
+  3. Con una sessione aperta prima del deploy della modifica, ricarica `/attivita`: resta autenticato, senza passare dalla pagina di accesso.
+  4. Esegue `npm run lint`, `npm run test` e la suite e2e: tutto passa.
+
+  ### Acceptance criteria
+  - [ ] AC-1 — La mappatura rotta → policy di accesso e l'elenco dei prefissi di back office, usati soltanto dal proprio test, sono rimossi insieme a quel test.
+  - [ ] AC-2 — La costante della landing autenticata (`/attivita`) resta disponibile ai suoi consumer attuali.
+  - [ ] AC-3 — La validazione del token di sessione non contiene più un elenco dei valori di ruolo ammessi.
+  - [ ] AC-4 — Un token di sessione emesso prima della modifica resta valido fino alla sua scadenza naturale.
+  - [ ] AC-5 — L'autorizzazione continua a basarsi sul ruolo riletto a database: un cambio di ruolo ha effetto al primo accesso protetto successivo, senza nuovo login.
+  - [ ] AC-6 — Le suite unitarie ed e2e esistenti passano.
+
+  ### Out of scope
+  Modifiche al proxy, alla durata o al rinnovo della sessione. Modifiche all'enum dei ruoli a database.
+history:
+  - status: TODO
+    at: "2026-11-11T10:58:03Z"

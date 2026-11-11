@@ -26,14 +26,14 @@ vi.mock("@/lib/db", () => ({
   db: mockDb,
 }));
 
-// ── Mock di richiediRuoloApi ───────────────────────────────────────
+// ── Mock di richiediPermessoApi ────────────────────────────────────
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-  mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi } = vi.hoisted(() => ({
+  mockRichiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-  richiediRuoloApi: mockRichiediRuoloApi,
+  richiediPermessoApi: mockRichiediPermessoApi,
 }));
 
 // ── Mock di next/cache ─────────────────────────────────────────────
@@ -96,7 +96,7 @@ function statoIniziale() {
 describe("DAL abilitazioni — query", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
   });
 
   // ── 2. elencaOfferteAbilitate ──────────────────────────────────
@@ -139,7 +139,7 @@ describe("DAL abilitazioni — query", () => {
 
       const result = await elencaOfferteAbilitate("collab-1");
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_ABILITAZIONI");
       expect(mockAbilitazioneOfferta.findMany).toHaveBeenCalledWith({
         where: { collaboratoreId: "collab-1", offerta: { attiva: true } },
         include: {
@@ -204,7 +204,7 @@ describe("DAL abilitazioni — query", () => {
 
       const result = await elencaOfferteAbilitabili("collab-1");
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_ABILITAZIONI");
       expect(mockOfferta.findMany).toHaveBeenCalledWith({
         where: {
           attiva: true,
@@ -226,10 +226,10 @@ describe("DAL abilitazioni — query", () => {
 
   // ── 4. Guardie di ruolo — query ────────────────────────────────
 
-  describe("guardie di ruolo — query", () => {
+  describe("guardie di permesso — query", () => {
     it("elencaOfferteAbilitate rigetta e non interroga il DB se il ruolo è negato", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(
-        new ErroreAutorizzazione(403, "Ruolo richiesto: AMMINISTRATORE"),
+      mockRichiediPermessoApi.mockRejectedValue(
+        new ErroreAutorizzazione(403, "Permesso richiesto: GESTIRE_ABILITAZIONI"),
       );
 
       await expect(elencaOfferteAbilitate("collab-1")).rejects.toThrow(
@@ -239,8 +239,8 @@ describe("DAL abilitazioni — query", () => {
     });
 
     it("elencaOfferteAbilitabili rigetta e non interroga il DB se il ruolo è negato", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(
-        new ErroreAutorizzazione(403, "Ruolo richiesto: AMMINISTRATORE"),
+      mockRichiediPermessoApi.mockRejectedValue(
+        new ErroreAutorizzazione(403, "Permesso richiesto: GESTIRE_ABILITAZIONI"),
       );
 
       await expect(elencaOfferteAbilitabili("collab-1")).rejects.toThrow(
@@ -258,7 +258,7 @@ describe("DAL abilitazioni — query", () => {
 describe("Server Actions abilitazioni", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
   });
 
   // ── 5-7. abilitaCollaboratoreSuOfferte ─────────────────────────
@@ -275,7 +275,7 @@ describe("Server Actions abilitazioni", () => {
 
       const result = await abilitaCollaboratoreSuOfferte(statoIniziale(), formData);
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_ABILITAZIONI");
       expect(mockOfferta.findMany).toHaveBeenCalledWith({
         where: { id: { in: ["off-1", "off-2"] }, attiva: true },
         select: { id: true },
@@ -336,7 +336,7 @@ describe("Server Actions abilitazioni", () => {
 
       const result = await revocaAbilitazioneCollaboratore(statoIniziale(), formData);
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_ABILITAZIONI");
       expect(mockAbilitazioneOfferta.deleteMany).toHaveBeenCalledWith({
         where: { collaboratoreId: "collab-1", offertaId: "off-1" },
       });
@@ -349,10 +349,10 @@ describe("Server Actions abilitazioni", () => {
 
   // ── 9. Guardie di ruolo — Server Actions ───────────────────────
 
-  describe("guardie di ruolo — Server Actions", () => {
+  describe("guardie di permesso — Server Actions", () => {
     it("abilitaCollaboratoreSuOfferte rigetta e non scrive se il ruolo è negato", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(
-        new ErroreAutorizzazione(403, "Ruolo richiesto: AMMINISTRATORE"),
+      mockRichiediPermessoApi.mockRejectedValue(
+        new ErroreAutorizzazione(403, "Permesso richiesto: GESTIRE_ABILITAZIONI"),
       );
 
       const formData = new FormData();
@@ -366,8 +366,8 @@ describe("Server Actions abilitazioni", () => {
     });
 
     it("revocaAbilitazioneCollaboratore rigetta e non scrive se il ruolo è negato", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(
-        new ErroreAutorizzazione(403, "Ruolo richiesto: AMMINISTRATORE"),
+      mockRichiediPermessoApi.mockRejectedValue(
+        new ErroreAutorizzazione(403, "Permesso richiesto: GESTIRE_ABILITAZIONI"),
       );
 
       const formData = new FormData();

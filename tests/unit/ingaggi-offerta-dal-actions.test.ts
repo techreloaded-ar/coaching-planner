@@ -26,14 +26,14 @@ vi.mock("@/lib/db", () => ({
   db: mockDb,
 }));
 
-// ── Mock di richiediRuoloApi ───────────────────────────────────────
+// ── Mock di richiediPermessoApi ────────────────────────────────────
 
-const { mockRichiediRuoloApi } = vi.hoisted(() => ({
-  mockRichiediRuoloApi: vi.fn(),
+const { mockRichiediPermessoApi } = vi.hoisted(() => ({
+  mockRichiediPermessoApi: vi.fn(),
 }));
 
 vi.mock("@/lib/dal", () => ({
-  richiediRuoloApi: mockRichiediRuoloApi,
+  richiediPermessoApi: mockRichiediPermessoApi,
 }));
 
 // ── Mock di next/cache ─────────────────────────────────────────────
@@ -86,7 +86,7 @@ function statoIniziale() {
 describe("DAL ingaggi offerta — query", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
   });
 
   // ── 1. elencaCollaboratoriIngaggiati ───────────────────────────
@@ -121,7 +121,7 @@ describe("DAL ingaggi offerta — query", () => {
 
       const result = await elencaCollaboratoriIngaggiati("off-1");
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_ABILITAZIONI");
       expect(mockAbilitazioneOfferta.findMany).toHaveBeenCalledWith({
         where: { offertaId: "off-1" },
         include: {
@@ -203,7 +203,7 @@ describe("DAL ingaggi offerta — query", () => {
 
       const result = await elencaCollaboratoriIngaggiabili("off-1");
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_ABILITAZIONI");
       expect(mockCollaboratore.findMany).toHaveBeenCalledWith({
         where: {
           attivo: true,
@@ -230,10 +230,10 @@ describe("DAL ingaggi offerta — query", () => {
 
   // ── 3. Guardie di ruolo — query ────────────────────────────────
 
-  describe("guardie di ruolo — query", () => {
+  describe("guardie di permesso — query", () => {
     it("elencaCollaboratoriIngaggiati rigetta e non interroga il DB se il ruolo è negato", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(
-        new ErroreAutorizzazione(403, "Ruolo richiesto: AMMINISTRATORE"),
+      mockRichiediPermessoApi.mockRejectedValue(
+        new ErroreAutorizzazione(403, "Permesso richiesto: GESTIRE_ABILITAZIONI"),
       );
 
       await expect(elencaCollaboratoriIngaggiati("off-1")).rejects.toThrow(
@@ -243,8 +243,8 @@ describe("DAL ingaggi offerta — query", () => {
     });
 
     it("elencaCollaboratoriIngaggiabili rigetta e non interroga il DB se il ruolo è negato", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(
-        new ErroreAutorizzazione(403, "Ruolo richiesto: AMMINISTRATORE"),
+      mockRichiediPermessoApi.mockRejectedValue(
+        new ErroreAutorizzazione(403, "Permesso richiesto: GESTIRE_ABILITAZIONI"),
       );
 
       await expect(elencaCollaboratoriIngaggiabili("off-1")).rejects.toThrow(
@@ -262,7 +262,7 @@ describe("DAL ingaggi offerta — query", () => {
 describe("Server Actions ingaggi offerta", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRichiediRuoloApi.mockResolvedValue(undefined);
+    mockRichiediPermessoApi.mockResolvedValue(undefined);
     mockOfferta.findUnique.mockResolvedValue({ attiva: true });
   });
 
@@ -283,7 +283,7 @@ describe("Server Actions ingaggi offerta", () => {
 
       const result = await ingaggiaCollaboratoriSuOfferta(statoIniziale(), formData);
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_ABILITAZIONI");
       expect(mockOfferta.findUnique).toHaveBeenCalledWith({
         where: { id: "off-1" },
         select: { attiva: true },
@@ -396,7 +396,7 @@ describe("Server Actions ingaggi offerta", () => {
 
       const result = await revocaIngaggioCollaboratore(statoIniziale(), formData);
 
-      expect(mockRichiediRuoloApi).toHaveBeenCalledWith("AMMINISTRATORE");
+      expect(mockRichiediPermessoApi).toHaveBeenCalledWith("GESTIRE_ABILITAZIONI");
       expect(mockAbilitazioneOfferta.deleteMany).toHaveBeenCalledWith({
         where: { collaboratoreId: "collab-1", offertaId: "off-1" },
       });
@@ -435,10 +435,10 @@ describe("Server Actions ingaggi offerta", () => {
 
   // ── 6. Guardie di ruolo — Server Actions ───────────────────────
 
-  describe("guardie di ruolo — Server Actions", () => {
+  describe("guardie di permesso — Server Actions", () => {
     it("ingaggiaCollaboratoriSuOfferta rigetta e non scrive se il ruolo è negato", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(
-        new ErroreAutorizzazione(403, "Ruolo richiesto: AMMINISTRATORE"),
+      mockRichiediPermessoApi.mockRejectedValue(
+        new ErroreAutorizzazione(403, "Permesso richiesto: GESTIRE_ABILITAZIONI"),
       );
 
       const formData = new FormData();
@@ -454,8 +454,8 @@ describe("Server Actions ingaggi offerta", () => {
     });
 
     it("revocaIngaggioCollaboratore rigetta e non scrive se il ruolo è negato", async () => {
-      mockRichiediRuoloApi.mockRejectedValue(
-        new ErroreAutorizzazione(403, "Ruolo richiesto: AMMINISTRATORE"),
+      mockRichiediPermessoApi.mockRejectedValue(
+        new ErroreAutorizzazione(403, "Permesso richiesto: GESTIRE_ABILITAZIONI"),
       );
 
       const formData = new FormData();
