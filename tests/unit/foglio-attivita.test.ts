@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   richiediSessioneApi: vi.fn(),
   risolviProfiloCollaboratoreCorrente: vi.fn(),
   righeDelGiorno: vi.fn(),
-  collaboratore: { findUnique: vi.fn() },
+  collaboratore: { findUnique: vi.fn(), findMany: vi.fn() },
   rigaAttivita: {
     create: vi.fn(),
     createMany: vi.fn(),
@@ -50,12 +50,25 @@ vi.mock("@/lib/attivita", () => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  redirect: vi.fn((url: string) => {
+    throw new Error(`REDIRECT:${url}`);
+  }),
+  notFound: vi.fn(() => {
+    throw new Error("NOT_FOUND");
+  }),
+}));
+
 import { NextRequest } from "next/server";
-import { ErroreAutorizzazione } from "@/lib/dal";
+import { ErroreAutorizzazione, type SessioneUtente } from "@/lib/dal";
 import {
   MESSAGGIO_FOGLIO_SOLA_LETTURA,
+  collaboratoreConsultatoDellaPagina,
+  collaboratoriDelSelettore,
   risolviCollaboratoreConsultato,
 } from "@/lib/foglio-attivita";
+import { PERMESSI } from "@/domain/permessi";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import { GET as getGiornata } from "@/app/api/attivita/giornata/route";
 import {
@@ -65,17 +78,28 @@ import {
   modificaRiga,
 } from "@/lib/actions/righe-attivita";
 
-const AMMINISTRATORE = {
+const AMMINISTRATORE: SessioneUtente = {
   utenteId: "utente-admin",
   ruolo: "AMMINISTRATORE",
   nome: "Anna Admin",
   email: "admin@example.test",
+  permessi: PERMESSI,
 };
-const COLLABORATORE = {
+const COLLABORATORE: SessioneUtente = {
   utenteId: "utente-giulia",
   ruolo: "COLLABORATORE",
   nome: "Giulia Conti",
   email: "giulia@example.test",
+  permessi: [],
+};
+/** Ruolo AMMINISTRATORE ma senza il permesso: decide il permesso, non il ruolo. */
+const AMMINISTRATORE_SENZA_FOGLI_ALTRUI: SessioneUtente = {
+  ...AMMINISTRATORE,
+  permessi: PERMESSI.filter((p) => p !== "CONSULTARE_FOGLI_ATTIVITA_ALTRUI"),
+};
+const COLLABORATORE_CON_FOGLI_ALTRUI: SessioneUtente = {
+  ...COLLABORATORE,
+  permessi: ["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"],
 };
 
 function collaboratore(id: string, attivo = true) {
@@ -279,5 +303,70 @@ describe("Server Action sul foglio consultato", () => {
       success: false,
       error: "Non autenticato",
     });
+  });
+});
+
+describe("permesso di consultare i fogli altrui", () => {
+  it("senza il permesso risolviCollaboratoreConsultato risponde 403, anche con ruolo AMMINISTRATORE", async () => {
+    mocks.richiediSessioneApi.mockResolvedValue(AMMINISTRATORE_SENZA_FOGLI_ALTRUI);
+
+    await expect(risolviCollaboratoreConsultato("collab-mario")).rejects.toMatchObject({
+      statusCode: 403,
+    });
+    expect(mocks.collaboratore.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("senza il permesso la route della giornata altrui risponde 403", async () => {
+    mocks.richiediSessioneApi.mockResolvedValue(AMMINISTRATORE_SENZA_FOGLI_ALTRUI);
+
+    const risposta = await getGiornata(richiestaGiornata("?data=2026-10-12&collaboratore=collab-mario"));
+
+    expect(risposta.status).toBe(403);
+    expect(mocks.collaboratore.findUnique).not.toHaveBeenCalled();
+    expect(mocks.righeDelGiorno).not.toHaveBeenCalled();
+  });
+
+  it("senza il permesso non si scrive sul foglio di un altro", async () => {
+    mocks.richiediSessioneApi.mockResolvedValue(AMMINISTRATORE_SENZA_FOGLI_ALTRUI);
+
+    const esito = await creaRiga(
+      formRiga({
+        collaboratoreConsultatoId: "collab-mario",
+        clienteId: "cliente-1",
+        offertaId: "offerta-1",
+        ore: "4",
+        data: "2026-10-12",
+      })
+    );
+
+    expect(esito.success).toBe(false);
+    expect(mocks.collaboratore.findUnique).not.toHaveBeenCalled();
+    expect(mocks.rigaAttivita.create).not.toHaveBeenCalled();
+  });
+
+  it("senza il permesso la pagina riporta al proprio foglio", async () => {
+    await expect(
+      collaboratoreConsultatoDellaPagina(AMMINISTRATORE_SENZA_FOGLI_ALTRUI, "collab-mario")
+    ).rejects.toThrow("REDIRECT:/attivita");
+    expect(mocks.collaboratore.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("senza il permesso l'elenco del selettore risponde 403 senza leggere i collaboratori", async () => {
+    await expect(collaboratoriDelSelettore(AMMINISTRATORE_SENZA_FOGLI_ALTRUI)).rejects.toMatchObject({
+      statusCode: 403,
+    });
+    expect(mocks.collaboratore.findMany).not.toHaveBeenCalled();
+  });
+
+  it("con il solo permesso, anche con ruolo COLLABORATORE, il foglio altrui e il selettore sono ammessi", async () => {
+    mocks.richiediSessioneApi.mockResolvedValue(COLLABORATORE_CON_FOGLI_ALTRUI);
+    mocks.collaboratore.findUnique.mockResolvedValue(collaboratore("collab-mario"));
+    const elenco = [{ id: "collab-mario", nome: "Mario", cognome: "Rossi", attivo: true }];
+    mocks.collaboratore.findMany.mockResolvedValue(elenco);
+
+    await expect(risolviCollaboratoreConsultato("collab-mario")).resolves.toMatchObject({
+      id: "collab-mario",
+    });
+    await expect(collaboratoriDelSelettore(COLLABORATORE_CON_FOGLI_ALTRUI)).resolves.toEqual(elenco);
   });
 });

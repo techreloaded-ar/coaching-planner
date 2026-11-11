@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionCookie, deleteSession } from "@/lib/session";
 import type { Ruolo } from "@/domain/types";
-import { permessiDelRuolo, type Permesso } from "@/domain/permessi";
+import { haAccessoBackOffice, permessiDelRuolo, type Permesso } from "@/domain/permessi";
 import type { Collaboratore } from "@/generated/prisma/client";
 import { HOME_AUTENTICATA } from "@/lib/policy-rotte";
 
@@ -112,6 +112,22 @@ export const richiediPermesso = cache(
   async (permesso: Permesso): Promise<SessioneUtente> => {
     const sessione = await verificaSessione();
     if (!sessione.permessi.includes(permesso)) {
+      redirect(HOME_AUTENTICATA);
+    }
+    return sessione;
+  }
+);
+
+/**
+ * Guardia d'ingresso del back office: basta un qualsiasi permesso di back
+ * office. Senza sessione reindirizza alla radice, senza permessi di back
+ * office all'area autenticata comune. Ogni pagina richiede poi il permesso
+ * della propria area.
+ */
+export const richiediAccessoBackOffice = cache(
+  async (): Promise<SessioneUtente> => {
+    const sessione = await verificaSessione();
+    if (!haAccessoBackOffice(sessione.permessi)) {
       redirect(HOME_AUTENTICATA);
     }
     return sessione;
@@ -254,8 +270,8 @@ export async function richiediCollaboratoreCorrente(): Promise<Collaboratore | n
  * collaboratore specificato.
  *
  * Regole:
- * - AMMINISTRATORE: accesso pieno a tutti i collaboratori
- * - COLLABORATORE: può accedere solo ai propri dati
+ * - chi ha CONSULTARE_FOGLI_ATTIVITA_ALTRUI: accesso ai dati di tutti i collaboratori
+ * - gli altri: solo ai propri dati
  *
  * Lancia ErroreAutorizzazione(401) se non autenticato.
  * Lancia ErroreAutorizzazione(403) se il collaboratore tenta di
@@ -269,12 +285,12 @@ export async function verificaAccessoDatiCollaboratore(
 ): Promise<SessioneUtente> {
   const sessione = await richiediSessioneApi();
 
-  // L'amministratore può accedere a tutto
-  if (sessione.ruolo === "AMMINISTRATORE") {
+  // Chi consulta i fogli altrui può accedere a tutti i collaboratori
+  if (sessione.permessi.includes("CONSULTARE_FOGLI_ATTIVITA_ALTRUI")) {
     return sessione;
   }
 
-  // Il collaboratore può accedere solo ai propri dati
+  // Gli altri possono accedere solo ai propri dati
   const profilo = await db.collaboratore.findUnique({
     where: { userId: sessione.utenteId },
     select: { id: true },

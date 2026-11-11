@@ -7,7 +7,7 @@ import SidebarApplicazione from "./sidebar-applicazione";
 
 /**
  * Struttura comune delle aree autenticate (attività e console): sidebar con le
- * voci del ruolo, account in fondo e modale Impostazioni disponibile ovunque.
+ * voci consentite dai permessi, account in fondo e modale Impostazioni disponibile ovunque.
  * Qui si leggono i dati che la modale mostra (stato del connettore Google
  * Calendar) e la preferenza della sidebar collassata.
  */
@@ -30,7 +30,8 @@ export default async function StrutturaApplicazione({
   return (
     <ProviderImpostazioni collegato={collegato} emailAccesso={sessione.email}>
       <SidebarApplicazione
-        amministratore={sessione.ruolo === "AMMINISTRATORE"}
+        permessi={sessione.permessi}
+        ruolo={sessione.ruolo}
         compressaIniziale={cookieStore.get(NOME_COOKIE_SIDEBAR_COMPRESSA)?.value === "1"}
         nome={sessione.nome}
         email={sessione.email}

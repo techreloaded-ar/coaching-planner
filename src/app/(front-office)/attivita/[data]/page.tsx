@@ -42,7 +42,7 @@ export default async function DettaglioGiornataPage({
     elenco,
   } = await searchParams;
 
-  // Foglio di un altro collaboratore, aperto da un amministratore.
+  // Foglio di un altro collaboratore, aperto da chi può consultare i fogli altrui.
   const consultato = await collaboratoreConsultatoDellaPagina(
     sessione,
     collaboratoreRichiesto
@@ -60,7 +60,7 @@ export default async function DettaglioGiornataPage({
       return (
         <StatoProfiloCollaboratore
           stato={profilo.stato}
-          amministratore={sessione.ruolo === "AMMINISTRATORE"}
+          gestisceUtenti={sessione.permessi.includes("GESTIRE_UTENTI")}
         />
       );
     }

@@ -4,9 +4,9 @@ import { describe, it, expect } from "vitest";
 import type { Permesso } from "@/domain/permessi";
 
 /**
- * US-109 — Guardrail statico: il layout del back office verifica solo la
- * sessione, quindi ogni pagina deve dichiarare da sé il permesso della propria
- * area. Una pagina nuova senza voce nella mappa fa fallire il test.
+ * US-109 — Guardrail statico: il layout del back office richiede solo un
+ * qualsiasi permesso di back office (US-110), quindi ogni pagina deve dichiarare
+ * da sé il permesso della propria area. Una pagina nuova senza voce nella mappa fa fallire il test.
  */
 
 const RADICE_BACK_OFFICE = path.join(process.cwd(), "src/app/(back-office)");
@@ -44,10 +44,11 @@ function leggi(percorsoRelativo: string): string {
 }
 
 describe("permessi delle pagine del back office", () => {
-  it("il layout verifica solo la sessione, senza guardie per ruolo", () => {
+  it("il layout richiede l'accesso al back office, senza guardie per ruolo", () => {
     const layout = leggi("layout.tsx");
 
-    expect(layout).toContain("verificaSessione()");
+    expect(layout).toContain("richiediAccessoBackOffice()");
+    expect(layout).not.toContain("verificaSessione()");
     expect(layout).not.toContain("richiediRuolo");
   });
 

@@ -1,0 +1,510 @@
+schema: archetipo/plan/v2
+spec_code: US-110
+body: |-
+  # US-110: Navigazione e fogli attività altrui governati dai permessi — Piano di implementazione
+
+  **Generato da:** ARchetipo Planning Team
+  **Data:** 2026-11-11
+
+  ---
+
+  ## Spec
+
+  **Epic:** EP-001 — Autenticazione e Ruoli
+  **Priorità:** MEDIUM | **Punti:** 5 | **Blocked by:** US-109 (DONE, commit `167569a`: guardie per permesso nelle pagine/action/query del back office, layout del back office ridotto a `verificaSessione()` in attesa di questa spec)
+
+  **User Story**
+  **Come** sviluppatore che mantiene l'autorizzazione **voglio** che l'ingresso nel back office, le voci della sidebar e la consultazione dei fogli attività altrui dipendano dai permessi dell'utente **così che** un futuro ruolo con accesso parziale veda soltanto le aree che gli competono, senza interventi sulla navigazione.
+
+  **Criteri di accettazione**
+  - AC-1 — Il back office è accessibile a chi possiede almeno un permesso di back office; chi non ne possiede alcuno viene reindirizzato a `/attivita`.
+  - AC-2 — Ogni voce di amministrazione della sidebar è visibile solo se l'utente possiede il permesso della pagina a cui porta.
+  - AC-3 — Un gruppo della sidebar senza alcuna voce visibile non mostra il proprio titolo.
+  - AC-4 — L'etichetta «Amministrazione» sotto il nome dell'applicazione compare solo a chi possiede almeno un permesso di back office.
+  - AC-5 — Consultare o modificare il foglio attività di un altro collaboratore richiede il permesso «consultare fogli attività altrui»; senza, le API rispondono 403 e le pagine riportano al proprio foglio.
+  - AC-6 — Il selettore del foglio nel titolo del front office compare, e l'elenco dei collaboratori viene letto, solo per chi possiede quel permesso.
+  - AC-7 — Per amministratore e collaboratore la navigazione e il foglio attività sono identici a prima; le suite unitarie ed e2e esistenti passano.
+
+  ---
+
+  ## Soluzione tecnica
+
+  Le ultime decisioni di autorizzazione ancora basate su `sessione.ruolo === "AMMINISTRATORE"` (layout del back office, sidebar, foglio attività altrui) passano a `sessione.permessi`, che US-108 già deriva dal ruolo riletto a DB. Il catalogo `src/domain/permessi.ts` resta l'unica fonte: nessun nuovo ruolo, nessuna migrazione.
+
+  - **Permessi di back office (dominio).** In `src/domain/permessi.ts` si aggiungono `PERMESSI_BACK_OFFICE` (tutti i permessi del catalogo tranne `CONSULTARE_FOGLI_ATTIVITA_ALTRUI`, che appartiene al front office) e `haAccessoBackOffice(permessi)` (true se almeno uno è presente). Restano funzioni pure, testabili senza mock.
+  - **Ingresso nel back office (AC-1).** In `src/lib/dal.ts` nasce `richiediAccessoBackOffice` (avvolta in `cache` come `richiediPermesso`): `verificaSessione()` e poi, se `!haAccessoBackOffice(sessione.permessi)`, `redirect(HOME_AUTENTICATA)`. `src/app/(back-office)/layout.tsx` la usa al posto di `verificaSessione()`. Le guardie per pagina di US-109 restano invariate: la guardia del layout è l'ingresso, quella della pagina l'area.
+  - **Voci della sidebar (AC-2, AC-3).** Le costanti `GRUPPI_AMMINISTRAZIONE` e le icone delle voci di amministrazione si spostano da `src/app/sidebar-applicazione.tsx` nel nuovo modulo puro `src/app/navigazione-amministrazione.ts`. Ogni voce dichiara il permesso della pagina di destinazione (stessa mappa del guardrail di US-109). Si aggiunge `gruppiAmministrazioneVisibili(permessi)`, che filtra le voci e scarta i gruppi rimasti vuoti, così un titolo di gruppo non compare mai senza voci.
+
+    | Voce | Destinazione | Permesso |
+    |---|---|---|
+    | Clienti | `/anagrafiche/clienti` | `GESTIRE_CLIENTI` |
+    | Offerte | `/offerte` | `GESTIRE_OFFERTE` |
+    | Persone | `/anagrafiche/persone` | `GESTIRE_UTENTI` |
+    | Voci di rimborso | `/anagrafiche/voci-rimborso` | `GESTIRE_VOCI_RIMBORSO` |
+    | Importazione | `/importazione` | `GESTIRE_IMPORTAZIONE` |
+    | Fatturazione clienti | `/report/fatturazione-clienti` | `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI` |
+    | Fatturazione collaboratori | `/report/fatturazione-collaboratori` | `CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI` |
+    | Marginalità | `/report/marginalita` | `CONSULTARE_REPORT_MARGINALITA` |
+
+  - **Props della sidebar (AC-4).** `SidebarApplicazione` sostituisce la prop `amministratore: boolean` con `permessi: readonly Permesso[]` e `ruolo: Ruolo`. L'etichetta «Amministrazione» usa `haAccessoBackOffice(permessi)`. L'etichetta di ruolo del `MenuAccount` resta basata su `ruolo`, fuori perimetro come da spec. `src/app/struttura-applicazione.tsx` passa `sessione.permessi` e `sessione.ruolo`.
+  - **Foglio attività altrui (AC-5, AC-6).** In `src/lib/foglio-attivita.ts` i tre controlli `sessione.ruolo !== "AMMINISTRATORE"` (`risolviCollaboratoreConsultato`, `collaboratoreConsultatoDellaPagina`, `collaboratoriDelSelettore`) diventano `!sessione.permessi.includes("CONSULTARE_FOGLI_ATTIVITA_ALTRUI")`. Messaggi 403, redirect a `HOME_AUTENTICATA` e `notFound` restano invariati. Le quattro route `src/app/api/attivita/*` e le Server Action di `src/lib/actions/righe-attivita.ts` passano già da queste funzioni, quindi ereditano il controllo senza modifiche. `src/app/(front-office)/layout.tsx` decide il selettore con lo stesso permesso. Per coerenza anche `verificaAccessoDatiCollaboratore` in `src/lib/dal.ts` (oggi chiamata solo dai test) usa il permesso al posto del ruolo.
+  - **Collegamento «Apri Persone».** `StatoProfiloCollaboratore` mostra il collegamento a `/anagrafiche/persone` in base al permesso `GESTIRE_UTENTI`: è la stessa regola della voce Persone della sidebar. La prop `amministratore` diventa `gestisceUtenti` nelle tre pagine del front office (`attivita/page.tsx`, `attivita/[data]/page.tsx`, `attivita/riepilogo/page.tsx`).
+
+  **Fuori perimetro (da non toccare):** `src/lib/policy-rotte.ts` e `src/proxy.ts`, che oggi non controllano il ruolo; la protezione dell'ultimo amministratore e il form persone/utenti; l'etichetta del ruolo e il colore dell'avatar nel menu account; la pagina indice `/anagrafiche`; i commenti descrittivi «da un amministratore» nei componenti client del foglio, che non decidono nulla.
+
+  ### Decisioni architetturali
+
+  Nessuna ADR. La scelta prosegue il pattern già adottato con US-108/US-109 (permessi derivati dal ruolo nel catalogo di dominio, guardie nel DAL) senza alternative di peso. La Wiki è disattivata (`wiki.enabled: false`), quindi il piano non prevede attività sulla Wiki.
+
+  ---
+
+  ## Baseline
+
+  Eseguita il 2026-11-11 su `main` @ `167569a`, nella radice del progetto (nessun worktree).
+
+  | Check | Risultato prima dell'implementazione | Conseguenza per il piano |
+  |---|---|---|
+  | `npm run test` (vitest run) | Verde: 85 file, 1229 test superati | Ogni task richiede che la suite resti verde; i test nuovi si aggiungono a questa base. |
+  | `npm run lint` | Verde (eslint + guardrail e2e anti-flakiness superato; solo avvisi `⚠️ chiave riservata non risolvibile staticamente` preesistenti in `tests/e2e/support/date.ts` e `report-data.ts`) | Atteso verde, con gli stessi avvisi preesistenti e nessun errore nuovo. |
+  | `npx tsc --noEmit -p .` | 4 errori TS2307, tutti in `.next/dev/types/validator.ts`: tipi generati da un `next dev` precedente che puntano al gruppo `(impostazioni)`, oggi rimosso. Nessun errore in `src/` o `tests/`. | Artefatto d'ambiente, non del codice: le verifiche dei task filtrano `grep -v '^.next/'` e richiedono **zero** errori fuori da `.next/`. La build rigenera i tipi. |
+  | `archetipo execution environment check build` | Non eseguito in fase di pianificazione (costoso) | Lo esegue il gate finale come check registrato. |
+  | `archetipo execution environment check e2e` | Non eseguito in fase di pianificazione (suite Playwright completa, ~30 min) | Lo esegue il gate finale. Gli e2e instabili preesistenti noti si distinguono rieseguendo la stessa spec sulla base, senza toccare retry o worker. |
+
+  **Prerequisiti d'ambiente:** recipe `.archetipo/environment.json` (risorsa `postgres`, check `npm-ci`, `migrazioni-e-seed`, `build`, `e2e`, `lint`, `unit`). Per build ed e2e serve la preparazione dell'ambiente (`archetipo execution environment prepare`) prima dei check. Unit test e lint non richiedono il database.
+
+  ---
+
+  ## Mappa delle evidenze di accettazione
+
+  | Criterio | Stato iniziale / fixture | Livello di test | Oracolo osservabile | Task |
+  |---|---|---|---|---|
+  | AC-1 | Sessione da DB con `permessiDelRuolo` sostituito da un insieme fittizio: `[]`, `["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"]`, `["CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"]` | Unit (`tests/unit/dal-permessi.test.ts`) + guardrail statico (`tests/unit/permessi-pagine-back-office.test.ts`) | `richiediAccessoBackOffice()` lancia `REDIRECT:/attivita` per i primi due insiemi e restituisce la sessione per il terzo. Il layout del back office contiene `richiediAccessoBackOffice()` e non contiene più `verificaSessione()`. | TASK-02 |
+  | AC-2 | Insiemi di permessi: solo `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI`; `PERMESSI` completo; `[]` | Unit su funzione pura (`tests/unit/navigazione-amministrazione.test.ts`) | `gruppiAmministrazioneVisibili(["CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"])` → un solo gruppo «Reportistica» con la sola voce «Fatturazione clienti» → `/report/fatturazione-clienti`; ogni voce dichiara il permesso della pagina (stessa mappa del guardrail US-109) | TASK-04 |
+  | AC-3 | Stessi insiemi | Unit su funzione pura | Con il solo permesso del report non compare alcun gruppo «Anagrafica»; con `[]` il risultato è `[]` (nessun titolo di gruppo) | TASK-04 |
+  | AC-4 | `PERMESSI`, `[]`, `["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"]`, `["GESTIRE_IMPORTAZIONE"]` | Unit (`tests/unit/permessi.test.ts`) + ispezione statica della sidebar | `haAccessoBackOffice` vale true per `PERMESSI` e `["GESTIRE_IMPORTAZIONE"]`, false per `[]` e `["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"]`. In `sidebar-applicazione.tsx` l'etichetta «Amministrazione» è condizionata da `haAccessoBackOffice(permessi)`. | TASK-01, TASK-04 |
+  | AC-5 | Sessione mock con `ruolo: "AMMINISTRATORE"` e tutti i permessi tranne `CONSULTARE_FOGLI_ATTIVITA_ALTRUI` (prova che decide il permesso, non il ruolo); sessione `COLLABORATORE` con il solo `CONSULTARE_FOGLI_ATTIVITA_ALTRUI` | Unit (`tests/unit/foglio-attivita.test.ts`) su route reale `GET /api/attivita/giornata`, Server Action reale `creaRiga`, `collaboratoreConsultatoDellaPagina` | Senza il permesso: la route risponde `status 403`, `creaRiga` restituisce `success: false`, `collaboratoreConsultatoDellaPagina` lancia `REDIRECT:/attivita`; in nessun caso viene letto `db.collaboratore.findUnique`. Con il solo permesso il collaboratore consultato viene risolto. | TASK-06 |
+  | AC-6 | Stessi insiemi; layout del front office con `StrutturaApplicazione` e `SelettoreFoglioAttivita` sostituiti da stub | Unit su RSC reale (`tests/unit/layout-front-office.test.ts`) + `collaboratoriDelSelettore` | Senza il permesso l'`intestazione` è l'`h1` «Le mie attività», `collaboratoriDelSelettore` lancia 403 e `db.collaboratore.findMany` non viene chiamato. Con il permesso l'`intestazione` è il selettore con l'elenco restituito. | TASK-06 |
+  | AC-7 | Seed e factory e2e esistenti (admin e Giulia Conti in sola lettura di navigazione) | E2E esistenti (`tests/e2e/sidebar.spec.ts`, `foglio-attivita-amministratore.spec.ts`, `autorizzazione-ruoli.spec.ts`, `logo-intestazione.spec.ts`) + unit di regressione | Suite e2e completa e `npm run test` verdi; in `sidebar.spec.ts` l'amministratore vede le 10 voci in ordine e il collaboratore solo «Registro attività» e «Riepilogo mensile»; con `PERMESSI` la funzione pura restituisce gli 8 link di amministrazione nell'ordine attuale | TASK-04, TASK-07 |
+
+  ---
+
+  ## Strategia di test
+
+  I casi parziali non esistono ancora come ruoli reali, quindi si provano solo con unit test e insiemi di permessi fittizi. I comportamenti di amministratore e collaboratore, che restano invariati, li provano le suite e2e esistenti.
+
+  - **Funzioni pure prima di tutto:** `haAccessoBackOffice` e `gruppiAmministrazioneVisibili` contengono tutta la logica di visibilità della sidebar, che resta un componente client di sola presentazione. L'ambiente vitest è `node` e non ha testing-library, quindi la decisione va estratta nella funzione pura invece di renderizzare il componente.
+  - **Componenti reali sui confini:** per AC-5 e AC-6 si chiamano la route handler, la Server Action, `collaboratoreConsultatoDellaPagina` e il layout RSC reali. Si sostituiscono solo sessione, Prisma e i componenti figli di presentazione: l'oracolo (403, redirect, `findMany` mai chiamato, tipo di intestazione) resta osservabile.
+  - **Guardrail statico:** `permessi-pagine-back-office.test.ts` continua a verificare che ogni pagina dichiari il proprio permesso, e ora anche che il layout usi la guardia d'ingresso.
+  - **Regressione:** le fixture di sessione di `foglio-attivita.test.ts` ricevono `permessi` espliciti; gli e2e esistenti, non modificati, provano AC-7.
+
+  ### Rinuncia ai nuovi test e2e nel browser
+
+  **Motivo:** l'unico comportamento nuovo riguarda insiemi di permessi che nessun ruolo reale possiede, quindi un browser non può impersonarli senza introdurre ruoli o seed fittizi, esplicitamente fuori perimetro. Il comportamento osservabile da amministratore e collaboratore è invariato ed è già coperto dagli e2e esistenti, che il gate esegue integralmente.
+  **Livello di evidenza usato:** unit test vitest su funzioni pure, guardie del DAL, route handler, Server Action e layout RSC reali con insiemi di permessi fittizi, più la suite e2e esistente come regressione.
+  **Video demo:** i Demonstrates 3 e 4 sono filmabili (accesso come amministratore e come collaboratore); la registrazione spetta ad `archetipo-review`.
+
+  ---
+
+  _Piano generato da ARchetipo Planning — 2026-11-11_
+tasks:
+  - id: TASK-01
+    title: Permessi di back office nel catalogo di dominio (PERMESSI_BACK_OFFICE, haAccessoBackOffice)
+    type: Impl
+    status: DONE
+    body: |-
+      ## Objective
+      Il catalogo `src/domain/permessi.ts` espone l'elenco dei permessi di back office e una funzione pura che dice se un insieme di permessi dà accesso al back office.
+
+      ## Read
+      - src/domain/permessi.ts — `PERMESSI`, `Permesso`, `PERMESSI_PER_RUOLO`, `permessiDelRuolo`
+      - tests/unit/permessi.test.ts — stile dei test esistenti sul catalogo
+
+      ## Change
+      - src/domain/permessi.ts — aggiungere `PERMESSI_BACK_OFFICE` e `haAccessoBackOffice`. Non cambiare `PERMESSI`, il suo ordine né `PERMESSI_PER_RUOLO`.
+      - tests/unit/permessi.test.ts — aggiungere i casi qui sotto, senza modificare quelli esistenti.
+
+      ## Steps
+      1. In `src/domain/permessi.ts`, dopo il tipo `Permesso`, aggiungere:
+         ```ts
+         /** Permessi che aprono il back office: tutti tranne quelli del solo front office. */
+         export const PERMESSI_BACK_OFFICE: readonly Permesso[] = PERMESSI.filter(
+           (permesso) => permesso !== "CONSULTARE_FOGLI_ATTIVITA_ALTRUI"
+         );
+
+         /** Vero se l'insieme contiene almeno un permesso di back office. */
+         export function haAccessoBackOffice(permessi: readonly Permesso[]): boolean {
+           return permessi.some((permesso) => PERMESSI_BACK_OFFICE.includes(permesso));
+         }
+         ```
+      2. In `tests/unit/permessi.test.ts` aggiungere un `describe("haAccessoBackOffice", ...)` con questi casi:
+         - `PERMESSI_BACK_OFFICE` non contiene `CONSULTARE_FOGLI_ATTIVITA_ALTRUI` e contiene gli altri 11 permessi (`toHaveLength(PERMESSI.length - 1)`);
+         - `haAccessoBackOffice(PERMESSI)` → true; `haAccessoBackOffice(permessiDelRuolo("AMMINISTRATORE"))` → true;
+         - `haAccessoBackOffice([])` e `haAccessoBackOffice(permessiDelRuolo("COLLABORATORE"))` → false;
+         - `haAccessoBackOffice(["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"])` → false;
+         - `haAccessoBackOffice(["GESTIRE_IMPORTAZIONE"])` e `haAccessoBackOffice(["CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"])` → true.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/permessi.test.ts`
+      - Expect: tutti i test superati, compresi i nuovi casi.
+      - Run: `npx tsc --noEmit -p . 2>&1 | grep -v '^.next/' | grep -c 'error TS'`
+      - Expect: `0` (gli unici errori di baseline sono in `.next/dev/types/validator.ts`).
+
+      ## Done
+      - [ ] AC-1 — esiste un criterio unico e testato di «almeno un permesso di back office»
+      - [ ] AC-4 — `haAccessoBackOffice` è false per `[]` e per il solo `CONSULTARE_FOGLI_ATTIVITA_ALTRUI`, true per un singolo permesso di back office
+
+      ## Blockers
+      None.
+    ref: TASK-01
+  - id: TASK-02
+    title: Guardia d'ingresso richiediAccessoBackOffice nel DAL e nel layout del back office
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Chi non possiede alcun permesso di back office viene reindirizzato a `/attivita` dal layout del back office. Chi ne possiede almeno uno entra, e poi ogni pagina applica il proprio permesso, come già prevede US-109.
+
+      ## Read
+      - src/lib/dal.ts — `verificaSessione`, `richiediPermesso` (pattern con `cache` e `redirect(HOME_AUTENTICATA)`), import da `@/domain/permessi`
+      - src/app/(back-office)/layout.tsx — chiamata attuale a `verificaSessione()` e commento «la guardia d'ingresso al back office arriverà con US-110»
+      - tests/unit/dal-permessi.test.ts — mock di Prisma, del cookie e di `next/navigation`; helper `autentica`; avvertenza sulla cache di React (ID distinti per caso)
+      - tests/unit/permessi-pagine-back-office.test.ts — caso «il layout verifica solo la sessione, senza guardie per ruolo»
+
+      ## Change
+      - src/lib/dal.ts — aggiungere `richiediAccessoBackOffice`; importare `haAccessoBackOffice`. Nessun'altra guardia modificata.
+      - src/app/(back-office)/layout.tsx — sostituire `verificaSessione()` con `richiediAccessoBackOffice()` e aggiornare il commento. Il markup resta invariato.
+      - tests/unit/permessi-pagine-back-office.test.ts — aggiornare solo il caso del layout.
+      - tests/unit/dal-permessi.test.ts — aggiungere il mock parziale di `@/domain/permessi` e il `describe` della nuova guardia. I casi esistenti restano invariati.
+
+      ## Steps
+      1. In `src/lib/dal.ts` estendere l'import: `import { haAccessoBackOffice, permessiDelRuolo, type Permesso } from "@/domain/permessi";`.
+      2. Subito dopo `richiediPermesso` aggiungere:
+         ```ts
+         /**
+          * Guardia d'ingresso del back office: basta un qualsiasi permesso di back
+          * office. Senza sessione reindirizza alla radice, senza permessi di back
+          * office all'area autenticata comune. Ogni pagina richiede poi il permesso
+          * della propria area.
+          */
+         export const richiediAccessoBackOffice = cache(
+           async (): Promise<SessioneUtente> => {
+             const sessione = await verificaSessione();
+             if (!haAccessoBackOffice(sessione.permessi)) {
+               redirect(HOME_AUTENTICATA);
+             }
+             return sessione;
+           }
+         );
+         ```
+      3. In `src/app/(back-office)/layout.tsx` importare `richiediAccessoBackOffice` al posto di `verificaSessione`, usare `const sessione = await richiediAccessoBackOffice();` e sostituire il commento con: `// Ingresso: almeno un permesso di back office; ogni pagina richiede poi il permesso della propria area.`
+      4. In `tests/unit/permessi-pagine-back-office.test.ts` rinominare il caso del layout in «il layout richiede l'accesso al back office, senza guardie per ruolo» e asserire `toContain("richiediAccessoBackOffice()")`, `not.toContain("verificaSessione()")`, `not.toContain("richiediRuolo")`.
+      5. In `tests/unit/dal-permessi.test.ts`:
+         - aggiungere un mock parziale hoisted che renda sostituibile l'insieme di permessi derivato dal ruolo:
+           ```ts
+           const { mockPermessiDelRuolo } = vi.hoisted(() => ({ mockPermessiDelRuolo: vi.fn() }));
+           vi.mock("@/domain/permessi", async (importOriginal) => {
+             const actual = await importOriginal<typeof import("@/domain/permessi")>();
+             mockPermessiDelRuolo.mockImplementation(actual.permessiDelRuolo);
+             return { ...actual, permessiDelRuolo: mockPermessiDelRuolo };
+           });
+           ```
+           Poiché `vi.clearAllMocks()` non resetta le implementazioni, i casi esistenti continuano a usare la mappa reale;
+         - importare `richiediAccessoBackOffice` da `@/lib/dal`;
+         - aggiungere `describe("richiediAccessoBackOffice", ...)` con ID utente distinti per caso:
+           a. senza sessione → `rejects.toThrow(/^REDIRECT:\/$/)`;
+           b. `autentica(..., "COLLABORATORE", "COLLABORATORE")` (permessi `[]`) → `rejects.toThrow("REDIRECT:/attivita")`;
+           c. `mockPermessiDelRuolo.mockReturnValueOnce(["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"])` con ruolo a DB `AMMINISTRATORE` → `REDIRECT:/attivita` (decide il permesso, non il ruolo);
+           d. `mockPermessiDelRuolo.mockReturnValueOnce(["CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"])` con ruolo a DB `COLLABORATORE` → restituisce la sessione, `redirect` non chiamato;
+           e. amministratore reale → restituisce la sessione con `permessi` di lunghezza `PERMESSI.length`.
+      6. Se i casi c–e risultassero memoizzati dalla `cache` di React (stessa sessione restituita tra casi), togliere `cache` da `richiediAccessoBackOffice`, che resta comunque coperta da `verificaSessione`. Non introdurre altri meccanismi.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/dal-permessi.test.ts tests/unit/permessi-pagine-back-office.test.ts tests/unit/dal-guards.test.ts`
+      - Expect: tutti superati, compresi i 5 nuovi casi e il caso del layout aggiornato.
+      - Run: `npx tsc --noEmit -p . 2>&1 | grep -v '^.next/' | grep -c 'error TS'`
+      - Expect: `0`.
+
+      ## Done
+      - [ ] AC-1 — `richiediAccessoBackOffice` reindirizza a `/attivita` gli insiemi `[]` e `["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"]` e lascia entrare `["CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"]`; il layout del back office la usa (guardrail statico verde)
+      - [ ] AC-7 — l'amministratore reale entra come prima; il collaboratore reale viene reindirizzato a `/attivita` come prima
+
+      ## Blockers
+      None.
+    ref: TASK-02
+  - id: TASK-03
+    title: Voci di amministrazione della sidebar filtrate per permesso (navigazione-amministrazione.ts)
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      La sidebar mostra solo le voci di amministrazione di cui l'utente possiede il permesso di destinazione e omette i gruppi rimasti vuoti. L'etichetta «Amministrazione» compare solo a chi ha accesso al back office.
+
+      ## Read
+      - src/app/sidebar-applicazione.tsx — costanti `ICONA_*`, `GRUPPI_AMMINISTRAZIONE`, prop `amministratore` (righe ~123, 203, 246, 287)
+      - src/app/struttura-applicazione.tsx — prop `amministratore={sessione.ruolo === "AMMINISTRATORE"}`
+      - src/domain/permessi.ts — `Permesso`, `haAccessoBackOffice` (TASK-01)
+      - src/domain/types.ts — tipo `Ruolo`
+      - tests/unit/permessi-pagine-back-office.test.ts — `PERMESSO_PER_PREFISSO`, la mappa area → permesso da rispettare
+
+      ## Change
+      - src/app/navigazione-amministrazione.ts — nuovo modulo puro (senza `"use client"` né import di React/Next) con le icone delle sole voci di amministrazione, `GRUPPI_AMMINISTRAZIONE` (ogni voce con `permesso`) e `gruppiAmministrazioneVisibili`.
+      - src/app/sidebar-applicazione.tsx — rimuovere le costanti spostate, importarle dal nuovo modulo, sostituire la prop `amministratore` con `permessi` e `ruolo`. `ICONA_ATTIVITA` e `ICONA_RIEPILOGO` restano nella sidebar. Markup e classi invariati.
+      - src/app/struttura-applicazione.tsx — passare `permessi={sessione.permessi}` e `ruolo={sessione.ruolo}` al posto di `amministratore`.
+      - Non toccare `MenuAccount`, le voci «Registro attività» e «Riepilogo mensile» né `hrefNelFoglio`.
+
+      ## Steps
+      1. Creare `src/app/navigazione-amministrazione.ts`:
+         - spostare senza modifiche le costanti `ICONA_CLIENTI`, `ICONA_OFFERTE`, `ICONA_PERSONE`, `ICONA_VOCI_RIMBORSO`, `ICONA_IMPORTAZIONE`, `ICONA_FATTURAZIONE_CLIENTI`, `ICONA_FATTURAZIONE_COLLABORATORI`, `ICONA_MARGINALITA` (non esportate);
+         - definire ed esportare i tipi `VoceAmministrazione { href: string; etichetta: string; icona: string; permesso: Permesso }` e `GruppoAmministrazione { titolo: string; voci: readonly VoceAmministrazione[] }`;
+         - esportare `GRUPPI_AMMINISTRAZIONE: readonly GruppoAmministrazione[]` con gli stessi gruppi, ordine, href ed etichette di oggi e i permessi: Clienti `GESTIRE_CLIENTI`, Offerte `GESTIRE_OFFERTE`, Persone `GESTIRE_UTENTI`, Voci di rimborso `GESTIRE_VOCI_RIMBORSO`, Importazione `GESTIRE_IMPORTAZIONE`, Fatturazione clienti `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI`, Fatturazione collaboratori `CONSULTARE_REPORT_FATTURAZIONE_COLLABORATORI`, Marginalità `CONSULTARE_REPORT_MARGINALITA`;
+         - esportare:
+           ```ts
+           /** Gruppi con le sole voci consentite dai permessi; i gruppi vuoti spariscono, titolo compreso. */
+           export function gruppiAmministrazioneVisibili(permessi: readonly Permesso[]): GruppoAmministrazione[] {
+             return GRUPPI_AMMINISTRAZIONE
+               .map((gruppo) => ({ ...gruppo, voci: gruppo.voci.filter((voce) => permessi.includes(voce.permesso)) }))
+               .filter((gruppo) => gruppo.voci.length > 0);
+           }
+           ```
+         - mantenere il commento «Voci di amministrazione: pagine server con dati sempre freschi, navigazione documentale.».
+      2. In `src/app/sidebar-applicazione.tsx`:
+         - importare `gruppiAmministrazioneVisibili` da `./navigazione-amministrazione`, `haAccessoBackOffice` e `type Permesso` da `@/domain/permessi`, `type Ruolo` da `@/domain/types`;
+         - nelle props sostituire `amministratore: boolean` con `permessi: readonly Permesso[]` e `ruolo: Ruolo`;
+         - nel corpo: `const gruppiAmministrazione = gruppiAmministrazioneVisibili(permessi);`;
+         - etichetta: `{haAccessoBackOffice(permessi) && <span ...>Amministrazione</span>}`;
+         - sostituire `{amministratore && GRUPPI_AMMINISTRAZIONE.map(...)}` con `{gruppiAmministrazione.map(...)}`, lasciando invariato il corpo della map;
+         - `MenuAccount`: `ruolo={ruolo === "AMMINISTRATORE" ? "Amministratore" : "Collaboratore"}` (etichetta di ruolo fuori perimetro, resta per ruolo);
+         - aggiornare il JSDoc del componente: «voci consentite dai permessi» al posto di «voci del ruolo».
+      3. In `src/app/struttura-applicazione.tsx` sostituire `amministratore={sessione.ruolo === "AMMINISTRATORE"}` con `permessi={sessione.permessi}` e `ruolo={sessione.ruolo}`; aggiornare il commento «sidebar con le voci del ruolo» in «sidebar con le voci consentite dai permessi».
+      4. Verificare con `grep -n "amministratore" src/app/sidebar-applicazione.tsx src/app/struttura-applicazione.tsx` che resti solo il commento su `hrefNelFoglio` (riga «foglio consultato dall'amministratore»), che si aggiorna in «foglio consultato».
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p . 2>&1 | grep -v '^.next/' | grep -c 'error TS'`
+      - Expect: `0` (nessun chiamante residuo della prop `amministratore`).
+      - Run: `npx eslint src/app/navigazione-amministrazione.ts src/app/sidebar-applicazione.tsx src/app/struttura-applicazione.tsx`
+      - Expect: nessun errore né avviso.
+      - Run: `npm run test`
+      - Expect: 85 file / 1229 test di baseline più quelli aggiunti da TASK-01 e TASK-02, tutti verdi.
+
+      ## Done
+      - [ ] AC-2 — ogni voce di `GRUPPI_AMMINISTRAZIONE` dichiara il permesso della pagina di destinazione e la sidebar rende solo `gruppiAmministrazioneVisibili(permessi)`
+      - [ ] AC-3 — i gruppi senza voci visibili non vengono passati al rendering, quindi il loro titolo non compare
+      - [ ] AC-4 — l'etichetta «Amministrazione» dipende da `haAccessoBackOffice(permessi)`
+      - [ ] AC-7 — ordine, etichette, href e icone delle voci invariati; nessuna prop `amministratore` residua
+
+      ## Blockers
+      None.
+    ref: TASK-03
+  - id: TASK-04
+    title: Test della navigazione di amministrazione con insiemi di permessi fittizi
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-03
+    body: |-
+      ## Objective
+      Un test unitario dimostra che, con il solo permesso del report di fatturazione clienti, la sidebar elenca soltanto quella voce, nel solo gruppo «Reportistica». Dimostra anche che amministratore e collaboratore vedono le stesse voci di prima.
+
+      ## Read
+      - src/app/navigazione-amministrazione.ts — `GRUPPI_AMMINISTRAZIONE`, `gruppiAmministrazioneVisibili` (TASK-03)
+      - src/domain/permessi.ts — `PERMESSI`, `permessiDelRuolo`, `haAccessoBackOffice`
+      - tests/unit/permessi-pagine-back-office.test.ts — mappa area → permesso di riferimento
+      - tests/e2e/sidebar.spec.ts — ordine atteso delle voci per l'amministratore
+
+      ## Change
+      - tests/unit/navigazione-amministrazione.test.ts — nuovo file. Nessuna modifica al codice di produzione.
+
+      ## Steps
+      1. Creare `tests/unit/navigazione-amministrazione.test.ts` (import da `vitest`, `@/app/navigazione-amministrazione`, `@/domain/permessi`). Helper locale: `const etichette = (gruppi) => gruppi.flatMap((g) => g.voci.map((v) => v.etichetta));`.
+      2. Caso «solo il report di fatturazione clienti» (Demonstrates 1, AC-2, AC-3):
+         `gruppiAmministrazioneVisibili(["CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"])` è uguale (`toEqual` su titolo, href ed etichetta) a un solo gruppo `{ titolo: "Reportistica" }` con la sola voce `{ href: "/report/fatturazione-clienti", etichetta: "Fatturazione clienti" }`. Asserire inoltre che nessun gruppo ha titolo «Anagrafica».
+      3. Caso amministratore (AC-7): con `permessiDelRuolo("AMMINISTRATORE")` i titoli sono `["Anagrafica", "Reportistica"]` e `etichette(...)` è esattamente `["Clienti", "Offerte", "Persone", "Voci di rimborso", "Importazione", "Fatturazione clienti", "Fatturazione collaboratori", "Marginalità"]`.
+      4. Caso collaboratore (AC-3, AC-7): `gruppiAmministrazioneVisibili(permessiDelRuolo("COLLABORATORE"))` e `gruppiAmministrazioneVisibili(["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"])` sono `[]`.
+      5. Caso «ogni voce richiede il permesso della sua pagina» (AC-2): `it.each` sulla tabella attesa `[href, permesso]` (Clienti → `GESTIRE_CLIENTI`, Offerte → `GESTIRE_OFFERTE`, Persone → `GESTIRE_UTENTI`, Voci di rimborso → `GESTIRE_VOCI_RIMBORSO`, Importazione → `GESTIRE_IMPORTAZIONE`, i tre report → il proprio `CONSULTARE_REPORT_*`). Per ogni voce: `gruppiAmministrazioneVisibili([permesso])` contiene solo quella voce, e `gruppiAmministrazioneVisibili(PERMESSI.filter((p) => p !== permesso))` non la contiene.
+      6. Caso etichetta «Amministrazione» (AC-4), legato ai permessi del caso 2: `haAccessoBackOffice(["CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"])` → true, `haAccessoBackOffice(permessiDelRuolo("COLLABORATORE"))` → false.
+      7. Caso statico (AC-4): leggere `src/app/sidebar-applicazione.tsx` con `fs.readFileSync(path.join(process.cwd(), ...))` e asserire che contiene `haAccessoBackOffice(permessi) &&` e `gruppiAmministrazioneVisibili(permessi)`, e non contiene `GRUPPI_AMMINISTRAZIONE.map` né `amministratore &&`.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/navigazione-amministrazione.test.ts`
+      - Expect: tutti i casi superati.
+      - Run: `npm run test`
+      - Expect: suite completa verde.
+
+      ## Done
+      - [ ] AC-2 — con il solo `CONSULTARE_REPORT_FATTURAZIONE_CLIENTI` la funzione restituisce la sola voce «Fatturazione clienti»; ogni voce compare solo con il proprio permesso
+      - [ ] AC-3 — nessun gruppo «Anagrafica» con il solo permesso del report; `[]` per collaboratore e per il solo permesso del foglio altrui
+      - [ ] AC-4 — etichetta condizionata da `haAccessoBackOffice(permessi)` nella sidebar e predicato verificato sugli stessi insiemi
+      - [ ] AC-7 — l'amministratore ottiene gli 8 link di amministrazione nell'ordine attuale
+
+      ## Blockers
+      None.
+    ref: TASK-04
+  - id: TASK-05
+    title: Foglio attività altrui e selettore governati da CONSULTARE_FOGLI_ATTIVITA_ALTRUI
+    type: Impl
+    status: DONE
+    dependencies:
+      - TASK-01
+    body: |-
+      ## Objective
+      Consultare o modificare il foglio di un altro collaboratore e vedere il selettore del foglio dipendono dal permesso `CONSULTARE_FOGLI_ATTIVITA_ALTRUI`, non più dal ruolo. Il collegamento «Apri Persone» dello stato profilo dipende da `GESTIRE_UTENTI`.
+
+      ## Read
+      - src/lib/foglio-attivita.ts — `risolviCollaboratoreConsultato`, `collaboratoreConsultatoDellaPagina`, `collaboratoriDelSelettore` (tre controlli `sessione.ruolo !== "AMMINISTRATORE"`) e commenti di modulo
+      - src/lib/dal.ts — `verificaAccessoDatiCollaboratore` (controllo `sessione.ruolo === "AMMINISTRATORE"`)
+      - src/app/(front-office)/layout.tsx — `const amministratore = sessione.ruolo === "AMMINISTRATORE"`
+      - src/app/(front-office)/attivita/stato-profilo-collaboratore.tsx — prop `amministratore` e link «Apri Persone»
+      - src/app/(front-office)/attivita/page.tsx, src/app/(front-office)/attivita/[data]/page.tsx, src/app/(front-office)/attivita/riepilogo/page.tsx — `amministratore={sessione.ruolo === "AMMINISTRATORE"}`
+      - src/lib/actions/righe-attivita.ts e src/app/api/attivita/*/route.ts — passano già da `risolviCollaboratoreConsultato`/`risolviCollaboratoreDelFoglio`: da leggere, non da modificare
+
+      ## Change
+      - src/lib/foglio-attivita.ts — tre condizioni e relativi JSDoc/commenti. Messaggi d'errore, status, redirect e `notFound` invariati, tranne il testo del 403 di `collaboratoriDelSelettore` (vedi Steps).
+      - src/lib/dal.ts — solo `verificaAccessoDatiCollaboratore` (condizione e JSDoc «Regole»).
+      - src/app/(front-office)/layout.tsx — variabile e commento.
+      - src/app/(front-office)/attivita/stato-profilo-collaboratore.tsx — prop `amministratore` rinominata `gestisceUtenti`.
+      - Le tre pagine del front office — solo il valore passato a `StatoProfiloCollaboratore`.
+      - Non toccare route API, Server Action, componenti client del foglio, `policy-rotte.ts`, `proxy.ts`.
+
+      ## Steps
+      1. In `src/lib/foglio-attivita.ts` definire una costante locale `const PERMESSO_FOGLI_ALTRUI = "CONSULTARE_FOGLI_ATTIVITA_ALTRUI" satisfies Permesso;` (con `import type { Permesso } from "@/domain/permessi";`) e sostituire:
+         - in `risolviCollaboratoreConsultato`: `if (!sessione.permessi.includes(PERMESSO_FOGLI_ALTRUI))`, con messaggio `"Serve il permesso di consultare i fogli attività altrui"`, status 403;
+         - in `collaboratoreConsultatoDellaPagina`: `if (!sessione.permessi.includes(PERMESSO_FOGLI_ALTRUI)) { redirect(HOME_AUTENTICATA); }`;
+         - in `collaboratoriDelSelettore`: `if (!sessione.permessi.includes(PERMESSO_FOGLI_ALTRUI))`, con messaggio `"Serve il permesso di consultare i fogli attività altrui"`, status 403;
+         - nei JSDoc e nel commento di sezione sostituire «amministratore» con «chi ha il permesso di consultare i fogli altrui». La sezione diventa `// ── Foglio attività consultato da un altro utente ─────`.
+      2. Verificare con `grep -rn "Solo un amministratore\|Accesso riservato all'amministratore" src tests` che nessun test asserisca i vecchi messaggi. Se un test li asserisce, aggiornarne l'atteso al nuovo testo nello stesso task.
+      3. In `src/lib/dal.ts`, `verificaAccessoDatiCollaboratore`: sostituire `if (sessione.ruolo === "AMMINISTRATORE")` con `if (sessione.permessi.includes("CONSULTARE_FOGLI_ATTIVITA_ALTRUI"))` e aggiornare il JSDoc: «- chi ha CONSULTARE_FOGLI_ATTIVITA_ALTRUI: accesso ai dati di tutti i collaboratori» e «- gli altri: solo ai propri dati».
+      4. In `src/app/(front-office)/layout.tsx`: `const consultaFogliAltrui = sessione.permessi.includes("CONSULTARE_FOGLI_ATTIVITA_ALTRUI");`, usarla al posto di `amministratore` nelle due condizioni e aggiornare il commento: «Solo per chi può consultare i fogli altrui il titolo diventa il selettore del foglio: l'elenco dei collaboratori non viene mai letto per gli altri utenti.».
+      5. In `stato-profilo-collaboratore.tsx` rinominare la prop `amministratore` in `gestisceUtenti`, con JSDoc «Il collegamento a Persone porta a una pagina che richiede GESTIRE_UTENTI.», e usarla nella condizione del `Link`.
+      6. Nelle tre pagine del front office sostituire `amministratore={sessione.ruolo === "AMMINISTRATORE"}` con `gestisceUtenti={sessione.permessi.includes("GESTIRE_UTENTI")}`. Aggiornare i commenti «Foglio di un altro collaboratore, aperto da un amministratore.» in «Foglio di un altro collaboratore, aperto da chi può consultare i fogli altrui.».
+      7. Controllo finale: `grep -rn '"AMMINISTRATORE"' src/lib/foglio-attivita.ts "src/app/(front-office)" src/app/struttura-applicazione.tsx src/app/sidebar-applicazione.tsx` restituisce al massimo il confronto per l'etichetta del `MenuAccount` in `sidebar-applicazione.tsx`.
+
+      ## Verify
+      - Run: `npx tsc --noEmit -p . 2>&1 | grep -v '^.next/' | grep -c 'error TS'`
+      - Expect: `0`.
+      - Run: `npx vitest run tests/unit/dal-guards.test.ts tests/unit/attivita-calendario-route.test.ts tests/unit/attivita-giornata-routes.test.ts tests/unit/righe-attivita-actions.test.ts`
+      - Expect: tutti superati (le sessioni reali da DB derivano i permessi dal ruolo, quindi l'amministratore conserva l'accesso).
+      - Run: `npx vitest run tests/unit/foglio-attivita.test.ts`
+      - Expect: può fallire **solo** perché le fixture `AMMINISTRATORE`/`COLLABORATORE` del file non hanno `permessi` (TypeError su `includes` di undefined). La correzione è in TASK-06; qualsiasi altro errore va risolto qui.
+
+      ## Done
+      - [ ] AC-5 — le tre funzioni di `foglio-attivita.ts` e `verificaAccessoDatiCollaboratore` decidono su `CONSULTARE_FOGLI_ATTIVITA_ALTRUI`; route e Server Action le ereditano senza modifiche; la pagina reindirizza a `/attivita` senza il permesso
+      - [ ] AC-6 — il layout del front office legge l'elenco dei collaboratori e mostra il selettore solo con il permesso
+      - [ ] AC-7 — per amministratore (tutti i permessi) e collaboratore (nessuno) il comportamento è invariato
+
+      ## Blockers
+      None.
+    ref: TASK-05
+  - id: TASK-06
+    title: Test del foglio altrui e del selettore con insiemi di permessi fittizi
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-05
+    body: |-
+      ## Objective
+      I test dimostrano che, senza `CONSULTARE_FOGLI_ATTIVITA_ALTRUI`, la richiesta del foglio di un altro collaboratore riceve 403, la pagina riporta al proprio foglio e il selettore non viene caricato, anche se il ruolo è AMMINISTRATORE. Con il solo permesso, invece, la consultazione è ammessa.
+
+      ## Read
+      - tests/unit/foglio-attivita.test.ts — fixture `AMMINISTRATORE`/`COLLABORATORE`, mock `mocks.richiediSessioneApi`, `mocks.collaboratore.findUnique`, uso di `getGiornata` e `creaRiga`
+      - tests/unit/pagine-e2e-test.test.ts — esempio di import ed esecuzione diretta di un componente RSC in vitest
+      - src/lib/foglio-attivita.ts e src/app/(front-office)/layout.tsx — comportamento introdotto da TASK-05
+
+      ## Change
+      - tests/unit/foglio-attivita.test.ts — aggiungere `permessi` alle fixture e i nuovi casi. Nessun caso esistente rimosso o indebolito.
+      - tests/unit/layout-front-office.test.ts — nuovo file.
+      - Nessuna modifica al codice di produzione.
+
+      ## Steps
+      1. In `tests/unit/foglio-attivita.test.ts`:
+         - importare `PERMESSI` da `@/domain/permessi`; aggiungere `permessi: PERMESSI` alla fixture `AMMINISTRATORE` e `permessi: []` a `COLLABORATORE`;
+         - aggiungere le fixture `AMMINISTRATORE_SENZA_FOGLI_ALTRUI = { ...AMMINISTRATORE, permessi: PERMESSI.filter((p) => p !== "CONSULTARE_FOGLI_ATTIVITA_ALTRUI") }` e `COLLABORATORE_CON_FOGLI_ALTRUI = { ...COLLABORATORE, permessi: ["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"] }`;
+         - aggiungere `vi.mock("next/navigation", async (importOriginal) => ({ ...(await importOriginal<typeof import("next/navigation")>()), redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }), notFound: vi.fn(() => { throw new Error("NOT_FOUND"); }) }))`. Se il mock rompe un caso esistente, limitarlo ai soli `redirect`/`notFound` senza `importOriginal`;
+         - nuovo `describe("permesso di consultare i fogli altrui", ...)`:
+           a. `risolviCollaboratoreConsultato("collab-mario")` con `AMMINISTRATORE_SENZA_FOGLI_ALTRUI` → `rejects.toMatchObject({ statusCode: 403 })`, `findUnique` non chiamato;
+           b. `getGiornata(richiestaGiornata("?data=2026-10-12&collaboratore=collab-mario"))` con la stessa sessione → `response.status === 403`, `findUnique` non chiamato;
+           c. `creaRiga` sul foglio `collab-mario` (stesso `formRiga` dei casi esistenti) con la stessa sessione → risultato `success: false`, `mocks.rigaAttivita.create` non chiamato;
+           d. `collaboratoreConsultatoDellaPagina(AMMINISTRATORE_SENZA_FOGLI_ALTRUI, "collab-mario")` → `rejects.toThrow("REDIRECT:/attivita")`;
+           e. `collaboratoriDelSelettore(AMMINISTRATORE_SENZA_FOGLI_ALTRUI)` → `rejects.toMatchObject({ statusCode: 403 })` (aggiungere `findMany: vi.fn()` a `mocks.collaboratore`) e `findMany` non chiamato;
+           f. con `COLLABORATORE_CON_FOGLI_ALTRUI` e `findUnique` → `collaboratore("collab-mario")`: `risolviCollaboratoreConsultato` risolve `{ id: "collab-mario" }`; `collaboratoriDelSelettore` restituisce il valore di `findMany`.
+      2. Creare `tests/unit/layout-front-office.test.ts`:
+         - mock hoisted: `verificaSessione` e `risolviProfiloCollaboratoreCorrente` da `@/lib/dal` (sostituire solo queste due esportazioni con `importOriginal`), `@/lib/db` con `collaboratore: { findMany: vi.fn() }`, `@/app/struttura-applicazione` → `default: function StrutturaFinta() { return null; }`, `@/app/(front-office)/selettore-foglio-attivita` → `default: function SelettoreFinto() { return null; }`;
+         - importare `FrontOfficeLayout from "@/app/(front-office)/layout"` e `SelettoreFinto` dal modulo mockato;
+         - caso «senza il permesso il titolo è “Le mie attività” e l'elenco non viene letto» (Demonstrates 2, AC-6): sessione `{ ruolo: "AMMINISTRATORE", permessi: PERMESSI senza CONSULTARE_FOGLI_ATTIVITA_ALTRUI, ... }`; `const elemento = await FrontOfficeLayout({ children: null })`; asserire `elemento.props.intestazione.type === "h1"`, `elemento.props.intestazione.props.children === "Le mie attività"`, `findMany` e `risolviProfiloCollaboratoreCorrente` non chiamati;
+         - caso «con il solo permesso compare il selettore con l'elenco» (AC-6): sessione `{ ruolo: "COLLABORATORE", permessi: ["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"] }`, `findMany` → due collaboratori, profilo `{ stato: "ASSENTE" }`; asserire `elemento.props.intestazione.type === SelettoreFinto`, `props.collaboratori` uguale all'elenco, `props.proprioCollaboratoreId === null`;
+         - caso collaboratore reale (`permessi: []`, AC-7): come il primo caso.
+      3. Non usare `selectOption`, attese a tempo o snapshot: solo asserzioni puntuali.
+
+      ## Verify
+      - Run: `npx vitest run tests/unit/foglio-attivita.test.ts tests/unit/layout-front-office.test.ts`
+      - Expect: tutti superati, compresi i casi esistenti con le fixture aggiornate.
+      - Run: `npm run test`
+      - Expect: suite completa verde.
+      - Run: `npx tsc --noEmit -p . 2>&1 | grep -v '^.next/' | grep -c 'error TS'`
+      - Expect: `0`.
+
+      ## Done
+      - [ ] AC-5 — senza il permesso, con ruolo AMMINISTRATORE: la route `GET /api/attivita/giornata?collaboratore=…` risponde 403, `creaRiga` restituisce `success: false` senza scrivere e la pagina reindirizza a `/attivita`; con il solo permesso il foglio altrui viene risolto
+      - [ ] AC-6 — senza il permesso il layout rende l'`h1` «Le mie attività» senza chiamare `findMany`, e `collaboratoriDelSelettore` lancia 403; con il permesso rende il selettore con l'elenco
+      - [ ] AC-7 — i casi esistenti di `foglio-attivita.test.ts` restano tutti presenti e verdi
+
+      ## Blockers
+      None.
+    ref: TASK-06
+  - id: TASK-07
+    title: Gate finale — unit, lint, build ed e2e completi, poi verifica dei task prima della review
+    type: Test
+    status: DONE
+    dependencies:
+      - TASK-01
+      - TASK-02
+      - TASK-03
+      - TASK-04
+      - TASK-05
+      - TASK-06
+    body: |-
+      ## Objective
+      Dimostrare con i check registrati del progetto che la spec non introduce regressioni (AC-7) e che tutte le evidenze di AC-1…AC-6 sono verdi. Solo dopo, verificare che ogni task sia `DONE` prima di chiedere la review.
+
+      ## Read
+      - .archetipo/environment.json — check registrati `unit`, `lint`, `build`, `e2e`
+      - tests/e2e/sidebar.spec.ts, tests/e2e/foglio-attivita-amministratore.spec.ts, tests/e2e/autorizzazione-ruoli.spec.ts, tests/e2e/logo-intestazione.spec.ts — scenari e2e che provano AC-7
+      - Sezione «Baseline» del piano — confini preesistenti (`.next/dev/types`, avvisi del guardrail e2e)
+
+      ## Change
+      - Nessuna modifica al codice. Le evidenze vanno nella cartella dei risultati della spec tramite `--spec US-110`.
+
+      ## Steps
+      1. Dalla radice del progetto (`/Users/smarello/repo/coaching-planner`): `archetipo execution environment prepare`, se l'ambiente non è già pronto.
+      2. `archetipo execution environment check unit --spec US-110` → controllare `passed: true`.
+      3. `archetipo execution environment check lint --spec US-110` → `passed: true`, guardrail e2e superato.
+      4. `npx tsc --noEmit -p . 2>&1 | grep -v '^.next/' | grep -c 'error TS'` → `0`.
+      5. `archetipo execution environment check build --spec US-110` → `passed: true`.
+      6. `archetipo execution environment check e2e --spec US-110` → `passed: true`. Se fallisce uno scenario elencato come instabile preesistente nella memoria di progetto, rieseguire la sola spec con `--repeat-each` sulla base `167569a` per distinguere un'instabilità preesistente da una regressione. Non modificare `workers`, `retries` o `fullyParallel`. Un fallimento in `sidebar.spec.ts`, `foglio-attivita-amministratore.spec.ts`, `autorizzazione-ruoli.spec.ts` o `logo-intestazione.spec.ts` è una regressione di questa spec e va corretto nel task che l'ha introdotto.
+      7. Leggere `passed`, `stable` e `report_path` di ogni check: l'exit code da solo non basta.
+      8. Marcare questo task `DONE` (`archetipo task done US-110 TASK-07` dalla radice del progetto).
+      9. Ricaricare la spec con `archetipo spec show US-110` dalla radice del progetto e verificare che **nessun** task sia `TODO`. Solo allora è ammesso `archetipo spec review US-110`.
+
+      ## Verify
+      - Run: `archetipo execution environment check unit --spec US-110`
+      - Expect: `passed: true`; almeno 85 + 2 file di test (aggiunti `navigazione-amministrazione.test.ts` e `layout-front-office.test.ts`), tutti verdi.
+      - Run: `archetipo execution environment check lint --spec US-110`
+      - Expect: `passed: true`; solo gli avvisi `⚠️ chiave riservata non risolvibile staticamente` di baseline.
+      - Run: `archetipo execution environment check build --spec US-110`
+      - Expect: `passed: true`.
+      - Run: `archetipo execution environment check e2e --spec US-110`
+      - Expect: `passed: true`.
+      - Run: `archetipo spec show US-110`
+      - Expect: tutti i task da TASK-01 a TASK-07 in stato `DONE`.
+
+      ## Done
+      - [ ] AC-1, AC-2, AC-3, AC-4, AC-5, AC-6 — i test unitari introdotti in TASK-02, TASK-04 e TASK-06 sono verdi nel check `unit`
+      - [ ] AC-7 — check `unit`, `lint`, `build` ed `e2e` superati con evidenza in `docs/test-results/` per US-110; nessun errore TypeScript fuori da `.next/`
+      - [ ] Spec ricaricata dopo il `DONE` del gate: nessun task `TODO` prima di `archetipo spec review US-110`
+
+      ## Blockers
+      None.
+    ref: TASK-07

@@ -9,7 +9,10 @@ import {
   DURATA_COOKIE_SIDEBAR_COMPRESSA_SECONDI,
   NOME_COOKIE_SIDEBAR_COMPRESSA,
 } from "@/lib/sidebar-compressa";
+import { haAccessoBackOffice, type Permesso } from "@/domain/permessi";
+import type { Ruolo } from "@/domain/types";
 import { useApriImpostazioni } from "./impostazioni/modale-impostazioni";
+import { gruppiAmministrazioneVisibili } from "./navigazione-amministrazione";
 
 // ── Icone SVG inline ───────────────────────────────────────────
 
@@ -23,38 +26,7 @@ function Icona({ d }: { d: string }) {
 
 const ICONA_ATTIVITA = "M8 3v3M16 3v3M4 10h16M5 6h14a1 1 0 0 1 1 1v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a1 1 0 0 1 1-1ZM8 15l2.5 2.5L16 12";
 const ICONA_RIEPILOGO = "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8";
-const ICONA_CLIENTI = "M3 21V8.5L9 4l6 4.5V21M15 21h6V11l-6-3M7.5 21v-4.5h3V21M7 9.5h.01M11 9.5h.01M7 13h.01M11 13h.01";
-const ICONA_OFFERTE = "M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2ZM14 3v6h6M8 13h8M8 17h5";
-const ICONA_PERSONE = "M9 4.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8ZM2.8 19.4a6.2 6.2 0 0 1 12.4 0M17.2 6.8a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2ZM15.4 14.6a5 5 0 0 1 5.8 4.8";
-const ICONA_VOCI_RIMBORSO = "M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11ZM12 7.4a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2Z";
-const ICONA_IMPORTAZIONE = "M12 3v12M7 10l5 5 5-5M4 21h16";
-const ICONA_FATTURAZIONE_CLIENTI = "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1ZM8 12h5M16 9.5a4 4 0 1 0 0 5.2";
-const ICONA_FATTURAZIONE_COLLABORATORI = "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8ZM14 2v6h6M16 21a4 4 0 0 0-8 0M12 11a2.6 2.6 0 1 1 0 5.2 2.6 2.6 0 0 1 0-5.2Z";
-const ICONA_MARGINALITA = "M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6";
-
 // ── Dati di navigazione ────────────────────────────────────────
-
-/** Voci di amministrazione: pagine server con dati sempre freschi, navigazione documentale. */
-const GRUPPI_AMMINISTRAZIONE = [
-  {
-    titolo: "Anagrafica",
-    voci: [
-      { href: "/anagrafiche/clienti", etichetta: "Clienti", icona: ICONA_CLIENTI },
-      { href: "/offerte", etichetta: "Offerte", icona: ICONA_OFFERTE },
-      { href: "/anagrafiche/persone", etichetta: "Persone", icona: ICONA_PERSONE },
-      { href: "/anagrafiche/voci-rimborso", etichetta: "Voci di rimborso", icona: ICONA_VOCI_RIMBORSO },
-      { href: "/importazione", etichetta: "Importazione", icona: ICONA_IMPORTAZIONE },
-    ],
-  },
-  {
-    titolo: "Reportistica",
-    voci: [
-      { href: "/report/fatturazione-clienti", etichetta: "Fatturazione clienti", icona: ICONA_FATTURAZIONE_CLIENTI },
-      { href: "/report/fatturazione-collaboratori", etichetta: "Fatturazione collaboratori", icona: ICONA_FATTURAZIONE_COLLABORATORI },
-      { href: "/report/marginalita", etichetta: "Marginalità", icona: ICONA_MARGINALITA },
-    ],
-  },
-] as const;
 
 const PERCORSO_ATTIVITA = "/attivita";
 const PERCORSO_RIEPILOGO = "/attivita/riepilogo";
@@ -62,8 +34,8 @@ const PERCORSO_RIEPILOGO = "/attivita/riepilogo";
 /**
  * Nell'area attività «Registro attività» e «Riepilogo mensile» restano sul
  * mese che si sta guardando (calendario/elenco/riepilogo con `?mese=`,
- * dettaglio giornata `/attivita/AAAA-MM-GG`) e sul foglio consultato
- * dall'amministratore, in entrambe le direzioni; altrove aprono il mese
+ * dettaglio giornata `/attivita/AAAA-MM-GG`) e sul foglio consultato, in
+ * entrambe le direzioni; altrove aprono il mese
  * corrente del proprio foglio.
  */
 function hrefNelFoglio(percorso: string, pathname: string, searchParams: URLSearchParams): string {
@@ -112,7 +84,7 @@ function TitoloGruppo({ titolo, compressa, primo = false }: { titolo: string; co
 
 /**
  * Struttura comune a tutte le aree autenticate: sidebar a sinistra con le
- * voci del ruolo e l'account in fondo, intestazione e contenuto a fianco.
+ * voci consentite dai permessi e l'account in fondo, intestazione e contenuto a fianco.
  *
  * Da 920 px in su la sidebar è sempre visibile e si collassa a sole icone
  * (scelta ricordata nel browser). Sotto diventa un menu a scomparsa che entra
@@ -120,7 +92,8 @@ function TitoloGruppo({ titolo, compressa, primo = false }: { titolo: string; co
  * inerte finché resta aperto e si chiude con ×, Esc, lo sfondo o una voce.
  */
 export default function SidebarApplicazione({
-  amministratore,
+  permessi,
+  ruolo,
   compressaIniziale,
   nome,
   email,
@@ -128,7 +101,8 @@ export default function SidebarApplicazione({
   intestazione,
   children,
 }: {
-  amministratore: boolean;
+  permessi: readonly Permesso[];
+  ruolo: Ruolo;
   compressaIniziale: boolean;
   nome: string;
   email: string;
@@ -186,6 +160,7 @@ export default function SidebarApplicazione({
   const attivitaAttiva = pathname === PERCORSO_ATTIVITA || (pathname.startsWith("/attivita/") && !pathname.startsWith(PERCORSO_RIEPILOGO));
   const riepilogoAttivo = pathname.startsWith(PERCORSO_RIEPILOGO);
   const suNavigazione = () => setMenuAperto(false);
+  const gruppiAmministrazione = gruppiAmministrazioneVisibili(permessi);
 
   return (
     <div className="min-h-[calc(100dvh-var(--altezza-banner-ambiente))]">
@@ -200,7 +175,7 @@ export default function SidebarApplicazione({
             <LogoCoachingPlanner mostraNome={false} />
             <div className={`min-w-0 leading-[1.25] ${compressa ? "min-[920px]:hidden" : ""}`}>
               <b className="block text-sm font-semibold tracking-tight whitespace-nowrap text-testo-principale">Coaching Planner</b>
-              {amministratore && <span className="text-xs font-medium text-testo-metadati">Amministrazione</span>}
+              {haAccessoBackOffice(permessi) && <span className="text-xs font-medium text-testo-metadati">Amministrazione</span>}
             </div>
           </div>
           <button
@@ -243,27 +218,26 @@ export default function SidebarApplicazione({
             <ContenutoVoce etichetta="Riepilogo mensile" icona={ICONA_RIEPILOGO} attiva={riepilogoAttivo} compressa={compressa} />
           </Link>
 
-          {amministratore &&
-            GRUPPI_AMMINISTRAZIONE.map((gruppo) => (
-              <div key={gruppo.titolo} className="contents">
-                <TitoloGruppo titolo={gruppo.titolo} compressa={compressa} />
-                {gruppo.voci.map((voce) => {
-                  const attiva = pathname === voce.href || pathname.startsWith(`${voce.href}/`);
-                  return (
-                    <a
-                      key={voce.href}
-                      href={voce.href}
-                      onClick={suNavigazione}
-                      aria-current={attiva ? "page" : undefined}
-                      title={compressa ? voce.etichetta : undefined}
-                      className={`${CLASSI_VOCE} ${attiva ? CLASSI_VOCE_ATTIVA : CLASSI_VOCE_INATTIVA}`}
-                    >
-                      <ContenutoVoce etichetta={voce.etichetta} icona={voce.icona} attiva={attiva} compressa={compressa} />
-                    </a>
-                  );
-                })}
-              </div>
-            ))}
+          {gruppiAmministrazione.map((gruppo) => (
+            <div key={gruppo.titolo} className="contents">
+              <TitoloGruppo titolo={gruppo.titolo} compressa={compressa} />
+              {gruppo.voci.map((voce) => {
+                const attiva = pathname === voce.href || pathname.startsWith(`${voce.href}/`);
+                return (
+                  <a
+                    key={voce.href}
+                    href={voce.href}
+                    onClick={suNavigazione}
+                    aria-current={attiva ? "page" : undefined}
+                    title={compressa ? voce.etichetta : undefined}
+                    className={`${CLASSI_VOCE} ${attiva ? CLASSI_VOCE_ATTIVA : CLASSI_VOCE_INATTIVA}`}
+                  >
+                    <ContenutoVoce etichetta={voce.etichetta} icona={voce.icona} attiva={attiva} compressa={compressa} />
+                  </a>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="flex flex-col gap-1 border-t border-zinc-100 p-[10px] dark:border-zinc-800">
@@ -284,7 +258,7 @@ export default function SidebarApplicazione({
           <MenuAccount
             nome={nome}
             email={email}
-            ruolo={amministratore ? "Amministratore" : "Collaboratore"}
+            ruolo={ruolo === "AMMINISTRATORE" ? "Amministratore" : "Collaboratore"}
             azioneEsci={azioneEsci}
             apriImpostazioni={() => {
               setMenuAperto(false);

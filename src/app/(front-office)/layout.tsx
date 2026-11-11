@@ -12,11 +12,11 @@ export default async function FrontOfficeLayout({
   children: React.ReactNode;
 }) {
   const sessione = await verificaSessione();
-  const amministratore = sessione.ruolo === "AMMINISTRATORE";
+  const consultaFogliAltrui = sessione.permessi.includes("CONSULTARE_FOGLI_ATTIVITA_ALTRUI");
 
-  // Solo per un amministratore il titolo diventa il selettore del foglio:
-  // l'elenco dei collaboratori non viene mai letto per gli altri utenti.
-  const [collaboratori, profilo] = amministratore
+  // Solo per chi può consultare i fogli altrui il titolo diventa il selettore
+  // del foglio: l'elenco dei collaboratori non viene mai letto per gli altri utenti.
+  const [collaboratori, profilo] = consultaFogliAltrui
     ? await Promise.all([
         collaboratoriDelSelettore(sessione),
         risolviProfiloCollaboratoreCorrente(sessione),
@@ -27,7 +27,7 @@ export default async function FrontOfficeLayout({
     <StrutturaApplicazione
       sessione={sessione}
       intestazione={
-        amministratore ? (
+        consultaFogliAltrui ? (
           <SelettoreFoglioAttivita
             collaboratori={collaboratori}
             proprioCollaboratoreId={

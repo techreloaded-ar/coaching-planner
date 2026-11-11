@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { redirect } from "next/navigation";
 import {
+  richiediAccessoBackOffice,
   richiediAlmenoUnPermessoApi,
   richiediPermesso,
   richiediPermessoApi,
@@ -36,6 +37,20 @@ vi.mock("@/lib/session", () => ({
   deleteSession: vi.fn(),
   DURATA_SESSIONE_ORE: 8,
 }));
+
+// ── Mock parziale del catalogo: l'insieme derivato dal ruolo è sostituibile ─
+// vi.clearAllMocks() non resetta l'implementazione: i casi esistenti usano la
+// mappa reale.
+
+const { mockPermessiDelRuolo } = vi.hoisted(() => ({
+  mockPermessiDelRuolo: vi.fn(),
+}));
+
+vi.mock("@/domain/permessi", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/domain/permessi")>();
+  mockPermessiDelRuolo.mockImplementation(actual.permessiDelRuolo);
+  return { ...actual, permessiDelRuolo: mockPermessiDelRuolo };
+});
 
 // ── Mock di next/navigation: redirect interrompe il flusso come in Next ─
 
@@ -197,6 +212,52 @@ describe("richiediPermesso", () => {
 
     expect(sessione.utenteId).toBe("rsc-admin-1");
     expect(sessione.permessi).toContain("CONSULTARE_REPORT_MARGINALITA");
+    expect(redirect).not.toHaveBeenCalled();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Guardia d'ingresso del back office (US-110 AC-1)
+// ═══════════════════════════════════════════════════════════════
+
+describe("richiediAccessoBackOffice", () => {
+  it("reindirizza alla radice senza sessione", async () => {
+    mockGetSessionCookie.mockResolvedValue(null);
+
+    await expect(richiediAccessoBackOffice()).rejects.toThrow(/^REDIRECT:\/$/);
+  });
+
+  it("reindirizza all'area autenticata comune senza permessi", async () => {
+    autentica("bo-col-1", "COLLABORATORE", "COLLABORATORE");
+
+    await expect(richiediAccessoBackOffice()).rejects.toThrow("REDIRECT:/attivita");
+  });
+
+  it("reindirizza con il solo permesso dei fogli altrui, anche con ruolo AMMINISTRATORE", async () => {
+    autentica("bo-fogli-1", "AMMINISTRATORE", "AMMINISTRATORE");
+    mockPermessiDelRuolo.mockReturnValueOnce(["CONSULTARE_FOGLI_ATTIVITA_ALTRUI"]);
+
+    await expect(richiediAccessoBackOffice()).rejects.toThrow("REDIRECT:/attivita");
+  });
+
+  it("lascia entrare con un solo permesso di back office, anche con ruolo COLLABORATORE", async () => {
+    autentica("bo-report-1", "COLLABORATORE", "COLLABORATORE");
+    mockPermessiDelRuolo.mockReturnValueOnce(["CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"]);
+
+    const sessione = await richiediAccessoBackOffice();
+
+    expect(sessione.utenteId).toBe("bo-report-1");
+    expect(sessione.permessi).toEqual(["CONSULTARE_REPORT_FATTURAZIONE_CLIENTI"]);
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("lascia entrare l'amministratore con tutti i permessi", async () => {
+    autentica("bo-admin-1", "AMMINISTRATORE", "AMMINISTRATORE");
+
+    const sessione = await richiediAccessoBackOffice();
+
+    expect(sessione.utenteId).toBe("bo-admin-1");
+    expect(sessione.permessi).toHaveLength(PERMESSI.length);
     expect(redirect).not.toHaveBeenCalled();
   });
 });

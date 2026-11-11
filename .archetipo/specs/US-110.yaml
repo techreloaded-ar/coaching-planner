@@ -6,7 +6,7 @@ epic:
   title: Autenticazione e Ruoli
 priority: MEDIUM
 points: 5
-status: TODO
+status: DONE
 blocked_by:
   - US-109
 scope: MVP
@@ -35,3 +35,11 @@ body: |-
 history:
   - status: TODO
     at: "2026-11-11T10:58:03Z"
+  - status: PLANNED
+    at: "2026-11-11T17:06:05Z"
+  - status: IN PROGRESS
+    at: "2026-11-11T17:13:04Z"
+  - status: REVIEW
+    at: "2026-11-11T17:19:53Z"
+  - status: DONE
+    at: "2026-11-11T17:25:40Z"

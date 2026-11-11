@@ -2,7 +2,8 @@ import Link from "next/link";
 
 interface StatoProfiloCollaboratoreProps {
   stato: "ASSENTE" | "DISATTIVATO";
-  amministratore: boolean;
+  /** Il collegamento a Persone porta a una pagina che richiede GESTIRE_UTENTI. */
+  gestisceUtenti: boolean;
 }
 
 /**
@@ -11,7 +12,7 @@ interface StatoProfiloCollaboratoreProps {
  */
 export default function StatoProfiloCollaboratore({
   stato,
-  amministratore,
+  gestisceUtenti,
 }: StatoProfiloCollaboratoreProps) {
   const profiloAssente = stato === "ASSENTE";
 
@@ -46,7 +47,7 @@ export default function StatoProfiloCollaboratore({
             : "Il tuo profilo Collaboratore è disattivato. Non puoi registrare o consultare attività finché non viene riattivato."}
         </p>
       </div>
-      {amministratore && (
+      {gestisceUtenti && (
         <Link
           href="/anagrafiche/persone"
           className="inline-flex rounded-[10px] bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"

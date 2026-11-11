@@ -34,6 +34,16 @@ export const PERMESSI = [
 
 export type Permesso = (typeof PERMESSI)[number];
 
+/** Permessi che aprono il back office: tutti tranne quelli del solo front office. */
+export const PERMESSI_BACK_OFFICE: readonly Permesso[] = PERMESSI.filter(
+  (permesso) => permesso !== "CONSULTARE_FOGLI_ATTIVITA_ALTRUI"
+);
+
+/** Vero se l'insieme contiene almeno un permesso di back office. */
+export function haAccessoBackOffice(permessi: readonly Permesso[]): boolean {
+  return permessi.some((permesso) => PERMESSI_BACK_OFFICE.includes(permesso));
+}
+
 /**
  * Unica mappa ruolo → permessi. «Consuntivare» non è un permesso: deriva dal
  * profilo Collaboratore attivo, per questo COLLABORATORE non ne ha.
