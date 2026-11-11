@@ -146,8 +146,8 @@ async function creaScenarioRiepilogo(
 
 async function apriRiepilogoDaCalendario(page: Page, mese: string) {
   await page.goto(`/attivita?mese=${mese}`);
-  await expect(page.getByRole("link", { name: "Riepilogo mese" })).toBeVisible();
-  await page.getByRole("link", { name: "Riepilogo mese" }).click();
+  await expect(page.getByRole("link", { name: "Riepilogo mensile" })).toBeVisible();
+  await page.getByRole("link", { name: "Riepilogo mensile" }).click();
   await page.waitForURL("**/attivita/riepilogo**");
   await expect(page.getByTestId("summary-importo-fattura")).toBeVisible();
 }
@@ -241,7 +241,7 @@ test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();
     await page.waitForURL("**/attivita**");
-    await page.getByRole("link", { name: "Riepilogo mese" }).click();
+    await page.getByRole("link", { name: "Riepilogo mensile" }).click();
     await page.waitForURL("**/attivita/riepilogo**");
 
     const riepilogoDopo = await leggiRiepilogo(page);
@@ -304,7 +304,7 @@ test.describe("US-014 — scenari complementari", () => {
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();
     await page.waitForURL("**/attivita**");
-    await page.getByRole("link", { name: "Riepilogo mese" }).click();
+    await page.getByRole("link", { name: "Riepilogo mensile" }).click();
     await page.waitForURL("**/attivita/riepilogo**");
 
     const riepilogoDopo = await leggiRiepilogo(page);
@@ -363,7 +363,7 @@ test.describe("US-014 — scenari complementari", () => {
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();
     await page.waitForURL("**/attivita**");
-    await page.getByRole("link", { name: "Riepilogo mese" }).click();
+    await page.getByRole("link", { name: "Riepilogo mensile" }).click();
     await page.waitForURL("**/attivita/riepilogo**");
 
     const riepilogoDopo = await leggiRiepilogo(page);

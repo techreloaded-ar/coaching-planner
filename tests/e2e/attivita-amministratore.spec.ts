@@ -74,7 +74,7 @@ test.describe("US-030 Attività amministratore", () => {
 
 		await page.getByRole("link", { name: "Torna al calendario", exact: true }).click();
 		await page.waitForURL(`**/attivita?mese=${mese}`);
-		await page.getByRole("link", { name: "Riepilogo mese", exact: true }).click();
+		await page.getByRole("link", { name: "Riepilogo mensile", exact: true }).click();
 		await page.waitForURL(`**/attivita/riepilogo?mese=${mese}`);
 		await expect(page.getByTestId("summary-giornate-totali-value")).toHaveText("0,94");
 		await expect(page.getByText("0,94 gg", { exact: true })).toBeVisible();
@@ -98,7 +98,7 @@ test.describe("US-030 Attività amministratore", () => {
 			.filter({ has: page.getByText(offerta.codice, { exact: true }) });
 		await expect(rigaReport).toHaveCount(1);
 
-		await page.getByRole("link", { name: "Le mie attività", exact: true }).click();
+		await page.getByRole("link", { name: "Registro Attività", exact: true }).click();
 		await page.waitForURL("**/attivita");
 		await expect(
 			page.getByRole("heading", { name: "Le mie attività", exact: true }),

@@ -54,18 +54,21 @@ const GRUPPI_AMMINISTRAZIONE = [
   },
 ] as const;
 
+const PERCORSO_ATTIVITA = "/attivita";
 const PERCORSO_RIEPILOGO = "/attivita/riepilogo";
 
 /**
- * «Riepilogo mese» apre il mese che si sta guardando nell'area attività
- * (calendario/elenco con `?mese=`, dettaglio giornata `/attivita/AAAA-MM-GG`) e
- * il foglio consultato dall'amministratore; altrove il mese corrente.
+ * Nell'area attività «Registro Attività» e «Riepilogo mensile» restano sul
+ * mese che si sta guardando (calendario/elenco/riepilogo con `?mese=`,
+ * dettaglio giornata `/attivita/AAAA-MM-GG`) e sul foglio consultato
+ * dall'amministratore, in entrambe le direzioni; altrove aprono il mese
+ * corrente del proprio foglio.
  */
-function hrefRiepilogo(pathname: string, searchParams: URLSearchParams): string {
-  if (!pathname.startsWith("/attivita")) return PERCORSO_RIEPILOGO;
+function hrefNelFoglio(percorso: string, pathname: string, searchParams: URLSearchParams): string {
+  if (!pathname.startsWith(PERCORSO_ATTIVITA)) return percorso;
   const mese = searchParams.get("mese") ?? /^\/attivita\/(\d{4}-\d{2})-\d{2}$/.exec(pathname)?.[1];
   return urlDelFoglio(
-    mese ? `${PERCORSO_RIEPILOGO}?mese=${mese}` : PERCORSO_RIEPILOGO,
+    mese ? `${percorso}?mese=${mese}` : percorso,
     searchParams.get(PARAMETRO_COLLABORATORE_CONSULTATO)
   );
 }
@@ -178,7 +181,7 @@ export default function SidebarApplicazione({
     document.cookie = `${NOME_COOKIE_SIDEBAR_COMPRESSA}=${nuova ? "1" : "0"}; path=/; max-age=${DURATA_COOKIE_SIDEBAR_COMPRESSA_SECONDI}; samesite=lax`;
   }
 
-  const attivitaAttiva = pathname === "/attivita" || (pathname.startsWith("/attivita/") && !pathname.startsWith(PERCORSO_RIEPILOGO));
+  const attivitaAttiva = pathname === PERCORSO_ATTIVITA || (pathname.startsWith("/attivita/") && !pathname.startsWith(PERCORSO_RIEPILOGO));
   const riepilogoAttivo = pathname.startsWith(PERCORSO_RIEPILOGO);
   const suNavigazione = () => setMenuAperto(false);
 
@@ -214,25 +217,28 @@ export default function SidebarApplicazione({
         <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto px-[10px] py-[14px]" aria-label="Navigazione principale">
           <TitoloGruppo titolo="Attività" compressa={compressa} primo />
           <Link
-            href="/attivita"
+            href={hrefNelFoglio(PERCORSO_ATTIVITA, pathname, searchParams)}
+            // Niente prefetch: l'href segue il mese visualizzato e ogni
+            // prefetch sarebbe una richiesta RSC in più a ogni cambio mese.
+            prefetch={false}
             onClick={suNavigazione}
             aria-current={attivitaAttiva ? "page" : undefined}
-            title={compressa ? "Le mie attività" : undefined}
+            title={compressa ? "Registro Attività" : undefined}
             className={`${CLASSI_VOCE} ${attivitaAttiva ? CLASSI_VOCE_ATTIVA : CLASSI_VOCE_INATTIVA}`}
           >
-            <ContenutoVoce etichetta="Le mie attività" icona={ICONA_ATTIVITA} attiva={attivitaAttiva} compressa={compressa} />
+            <ContenutoVoce etichetta="Registro Attività" icona={ICONA_ATTIVITA} attiva={attivitaAttiva} compressa={compressa} />
           </Link>
           <Link
-            href={hrefRiepilogo(pathname, searchParams)}
+            href={hrefNelFoglio(PERCORSO_RIEPILOGO, pathname, searchParams)}
             // Niente prefetch: l'href segue il mese visualizzato e ogni
             // prefetch sarebbe una richiesta RSC in più a ogni cambio mese.
             prefetch={false}
             onClick={suNavigazione}
             aria-current={riepilogoAttivo ? "page" : undefined}
-            title={compressa ? "Riepilogo mese" : undefined}
+            title={compressa ? "Riepilogo mensile" : undefined}
             className={`${CLASSI_VOCE} ${riepilogoAttivo ? CLASSI_VOCE_ATTIVA : CLASSI_VOCE_INATTIVA}`}
           >
-            <ContenutoVoce etichetta="Riepilogo mese" icona={ICONA_RIEPILOGO} attiva={riepilogoAttivo} compressa={compressa} />
+            <ContenutoVoce etichetta="Riepilogo mensile" icona={ICONA_RIEPILOGO} attiva={riepilogoAttivo} compressa={compressa} />
           </Link>
 
           {amministratore &&

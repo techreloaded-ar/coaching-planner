@@ -103,7 +103,7 @@ test.describe("Layout mobile", () => {
       await verificaComando(page.getByTestId("calendar-month-label"), larghezza);
       await verificaComando(page.getByRole("button", { name: "Mese successivo" }), larghezza);
       await verificaComando(page.getByRole("button", { name: "Mese corrente", exact: true }), larghezza);
-      await expect(page.getByRole("main").getByRole("link", { name: "Riepilogo mese" })).toHaveCount(0);
+      await expect(page.getByRole("main").getByRole("link", { name: /Riepilogo/ })).toHaveCount(0);
       const vista = page.getByRole("navigation", { name: "Vista delle attività" });
       await verificaComando(vista.getByRole("link", { name: "Calendario", exact: true }), larghezza);
       await verificaComando(vista.getByRole("link", { name: "Elenco", exact: true }), larghezza);
@@ -184,7 +184,7 @@ test.describe("Layout mobile", () => {
       await verificaComando(page.getByRole("link", { name: "Mese precedente" }), larghezza);
       await verificaComando(page.getByRole("link", { name: "Mese successivo" }), larghezza);
       await verificaComando(page.getByRole("link", { name: "Mese corrente", exact: true }), larghezza);
-      await expect(page.getByRole("main").getByRole("link", { name: "Riepilogo mese" })).toHaveCount(0);
+      await expect(page.getByRole("main").getByRole("link", { name: /Riepilogo/ })).toHaveCount(0);
       await verificaComando(vista.getByRole("link", { name: "Calendario", exact: true }), larghezza);
       await verificaBarraCompatta(page, larghezza);
     });
@@ -234,7 +234,7 @@ test.describe("Layout mobile", () => {
         "aria-current",
         "page",
       );
-      for (const voce of ["Le mie attività", "Riepilogo mese", "Clienti", "Offerte", "Persone", "Marginalità", "Importazione"]) {
+      for (const voce of ["Registro Attività", "Riepilogo mensile", "Clienti", "Offerte", "Persone", "Marginalità", "Importazione"]) {
         await expect(navigazione.getByRole("link", { name: voce, exact: true })).toBeVisible();
       }
       await expect(menu.getByRole("button", { name: "Menu dell'account", exact: true })).toBeVisible();
@@ -267,7 +267,7 @@ test.describe("Layout mobile", () => {
     await apriMenuNavigazione(page);
     const navigazione = sidebar(page).getByRole("navigation", { name: "Navigazione principale" });
     await expect(navigazione.getByRole("link")).toHaveCount(2);
-    await navigazione.getByRole("link", { name: "Riepilogo mese", exact: true }).click();
+    await navigazione.getByRole("link", { name: "Riepilogo mensile", exact: true }).click();
     await page.waitForURL("**/attivita/riepilogo**");
     await expect(sidebar(page)).toBeHidden();
   });

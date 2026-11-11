@@ -7,8 +7,8 @@ import { navigazionePrincipale, voceNavigazione } from "./support/navigazione";
 /**
  * Test e2e — Sidebar comune a collaboratori e amministratori: voci per ruolo
  * raggruppate (Attività; per l'amministratore anche Anagrafica e Reportistica),
- * collassabile a sole icone con la scelta ricordata nel browser, «Riepilogo
- * mese» che segue il mese e il foglio consultati.
+ * collassabile a sole icone con la scelta ricordata nel browser, «Registro
+ * Attività» e «Riepilogo mensile» che seguono il mese e il foglio consultati.
  *
  * Gli scenari navigano senza scrivere righe; il foglio consultato è di un
  * collaboratore creato dalla factory.
@@ -17,32 +17,32 @@ import { navigazionePrincipale, voceNavigazione } from "./support/navigazione";
 const MESE = meseRiservato("INC-SIDEBAR-COMUNE");
 
 test.describe("Sidebar comune", () => {
-	test("collaboratore: solo il gruppo Attività con Le mie attività e Riepilogo mese", async ({ page }) => {
+	test("collaboratore: solo il gruppo Attività con Registro Attività e Riepilogo mensile", async ({ page }) => {
 		await accediComeCollaboratore(page);
 
-		await expect(navigazionePrincipale(page).getByRole("link")).toHaveText(["Le mie attività", "Riepilogo mese"]);
+		await expect(navigazionePrincipale(page).getByRole("link")).toHaveText(["Registro Attività", "Riepilogo mensile"]);
 		await expect(navigazionePrincipale(page).getByText("Attività", { exact: true })).toBeVisible();
-		await expect(voceNavigazione(page, "Le mie attività")).toHaveAttribute("aria-current", "page");
+		await expect(voceNavigazione(page, "Registro Attività")).toHaveAttribute("aria-current", "page");
 		await expect(navigazionePrincipale(page).getByRole("link", { name: "Calendario" })).toHaveCount(0);
 
 		// Nella barra del mese resta lo switch Calendario/Elenco, il riepilogo è nella sidebar.
 		const vista = page.getByRole("navigation", { name: "Vista delle attività" });
 		await expect(vista.getByRole("link", { name: "Calendario", exact: true })).toBeVisible();
 		await expect(vista.getByRole("link", { name: "Elenco", exact: true })).toBeVisible();
-		await expect(page.getByRole("main").getByRole("link", { name: "Riepilogo mese" })).toHaveCount(0);
+		await expect(page.getByRole("main").getByRole("link", { name: /Riepilogo/ })).toHaveCount(0);
 
-		await voceNavigazione(page, "Riepilogo mese").click();
+		await voceNavigazione(page, "Riepilogo mensile").click();
 		await page.waitForURL("**/attivita/riepilogo");
-		await expect(voceNavigazione(page, "Riepilogo mese")).toHaveAttribute("aria-current", "page");
-		await expect(voceNavigazione(page, "Le mie attività")).not.toHaveAttribute("aria-current", "page");
+		await expect(voceNavigazione(page, "Riepilogo mensile")).toHaveAttribute("aria-current", "page");
+		await expect(voceNavigazione(page, "Registro Attività")).not.toHaveAttribute("aria-current", "page");
 	});
 
 	test("amministratore: gruppi Attività, Anagrafica (con Importazione) e Reportistica", async ({ page }) => {
 		await accediComeAdmin(page);
 
 		await expect(navigazionePrincipale(page).getByRole("link")).toHaveText([
-			"Le mie attività",
-			"Riepilogo mese",
+			"Registro Attività",
+			"Riepilogo mensile",
 			"Clienti",
 			"Offerte",
 			"Persone",
@@ -61,9 +61,9 @@ test.describe("Sidebar comune", () => {
 		await voceNavigazione(page, "Marginalità").click();
 		await page.waitForURL("**/report/marginalita**");
 		await expect(voceNavigazione(page, "Marginalità")).toHaveAttribute("aria-current", "page");
-		await voceNavigazione(page, "Le mie attività").click();
+		await voceNavigazione(page, "Registro Attività").click();
 		await page.waitForURL("**/attivita");
-		await expect(voceNavigazione(page, "Le mie attività")).toHaveAttribute("aria-current", "page");
+		await expect(voceNavigazione(page, "Registro Attività")).toHaveAttribute("aria-current", "page");
 	});
 
 	test("si collassa a sole icone, resta collassata dopo il ricaricamento e si riespande", async ({ page }) => {
@@ -91,33 +91,42 @@ test.describe("Sidebar comune", () => {
 		await expect(voceNavigazione(page, "Clienti")).not.toHaveAttribute("title", "Clienti");
 	});
 
-	test("Riepilogo mese apre il mese visualizzato, anche dal dettaglio giornata", async ({ page }) => {
+	test("Riepilogo mensile apre il mese visualizzato, anche dal dettaglio giornata", async ({ page }) => {
 		await accediComeCollaboratore(page);
 
 		await page.goto(`/attivita?mese=${MESE}`);
-		await expect(voceNavigazione(page, "Riepilogo mese")).toHaveAttribute("href", `/attivita/riepilogo?mese=${MESE}`);
+		await expect(voceNavigazione(page, "Riepilogo mensile")).toHaveAttribute("href", `/attivita/riepilogo?mese=${MESE}`);
 
 		await page.goto(`/attivita?mese=${MESE}&vista=elenco`);
-		await expect(voceNavigazione(page, "Riepilogo mese")).toHaveAttribute("href", `/attivita/riepilogo?mese=${MESE}`);
+		await expect(voceNavigazione(page, "Riepilogo mensile")).toHaveAttribute("href", `/attivita/riepilogo?mese=${MESE}`);
 
 		await page.goto(`/attivita/${dataNelMese(MESE, 10)}?mese=${MESE}`);
-		await expect(voceNavigazione(page, "Riepilogo mese")).toHaveAttribute("href", `/attivita/riepilogo?mese=${MESE}`);
-		await voceNavigazione(page, "Riepilogo mese").click();
+		await expect(voceNavigazione(page, "Riepilogo mensile")).toHaveAttribute("href", `/attivita/riepilogo?mese=${MESE}`);
+		await voceNavigazione(page, "Riepilogo mensile").click();
 		await page.waitForURL(`**/attivita/riepilogo?mese=${MESE}`);
 	});
 
-	test("per l'amministratore Riepilogo mese resta sul foglio consultato", async ({ page, factory }) => {
+	test("per l'amministratore registro e riepilogo restano sul foglio consultato, in entrambe le direzioni", async ({ page, factory }) => {
 		const { collaboratore } = await factory.createCollaboratore();
 		await accediComeAdmin(page);
 
 		await page.goto(`/attivita?mese=${MESE}&collaboratore=${collaboratore.id}`);
 		await expect(page.getByTestId("banner-foglio-consultato")).toBeVisible();
-		await expect(voceNavigazione(page, "Riepilogo mese")).toHaveAttribute(
+		await expect(voceNavigazione(page, "Riepilogo mensile")).toHaveAttribute(
 			"href",
 			`/attivita/riepilogo?mese=${MESE}&collaboratore=${collaboratore.id}`,
 		);
-		await voceNavigazione(page, "Riepilogo mese").click();
+		await voceNavigazione(page, "Riepilogo mensile").click();
 		await page.waitForURL(`**/attivita/riepilogo?mese=${MESE}&collaboratore=${collaboratore.id}`);
+		await expect(page.getByTestId("banner-foglio-consultato")).toBeVisible();
+
+		// E viceversa: dal riepilogo il registro resta sullo stesso foglio e mese.
+		await expect(voceNavigazione(page, "Registro Attività")).toHaveAttribute(
+			"href",
+			`/attivita?mese=${MESE}&collaboratore=${collaboratore.id}`,
+		);
+		await voceNavigazione(page, "Registro Attività").click();
+		await page.waitForURL(`**/attivita?mese=${MESE}&collaboratore=${collaboratore.id}`);
 		await expect(page.getByTestId("banner-foglio-consultato")).toBeVisible();
 	});
 });

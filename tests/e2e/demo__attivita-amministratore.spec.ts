@@ -58,7 +58,7 @@ test.describe("US-030 Demo", () => {
 
 		await page.getByRole("link", { name: "Torna al calendario", exact: true }).click();
 		await page.waitForURL(`**/attivita?mese=${mese}`);
-		await page.getByRole("link", { name: "Riepilogo mese", exact: true }).click();
+		await page.getByRole("link", { name: "Riepilogo mensile", exact: true }).click();
 		await expect(page.getByTestId("summary-giornate-totali-value")).toHaveText("0,75");
 		await expect(page.getByTestId("summary-table")).toContainText(
 			cliente.ragioneSociale,
@@ -67,7 +67,7 @@ test.describe("US-030 Demo", () => {
 		await voceNavigazione(page, "Clienti")
 			.click();
 		await page.waitForURL("**/anagrafiche/clienti");
-		await page.getByRole("link", { name: "Le mie attività", exact: true }).click();
+		await page.getByRole("link", { name: "Registro Attività", exact: true }).click();
 		await page.waitForURL("**/attivita");
 	});
 });
