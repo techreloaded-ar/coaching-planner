@@ -1230,203 +1230,208 @@ export default function DettaglioGiornata({
           </section>
         )}
 
-        {/* ── Attività registrate ── */}
-        <section
-          id="attivita-della-giornata"
-          aria-labelledby="titolo-attivita-della-giornata"
-          className="min-w-0 scroll-mt-24"
-        >
-          <h2
-            id="titolo-attivita-della-giornata"
-            className="mb-3 text-[15px] font-medium text-testo-principale"
+        {/* ── Attività registrate e, sotto, il riepilogo ── */}
+        <div className="min-w-0">
+          <section
+            id="attivita-della-giornata"
+            aria-labelledby="titolo-attivita-della-giornata"
+            className="scroll-mt-24"
           >
-            Attività della giornata
-          </h2>
+            <h2
+              id="titolo-attivita-della-giornata"
+              className="mb-3 text-[15px] font-medium text-testo-principale"
+            >
+              Attività della giornata
+            </h2>
 
-          {righe.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-300 px-5 py-8 text-center text-sm text-testo-metadati dark:border-zinc-700">
-              Nessuna attività registrata per questa giornata.
-              {!solaLettura && (
-                <>
-                  <br />
-                  Usa il form di inserimento per aggiungerne una.
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
-              {righe.map((riga) => {
-                const inModifica = riga.id === modificaId;
-                return (
-                  <div
-                    key={riga.id}
-                    data-testid="activity-row"
-                    data-offerta-non-abilitata={riga.offertaNonAbilitata ? "true" : undefined}
-                    aria-current={inModifica ? "true" : undefined}
-                    className={`px-4 py-4 sm:px-5 ${
-                      riga.offertaNonAbilitata
-                        ? CLASSE_RIGA_OFFERTA_NON_ABILITATA
-                        : inModifica
-                          ? "bg-rose-50 shadow-[inset_3px_0_0] shadow-rose-600 dark:bg-rose-500/10 dark:shadow-rose-400"
-                          : ""
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[15px] font-medium text-testo-principale">
-                          {riga.cliente.ragioneSociale}
-                          {inModifica && (
-                            <span className="ml-2 text-xs font-medium text-rose-700 dark:text-rose-300">
-                              In modifica
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-0.5 text-[13px] text-testo-secondario [overflow-wrap:anywhere]">
-                          {riga.offerta ? (
-                            riga.offertaNonAbilitata ? (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                                <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />
-                                {[riga.offerta.codice, riga.offerta.descrizione].filter(Boolean).join(" — ")}
+            {righe.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-zinc-300 px-5 py-8 text-center text-sm text-testo-metadati dark:border-zinc-700">
+                Nessuna attività registrata per questa giornata.
+                {!solaLettura && (
+                  <>
+                    <br />
+                    Usa il form di inserimento per aggiungerne una.
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
+                {righe.map((riga) => {
+                  const inModifica = riga.id === modificaId;
+                  return (
+                    <div
+                      key={riga.id}
+                      data-testid="activity-row"
+                      data-offerta-non-abilitata={riga.offertaNonAbilitata ? "true" : undefined}
+                      aria-current={inModifica ? "true" : undefined}
+                      className={`px-4 py-4 sm:px-5 ${
+                        riga.offertaNonAbilitata
+                          ? CLASSE_RIGA_OFFERTA_NON_ABILITATA
+                          : inModifica
+                            ? "bg-rose-50 shadow-[inset_3px_0_0] shadow-rose-600 dark:bg-rose-500/10 dark:shadow-rose-400"
+                            : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[15px] font-medium text-testo-principale">
+                            {riga.cliente.ragioneSociale}
+                            {inModifica && (
+                              <span className="ml-2 text-xs font-medium text-rose-700 dark:text-rose-300">
+                                In modifica
                               </span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 text-[13px] text-testo-secondario [overflow-wrap:anywhere]">
+                            {riga.offerta ? (
+                              riga.offertaNonAbilitata ? (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                                  <IconaOffertaNonAbilitata className="h-[11px] w-[11px]" />
+                                  {[riga.offerta.codice, riga.offerta.descrizione].filter(Boolean).join(" — ")}
+                                </span>
+                              ) : (
+                                [riga.offerta.codice, riga.offerta.descrizione].filter(Boolean).join(" — ")
+                              )
                             ) : (
-                              [riga.offerta.codice, riga.offerta.descrizione].filter(Boolean).join(" — ")
-                            )
-                          ) : (
-                            <span
-                              data-testid="offerta-da-definire"
-                              className="rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                            >
-                              {ETICHETTA_OFFERTA_DA_DEFINIRE}
-                            </span>
-                          )}
+                              <span
+                                data-testid="offerta-da-definire"
+                                className="rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                              >
+                                {ETICHETTA_OFFERTA_DA_DEFINIRE}
+                              </span>
+                            )}
+                            {/* Rimborso trasferta fotografato (se presente), in coda all'offerta */}
+                            {riga.rimborsoTrasfertaEtichetta != null && (
+                              <>
+                                <span aria-hidden="true" className="text-testo-metadati"> · </span>
+                                <span className="inline-flex items-center gap-1.5 text-xs text-testo-metadati">
+                                  <IconaRimborso />
+                                  {riga.rimborsoTrasfertaEtichetta}
+                                  {riga.rimborsoTrasfertaImporto != null && (
+                                    <span className="font-medium tabular-nums text-testo-secondario">
+                                      {formattaEuro(riga.rimborsoTrasfertaImporto)}
+                                    </span>
+                                  )}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {/* Ore e, sotto, la categoria che le qualifica */}
+                        <div className="flex flex-none flex-col items-end gap-1">
+                          <span className="whitespace-nowrap text-lg font-medium leading-6 tabular-nums text-testo-principale">
+                            {formattaOre(riga.ore)}
+                          </span>
+                          <BadgeCategoriaAttivita categoria={riga.categoria} />
                         </div>
                       </div>
-                      <span className="whitespace-nowrap text-lg font-medium leading-6 tabular-nums text-testo-principale">
-                        {formattaOre(riga.ore)}
-                      </span>
-                    </div>
 
-                    {riga.nota && (
-                      <p className="mt-2 max-w-[68ch] text-sm leading-relaxed text-testo-secondario [overflow-wrap:anywhere]">
-                        {riga.nota}
-                      </p>
-                    )}
-
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                      <BadgeCategoriaAttivita categoria={riga.categoria} />
-                      {/* Rimborso trasferta fotografato (se presente) */}
-                      {riga.rimborsoTrasfertaEtichetta != null && (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-testo-metadati">
-                          <IconaRimborso />
-                          {riga.rimborsoTrasfertaEtichetta}
-                          {riga.rimborsoTrasfertaImporto != null && (
-                            <span className="font-medium tabular-nums text-testo-secondario">
-                              {formattaEuro(riga.rimborsoTrasfertaImporto)}
-                            </span>
-                          )}
-                        </span>
+                      {riga.nota && (
+                        <p className="mt-2 max-w-[68ch] text-sm leading-relaxed text-testo-secondario [overflow-wrap:anywhere]">
+                          {riga.nota}
+                        </p>
                       )}
-                    </div>
 
-                    {riga.offertaNonAbilitata && riga.offerta && (
-                      <div className="mt-3 border-t border-dashed border-amber-300 pt-2 dark:border-amber-700">
-                        <AvvisoOffertaNonAbilitata
-                          codiceOfferta={riga.offerta.codice}
-                          nomeCollaboratore={nomeCollaboratoreConsultato}
-                          abilitazione={
-                            collaboratoreConsultatoId && !solaLettura && riga.offerta.attiva
-                              ? { collaboratoreId: collaboratoreConsultatoId, offertaId: riga.offerta.id, onAbilitata: dopoAbilitazione }
-                              : null
-                          }
-                        />
-                      </div>
-                    )}
+                      {riga.offertaNonAbilitata && riga.offerta && (
+                        <div className="mt-3 border-t border-dashed border-amber-300 pt-2 dark:border-amber-700">
+                          <AvvisoOffertaNonAbilitata
+                            codiceOfferta={riga.offerta.codice}
+                            nomeCollaboratore={nomeCollaboratoreConsultato}
+                            abilitazione={
+                              collaboratoreConsultatoId && !solaLettura && riga.offerta.attiva
+                                ? { collaboratoreId: collaboratoreConsultatoId, offertaId: riga.offerta.id, onAbilitata: dopoAbilitazione }
+                                : null
+                            }
+                          />
+                        </div>
+                      )}
 
-                    {/* Pulsanti azione */}
-                    {!solaLettura && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <PulsanteAttesa
-                          type="button"
-                          attesaEsterna={rigaInAttesaId === riga.id}
-                          onClick={() => handleModifica(riga)}
-                          className={CLASSE_AZIONE_RIGA}
-                        >
-                          Modifica
-                        </PulsanteAttesa>
-                        <PulsanteAttesa
-                          type="button"
-                          data-testid="duplica-riga"
-                          attesaEsterna={rigaInAttesaId === riga.id}
-                          onClick={() => {
-                            setEsitoDuplicazione(null);
-                            setRigaDaDuplicare(riga);
-                          }}
-                          className={CLASSE_AZIONE_RIGA}
-                        >
-                          Duplica…
-                        </PulsanteAttesa>
-                        {riga.rimborsoTrasfertaEtichetta != null && (
+                      {/* Pulsanti azione */}
+                      {!solaLettura && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
                           <PulsanteAttesa
                             type="button"
                             attesaEsterna={rigaInAttesaId === riga.id}
-                            onClick={() => handleRimuoviRimborso(riga.id)}
+                            onClick={() => handleModifica(riga)}
                             className={CLASSE_AZIONE_RIGA}
                           >
-                            Rimuovi rimborso
+                            Modifica
                           </PulsanteAttesa>
-                        )}
-                        <PulsanteAttesa
-                          type="button"
-                          attesaEsterna={rigaInAttesaId === riga.id}
-                          onClick={() => handleElimina(riga.id)}
-                          className={`${CLASSE_AZIONE_RIGA} text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300`}
-                        >
-                          Elimina
-                        </PulsanteAttesa>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      </div>
+                          <PulsanteAttesa
+                            type="button"
+                            data-testid="duplica-riga"
+                            attesaEsterna={rigaInAttesaId === riga.id}
+                            onClick={() => {
+                              setEsitoDuplicazione(null);
+                              setRigaDaDuplicare(riga);
+                            }}
+                            className={CLASSE_AZIONE_RIGA}
+                          >
+                            Duplica…
+                          </PulsanteAttesa>
+                          {riga.rimborsoTrasfertaEtichetta != null && (
+                            <PulsanteAttesa
+                              type="button"
+                              attesaEsterna={rigaInAttesaId === riga.id}
+                              onClick={() => handleRimuoviRimborso(riga.id)}
+                              className={CLASSE_AZIONE_RIGA}
+                            >
+                              Rimuovi rimborso
+                            </PulsanteAttesa>
+                          )}
+                          <PulsanteAttesa
+                            type="button"
+                            attesaEsterna={rigaInAttesaId === riga.id}
+                            onClick={() => handleElimina(riga.id)}
+                            className={`${CLASSE_AZIONE_RIGA} text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300`}
+                          >
+                            Elimina
+                          </PulsanteAttesa>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
 
-      {/* ── Riepilogo dettagliato, secondario ── */}
-      <section aria-labelledby="titolo-riepilogo-giornata" className="mt-8">
-        <h2
-          id="titolo-riepilogo-giornata"
-          className="mb-2 text-[13px] font-medium text-testo-metadati"
-        >
-          Riepilogo della giornata
-        </h2>
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 lg:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-800">
-          {[
-            { etichetta: "Righe registrate", valore: String(riepilogo.nRighe) },
-            { etichetta: "Ore totali", valore: formattaOre(riepilogo.oreTotali) },
-            {
-              etichetta: "Ore da fatturare ad Agile Reloaded",
-              valore: formattaOre(riepilogo.oreDaFatturare),
-            },
-            {
-              etichetta: "Totale rimborsi",
-              valore: formattaEuro(riepilogo.totaleRimborsi),
-              testId: "day-summary-rimborsi",
-            },
-          ].map(({ etichetta, valore, testId }) => (
-            <div key={etichetta} className="bg-white px-4 py-3 dark:bg-zinc-900">
-              <dt className="text-xs text-testo-metadati">{etichetta}</dt>
-              <dd
-                data-testid={testId}
-                className="mt-0.5 text-[15px] font-medium tabular-nums text-testo-principale"
-              >
-                {valore}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+          {/* ── Riepilogo dettagliato, sotto le attività ── */}
+          <section aria-labelledby="titolo-riepilogo-giornata" className="mt-6">
+            <h2
+              id="titolo-riepilogo-giornata"
+              className="mb-2 text-[13px] font-medium text-testo-metadati"
+            >
+              Riepilogo della giornata
+            </h2>
+            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 xl:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-800">
+              {[
+                { etichetta: "Righe registrate", valore: String(riepilogo.nRighe) },
+                { etichetta: "Ore totali", valore: formattaOre(riepilogo.oreTotali) },
+                {
+                  etichetta: "Ore da fatturare ad Agile Reloaded",
+                  valore: formattaOre(riepilogo.oreDaFatturare),
+                },
+                {
+                  etichetta: "Totale rimborsi",
+                  valore: formattaEuro(riepilogo.totaleRimborsi),
+                  testId: "day-summary-rimborsi",
+                },
+              ].map(({ etichetta, valore, testId }) => (
+                <div key={etichetta} className="bg-white px-4 py-3 dark:bg-zinc-900">
+                  <dt className="text-xs text-testo-metadati">{etichetta}</dt>
+                  <dd
+                    data-testid={testId}
+                    className="mt-0.5 text-[15px] font-medium tabular-nums text-testo-principale"
+                  >
+                    {valore}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        </div>
+      </div>
 
       {/* ── Selettore di duplicazione su più giorni ── */}
       {rigaDaDuplicare && (
