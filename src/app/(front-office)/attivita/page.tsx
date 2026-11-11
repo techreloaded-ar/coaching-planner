@@ -120,9 +120,11 @@ export default async function AttivitaPage({
   // celle sono derivate nel client dalle funzioni pure del dominio, quindi non
   // vengono serializzate nel payload.
   // Lo stato di Google Calendar sta in fondo alla barra del mese, letto in
-  // parallelo ai dati della vista.
+  // parallelo ai dati della vista. La `key` serve perché l'elemento, creato
+  // fuori dal render, arriva al client tra i figli della barra senza la
+  // validazione statica del JSX e React in sviluppo lo segnalerebbe.
   const indicatoreCalendario = calendarioCollegato(profilo.collaboratore.id).then(
-    (collegato) => <IndicatoreCalendario collegato={collegato} />
+    (collegato) => <IndicatoreCalendario key="indicatore-calendario" collegato={collegato} />
   );
 
   if (vistaElenco) {

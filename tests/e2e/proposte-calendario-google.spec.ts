@@ -71,6 +71,11 @@ function proposta(page: Page, titolo: string) {
 	return page.getByTestId("proposta-calendario").filter({ hasText: titolo });
 }
 
+/** Campo delle ore di una proposta confermabile. */
+function campoOre(page: Page, titolo: string) {
+	return proposta(page, titolo).getByRole("textbox", { name: /^Ore da registrare per / });
+}
+
 function pulsantePannelloProposte(page: Page) {
 	return page.getByRole("button", { name: /^Proposte dal calendario/ });
 }
@@ -330,7 +335,7 @@ test.describe("US-002/US-003 Proposte dagli impegni del calendario", () => {
 		await expect(proposta(page, "Pranzo")).toHaveCount(0);
 
 		const riunione = proposta(page, "Riunione");
-		await expect(riunione).toContainText("1,5 h");
+		await expect(campoOre(page, "Riunione")).toHaveValue("1,5");
 		await expect(riunione).toContainText(abilitata.cliente.ragioneSociale);
 		await expect(riunione).toContainText(labelOffertaTest(abilitata));
 
@@ -534,5 +539,68 @@ test.describe("Incremento: suggerimenti a confidenza alta e pannello chiuso", ()
 		await page.keyboard.press("Space");
 		await expect(pulsante).toHaveAttribute("aria-expanded", "false");
 		await expect(proposta(page, "Riunione due")).toBeHidden();
+	});
+});
+
+test.describe("Incremento: ore della proposta modificabili prima della conferma", () => {
+	test("le ore ritoccate nella proposta diventano la riga confermata o precompilano il form", async ({
+		page,
+		factory,
+	}) => {
+		const data = dataNelMese(MESE, 22);
+		const collaboratore = await factory.createCollaboratore();
+		const clienteConOfferta = await factory.createClienteConOfferta();
+		await factory.createAbilitazioneOfferta({
+			collaboratore,
+			offerta: clienteConOfferta.offerta,
+		});
+		const codice = clienteConOfferta.offerta.codice;
+
+		await collegaCalendarioSimulato(page, collaboratore.utente.email, {
+			eventi: [
+				eventoDelGiorno(data, "ev-coaching", `Coaching ${codice}`, "07:00", 60),
+				eventoDelGiorno(data, "ev-retro", `Retro ${codice}`, "09:00", 60),
+				eventoDelGiorno(data, "ev-interno", "Allineamento interno", "11:00", 30),
+			],
+		});
+
+		await accediComeCollaboratore(page, collaboratore.utente.email);
+		await page.goto(`/attivita/${data}?mese=${MESE}`);
+		await apriProposte(page, 3);
+		const righe = page.getByTestId("activity-row");
+
+		// Senza cliente e offerta le ore restano testo e non c'è nulla da confermare.
+		const interno = proposta(page, "Allineamento interno");
+		await expect(interno).toContainText("0,5 h");
+		await expect(interno.getByRole("textbox")).toHaveCount(0);
+
+		// Il campo parte dalle ore del calendario, senza la nota della durata originale.
+		const coaching = proposta(page, "Coaching");
+		await expect(campoOre(page, "Coaching")).toHaveValue("1");
+		await expect(coaching.getByText("calendario: 1 h")).toHaveCount(0);
+
+		// Un valore non valido blocca la conferma e lo spiega.
+		await campoOre(page, "Coaching").fill("0");
+		await expect(campoOre(page, "Coaching")).toHaveAttribute("aria-invalid", "true");
+		await expect(coaching.getByText("Inserisci un numero maggiore di zero")).toBeVisible();
+		await expect(coaching.getByRole("button", { name: "Conferma" })).toBeDisabled();
+
+		// Ore ritoccate: resta visibile la durata del calendario e la riga nasce con il nuovo valore.
+		await campoOre(page, "Coaching").fill("1,25");
+		await expect(coaching.getByText("calendario: 1 h")).toBeVisible();
+		await coaching.getByRole("button", { name: "Conferma" }).click();
+		await expect(righe.filter({ hasText: `Coaching ${codice}` })).toContainText("1,25 h");
+		await expect(proposta(page, "Coaching")).toHaveCount(0);
+
+		// «Modifica» porta nel form le ore già ritoccate.
+		await campoOre(page, "Retro").fill("1.5");
+		await proposta(page, "Retro").getByRole("button", { name: "Modifica" }).click();
+		await expect(
+			page.getByRole("heading", { name: "Nuova riga dalla proposta del calendario" }),
+		).toBeVisible();
+		await expect(page.locator("#ore")).toHaveValue("1,5");
+
+		await page.reload();
+		await expect(righe.filter({ hasText: `Coaching ${codice}` })).toContainText("1,25 h");
 	});
 });

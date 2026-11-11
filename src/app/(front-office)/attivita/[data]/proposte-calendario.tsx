@@ -5,11 +5,12 @@ import { creaRiga } from "@/lib/actions/righe-attivita";
 import { rifiutaPropostaCalendario } from "@/lib/actions/calendario-google";
 import { PulsanteAttesa } from "@/components";
 import { CATEGORIA_ATTIVITA_PREDEFINITA } from "@/domain/types";
+import { validaOre } from "@/domain/consuntivi";
 import type {
   PropostaCalendarioClient,
   ProposteCalendarioGiornata,
 } from "@/lib/attivita-contract";
-import { formattaOre } from "@/lib/formattazione";
+import { formattaNumeroOre, formattaOre } from "@/lib/formattazione";
 
 type StatoProposte = ProposteCalendarioGiornata["stato"] | "CARICAMENTO";
 
@@ -72,6 +73,9 @@ interface SezioneProposteCalendarioProps {
  * confermare (se associato a cliente e offerta), modificare nel form riga o
  * rifiutare. L'inserimento manuale resta disponibile accanto.
  *
+ * Le ore di una proposta confermabile sono un campo: si possono ritoccare
+ * (es. 1 → 1,25) e «Conferma» crea la riga con il valore scritto.
+ *
  * Le proposte stanno in un pannello chiuso che ne mostra solo il numero;
  * lettura in corso, errore e assenza di proposte restano sempre visibili.
  */
@@ -86,6 +90,14 @@ export function SezioneProposteCalendario({
   const [inAttesaId, setInAttesaId] = useState<string | null>(null);
   const [aperto, setAperto] = useState(false);
   const [errori, setErrori] = useState<Record<string, string>>({});
+  // Testo del campo ore per evento; assente finché non lo si tocca.
+  const [oreScritte, setOreScritte] = useState<Record<string, string>>({});
+
+  const validaOreProposta = useCallback(
+    (proposta: PropostaCalendarioClient) =>
+      validaOre(oreScritte[proposta.eventoId] ?? formattaNumeroOre(proposta.ore)),
+    [oreScritte]
+  );
 
   const impostaErrore = useCallback((eventoId: string, errore: string | null) => {
     setErrori((correnti) => {
@@ -98,11 +110,12 @@ export function SezioneProposteCalendario({
 
   const conferma = useCallback(
     async (proposta: PropostaCalendarioClient) => {
-      if (!proposta.cliente || !proposta.offerta) return;
+      const ore = validaOreProposta(proposta);
+      if (!proposta.cliente || !proposta.offerta || ore.valore === undefined) return;
       const fd = new FormData();
       fd.append("clienteId", proposta.cliente.id);
       fd.append("offertaId", proposta.offerta.id);
-      fd.append("ore", proposta.ore.toString());
+      fd.append("ore", ore.valore.toString());
       fd.append("data", data);
       fd.append("nota", proposta.titolo);
       fd.append("categoria", CATEGORIA_ATTIVITA_PREDEFINITA);
@@ -125,7 +138,7 @@ export function SezioneProposteCalendario({
         setInAttesaId(null);
       }
     },
-    [data, impostaErrore, onPropostaGestita, onRigaCreata]
+    [data, impostaErrore, onPropostaGestita, onRigaCreata, validaOreProposta]
   );
 
   const rifiuta = useCallback(
@@ -233,6 +246,8 @@ export function SezioneProposteCalendario({
           {proposte.map((proposta) => {
             const associata = proposta.cliente !== null && proposta.offerta !== null;
             const inAttesa = inAttesaId === proposta.eventoId;
+            const ore = validaOreProposta(proposta);
+            const idCampoOre = `ore-proposta-${proposta.eventoId}`;
             return (
               <li
                 key={proposta.eventoId}
@@ -264,10 +279,53 @@ export function SezioneProposteCalendario({
                       )}
                     </div>
                   </div>
-                  <span className="whitespace-nowrap text-[15px] font-medium tabular-nums text-testo-principale">
-                    {formattaOre(proposta.ore)}
-                  </span>
+                  {associata ? (
+                    <div className="flex flex-none flex-col items-end">
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          id={idCampoOre}
+                          type="text"
+                          inputMode="decimal"
+                          aria-label={`Ore da registrare per ${proposta.titolo}`}
+                          value={oreScritte[proposta.eventoId] ?? formattaNumeroOre(proposta.ore)}
+                          onChange={(e) => {
+                            const valore = e.target.value;
+                            setOreScritte((correnti) => ({ ...correnti, [proposta.eventoId]: valore }));
+                          }}
+                          aria-invalid={ore.valido ? undefined : true}
+                          aria-describedby={ore.valido ? undefined : `${idCampoOre}-errore`}
+                          className={`h-10 w-16 rounded-lg border bg-white px-2 text-right text-[15px] font-medium tabular-nums text-testo-principale focus:outline-none focus:ring-1 sm:h-8 dark:bg-zinc-900 ${
+                            ore.valido
+                              ? "border-zinc-200 focus:border-rose-500 focus:ring-rose-500 dark:border-zinc-700"
+                              : "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/50"
+                          }`}
+                        />
+                        <span aria-hidden="true" className="text-[13px] text-testo-secondario">
+                          h
+                        </span>
+                      </div>
+                      {/* La durata del calendario resta visibile quando le ore sono state ritoccate. */}
+                      {ore.valore !== proposta.ore && (
+                        <span className="mt-1 whitespace-nowrap text-xs text-testo-metadati">
+                          calendario: {formattaOre(proposta.ore)}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="whitespace-nowrap text-[15px] font-medium tabular-nums text-testo-principale">
+                      {formattaOre(proposta.ore)}
+                    </span>
+                  )}
                 </div>
+
+                {associata && !ore.valido && (
+                  <p
+                    id={`${idCampoOre}-errore`}
+                    className="mt-2 text-xs font-medium text-red-600 dark:text-red-400"
+                  >
+                    {ore.errore}
+                  </p>
+                )}
 
                 {errori[proposta.eventoId] && (
                   <p role="alert" className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">
@@ -280,6 +338,7 @@ export function SezioneProposteCalendario({
                     <PulsanteAttesa
                       type="button"
                       attesaEsterna={inAttesa}
+                      disabled={!ore.valido}
                       onClick={() => conferma(proposta)}
                       className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 sm:h-8 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
                     >
@@ -289,7 +348,9 @@ export function SezioneProposteCalendario({
                   <PulsanteAttesa
                     type="button"
                     attesaEsterna={inAttesa}
-                    onClick={() => onModifica(proposta)}
+                    onClick={() =>
+                      onModifica(ore.valore !== undefined ? { ...proposta, ore: ore.valore } : proposta)
+                    }
                     className={classePulsante}
                   >
                     Modifica
