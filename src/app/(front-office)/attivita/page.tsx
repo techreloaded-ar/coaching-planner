@@ -47,20 +47,28 @@ export default async function AttivitaPage({
   const elenco = async (
     collaboratoreId: string,
     solaLettura: boolean,
-    nomeCollaboratoreConsultato: string | null = null
-  ) => (
-    <ElencoAttivita
-      token={token}
-      righe={await righeDelMesePerCollaboratoreAutorizzato(token, collaboratoreId)}
-      filtriIniziali={{
-        cliente: params.cliente ?? "",
-        offerta: params.offerta ?? "",
-        nota: params.nota ?? "",
-      }}
-      solaLettura={solaLettura}
-      nomeCollaboratoreConsultato={nomeCollaboratoreConsultato}
-    />
-  );
+    nomeCollaboratoreConsultato: string | null = null,
+    indicatoreCalendario: Promise<React.ReactNode> | null = null
+  ) => {
+    const [righe, indicatore] = await Promise.all([
+      righeDelMesePerCollaboratoreAutorizzato(token, collaboratoreId),
+      indicatoreCalendario,
+    ]);
+    return (
+      <ElencoAttivita
+        token={token}
+        righe={righe}
+        filtriIniziali={{
+          cliente: params.cliente ?? "",
+          offerta: params.offerta ?? "",
+          nota: params.nota ?? "",
+        }}
+        solaLettura={solaLettura}
+        nomeCollaboratoreConsultato={nomeCollaboratoreConsultato}
+        indicatoreCalendario={indicatore}
+      />
+    );
+  };
 
   if (consultato) {
     if (vistaElenco) {
@@ -111,27 +119,26 @@ export default async function AttivitaPage({
   // ripete la catena sessione → profilo. Etichetta del mese e griglia delle 42
   // celle sono derivate nel client dalle funzioni pure del dominio, quindi non
   // vengono serializzate nel payload.
-  const [vista, collegato] = await Promise.all([
-    vistaElenco
-      ? elenco(profilo.collaboratore.id, false)
-      : datiCalendarioMesePerCollaboratoreAutorizzato(token, profilo.collaboratore.id).then(
-          (datiMese) => (
-            <CalendarioMensile
-              datiMeseIniziale={datiMese}
-              oggi={new Date().toISOString()}
-            />
-          )
-        ),
-    calendarioCollegato(profilo.collaboratore.id),
+  // Lo stato di Google Calendar sta in fondo alla barra del mese, letto in
+  // parallelo ai dati della vista.
+  const indicatoreCalendario = calendarioCollegato(profilo.collaboratore.id).then(
+    (collegato) => <IndicatoreCalendario collegato={collegato} />
+  );
+
+  if (vistaElenco) {
+    return elenco(profilo.collaboratore.id, false, null, indicatoreCalendario);
+  }
+
+  const [datiMese, indicatore] = await Promise.all([
+    datiCalendarioMesePerCollaboratoreAutorizzato(token, profilo.collaboratore.id),
+    indicatoreCalendario,
   ]);
 
   return (
-    <>
-      {/* Solo stato, discreto: il collegamento si gestisce dalle Impostazioni. */}
-      <div className="mx-auto flex w-full max-w-[1080px] justify-end px-8 pt-4">
-        <IndicatoreCalendario collegato={collegato} />
-      </div>
-      {vista}
-    </>
+    <CalendarioMensile
+      datiMeseIniziale={datiMese}
+      oggi={new Date().toISOString()}
+      indicatoreCalendario={indicatore}
+    />
   );
 }

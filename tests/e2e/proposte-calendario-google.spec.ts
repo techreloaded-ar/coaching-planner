@@ -237,6 +237,37 @@ test.describe("Indicatore discreto nella pagina attività", () => {
 		await expect(indicatoreCalendario(page)).toHaveAttribute("href", "/impostazioni/connettori");
 	});
 
+	test("sta in fondo alla barra del mese, con pallino di stato e tooltip immediato", async ({ page, factory }) => {
+		const collaboratore = await factory.createCollaboratore();
+		await accediComeCollaboratore(page, collaboratore.utente.email);
+		const pallino = page.getByTestId("stato-calendario");
+		const tooltip = page.getByText("Google Calendar non collegato", { exact: true });
+
+		for (const vista of ["calendario", "elenco"]) {
+			await page.goto(vista === "elenco" ? "/attivita?vista=elenco" : "/attivita");
+			const meseCorrente = page.getByRole("main").getByRole("link", { name: "Mese corrente" }).or(page.getByRole("main").getByRole("button", { name: "Mese corrente" }));
+			const barra = (await meseCorrente.boundingBox())!;
+			const indicatore = (await indicatoreCalendario(page).boundingBox())!;
+			// Stessa riga della barra del mese, all'estremità destra.
+			expect(Math.abs(indicatore.y + indicatore.height / 2 - (barra.y + barra.height / 2))).toBeLessThanOrEqual(2);
+			const interruttoreVista = (await page.getByRole("navigation", { name: "Vista delle attività" }).boundingBox())!;
+			expect(indicatore.x).toBeGreaterThanOrEqual(interruttoreVista.x + interruttoreVista.width);
+			await expect(pallino).toHaveAttribute("data-collegato", "false");
+
+			// Dopo il cambio di vista il mouse è ancora sopra l'icona: lo si allontana.
+			await page.mouse.move(0, 0);
+			await expect(tooltip).toBeHidden();
+			await indicatoreCalendario(page).hover();
+			await expect(tooltip).toBeVisible();
+		}
+
+		await collegaCalendarioSimulato(page, collaboratore.utente.email, { eventi: [] });
+		await page.goto("/attivita");
+		await expect(pallino).toHaveAttribute("data-collegato", "true");
+		await indicatoreCalendario(page).hover();
+		await expect(page.getByText("Google Calendar collegato", { exact: true })).toBeVisible();
+	});
+
 	test("gli esiti del consenso non compaiono più nella pagina attività", async ({ page, factory }) => {
 		const collaboratore = await factory.createCollaboratore();
 		await accediComeCollaboratore(page, collaboratore.utente.email);

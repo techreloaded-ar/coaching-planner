@@ -53,6 +53,8 @@ interface ElencoAttivitaProps {
   solaLettura: boolean;
   /** Nome del collaboratore il cui foglio è consultato da un amministratore, `null` sul proprio foglio. */
   nomeCollaboratoreConsultato: string | null;
+  /** Stato di Google Calendar in fondo alla barra del mese; assente sul foglio di un altro collaboratore. */
+  indicatoreCalendario?: React.ReactNode;
 }
 
 function formattaEuro(importo: string): string {
@@ -90,7 +92,7 @@ const CLASSE_CAMPO =
   "h-9 rounded-[10px] border border-zinc-200 bg-white px-3 text-sm text-testo-principale shadow-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800";
 const CLASSE_ETICHETTA = "text-xs font-medium text-testo-metadati";
 
-export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettura, nomeCollaboratoreConsultato }: ElencoAttivitaProps) {
+export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettura, nomeCollaboratoreConsultato, indicatoreCalendario }: ElencoAttivitaProps) {
   const router = useRouter();
   const idratata = useIdratata();
   const cacheCalendario = useCacheCalendario();
@@ -202,13 +204,16 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
           hrefElenco={urlDiElenco(token)}
         />
 
-        {righe.length > 0 && (
-          <div className="inline-flex items-center gap-[9px] max-sm:ml-auto rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-sm font-medium text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
-            <b className="tabular-nums">{righe.length} righe</b>
-            <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
-            <b className="tabular-nums">{formattaGiornate(totaliMese.ore / ORE_PER_GIORNATA)}</b>
-          </div>
-        )}
+        <div className="flex items-center gap-4 max-sm:ml-auto max-sm:gap-2.5">
+          {righe.length > 0 && (
+            <div className="inline-flex items-center gap-[9px] rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-sm font-medium text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+              <b className="tabular-nums">{righe.length} righe</b>
+              <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
+              <b className="tabular-nums">{formattaGiornate(totaliMese.ore / ORE_PER_GIORNATA)}</b>
+            </div>
+          )}
+          {indicatoreCalendario}
+        </div>
       </div>
 
       {/* ── Filtri e aggiunta ── */}
