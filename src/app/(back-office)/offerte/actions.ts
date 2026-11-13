@@ -5,10 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { richiediPermessoApi } from "@/lib/dal";
-import {
-  leggiPosizioneElencoDaForm,
-  urlPosizioneElenco,
-} from "@/lib/paginazione";
+import { urlPosizioneElenco } from "@/lib/paginazione";
+import { leggiFiltriElencoOfferteDaForm, parametriFiltroOfferte } from "@/lib/elenco-offerte";
 import { leggiIdSelezionati } from "@/lib/selezione-elenco";
 
 const MESSAGGIO_BLOCCO_ELIMINAZIONE =
@@ -38,9 +36,10 @@ export async function cambiaStatoOfferta(formData: FormData): Promise<void> {
   const idOfferte = leggiIdSelezionati(formData);
   const attiva = formData.get("attivo") === "true";
   const offertaEspansaId = formData.get("offertaEspansaId");
+  const filtri = leggiFiltriElencoOfferteDaForm(formData);
 
   if (idOfferte.length === 0) {
-    redirect("/offerte");
+    redirect(urlPosizioneElenco("/offerte", filtri, parametriFiltroOfferte(filtri.soloDaPresidiare)));
   }
 
   await db.offerta.updateMany({
@@ -52,6 +51,7 @@ export async function cambiaStatoOfferta(formData: FormData): Promise<void> {
 
   const altriParametri: Record<string, string> = {
     esito: "stato-offerta-aggiornato",
+    ...parametriFiltroOfferte(filtri.soloDaPresidiare),
   };
   if (typeof offertaEspansaId === "string" && offertaEspansaId) {
     altriParametri.offertaEspansaId = offertaEspansaId;
@@ -59,7 +59,7 @@ export async function cambiaStatoOfferta(formData: FormData): Promise<void> {
   redirect(
     urlPosizioneElenco(
       "/offerte",
-      leggiPosizioneElencoDaForm(formData),
+      filtri,
       altriParametri,
     ),
   );
@@ -104,9 +104,11 @@ export async function eliminaOfferta(
 
   revalidatePath("/offerte");
   revalidatePath("/anagrafiche/clienti");
+  const filtri = leggiFiltriElencoOfferteDaForm(formData);
   redirect(
-    urlPosizioneElenco("/offerte", leggiPosizioneElencoDaForm(formData), {
+    urlPosizioneElenco("/offerte", filtri, {
       esito: "offerta-eliminata",
+      ...parametriFiltroOfferte(filtri.soloDaPresidiare),
     }),
   );
 }

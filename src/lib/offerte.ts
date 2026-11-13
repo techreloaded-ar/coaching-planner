@@ -298,6 +298,8 @@ export interface ElencoOffertePaginato extends PaginaElenco {
  * La ricerca, senza distinzione maiuscole/minuscole, filtra per ragione sociale
  * del cliente, codice o descrizione su tutto l'archivio. Le offerte senza righe
  * attività compaiono con giornate erogate 0 e residuo pari alle previste.
+ * Con `soloDaPresidiare` restano solo le offerte attive esaurite/oltre budget,
+ * prima di calcolare contatori e pagine dell'insieme filtrato.
  *
  * Ordinamento sull'intero insieme filtrato: prima le offerte attive
  * esaurite/oltre budget, poi le altre attive, infine quelle non attive; dentro
@@ -310,7 +312,8 @@ export interface ElencoOffertePaginato extends PaginaElenco {
 export async function elencaOfferteConAvanzamentoPaginate({
   ricerca,
   pagina,
-}: PosizioneElenco): Promise<ElencoOffertePaginato> {
+  soloDaPresidiare = false,
+}: PosizioneElenco & { soloDaPresidiare?: boolean }): Promise<ElencoOffertePaginato> {
   await richiediPermessoApi("GESTIRE_OFFERTE");
 
   const filtro = { contains: ricerca, mode: "insensitive" } as const;
@@ -348,6 +351,9 @@ export async function elencaOfferteConAvanzamentoPaginate({
 
   const offerteOrdinate = offerte
     .map((offerta) => ({ offerta, avanzamento: avanzamentoPerOfferta.get(offerta.id)! }))
+    .filter(({ offerta, avanzamento }) =>
+      !soloDaPresidiare || gruppoOrdinamento(offerta.attiva, avanzamento.stato) === 1,
+    )
     .sort((a, b) => {
       const gruppoA = gruppoOrdinamento(a.offerta.attiva, a.avanzamento.stato);
       const gruppoB = gruppoOrdinamento(b.offerta.attiva, b.avanzamento.stato);
@@ -369,7 +375,7 @@ export async function elencaOfferteConAvanzamentoPaginate({
       gruppoOrdinamento(offerta.attiva, avanzamento.stato) === 1,
   ).length;
 
-  const paginaElenco = calcolaPaginaElenco(pagina, offerte.length);
+  const paginaElenco = calcolaPaginaElenco(pagina, offerteOrdinate.length);
   const inizio = inizioPagina(paginaElenco.paginaCorrente);
   const offertePagina = offerteOrdinate
     .slice(inizio, inizio + ELEMENTI_PER_PAGINA)
@@ -391,7 +397,7 @@ export async function elencaOfferteConAvanzamentoPaginate({
     ...paginaElenco,
     offerte: costruisciVociElencoOfferte(offertePagina, righe, abilitazioni),
     attive,
-    nonAttive: offerte.length - attive,
+    nonAttive: offerteOrdinate.length - attive,
     critiche,
   };
 }

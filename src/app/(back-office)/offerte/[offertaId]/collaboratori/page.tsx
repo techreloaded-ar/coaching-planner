@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { richiediPermesso } from "@/lib/dal";
 import { offertaPerId } from "@/lib/offerte";
+import { leggiFiltriElencoOfferte, parametriFiltroOfferte, type ParametriElencoOfferte } from "@/lib/elenco-offerte";
+import { urlPosizioneElenco } from "@/lib/paginazione";
 import {
   elencaCollaboratoriIngaggiati,
   elencaCollaboratoriIngaggiabili,
@@ -11,14 +13,17 @@ import IngaggiCollaboratori from "./ingaggi-collaboratori";
 
 interface CollaboratoriOffertaPageProps {
   params: Promise<{ offertaId: string }>;
+  searchParams: Promise<ParametriElencoOfferte>;
 }
 
 export default async function CollaboratoriOffertaPage({
   params,
+  searchParams,
 }: CollaboratoriOffertaPageProps) {
   await richiediPermesso("GESTIRE_ABILITAZIONI");
 
   const { offertaId } = await params;
+  const filtri = leggiFiltriElencoOfferte(await searchParams);
   const offerta = await offertaPerId(offertaId);
 
   if (!offerta) {
@@ -40,7 +45,7 @@ export default async function CollaboratoriOffertaPage({
   return (
     <div>
       <Link
-        href="/offerte"
+        href={urlPosizioneElenco("/offerte", filtri, parametriFiltroOfferte(filtri.soloDaPresidiare))}
         className="mb-[14px] inline-flex items-center gap-[6px] text-sm font-medium text-testo-secondario no-underline transition hover:text-indigo-600 dark:hover:text-indigo-400"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[15px] w-[15px]" strokeWidth={2.2}>

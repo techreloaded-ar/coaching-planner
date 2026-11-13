@@ -58,7 +58,10 @@ test.describe("Ingaggi collaboratori su offerta", () => {
 		await barra
 			.getByRole("link", { name: "Collaboratori abilitati", exact: true })
 			.click();
-		await page.waitForURL(`**/offerte/${offerta.id}/collaboratori`);
+		await page.waitForURL((url) =>
+			url.pathname === `/offerte/${offerta.id}/collaboratori` &&
+			url.searchParams.get("q") === codiceOfferta,
+		);
 
 		const tabellaIngaggiati = page.getByRole("table", {
 			name: "Collaboratori ingaggiati",

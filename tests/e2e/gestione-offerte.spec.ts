@@ -153,7 +153,7 @@ test.describe("Gestione offerte", () => {
 		await page.getByLabel("Tariffa giornaliera").fill("725,50");
 		await page.getByRole("button", { name: "Salva offerta" }).click();
 
-		await page.waitForURL(/\/offerte\?esito=offerta-salvata$/);
+		await attendiEsitoNellElencoFiltrato(page, "offerta-salvata", offerta.codice);
 		await expect(page.getByText("Modifiche all'offerta salvate")).toBeVisible();
 		await cercaNellElenco(page, "/offerte", offerta.codice);
 
@@ -217,11 +217,11 @@ test.describe("Gestione offerte", () => {
 		const barra = await selezionaRighe(page, [offerta.codice]);
 		await expect(barra.getByRole("link", { name: "Modifica", exact: true })).toHaveAttribute(
 			"href",
-			`/offerte/${offerta.id}`,
+			`/offerte/${offerta.id}?${new URLSearchParams({ q: offerta.codice })}`,
 		);
 		await expect(
 			barra.getByRole("link", { name: "Collaboratori abilitati", exact: true }),
-		).toHaveAttribute("href", `/offerte/${offerta.id}/collaboratori`);
+		).toHaveAttribute("href", `/offerte/${offerta.id}/collaboratori?${new URLSearchParams({ q: offerta.codice })}`);
 		await expect(barra.getByRole("button", { name: "Disattiva", exact: true })).toBeVisible();
 		await expect(barra.getByRole("button", { name: "Elimina", exact: true })).toBeVisible();
 		await expect(barra.getByRole("button", { name: "Riattiva" })).toHaveCount(0);

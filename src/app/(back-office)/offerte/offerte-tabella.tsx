@@ -17,7 +17,8 @@ import {
   useSelezioneElenco,
 } from "@/components";
 import type { ElencoOffertePaginato, VoceElencoOfferta } from "@/lib/offerte";
-import type { PosizioneElenco } from "@/lib/paginazione";
+import { urlPosizioneElenco, type PosizioneElenco } from "@/lib/paginazione";
+import { parametriFiltroOfferte } from "@/lib/elenco-offerte";
 import {
   descriviGestioneTrasferta,
   formattaEuro,
@@ -37,6 +38,7 @@ const statoEliminazioneIniziale: StatoEliminazioneOfferta = {};
 interface OfferteTabellaProps {
   elenco: ElencoOffertePaginato;
   ricerca: string;
+  soloDaPresidiare: boolean;
   offertaEspansaIdIniziale?: string;
 }
 
@@ -45,10 +47,12 @@ interface OfferteTabellaProps {
 export default function OfferteTabella({
   elenco,
   ricerca,
+  soloDaPresidiare,
   offertaEspansaIdIniziale,
 }: OfferteTabellaProps) {
   const { offerte, attive, nonAttive, critiche, totaleElementi } = elenco;
   const posizione: PosizioneElenco = { ricerca, pagina: elenco.paginaCorrente };
+  const parametriFiltro = parametriFiltroOfferte(soloDaPresidiare);
   const [offertaEspansaId, setOffertaEspansaId] = useState<string | null>(
     offertaEspansaIdIniziale ?? null,
   );
@@ -56,7 +60,7 @@ export default function OfferteTabella({
     useState<VoceElencoOfferta | null>(null);
   const idratata = useIdratata();
 
-  if (totaleElementi === 0 && !ricerca) {
+  if (totaleElementi === 0 && !ricerca && !soloDaPresidiare) {
     return <StatoVuoto />;
   }
 
@@ -67,10 +71,13 @@ export default function OfferteTabella({
       nomeElemento={(offerta) => offerta.codice}
       nomi={{ singolare: "offerta", plurale: "offerte", femminile: true }}
       azioni={[
-        { tipo: "modifica", href: (offerta) => `/offerte/${offerta.offertaId}` },
+        {
+          tipo: "modifica",
+          href: (offerta) => urlPosizioneElenco(`/offerte/${offerta.offertaId}`, posizione, parametriFiltro),
+        },
         {
           tipo: "collaboratori-abilitati",
-          href: (offerta) => `/offerte/${offerta.offertaId}/collaboratori`,
+          href: (offerta) => urlPosizioneElenco(`/offerte/${offerta.offertaId}/collaboratori`, posizione, parametriFiltro),
         },
         { tipo: "elimina", esegui: setOffertaDaEliminare },
       ]}
@@ -81,6 +88,7 @@ export default function OfferteTabella({
           <>
             <input type="hidden" name="offertaEspansaId" value={offertaEspansaId ?? ""} />
             <CampiPosizioneElenco {...posizione} />
+            <input type="hidden" name="daPresidiare" value={soloDaPresidiare ? "1" : ""} />
           </>
         ),
         descrizioneDisattivazione: () =>
@@ -95,17 +103,31 @@ export default function OfferteTabella({
           segnaposto="Cerca per cliente, codice o descrizione…"
           etichetta="Cerca offerta"
           className="max-w-[360px]"
+          parametri={parametriFiltro}
         />
         {critiche > 0 && (
-          <span className="inline-flex items-center gap-[7px] rounded-full border border-red-200 bg-red-50 px-[12px] py-[5px] text-xs font-medium text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
+          <Link
+            href={urlPosizioneElenco("/offerte", { ricerca, pagina: 1 }, parametriFiltroOfferte(true))}
+            scroll={false}
+            aria-current={soloDaPresidiare ? "true" : undefined}
+            title="Mostra solo le offerte attive con residuo esaurito o negativo"
+            className={`inline-flex items-center gap-[7px] rounded-full border px-[12px] py-[7px] text-xs font-semibold no-underline transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 ${
+              soloDaPresidiare
+                ? "border-red-700 bg-red-700 text-white hover:bg-red-800 dark:border-red-500 dark:bg-red-600 dark:hover:bg-red-700"
+                : "border-red-300 bg-red-50 text-red-700 hover:border-red-400 hover:bg-red-100 dark:border-red-500/50 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+            }`}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
               <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
               <path d="M12 9v4M12 17h.01" />
             </svg>
             <span>
               <b className="tabular-nums">{critiche}</b> da presidiare
             </span>
-          </span>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2}>
+              <path d={soloDaPresidiare ? "m5 12 4 4L19 6" : "M5 12h14m-5-5 5 5-5 5"} />
+            </svg>
+          </Link>
         )}
         <span className="ml-auto text-sm font-medium text-testo-metadati">
           {totaleElementi}{" "}
@@ -113,6 +135,22 @@ export default function OfferteTabella({
           {nonAttive} disattivate
         </span>
       </BarraElencoSelezionabile>
+
+      {soloDaPresidiare && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-red-100 bg-red-50/60 px-4 py-3 text-sm dark:border-red-500/20 dark:bg-red-500/5">
+          <p className="text-red-800 dark:text-red-200">
+            <strong>Solo offerte da presidiare</strong>
+            <span className="ml-2 text-xs">Residuo esaurito o negativo</span>
+          </p>
+          <Link
+            href={urlPosizioneElenco("/offerte", { ricerca, pagina: 1 })}
+            scroll={false}
+            className="rounded px-1 py-1 font-medium text-indigo-600 no-underline hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-indigo-400"
+          >
+            Mostra tutte le offerte
+          </Link>
+        </div>
+      )}
 
       {/* Tabella trasversale */}
       <div className="overflow-x-auto" data-testid="contenitore-tabella-offerte">
@@ -147,7 +185,11 @@ export default function OfferteTabella({
             {offerte.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-[34px] text-center text-sm text-testo-metadati">
-                  Nessuna offerta corrisponde alla ricerca.
+                  {soloDaPresidiare
+                    ? ricerca
+                      ? "Nessuna offerta da presidiare corrisponde alla ricerca."
+                      : "Nessuna offerta da presidiare."
+                    : "Nessuna offerta corrisponde alla ricerca."}
                 </td>
               </tr>
             ) : (
@@ -167,13 +209,14 @@ export default function OfferteTabella({
           </tbody>
         </table>
       </div>
-      <PaginazioneElenco percorso="/offerte" ricerca={ricerca} {...elenco} />
+      <PaginazioneElenco percorso="/offerte" ricerca={ricerca} parametri={parametriFiltro} {...elenco} />
     </section>
 
     <ModaleElimina
       offerta={offertaDaEliminare}
       offertaEspansaId={offertaEspansaId}
       posizione={posizione}
+      soloDaPresidiare={soloDaPresidiare}
       onChiudi={() => setOffertaDaEliminare(null)}
     />
     </ElencoSelezionabile>
@@ -307,11 +350,13 @@ function ModaleElimina({
   offerta,
   offertaEspansaId,
   posizione,
+  soloDaPresidiare,
   onChiudi,
 }: {
   offerta: VoceElencoOfferta | null;
   offertaEspansaId: string | null;
   posizione: PosizioneElenco;
+  soloDaPresidiare: boolean;
   onChiudi: () => void;
 }) {
   // Nessuna chiusura comandata dal client: `eliminaOfferta` torna `{ errore }`
@@ -426,6 +471,7 @@ function ModaleElimina({
                         value={offertaEspansaId ?? ""}
                       />
                       <CampiPosizioneElenco {...posizione} />
+                      <input type="hidden" name="daPresidiare" value={soloDaPresidiare ? "1" : ""} />
                       <PulsanteAttesa
                         etichettaAttesa="Disattivazione…"
                         className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
@@ -474,6 +520,7 @@ function ModaleElimina({
                   <form action={azione}>
                     <input type="hidden" name="id" value={offerta.offertaId} />
                     <CampiPosizioneElenco {...posizione} />
+                    <input type="hidden" name="daPresidiare" value={soloDaPresidiare ? "1" : ""} />
                     <PulsanteAttesa
                       etichettaAttesa="Eliminazione…"
                       className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:brightness-[.92]"
