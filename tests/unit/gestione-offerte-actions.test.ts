@@ -79,11 +79,12 @@ describe("cambiaStatoOfferta", () => {
 		formData.set("offertaEspansaId", "off-1");
 		formData.set("q", "alfa beta");
 		formData.set("pagina", "2");
+		formData.set("daPresidiare", "1");
 
 		await cambiaStatoOfferta(formData);
 
 		expect(mockRedirect).toHaveBeenCalledWith(
-			"/offerte?esito=stato-offerta-aggiornato&offertaEspansaId=off-1&q=alfa+beta&pagina=2",
+			"/offerte?esito=stato-offerta-aggiornato&daPresidiare=1&offertaEspansaId=off-1&q=alfa+beta&pagina=2",
 		);
 	});
 
@@ -197,11 +198,12 @@ describe("eliminaOfferta", () => {
 		formData.set("id", "off-1");
 		formData.set("q", "OFF");
 		formData.set("pagina", "3");
+		formData.set("daPresidiare", "1");
 
 		await eliminaOfferta({}, formData);
 
 		expect(mockRedirect).toHaveBeenCalledWith(
-			"/offerte?esito=offerta-eliminata&q=OFF&pagina=3",
+			"/offerte?esito=offerta-eliminata&daPresidiare=1&q=OFF&pagina=3",
 		);
 	});
 

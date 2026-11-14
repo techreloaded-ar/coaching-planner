@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { richiediPermesso } from "@/lib/dal";
 import { elencaOfferteConAvanzamentoPaginate } from "@/lib/offerte";
-import { leggiPosizioneElenco } from "@/lib/paginazione";
+import { leggiFiltriElencoOfferte, parametriFiltroOfferte, type ParametriElencoOfferte } from "@/lib/elenco-offerte";
+import { urlPosizioneElenco } from "@/lib/paginazione";
 import OfferteTabella from "./offerte-tabella";
 
 interface OffertePageProps {
-  searchParams: Promise<{
+  searchParams: Promise<ParametriElencoOfferte & {
     esito?: string | string[];
     offertaEspansaId?: string | string[];
-    q?: string | string[];
-    pagina?: string | string[];
   }>;
 }
 
@@ -37,8 +36,8 @@ export default async function OffertePage({ searchParams }: OffertePageProps) {
   await richiediPermesso("GESTIRE_OFFERTE");
   const parametri = await searchParams;
   const { esito, offertaEspansaId } = parametri;
-  const { ricerca, pagina } = leggiPosizioneElenco(parametri);
-  const elenco = await elencaOfferteConAvanzamentoPaginate({ ricerca, pagina });
+  const filtri = leggiFiltriElencoOfferte(parametri);
+  const elenco = await elencaOfferteConAvanzamentoPaginate(filtri);
   const messaggioEsito = messaggioPerEsito(primoParametro(esito));
   const offertaEspansaIdIniziale = primoParametro(offertaEspansaId);
 
@@ -63,7 +62,7 @@ export default async function OffertePage({ searchParams }: OffertePageProps) {
         </div>
         <div className="mt-1 flex shrink-0 items-center gap-[10px]">
           <Link
-            href="/offerte/nuova"
+            href={urlPosizioneElenco("/offerte/nuova", { ...filtri, pagina: elenco.paginaCorrente }, parametriFiltroOfferte(filtri.soloDaPresidiare))}
             className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[15px] py-[9px] text-sm font-medium text-white shadow-sm no-underline transition hover:bg-indigo-600"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2}>
@@ -86,7 +85,8 @@ export default async function OffertePage({ searchParams }: OffertePageProps) {
       {/* Tabella offerte */}
       <OfferteTabella
         elenco={elenco}
-        ricerca={ricerca}
+        ricerca={filtri.ricerca}
+        soloDaPresidiare={filtri.soloDaPresidiare}
         offertaEspansaIdIniziale={offertaEspansaIdIniziale}
       />
     </div>

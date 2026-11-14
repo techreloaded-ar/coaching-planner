@@ -14,6 +14,8 @@ import {
 } from "@/domain/anagrafiche/valida-offerta";
 import type { GestioneTrasferta } from "@/domain/types";
 import { leggiNoteDaForm, leggiTestoFacoltativoDaForm } from "@/domain/anagrafiche/note";
+import { leggiFiltriElencoOfferteDaForm, parametriFiltroOfferte } from "@/lib/elenco-offerte";
+import { urlPosizioneElenco } from "@/lib/paginazione";
 
 export interface StatoActionOfferta {
   errori: ErroriValidazioneOfferta;
@@ -138,7 +140,11 @@ export async function creaOfferta(
 
   if (provieneDaPaginaOfferte) {
     revalidatePath("/offerte");
-    redirect("/offerte?esito=offerta-creata");
+    const filtri = leggiFiltriElencoOfferteDaForm(formData);
+    redirect(urlPosizioneElenco("/offerte", filtri, {
+      esito: "offerta-creata",
+      ...parametriFiltroOfferte(filtri.soloDaPresidiare),
+    }));
   }
 
   redirect(`/anagrafiche/clienti/${clienteId}?esito=offerta-creata`);
@@ -196,7 +202,11 @@ export async function aggiornaOfferta(
 
   if (provieneDaPaginaOfferte) {
     revalidatePath("/offerte");
-    redirect("/offerte?esito=offerta-salvata");
+    const filtri = leggiFiltriElencoOfferteDaForm(formData);
+    redirect(urlPosizioneElenco("/offerte", filtri, {
+      esito: "offerta-salvata",
+      ...parametriFiltroOfferte(filtri.soloDaPresidiare),
+    }));
   }
 
   redirect(`/anagrafiche/clienti/${clienteId}?esito=offerta-salvata`);

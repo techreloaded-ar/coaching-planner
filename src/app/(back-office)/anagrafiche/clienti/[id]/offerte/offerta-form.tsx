@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useActionState, type ReactNode } from "react";
-import { CampoNote, PulsanteAttesa, useValoriInviati } from "@/components";
+import { CampiPosizioneElenco, CampoNote, PulsanteAttesa, useValoriInviati } from "@/components";
+import { parametriFiltroOfferte, type FiltriElencoOfferte } from "@/lib/elenco-offerte";
+import { urlPosizioneElenco } from "@/lib/paginazione";
 import {
   creaOfferta,
   aggiornaOfferta,
@@ -48,6 +50,7 @@ interface OffertaFormProps {
    * trasversale /offerte al termine dell'operazione.
    */
   origine?: string;
+  filtriElenco?: FiltriElencoOfferte;
 }
 
 const statoIniziale: StatoActionOfferta = { errori: {} };
@@ -57,6 +60,7 @@ export default function OffertaForm({
   clienti,
   offerta,
   origine,
+  filtriElenco,
 }: OffertaFormProps) {
   const inModifica = !!offerta;
   const [stato, azione] = useActionState(
@@ -72,7 +76,11 @@ export default function OffertaForm({
   const provieneDaOfferte = origine === "offerte";
   const mostraSelectCliente = !!clienti;
   const linkRitorno = provieneDaOfferte
-    ? "/offerte"
+    ? urlPosizioneElenco(
+        "/offerte",
+        filtriElenco ?? { ricerca: "", pagina: 1 },
+        parametriFiltroOfferte(filtriElenco?.soloDaPresidiare ?? false),
+      )
     : `/anagrafiche/clienti/${cliente?.id ?? ""}`;
   const testoRitorno = provieneDaOfferte ? "Torna alle offerte" : "Torna al cliente";
   const briciole = provieneDaOfferte
@@ -141,6 +149,12 @@ export default function OffertaForm({
           <input type="hidden" name="clienteId" value={cliente.id} />
         )}
         {origine && <input type="hidden" name="origine" value={origine} />}
+        {provieneDaOfferte && filtriElenco && (
+          <>
+            <CampiPosizioneElenco {...filtriElenco} />
+            <input type="hidden" name="daPresidiare" value={filtriElenco.soloDaPresidiare ? "1" : ""} />
+          </>
+        )}
         {inModifica && <input type="hidden" name="id" value={offerta.id} />}
 
         <div className="px-7 pb-[10px] pt-[26px]">

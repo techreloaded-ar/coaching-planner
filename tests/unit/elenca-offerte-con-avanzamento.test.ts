@@ -490,6 +490,70 @@ describe("elencaOfferteConAvanzamento", () => {
 
 	// (f) matrice mensile ───────────────────────────────────────────
 
+	it("filtra le offerte da presidiare prima di contare e paginare, escludendo disattivate e residui positivi o non definiti", async () => {
+		const critiche = Array.from({ length: 27 }, (_, indice) =>
+			offertaConCliente({
+				id: `critica-${indice}`,
+				codice: `CRITICA-${String(indice).padStart(2, "0")}`,
+				giorniPrevisti: 1,
+			}),
+		);
+		mockOfferta.findMany.mockResolvedValue([
+			...critiche,
+			offertaConCliente({ id: "disattivata", giorniPrevisti: 1, attiva: false }),
+			offertaConCliente({ id: "regolare", giorniPrevisti: 1 }),
+			{ ...offertaConCliente({ id: "senza-budget" }), giorniPrevisti: null },
+		]);
+		impostaRigheAttivita([
+			...critiche.map((offerta, indice) =>
+				rigaConCollaboratore({ offertaId: offerta.id, ore: indice % 2 === 0 ? 8 : 9 }),
+			),
+			rigaConCollaboratore({ offertaId: "disattivata", ore: 16 }),
+			rigaConCollaboratore({ offertaId: "regolare", ore: 7.92 }),
+			rigaConCollaboratore({ offertaId: "senza-budget", ore: 16 }),
+		]);
+
+		const elenco = await elencaOfferteConAvanzamentoPaginate({
+			ricerca: "Cliente Uno",
+			pagina: 2,
+			soloDaPresidiare: true,
+		});
+
+		expect(elenco).toMatchObject({
+			totaleElementi: 27,
+			totalePagine: 2,
+			paginaCorrente: 2,
+			attive: 27,
+			nonAttive: 0,
+			critiche: 27,
+		});
+		expect(elenco.offerte.map((offerta) => offerta.offertaId)).toEqual(["critica-25", "critica-26"]);
+		expect(mockRigaAttivita.findMany).toHaveBeenCalledWith(expect.objectContaining({
+			where: { offertaId: { in: ["critica-25", "critica-26"] } },
+		}));
+		expect(mockOfferta.findMany).toHaveBeenCalledWith(expect.objectContaining({
+			where: { OR: [
+				{ codice: { contains: "Cliente Uno", mode: "insensitive" } },
+				{ descrizione: { contains: "Cliente Uno", mode: "insensitive" } },
+				{ cliente: { ragioneSociale: { contains: "Cliente Uno", mode: "insensitive" } } },
+			] },
+		}));
+	});
+
+	it("restituisce un elenco vuoto coerente quando nessuna offerta cercata è da presidiare", async () => {
+		mockOfferta.findMany.mockResolvedValue([offertaConCliente()]);
+
+		const elenco = await elencaOfferteConAvanzamentoPaginate({
+			ricerca: "OFF-001", pagina: 2, soloDaPresidiare: true,
+		});
+
+		expect(elenco).toMatchObject({
+			offerte: [], totaleElementi: 0, totalePagine: 1, paginaCorrente: 1,
+			attive: 0, nonAttive: 0, critiche: 0,
+		});
+		expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
+	});
+
 	it("deriva il token mese (YYYY-MM) da RigaAttivita.data in UTC e ordina i mesi crescenti (AC-1)", async () => {
 		mockOfferta.findMany.mockResolvedValue([
 			offertaConCliente({ id: "off-1", giorniPrevisti: 10 }),

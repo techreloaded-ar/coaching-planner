@@ -1,14 +1,17 @@
 import { notFound } from "next/navigation";
 import { richiediPermesso } from "@/lib/dal";
 import { offertaPerId } from "@/lib/offerte";
+import { leggiFiltriElencoOfferte, type ParametriElencoOfferte } from "@/lib/elenco-offerte";
 import OffertaForm from "../../anagrafiche/clienti/[id]/offerte/offerta-form";
 
 interface ModificaOffertaDaOffertePageProps {
   params: Promise<{ offertaId: string }>;
+  searchParams: Promise<ParametriElencoOfferte>;
 }
 
 export default async function ModificaOffertaDaOffertePage({
   params,
+  searchParams,
 }: ModificaOffertaDaOffertePageProps) {
   await richiediPermesso("GESTIRE_OFFERTE");
 
@@ -39,6 +42,7 @@ export default async function ModificaOffertaDaOffertePage({
         note: offerta.note,
       }}
       origine="offerte"
+      filtriElenco={leggiFiltriElencoOfferte(await searchParams)}
     />
   );
 }

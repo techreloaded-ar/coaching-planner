@@ -157,7 +157,7 @@ test.describe("US-026 Demo", () => {
     await page.getByLabel("Giorni previsti").fill("15");
     await page.getByRole("button", { name: "Salva offerta" }).click();
 
-    await expect(page).toHaveURL(/\/offerte\?esito=offerta-salvata$/);
+    await expect(page).toHaveURL(esitoNellElencoFiltrato("offerta-salvata", clienteDemo.ragioneSociale));
     await expect(
       page.getByText("Modifiche all'offerta salvate"),
     ).toBeVisible();
