@@ -1,48 +1,4 @@
 {
-  "ports": [
-    "POSTGRES"
-  ],
-  "resources": [
-    {
-      "name": "postgres",
-      "start": {
-        "name": "avvia-postgres",
-        "argv": [
-          "sh",
-          "scripts/archetipo/ambiente.sh",
-          "avvia-postgres"
-        ],
-        "timeout_seconds": 30
-      },
-      "probe": {
-        "name": "probe-postgres",
-        "argv": [
-          "sh",
-          "scripts/archetipo/ambiente.sh",
-          "probe-postgres"
-        ],
-        "timeout_seconds": 10
-      },
-      "stop": {
-        "name": "ferma-postgres",
-        "argv": [
-          "sh",
-          "scripts/archetipo/ambiente.sh",
-          "ferma-postgres"
-        ],
-        "timeout_seconds": 30
-      },
-      "stopped": {
-        "name": "postgres-fermo",
-        "argv": [
-          "sh",
-          "scripts/archetipo/ambiente.sh",
-          "postgres-fermo"
-        ],
-        "timeout_seconds": 10
-      }
-    }
-  ],
   "version": 1,
   "inputs": [
     "package.json",
@@ -169,6 +125,22 @@
         "scripts/archetipo/ambiente.sh"
       ],
       "cache": true
+    }
+  },
+  "services": {
+    "db": {
+      "image": "postgres:17-alpine",
+      "port": 5432,
+      "env": {
+        "POSTGRES_DB": "coaching_planner",
+        "POSTGRES_PASSWORD": "password",
+        "POSTGRES_USER": "user"
+      },
+      "data": "/var/lib/postgresql/data",
+      "expose": {
+        "DATABASE_URL": "postgresql://user:password@{host}:{port}/coaching_planner",
+        "E2E_DATABASE_URL": "postgresql://user:password@{host}:{port}/coaching_planner_e2e"
+      }
     }
   }
 }
