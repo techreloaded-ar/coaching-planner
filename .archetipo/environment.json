@@ -27,6 +27,16 @@
       "timeout_seconds": 600
     },
     {
+      "name": "browser-playwright",
+      "argv": [
+        "npx",
+        "playwright",
+        "install",
+        "chromium"
+      ],
+      "timeout_seconds": 900
+    },
+    {
       "name": "migrazioni-e-seed",
       "argv": [
         "sh",
