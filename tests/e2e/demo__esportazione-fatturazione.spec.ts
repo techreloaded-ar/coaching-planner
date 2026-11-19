@@ -17,6 +17,7 @@ import { leggiXlsx } from "./support/xlsx-lettura";
 const CODICE_SPEC_DEMO = "US-018-DEMO-ESPORTAZIONE";
 
 const formattatoreEuro = new Intl.NumberFormat("it-IT", {
+  useGrouping: "always",
   style: "currency",
   currency: "EUR",
 });

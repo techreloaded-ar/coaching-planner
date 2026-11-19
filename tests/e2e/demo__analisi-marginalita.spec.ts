@@ -13,6 +13,7 @@ import { creaDatasetMarginalita } from "./support/marginalita-data";
  */
 
 const formattatoreEuro = new Intl.NumberFormat("it-IT", {
+  useGrouping: "always",
   style: "currency",
   currency: "EUR",
 });

@@ -25,7 +25,7 @@ const CODICE_TARIFFA_DEL_MESE = "TARIFFE-MARGINALITA-TARIFFA-DEL-MESE";
 const CODICE_FISSO_RIPARTITO = "TARIFFE-MARGINALITA-RIPARTIZIONE-FISSO";
 const CODICE_NON_ATTRIBUIBILI = "TARIFFE-MARGINALITA-FISSI-NON-ATTRIBUIBILI";
 
-const formattatoreEuro = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
+const formattatoreEuro = new Intl.NumberFormat("it-IT", { useGrouping: "always", style: "currency", currency: "EUR" });
 const euro = (valore: number) => formattatoreEuro.format(valore);
 
 /** Mese successivo a quello `mesiIndietro` mesi prima del mese riservato. */

@@ -23,11 +23,13 @@ import { avatarUtente } from "./support/menu-account";
 const CODICE_SPEC_DEMO = "US-023-TASK-08-REPORT-FATTURAZIONE-CLIENTI-DEMO";
 
 const formattatoreEuro = new Intl.NumberFormat("it-IT", {
+  useGrouping: "always",
   style: "currency",
   currency: "EUR",
 });
 
 const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
+  useGrouping: "always",
   minimumFractionDigits: 0,
   maximumFractionDigits: 1,
 });

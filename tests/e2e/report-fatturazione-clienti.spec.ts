@@ -25,11 +25,13 @@ import {
 const CODICE_SPEC_REPORT = "US-023-TASK-08-REPORT-FATTURAZIONE-CLIENTI-SPEC";
 
 const formattatoreEuro = new Intl.NumberFormat("it-IT", {
+  useGrouping: "always",
   style: "currency",
   currency: "EUR",
 });
 
 const formattatoreGiornate = new Intl.NumberFormat("it-IT", {
+  useGrouping: "always",
   minimumFractionDigits: 0,
   maximumFractionDigits: 1,
 });

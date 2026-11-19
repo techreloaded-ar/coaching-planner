@@ -19,7 +19,7 @@ import { test, expect } from "./support/fixtures";
 const CODICE_RIEPILOGO = "PERCENTUALE-TRATTENUTA-RIEPILOGO";
 const CODICE_REPORT = "PERCENTUALE-TRATTENUTA-REPORT";
 
-const formattatoreEuro = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
+const formattatoreEuro = new Intl.NumberFormat("it-IT", { useGrouping: "always", style: "currency", currency: "EUR" });
 const euro = (valore: number) => formattatoreEuro.format(valore);
 
 /** 20% su un'offerta da 1.000 €/g: 2 g Fatturabile + 1 g Non fatturabile + 50 € di rimborso. */
