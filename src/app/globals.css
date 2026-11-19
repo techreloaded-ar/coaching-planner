@@ -1,13 +1,16 @@
 @import "tailwindcss";
 
 /*
- * Tema scelto dall'utente: `data-tema` su <html> vale "chiaro", "scuro" o
- * "browser" (letto dal cookie nel layout radice). La variante `dark:` si
- * attiva con "scuro" sempre e con "browser" solo se il sistema è scuro, così
- * il tema è corretto fin dal primo rendering e "browser" segue i cambi live.
+ * Tema scelto dall'utente: `data-tema` su <html> vale "chiaro", "scuro",
+ * "browser" o "natalizio" (letto dal cookie nel layout radice). La variante
+ * `dark:` si attiva con "scuro" e "natalizio" sempre e con "browser" solo se
+ * il sistema è scuro, così il tema è corretto fin dal primo rendering e
+ * "browser" segue i cambi live. "natalizio" è una base scura ricolorata
+ * (vedi più sotto) con decorazioni visibili solo grazie alla variante
+ * `natalizio:`.
  */
 @custom-variant dark {
-  &:where([data-tema="scuro"], [data-tema="scuro"] *) {
+  &:where([data-tema="scuro"], [data-tema="scuro"] *, [data-tema="natalizio"], [data-tema="natalizio"] *) {
     @slot;
   }
   @media (prefers-color-scheme: dark) {
@@ -41,6 +44,151 @@
     --testo-metadati: #a1a1aa;
     color-scheme: dark;
   }
+}
+
+@custom-variant natalizio (&:where([data-tema="natalizio"], [data-tema="natalizio"] *));
+
+/*
+ * Tema Natalizio «Notte di Natale»: la variante `dark:` è attiva e qui si
+ * ridefiniscono le scale di Tailwind usate dall'app. I grigi zinc diventano
+ * blu notte (superfici, bordi, testi) e l'indaco, colore principale, diventa
+ * oro; rosso, ambra e verde restano invariati perché portano un significato.
+ * Le variabili sono fuori dai layer di Tailwind e con specificità maggiore di
+ * :root, quindi prevalgono sul tema predefinito.
+ */
+:root[data-tema="natalizio"] {
+  --background: #0b1a33;
+  --foreground: #f3f6fb;
+  --testo-principale: #f3f6fb;
+  --testo-secondario: #cdd8e8;
+  --testo-metadati: #a3b3cc;
+  color-scheme: dark;
+
+  --color-zinc-50: #f3f6fb;
+  --color-zinc-100: #e6ecf5;
+  --color-zinc-200: #cdd8e8;
+  --color-zinc-300: #aebfd8;
+  --color-zinc-400: #8ea3c2;
+  --color-zinc-500: #6c83a6;
+  --color-zinc-600: #4e6688;
+  --color-zinc-700: #2f4a73;
+  --color-zinc-750: #26406a;
+  --color-zinc-800: #1d3760;
+  --color-zinc-900: #13294c;
+  --color-zinc-950: #0b1a33;
+
+  --color-indigo-50: #fdf8e8;
+  --color-indigo-100: #faefc8;
+  --color-indigo-200: #f4df99;
+  --color-indigo-300: #efd27a;
+  --color-indigo-400: #e6c160;
+  --color-indigo-500: #d6a83c;
+  --color-indigo-600: #bb8f26;
+  --color-indigo-700: #94701a;
+  --color-indigo-800: #6f5414;
+  --color-indigo-900: #4c3a0f;
+  --color-indigo-950: #2b2109;
+}
+
+/*
+ * Sui pulsanti pieni del colore principale il testo bianco non sarebbe
+ * leggibile sull'oro: nel tema Natalizio diventa blu notte (contrasto ≥ 4,5:1).
+ */
+:root[data-tema="natalizio"] :is([class~="bg-indigo-500"], [class~="bg-indigo-600"], [class~="dark:bg-indigo-500"], [class~="dark:bg-indigo-400"]) {
+  --color-white: #0b1a33;
+}
+
+/*
+ * Nevicata del tema Natalizio: due strati fissi di fiocchi dietro a tutti i
+ * contenuti (z-index negativo, nessun clic intercettato). Ogni strato è una
+ * piastrella di fiocchi ripetuta che scende di una piastrella per ciclo, solo
+ * con trasformazioni (nessun ridisegno a ogni fotogramma). Con «riduci
+ * movimento» i fiocchi restano fermi; in stampa non compaiono.
+ */
+:root[data-tema="natalizio"] body::before,
+:root[data-tema="natalizio"] body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: repeat;
+  will-change: transform;
+  animation: nevicata-natalizia linear infinite;
+}
+
+:root[data-tema="natalizio"] body::before {
+  --piastrella-neve: 610px;
+  top: calc(-1 * var(--piastrella-neve));
+  bottom: 0;
+  opacity: 0.45;
+  background-size: 730px var(--piastrella-neve);
+  background-image:
+    radial-gradient(circle at 7% 13%, #fff 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at 23% 71%, #fff 0 2.2px, transparent 2.8px),
+    radial-gradient(circle at 38% 29%, #fff 0 1.4px, transparent 2px),
+    radial-gradient(circle at 52% 88%, #fff 0 1.8px, transparent 2.4px),
+    radial-gradient(circle at 61% 47%, #fff 0 2.4px, transparent 3px),
+    radial-gradient(circle at 74% 8%, #fff 0 1.5px, transparent 2.1px),
+    radial-gradient(circle at 86% 63%, #fff 0 2px, transparent 2.6px),
+    radial-gradient(circle at 93% 36%, #fff 0 1.3px, transparent 1.9px),
+    radial-gradient(circle at 15% 44%, #fff 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 44% 58%, #fff 0 1.5px, transparent 2.1px),
+    radial-gradient(circle at 68% 79%, #fff 0 1.3px, transparent 1.9px);
+  animation-duration: 70s;
+}
+
+:root[data-tema="natalizio"] body::after {
+  --piastrella-neve: 470px;
+  top: calc(-1 * var(--piastrella-neve));
+  bottom: 0;
+  opacity: 0.3;
+  background-size: 530px var(--piastrella-neve);
+  background-position: 170px 90px;
+  background-image:
+    radial-gradient(circle at 11% 82%, #fff 0 2.6px, transparent 3.2px),
+    radial-gradient(circle at 33% 6%, #fff 0 1.8px, transparent 2.4px),
+    radial-gradient(circle at 57% 23%, #fff 0 2.2px, transparent 2.8px),
+    radial-gradient(circle at 79% 51%, #fff 0 2.8px, transparent 3.4px),
+    radial-gradient(circle at 96% 91%, #fff 0 1.9px, transparent 2.5px),
+    radial-gradient(circle at 46% 64%, #fff 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at 22% 38%, #fff 0 2px, transparent 2.6px);
+  animation-duration: 95s;
+}
+
+@keyframes nevicata-natalizia {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--piastrella-neve));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-tema="natalizio"] body::before,
+  :root[data-tema="natalizio"] body::after {
+    animation: none;
+  }
+}
+
+@media print {
+  :root[data-tema="natalizio"] body::before,
+  :root[data-tema="natalizio"] body::after,
+  [data-decorazione-natalizia] {
+    display: none !important;
+  }
+}
+
+/*
+ * Ghirlanda di lucine (rosso, verde, oro) appesa alla linea sotto le
+ * intestazioni: una piastrella SVG ripetuta in orizzontale.
+ */
+.ghirlanda-natalizia {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='16' viewBox='0 0 120 16'%3E%3Cpath d='M0 2 Q20 10 40 2 T80 2 T120 2' fill='none' stroke='%23166534' stroke-width='1.6'/%3E%3Ccircle cx='20' cy='10' r='3.2' fill='%23dc2626'/%3E%3Ccircle cx='60' cy='10' r='3.2' fill='%2322c55e'/%3E%3Ccircle cx='100' cy='10' r='3.2' fill='%23e6c160'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 120px 16px;
 }
 
 html[data-ambiente="pre-prod"] {

@@ -1,10 +1,19 @@
 import { expect, type Page } from "@playwright/test";
 
-/** Sfondo del body con il tema chiaro e scuro (variabili --background di globals.css). */
+/** Sfondo del body con il tema chiaro, scuro e natalizio (variabili --background di globals.css). */
 export const SFONDO_CHIARO = "rgb(255, 255, 255)";
 export const SFONDO_SCURO = "rgb(10, 10, 10)";
+export const SFONDO_NATALIZIO = "rgb(11, 26, 51)";
 
-export type EtichettaTema = "Chiaro" | "Scuro" | "Browser";
+export type EtichettaTema = "Chiaro" | "Scuro" | "Browser" | "Natalizio";
+
+export type Aspetto = "chiaro" | "scuro" | "natalizio";
+
+const SFONDI: Record<Aspetto, string> = {
+	chiaro: SFONDO_CHIARO,
+	scuro: SFONDO_SCURO,
+	natalizio: SFONDO_NATALIZIO,
+};
 
 /** Gruppo di opzioni del tema nella pagina Impostazioni. */
 export function selettoreTema(page: Page) {
@@ -28,13 +37,12 @@ export async function scegliTema(page: Page, etichetta: EtichettaTema) {
  * Verifica che la pagina sia resa nell'aspetto atteso: sfondo del body,
  * `color-scheme` dei controlli nativi e un'utility `dark:` di Tailwind
  * (colore del primo heading: chiaro su sfondo scuro, scuro su sfondo chiaro).
+ * Il tema natalizio è una base scura blu notte.
  */
-export async function attendiAspetto(page: Page, aspetto: "chiaro" | "scuro") {
-	await expect(page.locator("body")).toHaveCSS(
-		"background-color",
-		aspetto === "scuro" ? SFONDO_SCURO : SFONDO_CHIARO,
-	);
-	await expect(page.locator("html")).toHaveCSS("color-scheme", aspetto === "scuro" ? "dark" : "light");
+export async function attendiAspetto(page: Page, aspetto: Aspetto) {
+	const scuro = aspetto !== "chiaro";
+	await expect(page.locator("body")).toHaveCSS("background-color", SFONDI[aspetto]);
+	await expect(page.locator("html")).toHaveCSS("color-scheme", scuro ? "dark" : "light");
 	await expect
 		.poll(() =>
 			page.locator("h1").first().evaluate((titolo) => {
@@ -45,5 +53,5 @@ export async function attendiAspetto(page: Page, aspetto: "chiaro" | "scuro") {
 				return (r + g + b) / 3 > 128 ? "testo-chiaro" : "testo-scuro";
 			}),
 		)
-		.toBe(aspetto === "scuro" ? "testo-chiaro" : "testo-scuro");
+		.toBe(scuro ? "testo-chiaro" : "testo-scuro");
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { LogoCoachingPlanner, MenuAccount } from "@/components";
+import { AgrifoglioNatalizio, GhirlandaNatalizia, LogoCoachingPlanner, MenuAccount } from "@/components";
 import { PARAMETRO_COLLABORATORE_CONSULTATO, urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
   DURATA_COOKIE_SIDEBAR_COMPRESSA_SECONDI,
@@ -170,9 +170,12 @@ export default function SidebarApplicazione({
           compressa ? "min-[920px]:w-16" : "min-[920px]:w-[248px]"
         } ${menuAperto ? "flex" : "hidden"}`}
       >
-        <div data-testid="intestazione-sidebar" className={`flex h-[var(--altezza-intestazione)] items-center gap-2 border-b border-zinc-100 pl-4 pr-2.5 dark:border-zinc-800 ${compressa ? "min-[920px]:justify-center min-[920px]:px-0" : ""}`}>
+        <div data-testid="intestazione-sidebar" className={`relative flex h-[var(--altezza-intestazione)] items-center gap-2 border-b border-zinc-100 pl-4 pr-2.5 dark:border-zinc-800 ${compressa ? "min-[920px]:justify-center min-[920px]:px-0" : ""}`}>
           <div className="flex min-w-0 flex-1 items-center gap-[11px] min-[920px]:flex-none">
-            <LogoCoachingPlanner mostraNome={false} />
+            <span className="relative inline-flex">
+              <LogoCoachingPlanner mostraNome={false} />
+              <AgrifoglioNatalizio />
+            </span>
             <div className={`min-w-0 leading-[1.25] ${compressa ? "min-[920px]:hidden" : ""}`}>
               <b className="block text-sm font-semibold tracking-tight whitespace-nowrap text-testo-principale">Coaching Planner</b>
               {haAccessoBackOffice(permessi) && <span className="text-xs font-medium text-testo-metadati">Amministrazione</span>}
@@ -189,6 +192,7 @@ export default function SidebarApplicazione({
               <path d="M6 6l12 12M18 6 6 18" />
             </svg>
           </button>
+          <GhirlandaNatalizia />
         </div>
 
         <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto px-[10px] py-[14px]" aria-label="Navigazione principale">
@@ -299,6 +303,7 @@ export default function SidebarApplicazione({
               <LogoCoachingPlanner />
             </span>
           )}
+          <GhirlandaNatalizia />
         </header>
         {children}
       </div>

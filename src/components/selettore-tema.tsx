@@ -30,6 +30,16 @@ const OPZIONI_TEMA: { tema: Tema; etichetta: string; icona: React.ReactNode }[] 
       </>
     ),
   },
+  {
+    tema: "natalizio",
+    etichetta: "Natalizio",
+    icona: (
+      <>
+        <path d="M12 3 7 9.5h2.5L5.5 15h5v2.5M12 3l5 6.5h-2.5l4 5.5h-5v2.5" />
+        <path d="M10.5 17.5h3V21h-3Z" />
+      </>
+    ),
+  },
 ];
 
 function applicaERicordaTema(tema: Tema) {
@@ -38,8 +48,8 @@ function applicaERicordaTema(tema: Tema) {
 }
 
 /**
- * Scelta del tema nella pagina Impostazioni: tre opzioni radio Chiaro / Scuro /
- * Browser. Applica subito il tema impostando `data-tema` sull'elemento <html>
+ * Scelta del tema nella pagina Impostazioni: quattro opzioni radio Chiaro /
+ * Scuro / Browser / Natalizio. Applica subito il tema impostando `data-tema` sull'elemento <html>
  * (letto dalla variante `dark` in globals.css) e lo ricorda nel cookie, che il
  * layout radice rilegge al rendering successivo.
  */

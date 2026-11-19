@@ -11,7 +11,7 @@ export default async function BackOfficeLayout({
 
   return (
     <StrutturaApplicazione sessione={sessione}>
-      <main className="min-w-0 flex-1 bg-zinc-50 px-9 py-[30px] max-sm:px-4 max-sm:py-5 dark:bg-zinc-950">{children}</main>
+      <main className="min-w-0 flex-1 bg-zinc-50 px-9 py-[30px] max-sm:px-4 max-sm:py-5 dark:bg-zinc-950 natalizio:bg-transparent!">{children}</main>
     </StrutturaApplicazione>
   );
 }

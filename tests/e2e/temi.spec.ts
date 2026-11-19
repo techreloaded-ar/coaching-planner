@@ -1,11 +1,11 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { apriImpostazioni, esci, modaleImpostazioni, pannelloAccount, pulsanteMenuAccount } from "./support/menu-account";
 import { attendiAspetto, opzioneTema, scegliTema, selettoreTema } from "./support/tema";
 
 /**
- * Test e2e — Temi Chiaro, Scuro e Browser, scelti dalla modale Impostazioni.
+ * Test e2e — Temi Chiaro, Scuro, Browser e Natalizio, scelti dalla modale Impostazioni.
  *
  * Scenari read-only: la preferenza vive solo nel cookie del contesto browser
  * di ciascun test, nessun dato applicativo viene scritto.
@@ -39,7 +39,7 @@ test.describe("Tema nelle Impostazioni", () => {
 		await expect(page.getByTestId("selettore-tema")).toHaveCount(0);
 
 		await apriImpostazioni(page);
-		for (const etichetta of ["Chiaro", "Scuro", "Browser"] as const) {
+		for (const etichetta of ["Chiaro", "Scuro", "Browser", "Natalizio"] as const) {
 			await expect(opzioneTema(page, etichetta)).toBeAttached();
 		}
 		await expect(opzioneTema(page, "Browser")).toBeChecked();
@@ -124,6 +124,7 @@ test.describe("Tutta l'interfaccia rispetta il tema scelto", () => {
 	for (const [tema, sistema, aspetto] of [
 		["scuro", "light", "scuro"],
 		["chiaro", "dark", "chiaro"],
+		["natalizio", "light", "natalizio"],
 	] as const) {
 		test(`tema ${tema} con sistema ${sistema}: ogni pagina è ${aspetto}`, async ({ page, context, baseURL }) => {
 			await page.emulateMedia({ colorScheme: sistema });
@@ -139,4 +140,76 @@ test.describe("Tutta l'interfaccia rispetta il tema scelto", () => {
 			}
 		});
 	}
+});
+
+/** Stile calcolato dello strato di neve (pseudo-elemento del body). */
+function stileNeve(page: Page) {
+	return page.evaluate(() => {
+		const stile = getComputedStyle(document.body, "::before");
+		return {
+			contenuto: stile.content,
+			animazione: stile.animationName,
+			zIndex: stile.zIndex,
+			pointerEvents: stile.pointerEvents,
+		};
+	});
+}
+
+test.describe("Tema Natalizio", () => {
+	test("scelto dalle Impostazioni: blu notte e oro, decorazioni subito visibili e persistenti al reload", async ({ page }) => {
+		await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
+		await accediComeCollaboratore(page);
+		const intestazioneSidebar = page.getByTestId("intestazione-sidebar");
+		await expect(intestazioneSidebar.getByTestId("decorazione-agrifoglio")).toBeHidden();
+		await expect(intestazioneSidebar.getByTestId("decorazione-ghirlanda")).toBeHidden();
+		expect((await stileNeve(page)).contenuto).toBe("none");
+
+		await apriImpostazioni(page);
+		await scegliTema(page, "Natalizio");
+		await attendiAspetto(page, "natalizio");
+		// L'oro prende il posto dell'indaco come colore principale.
+		await expect
+			.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--color-indigo-500").trim()))
+			.toBe("#d6a83c");
+		await page.keyboard.press("Escape");
+
+		await expect(intestazioneSidebar.getByTestId("decorazione-agrifoglio")).toBeVisible();
+		await expect(intestazioneSidebar.getByTestId("decorazione-ghirlanda")).toBeVisible();
+		await expect.poll(() => stileNeve(page)).toEqual({
+			contenuto: "\"\"",
+			animazione: "nevicata-natalizia",
+			zIndex: "-1",
+			pointerEvents: "none",
+		});
+
+		await page.reload();
+		await expect(page.locator("html")).toHaveAttribute("data-tema", "natalizio");
+		await attendiAspetto(page, "natalizio");
+		await expect(intestazioneSidebar.getByTestId("decorazione-agrifoglio")).toBeVisible();
+		await apriImpostazioni(page);
+		await expect(opzioneTema(page, "Natalizio")).toBeChecked();
+
+		// Tornando a un altro tema le decorazioni spariscono subito.
+		await scegliTema(page, "Scuro");
+		await attendiAspetto(page, "scuro");
+		await page.keyboard.press("Escape");
+		await expect(intestazioneSidebar.getByTestId("decorazione-agrifoglio")).toBeHidden();
+		expect((await stileNeve(page)).contenuto).toBe("none");
+	});
+
+	test("con «riduci movimento» la neve resta ferma; le decorazioni restano ornamentali", async ({ page, context, baseURL }) => {
+		await page.emulateMedia({ reducedMotion: "reduce" });
+		await context.addCookies([{ name: "tema", value: "natalizio", url: baseURL! }]);
+		await accediAlBackOfficeComeAdmin(page);
+		await attendiAspetto(page, "natalizio");
+
+		const neve = await stileNeve(page);
+		expect(neve.contenuto).toBe("\"\"");
+		expect(neve.animazione).toBe("none");
+
+		const agrifoglio = page.getByTestId("intestazione-sidebar").getByTestId("decorazione-agrifoglio");
+		await expect(agrifoglio).toBeVisible();
+		await expect(agrifoglio).toHaveAttribute("aria-hidden", "true");
+		await expect(agrifoglio).toHaveCSS("pointer-events", "none");
+	});
 });

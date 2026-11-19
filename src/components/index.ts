@@ -30,3 +30,4 @@ export {
   PulsanteAbilitaOfferta,
 } from "./abilitazione-offerta";
 export { ComeVieneCalcolato } from "./come-viene-calcolato";
+export { AgrifoglioNatalizio, GhirlandaNatalizia } from "./decorazioni-natalizie";
