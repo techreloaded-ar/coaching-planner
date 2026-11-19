@@ -3,7 +3,7 @@ import type { Cella, FoglioXlsx } from "@/lib/xlsx";
 
 // Trasforma il report mensile di fatturazione nei fogli di un file Excel.
 // Nessun ricalcolo: gli importi sono quelli (già arrotondati) del dominio.
-// Le uniche somme sono le giornate (lavorate e di trasferta) di cliente e mese.
+// Le uniche somme sono ore, giornate e giorni di trasferta di cliente e mese.
 
 function importo(valore: string): Cella {
   return { valore: Number(valore), stile: "importo" };
@@ -15,6 +15,11 @@ function importoGrassetto(valore: string): Cella {
 
 function giornate(valore: number): Cella {
   return { valore, stile: "giornate" };
+}
+
+/** Somma di ore senza residui di virgola mobile (le ore hanno passo 0,005). */
+function sommaOre(a: number, b: number): number {
+  return (Math.round(a * 200) + Math.round(b * 200)) / 200;
 }
 
 function grassetto(valore: string): Cella {
@@ -42,6 +47,7 @@ export function costruisciFogliFatturazioneClienti(
       "Codice offerta",
       "Descrizione offerta",
       "Tariffa/gg",
+      "Ore fatturabili",
       "Giornate",
       "Imponibile manodopera",
       "Giorni trasferta",
@@ -50,14 +56,17 @@ export function costruisciFogliFatturazioneClienti(
     ].map(grassetto),
   ];
 
+  let oreMese = 0;
   let giornateMese = 0;
   let giorniTrasfertaMese = 0;
 
   for (const cliente of report.perCliente) {
+    let oreCliente = 0;
     let giornateCliente = 0;
     let giorniTrasfertaCliente = 0;
 
     for (const offerta of cliente.perOfferta) {
+      oreCliente = sommaOre(oreCliente, offerta.oreFatturabili);
       giornateCliente += offerta.giornateFatturabili;
       giorniTrasfertaCliente += offerta.giorniTrasferta;
       righeRiepilogo.push([
@@ -65,6 +74,7 @@ export function costruisciFogliFatturazioneClienti(
         offerta.offertaCodice,
         offerta.offertaDescrizione,
         offerta.tariffaGiornaliera === null ? null : importo(offerta.tariffaGiornaliera),
+        giornate(offerta.oreFatturabili),
         giornate(offerta.giornateFatturabili),
         importo(offerta.imponibile),
         giornate(offerta.giorniTrasferta),
@@ -73,6 +83,7 @@ export function costruisciFogliFatturazioneClienti(
       ]);
     }
 
+    oreMese = sommaOre(oreMese, oreCliente);
     giornateMese += giornateCliente;
     giorniTrasfertaMese += giorniTrasfertaCliente;
     righeRiepilogo.push([
@@ -80,6 +91,7 @@ export function costruisciFogliFatturazioneClienti(
       null,
       null,
       null,
+      giornate(oreCliente),
       giornate(giornateCliente),
       importoGrassetto(cliente.imponibileManodopera),
       giornate(giorniTrasfertaCliente),
@@ -93,6 +105,7 @@ export function costruisciFogliFatturazioneClienti(
     null,
     null,
     null,
+    giornate(oreMese),
     giornate(giornateMese),
     importoGrassetto(report.totali.imponibileManodopera),
     giornate(giorniTrasfertaMese),
@@ -132,7 +145,7 @@ export function costruisciFogliFatturazioneClienti(
     {
       nome: "Fatturazione clienti",
       righe: righeRiepilogo,
-      larghezzeColonne: [34, 16, 40, 14, 12, 20, 16, 20, 20],
+      larghezzeColonne: [34, 16, 40, 14, 16, 12, 20, 16, 20, 20],
     },
     {
       nome: "Dettaglio collaboratori",

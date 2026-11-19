@@ -91,6 +91,7 @@ describe("costruisciFogliFatturazioneClienti", () => {
       "Codice offerta",
       "Descrizione offerta",
       "Tariffa/gg",
+      "Ore fatturabili",
       "Giornate",
       "Imponibile manodopera",
       "Giorni trasferta",
@@ -105,6 +106,7 @@ describe("costruisciFogliFatturazioneClienti", () => {
       prima.offertaCodice,
       prima.offertaDescrizione,
       num(prima.tariffaGiornaliera!),
+      prima.oreFatturabili,
       prima.giornateFatturabili,
       num(prima.imponibile),
       0,
@@ -115,12 +117,16 @@ describe("costruisciFogliFatturazioneClienti", () => {
       seconda.offertaCodice,
       seconda.offertaDescrizione,
       num(seconda.tariffaGiornaliera!),
+      seconda.oreFatturabili,
       seconda.giornateFatturabili,
       num(seconda.imponibile),
       2,
       160,
     ]);
     expect(seconda.importoTrasferte).toBe("160.00");
+    // Offerta 1: 8 + 4 ore Fatturabile (le 6 non fatturabili restano fuori)
+    expect(prima.oreFatturabili).toBe(12);
+    expect(seconda.oreFatturabili).toBe(8);
   });
 
   it("riporta i totali di ogni cliente e il totale mese uguali al report", () => {
@@ -129,6 +135,7 @@ describe("costruisciFogliFatturazioneClienti", () => {
 
     const totaleAlfa = riepilogo.righe.find((r) => r[0] === "Totale Alfa")!;
     expect(totaleAlfa.slice(4)).toEqual([
+      20,
       alfa.perOfferta.reduce((s, o) => s + o.giornateFatturabili, 0),
       num(alfa.imponibileManodopera),
       2,
@@ -137,7 +144,8 @@ describe("costruisciFogliFatturazioneClienti", () => {
     ]);
 
     const totaleBeta = riepilogo.righe.find((r) => r[0] === "Totale Beta")!;
-    expect(totaleBeta.slice(5)).toEqual([
+    expect(totaleBeta[4]).toBe(2.5);
+    expect(totaleBeta.slice(6)).toEqual([
       num(beta.imponibileManodopera),
       0,
       num(beta.trasferteForfettarie),
@@ -146,13 +154,14 @@ describe("costruisciFogliFatturazioneClienti", () => {
 
     const totaleMese = riepilogo.righe.at(-1)!;
     expect(totaleMese[0]).toBe("Totale mese");
-    expect(totaleMese.slice(5)).toEqual([
+    expect(totaleMese[4]).toBe(22.5);
+    expect(totaleMese.slice(6)).toEqual([
       num(report.totali.imponibileManodopera),
       2,
       num(report.totali.totaleTrasferteForfettarie),
       num(report.totali.importoTotale),
     ]);
-    expect(totaleMese[4]).toBe(
+    expect(totaleMese[5]).toBe(
       report.perCliente
         .flatMap((c) => c.perOfferta)
         .reduce((s, o) => s + o.giornateFatturabili, 0),
@@ -171,12 +180,12 @@ describe("costruisciFogliFatturazioneClienti", () => {
     ]);
 
     expect(riepilogo.righe.find((r) => r[1] === "OFF-001")!.slice(4)).toEqual(
-      [0, 0, 1, 80],
+      [0, 0, 0, 1, 80],
     );
     expect(riepilogo.righe.find((r) => r[0] === "Totale Solo Trasferte")!.slice(4)).toEqual(
-      [0, 0, 1, 80, 80],
+      [0, 0, 0, 1, 80, 80],
     );
-    expect(riepilogo.righe.at(-1)!.slice(4)).toEqual([0, 0, 1, 80, 80]);
+    expect(riepilogo.righe.at(-1)!.slice(4)).toEqual([0, 0, 0, 1, 80, 80]);
   });
 
   it("un'offerta senza tariffa ha la cella tariffa vuota e imponibile 0", () => {
@@ -184,14 +193,14 @@ describe("costruisciFogliFatturazioneClienti", () => {
 
     const rigaOfferta = riepilogo.righe.find((r) => r[1] === "OFF-001")!;
     expect(rigaOfferta[3] ?? null).toBeNull();
-    expect(rigaOfferta.slice(4, 6)).toEqual([2, 0]);
+    expect(rigaOfferta.slice(4, 7)).toEqual([16, 2, 0]);
   });
 
   it("con report vuoto contiene solo titolo, intestazioni e totale mese a zero", () => {
     const { riepilogo, dettaglio } = esporta([]);
 
     expect(riepilogo.righe).toHaveLength(4);
-    expect(riepilogo.righe[3]).toEqual(["Totale mese", null, null, null, 0, 0, 0, 0, 0]);
+    expect(riepilogo.righe[3]).toEqual(["Totale mese", null, null, null, 0, 0, 0, 0, 0, 0]);
     expect(dettaglio.righe).toHaveLength(3);
   });
 

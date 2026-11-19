@@ -469,6 +469,8 @@ export interface VoceOffertaReport {
   offertaDescrizione: string;
   /** null se l'offerta non ha una tariffa: imponibile 0, «tariffa da definire» */
   tariffaGiornaliera: string | null;
+  /** Ore Fatturabile dell'offerta nel mese, da cui derivano le giornate */
+  oreFatturabili: number;
   giornateFatturabili: number;
   imponibile: string;
   /** Combinazioni distinte collaboratore + giorno con rimborso trasferta (solo offerte forfettarie) */
@@ -662,6 +664,7 @@ export function calcolaReportFatturazioneClienti(
           offertaCodice: offerta.offertaCodice,
           offertaDescrizione: offerta.offertaDescrizione,
           tariffaGiornaliera: offerta.tariffaGiornaliera?.toFixed(2) ?? null,
+          oreFatturabili: offerta.oreFatturabili,
           giornateFatturabili,
           imponibile: imponibile.toFixed(2),
           giorniTrasferta,

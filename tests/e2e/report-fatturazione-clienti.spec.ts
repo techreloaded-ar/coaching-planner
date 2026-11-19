@@ -83,9 +83,11 @@ async function verificaDatasetReport(
   await expect(celle.nth(1)).toHaveText(
     formattaEuro(String(dataset.offerta.tariffaGiornaliera)),
   );
-  await expect(celle.nth(2)).toHaveText(
+  // Giornate e, sotto, le ore Fatturabile da cui derivano
+  await expect(celle.nth(2).locator("span")).toHaveText([
     formattaGiornate(offertaAttesa.totali.giornate),
-  );
+    `${offertaAttesa.totali.ore} h`,
+  ]);
   await expect(celle.nth(3)).toHaveText(
     formattaEuro(offertaAttesa.totali.imponibile),
   );
@@ -221,7 +223,10 @@ test.describe("Report fatturazione clienti", () => {
     await expect(rigaOfferta).toHaveCount(1);
     const celle = rigaOfferta.locator("td");
     await expect(celle.nth(1)).toHaveText("—tariffa da definire");
-    await expect(celle.nth(2)).toHaveText(formattaGiornate(2));
+    await expect(celle.nth(2).locator("span")).toHaveText([
+      formattaGiornate(2),
+      "16 h",
+    ]);
     await expect(celle.nth(3)).toHaveText(formattaEuro(0));
   });
 

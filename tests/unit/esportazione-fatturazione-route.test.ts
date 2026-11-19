@@ -39,6 +39,7 @@ function reportConUnCliente(token: string) {
             offertaCodice: "OFF-1",
             offertaDescrizione: "Consulenza",
             tariffaGiornaliera: "500.00",
+            oreFatturabili: 8,
             giornateFatturabili: 1,
             imponibile: "500.00",
             giorniTrasferta: 0,
