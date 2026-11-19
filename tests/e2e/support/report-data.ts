@@ -15,6 +15,8 @@ const CODICE_SPEC_REPORT_FATTURAZIONE_CLIENTI_VUOTO =
 const EMAIL_REPORT_E2E_DOMAIN = "report-fatturazione.e2e.invalid";
 
 export type TotaliReportFatturazioneAttesi = {
+	/** Ore Fatturabile, mostrate sotto le giornate */
+	ore: number;
 	giornate: number;
 	imponibile: string;
 	/** Trasferte forfettarie fatturate al cliente */
@@ -201,6 +203,7 @@ export async function creaDatasetReportFatturazioneClienti(
 	const imponibile = giornate * tariffa;
 	const totale = imponibile + trasferte;
 	const totali = {
+		ore: oreFatturabili,
 		giornate,
 		imponibile: importo(imponibile),
 		trasferte: importo(trasferte),

@@ -71,9 +71,11 @@ async function verificaDatasetReportDemo(
   await expect(celle.nth(1)).toHaveText(
     formattaEuro(String(dataset.offerta.tariffaGiornaliera)),
   );
-  await expect(celle.nth(2)).toHaveText(
+  // Giornate e, sotto, le ore Fatturabile da cui derivano
+  await expect(celle.nth(2).locator("span")).toHaveText([
     formattaGiornate(offertaAttesa.totali.giornate),
-  );
+    `${offertaAttesa.totali.ore} h`,
+  ]);
   await expect(celle.nth(3)).toHaveText(
     formattaEuro(offertaAttesa.totali.imponibile),
   );

@@ -11,7 +11,11 @@ import {
   tokenMeseCorrente,
 } from "@/domain/calendario";
 import { SelettoreMese, useIdratata } from "@/components";
-import { formattaEuro, formattaNumeroGiornate } from "@/lib/formattazione";
+import {
+  formattaEuro,
+  formattaNumeroGiornate,
+  formattaOre,
+} from "@/lib/formattazione";
 
 // ── Formattatori ────────────────────────────────────────────────
 
@@ -415,10 +419,22 @@ export default function ReportFatturazioneClienti({
                                   </span>
                                 )}
                               </td>
-                              <td className={CLASSE_CELLA + " text-right whitespace-nowrap text-testo-principale"}>
-                                {formattaNumeroGiornate(
-                                  offerta.giornateFatturabili,
-                                )}
+                              {/* Le ore Fatturabile da cui derivano le giornate,
+                                  per il controllo prima di emettere la fattura. */}
+                              <td className={CLASSE_CELLA + " text-right whitespace-nowrap"}>
+                                <div className="flex flex-col items-end gap-0.5">
+                                  <span className="text-sm text-testo-principale">
+                                    {formattaNumeroGiornate(
+                                      offerta.giornateFatturabili,
+                                    )}
+                                  </span>
+                                  <span
+                                    data-testid={`report-offerta-${offerta.offertaId ?? "senza-offerta"}-ore`}
+                                    className="text-xs text-testo-metadati"
+                                  >
+                                    {formattaOre(offerta.oreFatturabili)}
+                                  </span>
+                                </div>
                               </td>
                               <td className={CLASSE_CELLA + " text-right whitespace-nowrap text-testo-principale"}>
                                 {formattaEuro(offerta.imponibile)}

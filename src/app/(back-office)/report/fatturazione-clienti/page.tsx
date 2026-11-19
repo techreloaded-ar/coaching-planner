@@ -42,7 +42,8 @@ export default async function ReportFatturazioneClientiPage({
 
       <ComeVieneCalcolato>
         <li>
-          Le giornate sono le ore Fatturabile del mese divise per 8.
+          Le giornate sono le ore Fatturabile del mese divise per 8; le
+          ore sono indicate sotto le giornate di ogni offerta.
           L&apos;imponibile manodopera di ogni offerta è giornate × tariffa
           giornaliera dell&apos;offerta.
         </li>
