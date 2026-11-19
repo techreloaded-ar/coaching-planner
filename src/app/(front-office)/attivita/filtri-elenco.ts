@@ -1,5 +1,6 @@
-import type { RigaAttivitaClient } from "@/lib/attivita-contract";
+import type { ContestoFatturatoElenco, RigaAttivitaClient } from "@/lib/attivita-contract";
 import { ETICHETTA_OFFERTA_DA_DEFINIRE, sommaOre } from "@/domain/types";
+import { calcolaRiepilogoMese } from "@/domain/consuntivi";
 
 /**
  * Filtri dell'Elenco attività. Stringa vuota = filtro non applicato.
@@ -158,4 +159,31 @@ export function filtriDaQuery(query: string): FiltriElenco {
 export function urlElenco(token: string | null, filtri: FiltriElenco): string {
   const filtriQuery = queryFiltri(filtri);
   return `/attivita?${token ? `mese=${token}&` : ""}vista=elenco${filtriQuery ? `&${filtriQuery}` : ""}`;
+}
+
+/**
+ * Importo fattura delle righe date, con le stesse regole del Riepilogo
+ * mensile: sulle righe filtrate segue i filtri, salvo il fisso mensile che
+ * resta intero (i rimborsi seguono comunque le righe).
+ */
+export function importoFatturaElenco(
+  righe: readonly RigaAttivitaClient[],
+  { tariffa, tariffaGiornalieraPerOfferta }: ContestoFatturatoElenco
+): string {
+  return calcolaRiepilogoMese(
+    righe.map((riga) => ({
+      offertaId: riga.offerta?.id ?? null,
+      offertaCodice: "",
+      offertaDescrizione: "",
+      clienteId: riga.cliente.id,
+      clienteRagioneSociale: "",
+      ore: riga.ore,
+      categoria: riga.categoria,
+      rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto,
+      tariffaOffertaGiornaliera: riga.offerta
+        ? tariffaGiornalieraPerOfferta[riga.offerta.id] ?? null
+        : null,
+    })),
+    tariffa
+  ).importoFattura;
 }

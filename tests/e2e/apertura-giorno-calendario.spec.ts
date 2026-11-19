@@ -128,7 +128,7 @@ test.describe("US-031 Apertura di qualsiasi giorno dal calendario", () => {
     await page.waitForURL(`**/attivita?mese=${tokenCellaUrl}**`);
   });
 
-  test("la legenda indica che ogni giorno è apribile", async ({
+  test("la legenda non ripete più l'invito a cliccare un giorno", async ({
     page,
     collaboratore,
   }) => {
@@ -140,11 +140,44 @@ test.describe("US-031 Apertura di qualsiasi giorno dal calendario", () => {
       page.getByLabel("Calendario mensile delle attività"),
     ).toBeVisible();
 
-    // AC-5: la legenda indica che ogni giorno è cliccabile
+    // La legenda resta, senza la frase d'invito ritenuta superflua.
+    await expect(
+      page.getByRole("group", { name: "Legenda del calendario" }),
+    ).toBeVisible();
     await expect(
       page.getByText(
         "Clicca un giorno qualsiasi per inserire o modificare le righe",
       ),
-    ).toBeVisible();
+    ).toHaveCount(0);
+  });
+
+  test("la legenda sta a lato della griglia su schermo largo e sotto su schermo stretto", async ({
+    page,
+    collaboratore,
+  }) => {
+    await accediComeCollaboratore(page, collaboratore.utente.email);
+    const mese = meseRiservato("US-031");
+
+    const griglia = page.getByLabel("Calendario mensile delle attività");
+    const legenda = page.getByRole("group", { name: "Legenda del calendario" });
+
+    // Monitor largo: lo spazio libero accanto al calendario contiene la legenda.
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto(`/attivita?mese=${mese}`);
+    await expect(griglia).toBeVisible();
+    await expect(async () => {
+      const g = (await griglia.boundingBox())!;
+      const l = (await legenda.boundingBox())!;
+      expect(l.x).toBeGreaterThanOrEqual(g.x + g.width);
+      expect(Math.abs(l.y - g.y)).toBeLessThanOrEqual(1);
+    }).toPass();
+
+    // Schermo più stretto: la legenda torna sotto la griglia.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(async () => {
+      const g = (await griglia.boundingBox())!;
+      const l = (await legenda.boundingBox())!;
+      expect(l.y).toBeGreaterThanOrEqual(g.y + g.height);
+    }).toPass();
   });
 });

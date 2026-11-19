@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { IndicatoreGiorniErogati } from "@/components";
+import { useRouter } from "next/navigation";
+import { IndicatoreGiorniErogati, SelettoreMese, useIdratata } from "@/components";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import { useCollaboratoreConsultato } from "../attivita-cache-provider";
 import type { RisultatoRiepilogoMese } from "@/lib/attivita";
 import type { VoceRiepilogoOfferta } from "@/domain/consuntivi";
+import { etichettaMese } from "@/domain/calendario";
 import {
   CATEGORIE_ATTIVITA,
   DESCRIZIONE_CATEGORIA_ATTIVITA,
@@ -17,7 +19,6 @@ interface RiepilogoMeseProps {
   token: string;
   tokenPrecedente: string;
   tokenSuccessivo: string;
-  etichetta: string;
   riepilogo: RisultatoRiepilogoMese;
 }
 
@@ -50,16 +51,21 @@ export default function RiepilogoMese({
   token,
   tokenPrecedente,
   tokenSuccessivo,
-  etichetta,
   riepilogo,
 }: RiepilogoMeseProps) {
   const haDati = riepilogo.perOfferta.length > 0;
   const percentuale = riepilogo.breakdown.modalitaTariffa === "PERCENTUALE";
   const percentualeTrattenuta = `${formattaNumero(Number(riepilogo.breakdown.importoTariffa))}%`;
   const collaboratoreConsultatoId = useCollaboratoreConsultato();
+  const router = useRouter();
+  const idratata = useIdratata();
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-md:px-4 max-md:py-5">
+    <div
+      className="mx-auto w-full max-w-[1080px] px-8 py-7 max-md:px-4 max-md:py-5"
+      data-testid="riepilogo-mese"
+      data-idratata={idratata ? "true" : "false"}
+    >
       <div className="mb-5">
         <Link
           href={urlDelFoglio(`/attivita?mese=${token}`, collaboratoreConsultatoId)}
@@ -91,9 +97,12 @@ export default function RiepilogoMese({
             </svg>
           </Link>
 
-          <div className="min-w-[188px] text-center text-[19px] font-semibold capitalize -tracking-[0.02em] text-testo-principale">
-            {etichetta}
-          </div>
+          <SelettoreMese
+            tokenVisualizzato={token}
+            onScegliMese={(scelto) =>
+              router.push(urlDelFoglio(`/attivita/riepilogo?mese=${scelto}`, collaboratoreConsultatoId))
+            }
+          />
 
           <Link
             href={urlDelFoglio(`/attivita/riepilogo?mese=${tokenSuccessivo}`, collaboratoreConsultatoId)}
@@ -141,7 +150,7 @@ export default function RiepilogoMese({
           Riepilogo mensile
         </div>
         <h2 className="mt-1.5 text-[27px] font-semibold capitalize tracking-tight text-testo-principale max-md:text-[23px]">
-          {etichetta}
+          {etichettaMese(token)}
         </h2>
       </div>
 

@@ -28,6 +28,10 @@ const mockVoceRimborsoTrasferta = vi.hoisted(() => ({
   findMany: vi.fn(),
 }));
 
+const mockTariffaCollaboratore = vi.hoisted(() => ({
+  findMany: vi.fn(async () => [] as unknown[]),
+}));
+
 const mockAbilitazioneOfferta = vi.hoisted(() => ({
   findMany: vi.fn(async () => [] as { offertaId: string }[]),
 }));
@@ -39,6 +43,7 @@ vi.mock("@/lib/db", () => ({
     cliente: mockCliente,
     voceRimborsoTrasferta: mockVoceRimborsoTrasferta,
     abilitazioneOfferta: mockAbilitazioneOfferta,
+    tariffaCollaboratore: mockTariffaCollaboratore,
   },
 }));
 
@@ -578,12 +583,17 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
     // L'estremo superiore è esclusivo: nessun `lte` residuo.
     expect(chiamata.where.data.lte).toBeUndefined();
 
-    // Proiezione minima: nessuna entità Offerta/Cliente caricata per intero.
+    // Proiezione minima: nessuna entità Offerta/Cliente caricata per intero;
+    // categoria, rimborso e tariffa dell'offerta servono all'importo fattura.
     expect(chiamata.select).toEqual({
       data: true,
       ore: true,
       createdAt: true,
       offertaId: true,
+      categoria: true,
+      clienteId: true,
+      rimborsoTrasfertaImporto: true,
+      offerta: { select: { id: true, tariffaGiornaliera: true } },
       cliente: { select: { id: true, ragioneSociale: true } },
     });
     expect(chiamata.include).toBeUndefined();
@@ -623,6 +633,7 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
       token: "non-valido",
       collaboratoreId: "collab-1",
       sintesiPerGiorno: {},
+      importoFattura: "0.00",
     });
     expect(mockRigaAttivita.findMany).not.toHaveBeenCalled();
   });
@@ -639,7 +650,38 @@ describe("datiCalendarioMesePerCollaboratoreAutorizzato", () => {
       token: "2026-06",
       collaboratoreId: "collab-1",
       sintesiPerGiorno: {},
+      importoFattura: "0.00",
     });
+  });
+
+  it("calcola l'importo fattura del mese con la tariffa valida e i rimborsi", async () => {
+    mockTariffaCollaboratore.findMany.mockResolvedValueOnce([
+      { validaDalMese: "2026-01", validaAlMese: null, modalita: "GIORNALIERA", importo: "400" },
+    ]);
+    mockRigaAttivita.findMany.mockResolvedValue([
+      {
+        ...rigaCalendario(new Date(Date.UTC(2026, 5, 2)), 8, "cliente-ts", "TechSolutions Srl"),
+        categoria: "FATTURABILE",
+        clienteId: "cliente-ts",
+        rimborsoTrasfertaImporto: "35.00",
+        offerta: { id: "off-1", tariffaGiornaliera: null },
+      },
+      {
+        ...rigaCalendario(new Date(Date.UTC(2026, 5, 3)), 4, "cliente-ts", "TechSolutions Srl"),
+        categoria: "INVESTIMENTO",
+        clienteId: "cliente-ts",
+        rimborsoTrasfertaImporto: null,
+        offerta: { id: "off-1", tariffaGiornaliera: null },
+      },
+    ]);
+
+    const { importoFattura } = await datiCalendarioMesePerCollaboratoreAutorizzato(
+      "2026-06",
+      "collab-1",
+    );
+
+    // 1 giornata fatturabile × 400 + 35 di rimborso; l'Investimento non conta.
+    expect(importoFattura).toBe("435.00");
   });
 
   // ── Aggregazione osservabile sul DTO ────────────────────────

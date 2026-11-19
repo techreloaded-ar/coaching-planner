@@ -6,6 +6,7 @@ import {
   filtraRigheElenco,
   filtriDaQuery,
   filtriEffettivi,
+  importoFatturaElenco,
   opzioniOfferte,
   queryFiltri,
   segmentiNota,
@@ -92,5 +93,51 @@ describe("Elenco attività: filtri", () => {
     expect(filtriDaQuery(queryFiltri(filtri))).toEqual(filtri);
     expect(urlElenco("2026-11", FILTRI_VUOTI)).toBe("/attivita?mese=2026-11&vista=elenco");
     expect(urlElenco(null, { ...FILTRI_VUOTI, cliente: "c1" })).toBe("/attivita?vista=elenco&cliente=c1");
+  });
+});
+
+describe("importoFatturaElenco", () => {
+  const righeMese = [
+    riga({ id: "a", ore: 8, rimborsoTrasfertaImporto: "35.00" }),
+    riga({
+      id: "b",
+      ore: 4,
+      cliente: { id: "cli-data", ragioneSociale: "DataFlow" },
+      offerta: { id: "off-b", codice: "OFF-B", descrizione: "Formazione PO", attiva: true },
+    }),
+  ];
+  const soloTech = righeMese.filter((r) => r.cliente.id === "cli-tech");
+
+  it("con tariffa giornaliera segue le righe filtrate", () => {
+    const contesto = {
+      tariffa: { modalita: "GIORNALIERA" as const, importo: "400", validaDalMese: "2026-01" },
+      tariffaGiornalieraPerOfferta: {},
+    };
+    expect(importoFatturaElenco(righeMese, contesto)).toBe("635.00");
+    expect(importoFatturaElenco(soloTech, contesto)).toBe("435.00");
+  });
+
+  it("con fisso mensile mostra il fisso intero, più i rimborsi delle righe filtrate", () => {
+    const contesto = {
+      tariffa: { modalita: "FISSO_MENSILE" as const, importo: "3000", validaDalMese: "2026-01" },
+      tariffaGiornalieraPerOfferta: {},
+    };
+    expect(importoFatturaElenco(soloTech, contesto)).toBe("3035.00");
+    expect(importoFatturaElenco(righeMese.slice(1), contesto)).toBe("3000.00");
+  });
+
+  it("con tariffa percentuale usa la tariffa giornaliera dell'offerta meno la trattenuta", () => {
+    const contesto = {
+      tariffa: { modalita: "PERCENTUALE" as const, importo: "20", validaDalMese: "2026-01" },
+      tariffaGiornalieraPerOfferta: { "off-a": "1000", "off-b": "500" },
+    };
+    // off-a: 1 gg × 800 + 35 di rimborso
+    expect(importoFatturaElenco(soloTech, contesto)).toBe("835.00");
+  });
+
+  it("senza tariffa conta solo i rimborsi", () => {
+    expect(
+      importoFatturaElenco(righeMese, { tariffa: null, tariffaGiornalieraPerOfferta: {} })
+    ).toBe("35.00");
   });
 });

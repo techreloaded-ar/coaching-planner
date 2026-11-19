@@ -40,6 +40,7 @@ function meseFittizio(
   return {
     token,
     collaboratoreId,
+    importoFattura: "0.00",
     sintesiPerGiorno: {
       [`${token}-05`]: {
         data: `${token}-05`,

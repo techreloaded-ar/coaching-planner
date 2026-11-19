@@ -9,6 +9,7 @@ import type {
   ClienteSelezionabile,
   ContestoInserimentoGiornata,
   DatiCalendarioMese,
+  DatiElencoMese,
   DatiGiornataAttivita,
   RigaAttivitaClient,
   SintesiClienteGiorno,
@@ -25,6 +26,7 @@ import {
   type TotaliRiepilogoMese,
   type BreakdownRiepilogoMese,
 } from "@/domain/consuntivi";
+import type { TariffaApplicata } from "@/domain/tariffe";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -159,6 +161,54 @@ function intervalloMese(anno: number, mese: number): { inizio: Date; fine: Date 
   };
 }
 
+/**
+ * Tariffa del collaboratore valida nel mese, serializzabile: l'ultima con
+ * decorrenza non successiva al mese, purché non sia già scaduta.
+ */
+async function tariffaDelMese(
+  collaboratoreId: string,
+  token: string
+): Promise<TariffaApplicata | null> {
+  const [ultima] = await db.tariffaCollaboratore.findMany({
+    where: { collaboratoreId, validaDalMese: { lte: token } },
+    orderBy: { validaDalMese: "desc" },
+    take: 1,
+    select: { validaDalMese: true, validaAlMese: true, modalita: true, importo: true },
+  });
+  if (!ultima || (ultima.validaAlMese && ultima.validaAlMese < token)) return null;
+  return { ...ultima, importo: ultima.importo.toString() };
+}
+
+/** Riga del mese con i soli campi che servono all'Importo fattura. */
+interface RigaPerImportoFattura {
+  ore: unknown;
+  categoria: RigaRiepilogo["categoria"];
+  clienteId: string;
+  rimborsoTrasfertaImporto: { toString(): string } | null;
+  offerta: { id: string; tariffaGiornaliera: { toString(): string } | null } | null;
+}
+
+/** Importo fattura del mese, con le stesse regole del Riepilogo mensile. */
+function importoFatturaDelMese(
+  righe: readonly RigaPerImportoFattura[],
+  tariffa: TariffaApplicata | null
+): string {
+  return calcolaRiepilogoMese(
+    righe.map((riga) => ({
+      offertaId: riga.offerta?.id ?? null,
+      offertaCodice: "",
+      offertaDescrizione: "",
+      clienteId: riga.clienteId,
+      clienteRagioneSociale: "",
+      ore: Number(riga.ore),
+      categoria: riga.categoria,
+      rimborsoTrasfertaImporto: riga.rimborsoTrasfertaImporto?.toString() ?? null,
+      tariffaOffertaGiornaliera: riga.offerta?.tariffaGiornaliera?.toString() ?? null,
+    })),
+    tariffa
+  ).importoFattura;
+}
+
 // ── API pubblica ────────────────────────────────────────────────
 
 /**
@@ -240,12 +290,12 @@ export async function datiCalendarioMesePerCollaboratoreAutorizzato(
 ): Promise<DatiCalendarioMese> {
   const parsed = parseTokenMese(token);
   if (!parsed) {
-    return { token, collaboratoreId, sintesiPerGiorno: {} };
+    return { token, collaboratoreId, sintesiPerGiorno: {}, importoFattura: "0.00" };
   }
 
   const { inizio, fine } = intervalloMese(parsed.anno, parsed.mese);
 
-  const [righe, offerteAbilitate] = await Promise.all([
+  const [righe, offerteAbilitate, tariffa] = await Promise.all([
     db.rigaAttivita.findMany({
       where: {
         collaboratoreId,
@@ -259,6 +309,10 @@ export async function datiCalendarioMesePerCollaboratoreAutorizzato(
         ore: true,
         createdAt: true,
         offertaId: true,
+        categoria: true,
+        clienteId: true,
+        rimborsoTrasfertaImporto: true,
+        offerta: { select: { id: true, tariffaGiornaliera: true } },
         cliente: {
           select: {
             id: true,
@@ -269,12 +323,14 @@ export async function datiCalendarioMesePerCollaboratoreAutorizzato(
       orderBy: [{ data: "asc" }, { createdAt: "asc" }],
     }),
     offerteAbilitateDelCollaboratore(collaboratoreId),
+    tariffaDelMese(collaboratoreId, token),
   ]);
 
   return {
     token,
     collaboratoreId,
     sintesiPerGiorno: Object.fromEntries(aggregaSintesiPerGiorno(righe, offerteAbilitate)),
+    importoFattura: importoFatturaDelMese(righe, tariffa),
   };
 }
 
@@ -341,27 +397,42 @@ export async function righeDelGiornoPerCollaboratoreAutorizzato(
  *
  * @param token - Token YYYY-MM del mese
  * @param collaboratoreId - Id del collaboratore già autorizzato dal chiamante
- * @returns Righe serializzate; token non valido ⇒ nessuna riga
+ * @returns Righe serializzate e contesto per il fatturato; token non valido ⇒ nessuna riga
  */
-export async function righeDelMesePerCollaboratoreAutorizzato(
+export async function elencoDelMesePerCollaboratoreAutorizzato(
   token: string,
   collaboratoreId: string
-): Promise<RigaAttivitaClient[]> {
+): Promise<DatiElencoMese> {
   const parsed = parseTokenMese(token);
-  if (!parsed) return [];
+  if (!parsed) {
+    return { righe: [], contestoFatturato: { tariffa: null, tariffaGiornalieraPerOfferta: {} } };
+  }
 
   const { inizio, fine } = intervalloMese(parsed.anno, parsed.mese);
 
-  const [righe, offerteAbilitate] = await Promise.all([
+  const [righe, offerteAbilitate, tariffa] = await Promise.all([
     db.rigaAttivita.findMany({
       where: { collaboratoreId, data: { gte: inizio, lt: fine } },
       include: { offerta: true, cliente: true },
       orderBy: [{ data: "asc" }, { createdAt: "asc" }],
     }),
     offerteAbilitateDelCollaboratore(collaboratoreId),
+    tariffaDelMese(collaboratoreId, token),
   ]);
 
-  return righe.map((riga) => serializzaRigaAttivita(riga, offerteAbilitate));
+  const tariffaGiornalieraPerOfferta: Record<string, string> = {};
+  if (tariffa?.modalita === "PERCENTUALE") {
+    for (const { offerta } of righe) {
+      if (offerta?.tariffaGiornaliera != null) {
+        tariffaGiornalieraPerOfferta[offerta.id] = offerta.tariffaGiornaliera.toString();
+      }
+    }
+  }
+
+  return {
+    righe: righe.map((riga) => serializzaRigaAttivita(riga, offerteAbilitate)),
+    contestoFatturato: { tariffa, tariffaGiornalieraPerOfferta },
+  };
 }
 
 /** Serializza una riga attività per il client (Date → string, Decimal → number/string). */
@@ -613,7 +684,7 @@ export async function riepilogoMesePerCollaboratoreAutorizzato(
   const inizio = giornoPerFiltroData(anno, mese, 1);
   const fine = giornoPerFiltroData(anno, mese + 1, 0);
 
-  const [righeDb, tariffe] = await Promise.all([
+  const [righeDb, tariffa] = await Promise.all([
     db.rigaAttivita.findMany({
       where: {
         collaboratoreId,
@@ -628,18 +699,9 @@ export async function riepilogoMesePerCollaboratoreAutorizzato(
       },
       orderBy: { data: "asc" },
     }),
-    db.tariffaCollaboratore.findMany({
-      where: { collaboratoreId, validaDalMese: { lte: token } },
-      orderBy: { validaDalMese: "desc" },
-      take: 1,
-      select: { validaDalMese: true, validaAlMese: true, modalita: true, importo: true },
-    }),
+    tariffaDelMese(collaboratoreId, token),
   ]);
 
-  const tariffaDelMese = tariffe[0]?.validaAlMese && tariffe[0].validaAlMese < token ? null : tariffe[0];
-  const tariffa = tariffaDelMese
-    ? { ...tariffaDelMese, importo: tariffaDelMese.importo.toString() }
-    : null;
   const righe: RigaRiepilogo[] = righeDb.map((riga) => ({
     offertaId: riga.offerta?.id ?? null,
     offertaCodice: riga.offerta?.codice ?? "",
