@@ -4,13 +4,31 @@ import {
   type ModalitaTariffa,
 } from "@/domain/tariffe";
 
-const formattatoreEuro = new Intl.NumberFormat("it-IT", {
+/**
+ * Formattatore numerico italiano dell'applicazione: il separatore delle
+ * migliaia c'è sempre. Di default `Intl` in italiano lo omette sotto le
+ * 10.000 unità («7010» invece di «7.010»): `useGrouping: "always"` lo forza.
+ */
+export function formattatoreNumeri(opzioni: Intl.NumberFormatOptions = {}): Intl.NumberFormat {
+  return new Intl.NumberFormat("it-IT", { ...opzioni, useGrouping: "always" });
+}
+
+/** Numero con separatore delle migliaia, al massimo due decimali di default, es. "7.010", "1.234,5". */
+export function formattaNumero(valore: number, opzioni: Intl.NumberFormatOptions = {}): string {
+  return formattatoreNumeri({ maximumFractionDigits: 2, ...opzioni }).format(valore);
+}
+
+const formattatoreEuro = formattatoreNumeri({ style: "currency", currency: "EUR" });
+
+const formattatoreEuroArrotondato = formattatoreNumeri({
   style: "currency",
   currency: "EUR",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
 });
 
 /** Ore e giornate: virgola decimale, al massimo due decimali, senza zeri finali. */
-const formattatoreQuantita = new Intl.NumberFormat("it-IT", {
+const formattatoreQuantita = formattatoreNumeri({
   minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 });
@@ -35,9 +53,19 @@ export function formattaGiornate(giornate: number): string {
   return `${formattaNumeroGiornate(giornate)} gg`;
 }
 
-/** Formatta un importo in euro con il formato valuta italiano; «—» se assente. */
+/** Formatta un importo in euro con il formato valuta italiano, es. "7.010,00 €"; «—» se assente. */
 export function formattaEuro(valore: number | string | null): string {
   return valore === null ? "—" : formattatoreEuro.format(Number(valore));
+}
+
+/** Importo in euro all'unità, senza decimali, es. "7.010 €". */
+export function formattaEuroArrotondato(valore: number | string): string {
+  return formattatoreEuroArrotondato.format(Number(valore));
+}
+
+/** Importo in euro col simbolo davanti, es. "€ 7.010,00" (tabelle dell'area attività). */
+export function formattaEuroConSimboloDavanti(valore: number | string): string {
+  return `€ ${formattaNumero(Number(valore), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /** Importo di una tariffa con la sua unità, es. "450,00 € / giorno" o "20% trattenuta". */

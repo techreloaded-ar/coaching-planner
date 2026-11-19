@@ -13,28 +13,20 @@ import {
   DESCRIZIONE_CATEGORIA_ATTIVITA,
   ETICHETTA_OFFERTA_DA_DEFINIRE,
 } from "@/domain/types";
-import { formattaGiornate, formattaNumeroGiornate, formattaNumeroOre, formattaOre } from "@/lib/formattazione";
+import {
+  formattaEuroConSimboloDavanti as formattaEuro,
+  formattaGiornate,
+  formattaNumero,
+  formattaNumeroGiornate,
+  formattaNumeroOre,
+  formattaOre,
+} from "@/lib/formattazione";
 
 interface RiepilogoMeseProps {
   token: string;
   tokenPrecedente: string;
   tokenSuccessivo: string;
   riepilogo: RisultatoRiepilogoMese;
-}
-
-function formattaNumero(valore: number, opzioni?: Intl.NumberFormatOptions): string {
-  return valore.toLocaleString("it-IT", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-    ...opzioni,
-  });
-}
-
-function formattaEuro(importo: string): string {
-  return `€ ${Number(importo).toLocaleString("it-IT", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
 }
 
 /** Segnala le ore dell'offerta che non sono nella categoria Fatturabile. */

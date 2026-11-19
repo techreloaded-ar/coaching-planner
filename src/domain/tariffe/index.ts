@@ -24,7 +24,7 @@ export const UNITA_TARIFFA: Record<ModalitaTariffa, string> = {
  * "12,5% trattenuta". `importo` è la stringa decimale della voce.
  */
 export function etichettaPercentualeTrattenuta(importo: string): string {
-  return `${Number(importo).toLocaleString("it-IT", { maximumFractionDigits: 2 })}${UNITA_TARIFFA.PERCENTUALE}`;
+  return `${Number(importo).toLocaleString("it-IT", { maximumFractionDigits: 2, useGrouping: "always" })}${UNITA_TARIFFA.PERCENTUALE}`;
 }
 
 /**

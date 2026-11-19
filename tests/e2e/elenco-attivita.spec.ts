@@ -50,7 +50,7 @@ test.describe("Elenco attività del mese", () => {
     await expect(elenco.getByTestId("totale-ore-elenco")).toHaveText("11 h");
     // Tariffa giornaliera della factory (350 €): 11 h = 1,375 gg × 350 + 45 di rimborso.
     await expect(elenco.getByTestId("totale-fatturato-elenco")).toHaveText("€ 526,25");
-    await expect(page.getByTestId("importo-fattura-mese")).toContainText("526,25");
+    await expect(page.getByTestId("importo-fattura-mese")).toHaveText(/^526\s€$/);
 
     await page.getByLabel("Cliente").selectOption({ label: alfa.cliente.ragioneSociale });
     await expect(righe).toHaveCount(2);
@@ -59,7 +59,7 @@ test.describe("Elenco attività del mese", () => {
     // Il fatturato segue i filtri (8 h = 1 gg × 350 + 45); la pillola resta sul mese.
     await expect(elenco.getByText("Fatturato delle righe filtrate")).toBeVisible();
     await expect(elenco.getByTestId("totale-fatturato-elenco")).toHaveText("€ 395,00");
-    await expect(page.getByTestId("importo-fattura-mese")).toContainText("526,25");
+    await expect(page.getByTestId("importo-fattura-mese")).toHaveText(/^526\s€$/);
 
     await page.getByLabel("Cerca nella nota").fill(marcatore.toUpperCase());
     await expect(righe).toHaveCount(1);
@@ -111,10 +111,10 @@ test.describe("Elenco attività del mese", () => {
     await page.getByRole("navigation", { name: "Vista delle attività" }).getByRole("link", { name: "Calendario", exact: true }).click();
     await expect(page.getByRole("region", { name: "Calendario mensile delle attività" })).toBeVisible();
     // La chip del mese riporta giornate e importo fattura, non più le righe:
-    // 1 h = 0,125 gg, × 350 € di tariffa giornaliera = 43,75 €.
+    // 1 h = 0,125 gg, × 350 € di tariffa giornaliera = 43,75 €, mostrati all'unità.
     const chip = page.getByTestId("riepilogo-mese-calendario");
     await expect(chip.getByText("0,13 gg", { exact: true })).toBeVisible();
-    await expect(chip.getByTestId("importo-fattura-mese")).toContainText("43,75");
+    await expect(chip.getByTestId("importo-fattura-mese")).toHaveText(/^44\s€$/);
     await expect(chip).not.toContainText("righe");
 
     await page.getByRole("navigation", { name: "Vista delle attività" }).getByRole("link", { name: "Elenco", exact: true }).click();

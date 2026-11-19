@@ -15,7 +15,7 @@ import {
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
 import { IconaOffertaNonAbilitata, SelettoreMese, useIdratata } from "@/components";
 import { ORE_PER_GIORNATA, sommaOre } from "@/domain/types";
-import { formattaEuro, formattaGiornate, formattaNumeroOre, formattaOre } from "@/lib/formattazione";
+import { formattaEuroArrotondato, formattaGiornate, formattaNumeroOre, formattaOre } from "@/lib/formattazione";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
   ErroreIdentitaSchedaCambiata,
@@ -451,7 +451,7 @@ export default function CalendarioMensile({
                 title="Importo fattura del mese"
                 className="text-[13px] font-medium tabular-nums text-testo-secondario max-sm:text-xs"
               >
-                {formattaEuro(meseVisualizzato.importoFattura)}
+                {formattaEuroArrotondato(meseVisualizzato.importoFattura)}
               </span>
             </div>
           )}

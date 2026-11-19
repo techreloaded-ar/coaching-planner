@@ -41,7 +41,12 @@ import {
   urlElenco,
   type FiltriElenco,
 } from "./filtri-elenco";
-import { formattaEuro as formattaImportoMese, formattaGiornate, formattaNumeroOre } from "@/lib/formattazione";
+import {
+  formattaEuroArrotondato,
+  formattaEuroConSimboloDavanti as formattaEuro,
+  formattaGiornate,
+  formattaNumeroOre,
+} from "@/lib/formattazione";
 
 interface ElencoAttivitaProps {
   /** Token YYYY-MM del mese mostrato. */
@@ -58,10 +63,6 @@ interface ElencoAttivitaProps {
   nomeCollaboratoreConsultato: string | null;
   /** Stato di Google Calendar in fondo alla barra del mese; assente sul foglio di un altro collaboratore. */
   indicatoreCalendario?: React.ReactNode;
-}
-
-function formattaEuro(importo: string): string {
-  return `€ ${Number(importo).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function giornoDellaRiga(data: string): { giorno: string; settimana: string } {
@@ -217,7 +218,7 @@ export default function ElencoAttivita({ token, righe, contestoFatturato, filtri
             <div data-testid="riepilogo-mese-elenco" className="inline-flex items-center gap-[9px] whitespace-nowrap rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-sm font-medium text-rose-800 max-sm:gap-1.5 max-sm:px-2.5 max-sm:text-[13px] dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
               <b className="tabular-nums">{formattaGiornate(totaliMese.ore / ORE_PER_GIORNATA)}</b>
               <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
-              <span data-testid="importo-fattura-mese" title="Importo fattura del mese" className="text-[13px] tabular-nums max-sm:text-xs">{formattaImportoMese(fatturatoMese)}</span>
+              <span data-testid="importo-fattura-mese" title="Importo fattura del mese" className="text-[13px] tabular-nums max-sm:text-xs">{formattaEuroArrotondato(fatturatoMese)}</span>
             </div>
           )}
           {indicatoreCalendario}
