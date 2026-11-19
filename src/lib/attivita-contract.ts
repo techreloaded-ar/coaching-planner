@@ -6,6 +6,7 @@
 // parlare esattamente la stessa lingua.
 
 import type { CategoriaAttivita } from "@/domain/types";
+import type { TariffaApplicata } from "@/domain/tariffe";
 
 /** Sintesi delle ore di un cliente in un giorno. */
 export interface SintesiClienteGiorno {
@@ -53,6 +54,28 @@ export interface DatiCalendarioMese {
   collaboratoreId: string;
   /** Sintesi per giorno, indicizzata per data YYYY-MM-DD */
   sintesiPerGiorno: Record<string, SintesiGiorno>;
+  /** Importo fattura del mese (es. "5850.00"), con le regole del Riepilogo mensile. */
+  importoFattura: string;
+}
+
+/**
+ * Ciò che serve all'Elenco per calcolare nel browser l'importo fattura delle
+ * righe filtrate, con le stesse regole del Riepilogo mensile.
+ */
+export interface ContestoFatturatoElenco {
+  /** Tariffa del collaboratore valida nel mese; null se assente. */
+  tariffa: TariffaApplicata | null;
+  /**
+   * Tariffa giornaliera delle offerte del mese, per id. Valorizzata solo con la
+   * tariffa Percentuale, l'unica che la usa: altrimenti resta vuota.
+   */
+  tariffaGiornalieraPerOfferta: Record<string, string>;
+}
+
+/** Dati dell'Elenco attività di un mese. */
+export interface DatiElencoMese {
+  righe: RigaAttivitaClient[];
+  contestoFatturato: ContestoFatturatoElenco;
 }
 
 /** Riga attività dopo serializzazione (Date → string, Decimal → number/string) */

@@ -26,6 +26,7 @@ const IMPORTO_AGGIORNATO = "90,00";
 
 function euroRiepilogo(valore: string): string {
   return `€ ${Number(valore).toLocaleString("it-IT", {
+    useGrouping: "always",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

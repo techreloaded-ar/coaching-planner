@@ -7,7 +7,6 @@ import { collaboratoreConsultatoDellaPagina } from "@/lib/foglio-attivita";
 import {
   tokenMeseCorrente,
   parseTokenMese,
-  etichettaMese,
   mesePrecedente,
   meseSuccessivo,
 } from "@/domain/calendario";
@@ -61,7 +60,6 @@ export default async function RiepilogoMesePage({
         token={token}
         tokenPrecedente={mesePrecedente(token)}
         tokenSuccessivo={meseSuccessivo(token)}
-        etichetta={etichettaMese(token)}
         riepilogo={riepilogo}
       />
     </>

@@ -328,4 +328,26 @@ test.describe("US-058 Selettore di mese compatto sull'etichetta", () => {
 
     await page.unroute(richiestaMeseArrivo);
   });
+
+  test("il riepilogo mensile cambia mese dalla tendina sull'etichetta", async ({
+    page,
+    collaboratore,
+  }) => {
+    const meseArrivo = meseRiservato(CHIAVE_MESE_RISERVATO);
+
+    await accediComeCollaboratore(page, collaboratore.utente.email);
+    await page.goto("/attivita/riepilogo");
+    await expect(page.getByTestId("riepilogo-mese")).toHaveAttribute("data-idratata", "true");
+
+    const pannello = await apriSelettore(page);
+    await portaAnno(pannello, Number(meseArrivo.slice(0, 4)));
+    await pannello
+      .getByRole("button", { name: etichettaMeseLunga(meseArrivo), exact: true })
+      .click();
+
+    await page.waitForURL(`**/attivita/riepilogo?mese=${meseArrivo}`);
+    await expect(
+      page.getByRole("heading", { level: 2, name: etichettaMeseLunga(meseArrivo) }),
+    ).toBeVisible();
+  });
 });

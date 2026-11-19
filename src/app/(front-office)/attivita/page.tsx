@@ -4,7 +4,7 @@ import {
 } from "@/lib/dal";
 import {
   datiCalendarioMesePerCollaboratoreAutorizzato,
-  righeDelMesePerCollaboratoreAutorizzato,
+  elencoDelMesePerCollaboratoreAutorizzato,
 } from "@/lib/attivita";
 import { collaboratoreConsultatoDellaPagina } from "@/lib/foglio-attivita";
 import { tokenMeseCorrente, parseTokenMese } from "@/domain/calendario";
@@ -50,14 +50,15 @@ export default async function AttivitaPage({
     nomeCollaboratoreConsultato: string | null = null,
     indicatoreCalendario: Promise<React.ReactNode> | null = null
   ) => {
-    const [righe, indicatore] = await Promise.all([
-      righeDelMesePerCollaboratoreAutorizzato(token, collaboratoreId),
+    const [{ righe, contestoFatturato }, indicatore] = await Promise.all([
+      elencoDelMesePerCollaboratoreAutorizzato(token, collaboratoreId),
       indicatoreCalendario,
     ]);
     return (
       <ElencoAttivita
         token={token}
         righe={righe}
+        contestoFatturato={contestoFatturato}
         filtriIniziali={{
           cliente: params.cliente ?? "",
           offerta: params.offerta ?? "",

@@ -10,7 +10,7 @@ import {
   parseTokenMese,
 } from "@/domain/calendario";
 import { ETICHETTA_OFFERTA_DA_DEFINIRE, ORE_PER_GIORNATA } from "@/domain/types";
-import type { RigaAttivitaClient } from "@/lib/attivita-contract";
+import type { ContestoFatturatoElenco, RigaAttivitaClient } from "@/lib/attivita-contract";
 import { eliminaRiga } from "@/lib/actions/righe-attivita";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
@@ -32,6 +32,7 @@ import {
   FILTRI_VUOTI,
   filtraRigheElenco,
   filtriEffettivi,
+  importoFatturaElenco,
   opzioniClienti,
   opzioniOfferte,
   queryFiltri,
@@ -40,13 +41,20 @@ import {
   urlElenco,
   type FiltriElenco,
 } from "./filtri-elenco";
-import { formattaGiornate, formattaNumeroOre } from "@/lib/formattazione";
+import {
+  formattaEuroArrotondato,
+  formattaEuroConSimboloDavanti as formattaEuro,
+  formattaGiornate,
+  formattaNumeroOre,
+} from "@/lib/formattazione";
 
 interface ElencoAttivitaProps {
   /** Token YYYY-MM del mese mostrato. */
   token: string;
   /** Righe del mese, ordinate per giorno. */
   righe: RigaAttivitaClient[];
+  /** Tariffa del mese per l'importo fattura, calcolato sulle righe visibili. */
+  contestoFatturato: ContestoFatturatoElenco;
   /** Filtri letti dall'URL al rendering server. */
   filtriIniziali: FiltriElenco;
   /** Foglio di un collaboratore disattivato: nessuna azione sulle righe. */
@@ -55,10 +63,6 @@ interface ElencoAttivitaProps {
   nomeCollaboratoreConsultato: string | null;
   /** Stato di Google Calendar in fondo alla barra del mese; assente sul foglio di un altro collaboratore. */
   indicatoreCalendario?: React.ReactNode;
-}
-
-function formattaEuro(importo: string): string {
-  return `€ ${Number(importo).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function giornoDellaRiga(data: string): { giorno: string; settimana: string } {
@@ -92,7 +96,7 @@ const CLASSE_CAMPO =
   "h-9 rounded-[10px] border border-zinc-200 bg-white px-3 text-sm text-testo-principale shadow-sm focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-800";
 const CLASSE_ETICHETTA = "text-xs font-medium text-testo-metadati";
 
-export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettura, nomeCollaboratoreConsultato, indicatoreCalendario }: ElencoAttivitaProps) {
+export default function ElencoAttivita({ token, righe, contestoFatturato, filtriIniziali, solaLettura, nomeCollaboratoreConsultato, indicatoreCalendario }: ElencoAttivitaProps) {
   const router = useRouter();
   const idratata = useIdratata();
   const cacheCalendario = useCacheCalendario();
@@ -113,6 +117,11 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
   const righeVisibili = useMemo(() => filtraRigheElenco(righe, filtri), [righe, filtri]);
   const totaliVisibili = useMemo(() => totaliElenco(righeVisibili), [righeVisibili]);
   const totaliMese = useMemo(() => totaliElenco(righe), [righe]);
+  const fatturatoMese = useMemo(() => importoFatturaElenco(righe, contestoFatturato), [righe, contestoFatturato]);
+  const fatturatoVisibile = useMemo(
+    () => importoFatturaElenco(righeVisibili, contestoFatturato),
+    [righeVisibili, contestoFatturato]
+  );
   const filtriAttivi = Boolean(filtri.cliente || filtri.offerta || filtri.nota.trim());
 
   const urlDiElenco = (mese: string | null) =>
@@ -206,10 +215,10 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
 
         <div className="flex items-center gap-4 max-sm:ml-auto max-sm:gap-2.5">
           {righe.length > 0 && (
-            <div className="inline-flex items-center gap-[9px] rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-sm font-medium text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
-              <b className="tabular-nums">{righe.length} righe</b>
-              <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
+            <div data-testid="riepilogo-mese-elenco" className="inline-flex items-center gap-[9px] whitespace-nowrap rounded-full border border-rose-200 bg-rose-50 px-[13px] py-1.5 text-sm font-medium text-rose-800 max-sm:gap-1.5 max-sm:px-2.5 max-sm:text-[13px] dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
               <b className="tabular-nums">{formattaGiornate(totaliMese.ore / ORE_PER_GIORNATA)}</b>
+              <span className="block h-[13px] w-px bg-rose-200 dark:bg-rose-800" />
+              <span data-testid="importo-fattura-mese" title="Importo fattura del mese" className="text-[13px] tabular-nums max-sm:text-xs">{formattaEuroArrotondato(fatturatoMese)}</span>
             </div>
           )}
           {indicatoreCalendario}
@@ -470,6 +479,13 @@ export default function ElencoAttivita({ token, righe, filtriIniziali, solaLettu
                   </td>
                   <td data-testid="totale-ore-elenco" className="whitespace-nowrap px-3.5 py-3 text-right tabular-nums text-testo-principale">{formattaNumeroOre(totaliVisibili.ore)} h</td>
                   <td data-testid="totale-rimborsi-elenco" className="whitespace-nowrap px-3.5 py-3 text-right tabular-nums text-testo-principale">{formattaEuro(totaliVisibili.rimborsi)}</td>
+                  {!solaLettura && <td />}
+                </tr>
+                <tr className="bg-rose-50 font-semibold text-rose-800 dark:bg-rose-950/60 dark:text-rose-300">
+                  <td colSpan={5} className="px-3.5 py-3 text-sm">
+                    {filtriAttivi ? "Fatturato delle righe filtrate" : "Fatturato del mese"}
+                  </td>
+                  <td colSpan={2} data-testid="totale-fatturato-elenco" className="whitespace-nowrap px-3.5 py-3 text-right text-base tabular-nums">{formattaEuro(fatturatoVisibile)}</td>
                   {!solaLettura && <td />}
                 </tr>
               </tfoot>

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { RisultatoReportMarginalita } from "@/lib/report";
 import type { ImportiMarginalita } from "@/domain/consuntivi";
-import { formattaEuro, formattaNumeroGiornate } from "@/lib/formattazione";
+import { formattaEuro, formattaNumeroGiornate, formattatoreNumeri } from "@/lib/formattazione";
 
-const formattatorePercentuale = new Intl.NumberFormat("it-IT", {
+const formattatorePercentuale = formattatoreNumeri({
   style: "percent",
   maximumFractionDigits: 1,
 });

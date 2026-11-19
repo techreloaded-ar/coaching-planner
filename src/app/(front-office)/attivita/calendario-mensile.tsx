@@ -15,7 +15,7 @@ import {
 import type { DatiCalendarioMese } from "@/lib/attivita-contract";
 import { IconaOffertaNonAbilitata, SelettoreMese, useIdratata } from "@/components";
 import { ORE_PER_GIORNATA, sommaOre } from "@/domain/types";
-import { formattaGiornate, formattaNumeroOre, formattaOre } from "@/lib/formattazione";
+import { formattaEuroArrotondato, formattaGiornate, formattaNumeroOre, formattaOre } from "@/lib/formattazione";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
   ErroreIdentitaSchedaCambiata,
@@ -332,11 +332,7 @@ export default function CalendarioMensile({
   }
 
   // Totale mese
-  const totaleRighe = useMemo(() => {
-    let r = 0;
-    for (const s of Object.values(sintesi)) r += s.righe;
-    return r;
-  }, [sintesi]);
+  const meseConAttivita = Object.keys(sintesi).length > 0;
 
   const totaleOre = useMemo(() => {
     return sommaOre(...Object.values(sintesi).map((s) => s.oreTotali));
@@ -346,6 +342,9 @@ export default function CalendarioMensile({
   const giorniSettimana = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
   return (
+    // Il contenitore misura lo spazio reale accanto alla sidebar (espansa o
+    // compressa): la legenda va a lato della griglia solo se ci sta.
+    <div className="@container w-full">
     <div className="mx-auto w-full max-w-[1080px] px-8 py-7 max-sm:px-4 max-sm:py-5">
       {/* ── Barra navigazione mese ── */}
       {/* Su smartphone la barra è compatta, su due righe: frecce e mese, poi
@@ -432,8 +431,8 @@ export default function CalendarioMensile({
         {/* Riepilogo mese e stato di Google Calendar, a destra anche su smartphone */}
         <div className="flex items-center gap-3 max-sm:ml-auto max-sm:gap-2.5">
           {/* Riepilogo mese: neutro, il rosa resta l'accento di oggi */}
-          {totaleRighe > 0 && (
-            <div className="inline-flex items-center gap-[9px] whitespace-nowrap max-sm:gap-1.5 max-sm:px-2.5 max-sm:text-[13px] rounded-full border border-zinc-200 bg-white px-[13px] py-1.5 text-sm font-semibold text-testo-principale dark:border-zinc-700 dark:bg-zinc-800">
+          {meseConAttivita && (
+            <div data-testid="riepilogo-mese-calendario" className="inline-flex items-center gap-[9px] whitespace-nowrap max-sm:gap-1.5 max-sm:px-2.5 max-sm:text-[13px] rounded-full border border-zinc-200 bg-white px-[13px] py-1.5 text-sm font-semibold text-testo-principale dark:border-zinc-700 dark:bg-zinc-800">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -445,9 +444,15 @@ export default function CalendarioMensile({
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                 <path d="M16 2v4M8 2v4M3 10h18" />
               </svg>
-              <span className="tabular-nums">{totaleRighe} righe</span>
-              <span className="block h-[13px] w-px bg-zinc-200 dark:bg-zinc-700" />
               <span className="tabular-nums">{formattaGiornate(totaleOre / ORE_PER_GIORNATA)}</span>
+              <span className="block h-[13px] w-px bg-zinc-200 dark:bg-zinc-700" />
+              <span
+                data-testid="importo-fattura-mese"
+                title="Importo fattura del mese"
+                className="text-[13px] font-medium tabular-nums text-testo-secondario max-sm:text-xs"
+              >
+                {formattaEuroArrotondato(meseVisualizzato.importoFattura)}
+              </span>
             </div>
           )}
           {indicatoreCalendario}
@@ -472,7 +477,8 @@ export default function CalendarioMensile({
         </div>
       )}
 
-      {/* ── Griglia calendario ── */}
+      {/* ── Griglia calendario e legenda ── */}
+      <div className="relative">
       <section
         className="relative overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
         aria-label="Calendario mensile delle attività"
@@ -665,30 +671,33 @@ export default function CalendarioMensile({
         </div>
       </section>
 
-      {/* ── Legenda: descrive esattamente gli stati della griglia ── */}
+      {/* ── Legenda: descrive esattamente gli stati della griglia ──
+          Sotto la griglia; a lato, in verticale, quando lo spazio libero accanto
+          al calendario la contiene senza restringerlo. */}
       <div
         role="group"
         aria-label="Legenda del calendario"
-        className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-testo-secondario"
+        data-testid="legenda-calendario"
+        className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-testo-secondario @min-[1420px]:absolute @min-[1420px]:top-0 @min-[1420px]:left-full @min-[1420px]:mt-0 @min-[1420px]:ml-5 @min-[1420px]:w-[176px] @min-[1520px]:w-[226px] @min-[1420px]:flex-col @min-[1420px]:flex-nowrap @min-[1420px]:items-start @min-[1420px]:gap-y-3"
       >
         <span className="inline-flex items-center gap-[7px]">
-          <span className="h-3.5 w-3.5 rounded-[4px] border border-zinc-200 bg-zinc-50 shadow-[inset_3px_0_0] shadow-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/50 dark:shadow-zinc-500" />
+          <span className="h-3.5 w-3.5 shrink-0 rounded-[4px] border border-zinc-200 bg-zinc-50 shadow-[inset_3px_0_0] shadow-zinc-400 dark:border-zinc-700 dark:bg-zinc-800/50 dark:shadow-zinc-500" />
           Giorno con attività registrate
         </span>
         <span className="inline-flex items-center gap-[7px]">
-          <span className="h-3.5 w-3.5 rounded-full bg-rose-600 dark:bg-rose-400" />
+          <span className="h-3.5 w-3.5 shrink-0 rounded-full bg-rose-600 dark:bg-rose-400" />
           Oggi
         </span>
         <span className="inline-flex items-center gap-[7px]">
-          <span className="h-3.5 w-3.5 rounded-[4px] border border-amber-300 bg-amber-50 shadow-[inset_3px_0_0] shadow-amber-500 dark:border-amber-700 dark:bg-amber-950/30 dark:shadow-amber-400" />
+          <span className="h-3.5 w-3.5 shrink-0 rounded-[4px] border border-amber-300 bg-amber-50 shadow-[inset_3px_0_0] shadow-amber-500 dark:border-amber-700 dark:bg-amber-950/30 dark:shadow-amber-400" />
           Righe su offerte non abilitate
         </span>
         <span className="inline-flex items-center gap-[7px]">
-          <span className="h-3.5 w-3.5 rounded-[4px] border border-zinc-200 bg-[repeating-linear-gradient(135deg,rgb(113_113_122/0.3)_0_2px,transparent_2px_5px)] dark:border-zinc-700 dark:bg-[repeating-linear-gradient(135deg,rgb(161_161_170/0.3)_0_2px,transparent_2px_5px)]" />
+          <span className="h-3.5 w-3.5 shrink-0 rounded-[4px] border border-zinc-200 bg-[repeating-linear-gradient(135deg,rgb(113_113_122/0.3)_0_2px,transparent_2px_5px)] dark:border-zinc-700 dark:bg-[repeating-linear-gradient(135deg,rgb(161_161_170/0.3)_0_2px,transparent_2px_5px)]" />
           Sabato e domenica
         </span>
         <span className="inline-flex items-center gap-[7px]">
-          <span className="h-3.5 w-3.5 rounded-[4px] border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" />
+          <span className="h-3.5 w-3.5 shrink-0 rounded-[4px] border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" />
           Nessuna attività
         </span>
         <span className="inline-flex items-center gap-[7px]">
@@ -697,7 +706,7 @@ export default function CalendarioMensile({
             fill="none"
             stroke="currentColor"
             strokeWidth={2}
-            className="h-3.5 w-3.5 text-testo-metadati"
+            className="h-3.5 w-3.5 shrink-0 text-testo-metadati"
             aria-hidden="true"
           >
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -706,9 +715,8 @@ export default function CalendarioMensile({
           Numero di righe
         </span>
       </div>
-      <p className="mt-2 text-sm text-testo-metadati">
-        Clicca un giorno qualsiasi per inserire o modificare le righe
-      </p>
+      </div>
+    </div>
     </div>
   );
 }

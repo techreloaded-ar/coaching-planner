@@ -12,9 +12,9 @@ import {
   PulsanteAbilitaOfferta,
 } from "@/components";
 import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
-import { formattaNumeroGiornate, formattaOre } from "@/lib/formattazione";
+import { formattaNumeroGiornate, formattaOre, formattatoreNumeri } from "@/lib/formattazione";
 
-const formattatorePercentuale = new Intl.NumberFormat("it-IT", {
+const formattatorePercentuale = formattatoreNumeri({
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
