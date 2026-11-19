@@ -1,13 +1,14 @@
 @import "tailwindcss";
 
 /*
- * Tema scelto dall'utente: `data-tema` su <html> vale "chiaro", "scuro" o
- * "browser" (letto dal cookie nel layout radice). La variante `dark:` si
- * attiva con "scuro" sempre e con "browser" solo se il sistema è scuro, così
- * il tema è corretto fin dal primo rendering e "browser" segue i cambi live.
+ * Tema scelto dall'utente: `data-tema` su <html> vale "chiaro", "scuro",
+ * "browser" o "natale" (letto dal cookie nel layout radice). La variante
+ * `dark:` si attiva con "scuro" e "natale" sempre e con "browser" solo se il
+ * sistema è scuro, così il tema è corretto fin dal primo rendering e
+ * "browser" segue i cambi live.
  */
 @custom-variant dark {
-  &:where([data-tema="scuro"], [data-tema="scuro"] *) {
+  &:where([data-tema="scuro"], [data-tema="scuro"] *, [data-tema="natale"], [data-tema="natale"] *) {
     @slot;
   }
   @media (prefers-color-scheme: dark) {
@@ -40,6 +41,89 @@
     --testo-secondario: #d4d4d8;
     --testo-metadati: #a1a1aa;
     color-scheme: dark;
+  }
+}
+
+/*
+ * Tema "Natale" (Notte di Natale): è un tema scuro che riusa tutte le varianti
+ * `dark:` dell'app, ridipingendo la scala zinc in blu notte e la scala indigo
+ * negli accenti natalizi: le tonalità chiare (50–400, testi ed evidenze sul
+ * fondo scuro) in oro, quelle piene (500–950, pulsanti, giorno corrente,
+ * fondi tenui) in rosso. I ruoli di testo restano quelli del tema scuro,
+ * ≥ 4,5:1 anche sulle superfici blu notte.
+ */
+@custom-variant natale (&:where([data-tema="natale"], [data-tema="natale"] *));
+
+html[data-tema="natale"] {
+  --background: #0e1726;
+  --color-zinc-50: #f2f5fa;
+  --color-zinc-100: #e3e9f2;
+  --color-zinc-200: #c9d3e2;
+  --color-zinc-300: #a9b6ca;
+  --color-zinc-400: #8494ad;
+  --color-zinc-500: #627290;
+  --color-zinc-600: #475672;
+  --color-zinc-700: #2a3a57;
+  --color-zinc-800: #1c2b45;
+  --color-zinc-900: #132036;
+  --color-zinc-950: #0b1320;
+  --color-indigo-50: #fdf6e3;
+  --color-indigo-100: #fbecc4;
+  --color-indigo-200: #f6dc94;
+  --color-indigo-300: #f5d684;
+  --color-indigo-400: #f0c95e;
+  --color-indigo-500: #c8343c;
+  --color-indigo-600: #b02a32;
+  --color-indigo-700: #941f27;
+  --color-indigo-800: #7a1a21;
+  --color-indigo-900: #5c141a;
+  --color-indigo-950: #3d0d12;
+}
+
+/*
+ * Neve del tema Natale: fiocchi tenui fissi dietro i contenuti, che non
+ * intercettano clic né selezione. Cadono lentamente; con "riduci movimento"
+ * restano fermi nella loro posizione, in stampa non compaiono.
+ */
+@keyframes caduta-neve {
+  from {
+    transform: translate3d(0, -6vh, 0);
+  }
+  50% {
+    transform: translate3d(var(--deriva-fiocco), 50vh, 0);
+  }
+  to {
+    transform: translate3d(0, 106vh, 0);
+  }
+}
+
+.neve-natale {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.neve-natale > span {
+  position: absolute;
+  top: 0;
+  border-radius: 9999px;
+  background: #e6eef9;
+  animation: caduta-neve var(--durata-fiocco) linear var(--ritardo-fiocco) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neve-natale > span {
+    animation: none;
+    transform: translate3d(0, var(--posizione-fiocco), 0);
+  }
+}
+
+@media print {
+  .neve-natale {
+    display: none;
   }
 }
 

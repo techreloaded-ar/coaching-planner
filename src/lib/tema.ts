@@ -1,7 +1,7 @@
 // Preferenza di tema dell'interfaccia, ricordata sul browser tramite cookie.
 // Modulo puro: usato sia dal server (lettura del cookie) sia dal selettore client.
 
-export const TEMI = ["chiaro", "scuro", "browser"] as const;
+export const TEMI = ["chiaro", "scuro", "browser", "natale"] as const;
 
 export type Tema = (typeof TEMI)[number];
 

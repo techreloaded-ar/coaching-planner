@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { temaPreferito } from "@/lib/tema-preferito";
 import { ambientePreproduzione } from "@/lib/ambiente";
 import { BannerPreproduzione } from "@/components/banner-preproduzione";
+import { NeveNatale } from "@/components/neve-natale";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <NeveNatale />
         {preproduzione && <BannerPreproduzione />}
         {children}
       </body>

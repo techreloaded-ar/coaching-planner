@@ -1,11 +1,11 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 import { accediAlBackOfficeComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { apriImpostazioni, esci, modaleImpostazioni, pannelloAccount, pulsanteMenuAccount } from "./support/menu-account";
 import { attendiAspetto, opzioneTema, scegliTema, selettoreTema } from "./support/tema";
 
 /**
- * Test e2e — Temi Chiaro, Scuro e Browser, scelti dalla modale Impostazioni.
+ * Test e2e — Temi Chiaro, Scuro, Browser e Natale, scelti dalla modale Impostazioni.
  *
  * Scenari read-only: la preferenza vive solo nel cookie del contesto browser
  * di ciascun test, nessun dato applicativo viene scritto.
@@ -39,7 +39,7 @@ test.describe("Tema nelle Impostazioni", () => {
 		await expect(page.getByTestId("selettore-tema")).toHaveCount(0);
 
 		await apriImpostazioni(page);
-		for (const etichetta of ["Chiaro", "Scuro", "Browser"] as const) {
+		for (const etichetta of ["Chiaro", "Scuro", "Browser", "Natale"] as const) {
 			await expect(opzioneTema(page, etichetta)).toBeAttached();
 		}
 		await expect(opzioneTema(page, "Browser")).toBeChecked();
@@ -106,6 +106,61 @@ test.describe("Tema nelle Impostazioni", () => {
 	});
 });
 
+test.describe("Tema Natale", () => {
+	/** Fiocchi di neve: decorazione dietro i contenuti, presente solo con il tema Natale. */
+	const neve = (page: Page) => page.getByTestId("neve-natale");
+	const stellaNelLogo = (page: Page) => page.getByTestId("stella-natale").first();
+
+	test("scelto dalle Impostazioni: blu notte, stella sul logo e neve che cade; resta dopo il reload e si toglie tornando a Browser", async ({
+		page,
+	}) => {
+		await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
+		await accediComeCollaboratore(page);
+		await expect(neve(page)).toBeHidden();
+		await expect(stellaNelLogo(page)).toBeHidden();
+
+		await apriImpostazioni(page);
+		await scegliTema(page, "Natale");
+		await attendiAspetto(page, "natale");
+		await expect(stellaNelLogo(page)).toBeVisible();
+		await expect(neve(page)).toBeVisible();
+		await expect(neve(page)).toHaveCSS("pointer-events", "none");
+		await expect(neve(page).locator("span").first()).toHaveCSS("animation-name", "caduta-neve");
+		// Accento del tema: il radio scelto è in oro, non più in indaco.
+		await expect(selettoreTema(page).locator("label").filter({ hasText: "Natale" })).toHaveCSS(
+			"color",
+			"rgb(245, 214, 132)",
+		);
+
+		await page.reload();
+		await expect(page.locator("html")).toHaveAttribute("data-tema", "natale");
+		await attendiAspetto(page, "natale");
+		await expect(neve(page)).toBeVisible();
+		await apriImpostazioni(page);
+		await expect(opzioneTema(page, "Natale")).toBeChecked();
+
+		await scegliTema(page, "Browser");
+		await attendiAspetto(page, "chiaro");
+		await expect(neve(page)).toBeHidden();
+		await expect(stellaNelLogo(page)).toBeHidden();
+	});
+
+	test("con «riduci movimento» la neve resta ferma", async ({ page, context, baseURL }) => {
+		await page.emulateMedia({ reducedMotion: "reduce" });
+		await context.addCookies([{ name: "tema", value: "natale", url: baseURL! }]);
+		await page.goto("/");
+		await attendiAspetto(page, "natale");
+		await expect(neve(page)).toBeVisible();
+		await expect(neve(page).locator("span").first()).toHaveCSS("animation-name", "none");
+	});
+
+	test("l'HTML iniziale contiene già il tema Natale (nessun flash)", async ({ page, context, baseURL }) => {
+		await context.addCookies([{ name: "tema", value: "natale", url: baseURL! }]);
+		const risposta = await page.request.get("/");
+		expect(await risposta.text()).toMatch(/<html[^>]*data-tema="natale"/);
+	});
+});
+
 test.describe("Tutta l'interfaccia rispetta il tema scelto", () => {
 	const PAGINE_BACK_OFFICE = [
 		"/anagrafiche/clienti",
@@ -124,6 +179,7 @@ test.describe("Tutta l'interfaccia rispetta il tema scelto", () => {
 	for (const [tema, sistema, aspetto] of [
 		["scuro", "light", "scuro"],
 		["chiaro", "dark", "chiaro"],
+		["natale", "light", "natale"],
 	] as const) {
 		test(`tema ${tema} con sistema ${sistema}: ogni pagina è ${aspetto}`, async ({ page, context, baseURL }) => {
 			await page.emulateMedia({ colorScheme: sistema });
