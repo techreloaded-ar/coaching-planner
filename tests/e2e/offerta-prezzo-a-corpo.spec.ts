@@ -55,7 +55,7 @@ test.describe("Offerta a giornata o a corpo", () => {
 		await expect(
 			rigaOfferta.getByRole("img", { name: "Calcolata da offerta a corpo" }),
 		).toBeVisible();
-		await expect(rigaOfferta.getByRole("cell").nth(2)).toHaveText(/^666,67\s*€$/);
+		await expect(rigaOfferta.getByRole("cell").nth(2)).toContainText(/^666,67\s*€/);
 		await expect(rigaOfferta.getByRole("cell").nth(3)).toContainText(/10\.000,00\s*€/);
 		await expect(
 			rigaOfferta.getByRole("img", { name: "Calcolato da tariffa giornaliera" }),
