@@ -19,6 +19,16 @@ When adding or changing Playwright e2e tests, preserve the deterministic approac
 
 See `tests/e2e/README.md` for the full e2e testing contract.
 
+## Local verification and pull requests
+
+The local gate is a single recipe check, `archetipo execution environment check verifica` (`sh scripts/archetipo/ambiente.sh verifica`): lint, unit tests and the production build run in parallel, then the **targeted** e2e specs run against that same build. The full Playwright suite is the CI's job on the pull request, not the local gate's.
+
+- Do not run the full e2e suite locally "to be safe" before `increment ready` or before opening a PR. It runs locally only when the selector asks for it (the check log says `E2E: suite completa` and why) or when the person asks for it (`E2E_SUITE_COMPLETA=1`).
+- The targeted specs are chosen by `scripts/archetipo/selezione-e2e-mirati.ts` from the diff against the base branch: changed specs, specs importing a changed e2e helper, specs named like a changed source file, specs that visit the routes using a changed source file, each one's `demo__` twin, and the smoke specs. The check log lists every selected spec with its reason, plus warnings for what the selection leaves to CI (for example a module shared by many routes).
+- Keep the naming contract the selector relies on: a demo spec is `demo__<name>.spec.ts` beside `<name>.spec.ts`, and a spec that exercises a page cites its route path (`page.goto("/report/...")`, `toHaveURL(...)`) instead of only clicking through from another page.
+- When you change a source file, search `tests/e2e` (including `demo__*`) for specs that assert on what you changed and update them in the same change: the selector runs them, it does not fix them.
+- A pull request is not ready to merge until its CI run is green: that run is the only place where the full e2e suite has been executed.
+
 ## Archetipo Review rules
 
 When running `/archetipo-review`, the review must include a **static CI impact assessment**. Do NOT contact GitHub, fetch workflow runs, or execute the pipeline — the goal is to predict, by reading, whether CI would break if the changes were approved:

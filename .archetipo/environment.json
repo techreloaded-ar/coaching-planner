@@ -69,70 +69,26 @@
     }
   ],
   "checks": {
-    "build": {
-      "name": "build",
+    "verifica": {
+      "name": "verifica",
       "argv": [
         "sh",
         "scripts/archetipo/ambiente.sh",
-        "build"
-      ],
-      "timeout_seconds": 900,
-      "inputs": [
-        "src",
-        "prisma",
-        "public",
-        "next.config.ts",
-        "package.json",
-        "scripts/archetipo/ambiente.sh"
-      ],
-      "cache": true
-    },
-    "e2e": {
-      "name": "e2e",
-      "argv": [
-        "sh",
-        "scripts/archetipo/ambiente.sh",
-        "e2e"
+        "verifica"
       ],
       "timeout_seconds": 1800,
       "inputs": [
         "src",
-        "tests/e2e",
-        "prisma",
-        "playwright.config.ts",
-        "scripts/archetipo/ambiente.sh"
-      ],
-      "cache": true
-    },
-    "lint": {
-      "name": "lint",
-      "argv": [
-        "npm",
-        "run",
-        "lint"
-      ],
-      "timeout_seconds": 600,
-      "inputs": [
-        "src",
         "tests",
+        "prisma",
+        "public",
         "scripts",
-        "eslint.config.mjs"
-      ],
-      "cache": true
-    },
-    "unit": {
-      "name": "unit",
-      "argv": [
-        "sh",
-        "scripts/archetipo/ambiente.sh",
-        "unit"
-      ],
-      "timeout_seconds": 600,
-      "inputs": [
-        "src",
-        "tests/unit",
+        "next.config.ts",
+        "package.json",
+        "playwright.config.ts",
         "vitest.config.ts",
-        "scripts/archetipo/ambiente.sh"
+        "eslint.config.mjs",
+        "tsconfig.json"
       ],
       "cache": true
     }

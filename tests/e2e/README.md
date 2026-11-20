@@ -113,9 +113,29 @@ precedere la fine dello stream RSC. `attendiEsitoUtente` in
 test già configurato, senza attese fisse o retry dell'azione.
 
 
-## Gate locale
+## Verifica locale: e2e mirati
 
-Prima di considerare stabile una modifica e2e:
+La verifica locale di un checkout (`archetipo execution environment check verifica`, cioè `sh scripts/archetipo/ambiente.sh verifica`) non esegue tutta la suite: dopo lint, test unitari e build esegue solo le spec che toccano ciò che è cambiato rispetto al ramo base. **La suite completa gira in CI sulla pull request**, ed è quella a dire se la modifica può essere unita.
+
+Le spec le sceglie `scripts/archetipo/selezione-e2e-mirati.ts`, e il registro del check elenca ogni spec scelta con il motivo:
+
+- una spec modificata viene eseguita, e un helper modificato (`support/…`) porta con sé tutte le spec che lo importano;
+- un sorgente modificato porta con sé le spec con il suo stesso nome (`src/lib/esportazione-fatturazione.ts` → `esportazione-fatturazione.spec.ts`) e quelle che citano le rotte che lo usano;
+- ogni spec scelta porta con sé la gemella `demo__…`, e viceversa;
+- `home-page.spec.ts` e `auth-flows.spec.ts` girano sempre;
+- un modulo condiviso da più di dieci rotte non viene espanso (selezionerebbe quasi tutto): il registro lo segnala e l'impatto ampio lo verifica la CI;
+- schema e migrazioni Prisma, configurazione di Playwright e di Next, dipendenze, proxy, layout radice e setup e2e richiedono la suite completa anche in locale, fermandosi al primo fallimento.
+
+Perché la selezione funzioni, le spec devono rispettare due convenzioni:
+
+- la demo di `nome.spec.ts` si chiama `demo__nome.spec.ts`;
+- una spec che esercita una pagina ne cita il percorso (`page.goto("/report/fatturazione-clienti")`, `toHaveURL(/\/offerte/)`), anche quando poi ci arriva con un clic.
+
+`E2E_SUITE_COMPLETA=1` forza la suite completa; `E2E_MIRATI_BASE=<ramo o commit>` cambia il termine di confronto (predefinito `origin/main`, poi `main`).
+
+## Gate di stabilità della suite
+
+Prima di considerare stabile una modifica alle spec o all'infrastruttura e2e:
 
 ```bash
 npm run lint
