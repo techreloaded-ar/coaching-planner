@@ -8,7 +8,9 @@ import {
   elencaCollaboratoriIngaggiati,
   elencaCollaboratoriIngaggiabili,
 } from "@/lib/abilitazioni";
-import { formattaEuro, inizialiCliente } from "@/lib/formattazione";
+import { inizialiCliente } from "@/lib/formattazione";
+import { ImportoOfferta, tooltipImportiOfferta } from "@/components";
+import { importoTotaleOfferta } from "@/domain/anagrafiche/prezzo-offerta";
 import IngaggiCollaboratori from "./ingaggi-collaboratori";
 
 interface CollaboratoriOffertaPageProps {
@@ -95,7 +97,24 @@ export default async function CollaboratoriOffertaPage({
               <span className="inline-flex items-center gap-[7px]">
                 Tariffa giornaliera
                 <b className="font-semibold tabular-nums text-testo-secondario">
-                  {formattaEuro(offerta.tariffaGiornaliera?.toString() ?? null)}
+                  <ImportoOfferta
+                    valore={offerta.tariffaGiornaliera?.toString() ?? null}
+                    calcolatoDa={tooltipImportiOfferta(offerta.modalitaPrezzo).tariffa}
+                  />
+                </b>
+              </span>
+              <span className="inline-flex items-center gap-[7px]">
+                Importo totale
+                <b className="font-semibold tabular-nums text-testo-secondario">
+                  <ImportoOfferta
+                    valore={importoTotaleOfferta({
+                      modalitaPrezzo: offerta.modalitaPrezzo,
+                      tariffaGiornaliera: offerta.tariffaGiornaliera?.toString() ?? null,
+                      giorniPrevisti: offerta.giorniPrevisti,
+                      importoACorpo: offerta.importoACorpo?.toString() ?? null,
+                    })}
+                    calcolatoDa={tooltipImportiOfferta(offerta.modalitaPrezzo).importoTotale}
+                  />
                 </b>
               </span>
             </div>

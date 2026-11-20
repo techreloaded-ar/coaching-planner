@@ -30,3 +30,9 @@ export {
   PulsanteAbilitaOfferta,
 } from "./abilitazione-offerta";
 export { ComeVieneCalcolato } from "./come-viene-calcolato";
+export {
+  ImportoOfferta,
+  tooltipImportiOfferta,
+  CALCOLATO_DA_TARIFFA,
+  CALCOLATA_DA_CORPO,
+} from "./importo-offerta";

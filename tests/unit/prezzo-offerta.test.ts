@@ -4,6 +4,7 @@ import {
 	centesimiInCampo,
 	centesimiInDecimale,
 	giorniDaTesto,
+	importoTotaleOfferta,
 	importoTotaleCentesimi,
 	tariffaACorpoCentesimi,
 } from "@/domain/anagrafiche/prezzo-offerta";
@@ -46,5 +47,48 @@ describe("prezzo offerta — calcoli", () => {
 		expect(centesimiInDecimale(BigInt(66667))).toBe("666.67");
 		expect(centesimiInDecimale(BigInt(5))).toBe("0.05");
 		expect(centesimiInCampo(BigInt(1000000))).toBe("10000,00");
+	});
+});
+
+describe("prezzo offerta — importo totale di un'offerta salvata", () => {
+	it("a giornata è tariffa × giorni previsti", () => {
+		expect(
+			importoTotaleOfferta({
+				modalitaPrezzo: "A_GIORNATA",
+				tariffaGiornaliera: "650",
+				giorniPrevisti: 15,
+				importoACorpo: null,
+			}),
+		).toBe("9750.00");
+	});
+
+	it("a corpo è l'importo a corpo, non tariffa × giorni", () => {
+		expect(
+			importoTotaleOfferta({
+				modalitaPrezzo: "A_CORPO",
+				tariffaGiornaliera: "666.67",
+				giorniPrevisti: 15,
+				importoACorpo: "10000",
+			}),
+		).toBe("10000.00");
+	});
+
+	it("è null se mancano i valori", () => {
+		expect(
+			importoTotaleOfferta({
+				modalitaPrezzo: "A_GIORNATA",
+				tariffaGiornaliera: "650",
+				giorniPrevisti: null,
+				importoACorpo: null,
+			}),
+		).toBeNull();
+		expect(
+			importoTotaleOfferta({
+				modalitaPrezzo: "A_CORPO",
+				tariffaGiornaliera: null,
+				giorniPrevisti: 15,
+				importoACorpo: null,
+			}),
+		).toBeNull();
 	});
 });

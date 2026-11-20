@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { accediComeAdmin } from "./support/auth";
+import { cercaNellElenco } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
 
 test.describe("Offerta a giornata o a corpo", () => {
@@ -50,7 +51,15 @@ test.describe("Offerta a giornata o a corpo", () => {
 			.getByRole("table", { name: "Offerte del cliente" })
 			.getByRole("row")
 			.filter({ hasText: codice });
-		await expect(rigaOfferta).toContainText(/666,67\s*€/);
+		// Entrambi i valori, con l'icona sul valore calcolato (qui la tariffa)
+		await expect(
+			rigaOfferta.getByRole("img", { name: "Calcolata da offerta a corpo" }),
+		).toBeVisible();
+		await expect(rigaOfferta.getByRole("cell").nth(2)).toHaveText(/^666,67\s*€$/);
+		await expect(rigaOfferta.getByRole("cell").nth(3)).toContainText(/10\.000,00\s*€/);
+		await expect(
+			rigaOfferta.getByRole("img", { name: "Calcolato da tariffa giornaliera" }),
+		).toHaveCount(0);
 
 		await rigaOfferta.getByRole("link", { name: "Modifica" }).click();
 		await page.waitForURL(/\/offerte\/[^/?]+(\?.*)?$/);
@@ -65,5 +74,28 @@ test.describe("Offerta a giornata o a corpo", () => {
 		await expect(tariffa).toBeEditable();
 		await expect(tariffa).toHaveValue("666,67");
 		await expect(page.getByLabel("Importo totale")).toHaveValue("10.000,05");
+	});
+
+	test("nell'elenco offerte un'offerta a giornata mostra la tariffa e l'importo totale calcolato", async ({
+		page,
+		factory,
+	}) => {
+		const token = randomUUID().slice(0, 8);
+		const codice = `OFF-GIORNATA-${token}`.toUpperCase();
+		await factory.createOfferta({ codice, tariffaGiornaliera: "650.00", giorniPrevisti: 15 });
+
+		await page.goto("/offerte");
+		await cercaNellElenco(page, "/offerte", codice);
+		const riga = page.getByRole("row").filter({ hasText: codice });
+		await expect(riga).toHaveCount(1);
+		await expect(page.getByRole("columnheader", { name: "Importo totale" })).toBeVisible();
+		const celle = riga.getByRole("cell");
+		// La prima cella è la casella di selezione.
+		await expect(celle.nth(3)).toHaveText(/^650,00\s*€$/);
+		await expect(celle.nth(4)).toContainText(/9\.750,00\s*€/);
+		await expect(celle.nth(4)).toContainText("Trasferta inclusa");
+		await expect(
+			celle.nth(4).getByRole("img", { name: "Calcolato da tariffa giornaliera" }),
+		).toBeVisible();
 	});
 });

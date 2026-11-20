@@ -50,8 +50,8 @@ test.describe("Pagina offerte trasversale", () => {
 
 		const celle = riga.getByRole("cell");
 		// La prima cella è la casella di selezione.
-		await expect(celle.nth(4)).toHaveText(/^2\/10\s*gg$/); // erogate/previste
-		await expect(celle.nth(5)).toHaveText("Attiva");
+		await expect(celle.nth(5)).toHaveText(/^2\/10\s*gg$/); // erogate/previste
+		await expect(celle.nth(6)).toHaveText("Attiva");
 	});
 
 	test("evidenzia offerte non attive, esaurite e oltre budget nella riga compatta", async ({

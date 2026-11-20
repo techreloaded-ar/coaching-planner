@@ -15,13 +15,14 @@ import {
   RicercaElenco,
   useIdratata,
   useSelezioneElenco,
+  ImportoOfferta,
+  tooltipImportiOfferta,
 } from "@/components";
 import type { ElencoOffertePaginato, VoceElencoOfferta } from "@/lib/offerte";
 import { urlPosizioneElenco, type PosizioneElenco } from "@/lib/paginazione";
 import { parametriFiltroOfferte } from "@/lib/elenco-offerte";
 import {
   descriviGestioneTrasferta,
-  formattaEuro,
   inizialiCliente,
 } from "@/lib/formattazione";
 import DettaglioAvanzamentoOfferta from "./dettaglio-avanzamento-offerta";
@@ -170,8 +171,11 @@ export default function OfferteTabella({
               <th className="whitespace-nowrap px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
                 Cliente
               </th>
-              <th className="w-[170px] whitespace-nowrap px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
+              <th className="w-[150px] whitespace-nowrap px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
                 Tariffa giornaliera
+              </th>
+              <th className="w-[190px] whitespace-nowrap px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
+                Importo totale
               </th>
               <th className="w-[140px] whitespace-nowrap px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
                 Giorni erogati
@@ -184,7 +188,7 @@ export default function OfferteTabella({
           <tbody>
             {offerte.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-[34px] text-center text-sm text-testo-metadati">
+                <td colSpan={7} className="px-4 py-[34px] text-center text-sm text-testo-metadati">
                   {soloDaPresidiare
                     ? ricerca
                       ? "Nessuna offerta da presidiare corrisponde alla ricerca."
@@ -306,9 +310,18 @@ function RigaOfferta({
         </div>
       </td>
 
-      {/* Tariffa giornaliera */}
+      {/* Tariffa giornaliera e importo totale: il valore calcolato ha l'icona */}
       <td className="px-4 py-[13px] text-right align-middle tabular-nums whitespace-nowrap font-semibold text-testo-secondario">
-        {formattaEuro(offerta.tariffaGiornaliera)}
+        <ImportoOfferta
+          valore={offerta.tariffaGiornaliera}
+          calcolatoDa={tooltipImportiOfferta(offerta.modalitaPrezzo).tariffa}
+        />
+      </td>
+      <td className="px-4 py-[13px] text-right align-middle tabular-nums whitespace-nowrap font-semibold text-testo-secondario">
+        <ImportoOfferta
+          valore={offerta.importoTotale}
+          calcolatoDa={tooltipImportiOfferta(offerta.modalitaPrezzo).importoTotale}
+        />
         <div className="mt-[3px] text-xs font-medium text-testo-metadati">
           {descriviGestioneTrasferta(
             offerta.gestioneTrasferta,
@@ -335,7 +348,7 @@ function RigaOfferta({
       </tr>
       {espansa && (
         <tr>
-          <td colSpan={6} className="bg-zinc-100 p-0 dark:bg-zinc-800/50">
+          <td colSpan={7} className="bg-zinc-100 p-0 dark:bg-zinc-800/50">
             <DettaglioAvanzamentoOfferta offerta={offerta} />
           </td>
         </tr>

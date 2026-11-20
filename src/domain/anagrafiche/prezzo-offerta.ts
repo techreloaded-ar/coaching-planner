@@ -53,3 +53,24 @@ export function centesimiInDecimale(centesimi: bigint): string {
 export function centesimiInCampo(centesimi: bigint): string {
   return centesimiInDecimale(centesimi).replace(".", ",");
 }
+
+/**
+ * Importo totale di un'offerta salvata, in formato decimale ("10000.00"):
+ * l'importo a corpo se l'offerta è a corpo, altrimenti tariffa × giorni
+ * previsti. `null` se non calcolabile (valori mancanti).
+ */
+export function importoTotaleOfferta(offerta: {
+  modalitaPrezzo: string;
+  tariffaGiornaliera: string | null;
+  giorniPrevisti: number | null;
+  importoACorpo: string | null;
+}): string | null {
+  if (offerta.modalitaPrezzo === "A_CORPO") {
+    const importo = offerta.importoACorpo === null ? null : centesimiDaTesto(offerta.importoACorpo);
+    return importo === null ? null : centesimiInDecimale(importo);
+  }
+  const tariffa =
+    offerta.tariffaGiornaliera === null ? null : centesimiDaTesto(offerta.tariffaGiornaliera);
+  if (tariffa === null || !offerta.giorniPrevisti || offerta.giorniPrevisti <= 0) return null;
+  return centesimiInDecimale(importoTotaleCentesimi(tariffa, offerta.giorniPrevisti));
+}

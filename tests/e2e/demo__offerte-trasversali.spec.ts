@@ -50,13 +50,13 @@ function rigaOfferta(page: Page, codiceOfferta: string): Locator {
 
 /**
  * Legge le giornate erogate/previste dalla cella unica "Giorni erogati"
- * (5ª cella, indice 4: la prima è la casella di selezione) nel formato "erogate/previste gg" (it-IT).
+ * (6ª cella, indice 5: la prima è la casella di selezione) nel formato "erogate/previste gg" (it-IT).
  */
 async function giornateDellaRiga(riga: Locator): Promise<{
   previste: number;
   erogate: number;
 }> {
-  const testo = (await riga.getByRole("cell").nth(4).innerText()).trim();
+  const testo = (await riga.getByRole("cell").nth(5).innerText()).trim();
   const corrispondenza = testo.match(/^(-?\d+(?:,\d+)?)\/(-?\d+(?:,\d+)?)/);
   if (!corrispondenza) {
     throw new Error(

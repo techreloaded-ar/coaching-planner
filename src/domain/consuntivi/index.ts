@@ -450,6 +450,8 @@ export interface RigaReportFatturazione {
   gestioneTrasfertaOfferta: GestioneTrasferta;
   /** Importo per giorno di trasferta dell'offerta; null se inclusa */
   importoTrasfertaForfettariaOfferta: string | number | null;
+  /** La tariffa dell'offerta è calcolata da un importo a corpo (assente = no) */
+  tariffaOffertaCalcolata?: boolean;
 }
 
 /** Dettaglio fatturabile di un collaboratore all'interno di una singola offerta */
@@ -469,6 +471,8 @@ export interface VoceOffertaReport {
   offertaDescrizione: string;
   /** null se l'offerta non ha una tariffa: imponibile 0, «tariffa da definire» */
   tariffaGiornaliera: string | null;
+  /** La tariffa è calcolata da un importo a corpo (importo ÷ giorni previsti) */
+  tariffaCalcolata: boolean;
   /** Ore Fatturabile dell'offerta nel mese, da cui derivano le giornate */
   oreFatturabili: number;
   giornateFatturabili: number;
@@ -528,6 +532,7 @@ export function calcolaReportFatturazioneClienti(
     offertaCodice: string;
     offertaDescrizione: string;
     tariffaGiornaliera: number | null;
+    tariffaCalcolata: boolean;
     oreFatturabili: number;
     collaboratori: Map<string, AccumulatoreCollaboratoreOfferta>;
     importoTrasfertaForfettaria: number | null;
@@ -568,6 +573,7 @@ export function calcolaReportFatturazioneClienti(
             : riga.tariffaOffertaGiornaliera == null
               ? null
               : Number(riga.tariffaOffertaGiornaliera),
+        tariffaCalcolata: riga.offertaId !== null && riga.tariffaOffertaCalcolata === true,
         oreFatturabili: 0,
         collaboratori: new Map(),
         importoTrasfertaForfettaria:
@@ -664,6 +670,7 @@ export function calcolaReportFatturazioneClienti(
           offertaCodice: offerta.offertaCodice,
           offertaDescrizione: offerta.offertaDescrizione,
           tariffaGiornaliera: offerta.tariffaGiornaliera?.toFixed(2) ?? null,
+          tariffaCalcolata: offerta.tariffaCalcolata,
           oreFatturabili: offerta.oreFatturabili,
           giornateFatturabili,
           imponibile: imponibile.toFixed(2),
