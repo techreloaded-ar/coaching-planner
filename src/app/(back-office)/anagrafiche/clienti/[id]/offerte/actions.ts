@@ -7,12 +7,18 @@ import { db } from "@/lib/db";
 import { richiediPermessoApi } from "@/lib/dal";
 import { clientePerId } from "@/lib/clienti";
 import {
+  modalitaPrezzoDaInput,
   normalizzaTariffaGiornaliera,
   validaOfferta,
   type DatiOffertaInput,
   type ErroriValidazioneOfferta,
 } from "@/domain/anagrafiche/valida-offerta";
-import type { GestioneTrasferta } from "@/domain/types";
+import type { GestioneTrasferta, ModalitaPrezzoOfferta } from "@/domain/types";
+import {
+  centesimiDaTesto,
+  centesimiInDecimale,
+  tariffaACorpoCentesimi,
+} from "@/domain/anagrafiche/prezzo-offerta";
 import { leggiNoteDaForm, leggiTestoFacoltativoDaForm } from "@/domain/anagrafiche/note";
 import { leggiFiltriElencoOfferteDaForm, parametriFiltroOfferte } from "@/lib/elenco-offerte";
 import { urlPosizioneElenco } from "@/lib/paginazione";
@@ -31,6 +37,8 @@ function datiDaForm(formData: FormData): DatiOffertaInput {
     importoTrasfertaForfettaria: (
       (formData.get("importoTrasfertaForfettaria") as string) ?? ""
     ).trim(),
+    modalitaPrezzo: ((formData.get("modalitaPrezzo") as string) ?? "").trim(),
+    importoACorpo: ((formData.get("importoACorpo") as string) ?? "").trim(),
   };
 }
 
@@ -53,17 +61,40 @@ function condizioniTrasferta(dati: DatiOffertaInput): {
 }
 
 /**
- * Tariffa giornaliera e giorni previsti: null se non valorizzati.
+ * Condizioni di prezzo da salvare: null per i valori non indicati.
+ * - A giornata: la tariffa è quella inserita, l'importo a corpo è azzerato.
+ * - A corpo: la tariffa è calcolata qui (importo ÷ giorni, al centesimo),
+ *   ignorando quella eventualmente inviata dal browser; resta vuota se
+ *   manca l'importo o i giorni.
  * Da chiamare solo su dati già validati.
  */
 function valoriFacoltativi(dati: DatiOffertaInput): {
+  modalitaPrezzo: ModalitaPrezzoOfferta;
   tariffaGiornaliera: string | null;
+  importoACorpo: string | null;
   giorniPrevisti: number | null;
 } {
+  const giorniPrevisti = dati.giorniPrevisti ? parseInt(dati.giorniPrevisti, 10) : null;
+
+  if (modalitaPrezzoDaInput(dati.modalitaPrezzo) === "A_CORPO") {
+    const importo = centesimiDaTesto(dati.importoACorpo ?? "");
+    return {
+      modalitaPrezzo: "A_CORPO",
+      tariffaGiornaliera:
+        importo !== null && giorniPrevisti
+          ? centesimiInDecimale(tariffaACorpoCentesimi(importo, giorniPrevisti))
+          : null,
+      importoACorpo: importo !== null ? centesimiInDecimale(importo) : null,
+      giorniPrevisti,
+    };
+  }
+
   return {
+    modalitaPrezzo: "A_GIORNATA",
     tariffaGiornaliera:
       normalizzaTariffaGiornaliera(dati.tariffaGiornaliera)?.valore ?? null,
-    giorniPrevisti: dati.giorniPrevisti ? parseInt(dati.giorniPrevisti, 10) : null,
+    importoACorpo: null,
+    giorniPrevisti,
   };
 }
 

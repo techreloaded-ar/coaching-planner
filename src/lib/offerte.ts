@@ -2,7 +2,8 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { richiediAlmenoUnPermessoApi, richiediPermessoApi } from "@/lib/dal";
-import { fatturataAlCliente, type GestioneTrasferta } from "@/domain/types";
+import { fatturataAlCliente, type GestioneTrasferta, type ModalitaPrezzoOfferta } from "@/domain/types";
+import { importoTotaleOfferta } from "@/domain/anagrafiche/prezzo-offerta";
 import {
   ELEMENTI_PER_PAGINA,
   calcolaPaginaElenco,
@@ -48,6 +49,10 @@ export interface VoceElencoOfferta {
   clienteRagioneSociale: string;
   /** null se la tariffa non è ancora definita */
   tariffaGiornaliera: string | null;
+  /** A giornata (tariffa inserita) o a corpo (importo inserito, tariffa calcolata) */
+  modalitaPrezzo: ModalitaPrezzoOfferta;
+  /** Importo a corpo o tariffa × giorni previsti; null se non calcolabile */
+  importoTotale: string | null;
   /** null (come residuo e percentuale) se l'offerta non ha giorni previsti */
   giorniPrevisti: number | null;
   gestioneTrasferta: GestioneTrasferta;
@@ -253,6 +258,13 @@ function costruisciVociElencoOfferte(
       clienteId: offerta.clienteId,
       clienteRagioneSociale: offerta.cliente.ragioneSociale,
       tariffaGiornaliera: offerta.tariffaGiornaliera?.toString() ?? null,
+      modalitaPrezzo: offerta.modalitaPrezzo,
+      importoTotale: importoTotaleOfferta({
+        modalitaPrezzo: offerta.modalitaPrezzo,
+        tariffaGiornaliera: offerta.tariffaGiornaliera?.toString() ?? null,
+        giorniPrevisti: offerta.giorniPrevisti,
+        importoACorpo: offerta.importoACorpo?.toString() ?? null,
+      }),
       giorniPrevisti: offerta.giorniPrevisti,
       gestioneTrasferta: offerta.gestioneTrasferta,
       importoTrasfertaForfettaria:

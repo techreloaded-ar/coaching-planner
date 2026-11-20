@@ -9,10 +9,12 @@ import {
   IndicatoreGiorniErogati,
   PulsanteAttesa,
   useIdratata,
+  ImportoOfferta,
+  tooltipImportiOfferta,
 } from "@/components";
 import type { VoceElencoOfferta } from "@/lib/offerte";
 import DettaglioAvanzamentoOfferta from "@/app/(back-office)/offerte/dettaglio-avanzamento-offerta";
-import { descriviGestioneTrasferta, formattaEuro } from "@/lib/formattazione";
+import { descriviGestioneTrasferta } from "@/lib/formattazione";
 import { cambiaStatoOffertaCliente } from "./offerte/actions";
 
 const classeIntestazioneGruppo =
@@ -82,6 +84,9 @@ export default function OfferteClienteTabella({
             Tariffa giornaliera
           </th>
           <th className="px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
+            Importo totale
+          </th>
+          <th className="px-4 py-[11px] text-right text-xs font-medium text-testo-metadati">
             Giorni erogati
           </th>
           <th className="w-[130px] px-4 py-[11px] text-left text-xs font-medium text-testo-metadati">
@@ -95,7 +100,7 @@ export default function OfferteClienteTabella({
       {gruppi.map((gruppo) => (
       <tbody key={gruppo.titolo}>
         <tr className="border-t border-zinc-100 dark:border-zinc-800">
-          <th colSpan={6} scope="colgroup" className={classeIntestazioneGruppo}>
+          <th colSpan={7} scope="colgroup" className={classeIntestazioneGruppo}>
             {gruppo.titolo}
             <span className="ml-[6px] font-semibold text-testo-metadati">
               {gruppo.offerte.length}
@@ -149,8 +154,18 @@ export default function OfferteClienteTabella({
                 >
                   {offerta.descrizione || "—"}
                 </td>
-                <td className={`px-4 py-[13px] text-right align-middle font-semibold tabular-nums text-testo-principale`}>
-                  {formattaEuro(offerta.tariffaGiornaliera)}
+                {/* Tariffa giornaliera e importo totale: il valore calcolato ha l'icona */}
+                <td className={`px-4 py-[13px] text-right align-middle font-semibold tabular-nums whitespace-nowrap text-testo-principale`}>
+                  <ImportoOfferta
+                    valore={offerta.tariffaGiornaliera}
+                    calcolatoDa={tooltipImportiOfferta(offerta.modalitaPrezzo).tariffa}
+                  />
+                </td>
+                <td className={`px-4 py-[13px] text-right align-middle font-semibold tabular-nums whitespace-nowrap text-testo-principale`}>
+                  <ImportoOfferta
+                    valore={offerta.importoTotale}
+                    calcolatoDa={tooltipImportiOfferta(offerta.modalitaPrezzo).importoTotale}
+                  />
                   <div className="mt-[3px] text-xs font-medium text-testo-metadati">
                     {descriviGestioneTrasferta(
                       offerta.gestioneTrasferta,
@@ -220,7 +235,7 @@ export default function OfferteClienteTabella({
               </tr>
               {espansa && (
                 <tr>
-                  <td colSpan={6} className="bg-zinc-100 p-0 dark:bg-zinc-800/50">
+                  <td colSpan={7} className="bg-zinc-100 p-0 dark:bg-zinc-800/50">
                     <DettaglioAvanzamentoOfferta offerta={offerta} />
                   </td>
                 </tr>

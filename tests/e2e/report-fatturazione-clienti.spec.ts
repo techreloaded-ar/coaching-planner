@@ -196,6 +196,45 @@ test.describe("Report fatturazione clienti", () => {
     await accediComeAdmin(page);
   });
 
+  test("un'offerta a corpo fattura con la tariffa calcolata e lo segnala sotto la tariffa", async ({
+    page,
+    factory,
+  }) => {
+    const codiceSpec = "OFFERTA-A-CORPO-TARIFFA-CALCOLATA";
+    const mesiIndietro = mesiIndietroPerTentativo(test.info());
+    const mese = mesePassatoRiservato(codiceSpec, mesiIndietro);
+    // 10.000,00 € a corpo su 15 giorni: tariffa 666,67 € al giorno
+    const { cliente, offerta } = await factory.createClienteConOfferta(
+      {},
+      {
+        modalitaPrezzo: "A_CORPO",
+        importoACorpo: "10000.00",
+        tariffaGiornaliera: "666.67",
+        giorniPrevisti: 15,
+      },
+    );
+    await factory.createRigaAttivita({
+      cliente,
+      offerta,
+      data: dataRiservataReport(codiceSpec, 5, mesiIndietro),
+      ore: "16.00",
+      categoria: "FATTURABILE",
+    });
+
+    await page.goto(`/report/fatturazione-clienti?mese=${mese}`);
+
+    const rigaOfferta = page.getByRole("row").filter({
+      has: page.getByText(offerta.codice, { exact: true }),
+    });
+    await expect(rigaOfferta).toHaveCount(1);
+    const celle = rigaOfferta.locator("td");
+    await expect(celle.nth(1).locator("span")).toHaveText([
+      formattaEuro("666.67"),
+      "(calcolata)",
+    ]);
+    await expect(celle.nth(3)).toHaveText(formattaEuro("1333.34"));
+  });
+
   test("un'offerta senza tariffa mostra le giornate, imponibile 0 e l'avviso tariffa da definire", async ({
     page,
     factory,

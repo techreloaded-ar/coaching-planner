@@ -411,13 +411,27 @@ export default function ReportFatturazioneClienti({
                                   </span>
                                 </div>
                               </td>
-                              <td className={CLASSE_CELLA + " text-right whitespace-nowrap text-testo-metadati"}>
-                                {formattaEuro(offerta.tariffaGiornaliera)}
-                                {offerta.tariffaGiornaliera === null && (
-                                  <span className="mt-1 block text-xs font-medium text-amber-700 dark:text-amber-400">
-                                    tariffa da definire
+                              <td className={CLASSE_CELLA + " text-right whitespace-nowrap"}>
+                                <div className="flex flex-col items-end gap-0.5">
+                                  <span className="text-sm text-testo-principale">
+                                    {formattaEuro(offerta.tariffaGiornaliera)}
                                   </span>
-                                )}
+                                  {offerta.tariffaGiornaliera === null ? (
+                                    <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                                      tariffa da definire
+                                    </span>
+                                  ) : (
+                                    // La tariffa di un'offerta a corpo è importo ÷ giorni previsti.
+                                    offerta.tariffaCalcolata && (
+                                      <span
+                                        data-testid={`report-offerta-${offerta.offertaId}-tariffa-calcolata`}
+                                        className="text-xs text-testo-metadati"
+                                      >
+                                        (calcolata)
+                                      </span>
+                                    )
+                                  )}
+                                </div>
                               </td>
                               {/* Le ore Fatturabile da cui derivano le giornate,
                                   per il controllo prima di emettere la fattura. */}

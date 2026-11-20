@@ -102,6 +102,18 @@ export function isGestioneTrasferta(valore: unknown): valore is GestioneTrasfert
   return GESTIONI_TRASFERTA.includes(valore as GestioneTrasferta);
 }
 
+/**
+ * Come si stabilisce il prezzo di un'offerta: a giornata (importo totale =
+ * tariffa × giorni) o a corpo (tariffa = importo ÷ giorni).
+ */
+export const MODALITA_PREZZO_OFFERTA = ["A_GIORNATA", "A_CORPO"] as const;
+
+export type ModalitaPrezzoOfferta = (typeof MODALITA_PREZZO_OFFERTA)[number];
+
+export function isModalitaPrezzoOfferta(valore: unknown): valore is ModalitaPrezzoOfferta {
+  return MODALITA_PREZZO_OFFERTA.includes(valore as ModalitaPrezzoOfferta);
+}
+
 /** Payload JWT della sessione stateless */
 export interface PayloadSessione {
   utenteId: string;

@@ -133,6 +133,7 @@ export async function reportFatturazioneClientiMese(
       gestioneTrasfertaOfferta: riga.offerta?.gestioneTrasferta ?? "INCLUSA",
       importoTrasfertaForfettariaOfferta:
         riga.offerta?.importoTrasfertaForfettaria?.toString() ?? null,
+      tariffaOffertaCalcolata: riga.offerta?.modalitaPrezzo === "A_CORPO",
     }),
   );
 

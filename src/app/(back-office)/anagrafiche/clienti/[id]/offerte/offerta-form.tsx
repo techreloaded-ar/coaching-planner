@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { CampiPosizioneElenco, CampoNote, PulsanteAttesa, useValoriInviati } from "@/components";
 import { parametriFiltroOfferte, type FiltriElencoOfferte } from "@/lib/elenco-offerte";
 import { urlPosizioneElenco } from "@/lib/paginazione";
@@ -11,7 +11,19 @@ import {
   type StatoActionOfferta,
 } from "./actions";
 import { LUNGHEZZA_MASSIMA_CODICE } from "@/domain/anagrafiche/valida-offerta";
-import type { GestioneTrasferta } from "@/domain/types";
+import {
+  isModalitaPrezzoOfferta,
+  type GestioneTrasferta,
+  type ModalitaPrezzoOfferta,
+} from "@/domain/types";
+import {
+  centesimiDaTesto,
+  centesimiInCampo,
+  giorniDaTesto,
+  importoTotaleCentesimi,
+  tariffaACorpoCentesimi,
+} from "@/domain/anagrafiche/prezzo-offerta";
+import { formattaNumero } from "@/lib/formattazione";
 
 interface OffertaFormProps {
   /**
@@ -38,6 +50,9 @@ interface OffertaFormProps {
     descrizione: string;
     tariffaGiornaliera: string;
     giorniPrevisti: number | null;
+    modalitaPrezzo: ModalitaPrezzoOfferta;
+    /** Importo con virgola decimale; vuoto se l'offerta è a giornata */
+    importoACorpo: string;
     gestioneTrasferta: GestioneTrasferta;
     /** Importo con virgola decimale; vuoto se la trasferta è inclusa */
     importoTrasfertaForfettaria: string;
@@ -234,32 +249,12 @@ export default function OffertaForm({
               facoltativo
             />
 
-            <div className="col-span-2 mt-2 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-xs font-medium text-testo-metadati dark:border-zinc-800 max-[920px]:col-span-1">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px] text-indigo-500" strokeWidth={2}>
-                <circle cx="12" cy="12" r="9" />
-                <path d="M14.8 8.6a3.4 3.4 0 0 0-5.6 2.6 3.4 3.4 0 0 0 5.6 2.6M7.6 10.4h4.6M7.6 13h4.6" />
-              </svg>
-              Condizioni economiche
-            </div>
-
-            <Campo
-              label="Tariffa giornaliera"
-              name="tariffaGiornaliera"
-              placeholder="Es. 650,00"
-              defaultValue={valoreIniziale("tariffaGiornaliera", offerta?.tariffaGiornaliera ?? "")}
-              errore={stato.errori.tariffaGiornaliera}
-              suffisso="€"
-              hint="Importo in euro, accetta virgola o punto come separatore decimale"
-            />
-
-            <Campo
-              label="Giorni previsti"
-              name="giorniPrevisti"
-              placeholder="Es. 10"
-              defaultValue={valoreIniziale("giorniPrevisti", offerta?.giorniPrevisti?.toString() ?? "")}
-              errore={stato.errori.giorniPrevisti}
-              suffisso="gg"
-              hint="Numero intero di giornate"
+            <CondizioniPrezzo
+              modalitaIniziale={valoreIniziale("modalitaPrezzo", offerta?.modalitaPrezzo ?? "A_GIORNATA")}
+              tariffaIniziale={valoreIniziale("tariffaGiornaliera", offerta?.tariffaGiornaliera ?? "")}
+              giorniIniziali={valoreIniziale("giorniPrevisti", offerta?.giorniPrevisti?.toString() ?? "")}
+              importoACorpoIniziale={valoreIniziale("importoACorpo", offerta?.importoACorpo ?? "")}
+              errori={stato.errori}
             />
 
             <SceltaGestioneTrasferta
@@ -308,6 +303,224 @@ export default function OffertaForm({
       </form>
 
 
+    </div>
+  );
+}
+
+const OPZIONI_MODALITA_PREZZO: { valore: ModalitaPrezzoOfferta; etichetta: string }[] = [
+  { valore: "A_GIORNATA", etichetta: "A giornata" },
+  { valore: "A_CORPO", etichetta: "A corpo" },
+];
+
+/** Centesimi mostrati in un campo calcolato, es. 975000n → "9.750,00". */
+function formattaCentesimi(centesimi: bigint): string {
+  return formattaNumero(Number(centesimi) / 100, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+interface CondizioniPrezzoProps {
+  modalitaIniziale: string;
+  tariffaIniziale: string;
+  giorniIniziali: string;
+  importoACorpoIniziale: string;
+  errori: Record<string, string>;
+}
+
+/**
+ * Sezione "Condizioni economiche": l'interruttore A giornata / A corpo decide
+ * quale importo si inserisce e quale si calcola.
+ * - A giornata: tariffa e giorni inseriti, importo totale = tariffa × giorni.
+ * - A corpo: importo e giorni inseriti, tariffa = importo ÷ giorni al centesimo.
+ * I campi inseriti restano non controllati (vedi `useValoriInviati`): lo stato
+ * ne rispecchia il contenuto per calcolare il terzo valore e, al cambio di
+ * modalità, precompila il campo che compare con il valore calcolato.
+ */
+function CondizioniPrezzo({
+  modalitaIniziale,
+  tariffaIniziale,
+  giorniIniziali,
+  importoACorpoIniziale,
+  errori,
+}: CondizioniPrezzoProps) {
+  const [modalita, setModalita] = useState<ModalitaPrezzoOfferta>(
+    isModalitaPrezzoOfferta(modalitaIniziale) ? modalitaIniziale : "A_GIORNATA",
+  );
+  const [tariffa, setTariffa] = useState(tariffaIniziale);
+  const [giorni, setGiorni] = useState(giorniIniziali);
+  const [importoACorpo, setImportoACorpo] = useState(importoACorpoIniziale);
+
+  const refTariffa = useRef<HTMLInputElement>(null);
+  const refGiorni = useRef<HTMLInputElement>(null);
+  const refImporto = useRef<HTMLInputElement>(null);
+
+  // Quanto digitato prima dell'idratazione è nei campi ma non nello stato.
+  useEffect(() => {
+    if (refTariffa.current) setTariffa(refTariffa.current.value);
+    if (refGiorni.current) setGiorni(refGiorni.current.value);
+    if (refImporto.current) setImportoACorpo(refImporto.current.value);
+  }, []);
+
+  const giorniValidi = giorniDaTesto(giorni);
+  const tariffaCentesimi = centesimiDaTesto(tariffa);
+  const importoCentesimi = centesimiDaTesto(importoACorpo);
+  const importoTotale =
+    tariffaCentesimi !== null && giorniValidi
+      ? importoTotaleCentesimi(tariffaCentesimi, giorniValidi)
+      : null;
+  const tariffaCalcolata =
+    importoCentesimi !== null && giorniValidi
+      ? tariffaACorpoCentesimi(importoCentesimi, giorniValidi)
+      : null;
+
+  function cambiaModalita(nuova: ModalitaPrezzoOfferta) {
+    if (nuova === modalita) return;
+    if (nuova === "A_CORPO" && importoTotale !== null) {
+      setImportoACorpo(centesimiInCampo(importoTotale));
+    }
+    if (nuova === "A_GIORNATA" && tariffaCalcolata !== null) {
+      setTariffa(centesimiInCampo(tariffaCalcolata));
+    }
+    setModalita(nuova);
+  }
+
+  const aCorpo = modalita === "A_CORPO";
+
+  return (
+    <div className="col-span-2 max-[920px]:col-span-1">
+      <div className="mt-2 mb-4 flex items-center gap-[8px] border-b border-zinc-100 pb-3 pt-[6px] text-xs font-medium text-testo-metadati dark:border-zinc-800">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px] text-indigo-500" strokeWidth={2}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M14.8 8.6a3.4 3.4 0 0 0-5.6 2.6 3.4 3.4 0 0 0 5.6 2.6M7.6 10.4h4.6M7.6 13h4.6" />
+        </svg>
+        Condizioni economiche
+        <div
+          role="radiogroup"
+          aria-label="Modalità di prezzo"
+          className="ml-auto inline-flex rounded-[10px] border border-zinc-200 bg-zinc-50 p-[3px] dark:border-zinc-700 dark:bg-zinc-800"
+        >
+          {OPZIONI_MODALITA_PREZZO.map((opzione) => (
+            <label
+              key={opzione.valore}
+              className="relative cursor-pointer rounded-[7px] px-3 py-[5px] text-[13px] font-medium text-testo-secondario transition has-[:checked]:bg-indigo-500 has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-indigo-300"
+            >
+              <input
+                type="radio"
+                name="modalitaPrezzo"
+                value={opzione.valore}
+                checked={modalita === opzione.valore}
+                onChange={() => cambiaModalita(opzione.valore)}
+                className="absolute inset-0 m-0 cursor-pointer appearance-none rounded-[7px] opacity-0"
+              />
+              {opzione.etichetta}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-x-[18px] max-[920px]:grid-cols-1">
+        {aCorpo ? (
+          <Campo
+            key="importoACorpo"
+            label="Importo a corpo"
+            name="importoACorpo"
+            placeholder="Es. 10000,00"
+            defaultValue={importoACorpo}
+            inputRef={refImporto}
+            onInput={setImportoACorpo}
+            errore={errori.importoACorpo}
+            suffisso="€"
+            hint="Valore dell'offerta commerciale"
+          />
+        ) : (
+          <Campo
+            key="tariffaGiornaliera"
+            label="Tariffa giornaliera"
+            name="tariffaGiornaliera"
+            placeholder="Es. 650,00"
+            defaultValue={tariffa}
+            inputRef={refTariffa}
+            onInput={setTariffa}
+            errore={errori.tariffaGiornaliera}
+            suffisso="€"
+            hint="Importo in euro, con virgola o punto"
+          />
+        )}
+
+        <Campo
+          label="Giorni previsti"
+          name="giorniPrevisti"
+          placeholder="Es. 10"
+          defaultValue={giorni}
+          inputRef={refGiorni}
+          onInput={setGiorni}
+          errore={errori.giorniPrevisti}
+          suffisso="gg"
+          hint="Numero intero di giornate"
+        />
+
+        {aCorpo ? (
+          <CampoCalcolato
+            id="tariffaCalcolata"
+            label="Tariffa giornaliera"
+            etichettaCalcolo="calcolata"
+            valore={tariffaCalcolata}
+            formula={
+              tariffaCalcolata !== null
+                ? `${formattaCentesimi(importoCentesimi!)} € ÷ ${giorniValidi} gg`
+                : "Importo a corpo ÷ giorni previsti"
+            }
+          />
+        ) : (
+          <CampoCalcolato
+            id="importoTotaleCalcolato"
+            label="Importo totale"
+            etichettaCalcolo="calcolato"
+            valore={importoTotale}
+            formula={
+              importoTotale !== null
+                ? `${formattaCentesimi(tariffaCentesimi!)} € × ${giorniValidi} gg`
+                : "Tariffa giornaliera × giorni previsti"
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface CampoCalcolatoProps {
+  id: string;
+  label: string;
+  etichettaCalcolo: string;
+  valore: bigint | null;
+  formula: string;
+}
+
+/** Valore calcolato, non modificabile e non inviato con il form. */
+function CampoCalcolato({ id, label, etichettaCalcolo, valore, formula }: CampoCalcolatoProps) {
+  return (
+    <div className="mb-[18px] flex min-w-0 flex-col gap-[6px] text-left">
+      <label htmlFor={id} className="text-sm font-medium text-testo-secondario">
+        {label}{" "}
+        <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-px text-[11px] font-semibold text-indigo-600 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400">
+          {etichettaCalcolo}
+        </span>
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          readOnly
+          tabIndex={-1}
+          value={valore === null ? "—" : formattaCentesimi(valore)}
+          className="w-full cursor-default rounded-[10px] border border-dashed border-zinc-300 bg-zinc-100 px-[13px] py-[10px] pr-11 font-[inherit] text-sm text-testo-secondario outline-none dark:border-zinc-700 dark:bg-zinc-800"
+        />
+        <span className="pointer-events-none absolute right-[13px] top-1/2 -translate-y-1/2 text-sm font-medium text-testo-metadati">
+          €
+        </span>
+      </div>
+      <span className="text-xs text-testo-metadati">{formula}</span>
     </div>
   );
 }
@@ -453,6 +666,8 @@ interface CampoProps {
   suffisso?: string;
   hint?: string;
   maxLength?: number;
+  inputRef?: Ref<HTMLInputElement>;
+  onInput?: (valore: string) => void;
 }
 
 function Campo({
@@ -467,6 +682,8 @@ function Campo({
   suffisso,
   hint,
   maxLength,
+  inputRef,
+  onInput,
 }: CampoProps) {
   return (
     <div className="mb-[18px] flex min-w-0 flex-col gap-[6px] text-left">
@@ -480,7 +697,9 @@ function Campo({
         <input
           id={name}
           name={name}
+          ref={inputRef}
           defaultValue={defaultValue}
+          onInput={onInput ? (evento) => onInput(evento.currentTarget.value) : undefined}
           placeholder={placeholder}
           maxLength={maxLength}
           className={`w-full rounded-[10px] border bg-white px-[13px] py-[10px] font-[inherit] text-sm text-testo-principale outline-none transition placeholder:text-zinc-400 dark:bg-zinc-900 ${

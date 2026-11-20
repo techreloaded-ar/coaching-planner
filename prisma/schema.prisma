@@ -34,6 +34,14 @@ enum GestioneTrasferta {
   FORFETTARIA
 }
 
+/// Come si stabilisce il prezzo di un'offerta: dalla tariffa giornaliera
+/// (importo totale = tariffa × giorni) o da un importo a corpo
+/// (tariffa = importo ÷ giorni, arrotondata al centesimo)
+enum ModalitaPrezzoOfferta {
+  A_GIORNATA
+  A_CORPO
+}
+
 // Come Agile Reloaded compensa il collaboratore: GIORNALIERA (importo per
 // giornata da fatturare), FISSO_MENSILE (importo fisso per ogni mese in cui
 // la tariffa è in vigore, a prescindere dalle ore), PERCENTUALE (l'importo è
@@ -176,6 +184,10 @@ model Offerta {
   clienteId         String
   tariffaGiornaliera Decimal?  @db.Decimal(10, 2)
   giorniPrevisti    Int?
+  modalitaPrezzo    ModalitaPrezzoOfferta @default(A_GIORNATA)
+  /// Importo pattuito dell'offerta a corpo; valorizzato solo se A_CORPO.
+  /// La tariffa giornaliera salvata ne è il quoziente sui giorni previsti.
+  importoACorpo     Decimal? @db.Decimal(12, 2)
   gestioneTrasferta GestioneTrasferta @default(INCLUSA)
   /// Importo fatturato al cliente per ogni giorno di trasferta; valorizzato solo se FORFETTARIA
   importoTrasfertaForfettaria Decimal? @db.Decimal(10, 2)

@@ -79,6 +79,9 @@ export type CreateOffertaOptions = {
 	attiva?: boolean;
 	gestioneTrasferta?: "INCLUSA" | "FORFETTARIA";
 	importoTrasfertaForfettaria?: string | number | null;
+	/** Default "A_GIORNATA"; con "A_CORPO" passare anche importoACorpo e la tariffa calcolata */
+	modalitaPrezzo?: "A_GIORNATA" | "A_CORPO";
+	importoACorpo?: string | number | null;
 };
 
 export type CreateRigaAttivitaOptions = {
@@ -283,8 +286,8 @@ export class E2eDataFactory {
 
 		return insertReturning<Offerta>(
 			this.prisma,
-			`INSERT INTO "Offerta" ("id", "codice", "descrizione", "clienteId", "tariffaGiornaliera", "giorniPrevisti", "attiva", "createdAt", "updatedAt", "gestioneTrasferta", "importoTrasfertaForfettaria")
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9::"GestioneTrasferta", $10)
+			`INSERT INTO "Offerta" ("id", "codice", "descrizione", "clienteId", "tariffaGiornaliera", "giorniPrevisti", "attiva", "createdAt", "updatedAt", "gestioneTrasferta", "importoTrasfertaForfettaria", "modalitaPrezzo", "importoACorpo")
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9::"GestioneTrasferta", $10, $11::"ModalitaPrezzoOfferta", $12)
 			 RETURNING *`,
 			[
 				randomUUID(),
@@ -297,6 +300,8 @@ export class E2eDataFactory {
 				now,
 				options.gestioneTrasferta ?? "INCLUSA",
 				options.importoTrasfertaForfettaria ?? null,
+				options.modalitaPrezzo ?? "A_GIORNATA",
+				options.importoACorpo ?? null,
 			],
 		);
 	}

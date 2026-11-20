@@ -113,7 +113,7 @@ test.describe("US-035 Demo", () => {
 
     // ── 3. Colonna unica "Giorni erogati" nel formato erogate/previste ─
     // La prima cella è la casella di selezione.
-    await expect(rigaAttiva.getByRole("cell").nth(4)).toHaveText(
+    await expect(rigaAttiva.getByRole("cell").nth(5)).toHaveText(
       /^2\/23\s*gg$/,
     );
 
