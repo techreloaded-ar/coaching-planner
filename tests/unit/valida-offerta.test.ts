@@ -211,3 +211,47 @@ describe("validaOfferta — gestione trasferte", () => {
 		},
 	);
 });
+
+describe("validaOfferta — modalità di prezzo", () => {
+	it("senza modalità indicata l'offerta è a giornata", () => {
+		expect(validaOfferta(baseInput())).toEqual({});
+	});
+
+	it("rifiuta una modalità sconosciuta", () => {
+		const errori = validaOfferta(baseInput({ modalitaPrezzo: "A_ORE" }));
+		expect(errori.modalitaPrezzo).toBe("Scegli se l'offerta è a giornata o a corpo");
+	});
+
+	it("a corpo importo e giorni sono facoltativi", () => {
+		const errori = validaOfferta(
+			baseInput({
+				modalitaPrezzo: "A_CORPO",
+				importoACorpo: "",
+				giorniPrevisti: "",
+				tariffaGiornaliera: "",
+			}),
+		);
+		expect(errori).toEqual({});
+	});
+
+	it("a corpo valida l'importo indicato e ignora la tariffa", () => {
+		expect(
+			validaOfferta(
+				baseInput({ modalitaPrezzo: "A_CORPO", importoACorpo: "0", tariffaGiornaliera: "x" }),
+			),
+		).toEqual({ importoACorpo: "L'importo a corpo deve essere maggiore di zero" });
+		expect(
+			validaOfferta(baseInput({ modalitaPrezzo: "A_CORPO", importoACorpo: "10000,555" }))
+				.importoACorpo,
+		).toBe("Importo non valido: usa massimo 2 decimali");
+		expect(
+			validaOfferta(baseInput({ modalitaPrezzo: "A_CORPO", importoACorpo: "10000,00" })),
+		).toEqual({});
+	});
+
+	it("a giornata ignora un importo a corpo non valido", () => {
+		expect(
+			validaOfferta(baseInput({ modalitaPrezzo: "A_GIORNATA", importoACorpo: "abc" })),
+		).toEqual({});
+	});
+});

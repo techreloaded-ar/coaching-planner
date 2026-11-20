@@ -31,6 +31,8 @@ export default async function ModificaOffertaPage({
         descrizione: offerta.descrizione,
         tariffaGiornaliera: offerta.tariffaGiornaliera?.toString().replace(".", ",") ?? "",
         giorniPrevisti: offerta.giorniPrevisti,
+        modalitaPrezzo: offerta.modalitaPrezzo,
+        importoACorpo: offerta.importoACorpo?.toString().replace(".", ",") ?? "",
         gestioneTrasferta: offerta.gestioneTrasferta,
         importoTrasfertaForfettaria:
           offerta.importoTrasfertaForfettaria?.toString().replace(".", ",") ?? "",

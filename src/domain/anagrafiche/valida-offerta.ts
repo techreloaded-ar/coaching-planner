@@ -1,7 +1,11 @@
 // Modulo di validazione pura per dati offerta (ADR-006)
 // Nessuna dipendenza da framework — funzioni pure.
 
-import { isGestioneTrasferta } from "@/domain/types";
+import {
+	isGestioneTrasferta,
+	isModalitaPrezzoOfferta,
+	type ModalitaPrezzoOfferta,
+} from "@/domain/types";
 
 /** Dati in ingresso per la validazione di un'offerta */
 export interface DatiOffertaInput {
@@ -12,6 +16,10 @@ export interface DatiOffertaInput {
 	gestioneTrasferta: string;
 	/** Considerato solo se la gestione trasferta è FORFETTARIA */
 	importoTrasfertaForfettaria: string;
+	/** "A_GIORNATA" (predefinita se assente o vuota) oppure "A_CORPO" */
+	modalitaPrezzo?: string;
+	/** Considerato solo se la modalità di prezzo è A_CORPO */
+	importoACorpo?: string;
 }
 
 /** Mappa campo → messaggio di errore. Vuota se la validazione passa. */
@@ -19,6 +27,17 @@ export type ErroriValidazioneOfferta = Record<string, string>;
 
 const RE_IMPORTO = /^\d+(?:[.,]\d{1,2})?$/;
 const RE_INTERO = /^-?\d+$/;
+
+/**
+ * Modalità di prezzo indicata nel form: vuota o assente vale "a giornata",
+ * come per le offerte create prima che esistesse la scelta. `null` se non valida.
+ */
+export function modalitaPrezzoDaInput(
+	valore: string | undefined,
+): ModalitaPrezzoOfferta | null {
+	if (!valore || valore.trim() === "") return "A_GIORNATA";
+	return isModalitaPrezzoOfferta(valore) ? valore : null;
+}
 
 /** Lunghezza massima ammessa per il codice offerta: sufficiente per gli schemi in uso, evita badge illimitati in UI. */
 export const LUNGHEZZA_MASSIMA_CODICE = 60;
@@ -67,9 +86,25 @@ export function validaOfferta(
 		errori.codice = `Il codice offerta non può superare ${LUNGHEZZA_MASSIMA_CODICE} caratteri`;
 	}
 
-	// Descrizione, tariffa giornaliera e giorni previsti sono facoltativi:
-	// validati solo se valorizzati.
-	if (dati.tariffaGiornaliera && dati.tariffaGiornaliera.trim() !== "") {
+	const modalitaPrezzo = modalitaPrezzoDaInput(dati.modalitaPrezzo);
+	if (!modalitaPrezzo) {
+		errori.modalitaPrezzo = "Scegli se l'offerta è a giornata o a corpo";
+	}
+
+	// Descrizione, tariffa giornaliera, importo a corpo e giorni previsti sono
+	// facoltativi: validati solo se valorizzati. A corpo la tariffa non si
+	// inserisce (è calcolata), a giornata l'importo a corpo è ignorato.
+	if (modalitaPrezzo === "A_CORPO") {
+		const importo = (dati.importoACorpo ?? "").trim();
+		if (importo !== "") {
+			const normalizzato = normalizzaTariffaGiornaliera(importo);
+			if (!normalizzato) {
+				errori.importoACorpo = "Importo non valido: usa massimo 2 decimali";
+			} else if (normalizzato.centesimi <= BigInt(0)) {
+				errori.importoACorpo = "L'importo a corpo deve essere maggiore di zero";
+			}
+		}
+	} else if (dati.tariffaGiornaliera && dati.tariffaGiornaliera.trim() !== "") {
 		const tariffa = normalizzaTariffaGiornaliera(dati.tariffaGiornaliera);
 
 		if (!tariffa) {

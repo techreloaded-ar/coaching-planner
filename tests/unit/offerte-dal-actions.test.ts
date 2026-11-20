@@ -50,7 +50,10 @@ const { mockValidaOfferta, mockNormalizzaTariffa } = vi.hoisted(() => ({
 	mockNormalizzaTariffa: vi.fn(),
 }));
 
-vi.mock("@/domain/anagrafiche/valida-offerta", () => ({
+vi.mock("@/domain/anagrafiche/valida-offerta", async (importOriginal) => ({
+	modalitaPrezzoDaInput: (
+		await importOriginal<typeof import("@/domain/anagrafiche/valida-offerta")>()
+	).modalitaPrezzoDaInput,
 	validaOfferta: mockValidaOfferta,
 	normalizzaTariffaGiornaliera: mockNormalizzaTariffa,
 }));
@@ -196,7 +199,9 @@ describe("Server Actions offerte", () => {
 				clienteId: "cli-1",
 				codice: "OFF-001",
 				descrizione: "Analisi",
+				modalitaPrezzo: "A_GIORNATA",
 				tariffaGiornaliera: "650.00",
+				importoACorpo: null,
 				giorniPrevisti: 5,
 				gestioneTrasferta: "INCLUSA",
 				importoTrasfertaForfettaria: null,
@@ -236,7 +241,9 @@ describe("Server Actions offerte", () => {
 			data: {
 				codice: "OFF-002",
 				descrizione: "Delivery",
+				modalitaPrezzo: "A_GIORNATA",
 				tariffaGiornaliera: "700.00",
+				importoACorpo: null,
 				giorniPrevisti: 8,
 				gestioneTrasferta: "FORFETTARIA",
 				importoTrasfertaForfettaria: "80.00",
@@ -248,6 +255,74 @@ describe("Server Actions offerte", () => {
 		expect(mockRedirect).toHaveBeenCalledWith(
 			"/anagrafiche/clienti/cli-1?esito=offerta-salvata",
 		);
+	});
+
+	it("a corpo salva l'importo e calcola la tariffa al centesimo, ignorando quella inviata", async () => {
+		const formData = new FormData();
+		formData.set("clienteId", "cli-1");
+		formData.set("codice", "OFF-003");
+		formData.set("modalitaPrezzo", "A_CORPO");
+		formData.set("importoACorpo", "10000,00");
+		formData.set("tariffaGiornaliera", "1,00");
+		formData.set("giorniPrevisti", "15");
+		formData.set("gestioneTrasferta", "INCLUSA");
+
+		await creaOfferta({ errori: {} }, formData);
+
+		expect(mockOfferta.create).toHaveBeenCalledWith({
+			data: expect.objectContaining({
+				modalitaPrezzo: "A_CORPO",
+				importoACorpo: "10000.00",
+				tariffaGiornaliera: "666.67",
+				giorniPrevisti: 15,
+			}),
+		});
+	});
+
+	it("a corpo senza giorni salva l'importo e lascia vuota la tariffa", async () => {
+		const formData = new FormData();
+		formData.set("id", "off-1");
+		formData.set("clienteId", "cli-1");
+		formData.set("codice", "OFF-003");
+		formData.set("modalitaPrezzo", "A_CORPO");
+		formData.set("importoACorpo", "10000");
+		formData.set("giorniPrevisti", "");
+		formData.set("gestioneTrasferta", "INCLUSA");
+
+		await aggiornaOfferta({ errori: {} }, formData);
+
+		expect(mockOfferta.update).toHaveBeenCalledWith({
+			where: { id: "off-1" },
+			data: expect.objectContaining({
+				modalitaPrezzo: "A_CORPO",
+				importoACorpo: "10000.00",
+				tariffaGiornaliera: null,
+				giorniPrevisti: null,
+			}),
+		});
+	});
+
+	it("a giornata azzera l'importo a corpo eventualmente inviato", async () => {
+		const formData = new FormData();
+		formData.set("id", "off-1");
+		formData.set("clienteId", "cli-1");
+		formData.set("codice", "OFF-003");
+		formData.set("modalitaPrezzo", "A_GIORNATA");
+		formData.set("importoACorpo", "10000,00");
+		formData.set("tariffaGiornaliera", "650,00");
+		formData.set("giorniPrevisti", "15");
+		formData.set("gestioneTrasferta", "INCLUSA");
+
+		await aggiornaOfferta({ errori: {} }, formData);
+
+		expect(mockOfferta.update).toHaveBeenCalledWith({
+			where: { id: "off-1" },
+			data: expect.objectContaining({
+				modalitaPrezzo: "A_GIORNATA",
+				importoACorpo: null,
+				tariffaGiornaliera: "650.00",
+			}),
+		});
 	});
 
 	it("traduce il P2002 anche in aggiornamento", async () => {
