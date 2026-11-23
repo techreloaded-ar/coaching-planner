@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copia e incolla sul calendario — Coaching Planner</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand-mark">CP</div>
+  <div class="brand-name">
+    <b>Coaching Planner</b>
+    <span>Le mie attività</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+    <svg class="i ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+    <svg class="i ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+  </button>
+</header>
+
+<main class="pagina">
+
+  <div class="cal-barra">
+    <button class="nav-quadro" id="mesePrecedente" type="button" aria-label="Mese precedente">
+      <svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>
+    </button>
+    <span class="mese-corrente" id="meseCorrente">novembre 2026</span>
+    <button class="nav-quadro" id="meseSuccessivo" type="button" aria-label="Mese successivo">
+      <svg class="i" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+    </button>
+    <button class="btn-mese" id="meseOggi" type="button">Mese corrente</button>
+    <div class="spacer"></div>
+    <div class="interruttore" aria-label="Vista">
+      <a class="attivo" href="index.html" aria-current="page">Calendario</a>
+      <a href="elenco.html">Elenco</a>
+    </div>
+    <div class="pillola-mese">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span id="giornateMese">—</span>
+    </div>
+  </div>
+
+  <div class="esito" id="esito" role="status" hidden></div>
+
+  <div class="cal-area" id="calArea">
+    <section class="cal" aria-label="Calendario mensile delle attività">
+      <div class="cal-testate">
+        <span>lun</span><span>mar</span><span>mer</span><span>gio</span><span>ven</span><span class="fest">sab</span><span class="fest">dom</span>
+      </div>
+      <div class="cal-celle" id="calCelle"></div>
+    </section>
+    <div class="popover" id="popover" role="dialog" aria-label="Scelta della riga da copiare" hidden></div>
+  </div>
+
+  <div class="legenda" aria-label="Legenda del calendario">
+    <span><i class="l-att"></i>Con attività</span>
+    <span><i class="l-oggi"></i>Oggi</span>
+    <span><i class="l-na"></i>Offerta non più abilitata</span>
+    <span><i class="l-fest"></i>Non lavorativo</span>
+    <span id="legendaIncolla" hidden><i class="l-orig"></i>Origine&nbsp;&nbsp;<i class="l-scelta"></i>Scelto per l’incolla</span>
+  </div>
+
+  <div class="note-card">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+    <span>
+      <b>Prototipo interattivo.</b> Passa sopra un giorno con attività e premi l’icona di copia nell’angolo:
+      se il giorno ha una sola riga parte subito la modalità incolla, altrimenti scegli la riga dal menu
+      (prova l’<b>11</b>, che ne ha due, e il <b>13</b>, la cui riga non è copiabile). Poi clicca i giorni di
+      destinazione, cambia mese con le frecce e conferma dal vassoio in basso. La copia è totale:
+      cliente, offerta, ore, nota, fatturabilità e rimborso trasferta.
+    </span>
+  </div>
+
+  <div class="demo-bar">
+    <span class="demo-label">Stati del flusso</span>
+    <a class="btn" href="index.html">Calendario</a>
+    <a class="btn" href="index.html?stato=scelta-riga">Scelta della riga</a>
+    <a class="btn" href="index.html?stato=incolla">Giorni scelti</a>
+    <a class="btn" href="index.html?stato=mese-diverso">Mese diverso</a>
+    <a class="btn" href="index.html?stato=esito">Esito</a>
+    <a class="btn" href="index.html?stato=errore">Rifiuto del server</a>
+    <span class="demo-label" style="margin-left:8px">Altri ingressi</span>
+    <a class="btn" href="elenco.html">Dall’elenco</a>
+    <a class="btn" href="giornata.html">Dal dettaglio giornata</a>
+  </div>
+
+</main>
+
+<div class="vassoio" id="vassoio" role="region" aria-label="Appunti: riga da incollare" hidden></div>
+
+<script src="app.js"></script>
+<script>CP.initCalendario();</script>
+</body>
+</html>

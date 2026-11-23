@@ -1,0 +1,496 @@
+/* ============================================================
+   Coaching Planner — Copia e incolla di una riga attività
+   sul calendario mensile.
+
+   Superficie: il FRONT OFFICE del collaboratore (/attivita).
+   Stessa lingua visiva dell'area reale e del mockup US-057:
+   neutri zinc, rosa sui comandi, ambra per il rimborso
+   trasferta, rosso per i rifiuti.
+
+   L'elemento memorabile è il "vassoio degli appunti": una barra
+   scura ancorata in basso che tiene in mano la riga copiata
+   mentre il calendario vero diventa la superficie su cui
+   incollarla. I giorni scelti mostrano la riga in anteprima,
+   tratteggiata, accanto a ciò che contengono già.
+   ============================================================ */
+
+:root{
+  --bg:        #fafafa;
+  --surface:   #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #fbfbfc;
+  --ink:       #27272a;
+  --ink-2:     #52525b;
+  --ink-3:     #a1a1aa;
+  --line:      #e4e4e7;
+  --line-2:    #f0f0f1;
+
+  --primary:      #e11d48;
+  --primary-600:  #be123c;
+  --primary-deep: #9f1239;
+  --primary-soft: #fff1f2;
+  --primary-tint: #fecdd3;
+  --on-primary:   #ffffff;
+
+  --ok:      #059669;
+  --ok-t:    #ecfdf5;
+  --ok-tint: #a7f3d0;
+  --warn:      #b45309;
+  --warn-t:    #fffbeb;
+  --warn-tint: #fcd34d;
+  --err:     #dc2626;
+  --err-t:   #fef2f2;
+  --err-tint:#fecaca;
+
+  --tray:        #18181b;
+  --tray-2:      #27272a;
+  --tray-line:   #3f3f46;
+  --tray-ink:    #f4f4f5;
+  --tray-ink-2:  #a1a1aa;
+  --tray-accent: #fda4af;
+
+  --strisce: rgb(113 113 122 / .09);
+
+  --radius: 11px;
+  --radius-sm: 9px;
+  --shadow-sm: 0 1px 2px rgb(24 24 27 / .05), 0 1px 3px rgb(24 24 27 / .05);
+  --shadow:    0 2px 6px rgb(24 24 27 / .06), 0 8px 24px rgb(24 24 27 / .07);
+  --shadow-lg: 0 14px 46px rgb(24 24 27 / .22);
+
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+[data-theme="dark"]{
+  --bg:        #09090b;
+  --surface:   #18181b;
+  --surface-2: #27272a;
+  --surface-3: #1c1c20;
+  --ink:       #f4f4f5;
+  --ink-2:     #a1a1aa;
+  --ink-3:     #71717a;
+  --line:      #2c2c30;
+  --line-2:    #222226;
+
+  --primary:      #f43f5e;
+  --primary-600:  #fb7185;
+  --primary-deep: #fda4af;
+  --primary-soft: rgb(244 63 94 / .15);
+  --primary-tint: rgb(251 113 133 / .45);
+
+  --ok:      #34d399;
+  --ok-t:    rgb(16 185 129 / .14);
+  --ok-tint: rgb(52 211 153 / .4);
+  --warn:      #fbbf24;
+  --warn-t:    rgb(245 158 11 / .13);
+  --warn-tint: rgb(251 191 36 / .42);
+  --err:     #f87171;
+  --err-t:   rgb(239 68 68 / .14);
+  --err-tint:rgb(248 113 113 / .4);
+
+  --tray:      #27272a;
+  --tray-2:    #3f3f46;
+  --tray-line: #52525b;
+
+  --strisce: rgb(161 161 170 / .1);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / .35), 0 1px 3px rgb(0 0 0 / .3);
+  --shadow:    0 2px 6px rgb(0 0 0 / .35), 0 8px 24px rgb(0 0 0 / .35);
+  --shadow-lg: 0 14px 46px rgb(0 0 0 / .6);
+}
+
+*{box-sizing:border-box;}
+[hidden]{display:none !important;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);color:var(--ink);background:var(--bg);
+  -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;
+  transition:background .25s,color .25s;
+}
+body.in-incolla{padding-bottom:170px;}
+h1,h2,h3,h4{margin:0;letter-spacing:-0.02em;line-height:1.15;font-weight:700;}
+a{color:inherit;}
+button{font:inherit;}
+svg.i{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+
+/* ---------- Shell ---------- */
+.pagina{max-width:1080px;margin:0 auto;padding:26px 30px 60px;}
+.topbar{
+  display:flex;align-items:center;gap:12px;padding:14px 30px;
+  border-bottom:1px solid var(--line);background:var(--surface);
+  position:sticky;top:0;z-index:5;
+}
+.brand-mark{
+  width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--primary),var(--primary-deep));
+  color:#fff;font-weight:800;font-size:12.5px;
+}
+.brand-name b{display:block;font-size:13.5px;}
+.brand-name span{display:block;font-size:11px;color:var(--ink-3);}
+.spacer{flex:1;}
+.theme-toggle{
+  width:34px;height:34px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+  display:grid;place-items:center;
+}
+.theme-toggle:hover{background:var(--surface-2);color:var(--ink);}
+.theme-toggle svg{width:16px;height:16px;}
+.ic-sun{display:none;}
+[data-theme="dark"] .ic-moon{display:none;}
+[data-theme="dark"] .ic-sun{display:block;}
+
+/* ---------- Pulsanti ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;text-decoration:none;
+  border-radius:8px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink-2);padding:5px 10px;font-size:12px;font-weight:600;
+  transition:background .16s,color .16s,border-color .16s;
+}
+.btn svg{width:13px;height:13px;}
+.btn:hover{background:var(--surface-2);color:var(--ink);}
+.btn-copia{border-color:var(--primary-tint);color:var(--primary-600);}
+.btn-copia:hover{background:var(--primary-soft);color:var(--primary-deep);}
+.btn-warn{border-color:var(--warn-tint);color:var(--warn);}
+.btn-danger{border-color:var(--err-tint);color:var(--err);}
+.btn:disabled{cursor:not-allowed;opacity:.5;background:var(--surface-2);border-color:var(--line);color:var(--ink-3);}
+
+/* ---------- Barra del mese ---------- */
+.cal-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px;}
+.nav-quadro{
+  width:36px;height:36px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-3);
+  display:grid;place-items:center;box-shadow:var(--shadow-sm);
+}
+.nav-quadro:hover{background:var(--surface-2);color:var(--ink);}
+.nav-quadro svg{width:17px;height:17px;stroke-width:2.2;}
+.mese-corrente{font-size:18px;font-weight:700;text-transform:capitalize;min-width:168px;text-align:center;}
+.btn-mese{
+  display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  border-radius:10px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink-2);padding:7px 11px;font-size:13px;font-weight:500;box-shadow:var(--shadow-sm);
+}
+.btn-mese:hover{background:var(--surface-2);}
+.interruttore{
+  display:inline-flex;padding:3px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface-2);
+}
+.interruttore a{
+  text-decoration:none;font-size:13px;font-weight:600;color:var(--ink-2);
+  padding:4px 12px;border-radius:7px;
+}
+.interruttore a.attivo{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm);}
+.pillola-mese{
+  display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  border-radius:999px;border:1px solid var(--line);background:var(--surface);
+  padding:6px 13px;font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;
+}
+.pillola-mese svg{width:15px;height:15px;color:var(--ink-3);}
+
+/* ---------- Esito (banner sopra il calendario) ---------- */
+.esito{
+  display:flex;align-items:flex-start;gap:11px;
+  border-radius:var(--radius);padding:13px 16px;margin-bottom:16px;
+  border:1px solid var(--ok-tint);background:var(--ok-t);color:var(--ok);
+  box-shadow:var(--shadow-sm);animation:entra .3s ease-out;
+}
+.esito > svg{width:18px;height:18px;margin-top:1px;stroke-width:2.2;}
+.esito .testo{flex:1;font-size:13.5px;font-weight:700;}
+.esito .dettaglio{margin-top:4px;font-size:12.5px;font-weight:500;opacity:.9;}
+.esito .chiudi{border:0;background:transparent;color:inherit;cursor:pointer;padding:2px;border-radius:6px;opacity:.65;display:grid;}
+.esito .chiudi:hover{opacity:1;}
+.esito .chiudi svg{width:15px;height:15px;}
+@keyframes entra{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+@keyframes sali{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+/* ============================================================
+   Calendario mensile — fedele alla cella reale: numero in un
+   cerchio, contatore righe, etichette cliente, totale in basso.
+   ============================================================ */
+.cal-area{position:relative;}
+.cal{
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  background:var(--surface);box-shadow:var(--shadow-sm);
+}
+.cal-testate,.cal-celle{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));}
+.cal-testate{border-bottom:1px solid var(--line);}
+.cal-testate span{padding:10px 12px;font-size:13px;color:var(--ink-3);font-weight:500;}
+.cal-testate span.fest{color:var(--ink-3);opacity:.75;}
+.cal-celle{grid-auto-rows:minmax(118px,auto);}
+
+.cella{
+  position:relative;display:flex;flex-direction:column;gap:5px;min-width:0;
+  padding:8px 9px 9px 12px;
+  border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2);
+  transition:background-color .14s,box-shadow .14s;outline:none;
+}
+.cella:nth-child(7n){border-right:0;}
+.cella.festivo{background-image:repeating-linear-gradient(135deg,var(--strisce) 0 2px,transparent 2px 6px);}
+.cella.fuori{opacity:.42;}
+.cella.con-attivita::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ink-3);
+}
+.cella.non-abilitata::before{background:var(--warn);}
+.cella.apribile{cursor:pointer;}
+.cella.apribile:hover{background-color:var(--surface-3);}
+
+.cella-top{display:flex;align-items:center;gap:6px;min-height:28px;}
+.cella .n{
+  width:28px;height:28px;border-radius:999px;display:inline-grid;place-items:center;flex:none;
+  font-size:13.5px;font-variant-numeric:tabular-nums;color:var(--ink-2);
+}
+.cella.oggi .n{background:var(--primary);color:#fff;font-weight:700;}
+.etichetta-giorno{font-size:11.5px;font-weight:700;color:var(--primary-600);}
+.cella-top .dx{margin-left:auto;display:inline-flex;align-items:center;gap:6px;}
+.conta-righe{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums;}
+.conta-righe svg{width:13px;height:13px;}
+.spia-non-abilitata{
+  display:inline-flex;align-items:center;gap:3px;border-radius:999px;padding:0 6px;
+  border:1px solid var(--warn-tint);background:var(--warn-t);color:var(--warn);
+  font-size:11.5px;font-weight:600;
+}
+.spia-non-abilitata svg{width:11px;height:11px;}
+
+.clienti{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.cli{display:flex;align-items:baseline;gap:6px;min-width:0;font-size:12px;line-height:1.35;color:var(--ink-2);}
+.cli .nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cli .h{flex:none;font-variant-numeric:tabular-nums;}
+.altri{font-size:12px;font-weight:500;color:var(--ink-3);}
+
+.cella-piede{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:6px;min-height:26px;}
+.totale{font-size:22px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.totale small{font-size:13px;font-weight:500;color:var(--ink-2);}
+
+/* ---------- Ingresso «Copia» dalla cella ---------- */
+.copia-cella{
+  width:27px;height:27px;border-radius:8px;cursor:pointer;margin-left:auto;
+  border:1px solid transparent;background:transparent;color:var(--ink-3);
+  display:grid;place-items:center;opacity:.5;
+  transition:opacity .14s,background .14s,border-color .14s,color .14s;
+}
+.copia-cella svg{width:14px;height:14px;}
+.cella:hover .copia-cella,.copia-cella:focus-visible,.copia-cella.attivo{
+  opacity:1;border-color:var(--primary-tint);background:var(--surface);color:var(--primary-600);
+  box-shadow:var(--shadow-sm);
+}
+.copia-cella:hover{background:var(--primary-soft);}
+
+/* ---------- Modalità incolla ---------- */
+.cella.bersaglio{cursor:copy;}
+.cella.bersaglio:hover{background-color:var(--primary-soft);}
+.cella.bersaglio:focus-visible{box-shadow:inset 0 0 0 2px var(--primary-tint);}
+.cella.bersaglio:not(.scelta):hover .cella-piede::after{
+  content:"Incolla qui";margin-left:auto;
+  font-size:11.5px;font-weight:700;color:var(--primary-600);
+}
+.cella.scelta{background-color:var(--primary-soft);box-shadow:inset 0 0 0 2px var(--primary);}
+.cella.scelta .n{color:var(--primary-deep);font-weight:700;}
+.cella.origine{cursor:not-allowed;box-shadow:inset 0 0 0 2px var(--primary-tint);}
+.cella.origine.scossa{animation:scossa .32s;}
+@keyframes scossa{20%{transform:translateX(-3px);}50%{transform:translateX(3px);}80%{transform:translateX(-2px);}}
+
+.timbro{
+  width:18px;height:18px;border-radius:999px;display:inline-grid;place-items:center;
+  background:var(--primary);color:#fff;animation:accendi .22s ease-out;
+}
+.timbro svg{width:11px;height:11px;stroke-width:3;}
+.cli.anteprima{
+  color:var(--primary-600);font-weight:600;
+  border:1px dashed var(--primary-tint);background:var(--surface);
+  border-radius:6px;padding:1px 5px;margin:1px -6px 0 -6px;
+  animation:accendi .22s ease-out;
+}
+.totale.con-anteprima{color:var(--primary-deep);}
+.totale.con-anteprima small{color:var(--primary-600);}
+@keyframes accendi{from{opacity:0;transform:scale(.92);}to{opacity:1;transform:none;}}
+
+/* ---------- Giorni appena incollati (esito) ---------- */
+.cella.nuova{background-color:var(--primary-soft);}
+.cella.nuova::before{background:var(--primary);}
+.cella.nuova .cli.fresca{color:var(--primary-deep);font-weight:600;}
+
+/* ---------- Legenda ---------- */
+.legenda{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-top:14px;font-size:13px;color:var(--ink-2);}
+.legenda span{display:inline-flex;align-items:center;gap:7px;}
+.legenda i{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);background:var(--surface);flex:none;}
+.legenda i.l-att{box-shadow:inset 3px 0 0 var(--ink-3);background:var(--surface-2);}
+.legenda i.l-oggi{border-radius:999px;border:0;background:var(--primary);}
+.legenda i.l-na{border-color:var(--warn-tint);background:var(--warn-t);box-shadow:inset 3px 0 0 var(--warn);}
+.legenda i.l-fest{background-image:repeating-linear-gradient(135deg,rgb(113 113 122 / .35) 0 2px,transparent 2px 5px);}
+.legenda i.l-orig{border:2px solid var(--primary-tint);}
+.legenda i.l-scelta{border:2px solid var(--primary);background:var(--primary-soft);}
+
+/* ============================================================
+   Menu di scelta della riga (giorno con più righe)
+   ============================================================ */
+.popover{
+  position:absolute;z-index:20;width:372px;max-width:calc(100% - 8px);
+  background:var(--surface);border:1px solid var(--line);border-radius:13px;
+  box-shadow:var(--shadow-lg);padding:10px;animation:sali .18s ease-out;
+}
+.popover h4{font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:0;margin:3px 5px 8px;}
+.voce-riga{display:flex;align-items:center;gap:10px;padding:8px;border-radius:9px;}
+.voce-riga + .voce-riga{border-top:1px solid var(--line-2);}
+.voce-riga:hover{background:var(--surface-3);}
+.voce-riga .dati{flex:1;min-width:0;}
+.voce-riga .cliente{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.voce-riga .meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:3px;font-size:11.5px;color:var(--ink-2);}
+.voce-riga .motivo{margin-top:4px;font-size:11.5px;font-weight:600;color:var(--warn);}
+
+.tag{border-radius:6px;background:var(--surface-2);color:var(--ink-2);padding:1px 6px;font-size:10.5px;font-weight:700;}
+.pill{border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;background:var(--ok-t);color:var(--ok);border:1px solid var(--ok-tint);}
+.pill.no{background:var(--surface-2);color:var(--ink-2);border-color:var(--line);}
+.chip-rimborso{
+  display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:1px 6px;
+  background:var(--warn-t);color:var(--warn);font-size:11px;font-weight:700;
+}
+.chip-rimborso svg{width:11px;height:11px;}
+
+/* ============================================================
+   Vassoio degli appunti
+   ============================================================ */
+.vassoio{
+  position:fixed;left:0;right:0;bottom:18px;margin:0 auto;z-index:30;
+  width:min(1040px,calc(100% - 32px));
+  background:var(--tray);color:var(--tray-ink);
+  border:1px solid var(--tray-line);border-radius:16px;box-shadow:var(--shadow-lg);
+  animation:sali .26s cubic-bezier(.2,.8,.3,1);
+}
+.vassoio-errore{
+  display:flex;align-items:flex-start;gap:9px;padding:11px 15px;
+  background:#7f1d1d;color:#fee2e2;border-radius:15px 15px 0 0;
+  font-size:12.5px;font-weight:600;
+}
+.vassoio-errore svg{width:15px;height:15px;margin-top:2px;}
+.vassoio-errore b{display:block;font-size:13px;}
+.vassoio-corpo{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:12px 14px;}
+.biglietto{display:flex;align-items:center;gap:11px;min-width:0;flex:1 1 320px;}
+.biglietto .ic{
+  width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;
+  background:var(--primary);color:#fff;
+}
+.biglietto .ic svg{width:17px;height:17px;}
+.biglietto .cap{font-size:11.5px;font-weight:600;color:var(--tray-ink-2);}
+.biglietto .riga-copiata{
+  display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:1px;
+  font-size:13.5px;font-weight:700;
+}
+.biglietto .sep{color:var(--tray-ink-2);font-weight:400;}
+.biglietto .chip-rimborso{background:rgb(245 158 11 / .18);color:#fcd34d;font-size:11.5px;}
+
+.giorni-scelti{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+.suggerimento{font-size:12.5px;color:var(--tray-ink-2);}
+.chip-mese{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  border:1px solid var(--tray-line);background:var(--tray-2);color:var(--tray-ink);
+  border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;
+}
+.chip-mese b{color:var(--tray-accent);font-weight:700;}
+.chip-mese:hover{border-color:var(--tray-accent);}
+.chip-mese.corrente{border-color:var(--tray-accent);}
+
+.vassoio-azioni{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.btn-vassoio{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;
+  border-radius:10px;padding:8px 14px;font-size:13.5px;font-weight:700;
+  border:1px solid var(--tray-line);background:transparent;color:var(--tray-ink);
+}
+.btn-vassoio:hover{background:var(--tray-2);}
+.btn-vassoio svg{width:15px;height:15px;stroke-width:2.2;}
+.btn-vassoio.primario{background:#e11d48;border-color:#e11d48;color:#fff;}
+.btn-vassoio.primario:hover{background:#be123c;border-color:#be123c;}
+.btn-vassoio.primario:disabled{cursor:not-allowed;background:var(--tray-2);border-color:var(--tray-line);color:var(--tray-ink-2);}
+.vassoio-piede{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;
+  padding:9px 14px 10px;border-top:1px solid var(--tray-line);
+}
+.vassoio-piede .aiuto{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--tray-ink-2);}
+.vassoio-piede .avviso{color:#fcd34d;font-weight:600;}
+kbd{
+  font:inherit;font-size:10.5px;font-weight:700;border:1px solid var(--tray-line);
+  border-radius:5px;padding:0 5px;background:var(--tray-2);color:var(--tray-ink);
+}
+
+/* ============================================================
+   Vista Elenco
+   ============================================================ */
+.elenco{
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  background:var(--surface);box-shadow:var(--shadow-sm);
+}
+.elenco table{width:100%;border-collapse:collapse;font-size:13px;}
+.elenco th{
+  text-align:left;padding:10px 12px;font-size:12px;font-weight:600;color:var(--ink-3);
+  background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap;
+}
+.elenco td{padding:10px 12px;border-bottom:1px solid var(--line-2);vertical-align:middle;}
+.elenco tr:last-child td{border-bottom:0;}
+.elenco tbody tr:hover{background:var(--surface-3);}
+.elenco .giorno{display:flex;align-items:baseline;gap:6px;white-space:nowrap;}
+.elenco .giorno b{font-size:15px;font-variant-numeric:tabular-nums;}
+.elenco .giorno span{font-size:12px;color:var(--ink-3);}
+.elenco .cliente{font-weight:700;}
+.elenco .offerta{color:var(--ink-2);font-size:12.5px;}
+.elenco .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:var(--primary-deep);white-space:nowrap;}
+.elenco .azione{text-align:right;white-space:nowrap;}
+.elenco .motivo{display:block;margin-top:3px;font-size:11px;font-weight:600;color:var(--warn);}
+
+/* ============================================================
+   Dettaglio giornata
+   ============================================================ */
+.crumb{
+  display:inline-flex;align-items:center;gap:7px;text-decoration:none;
+  border:1px solid var(--line);background:var(--surface);border-radius:10px;
+  padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--ink-2);
+  box-shadow:var(--shadow-sm);margin-bottom:18px;
+}
+.crumb svg{width:15px;height:15px;}
+.intestazione-giorno{margin-bottom:20px;}
+.intestazione-giorno .dow{font-size:12px;font-weight:700;color:var(--primary-deep);text-transform:capitalize;}
+.intestazione-giorno h1{margin-top:2px;font-size:26px;}
+.riepilogo{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px;}
+.kpi{flex:1;min-width:130px;border-radius:var(--radius);border:1px solid var(--primary-tint);background:var(--primary-soft);padding:13px 16px;}
+.kpi .lbl{font-size:11.5px;font-weight:600;color:var(--ink-2);}
+.kpi .val{margin-top:2px;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--primary-deep);}
+.sez-titolo{font-size:12px;font-weight:600;color:var(--ink-3);margin:0 0 12px;letter-spacing:0;}
+.righe{display:flex;flex-direction:column;gap:11px;}
+.riga{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);padding:13px 15px;box-shadow:var(--shadow-sm);}
+.riga-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;}
+.riga .cliente{font-size:14.5px;font-weight:700;}
+.tag-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
+.riga .nota{margin-top:8px;font-size:12.5px;color:var(--ink-2);}
+.riga-dx{display:flex;align-items:center;gap:10px;flex:none;}
+.ore{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--primary-deep);white-space:nowrap;}
+.rimborso{margin-top:9px;display:flex;align-items:center;gap:8px;border-radius:7px;background:var(--warn-t);padding:6px 10px;color:var(--warn);}
+.rimborso svg{width:13px;height:13px;}
+.rimborso .et{font-size:11.5px;font-weight:700;}
+.rimborso .im{margin-left:auto;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;}
+.azioni-riga{margin-top:11px;padding-top:10px;border-top:1px solid var(--line-2);display:flex;flex-wrap:wrap;gap:8px;}
+
+/* ---------- Note e barra demo ---------- */
+.note-card{
+  display:flex;gap:10px;margin-top:22px;
+  border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);
+  padding:13px 15px;font-size:12.5px;color:var(--ink-2);box-shadow:var(--shadow-sm);
+}
+.note-card > svg{width:16px;height:16px;margin-top:1px;color:var(--primary);}
+.demo-bar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:16px;
+  border:1px dashed var(--line);border-radius:var(--radius);padding:11px 14px;
+}
+.demo-bar .demo-label{font-size:12px;font-weight:700;color:var(--ink-3);margin-right:4px;}
+
+@media (max-width:820px){
+  .pagina{padding:20px 14px 48px;}
+  .topbar{padding:12px 14px;}
+  .cal-celle{grid-auto-rows:minmax(74px,auto);}
+  .cella{padding:6px 4px 6px 7px;align-items:center;}
+  .clienti,.conta-righe,.etichetta-giorno,.spia-non-abilitata{display:none;}
+  .cella-top{flex-direction:column;gap:2px;}
+  .cella-top .dx{margin-left:0;}
+  .totale{font-size:13px;}
+  .totale small{font-size:11px;}
+  .cella-piede{flex-direction:column;align-items:center;}
+  .copia-cella{margin-left:0;opacity:1;}
+  .cella.bersaglio:not(.scelta):hover .cella-piede::after{content:none;}
+  .riga-top{flex-direction:column;}
+  .elenco{overflow-x:auto;}
+}

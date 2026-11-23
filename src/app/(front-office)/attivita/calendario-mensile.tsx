@@ -12,17 +12,34 @@ import {
   tokenMeseCorrente,
   type CellaGiorno,
 } from "@/domain/calendario";
-import type { DatiCalendarioMese } from "@/lib/attivita-contract";
+import type { DatiCalendarioMese, RigaAttivitaClient } from "@/lib/attivita-contract";
 import { IconaOffertaNonAbilitata, SelettoreMese, useIdratata } from "@/components";
 import { ORE_PER_GIORNATA, sommaOre } from "@/domain/types";
 import { formattaEuroArrotondato, formattaGiornate, formattaNumeroOre, formattaOre } from "@/lib/formattazione";
+import { annullaIncolla, duplicaRigaSuGiorni } from "@/lib/actions/righe-attivita";
+import {
+  alternaGiorno,
+  dataEstesa,
+  mesiDeiGiorni,
+  motivoNonCopiabile,
+} from "@/lib/copia-riga";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
 import {
   ErroreIdentitaSchedaCambiata,
   ErroreSessioneAttivita,
   useCacheCalendario,
+  useCacheGiornate,
   useCollaboratoreConsultato,
 } from "./attivita-cache-provider";
+import { useAppuntiRiga } from "./appunti-riga";
+import {
+  EsitoIncollaBanner,
+  IconaCopia,
+  IconaScelto,
+  MenuCopiaGiorno,
+  VassoioAppunti,
+  type MenuCopiaAperto,
+} from "./copia-incolla-calendario";
 import InterruttoreVista from "./interruttore-vista";
 import { FILTRI_VUOTI, urlElenco } from "./filtri-elenco";
 
@@ -95,6 +112,8 @@ interface CalendarioMensileProps {
   oggi: string;
   /** Stato di Google Calendar in fondo alla barra del mese; assente sul foglio di un altro collaboratore. */
   indicatoreCalendario?: React.ReactNode;
+  /** Foglio di un collaboratore disattivato: nessuna copia e nessun incolla. */
+  solaLettura?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -105,6 +124,7 @@ export default function CalendarioMensile({
   datiMeseIniziale,
   oggi,
   indicatoreCalendario,
+  solaLettura = false,
 }: CalendarioMensileProps) {
   const oggiDate = new Date(oggi);
 
@@ -331,6 +351,157 @@ export default function CalendarioMensile({
     vaiA(intentoCorrente.current);
   }
 
+  // ═════════════════════════════════════════════════════════════
+  // Copia e incolla di una riga
+  // ═════════════════════════════════════════════════════════════
+
+  const cacheGiornate = useCacheGiornate();
+  const appuntiRiga = useAppuntiRiga();
+  // Gli appunti vivono nel layout: sopravvivono al cambio di pagina e al
+  // rimontaggio del calendario dopo la risposta della Server Action.
+  const appunti = solaLettura ? null : (appuntiRiga?.appunti ?? null);
+  const inIncolla = appunti !== null;
+  const esitoIncolla = appuntiRiga?.esito ?? null;
+  const copiaDisponibile = !solaLettura && appuntiRiga !== null && cacheGiornate !== null;
+
+  const [avvisoIncolla, setAvvisoIncolla] = useState<string | null>(null);
+  const [erroreIncolla, setErroreIncolla] = useState<string | null>(null);
+  const [incollaInCorso, setIncollaInCorso] = useState(false);
+  const [menuCopia, setMenuCopia] = useState<MenuCopiaAperto | null>(null);
+  const [giornoInLettura, setGiornoInLettura] = useState<string | null>(null);
+  const [erroreCopia, setErroreCopia] = useState<string | null>(null);
+  /** Pulsante «Copia» che ha aperto il menu: riceve di nuovo il focus alla chiusura. */
+  const pulsanteMenu = useRef<HTMLButtonElement | null>(null);
+
+  const chiudiMenu = useCallback((restituisciFocus: boolean) => {
+    setMenuCopia(null);
+    if (restituisciFocus) pulsanteMenu.current?.focus();
+  }, []);
+
+  const avviaCopia = useCallback(
+    (riga: RigaAttivitaClient) => {
+      setMenuCopia(null);
+      setAvvisoIncolla(null);
+      setErroreIncolla(null);
+      setErroreCopia(null);
+      appuntiRiga?.copia(riga);
+    },
+    [appuntiRiga]
+  );
+
+  /**
+   * «Copia» sulla cella: con una sola riga copiabile la modalità incolla parte
+   * subito, altrimenti un menu elenca le righe del giorno.
+   */
+  async function copiaDalGiorno(giorno: string, pulsante: HTMLButtonElement) {
+    if (!cacheGiornate || giornoInLettura) return;
+    pulsanteMenu.current = pulsante;
+    setErroreCopia(null);
+    setGiornoInLettura(giorno);
+    try {
+      const { righe } = await cacheGiornate.load(giorno);
+      const copiabili = righe.filter((riga) => motivoNonCopiabile(riga) === null);
+      if (copiabili.length === 1) {
+        avviaCopia(copiabili[0]);
+        return;
+      }
+      setMenuCopia({ giorno, righe, ancora: pulsante.getBoundingClientRect() });
+    } catch (causa) {
+      if (causa instanceof ErroreSessioneAttivita) return;
+      if (causa instanceof ErroreIdentitaSchedaCambiata) return;
+      setErroreCopia(`Non è stato possibile leggere le righe del ${dataEstesa(giorno)}.`);
+    } finally {
+      setGiornoInLettura(null);
+    }
+  }
+
+  const esciDaIncolla = useCallback(() => {
+    setAvvisoIncolla(null);
+    setErroreIncolla(null);
+    appuntiRiga?.annulla();
+  }, [appuntiRiga]);
+
+  function alternaDestinazione(giorno: string) {
+    if (!appunti || incollaInCorso) return;
+    const esito = alternaGiorno(appunti.giorniScelti, giorno, appunti.giornoOrigine);
+    if (esito.tipo === "origine") {
+      setAvvisoIncolla("Il giorno di origine non è una destinazione.");
+      return;
+    }
+    setAvvisoIncolla(null);
+    appuntiRiga?.impostaGiorni(esito.giorni);
+  }
+
+  async function confermaIncolla() {
+    if (!appunti || appunti.giorniScelti.length === 0 || incollaInCorso) return;
+    const giorni = appunti.giorniScelti;
+    setErroreIncolla(null);
+    setAvvisoIncolla(null);
+    setIncollaInCorso(true);
+    try {
+      const risultato = await duplicaRigaSuGiorni(
+        appunti.riga.id,
+        giorni,
+        collaboratoreConsultatoId
+      );
+      if (!risultato.success) {
+        // La selezione resta: il rifiuto non deve costare il lavoro già fatto.
+        setErroreIncolla(risultato.error ?? "Incolla non riuscito");
+        return;
+      }
+      // Ogni mese e ogni giorno toccati vanno riletti: anche quelli non
+      // mostrati, che entrando serviranno le righe nuove senza ricaricare.
+      cache?.invalidate(...mesiDeiGiorni(giorni));
+      cacheGiornate?.invalidate(...giorni);
+      appuntiRiga?.incollata(giorni, risultato.righeIds ?? []);
+      // Rilettura del mese mostrato: la griglia la adotta tramite `subscribe`.
+      void cache?.revalida(intentoCorrente.current.token).catch(() => undefined);
+    } catch {
+      setErroreIncolla("Il server non ha risposto, riprova");
+    } finally {
+      setIncollaInCorso(false);
+    }
+  }
+
+  /**
+   * «Annulla copia» dal messaggio d'esito: rimuove le righe appena incollate
+   * e riallinea le cache come dopo l'incolla. Restituisce l'errore da
+   * mostrare nel messaggio, o `null`.
+   */
+  async function annullaCopia(): Promise<string | null> {
+    if (!esitoIncolla || esitoIncolla.stato !== "incollata") return null;
+    const { giorni, righeIds } = esitoIncolla;
+    try {
+      const risultato = await annullaIncolla(righeIds, collaboratoreConsultatoId);
+      if (!risultato.success) return risultato.error ?? "Annullamento non riuscito";
+      cache?.invalidate(...mesiDeiGiorni(giorni));
+      cacheGiornate?.invalidate(...giorni);
+      appuntiRiga?.annullata(risultato.righeEliminate ?? 0);
+      void cache?.revalida(intentoCorrente.current.token).catch(() => undefined);
+      return null;
+    } catch {
+      return "Il server non ha risposto, riprova";
+    }
+  }
+
+  // Esc chiude il menu della cella, poi esce dalla modalità incolla senza
+  // scrivere nulla. Se è aperto il selettore del mese, Esc chiude quello.
+  useEffect(() => {
+    if (!inIncolla && !menuCopia) return;
+    function alTasto(evento: KeyboardEvent) {
+      if (evento.key !== "Escape") return;
+      if (menuCopia) {
+        chiudiMenu(true);
+        return;
+      }
+      if (document.querySelector('[data-testid="selettore-mese-pannello"]')) return;
+      if (incollaInCorso) return;
+      esciDaIncolla();
+    }
+    document.addEventListener("keydown", alTasto);
+    return () => document.removeEventListener("keydown", alTasto);
+  }, [inIncolla, menuCopia, incollaInCorso, chiudiMenu, esciDaIncolla]);
+
   // Totale mese
   const meseConAttivita = Object.keys(sintesi).length > 0;
 
@@ -477,6 +648,26 @@ export default function CalendarioMensile({
         </div>
       )}
 
+      {/* ── Esito dell'ultimo incolla ── */}
+      {!inIncolla && esitoIncolla && appuntiRiga && (
+        <EsitoIncollaBanner
+          esito={esitoIncolla}
+          onChiudi={appuntiRiga.chiudiEsito}
+          onAnnullaCopia={annullaCopia}
+        />
+      )}
+
+      {/* ── Lettura delle righe del giorno non riuscita ── */}
+      {erroreCopia && (
+        <div
+          role="alert"
+          data-testid="errore-copia"
+          className="mb-[14px] rounded-[11px] border border-amber-300 bg-amber-50 px-[13px] py-2.5 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200"
+        >
+          {erroreCopia}
+        </div>
+      )}
+
       {/* ── Griglia calendario e legenda ── */}
       <div className="relative">
       <section
@@ -523,58 +714,90 @@ export default function CalendarioMensile({
             const isToday = stessoGiorno(cellaData, oggiDate);
             const isLastRow = idx >= griglia.length - 7;
 
+            // Stato della cella nella modalità incolla e dopo un incolla riuscito.
+            const destinazioneSelezionabile = inIncolla && !cella.fuoriMese;
+            const origine = appunti !== null && appunti.giornoOrigine === key;
+            const scelto = appunti !== null && appunti.giorniScelti.includes(key);
+
             // Superfici: neutra appena distinta per i giorni con attività,
-            // trama diagonale tenue per il weekend vuoto; il rosa resta a oggi.
+            // trama diagonale tenue per il weekend vuoto; il rosa resta a oggi
+            // e ai giorni scelti per l'incolla. I giorni appena incollati hanno
+            // l'aspetto di qualunque giorno con attività.
             const classiGiorno = [
-              "relative flex flex-col items-start gap-1.5 p-[9px_10px_10px_12px] min-w-0 w-full overflow-hidden transition-colors cursor-pointer focus-visible:z-[1] focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-indigo-500 dark:focus-visible:outline-indigo-400 max-sm:items-center max-sm:gap-1 max-sm:p-1",
+              "relative flex h-full flex-col items-start gap-1.5 p-[9px_10px_10px_12px] min-w-0 w-full overflow-hidden text-left transition-colors focus-visible:z-[1] focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-indigo-500 dark:focus-visible:outline-indigo-400 max-sm:items-center max-sm:gap-1 max-sm:p-1",
+              inIncolla && (cella.fuoriMese || origine) ? "cursor-default" : "cursor-pointer",
               (idx + 1) % 7 !== 0 ? "border-r border-zinc-100 dark:border-zinc-800" : "",
               !isLastRow ? "border-b border-zinc-100 dark:border-zinc-800" : "",
-              righeNonAbilitate > 0
-                ? "bg-amber-50 hover:bg-amber-100/70 dark:bg-amber-950/30 dark:hover:bg-amber-950/50"
-                : haAttivita
-                  ? "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:hover:bg-zinc-800"
-                  : cella.fuoriMese
-                    ? "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-950/40 dark:hover:bg-zinc-800/70"
-                    : cella.isWeekend
-                      ? "bg-[repeating-linear-gradient(135deg,rgb(113_113_122/0.07)_0_6px,transparent_6px_12px)] hover:bg-zinc-100 dark:bg-[repeating-linear-gradient(135deg,rgb(161_161_170/0.07)_0_6px,transparent_6px_12px)] dark:hover:bg-zinc-800"
-                      : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+              scelto
+                ? "bg-rose-50 shadow-[inset_0_0_0_2px] shadow-rose-600 hover:bg-rose-100/70 dark:bg-rose-500/10 dark:shadow-rose-400 dark:hover:bg-rose-500/15"
+                : righeNonAbilitate > 0
+                    ? "bg-amber-50 hover:bg-amber-100/70 dark:bg-amber-950/30 dark:hover:bg-amber-950/50"
+                    : haAttivita
+                      ? "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:hover:bg-zinc-800"
+                      : cella.fuoriMese
+                        ? "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-950/40 dark:hover:bg-zinc-800/70"
+                        : cella.isWeekend
+                          ? "bg-[repeating-linear-gradient(135deg,rgb(113_113_122/0.07)_0_6px,transparent_6px_12px)] hover:bg-zinc-100 dark:bg-[repeating-linear-gradient(135deg,rgb(161_161_170/0.07)_0_6px,transparent_6px_12px)] dark:hover:bg-zinc-800"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
             ]
               .filter(Boolean)
               .join(" ");
 
             const sintesiGiorno = haAttivita ? sintesi[key] : null;
+            // Totale del giorno scelto: ciò che contiene già più la riga in anteprima.
+            const oreGiorno = scelto && appunti
+              ? sommaOre(sintesiGiorno?.oreTotali ?? 0, appunti.riga.ore)
+              : sintesiGiorno?.oreTotali ?? null;
 
             const contenuto = (
               <>
-                {sintesiGiorno && (
+                {(sintesiGiorno || scelto) && (
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-[3px] ${
-                      righeNonAbilitate > 0 ? "bg-amber-500 dark:bg-amber-400" : "bg-zinc-400 dark:bg-zinc-500"
+                      scelto
+                        ? "bg-rose-600 dark:bg-rose-400"
+                        : righeNonAbilitate > 0
+                          ? "bg-amber-500 dark:bg-amber-400"
+                          : "bg-zinc-400 dark:bg-zinc-500"
                     }`}
                   />
                 )}
-                {/* In cima: numero del giorno (con «Oggi») e, a destra, il conteggio righe. */}
+                {/* In cima: numero del giorno (con «Oggi» o «Origine») e, a destra, il conteggio righe. */}
                 <div className="flex w-full items-center gap-1.5 max-sm:flex-col max-sm:gap-0.5">
                   <span
                     data-testid="numero-giorno"
                     className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm tabular-nums max-sm:h-[26px] max-sm:w-[26px] max-sm:text-[13px] ${
                       isToday
                         ? "bg-rose-600 font-semibold text-white dark:bg-rose-400 dark:text-zinc-900"
-                        : cella.fuoriMese
-                          ? "font-normal text-testo-metadati"
-                          : cella.isWeekend
-                            ? "font-medium text-testo-metadati"
-                            : "font-medium text-testo-secondario"
+                        : scelto
+                          ? "font-semibold text-rose-700 dark:text-rose-300"
+                          : cella.fuoriMese
+                            ? "font-normal text-testo-metadati"
+                            : cella.isWeekend
+                              ? "font-medium text-testo-metadati"
+                              : "font-medium text-testo-secondario"
                     }`}
                   >
                     {cellaData.getDate()}
                   </span>
-                  {isToday && (
+                  {isToday && !origine && (
                     <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 max-sm:sr-only">
                       Oggi
                     </span>
                   )}
-                  {sintesiGiorno && (
+                  {origine && (
+                    <span
+                      data-testid="etichetta-origine"
+                      className="text-xs font-semibold text-rose-700 dark:text-rose-400 max-sm:sr-only"
+                    >
+                      Origine
+                    </span>
+                  )}
+                  {scelto ? (
+                    <span className="ml-auto text-rose-600 max-sm:hidden dark:text-rose-400">
+                      <IconaScelto />
+                    </span>
+                  ) : sintesiGiorno && (
                     <span className="ml-auto inline-flex items-center gap-1.5 max-sm:hidden">
                       {righeNonAbilitate > 0 && (
                         <span
@@ -608,11 +831,12 @@ export default function CalendarioMensile({
                     </span>
                   )}
                 </div>
-                {/* Al centro: i clienti della giornata, come testo secondario.
+                {/* Al centro: i clienti della giornata, come testo secondario, e
+                    sul giorno scelto la riga copiata in anteprima.
                     Su smartphone restano nella pagina della giornata. */}
-                {sintesiGiorno && (
+                {(sintesiGiorno || scelto) && (
                   <div className="flex w-full min-w-0 flex-col gap-0.5 max-sm:hidden">
-                    {sintesiGiorno.clienti.slice(0, 2).map((cliente) => (
+                    {sintesiGiorno?.clienti.slice(0, 2).map((cliente) => (
                       <span
                         key={cliente.clienteId}
                         data-testid="etichetta-cliente"
@@ -622,7 +846,7 @@ export default function CalendarioMensile({
                         <span className="shrink-0 tabular-nums">{formattaOre(cliente.ore)}</span>
                       </span>
                     ))}
-                    {sintesiGiorno.clienti.length > 2 && (
+                    {sintesiGiorno && sintesiGiorno.clienti.length > 2 && (
                       <span
                         data-testid="indicatore-altri-clienti"
                         className="text-xs font-medium text-testo-metadati"
@@ -630,15 +854,27 @@ export default function CalendarioMensile({
                         +{sintesiGiorno.clienti.length - 2}
                       </span>
                     )}
+                    {scelto && appunti && (
+                      <span
+                        data-testid="anteprima-incolla"
+                        className="flex min-w-0 items-baseline gap-1.5 rounded-[5px] border border-dashed border-rose-300 bg-white/70 px-1 text-xs font-semibold leading-[1.35] text-rose-700 dark:border-rose-700 dark:bg-zinc-900/40 dark:text-rose-300"
+                      >
+                        <span aria-hidden="true">+</span>
+                        <span className="min-w-0 flex-1 truncate">{appunti.riga.cliente.ragioneSociale}</span>{" "}
+                        <span className="shrink-0 tabular-nums">{formattaOre(appunti.riga.ore)}</span>
+                      </span>
+                    )}
                   </div>
                 )}
                 {/* In fondo: le ore totali, il dato dominante della giornata. */}
-                {sintesiGiorno && (
+                {oreGiorno !== null && (
                   <div
                     data-testid="totali-giorno"
-                    className="mt-auto whitespace-nowrap text-[22px] font-semibold leading-none tabular-nums text-testo-principale max-sm:mt-0 max-sm:text-[13px]"
+                    className={`mt-auto whitespace-nowrap text-[22px] font-semibold leading-none tabular-nums max-sm:mt-0 max-sm:text-[13px] ${
+                      scelto ? "text-rose-700 dark:text-rose-300" : "text-testo-principale"
+                    }`}
                   >
-                    {formattaNumeroOre(sintesiGiorno.oreTotali)}
+                    {formattaNumeroOre(oreGiorno)}
                     <span className="text-sm font-medium text-testo-secondario max-sm:text-xs max-sm:font-normal max-sm:text-testo-metadati">
                       {" "}h
                     </span>
@@ -647,25 +883,111 @@ export default function CalendarioMensile({
               </>
             );
 
+            // ── Modalità incolla: la cella è una destinazione da scegliere ──
+            if (inIncolla) {
+              if (destinazioneSelezionabile && !origine) {
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => alternaDestinazione(key)}
+                    aria-pressed={scelto}
+                    aria-label={`Incolla su ${dataEstesa(key)}`}
+                    className={classiGiorno}
+                    data-testid="cella-giorno"
+                    data-giorno={key}
+                    data-scelto={scelto ? "true" : "false"}
+                    data-con-attivita={haAttivita ? "true" : "false"}
+                    data-fuori-mese="false"
+                  >
+                    {contenuto}
+                  </button>
+                );
+              }
+              if (origine) {
+                // Il giorno di origine resta raggiungibile: il tentativo spiega
+                // perché non è una destinazione invece di non fare nulla.
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => alternaDestinazione(key)}
+                    aria-disabled="true"
+                    aria-label={`${dataEstesa(key)}, giorno di origine: non è una destinazione`}
+                    className={classiGiorno}
+                    data-testid="cella-giorno"
+                    data-giorno={key}
+                    data-origine="true"
+                    data-con-attivita={haAttivita ? "true" : "false"}
+                    data-fuori-mese="false"
+                  >
+                    {contenuto}
+                  </button>
+                );
+              }
+              return (
+                <div
+                  key={key}
+                  className={classiGiorno}
+                  data-testid="cella-giorno"
+                  data-giorno={key}
+                  data-con-attivita={haAttivita ? "true" : "false"}
+                  data-fuori-mese="true"
+                >
+                  {contenuto}
+                </div>
+              );
+            }
+
+            const copiaCella = copiaDisponibile && sintesiGiorno && !cella.fuoriMese;
+
             return (
-              <Link
-                key={key}
-                href={urlDelFoglio(
-                  `/attivita/${key}?mese=${tokenCella}`,
-                  collaboratoreConsultatoId
+              <div key={key} className="relative flex min-w-0">
+                <Link
+                  href={urlDelFoglio(
+                    `/attivita/${key}?mese=${tokenCella}`,
+                    collaboratoreConsultatoId
+                  )}
+                  // Su rotta dinamica il prefetch del giorno non trasporta i dati
+                  // della giornata e competerebbe con il prefetch dei mesi.
+                  prefetch={false}
+                  className={classiGiorno}
+                  style={{ textDecoration: "none" }}
+                  aria-current={isToday ? "date" : undefined}
+                  data-testid="cella-giorno"
+                  data-giorno={key}
+                  data-con-attivita={haAttivita ? "true" : "false"}
+                  data-fuori-mese={cella.fuoriMese ? "true" : "false"}
+                >
+                  {contenuto}
+                </Link>
+                {/* «Copia» è distinto dall'apertura del giorno: un fratello del
+                    link, non un suo figlio. Su smartphone la copia parte dal
+                    dettaglio della giornata. */}
+                {copiaCella && (
+                  <button
+                    type="button"
+                    onClick={(evento) => void copiaDalGiorno(key, evento.currentTarget)}
+                    aria-label={`Copia una riga del ${dataEstesa(key)}`}
+                    aria-haspopup={sintesiGiorno.righe > 1 ? "dialog" : undefined}
+                    aria-expanded={sintesiGiorno.righe > 1 ? menuCopia?.giorno === key : undefined}
+                    aria-busy={giornoInLettura === key}
+                    title="Copia su altri giorni"
+                    data-testid="copia-cella"
+                    className={`absolute bottom-2 right-2 z-[2] grid h-7 w-7 cursor-pointer place-items-center rounded-[7px] border transition max-sm:hidden focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-500 ${
+                      menuCopia?.giorno === key
+                        ? "border-rose-300 bg-white text-rose-600 dark:border-rose-700 dark:bg-zinc-900 dark:text-rose-400"
+                        : "border-transparent text-testo-metadati hover:border-rose-200 hover:bg-white hover:text-rose-600 dark:hover:border-rose-800 dark:hover:bg-zinc-900 dark:hover:text-rose-400"
+                    }`}
+                  >
+                    {giornoInLettura === key ? (
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-current/30 border-t-current" />
+                    ) : (
+                      <IconaCopia />
+                    )}
+                  </button>
                 )}
-                // Su rotta dinamica il prefetch del giorno non trasporta i dati
-                // della giornata e competerebbe con il prefetch dei mesi.
-                prefetch={false}
-                className={classiGiorno}
-                style={{ textDecoration: "none" }}
-                aria-current={isToday ? "date" : undefined}
-                data-testid="cella-giorno"
-                data-con-attivita={haAttivita ? "true" : "false"}
-                data-fuori-mese={cella.fuoriMese ? "true" : "false"}
-              >
-                {contenuto}
-              </Link>
+              </div>
             );
           })}
         </div>
@@ -714,8 +1036,43 @@ export default function CalendarioMensile({
           </svg>
           Numero di righe
         </span>
+        {inIncolla && (
+          <>
+            <span className="inline-flex items-center gap-[7px]">
+              <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">Origine</span>
+              Giorno della riga copiata
+            </span>
+            <span className="inline-flex items-center gap-[7px]">
+              <span className="h-3.5 w-3.5 shrink-0 rounded-[4px] border-2 border-rose-600 bg-rose-50 dark:border-rose-400 dark:bg-rose-500/10" />
+              Scelto per l&apos;incolla
+            </span>
+          </>
+        )}
       </div>
       </div>
+
+      {/* ── Vassoio degli appunti: sempre visibile in modalità incolla ── */}
+      {appunti && (
+        <VassoioAppunti
+          appunti={appunti}
+          tokenVisualizzato={tokenVisualizzato}
+          avviso={avvisoIncolla}
+          errore={erroreIncolla}
+          inCorso={incollaInCorso}
+          onVaiAlMese={(token) => vaiA({ token, registraHistory: true })}
+          onAnnulla={esciDaIncolla}
+          onConferma={() => void confermaIncolla()}
+        />
+      )}
+
+      {/* ── Menu della cella: quale riga copiare ── */}
+      {menuCopia && (
+        <MenuCopiaGiorno
+          menu={menuCopia}
+          onCopia={avviaCopia}
+          onChiudi={chiudiMenu}
+        />
+      )}
     </div>
     </div>
   );

@@ -33,6 +33,7 @@ import {
   type LetturaContestoInserimento,
   type LetturaGiornata,
 } from "./giornata-cache";
+import { AppuntiRigaProvider } from "./appunti-riga";
 
 // ── Errore di sessione ──────────────────────────────────────────
 
@@ -514,7 +515,8 @@ function CacheFoglioAttivita({
 
   return (
     <ContestoCacheAttivita.Provider value={api}>
-      {children}
+      {/* Gli appunti del copia e incolla seguono il foglio: cambiandolo si azzerano. */}
+      <AppuntiRigaProvider>{children}</AppuntiRigaProvider>
     </ContestoCacheAttivita.Provider>
   );
 }

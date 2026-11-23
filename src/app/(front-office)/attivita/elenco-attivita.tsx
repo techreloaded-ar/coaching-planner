@@ -13,6 +13,7 @@ import { ETICHETTA_OFFERTA_DA_DEFINIRE, ORE_PER_GIORNATA } from "@/domain/types"
 import type { ContestoFatturatoElenco, RigaAttivitaClient } from "@/lib/attivita-contract";
 import { eliminaRiga } from "@/lib/actions/righe-attivita";
 import { urlDelFoglio } from "@/lib/url-foglio-attivita";
+import { motivoNonCopiabile } from "@/lib/copia-riga";
 import {
   AvvisoOffertaNonAbilitata,
   BadgeCategoriaAttivita,
@@ -28,6 +29,8 @@ import {
   useCollaboratoreConsultato,
 } from "./attivita-cache-provider";
 import InterruttoreVista from "./interruttore-vista";
+import { useAppuntiRiga } from "./appunti-riga";
+import { IconaCopia } from "./copia-incolla-calendario";
 import {
   FILTRI_VUOTI,
   filtraRigheElenco,
@@ -102,6 +105,14 @@ export default function ElencoAttivita({ token, righe, contestoFatturato, filtri
   const cacheCalendario = useCacheCalendario();
   const cacheGiornate = useCacheGiornate();
   const collaboratoreConsultatoId = useCollaboratoreConsultato();
+  const appuntiRiga = useAppuntiRiga();
+
+  /** «Copia»: la riga va negli appunti e si passa al calendario dello stesso mese in modalità incolla. */
+  const copia = (riga: RigaAttivitaClient) => {
+    if (!appuntiRiga) return;
+    appuntiRiga.copia(riga);
+    router.push(urlDelFoglio(`/attivita?mese=${token}`, collaboratoreConsultatoId));
+  };
 
   const [filtriScelti, setFiltriScelti] = useState(filtriIniziali);
   const [aggiuntaAperta, setAggiuntaAperta] = useState(false);
@@ -424,7 +435,21 @@ export default function ElencoAttivita({ token, righe, contestoFatturato, filtri
                                 </PulsanteAttesa>
                               </span>
                             ) : (
+                              <span className="inline-flex flex-col items-end gap-1">
                               <span className="inline-flex gap-1">
+                                <button
+                                  type="button"
+                                  data-testid="copia-riga-elenco"
+                                  disabled={motivoNonCopiabile(riga) !== null}
+                                  aria-label={`Copia la riga del ${giorno} su altri giorni`}
+                                  aria-describedby={motivoNonCopiabile(riga) ? `motivo-copia-${riga.id}` : undefined}
+                                  title="Copia su altri giorni"
+                                  onClick={() => copia(riga)}
+                                  className={`${CLASSE_PULSANTE} h-8 px-2.5 text-rose-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-300`}
+                                >
+                                  <IconaCopia className="h-[14px] w-[14px]" />
+                                  Copia
+                                </button>
                                 <Link
                                   href={urlGiornata(riga.data, riga.id)}
                                   prefetch={false}
@@ -447,6 +472,16 @@ export default function ElencoAttivita({ token, righe, contestoFatturato, filtri
                                     <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
                                   </svg>
                                 </button>
+                              </span>
+                              {motivoNonCopiabile(riga) && (
+                                <span
+                                  id={`motivo-copia-${riga.id}`}
+                                  data-testid="motivo-non-copiabile"
+                                  className="text-xs font-medium text-amber-800 dark:text-amber-300"
+                                >
+                                  {motivoNonCopiabile(riga)}
+                                </span>
+                              )}
                               </span>
                             )}
                           </td>

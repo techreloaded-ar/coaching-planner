@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo, useTransition, useRef, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   creaRiga,
   modificaRiga,
@@ -27,7 +28,6 @@ import {
   sommaOre,
   type CategoriaAttivita,
 } from "@/domain/types";
-import { SelettoreDuplicazione } from "./selettore-duplicazione";
 import { SezioneProposteCalendario, useProposteCalendario } from "./proposte-calendario";
 import type {
   RigaAttivitaClient,
@@ -46,6 +46,10 @@ import {
   type OffertaAttivaCliente,
 } from "../attivita-cache-provider";
 import { formattaEuro, formattaNumeroOre, formattaOre } from "@/lib/formattazione";
+import { motivoNonCopiabile } from "@/lib/copia-riga";
+import { urlDelFoglio } from "@/lib/url-foglio-attivita";
+import { useAppuntiRiga } from "../appunti-riga";
+import { IconaCopia } from "../copia-incolla-calendario";
 
 // ── Tipi ────────────────────────────────────────────────────────
 
@@ -81,8 +85,7 @@ interface DettaglioGiornataProps {
    *
    * Riceve il giorno **visualizzato**, che dopo un cambio giorno client può
    * differire da quello dell'ultimo payload prodotto dal server, ed
-   * eventualmente gli altri giorni toccati da una mutazione multi-giorno
-   * (la duplicazione di una riga su più giornate).
+   * eventualmente gli altri giorni toccati da una mutazione multi-giorno.
    */
   onMutazioneCompletata: (
     giorno: string,
@@ -317,17 +320,18 @@ export default function DettaglioGiornata({
   const rimuoviProposta = proposteCalendario.rimuovi;
   const [eventoDaProposta, setEventoDaProposta] = useState<string | null>(null);
 
-  // Riga per cui è aperto il selettore di duplicazione: `null` = pannello chiuso.
-  const [rigaDaDuplicare, setRigaDaDuplicare] =
-    useState<RigaAttivitaClient | null>(null);
-
-  // Esito dell'ultima duplicazione riuscita, mostrato nel banner sopra
-  // l'elenco delle righe finché il collaboratore non lo chiude (o finché il
-  // cambio giorno non rimonta il componente).
-  const [esitoDuplicazione, setEsitoDuplicazione] = useState<{
-    giorniCreati: number;
-    giorni: string[];
-  } | null>(null);
+  // Copia e incolla: la riga va negli appunti della scheda e il calendario del
+  // mese si apre in modalità incolla.
+  const router = useRouter();
+  const appuntiRiga = useAppuntiRiga();
+  const copiaSuAltriGiorni = useCallback(
+    (riga: RigaAttivitaClient) => {
+      if (!appuntiRiga) return;
+      appuntiRiga.copia(riga);
+      router.push(urlDelFoglio(`/attivita?mese=${data.slice(0, 7)}`, collaboratoreConsultatoId));
+    },
+    [appuntiRiga, router, data, collaboratoreConsultatoId]
+  );
 
   // Cascade select: offerte del cliente selezionato
   const [offerte, setOfferte] = useState<OffertaSelect[]>([]);
@@ -775,23 +779,6 @@ export default function DettaglioGiornata({
     [collaboratoreConsultatoId, invalidaDopoMutazione]
   );
 
-  // ── Duplicazione su più giorni ─────────────────────────────
-
-  /**
-   * Chiude il selettore, mostra l'esito e — soprattutto — porta i giorni di
-   * destinazione fino all'isola: `invalidaDopoMutazione` li inoltra come
-   * `giorniAggiuntivi`, ed è da lì che discende l'invalidazione anche dei mesi
-   * diversi da quello della giornata visualizzata.
-   */
-  const gestisciDuplicazione = useCallback(
-    (giorniDestinazione: string[], giorniCreati: number) => {
-      setRigaDaDuplicare(null);
-      setEsitoDuplicazione({ giorniCreati, giorni: giorniDestinazione });
-      invalidaDopoMutazione(giorniDestinazione);
-    },
-    [invalidaDopoMutazione]
-  );
-
   // ═════════════════════════════════════════════════════════════
   // Render
   // ═════════════════════════════════════════════════════════════
@@ -839,53 +826,6 @@ export default function DettaglioGiornata({
           </span>
         </p>
       </div>
-
-      {/* ── Esito della duplicazione ── */}
-      {esitoDuplicazione && (
-        <div
-          data-testid="esito-duplicazione"
-          role="status"
-          className="mt-4 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-500/30 dark:bg-emerald-500/10"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mt-0.5 h-4 w-4 flex-none text-emerald-700 dark:text-emerald-400"
-          >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-          <div className="flex-1 text-sm font-medium text-emerald-800 dark:text-emerald-300">
-            Riga replicata su {esitoDuplicazione.giorniCreati}{" "}
-            {esitoDuplicazione.giorniCreati === 1 ? "giorno" : "giorni"}.
-            <div className="mt-1 text-xs font-normal">
-              {esitoDuplicazione.giorni.map(dataEstesa).join(" · ")}
-            </div>
-          </div>
-          <button
-            type="button"
-            aria-label="Chiudi l'esito"
-            onClick={() => setEsitoDuplicazione(null)}
-            className="-m-2 flex h-10 w-10 flex-none items-center justify-center rounded-lg text-emerald-800 transition-colors hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-rose-600 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              className="h-4 w-4"
-            >
-              <path d="M6 6l12 12M18 6 6 18" />
-            </svg>
-          </button>
-        </div>
-      )}
 
       {/* ── Area operativa: form a sinistra, attività a destra ── */}
       <div
@@ -1359,16 +1299,27 @@ export default function DettaglioGiornata({
                           </PulsanteAttesa>
                           <PulsanteAttesa
                             type="button"
-                            data-testid="duplica-riga"
+                            data-testid="copia-riga"
                             attesaEsterna={rigaInAttesaId === riga.id}
-                            onClick={() => {
-                              setEsitoDuplicazione(null);
-                              setRigaDaDuplicare(riga);
-                            }}
-                            className={CLASSE_AZIONE_RIGA}
+                            disabled={motivoNonCopiabile(riga) !== null}
+                            aria-describedby={
+                              motivoNonCopiabile(riga) ? `motivo-non-copiabile-${riga.id}` : undefined
+                            }
+                            onClick={() => copiaSuAltriGiorni(riga)}
+                            className={`${CLASSE_AZIONE_RIGA} text-rose-700 dark:text-rose-300`}
                           >
-                            Duplica…
+                            <IconaCopia className="h-3.5 w-3.5 flex-none" />
+                            Copia su altri giorni
                           </PulsanteAttesa>
+                          {motivoNonCopiabile(riga) && (
+                            <span
+                              id={`motivo-non-copiabile-${riga.id}`}
+                              data-testid="motivo-non-copiabile"
+                              className="text-xs font-medium text-amber-800 dark:text-amber-300"
+                            >
+                              {motivoNonCopiabile(riga)}
+                            </span>
+                          )}
                           {riga.rimborsoTrasfertaEtichetta != null && (
                             <PulsanteAttesa
                               type="button"
@@ -1433,16 +1384,6 @@ export default function DettaglioGiornata({
         </div>
       </div>
 
-      {/* ── Selettore di duplicazione su più giorni ── */}
-      {rigaDaDuplicare && (
-        <SelettoreDuplicazione
-          riga={rigaDaDuplicare}
-          giornoOrigine={data}
-          collaboratoreConsultatoId={collaboratoreConsultatoId}
-          onChiudi={() => setRigaDaDuplicare(null)}
-          onDuplicata={gestisciDuplicazione}
-        />
-      )}
     </>
   );
 }

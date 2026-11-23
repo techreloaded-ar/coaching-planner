@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copia dal dettaglio giornata — Coaching Planner</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand-mark">CP</div>
+  <div class="brand-name">
+    <b>Coaching Planner</b>
+    <span>Le mie attività</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+    <svg class="i ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+    <svg class="i ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+  </button>
+</header>
+
+<main class="pagina">
+
+  <a class="crumb" href="index.html">
+    <svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>
+    Calendario · novembre 2026
+  </a>
+
+  <div class="intestazione-giorno">
+    <div class="dow">mercoledì</div>
+    <h1>11 novembre 2026</h1>
+  </div>
+
+  <div class="riepilogo">
+    <div class="kpi"><div class="lbl">Ore del giorno</div><div class="val">8,0 h</div></div>
+    <div class="kpi"><div class="lbl">Ore fatturabili</div><div class="val">6,0 h</div></div>
+    <div class="kpi"><div class="lbl">Rimborsi trasferta</div><div class="val">€ 60,00</div></div>
+  </div>
+
+  <h2 class="sez-titolo">Righe del giorno</h2>
+  <div class="righe">
+
+    <article class="riga">
+      <div class="riga-top">
+        <div>
+          <div class="cliente">Nordwind Logistica</div>
+          <div class="tag-row"><span class="tag">NWL-2026-03</span><span class="tag">Coaching team operations</span></div>
+          <div class="nota">Retrospettiva di rilascio e allineamento con i team leader.</div>
+        </div>
+        <div class="riga-dx"><span class="pill">Fatt.</span><span class="ore">6,0 h</span></div>
+      </div>
+      <div class="rimborso">
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.4"/></svg>
+        <span class="et">Trasferta oltre 100 km</span><span class="im">€ 60,00</span>
+      </div>
+      <div class="azioni-riga">
+        <button class="btn" type="button">Modifica</button>
+        <a class="btn btn-copia" href="index.html?copia=r-11a">
+          <svg class="i" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2.2"/><path d="M15.5 5.5H5.8A2.3 2.3 0 0 0 3.5 7.8v9.7"/></svg>
+          Copia su altri giorni
+        </a>
+        <button class="btn btn-warn" type="button">Rimuovi rimborso</button>
+        <button class="btn btn-danger" type="button">Elimina</button>
+      </div>
+    </article>
+
+    <article class="riga">
+      <div class="riga-top">
+        <div>
+          <div class="cliente">Bottega Cartaria</div>
+          <div class="tag-row"><span class="tag">BTC-2026-01</span><span class="tag">Affiancamento Scrum Master</span></div>
+          <div class="nota">Preparazione materiali.</div>
+        </div>
+        <div class="riga-dx"><span class="pill no">Non fatt.</span><span class="ore">2,0 h</span></div>
+      </div>
+      <div class="azioni-riga">
+        <button class="btn" type="button">Modifica</button>
+        <a class="btn btn-copia" href="index.html?copia=r-11b">
+          <svg class="i" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2.2"/><path d="M15.5 5.5H5.8A2.3 2.3 0 0 0 3.5 7.8v9.7"/></svg>
+          Copia su altri giorni
+        </a>
+        <button class="btn btn-danger" type="button">Elimina</button>
+      </div>
+    </article>
+
+  </div>
+
+  <div class="note-card">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+    <span>
+      <b>Ingresso dal dettaglio giornata.</b> «Copia su altri giorni» prende il posto di «Duplica…» e del suo
+      pannello modale: porta al calendario del mese già in modalità incolla, con questa riga negli appunti
+      e l’11 marcato come origine. Il meccanismo resta uno solo, qualunque sia il punto di partenza.
+    </span>
+  </div>
+
+  <div class="demo-bar">
+    <span class="demo-label">Altre viste</span>
+    <a class="btn" href="index.html">Calendario</a>
+    <a class="btn" href="index.html?stato=incolla">Giorni scelti</a>
+    <a class="btn" href="elenco.html">Dall’elenco</a>
+  </div>
+
+</main>
+
+<script src="app.js"></script>
+<script>CP.initTheme();</script>
+</body>
+</html>
