@@ -98,6 +98,7 @@ export default async function AttivitaPage({
         <CalendarioMensile
           datiMeseIniziale={datiMese}
           oggi={new Date().toISOString()}
+          solaLettura={!consultato.attivo}
         />
       </>
     );

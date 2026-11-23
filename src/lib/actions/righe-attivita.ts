@@ -658,7 +658,10 @@ export async function rimuoviRimborsoTrasferta(
  * L'ammissibilità applicata è quella della **creazione** (offerta presente,
  * attiva e coerente col cliente), non quella più
  * clemente di `modificaRiga`: qui non si aggiorna una riga storica, si creano
- * righe nuove, che devono rispettare le regole valide oggi.
+ * righe nuove, che devono rispettare le regole valide oggi. In più l'offerta
+ * deve essere ancora abilitata per il collaboratore del foglio: è il comando
+ * dietro al copia e incolla sul calendario, che non replica righe su offerte
+ * non più abilitate.
  *
  * La scrittura è unica e atomica: o tutti i giorni ammessi ricevono la copia,
  * o non viene creata alcuna riga.
@@ -713,6 +716,28 @@ export async function duplicaRigaSuGiorni(
     riga.offertaId
   );
   if (erroreAmmissibilita) return erroreAmmissibilita;
+
+  // A differenza di una riga nuova, la copia richiede che l'offerta sia ancora
+  // abilitata per il collaboratore del foglio: una riga storica su un'offerta
+  // non più abilitata non si replica. La verifica è qui, alla conferma, perché
+  // l'abilitazione può venire meno dopo che la riga è stata copiata.
+  const abilitazione = await db.abilitazioneOfferta.findUnique({
+    where: {
+      collaboratoreId_offertaId: {
+        collaboratoreId: collaboratore.id,
+        offertaId: riga.offertaId,
+      },
+    },
+    select: { id: true },
+  });
+  if (!abilitazione) {
+    return {
+      success: false,
+      error: collaboratoreConsultatoId
+        ? "L'offerta della riga non è più abilitata per il collaboratore"
+        : "L'offerta della riga non è più abilitata per te",
+    };
+  }
 
   await db.rigaAttivita.createMany({
     data: giorniDestinazione.map((giornoDestinazione) => {

@@ -1276,16 +1276,26 @@ describe("duplicaRigaSuGiorni", () => {
     aspettataNessunaInvalidazione();
   });
 
-  it("duplica anche quando il collaboratore non è abilitato all'offerta", async () => {
+  it("rifiuta la copia quando l'offerta non è più abilitata per il collaboratore, senza scrivere né invalidare", async () => {
     mockAbilitazioneOfferta.findUnique.mockResolvedValue(null);
 
-    const result = await duplicaRigaSuGiorni("riga-1", ["2026-03-17"]);
+    const result = await duplicaRigaSuGiorni("riga-1", ["2026-03-17", "2026-04-07"]);
 
-    expect(result.success).toBe(true);
-    expect(mockAbilitazioneOfferta.findUnique).not.toHaveBeenCalled();
-    expect(mockRigaAttivita.createMany).toHaveBeenCalledWith({
-      data: [copiaAttesaPer("2026-03-17")],
+    expect(result).toEqual({
+      success: false,
+      error: "L'offerta della riga non è più abilitata per te",
     });
+    expect(mockAbilitazioneOfferta.findUnique).toHaveBeenCalledWith({
+      where: {
+        collaboratoreId_offertaId: {
+          collaboratoreId: "collab-giulia",
+          offertaId: "offerta-1",
+        },
+      },
+      select: { id: true },
+    });
+    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
   });
 
   it("rifiuta la riga di un altro collaboratore", async () => {

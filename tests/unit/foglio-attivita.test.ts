@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   },
   offerta: { findUnique: vi.fn() },
   cliente: { findUnique: vi.fn() },
+  abilitazioneOfferta: { findUnique: vi.fn() },
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -32,6 +33,7 @@ vi.mock("@/lib/db", () => ({
     rigaAttivita: mocks.rigaAttivita,
     offerta: mocks.offerta,
     cliente: mocks.cliente,
+    abilitazioneOfferta: mocks.abilitazioneOfferta,
   },
 }));
 
@@ -249,6 +251,7 @@ describe("Server Action sul foglio consultato", () => {
     const modifica = await modificaRiga(
       formRiga({ collaboratoreConsultatoId: "collab-mario", rigaId: "riga-1", ore: "6" })
     );
+    mocks.abilitazioneOfferta.findUnique.mockResolvedValue({ id: "abilitazione-1" });
     const duplicazione = await duplicaRigaSuGiorni("riga-1", ["2026-10-13"], "collab-mario");
 
     expect(modifica).toEqual({ success: true });
@@ -260,6 +263,11 @@ describe("Server Action sul foglio consultato", () => {
     expect(mocks.rigaAttivita.createMany.mock.calls[0][0].data[0].collaboratoreId).toBe(
       "collab-mario"
     );
+    // L'abilitazione richiesta dalla copia è quella del collaboratore consultato.
+    expect(mocks.abilitazioneOfferta.findUnique.mock.calls[0][0].where.collaboratoreId_offertaId).toEqual({
+      collaboratoreId: "collab-mario",
+      offertaId: "offerta-1",
+    });
   });
 
   it("rifiuta la scrittura sul foglio di un collaboratore disattivato", async () => {

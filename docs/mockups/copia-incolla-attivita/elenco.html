@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copia dalla vista Elenco — Coaching Planner</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand-mark">CP</div>
+  <div class="brand-name">
+    <b>Coaching Planner</b>
+    <span>Le mie attività</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambia tema chiaro/scuro" title="Tema chiaro/scuro">
+    <svg class="i ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"/></svg>
+    <svg class="i ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19"/></svg>
+  </button>
+</header>
+
+<main class="pagina">
+
+  <div class="cal-barra">
+    <button class="nav-quadro" type="button" aria-label="Mese precedente">
+      <svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>
+    </button>
+    <span class="mese-corrente">novembre 2026</span>
+    <button class="nav-quadro" type="button" aria-label="Mese successivo">
+      <svg class="i" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+    </button>
+    <button class="btn-mese" type="button">Mese corrente</button>
+    <div class="spacer"></div>
+    <div class="interruttore" aria-label="Vista">
+      <a href="index.html">Calendario</a>
+      <a class="attivo" href="elenco.html" aria-current="page">Elenco</a>
+    </div>
+    <div class="pillola-mese">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span id="giornateMese">—</span>
+    </div>
+  </div>
+
+  <div class="elenco">
+    <table>
+      <thead>
+        <tr>
+          <th>Giorno</th><th>Cliente</th><th>Offerta</th><th style="text-align:right">Ore</th>
+          <th>Fatturabile</th><th>Rimborso trasferta</th><th><span style="position:absolute;left:-9999px">Azioni</span></th>
+        </tr>
+      </thead>
+      <tbody id="elencoCorpo"></tbody>
+    </table>
+  </div>
+
+  <div class="note-card">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/></svg>
+    <span>
+      <b>Ingresso dall’elenco.</b> «Copia» su una riga porta alla vista Calendario già in modalità incolla,
+      con quella riga negli appunti: i giorni di destinazione si scelgono sempre lì, dove si vede cosa
+      contengono. La riga del <b>13</b> è su un’offerta non più abilitata: «Copia» è spento in partenza,
+      con il motivo scritto accanto, invece di far fallire l’incolla alla fine.
+    </span>
+  </div>
+
+  <div class="demo-bar">
+    <span class="demo-label">Altre viste</span>
+    <a class="btn" href="index.html">Calendario</a>
+    <a class="btn" href="index.html?stato=incolla">Giorni scelti</a>
+    <a class="btn" href="giornata.html">Dal dettaglio giornata</a>
+  </div>
+
+</main>
+
+<script src="app.js"></script>
+<script>CP.initElenco();</script>
+</body>
+</html>
