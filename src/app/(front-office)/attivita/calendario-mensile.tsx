@@ -16,7 +16,7 @@ import type { DatiCalendarioMese, RigaAttivitaClient } from "@/lib/attivita-cont
 import { IconaOffertaNonAbilitata, SelettoreMese, useIdratata } from "@/components";
 import { ORE_PER_GIORNATA, sommaOre } from "@/domain/types";
 import { formattaEuroArrotondato, formattaGiornate, formattaNumeroOre, formattaOre } from "@/lib/formattazione";
-import { duplicaRigaSuGiorni } from "@/lib/actions/righe-attivita";
+import { annullaIncolla, duplicaRigaSuGiorni } from "@/lib/actions/righe-attivita";
 import {
   alternaGiorno,
   dataEstesa,
@@ -453,13 +453,34 @@ export default function CalendarioMensile({
       // mostrati, che entrando serviranno le righe nuove senza ricaricare.
       cache?.invalidate(...mesiDeiGiorni(giorni));
       cacheGiornate?.invalidate(...giorni);
-      appuntiRiga?.incollata(giorni);
+      appuntiRiga?.incollata(giorni, risultato.righeIds ?? []);
       // Rilettura del mese mostrato: la griglia la adotta tramite `subscribe`.
       void cache?.revalida(intentoCorrente.current.token).catch(() => undefined);
     } catch {
       setErroreIncolla("Il server non ha risposto, riprova");
     } finally {
       setIncollaInCorso(false);
+    }
+  }
+
+  /**
+   * «Annulla copia» dal messaggio d'esito: rimuove le righe appena incollate
+   * e riallinea le cache come dopo l'incolla. Restituisce l'errore da
+   * mostrare nel messaggio, o `null`.
+   */
+  async function annullaCopia(): Promise<string | null> {
+    if (!esitoIncolla || esitoIncolla.stato !== "incollata") return null;
+    const { giorni, righeIds } = esitoIncolla;
+    try {
+      const risultato = await annullaIncolla(righeIds, collaboratoreConsultatoId);
+      if (!risultato.success) return risultato.error ?? "Annullamento non riuscito";
+      cache?.invalidate(...mesiDeiGiorni(giorni));
+      cacheGiornate?.invalidate(...giorni);
+      appuntiRiga?.annullata(risultato.righeEliminate ?? 0);
+      void cache?.revalida(intentoCorrente.current.token).catch(() => undefined);
+      return null;
+    } catch {
+      return "Il server non ha risposto, riprova";
     }
   }
 
@@ -629,7 +650,11 @@ export default function CalendarioMensile({
 
       {/* ── Esito dell'ultimo incolla ── */}
       {!inIncolla && esitoIncolla && appuntiRiga && (
-        <EsitoIncollaBanner esito={esitoIncolla} onChiudi={appuntiRiga.chiudiEsito} />
+        <EsitoIncollaBanner
+          esito={esitoIncolla}
+          onChiudi={appuntiRiga.chiudiEsito}
+          onAnnullaCopia={annullaCopia}
+        />
       )}
 
       {/* ── Lettura delle righe del giorno non riuscita ── */}
@@ -693,12 +718,11 @@ export default function CalendarioMensile({
             const destinazioneSelezionabile = inIncolla && !cella.fuoriMese;
             const origine = appunti !== null && appunti.giornoOrigine === key;
             const scelto = appunti !== null && appunti.giorniScelti.includes(key);
-            const incollato =
-              !inIncolla && (esitoIncolla?.giorni.includes(key) ?? false);
 
             // Superfici: neutra appena distinta per i giorni con attività,
-            // trama diagonale tenue per il weekend vuoto; il rosa resta a oggi,
-            // ai giorni scelti per l'incolla e a quelli appena incollati.
+            // trama diagonale tenue per il weekend vuoto; il rosa resta a oggi
+            // e ai giorni scelti per l'incolla. I giorni appena incollati hanno
+            // l'aspetto di qualunque giorno con attività.
             const classiGiorno = [
               "relative flex h-full flex-col items-start gap-1.5 p-[9px_10px_10px_12px] min-w-0 w-full overflow-hidden text-left transition-colors focus-visible:z-[1] focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-indigo-500 dark:focus-visible:outline-indigo-400 max-sm:items-center max-sm:gap-1 max-sm:p-1",
               inIncolla && (cella.fuoriMese || origine) ? "cursor-default" : "cursor-pointer",
@@ -706,9 +730,7 @@ export default function CalendarioMensile({
               !isLastRow ? "border-b border-zinc-100 dark:border-zinc-800" : "",
               scelto
                 ? "bg-rose-50 shadow-[inset_0_0_0_2px] shadow-rose-600 hover:bg-rose-100/70 dark:bg-rose-500/10 dark:shadow-rose-400 dark:hover:bg-rose-500/15"
-                : incollato
-                  ? "bg-rose-50 hover:bg-rose-100/70 dark:bg-rose-500/10 dark:hover:bg-rose-500/15"
-                  : righeNonAbilitate > 0
+                : righeNonAbilitate > 0
                     ? "bg-amber-50 hover:bg-amber-100/70 dark:bg-amber-950/30 dark:hover:bg-amber-950/50"
                     : haAttivita
                       ? "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:hover:bg-zinc-800"
@@ -732,7 +754,7 @@ export default function CalendarioMensile({
                 {(sintesiGiorno || scelto) && (
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-[3px] ${
-                      scelto || incollato
+                      scelto
                         ? "bg-rose-600 dark:bg-rose-400"
                         : righeNonAbilitate > 0
                           ? "bg-amber-500 dark:bg-amber-400"
@@ -934,7 +956,6 @@ export default function CalendarioMensile({
                   aria-current={isToday ? "date" : undefined}
                   data-testid="cella-giorno"
                   data-giorno={key}
-                  data-incollato={incollato ? "true" : undefined}
                   data-con-attivita={haAttivita ? "true" : "false"}
                   data-fuori-mese={cella.fuoriMese ? "true" : "false"}
                 >

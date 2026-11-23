@@ -5,6 +5,7 @@ import {
   eliminaRiga,
   rimuoviRimborsoTrasferta,
   duplicaRigaSuGiorni,
+  annullaIncolla,
 } from "@/lib/actions/righe-attivita";
 
 // ── Mock di Prisma ──────────────────────────────────────────────
@@ -12,6 +13,9 @@ import {
 const mockRigaAttivita = vi.hoisted(() => ({
   create: vi.fn(),
   createMany: vi.fn(),
+  createManyAndReturn: vi.fn(),
+  findMany: vi.fn(),
+  deleteMany: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
   findUnique: vi.fn(),
@@ -1139,7 +1143,7 @@ describe("duplicaRigaSuGiorni", () => {
     };
   }
 
-  /** Record atteso in `createMany` per un giorno di destinazione. */
+  /** Record atteso in `createManyAndReturn` per un giorno di destinazione. */
   function copiaAttesaPer(giorno: string) {
     const [anno, mese, giornoDelMese] = giorno.split("-").map(Number);
     return {
@@ -1170,7 +1174,11 @@ describe("duplicaRigaSuGiorni", () => {
       collaboratoreId: "collab-giulia",
       offertaId: "offerta-1",
     });
-    mockRigaAttivita.createMany.mockResolvedValue({ count: 3 });
+    mockRigaAttivita.createManyAndReturn.mockResolvedValue([
+      { id: "copia-1" },
+      { id: "copia-2" },
+      { id: "copia-3" },
+    ]);
   });
 
   it("copia integralmente la riga su ogni giorno scelto, anche in mesi diversi", async () => {
@@ -1178,8 +1186,9 @@ describe("duplicaRigaSuGiorni", () => {
 
     await duplicaRigaSuGiorni("riga-1", giorni);
 
-    expect(mockRigaAttivita.createMany).toHaveBeenCalledTimes(1);
-    expect(mockRigaAttivita.createMany).toHaveBeenCalledWith({
+    expect(mockRigaAttivita.createManyAndReturn).toHaveBeenCalledTimes(1);
+    expect(mockRigaAttivita.createManyAndReturn).toHaveBeenCalledWith({
+      select: { id: true },
       data: giorni.map(copiaAttesaPer),
     });
   });
@@ -1201,7 +1210,11 @@ describe("duplicaRigaSuGiorni", () => {
 
     const result = await duplicaRigaSuGiorni("riga-1", giorni);
 
-    expect(result).toEqual({ success: true, giorniCreati: 3 });
+    expect(result).toEqual({
+      success: true,
+      giorniCreati: 3,
+      righeIds: ["copia-1", "copia-2", "copia-3"],
+    });
     for (const giorno of giorni) {
       aspettatiPercorsiInvalidati(giorno);
     }
@@ -1216,8 +1229,9 @@ describe("duplicaRigaSuGiorni", () => {
 
     expect(result.success).toBe(true);
     expect(result.giorniCreati).toBe(1);
-    expect(mockRigaAttivita.createMany).toHaveBeenCalledTimes(1);
-    expect(mockRigaAttivita.createMany).toHaveBeenCalledWith({
+    expect(mockRigaAttivita.createManyAndReturn).toHaveBeenCalledTimes(1);
+    expect(mockRigaAttivita.createManyAndReturn).toHaveBeenCalledWith({
+      select: { id: true },
       data: [copiaAttesaPer("2026-03-17")],
     });
   });
@@ -1227,7 +1241,7 @@ describe("duplicaRigaSuGiorni", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBeTruthy();
-    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createManyAndReturn).not.toHaveBeenCalled();
     aspettataNessunaInvalidazione();
   });
 
@@ -1236,7 +1250,7 @@ describe("duplicaRigaSuGiorni", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBeTruthy();
-    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createManyAndReturn).not.toHaveBeenCalled();
     aspettataNessunaInvalidazione();
   });
 
@@ -1245,7 +1259,7 @@ describe("duplicaRigaSuGiorni", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBeTruthy();
-    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createManyAndReturn).not.toHaveBeenCalled();
     aspettataNessunaInvalidazione();
   });
 
@@ -1258,7 +1272,7 @@ describe("duplicaRigaSuGiorni", () => {
       success: false,
       error: "Assegna un'offerta alla riga prima di duplicarla",
     });
-    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createManyAndReturn).not.toHaveBeenCalled();
     aspettataNessunaInvalidazione();
   });
 
@@ -1272,7 +1286,7 @@ describe("duplicaRigaSuGiorni", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBe("L'offerta non è più attiva");
-    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createManyAndReturn).not.toHaveBeenCalled();
     aspettataNessunaInvalidazione();
   });
 
@@ -1294,7 +1308,7 @@ describe("duplicaRigaSuGiorni", () => {
       },
       select: { id: true },
     });
-    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createManyAndReturn).not.toHaveBeenCalled();
     aspettataNessunaInvalidazione();
   });
 
@@ -1308,7 +1322,7 @@ describe("duplicaRigaSuGiorni", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("altro collaboratore");
-    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createManyAndReturn).not.toHaveBeenCalled();
     aspettataNessunaInvalidazione();
   });
 
@@ -1320,7 +1334,53 @@ describe("duplicaRigaSuGiorni", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("profilo Collaboratore");
     expect(mockRigaAttivita.findUnique).not.toHaveBeenCalled();
-    expect(mockRigaAttivita.createMany).not.toHaveBeenCalled();
+    expect(mockRigaAttivita.createManyAndReturn).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+
+describe("annullaIncolla", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({
+      stato: "ATTIVO",
+      collaboratore: collaboratoreMock(),
+    });
+    mockRigaAttivita.findMany.mockResolvedValue([
+      { data: new Date(Date.UTC(2026, 2, 17)) },
+      { data: new Date(Date.UTC(2026, 3, 7)) },
+    ]);
+    mockRigaAttivita.deleteMany.mockResolvedValue({ count: 2 });
+  });
+
+  it("rimuove con una sola cancellazione le sole righe indicate del collaboratore e invalida i giorni", async () => {
+    const result = await annullaIncolla(["copia-1", "copia-2"]);
+
+    const dove = { id: { in: ["copia-1", "copia-2"] }, collaboratoreId: "collab-giulia" };
+    expect(mockRigaAttivita.deleteMany).toHaveBeenCalledTimes(1);
+    expect(mockRigaAttivita.deleteMany).toHaveBeenCalledWith({ where: dove });
+    expect(result).toEqual({ success: true, righeEliminate: 2 });
+    aspettatiPercorsiInvalidati("2026-03-17");
+    aspettatiPercorsiInvalidati("2026-04-07");
+  });
+
+  it("rifiuta una lista vuota senza cancellare né invalidare", async () => {
+    const result = await annullaIncolla([]);
+
+    expect(result.success).toBe(false);
+    expect(mockRigaAttivita.deleteMany).not.toHaveBeenCalled();
+    aspettataNessunaInvalidazione();
+  });
+
+  it("rifiuta con profilo collaboratore assente senza cancellare", async () => {
+    mockRisolviProfiloCollaboratoreCorrente.mockResolvedValue({ stato: "ASSENTE" });
+
+    const result = await annullaIncolla(["copia-1"]);
+
+    expect(result.success).toBe(false);
+    expect(mockRigaAttivita.deleteMany).not.toHaveBeenCalled();
     aspettataNessunaInvalidazione();
   });
 });

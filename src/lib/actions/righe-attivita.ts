@@ -673,7 +673,7 @@ export async function duplicaRigaSuGiorni(
   rigaId: string,
   giorni: string[],
   collaboratoreConsultatoId?: string | null
-): Promise<ActionResult & { giorniCreati?: number }> {
+): Promise<ActionResult & { giorniCreati?: number; righeIds?: string[] }> {
   const collaboratore = await richiediCollaboratoreOperativo(
     collaboratoreConsultatoId
   );
@@ -739,7 +739,10 @@ export async function duplicaRigaSuGiorni(
     };
   }
 
-  await db.rigaAttivita.createMany({
+  // Gli identificativi delle righe create tornano al client: sono ciò che
+  // «Annulla copia» rimuove, e soltanto quello.
+  const create = await db.rigaAttivita.createManyAndReturn({
+    select: { id: true },
     data: giorniDestinazione.map((giornoDestinazione) => {
       const [anno, mese, giorno] = giornoDestinazione.split("-").map(Number);
       return {
@@ -765,7 +768,57 @@ export async function duplicaRigaSuGiorni(
   revalidatePath("/attivita/riepilogo");
   revalidatePath("/attivita");
 
-  return { success: true, giorniCreati: giorniDestinazione.length };
+  return {
+    success: true,
+    giorniCreati: giorniDestinazione.length,
+    righeIds: create.map((riga) => riga.id),
+  };
+}
+
+/** Limite delle righe rimosse da un solo «Annulla copia»: ben oltre un anno di giorni. */
+const MASSIMO_RIGHE_ANNULLA_INCOLLA = 500;
+
+/**
+ * «Annulla copia»: rimuove le righe create da un incolla appena confermato.
+ *
+ * Il client passa gli identificativi restituiti da `duplicaRigaSuGiorni`. Sono
+ * soltanto una richiesta: vengono rimosse le sole righe che appartengono al
+ * collaboratore del foglio, con una cancellazione unica e atomica. Una riga
+ * nel frattempo già eliminata non blocca la rimozione delle altre.
+ *
+ * @param rigaIds - identificativi delle righe create dall'incolla
+ */
+export async function annullaIncolla(
+  rigaIds: string[],
+  collaboratoreConsultatoId?: string | null
+): Promise<ActionResult & { righeEliminate?: number }> {
+  const collaboratore = await richiediCollaboratoreOperativo(
+    collaboratoreConsultatoId
+  );
+  if ("success" in collaboratore) {
+    return collaboratore;
+  }
+
+  if (
+    !Array.isArray(rigaIds) ||
+    rigaIds.length === 0 ||
+    rigaIds.length > MASSIMO_RIGHE_ANNULLA_INCOLLA ||
+    rigaIds.some((id) => typeof id !== "string" || id === "")
+  ) {
+    return { success: false, error: "Nessuna copia da annullare" };
+  }
+
+  const dove = { id: { in: rigaIds }, collaboratoreId: collaboratore.id };
+  const righe = await db.rigaAttivita.findMany({ where: dove, select: { data: true } });
+  const { count } = await db.rigaAttivita.deleteMany({ where: dove });
+
+  for (const giorno of new Set(righe.map((riga) => giornoDellaRiga(riga.data)))) {
+    revalidatePath(`/attivita/${giorno}`);
+  }
+  revalidatePath("/attivita/riepilogo");
+  revalidatePath("/attivita");
+
+  return { success: true, righeEliminate: count };
 }
 
 // Il cascade select cliente → offerta non passa più da una Server Action: la

@@ -261,30 +261,127 @@ export function VassoioAppunti({
 // Esito dell'incolla
 // ═══════════════════════════════════════════════════════════════
 
+/** Quanto resta visibile il messaggio d'esito, salvo pause. */
+const DURATA_ESITO_MS = 3000;
+
+/**
+ * Messaggio d'esito dell'incolla, con l'ultima possibilità di annullarlo.
+ *
+ * Si chiude da solo dopo tre secondi: la barra in fondo si svuota e, a fine
+ * animazione, il messaggio sparisce. Il conto si ferma finché il mouse è sopra
+ * il messaggio o il focus è dentro, mentre l'annullamento è in corso e se
+ * l'annullamento non è riuscito, così da lasciare il tempo di leggere e agire.
+ */
 export function EsitoIncollaBanner({
   esito,
   onChiudi,
+  onAnnullaCopia,
 }: {
   esito: EsitoIncolla;
   onChiudi: () => void;
+  /** Rimuove le righe incollate; restituisce l'errore da mostrare, o `null`. */
+  onAnnullaCopia: () => Promise<string | null>;
 }) {
-  const { riga, giorni } = esito;
+  const { riga, giorni, stato } = esito;
   const rimborso = riga.rimborsoTrasfertaEtichetta;
+  const [mouseSopra, setMouseSopra] = useState(false);
+  const [focusDentro, setFocusDentro] = useState(false);
+  const [annullamentoInCorso, setAnnullamentoInCorso] = useState(false);
+  const [errore, setErrore] = useState<string | null>(null);
+  const pulsanteChiudi = useRef<HTMLButtonElement>(null);
+  const inPausa = mouseSopra || focusDentro || annullamentoInCorso || errore !== null;
+  const annullata = stato === "annullata";
+
+  async function annulla() {
+    setErrore(null);
+    setAnnullamentoInCorso(true);
+    try {
+      const esitoAnnullamento = await onAnnullaCopia();
+      setErrore(esitoAnnullamento);
+      // «Annulla copia» sparisce: chi lo aveva raggiunto da tastiera prosegue
+      // dalla X invece di perdere il focus.
+      if (esitoAnnullamento === null && focusDentro) pulsanteChiudi.current?.focus();
+    } finally {
+      setAnnullamentoInCorso(false);
+    }
+  }
+
   return (
     <div
       role="status"
       data-testid="esito-incolla"
-      className="mb-[14px] flex items-start gap-3 rounded-[11px] border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-500/30 dark:bg-emerald-500/10"
+      data-stato={stato}
+      data-in-pausa={inPausa ? "true" : "false"}
+      onMouseEnter={() => setMouseSopra(true)}
+      onMouseLeave={() => setMouseSopra(false)}
+      // Pausa per il focus da tastiera: il clic del mouse è già coperto dal
+      // passaggio sopra il messaggio.
+      onFocus={(evento) => setFocusDentro(evento.target.matches(":focus-visible"))}
+      onBlur={(evento) => {
+        if (!evento.currentTarget.contains(evento.relatedTarget as Node | null)) {
+          setFocusDentro(false);
+        }
+      }}
+      className="relative mb-[14px] flex items-start gap-3 overflow-hidden rounded-[11px] border border-emerald-200 bg-emerald-50 px-4 pb-4 pt-3 dark:border-emerald-500/30 dark:bg-emerald-500/10"
     >
       <IconaSpunta className="mt-0.5 h-4 w-4 flex-none text-emerald-700 dark:text-emerald-400" />
       <div className="flex-1 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-        Riga incollata su {etichettaGiorni(giorni.length)}
-        <div className="mt-0.5 text-xs font-normal">
-          {riga.cliente.ragioneSociale} · {codiceOfferta(riga)} · {formattaOre(riga.ore)}
-          {rimborso != null && <> · rimborso «{rimborso}» incluso</>} — {descriviGiorni(giorni)}
-        </div>
+        {annullata ? (
+          <>
+            Copia annullata
+            <div className="mt-0.5 text-xs font-normal">
+              {esito.righeEliminate === 1
+                ? "Rimossa 1 riga incollata"
+                : `Rimosse ${esito.righeEliminate ?? 0} righe incollate`}
+              : {riga.cliente.ragioneSociale} · {codiceOfferta(riga)} — {descriviGiorni(giorni)}
+            </div>
+          </>
+        ) : (
+          <>
+            Riga incollata su {etichettaGiorni(giorni.length)}
+            <div className="mt-0.5 text-xs font-normal">
+              {riga.cliente.ragioneSociale} · {codiceOfferta(riga)} · {formattaOre(riga.ore)}
+              {rimborso != null && <> · rimborso «{rimborso}» incluso</>} — {descriviGiorni(giorni)}
+            </div>
+          </>
+        )}
+        {errore && (
+          <div
+            role="alert"
+            data-testid="errore-annulla-copia"
+            className="mt-1 text-xs font-semibold text-red-700 dark:text-red-300"
+          >
+            Annullamento non riuscito: {errore}.
+          </div>
+        )}
       </div>
+      {!annullata && (
+        <PulsanteAttesa
+          type="button"
+          data-testid="annulla-copia"
+          attesaEsterna={annullamentoInCorso}
+          etichettaAttesa="Annullo…"
+          onClick={() => void annulla()}
+          className="inline-flex h-8 flex-none cursor-pointer items-center gap-1.5 rounded-[9px] border border-emerald-300 bg-white px-3 text-[13px] font-semibold text-emerald-800 transition hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-500 dark:border-emerald-700 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-[14px] w-[14px]"
+          >
+            <path d="M9 14 4 9l5-5" />
+            <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+          </svg>
+          Annulla copia
+        </PulsanteAttesa>
+      )}
       <button
+        ref={pulsanteChiudi}
         type="button"
         aria-label="Chiudi l'esito"
         onClick={onChiudi}
@@ -302,6 +399,19 @@ export function EsitoIncollaBanner({
           <path d="M6 6l12 12M18 6 6 18" />
         </svg>
       </button>
+      {/* Barra del tempo: riparte quando il messaggio passa a «Copia annullata». */}
+      <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1 bg-emerald-100 dark:bg-emerald-500/20">
+        <div
+          key={stato}
+          data-testid="tempo-esito"
+          onAnimationEnd={onChiudi}
+          style={{
+            animation: `svuota-esito ${DURATA_ESITO_MS}ms linear forwards`,
+            animationPlayState: inPausa ? "paused" : "running",
+          }}
+          className="h-full origin-left bg-emerald-500 dark:bg-emerald-400"
+        />
+      </div>
     </div>
   );
 }

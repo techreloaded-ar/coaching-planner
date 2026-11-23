@@ -70,6 +70,16 @@ html[data-ambiente="pre-prod"] {
   }
 }
 
+/* Barra del tempo del messaggio d'esito dell'incolla: si svuota da destra a sinistra. */
+@keyframes svuota-esito {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 body {
   padding-top: var(--altezza-banner-ambiente);
   background: var(--background);

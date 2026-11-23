@@ -204,6 +204,10 @@ test.describe("Copia e incolla di una riga sul calendario", () => {
     await expect(cellaIncollata).toHaveAttribute("data-con-attivita", "true");
     await expect(cellaIncollata.getByTestId("etichetta-cliente")).toContainText(ragioneSociale);
 
+    // Il messaggio d'esito si chiude da solo dopo tre secondi. Il limite più
+    // ampio è un tetto per macchine lente, non un'attesa.
+    await expect(esito).toHaveCount(0, { timeout: 10_000 });
+
     // Anche il mese di origine, già in cache prima dell'incolla, è aggiornato.
     await page.getByRole("button", { name: "Mese successivo" }).click();
     await expect(page).toHaveURL(`/attivita?mese=${MESE}`);
@@ -402,6 +406,53 @@ test.describe("Copia e incolla di una riga sul calendario", () => {
 
     await apriGiorno(page, GIORNO_A);
     await expect(rigaConNota(page, nota)).toHaveCount(0);
+  });
+
+  test("«Annulla copia» rimuove le righe appena incollate; il messaggio si ferma con il mouse sopra e poi si chiude da solo", async ({
+    page,
+    factory,
+    collaboratore,
+    namespace,
+  }) => {
+    const { nota } = await preparaRigaSorgente(factory, collaboratore, namespace);
+
+    await accediComeCollaboratore(page, collaboratore.utente.email);
+    await page.goto(`/attivita?mese=${MESE}`);
+    await attendiCalendarioIdratato(page);
+
+    await page.getByRole("button", { name: /^Copia una riga del 11 / }).click();
+    await cella(page, GIORNO_A).click();
+    await cella(page, GIORNO_B).click();
+    await page.getByTestId("conferma-incolla").click();
+
+    const esito = page.getByTestId("esito-incolla");
+    await expect(esito).toContainText("Riga incollata su 2 giorni");
+    // Con il mouse sopra il conto alla rovescia si ferma.
+    await esito.hover();
+    await expect(esito).toHaveAttribute("data-in-pausa", "true");
+    await expect(cella(page, GIORNO_A)).toHaveAttribute("data-con-attivita", "true");
+
+    await esito.getByRole("button", { name: "Annulla copia" }).click();
+    await expect(esito).toHaveAttribute("data-stato", "annullata");
+    await expect(esito).toContainText("Copia annullata");
+    await expect(esito).toContainText("Rimosse 2 righe incollate");
+    await expect(esito.getByRole("button", { name: "Annulla copia" })).toHaveCount(0);
+
+    // Il calendario torna com'era, senza ricaricare la pagina.
+    await expect(cella(page, GIORNO_A)).toHaveAttribute("data-con-attivita", "false");
+    await expect(cella(page, GIORNO_B)).toHaveAttribute("data-con-attivita", "false");
+    await expect(cella(page, GIORNO_ORIGINE)).toHaveAttribute("data-con-attivita", "true");
+
+    // Tolto il mouse, il messaggio riparte e si chiude da solo.
+    await page.mouse.move(0, 0);
+    await expect(esito).toHaveAttribute("data-in-pausa", "false");
+    await expect(esito).toHaveCount(0, { timeout: 10_000 });
+
+    // Lettura dal server: le copie non esistono più, l'originale sì.
+    await apriGiorno(page, GIORNO_A);
+    await expect(rigaConNota(page, nota)).toHaveCount(0);
+    await apriGiorno(page, GIORNO_ORIGINE);
+    await expect(rigaConNota(page, nota)).toHaveCount(1);
   });
 
   test("sul foglio consultato da un amministratore la riga incollata è intestata al collaboratore", async ({

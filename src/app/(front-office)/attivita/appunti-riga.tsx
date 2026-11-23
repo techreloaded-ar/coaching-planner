@@ -27,6 +27,11 @@ export interface EsitoIncolla {
   riga: RigaAttivitaClient;
   /** Giorni su cui la riga è stata incollata, in ordine crescente. */
   giorni: string[];
+  /** Righe create dall'incolla: è ciò che «Annulla copia» rimuove. */
+  righeIds: string[];
+  /** `annullata` dopo «Annulla copia», con il numero di righe rimosse. */
+  stato: "incollata" | "annullata";
+  righeEliminate?: number;
 }
 
 export interface ApiAppuntiRiga {
@@ -39,7 +44,9 @@ export interface ApiAppuntiRiga {
   /** Esce dalla modalità incolla senza scrivere nulla. */
   annulla(): void;
   /** Chiude la modalità incolla dopo una conferma riuscita e ne registra l'esito. */
-  incollata(giorni: string[]): void;
+  incollata(giorni: string[], righeIds: string[]): void;
+  /** Registra che le righe dell'ultimo incolla sono state rimosse. */
+  annullata(righeEliminate: number): void;
   /** Chiude il messaggio d'esito. */
   chiudiEsito(): void;
 }
@@ -61,10 +68,14 @@ export function AppuntiRigaProvider({ children }: { children: ReactNode }) {
       impostaGiorni: (giorni) =>
         setAppunti((correnti) => (correnti ? { ...correnti, giorniScelti: giorni } : correnti)),
       annulla: () => setAppunti(null),
-      incollata: (giorni) => {
-        if (appunti) setEsito({ riga: appunti.riga, giorni });
+      incollata: (giorni, righeIds) => {
+        if (appunti) setEsito({ riga: appunti.riga, giorni, righeIds, stato: "incollata" });
         setAppunti(null);
       },
+      annullata: (righeEliminate) =>
+        setEsito((corrente) =>
+          corrente ? { ...corrente, stato: "annullata", righeEliminate } : corrente
+        ),
       chiudiEsito: () => setEsito(null),
     }),
     [appunti, esito]

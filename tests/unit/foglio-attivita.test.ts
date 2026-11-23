@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   rigaAttivita: {
     create: vi.fn(),
     createMany: vi.fn(),
+    createManyAndReturn: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -252,6 +253,7 @@ describe("Server Action sul foglio consultato", () => {
       formRiga({ collaboratoreConsultatoId: "collab-mario", rigaId: "riga-1", ore: "6" })
     );
     mocks.abilitazioneOfferta.findUnique.mockResolvedValue({ id: "abilitazione-1" });
+    mocks.rigaAttivita.createManyAndReturn.mockResolvedValue([{ id: "copia-1" }]);
     const duplicazione = await duplicaRigaSuGiorni("riga-1", ["2026-10-13"], "collab-mario");
 
     expect(modifica).toEqual({ success: true });
@@ -259,8 +261,8 @@ describe("Server Action sul foglio consultato", () => {
       where: { id: "riga-1" },
       data: { ore: 6 },
     });
-    expect(duplicazione).toEqual({ success: true, giorniCreati: 1 });
-    expect(mocks.rigaAttivita.createMany.mock.calls[0][0].data[0].collaboratoreId).toBe(
+    expect(duplicazione).toEqual({ success: true, giorniCreati: 1, righeIds: ["copia-1"] });
+    expect(mocks.rigaAttivita.createManyAndReturn.mock.calls[0][0].data[0].collaboratoreId).toBe(
       "collab-mario"
     );
     // L'abilitazione richiesta dalla copia è quella del collaboratore consultato.
