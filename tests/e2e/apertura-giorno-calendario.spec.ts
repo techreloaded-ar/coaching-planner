@@ -4,6 +4,7 @@ import {
 import { accediComeCollaboratore } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * US-031: Apertura di qualsiasi giorno dal calendario per registrare attività
@@ -62,6 +63,7 @@ test.describe("US-031 Apertura di qualsiasi giorno dal calendario", () => {
     await expect(
       page.getByText(`${clienteConOfferta.offerta.codice} — ${clienteConOfferta.offerta.descrizione}`, { exact: true }),
     ).toBeVisible();
+    await attendiRigheConfermate(page);
 
     // Torna al calendario: la cella ora ha data-con-attivita="true" e mostra la sintesi
     await page.getByRole("link", { name: "Torna al calendario" }).click();

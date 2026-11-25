@@ -2,6 +2,12 @@ import { accediComeAdmin } from "./support/auth";
 import { apriPaginaOfferte } from "./support/offerte";
 import { selezionaRighe } from "./support/elenchi";
 import { test, expect } from "./support/fixtures";
+import {
+	attendiConfermaMutazioni,
+	avvisoMutazioneNonRiuscita,
+	faiFallireAzioniServer,
+	trattieniAzioniServer,
+} from "./support/mutazioni-ottimistiche";
 
 /**
  * Test e2e — US-044: ingaggio dei collaboratori su un'offerta dalla pagina
@@ -15,6 +21,10 @@ import { test, expect } from "./support/fixtures";
  * - AC-3: la revoca toglie il collaboratore lasciando invariati gli altri;
  * - AC-4: le due operazioni si riflettono sulle "Offerte abilitate" del
  *   dettaglio di ciascun collaboratore toccato.
+ *
+ * Ingaggi e revoche sono immediati: la squadra cambia subito e la sezione resta
+ * `aria-busy` finché il server non conferma. Prima di ogni reload il test
+ * attende la conferma, altrimenti il reload interromperebbe la POST in corso.
  */
 
 test.describe("Ingaggi collaboratori su offerta", () => {
@@ -67,6 +77,10 @@ test.describe("Ingaggi collaboratori su offerta", () => {
 			name: "Collaboratori ingaggiati",
 			exact: true,
 		});
+		const sezioneIngaggiati = page.getByRole("region", {
+			name: "Collaboratori ingaggiati",
+			exact: true,
+		});
 
 		// AC-1 — la tabella elenca il solo collaboratore già ingaggiato.
 		await expect(
@@ -96,9 +110,17 @@ test.describe("Ingaggi collaboratori su offerta", () => {
 			.getByRole("button", { name: "Ingaggia selezionati", exact: true })
 			.click();
 
-		// Attesa web-first: il collaboratore appena ingaggiato compare in tabella.
+		// Il dialog si chiude subito e il collaboratore compare in tabella; il
+		// reload aspetta la conferma del server.
+		await expect(dialog).toHaveCount(0);
 		await expect(
 			tabellaIngaggiati.getByRole("row", { name: cognomeDaIngaggiare }),
+		).toBeVisible();
+		await attendiConfermaMutazioni(sezioneIngaggiati);
+		await expect(
+			tabellaIngaggiati
+				.getByRole("row", { name: cognomeDaIngaggiare })
+				.getByRole("button", { name: "Revoca l'ingaggio di" }),
 		).toBeVisible();
 
 		// AC-2 — l'ingaggio sopravvive al ricaricamento.
@@ -122,6 +144,7 @@ test.describe("Ingaggi collaboratori su offerta", () => {
 				tabellaIngaggiati.getByRole("row", { name: cognomeIngaggiato }),
 			).toHaveCount(0, { timeout: 1_000 });
 		}).toPass({ timeout: 15_000 });
+		await attendiConfermaMutazioni(sezioneIngaggiati);
 
 		// AC-3 — dopo il reload la revoca è persistita e l'altro ingaggio resta.
 		await page.reload();
@@ -157,5 +180,115 @@ test.describe("Ingaggi collaboratori su offerta", () => {
 		await expect(
 			tabellaOfferteAbilitate.getByRole("row", { name: codiceOfferta }),
 		).toHaveCount(0);
+	});
+
+	test("ingaggio immediato in attesa di conferma e ritorno allo stato precedente se il server non risponde", async ({
+		page,
+		factory,
+	}) => {
+		const marcatore = `U44R${factory.namespace}`
+			.replace(/[^a-z0-9]/gi, "")
+			.toUpperCase();
+		const { offerta } = await factory.createClienteConOfferta(
+			{ ragioneSociale: `Cliente ${marcatore}` },
+			{ codice: `${marcatore}OFF` },
+		);
+		// Cognomi scelti per l'ordine: A (nuovo) precede B (già in squadra).
+		const { collaboratore: daIngaggiare } = await factory.createCollaboratore({
+			cognome: `${marcatore}A`,
+		});
+		const giaIngaggiato = await factory.createCollaboratore({
+			cognome: `${marcatore}B`,
+		});
+		const { collaboratore: nonIngaggiabile } = await factory.createCollaboratore({
+			cognome: `${marcatore}C`,
+		});
+		await factory.createAbilitazioneOfferta({ collaboratore: giaIngaggiato, offerta });
+
+		const percorso = `/offerte/${offerta.id}/collaboratori`;
+		await accediComeAdmin(page);
+		await page.goto(percorso);
+
+		const sezione = page.getByRole("region", {
+			name: "Collaboratori ingaggiati",
+			exact: true,
+		});
+		const tabella = page.getByRole("table", {
+			name: "Collaboratori ingaggiati",
+			exact: true,
+		});
+		const squadraAttiva = page.getByTestId("squadra-attiva");
+		const rigaNuova = tabella.getByRole("row", { name: daIngaggiare.cognome });
+		await expect(tabella.getByRole("row", { name: giaIngaggiato.collaboratore.cognome })).toBeVisible();
+		await expect(squadraAttiva).toContainText("1");
+
+		const dialog = page.getByRole("dialog");
+		const apriDialog = async () => {
+			await expect(async () => {
+				await page
+					.getByRole("button", { name: "Ingaggia collaboratori", exact: true })
+					.click();
+				await expect(dialog).toBeVisible({ timeout: 1_000 });
+			}).toPass({ timeout: 15_000 });
+		};
+
+		// Con la POST trattenuta il dialog si chiude e la squadra cambia subito:
+		// la riga nuova è al suo posto in ordine di cognome, attenuata con
+		// «Salvataggio…» e senza azioni; il contatore conta già il nuovo arrivo.
+		const trattenute = await trattieniAzioniServer(page, percorso);
+		await apriDialog();
+		await dialog.getByRole("searchbox", { name: "Cerca collaboratori" }).fill(daIngaggiare.cognome);
+		await dialog.getByRole("checkbox", { name: daIngaggiare.cognome }).check();
+		await dialog.getByRole("button", { name: "Ingaggia selezionati", exact: true }).click();
+
+		await expect(dialog).toHaveCount(0);
+		await expect(rigaNuova).toBeVisible();
+		await expect(rigaNuova.getByText("Salvataggio…")).toBeVisible();
+		await expect(rigaNuova.getByRole("button")).toHaveCount(0);
+		await expect(tabella.getByRole("row").nth(1)).toContainText(daIngaggiare.cognome);
+		await expect(squadraAttiva).toContainText("2");
+		await expect(sezione).toHaveAttribute("aria-busy", "true");
+		await expect.poll(() => trattenute.conteggio()).toBe(1);
+
+		// Rilasciata la POST, la conferma rende la riga interattiva.
+		trattenute.rilascia();
+		await attendiConfermaMutazioni(sezione);
+		await expect(rigaNuova.getByText("Salvataggio…")).toHaveCount(0);
+		await expect(
+			rigaNuova.getByRole("button", { name: "Revoca l'ingaggio di" }),
+		).toBeVisible();
+		await trattenute.smetti();
+
+		// Server irraggiungibile: l'ingaggio provvisorio sparisce e l'avviso dice
+		// cosa non è riuscito.
+		const fallite = await faiFallireAzioniServer(page, percorso);
+		await apriDialog();
+		await dialog.getByRole("searchbox", { name: "Cerca collaboratori" }).fill(nonIngaggiabile.cognome);
+		await dialog.getByRole("checkbox", { name: nonIngaggiabile.cognome }).check();
+		await dialog.getByRole("button", { name: "Ingaggia selezionati", exact: true }).click();
+
+		await attendiConfermaMutazioni(sezione);
+		await expect(avvisoMutazioneNonRiuscita(sezione)).toContainText(
+			`L'ingaggio di ${nonIngaggiabile.nome} ${nonIngaggiabile.cognome} sull'offerta ${offerta.codice} non è riuscito`,
+		);
+		await expect(tabella.getByRole("row", { name: nonIngaggiabile.cognome })).toHaveCount(0);
+		await expect(squadraAttiva).toContainText("2");
+
+		// Revoca rifiutata: la riga torna al suo posto con il messaggio.
+		await rigaNuova.getByRole("button", { name: "Revoca l'ingaggio di" }).click();
+		await attendiConfermaMutazioni(sezione);
+		await expect(avvisoMutazioneNonRiuscita(sezione)).toContainText(
+			`La revoca di ${daIngaggiare.nome} ${daIngaggiare.cognome} non è riuscita`,
+		);
+		await expect(rigaNuova).toBeVisible();
+		await expect(squadraAttiva).toContainText("2");
+		expect(fallite.conteggio()).toBe(2);
+		await fallite.smetti();
+
+		// Sul server restano solo l'ingaggio confermato e quello di partenza.
+		await page.reload();
+		await expect(rigaNuova).toBeVisible();
+		await expect(tabella.getByRole("row", { name: giaIngaggiato.collaboratore.cognome })).toBeVisible();
+		await expect(tabella.getByRole("row", { name: nonIngaggiabile.cognome })).toHaveCount(0);
 	});
 });

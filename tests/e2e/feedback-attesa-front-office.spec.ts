@@ -19,12 +19,12 @@ import { e2ePrisma } from "./support/prisma";
  * flussi imperativi che passano da `attesaEsterna` invece che da
  * `useFormStatus`:
  *
- * - dettaglio giornata, salvataggio riga: l'attesa copre l'intera chiamata alla
- *   server action e TERMINA sempre, anche quando l'esito è un errore. È il
- *   punto in cui il `finally` attorno all'`await` è l'unica cosa che impedisce
- *   al pulsante di restare disabilitato per sempre;
- * - dettaglio giornata, `rigaInAttesaId`: il lock riguarda la sola riga su cui
- *   è in corso l'azione, non l'intero elenco;
+ * - dettaglio giornata, salvataggio riga (feedback immediato): la riga compare
+ *   subito in attesa di conferma, il form si svuota e il pulsante resta usabile;
+ *   al rifiuto del server la riga sparisce, il form torna compilato e compare
+ *   il motivo;
+ * - dettaglio giornata, eliminazione: la riga sparisce subito, solo lei; se
+ *   l'eliminazione non riesce ricompare con un messaggio;
  * - elenco offerte, conferma della disattivazione dalla barra azioni: il
  *   `PulsanteAttesa` del dialog si disabilita, espone `aria-busy` e mostra
  *   «Disattivazione…» fino all'esito.
@@ -109,14 +109,23 @@ async function attendiIdratazione(locator: Locator): Promise<void> {
 }
 
 /**
- * Pulsante di salvataggio riga: l'etichetta diventa «Salvataggio…» durante
- * l'attesa, quindi il locator copre entrambi gli stati per restare valido
- * attraverso la chiamata alla server action.
+ * Fa fallire a livello di rete la prossima POST della server action diretta a
+ * `percorso`, come una connessione caduta: il client riceve un errore invece
+ * di un esito.
  */
-function pulsanteSalvataggioRiga(page: Page, etichettaRiposo: string): Locator {
-  return page.getByRole("button", {
-    name: new RegExp(`^(?:${etichettaRiposo}|Salvataggio…)$`),
-  });
+async function interrompiProssimaPost(page: Page, percorso: string): Promise<void> {
+  let interrotta = false;
+  await page.route(
+    (url: URL) => url.pathname === percorso,
+    async (route) => {
+      if (interrotta || route.request().method() !== "POST") {
+        await route.fallback();
+        return;
+      }
+      interrotta = true;
+      await route.abort("failed");
+    },
+  );
 }
 
 /** Card di una riga di attività, localizzata dalla sua nota univoca. */
@@ -162,7 +171,7 @@ async function disattivaOfferta(offertaId: string): Promise<void> {
 }
 
 test.describe("US-051 Feedback di attesa fuori dai form action", () => {
-  test("AC-2 — il salvataggio di una riga resta in attesa per tutta la chiamata e la chiude all'esito", async ({
+  test("AC-2 — la riga aggiunta compare subito in attesa e si conferma all'esito", async ({
     page,
     factory,
     collaboratore,
@@ -192,37 +201,40 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     await page.locator("#ore").fill("6,5");
     await page.locator("#nota").fill(nota);
 
-    const pulsanteSalva = pulsanteSalvataggioRiga(page, "Aggiungi riga");
+    const pulsanteSalva = page.getByRole("button", { name: "Aggiungi riga", exact: true });
     await expect(pulsanteSalva).toBeEnabled();
-    await expect(pulsanteSalva).toHaveAttribute("aria-busy", "false");
 
     const gate = await trattieniPostDellaPagina(page, percorsoGiornata);
     await pulsanteSalva.click();
 
-    // AC-2: con la POST ancora trattenuta l'attesa è già visibile e il pulsante
-    // non accetta un secondo invio.
-    await expect(pulsanteSalva).toBeDisabled();
-    await expect(pulsanteSalva).toHaveAttribute("aria-busy", "true");
-    await expect(
-      page.getByRole("button", { name: "Salvataggio…", exact: true }),
-    ).toBeVisible();
+    // Con la POST ancora trattenuta la riga è già a schermo, in attesa di
+    // conferma, e il form è vuoto e pronto per la riga successiva.
+    const riga = rigaAttivitaConNota(page, nota);
+    await expect(riga).toBeVisible();
+    await expect(riga).toHaveAttribute("data-in-attesa", "true");
+    await expect(riga.getByTestId("indicatore-salvataggio")).toHaveText("Salvataggio…");
+    await expect(riga.getByRole("button", { name: "Elimina", exact: true })).toBeDisabled();
+    await expect(page.locator("#ore")).toHaveValue("");
+    await expect(page.locator("#nota")).toHaveValue("");
+    await expect(pulsanteSalva).toBeEnabled();
+
+    // Un secondo click sul form appena svuotato non invia nulla e non segnala errori.
+    await pulsanteSalva.click();
+    await expect(page.getByText("Compila tutti i campi obbligatori")).toHaveCount(0);
 
     gate.rilascia();
 
-    // AC-2: la riga è salvata e l'attesa è terminata, etichetta compresa.
-    await expect(rigaAttivitaConNota(page, nota)).toBeVisible();
-    await expect(pulsanteSalva).toBeEnabled();
-    await expect(pulsanteSalva).toHaveAttribute("aria-busy", "false");
-    await expect(
-      page.getByRole("button", { name: "Aggiungi riga", exact: true }),
-    ).toBeVisible();
+    // Alla conferma la riga diventa una riga normale, con le azioni attive.
+    await expect(riga).not.toHaveAttribute("data-in-attesa", "true");
+    await expect(riga.getByTestId("indicatore-salvataggio")).toHaveCount(0);
+    await expect(riga.getByRole("button", { name: "Elimina", exact: true })).toBeEnabled();
+    await expect(riga).toHaveCount(1);
 
-    // AC-2: il pulsante disabilitato ha impedito il secondo invio.
     expect(gate.conteggioPost()).toBe(1);
     await gate.smetti();
   });
 
-  test("AC-4 — un esito di errore chiude l'attesa e lascia la riga ricorreggibile", async ({
+  test("AC-4 — se il server rifiuta, la riga sparisce e il form torna compilato con il motivo", async ({
     page,
     factory,
     collaboratore,
@@ -262,51 +274,43 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     const campoOre = page.locator("#ore");
     await page.locator("#nota").fill(nota);
 
-    const pulsanteSalva = pulsanteSalvataggioRiga(page, "Aggiungi riga");
+    const pulsanteSalva = page.getByRole("button", { name: "Aggiungi riga", exact: true });
 
-    // AC-4, rifiuto locale: le ore non valide sono intercettate prima della
-    // chiamata, quindi il pulsante non deve nemmeno entrare in attesa.
+    // Rifiuto locale: le ore non valide sono intercettate prima della chiamata,
+    // quindi nessuna riga compare.
     await campoOre.fill("abc");
     await pulsanteSalva.click();
     await expect(page.getByText("Valore non valido")).toBeVisible();
-    await expect(pulsanteSalva).toBeEnabled();
-    await expect(pulsanteSalva).toHaveAttribute("aria-busy", "false");
+    await expect(rigaAttivitaConNota(page, nota)).toHaveCount(0);
 
-    // AC-4, rifiuto del server: l'offerta viene disattivata a pagina già
-    // aperta, così l'esito negativo arriva dopo l'`await` della server action.
+    // Rifiuto del server: l'offerta viene disattivata a pagina già aperta, così
+    // l'esito negativo arriva dopo che la riga è già stata mostrata.
     await campoOre.fill("6,5");
     await disattivaOfferta(clienteConOfferta.offerta.id);
 
     const gate = await trattieniPostDellaPagina(page, percorsoGiornata);
     await pulsanteSalva.click();
 
-    await expect(pulsanteSalva).toBeDisabled();
-    await expect(pulsanteSalva).toHaveAttribute("aria-busy", "true");
+    await expect(rigaAttivitaConNota(page, nota)).toHaveAttribute("data-in-attesa", "true");
 
     gate.rilascia();
 
-    // AC-4: l'attesa TERMINA anche sul ramo di errore. Se il `finally` non
-    // coprisse il return anticipato, il pulsante resterebbe disabilitato e la
-    // riga non sarebbe più correggibile.
-    await expect(
-      page.getByText("L'offerta non è più attiva"),
-    ).toBeVisible();
-    await expect(pulsanteSalva).toBeEnabled();
-    await expect(pulsanteSalva).toHaveAttribute("aria-busy", "false");
-    await expect(
-      page.getByRole("button", { name: "Aggiungi riga", exact: true }),
-    ).toBeVisible();
-
-    // AC-4: quanto digitato è conservato e nessuna riga è stata creata.
+    // La riga provvisoria sparisce, il motivo dice quale riga non è stata
+    // salvata e quanto digitato torna nel form per correggerlo.
+    await expect(rigaAttivitaConNota(page, nota)).toHaveCount(0);
+    await expect(page.getByText("L'offerta non è più attiva", { exact: true })).toBeVisible();
+    await expect(page.getByText(/non è stata salvata:/)).toBeVisible();
     await expect(campoOre).toHaveValue("6,5");
     await expect(page.locator("#nota")).toHaveValue(nota);
-    await expect(rigaAttivitaConNota(page, nota)).toHaveCount(0);
+    await expect(selectCliente).toHaveValue(clienteConOfferta.cliente.id);
+    await expect(selectOfferta).toHaveValue(clienteConOfferta.offerta.id);
+    await expect(pulsanteSalva).toBeEnabled();
 
     expect(gate.conteggioPost()).toBe(1);
     await gate.smetti();
   });
 
-  test("AC-3 — l'attesa su una riga blocca solo quella riga, non l'intero elenco", async ({
+  test("AC-3 — l'eliminazione toglie subito solo quella riga e la ripristina se non riesce", async ({
     page,
     factory,
     collaboratore,
@@ -321,8 +325,6 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
     const notaRigaInAzione = `US-051 riga in azione ${randomUUID()}`;
     const notaRigaSpettatrice = `US-051 riga spettatrice ${randomUUID()}`;
 
-    // La riga in azione ha un rimborso trasferta fotografato, così espone tutti
-    // e tre i pulsanti governati da `rigaInAttesaId`.
     await factory.createRigaAttivita({
       collaboratore,
       cliente: clienteConOfferta.cliente,
@@ -330,8 +332,6 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
       data: new Date(`${data}T00:00:00.000Z`),
       ore: "4.00",
       nota: notaRigaInAzione,
-      rimborsoTrasfertaEtichetta: "Voce attesa front-office",
-      rimborsoTrasfertaImporto: "50.00",
     });
     await factory.createRigaAttivita({
       collaboratore,
@@ -356,14 +356,6 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
       name: "Elimina",
       exact: true,
     });
-    const modificaRigaInAzione = rigaInAzione.getByRole("button", {
-      name: "Modifica",
-      exact: true,
-    });
-    const rimuoviRimborsoRigaInAzione = rigaInAzione.getByRole("button", {
-      name: "Rimuovi rimborso",
-      exact: true,
-    });
     const eliminaRigaSpettatrice = rigaSpettatrice.getByRole("button", {
       name: "Elimina",
       exact: true,
@@ -381,37 +373,36 @@ test.describe("US-051 Feedback di attesa fuori dai form action", () => {
       void dialog.accept();
     });
 
+    // ── Eliminazione non riuscita (rete caduta): la riga ricompare con il motivo ──
+    await interrompiProssimaPost(page, percorsoGiornata);
+    await eliminaRigaInAzione.click();
+    await expect(page.getByTestId("avviso-mutazione-non-riuscita")).toContainText(
+      "non è riuscita",
+    );
+    await expect(rigaInAzione).toBeVisible();
+    await expect(eliminaRigaInAzione).toBeEnabled();
+
+    // ── Eliminazione riuscita: la riga sparisce prima dell'esito ──
     const gate = await trattieniPostDellaPagina(page, percorsoGiornata);
     await eliminaRigaInAzione.click();
 
-    // AC-3: la riga sotto azione è interamente bloccata, niente doppio invio.
-    await expect(eliminaRigaInAzione).toBeDisabled();
-    await expect(eliminaRigaInAzione).toHaveAttribute("aria-busy", "true");
-    await expect(modificaRigaInAzione).toBeDisabled();
-    await expect(modificaRigaInAzione).toHaveAttribute("aria-busy", "true");
-    await expect(rimuoviRimborsoRigaInAzione).toBeDisabled();
-    await expect(rimuoviRimborsoRigaInAzione).toHaveAttribute(
-      "aria-busy",
-      "true",
-    );
-
-    // AC-3: l'altra riga resta operativa. È la proprietà che distingue un lock
-    // per-riga da un lock globale, e che una regressione romperebbe in silenzio.
+    await expect(rigaInAzione).toHaveCount(0);
+    // L'altra riga resta operativa mentre l'eliminazione è in corso.
     await expect(eliminaRigaSpettatrice).toBeEnabled();
-    await expect(eliminaRigaSpettatrice).toHaveAttribute("aria-busy", "false");
     await expect(modificaRigaSpettatrice).toBeEnabled();
-    await expect(modificaRigaSpettatrice).toHaveAttribute("aria-busy", "false");
 
     gate.rilascia();
 
-    // AC-3: solo all'esito la riga sparisce e il lock si scioglie.
-    await expect(rigaInAzione).toHaveCount(0);
     await expect(rigaSpettatrice).toBeVisible();
-    await expect(eliminaRigaSpettatrice).toBeEnabled();
-    await expect(eliminaRigaSpettatrice).toHaveAttribute("aria-busy", "false");
+    await expect(rigaInAzione).toHaveCount(0);
 
     expect(gate.conteggioPost()).toBe(1);
     await gate.smetti();
+
+    // L'eliminazione è stata davvero salvata.
+    await page.reload();
+    await expect(rigaSpettatrice).toBeVisible();
+    await expect(rigaInAzione).toHaveCount(0);
   });
 
   test("AC-2 — la conferma di disattivazione offerta espone l'attesa fino all'esito", async ({

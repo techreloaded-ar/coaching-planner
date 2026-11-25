@@ -1,5 +1,6 @@
 import { accediComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import { attendiConfermaMutazioni } from "./support/mutazioni-ottimistiche";
 
 /**
  * Demo — US-042: Abilitazione dei collaboratori sulle offerte dal dettaglio
@@ -48,6 +49,12 @@ test("l'amministratore abilita e revoca un'offerta dal dettaglio del collaborato
 		name: "Offerte abilitate",
 		exact: true,
 	});
+	// Abilitazione e revoca sono immediate: prima di ogni reload si attende la
+	// conferma del server (la sezione smette di essere `aria-busy`).
+	const sezioneAbilitate = page.getByRole("region", {
+		name: "Offerte abilitate",
+		exact: true,
+	});
 
 	// L'offerta pre-popolata è già presente fra le abilitate.
 	const rigaPrePopolata = tabellaAbilitate.getByRole("row", {
@@ -78,10 +85,13 @@ test("l'amministratore abilita e revoca un'offerta dal dettaglio del collaborato
 		.getByRole("button", { name: "Abilita selezionate", exact: true })
 		.click();
 
+	// Il dialog si chiude subito e l'offerta compare nel gruppo del suo cliente.
+	await expect(dialog).toHaveCount(0);
 	const rigaNuova = tabellaAbilitate.getByRole("row", {
 		name: codiceOffertaNuova,
 	});
 	await expect(rigaNuova).toBeVisible();
+	await attendiConfermaMutazioni(sezioneAbilitate);
 
 	// La nuova abilitazione risulta persistita dopo il ricaricamento.
 	await page.reload();
@@ -96,6 +106,7 @@ test("l'amministratore abilita e revoca un'offerta dal dettaglio del collaborato
 			.click();
 		await expect(rigaNuova).toHaveCount(0, { timeout: 1_000 });
 	}).toPass({ timeout: 15_000 });
+	await attendiConfermaMutazioni(sezioneAbilitate);
 
 	await page.reload();
 	await expect(rigaNuova).toHaveCount(0);

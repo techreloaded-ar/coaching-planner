@@ -1,6 +1,7 @@
 import { accediComeAdmin } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 import { voceNavigazione } from "./support/navigazione";
 
 const CODICE_SPEC_DEMO = "US-030-TASK-08-ATTIVITA-AMMINISTRATORE-DEMO";
@@ -42,6 +43,7 @@ test.describe("US-030 Demo", () => {
 		await page.locator("#nota").fill(nota);
 		await page.getByRole("button", { name: "Aggiungi riga" }).click();
 		await expect(page.getByText(nota, { exact: true })).toBeVisible();
+		await attendiRigheConfermate(page);
 
 		await page.getByRole("link", { name: "Torna al calendario", exact: true }).click();
 		await page.waitForURL(`**/attivita?mese=${mese}`);

@@ -1,12 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useActionState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { OffertaAbilitata, OffertaAbilitabile } from "@/lib/abilitazioni";
 import type { StatoAction } from "../actions";
-import { PulsanteAttesa } from "@/components";
+import { CLASSE_ELEMENTO_IN_ATTESA, IndicatoreSalvataggio } from "@/components";
+import { AvvisiMutazioni, useMutazioniElenco } from "@/components/mutazioni-elenco";
 import { formattaNumeroGiornate, inizialiCliente } from "@/lib/formattazione";
+import {
+  conAggiunte,
+  elencoLeggibile,
+  ordinaPerClienteECodice,
+  type InAttesa,
+} from "@/lib/mutazioni-ottimistiche";
 import { urlFoglioDaAmministrazione } from "@/lib/url-foglio-attivita";
 import {
   abilitaCollaboratoreSuOfferte,
@@ -15,15 +22,36 @@ import {
 
 const statoIniziale: StatoAction = { errori: {} };
 
+/** Offerta dell'elenco: in attesa di conferma i giorni fatturati non sono ancora noti. */
+type OffertaInElenco = InAttesa<OffertaAbilitata>;
+
+type MutazioneAbilitazioni =
+  | { tipo: "abilita"; offerte: OffertaInElenco[] }
+  | { tipo: "revoca"; offertaId: string };
+
+function applicaMutazioneAbilitazioni(
+  offerte: OffertaInElenco[],
+  mutazione: MutazioneAbilitazioni,
+): OffertaInElenco[] {
+  if (mutazione.tipo === "revoca") {
+    return offerte.filter((offerta) => offerta.offertaId !== mutazione.offertaId);
+  }
+  return conAggiunte(offerte, mutazione.offerte, (offerta) => offerta.offertaId, ordinaPerClienteECodice);
+}
+
+/** Abilitazione provvisoria: giorni fatturati e ultimo mese con ore arrivano alla conferma. */
+function offertaInAttesa(offerta: OffertaAbilitabile): OffertaInElenco {
+  return { ...offerta, giorniFatturati: 0, ultimoMeseConOre: null, inAttesa: true };
+}
 
 interface GruppoCliente {
   clienteId: string;
   clienteRagioneSociale: string;
-  offerte: OffertaAbilitata[];
+  offerte: OffertaInElenco[];
 }
 
 /** Raggruppa le offerte (già ordinate per cliente e codice) per cliente. */
-function raggruppaPerCliente(offerte: OffertaAbilitata[]): GruppoCliente[] {
+function raggruppaPerCliente(offerte: OffertaInElenco[]): GruppoCliente[] {
   const gruppi = new Map<string, GruppoCliente>();
   for (const offerta of offerte) {
     const gruppo = gruppi.get(offerta.clienteId) ?? {
@@ -63,10 +91,27 @@ export default function AbilitazioniOfferte({
   abilitate,
   abilitabili,
 }: AbilitazioniOfferteProps) {
+  const {
+    elenco: offerte,
+    salvataggioInCorso,
+    muta,
+    avvisi,
+    chiudiAvviso,
+  } = useMutazioniElenco<OffertaInElenco[], MutazioneAbilitazioni>(
+    abilitate,
+    applicaMutazioneAbilitazioni,
+  );
   const [dialogAperto, setDialogAperto] = useState(false);
   const chiudiDialog = useCallback(() => setDialogAperto(false), []);
   const [clientiCompressi, setClientiCompressi] = useState<Set<string>>(new Set());
-  const gruppi = useMemo(() => raggruppaPerCliente(abilitate), [abilitate]);
+  const gruppi = useMemo(() => raggruppaPerCliente(offerte), [offerte]);
+
+  // Le offerte appena abilitate, anche se in attesa di conferma, non sono più
+  // proponibili nel dialog.
+  const disponibili = useMemo(() => {
+    const giaAbilitate = new Set(offerte.map((offerta) => offerta.offertaId));
+    return abilitabili.filter((offerta) => !giaAbilitate.has(offerta.offertaId));
+  }, [offerte, abilitabili]);
 
   function commutaCliente(clienteId: string) {
     setClientiCompressi((precedenti) => {
@@ -76,8 +121,39 @@ export default function AbilitazioniOfferte({
     });
   }
 
+  function abilita(scelte: OffertaAbilitabile[]) {
+    setDialogAperto(false);
+    const datiForm = new FormData();
+    datiForm.set("collaboratoreId", collaboratoreId);
+    for (const offerta of scelte) {
+      datiForm.append("offertaId", offerta.offertaId);
+    }
+    muta(
+      { tipo: "abilita", offerte: scelte.map(offertaInAttesa) },
+      () => abilitaCollaboratoreSuOfferte(statoIniziale, datiForm),
+      {
+        operazione: `L'abilitazione su ${elencoLeggibile(scelte.map((offerta) => offerta.codice))} non è riuscita`,
+      },
+    );
+  }
+
+  function revoca(offerta: OffertaAbilitata) {
+    const datiForm = new FormData();
+    datiForm.set("collaboratoreId", collaboratoreId);
+    datiForm.set("offertaId", offerta.offertaId);
+    muta(
+      { tipo: "revoca", offertaId: offerta.offertaId },
+      () => revocaAbilitazioneCollaboratore(statoIniziale, datiForm),
+      { operazione: `La revoca dell'abilitazione su ${offerta.codice} non è riuscita` },
+    );
+  }
+
   return (
-    <section aria-labelledby="titolo-offerte-abilitate" className="mb-[22px]">
+    <section
+      aria-labelledby="titolo-offerte-abilitate"
+      aria-busy={salvataggioInCorso}
+      className="mb-[22px]"
+    >
       <div className="mb-[14px] flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-[11px]">
           <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
@@ -98,8 +174,8 @@ export default function AbilitazioniOfferte({
 
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-testo-metadati">
-            <b className="tabular-nums text-testo-secondario">{abilitate.length}</b>{" "}
-            {abilitate.length === 1 ? "offerta abilitata" : "offerte abilitate"}
+            <b className="tabular-nums text-testo-secondario">{offerte.length}</b>{" "}
+            {offerte.length === 1 ? "offerta abilitata" : "offerte abilitate"}
           </span>
           <button
             type="button"
@@ -114,7 +190,9 @@ export default function AbilitazioniOfferte({
         </div>
       </div>
 
-      {abilitate.length === 0 ? (
+      <AvvisiMutazioni avvisi={avvisi} onChiudi={chiudiAvviso} className="mb-[14px]" />
+
+      {offerte.length === 0 ? (
         <StatoVuoto />
       ) : (
         <section className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -160,13 +238,18 @@ export default function AbilitazioniOfferte({
                     </td>
                   </tr>
                   {!compresso &&
-                    gruppo.offerte.map((offerta) => (
-                      <RigaOffertaAbilitata
-                        key={offerta.offertaId}
-                        offerta={offerta}
-                        collaboratoreId={collaboratoreId}
-                      />
-                    ))}
+                    gruppo.offerte.map((offerta) =>
+                      offerta.inAttesa ? (
+                        <RigaOffertaInAttesa key={offerta.offertaId} offerta={offerta} />
+                      ) : (
+                        <RigaOffertaAbilitata
+                          key={offerta.offertaId}
+                          offerta={offerta}
+                          collaboratoreId={collaboratoreId}
+                          onRevoca={revoca}
+                        />
+                      ),
+                    )}
                 </tbody>
               );
             })}
@@ -175,10 +258,10 @@ export default function AbilitazioniOfferte({
       )}
 
       <DialogAbilita
-        collaboratoreId={collaboratoreId}
-        abilitabili={abilitabili}
+        abilitabili={disponibili}
         aperto={dialogAperto}
         onChiudi={chiudiDialog}
+        onAbilita={abilita}
       />
     </section>
   );
@@ -189,11 +272,12 @@ export default function AbilitazioniOfferte({
 function RigaOffertaAbilitata({
   offerta,
   collaboratoreId,
+  onRevoca,
 }: {
   offerta: OffertaAbilitata;
   collaboratoreId: string;
+  onRevoca: (offerta: OffertaAbilitata) => void;
 }) {
-  const [, azione] = useActionState(revocaAbilitazioneCollaboratore, statoIniziale);
   const router = useRouter();
   const href = urlFoglioSullOfferta(collaboratoreId, offerta);
 
@@ -225,19 +309,47 @@ function RigaOffertaAbilitata({
         {formattaNumeroGiornate(offerta.giorniFatturati)}
       </td>
       <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
-        <form action={azione} className="inline">
-          <input type="hidden" name="collaboratoreId" value={collaboratoreId} />
-          <input type="hidden" name="offertaId" value={offerta.offertaId} />
-          <PulsanteAttesa className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-sm font-medium text-testo-secondario transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
-              <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
-            </svg>
-            Revoca
-          </PulsanteAttesa>
-        </form>
+        <button
+          type="button"
+          onClick={() => onRevoca(offerta)}
+          className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-sm font-medium text-testo-secondario transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
+            <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+          </svg>
+          Revoca
+        </button>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="ml-1 inline h-[14px] w-[14px] text-testo-metadati" strokeWidth={2.2} aria-hidden="true">
           <path d="m9 6 6 6-6 6" />
         </svg>
+      </td>
+    </tr>
+  );
+}
+
+// ── Riga in attesa di conferma ──────────────────────────────────
+
+/**
+ * Abilitazione appena chiesta: attenuata, senza link né azioni. Giorni
+ * fatturati e ultimo mese con ore (che dà il link al foglio) arrivano alla
+ * conferma del server; fino ad allora «—».
+ */
+function RigaOffertaInAttesa({ offerta }: { offerta: OffertaInElenco }) {
+  return (
+    <tr className={`border-t border-zinc-100 dark:border-zinc-800/60 ${CLASSE_ELEMENTO_IN_ATTESA}`}>
+      <td className="px-4 py-[13px] align-middle">
+        <span className="block text-sm font-medium text-indigo-600 dark:text-indigo-400">
+          {offerta.codice}
+        </span>
+        <span className="text-sm text-testo-secondario">
+          {offerta.descrizione}
+        </span>
+      </td>
+      <td className="px-4 py-[13px] text-right align-middle font-semibold tabular-nums text-testo-metadati">
+        —
+      </td>
+      <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
+        <IndicatoreSalvataggio />
       </td>
     </tr>
   );
@@ -268,19 +380,18 @@ function StatoVuoto() {
 // ── Dialog di ricerca e selezione multipla ──────────────────────
 
 function DialogAbilita({
-  collaboratoreId,
   abilitabili,
   aperto,
   onChiudi,
+  onAbilita,
 }: {
-  collaboratoreId: string;
   abilitabili: OffertaAbilitabile[];
   aperto: boolean;
   onChiudi: () => void;
+  onAbilita: (scelte: OffertaAbilitabile[]) => void;
 }) {
   const [ricerca, setRicerca] = useState("");
   const [selezionate, setSelezionate] = useState<Set<string>>(new Set());
-  const [stato, azione] = useActionState(abilitaCollaboratoreSuOfferte, statoIniziale);
   const campoRicercaRef = useRef<HTMLInputElement>(null);
 
   // Ripristina ricerca e selezione a ogni transizione di apertura/chiusura.
@@ -290,13 +401,6 @@ function DialogAbilita({
     setRicerca("");
     setSelezionate(new Set());
   }
-
-  // Chiude il dialog alla riuscita dell'abilitazione.
-  useEffect(() => {
-    if (stato.successo) {
-      onChiudi();
-    }
-  }, [stato, onChiudi]);
 
   // Porta il fuoco al campo di ricerca all'apertura.
   useEffect(() => {
@@ -330,16 +434,17 @@ function DialogAbilita({
     });
   }
 
-  const numeroSelezionate = selezionate.size;
+  // La selezione vive nello stato, non nei checkbox montati: le offerte scelte
+  // e poi nascoste da un cambio di ricerca restano nell'abilitazione.
+  const scelte = abilitabili.filter((offerta) => selezionate.has(offerta.offertaId));
+  const numeroSelezionate = scelte.length;
 
-  // Le offerte selezionate che il filtro di ricerca corrente nasconde non hanno
-  // un checkbox montato nel DOM: senza un input nascosto la submit nativa del
-  // form le perderebbe silenziosamente non appena l'utente cambia ricerca.
-  const idVisibili = useMemo(() => new Set(risultati.map((offerta) => offerta.offertaId)), [risultati]);
-  const selezionateNonVisibili = useMemo(
-    () => [...selezionate].filter((offertaId) => !idVisibili.has(offertaId)),
-    [selezionate, idVisibili],
-  );
+  // Il dialog si chiude subito: l'elenco mostra le offerte scelte in attesa di
+  // conferma, e un eventuale rifiuto compare come avviso nella sezione.
+  function invia(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (scelte.length > 0) onAbilita(scelte);
+  }
 
   return (
     <div
@@ -409,12 +514,7 @@ function DialogAbilita({
           </label>
         </div>
 
-        <form action={azione} className="flex min-h-0 flex-1 flex-col">
-          <input type="hidden" name="collaboratoreId" value={collaboratoreId} />
-          {selezionateNonVisibili.map((offertaId) => (
-            <input key={offertaId} type="hidden" name="offertaId" value={offertaId} />
-          ))}
-
+        <form onSubmit={invia} className="flex min-h-0 flex-1 flex-col">
           {/* Elenco offerte selezionabili */}
           <div className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[14px]">
             {risultati.length === 0 ? (
@@ -440,7 +540,6 @@ function DialogAbilita({
                     >
                       <input
                         type="checkbox"
-                        name="offertaId"
                         value={offerta.offertaId}
                         checked={scelta}
                         onChange={(e) => commuta(offerta.offertaId, e.target.checked)}
@@ -466,17 +565,6 @@ function DialogAbilita({
             )}
           </div>
 
-          {/* Errore di forma */}
-          {stato.errori?._form && (
-            <div className="mx-[20px] mb-[12px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[10px] text-sm font-medium leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[1px] h-[15px] w-[15px] shrink-0" strokeWidth={2} aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8v5M12 16h.01" />
-              </svg>
-              <span>{stato.errori._form}</span>
-            </div>
-          )}
-
           {/* Piè di pagina */}
           <div className="flex flex-wrap items-center justify-end gap-[9px] border-t border-zinc-200 px-[20px] py-[14px] dark:border-zinc-800">
             <span className="mr-auto text-sm font-medium text-testo-metadati">
@@ -490,16 +578,16 @@ function DialogAbilita({
             >
               Annulla
             </button>
-            <PulsanteAttesa
+            <button
+              type="submit"
               disabled={numeroSelezionate === 0}
-              etichettaAttesa="Abilitazione…"
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>
               Abilita selezionate
-            </PulsanteAttesa>
+            </button>
           </div>
         </form>
       </div>

@@ -1,16 +1,25 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { PulsanteAttesa, useValoriInviati } from "@/components";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { CLASSE_ELEMENTO_IN_ATTESA, IndicatoreSalvataggio } from "@/components";
+import { AvvisiMutazioni, useMutazioniElenco } from "@/components/mutazioni-elenco";
 import { descriviImportoTariffa } from "@/lib/formattazione";
 import type { VoceStoricoTariffa } from "@/lib/collaboratori";
+import {
+  conVoceTariffa,
+  messaggioMutazioneNonRiuscita,
+  type InAttesa,
+} from "@/lib/mutazioni-ottimistiche";
+import { normalizzaTariffaGiornaliera } from "@/domain/anagrafiche/valida-collaboratore";
 import {
   ETICHETTA_MODALITA_TARIFFA,
   MODALITA_TARIFFA,
   UNITA_TARIFFA,
+  eModalitaTariffa,
   etichettaMeseTariffa,
   periodiDiValidita,
   tariffaValidaNelMese,
+  validaVoceTariffa,
   type ModalitaTariffa,
 } from "@/domain/tariffe";
 import type { StatoAction } from "../actions";
@@ -30,19 +39,121 @@ interface StoricoTariffeProps {
   meseCorrente: string;
 }
 
-/** Voce in modifica, `"nuova"` per l'inserimento, `null` a modulo chiuso. */
-type VoceInModifica = VoceStoricoTariffa | "nuova" | null;
+/** Voce dello storico: una tariffa appena salvata resta in attesa fino alla conferma. */
+type VoceInElenco = InAttesa<VoceStoricoTariffa>;
+
+type MutazioneTariffe =
+  | { tipo: "salva"; voce: VoceInElenco; idSostituito: string | null }
+  | { tipo: "elimina"; tariffaId: string };
+
+function applicaMutazioneTariffe(voci: VoceInElenco[], mutazione: MutazioneTariffe): VoceInElenco[] {
+  if (mutazione.tipo === "elimina") {
+    return voci.filter((voce) => voce.id !== mutazione.tariffaId);
+  }
+  return conVoceTariffa(voci, mutazione.voce, mutazione.idSostituito);
+}
+
+/** Campi di una voce che ha superato la validazione lato client. */
+interface DatiTariffaValidi {
+  validaDalMese: string;
+  validaAlMese: string | null;
+  modalita: ModalitaTariffa;
+  importo: string;
+}
+
+/**
+ * Modulo aperto: `voce` è la voce in modifica (`null` per l'inserimento);
+ * `valori` ed `errori` ripropongono un invio rifiutato dal server.
+ */
+interface ModuloAperto {
+  voce: VoceStoricoTariffa | null;
+  valori?: Record<string, string>;
+  errori?: Record<string, string>;
+}
+
+function valoriTestuali(datiForm: FormData): Record<string, string> {
+  const valori: Record<string, string> = {};
+  for (const [nomeCampo, valore] of datiForm.entries()) {
+    if (typeof valore === "string") valori[nomeCampo] = valore;
+  }
+  return valori;
+}
 
 export default function StoricoTariffe({ collaboratoreId, voci, meseCorrente }: StoricoTariffeProps) {
-  const [inModifica, setInModifica] = useState<VoceInModifica>(null);
-  const [statoElimina, elimina] = useActionState(eliminaTariffaCollaboratore, statoIniziale);
+  const [modulo, setModulo] = useState<ModuloAperto | null>(null);
+  const {
+    elenco: vociInElenco,
+    salvataggioInCorso,
+    muta,
+    avvisi,
+    chiudiAvviso,
+  } = useMutazioniElenco<VoceInElenco[], MutazioneTariffe>(voci, applicaMutazioneTariffe);
 
-  const inVigore = tariffaValidaNelMese(voci, meseCorrente);
-  const periodi = periodiDiValidita(voci);
-  const piuVecchia = voci.at(-1);
+  // Un salvataggio rifiutato riapre il proprio modulo solo se nel frattempo
+  // l'utente non ne ha aperto un altro: altrimenti l'esito diventa un avviso.
+  const moduloAperto = useRef(false);
+  useEffect(() => {
+    moduloAperto.current = modulo !== null;
+  }, [modulo]);
+  const ultimaProvvisoria = useRef(0);
+
+  const inVigore = tariffaValidaNelMese(vociInElenco, meseCorrente);
+  const periodi = periodiDiValidita(vociInElenco);
+  const piuVecchia = vociInElenco.at(-1);
+
+  function salva(datiForm: FormData, voce: VoceStoricoTariffa | null, dati: DatiTariffaValidi) {
+    ultimaProvvisoria.current += 1;
+    const provvisoria: VoceInElenco = {
+      // La modifica resta sulla riga della voce; una nuova voce ha una chiave
+      // temporanea finché il server non le assegna l'id.
+      id: voce?.id ?? `provvisoria-${ultimaProvvisoria.current}`,
+      validaDalMese: dati.validaDalMese,
+      validaAlMese: dati.validaAlMese,
+      modalita: dati.modalita,
+      importo: normalizzaTariffaGiornaliera(dati.importo)?.valore ?? dati.importo,
+      inAttesa: true,
+    };
+    const valori = valoriTestuali(datiForm);
+    const operazione = `Il salvataggio della tariffa da ${etichettaMeseTariffa(dati.validaDalMese)} non è riuscito`;
+
+    setModulo(null);
+    muta(
+      { tipo: "salva", voce: provvisoria, idSostituito: voce?.id ?? null },
+      () => salvaTariffaCollaboratore(statoIniziale, datiForm),
+      {
+        operazione,
+        alRifiuto: (esito) => {
+          if (moduloAperto.current) return false;
+          const errori =
+            Object.keys(esito.errori).length > 0
+              ? esito.errori
+              : { _form: messaggioMutazioneNonRiuscita(operazione, esito.motivo) };
+          setModulo({ voce, valori, errori });
+          return true;
+        },
+      },
+    );
+  }
+
+  function elimina(voce: VoceStoricoTariffa) {
+    const datiForm = new FormData();
+    datiForm.set("collaboratoreId", collaboratoreId);
+    datiForm.set("tariffaId", voce.id);
+    muta(
+      { tipo: "elimina", tariffaId: voce.id },
+      () => eliminaTariffaCollaboratore(statoIniziale, datiForm),
+      {
+        operazione: `L'eliminazione della tariffa da ${etichettaMeseTariffa(voce.validaDalMese)} non è riuscita`,
+      },
+    );
+  }
 
   return (
-    <section aria-labelledby="titolo-storico-tariffe" className="mb-[22px]">
+    <section
+      aria-labelledby="titolo-storico-tariffe"
+      aria-busy={salvataggioInCorso}
+      className="mb-[22px]"
+    >
       <div className="mb-[14px] flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 id="titolo-storico-tariffe" className="text-[17px] font-semibold tracking-tight text-testo-principale">
@@ -54,7 +165,7 @@ export default function StoricoTariffe({ collaboratoreId, voci, meseCorrente }: 
         </div>
         <button
           type="button"
-          onClick={() => setInModifica("nuova")}
+          onClick={() => setModulo({ voce: null })}
           className="inline-flex items-center gap-[7px] rounded-[10px] bg-indigo-500 px-[14px] py-[9px] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden="true">
@@ -63,6 +174,8 @@ export default function StoricoTariffe({ collaboratoreId, voci, meseCorrente }: 
           Nuova tariffa
         </button>
       </div>
+
+      <AvvisiMutazioni avvisi={avvisi} onChiudi={chiudiAvviso} className="mb-[14px]" />
 
       <div className="overflow-hidden rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <table className="w-full border-collapse text-sm" aria-label="Storico tariffe">
@@ -76,10 +189,12 @@ export default function StoricoTariffe({ collaboratoreId, voci, meseCorrente }: 
             </tr>
           </thead>
           <tbody>
-            {voci.map((voce) => (
+            {vociInElenco.map((voce) => (
               <tr
                 key={voce.id}
-                className={`border-t border-zinc-100 dark:border-zinc-800 ${voce === inVigore ? "bg-indigo-50/40 dark:bg-indigo-500/5" : ""}`}
+                className={`border-t border-zinc-100 dark:border-zinc-800 ${voce === inVigore ? "bg-indigo-50/40 dark:bg-indigo-500/5" : ""} ${
+                  voce.inAttesa ? CLASSE_ELEMENTO_IN_ATTESA : ""
+                }`}
               >
                 <td className="px-4 py-[12px] align-middle font-semibold text-testo-principale">
                   {etichettaMeseTariffa(voce.validaDalMese)}
@@ -97,25 +212,30 @@ export default function StoricoTariffe({ collaboratoreId, voci, meseCorrente }: 
                 </td>
                 <td className="px-4 py-[12px] align-middle text-testo-metadati">{periodi.get(voce)}</td>
                 <td className="px-4 py-[12px] text-right align-middle whitespace-nowrap">
-                  <button
-                    type="button"
-                    onClick={() => setInModifica(voce)}
-                    className={classeAzioneRiga}
-                    aria-label={`Modifica tariffa da ${etichettaMeseTariffa(voce.validaDalMese)}`}
-                  >
-                    Modifica
-                  </button>
-                  {voce !== piuVecchia && (
-                    <form action={elimina} className="inline">
-                      <input type="hidden" name="collaboratoreId" value={collaboratoreId} />
-                      <input type="hidden" name="tariffaId" value={voce.id} />
-                      <PulsanteAttesa
-                        className="inline-flex items-center rounded-[8px] px-2 py-[5px] font-[inherit] text-sm font-medium text-testo-secondario transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                        aria-label={`Elimina tariffa da ${etichettaMeseTariffa(voce.validaDalMese)}`}
+                  {voce.inAttesa ? (
+                    // In attesa di conferma: nessuna azione, solo lo stato del salvataggio.
+                    <IndicatoreSalvataggio />
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setModulo({ voce })}
+                        className={classeAzioneRiga}
+                        aria-label={`Modifica tariffa da ${etichettaMeseTariffa(voce.validaDalMese)}`}
                       >
-                        Elimina
-                      </PulsanteAttesa>
-                    </form>
+                        Modifica
+                      </button>
+                      {voce !== piuVecchia && (
+                        <button
+                          type="button"
+                          onClick={() => elimina(voce)}
+                          className="inline-flex items-center rounded-[8px] px-2 py-[5px] font-[inherit] text-sm font-medium text-testo-secondario transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                          aria-label={`Elimina tariffa da ${etichettaMeseTariffa(voce.validaDalMese)}`}
+                        >
+                          Elimina
+                        </button>
+                      )}
+                    </>
                   )}
                 </td>
               </tr>
@@ -123,20 +243,17 @@ export default function StoricoTariffe({ collaboratoreId, voci, meseCorrente }: 
           </tbody>
         </table>
 
-        {statoElimina.errori._form && (
-          <p role="alert" className="border-t border-zinc-100 px-4 py-3 text-sm text-red-600 dark:border-zinc-800 dark:text-red-400">
-            {statoElimina.errori._form}
-          </p>
-        )}
-
-        {inModifica !== null && (
+        {modulo !== null && (
           <ModuloTariffa
             // Una nuova istanza per ogni voce: valori e stato ripartono puliti.
-            key={inModifica === "nuova" ? "nuova" : inModifica.id}
+            key={modulo.voce?.id ?? "nuova"}
+            voce={modulo.voce}
+            valoriIniziali={modulo.valori}
+            erroriIniziali={modulo.errori}
             collaboratoreId={collaboratoreId}
-            voce={inModifica === "nuova" ? null : inModifica}
             meseCorrente={meseCorrente}
-            onChiudi={() => setInModifica(null)}
+            onSalva={salva}
+            onChiudi={() => setModulo(null)}
           />
         )}
       </div>
@@ -158,26 +275,56 @@ function BadgeModalita({ modalita }: { modalita: ModalitaTariffa }) {
   );
 }
 
+function campo(datiForm: FormData, nome: string): string {
+  return ((datiForm.get(nome) as string | null) ?? "").trim();
+}
+
 function ModuloTariffa({
   collaboratoreId,
   voce,
+  valoriIniziali,
+  erroriIniziali,
   meseCorrente,
+  onSalva,
   onChiudi,
 }: {
   collaboratoreId: string;
   voce: VoceStoricoTariffa | null;
+  valoriIniziali?: Record<string, string>;
+  erroriIniziali?: Record<string, string>;
   meseCorrente: string;
+  onSalva: (datiForm: FormData, voce: VoceStoricoTariffa | null, dati: DatiTariffaValidi) => void;
   onChiudi: () => void;
 }) {
-  const [stato, salva] = useActionState(salvaTariffaCollaboratore, statoIniziale);
-  const [modalita, setModalita] = useState<ModalitaTariffa>(voce?.modalita ?? "GIORNALIERA");
-  // React 19 azzera i campi non controllati a ogni invio: dopo un errore si
-  // ripropongono i valori appena inviati.
-  const { azioneConMemoria, valoreIniziale } = useValoriInviati(salva);
+  const [errori, setErrori] = useState<Record<string, string>>(erroriIniziali ?? {});
+  const [modalita, setModalita] = useState<ModalitaTariffa>(() => {
+    const riproposta = valoriIniziali?.modalita;
+    return riproposta && eModalitaTariffa(riproposta) ? riproposta : voce?.modalita ?? "GIORNALIERA";
+  });
 
-  useEffect(() => {
-    if (stato.successo) onChiudi();
-  }, [stato, onChiudi]);
+  function valoreIniziale(nomeCampo: string, valoreOriginale: string): string {
+    return valoriIniziali?.[nomeCampo] ?? valoreOriginale;
+  }
+
+  // Validazione lato client (validaVoceTariffa è pura): i campi errati tengono
+  // il modulo aperto; un invio valido chiude il modulo e mostra subito la
+  // tariffa al suo posto, in attesa della conferma del server.
+  function invia(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const datiForm = new FormData(evento.currentTarget);
+    const dati = {
+      validaDalMese: campo(datiForm, "validaDalMese"),
+      validaAlMese: campo(datiForm, "validaAlMese") || null,
+      modalita: campo(datiForm, "modalita"),
+      importo: campo(datiForm, "importo"),
+    };
+    const erroriCampi = validaVoceTariffa(dati);
+    if (Object.keys(erroriCampi).length > 0 || !eModalitaTariffa(dati.modalita)) {
+      setErrori(erroriCampi);
+      return;
+    }
+    onSalva(datiForm, voce, { ...dati, modalita: dati.modalita });
+  }
 
   const classeCampo =
     "w-full rounded-[9px] border border-zinc-200 bg-white px-3 py-[8px] text-sm text-testo-principale outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-indigo-500/20";
@@ -185,7 +332,7 @@ function ModuloTariffa({
 
   return (
     <form
-      action={azioneConMemoria}
+      onSubmit={invia}
       aria-label={voce ? "Modifica tariffa" : "Nuova tariffa"}
       className="border-t border-indigo-200 bg-indigo-50/60 px-4 py-4 dark:border-indigo-500/20 dark:bg-indigo-500/5"
     >
@@ -201,17 +348,17 @@ function ModuloTariffa({
             name="validaDalMese"
             required
             defaultValue={valoreIniziale("validaDalMese", voce?.validaDalMese ?? meseCorrente)}
-            aria-invalid={Boolean(stato.errori.validaDalMese)}
+            aria-invalid={Boolean(errori.validaDalMese)}
             aria-describedby="tariffa-valida-dal-mese-errore"
             className={classeCampo}
           />
-          <ErroreCampo id="tariffa-valida-dal-mese-errore" messaggio={stato.errori.validaDalMese} />
+          <ErroreCampo id="tariffa-valida-dal-mese-errore" messaggio={errori.validaDalMese} />
           <label htmlFor="tariffa-valida-al-mese" className={classeEtichetta}>Valida fino al mese (facoltativo)</label>
           <input id="tariffa-valida-al-mese" type="month" name="validaAlMese"
             defaultValue={valoreIniziale("validaAlMese", voce?.validaAlMese ?? "")}
-            aria-invalid={Boolean(stato.errori.validaAlMese)}
+            aria-invalid={Boolean(errori.validaAlMese)}
             aria-describedby="tariffa-valida-al-mese-errore" className={classeCampo} />
-          <ErroreCampo id="tariffa-valida-al-mese-errore" messaggio={stato.errori.validaAlMese} />
+          <ErroreCampo id="tariffa-valida-al-mese-errore" messaggio={errori.validaAlMese} />
         </div>
 
         <fieldset>
@@ -228,8 +375,6 @@ function ModuloTariffa({
                   type="radio"
                   name="modalita"
                   value={valore}
-                  // Non controllato: il reset del form dopo l'invio riporta la
-                  // modalità scelta, non quella del primo render.
                   defaultChecked={modalita === valore}
                   onChange={() => setModalita(valore)}
                   className="sr-only"
@@ -238,7 +383,7 @@ function ModuloTariffa({
               </label>
             ))}
           </div>
-          <ErroreCampo id="tariffa-modalita-errore" messaggio={stato.errori.modalita} />
+          <ErroreCampo id="tariffa-modalita-errore" messaggio={errori.modalita} />
         </fieldset>
 
         <div>
@@ -255,17 +400,20 @@ function ModuloTariffa({
             placeholder={modalita === "PERCENTUALE" ? "Es. 20" : "Es. 450,00"}
             required
             defaultValue={valoreIniziale("importo", voce ? voce.importo.replace(".", ",") : "")}
-            aria-invalid={Boolean(stato.errori.importo)}
+            aria-invalid={Boolean(errori.importo)}
             aria-describedby="tariffa-importo-errore"
             className={classeCampo}
           />
-          <ErroreCampo id="tariffa-importo-errore" messaggio={stato.errori.importo} />
+          <ErroreCampo id="tariffa-importo-errore" messaggio={errori.importo} />
         </div>
 
         <div className="flex gap-2 md:mt-[22px]">
-          <PulsanteAttesa className="rounded-[9px] bg-indigo-500 px-4 py-[8px] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600">
+          <button
+            type="submit"
+            className="rounded-[9px] bg-indigo-500 px-4 py-[8px] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
+          >
             Salva tariffa
-          </PulsanteAttesa>
+          </button>
           <button
             type="button"
             onClick={onChiudi}
@@ -276,7 +424,7 @@ function ModuloTariffa({
         </div>
       </div>
 
-      <ErroreCampo id="tariffa-errore" messaggio={stato.errori._form} />
+      <ErroreCampo id="tariffa-errore" messaggio={errori._form} />
 
       <p className="mt-3 text-xs text-testo-metadati">
         Una sola tariffa per mese. Inserire o modificare una tariffa di un mese passato ricalcola

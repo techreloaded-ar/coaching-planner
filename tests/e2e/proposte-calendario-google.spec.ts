@@ -13,6 +13,7 @@ import {
 } from "./support/menu-account";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Proposta automatica delle ore dal calendario Google (EP-001).
@@ -449,6 +450,7 @@ test.describe("US-004 Conferma, modifica o rifiuto delle proposte", () => {
 		await page.locator("#nota").fill(notaManuale);
 		await page.getByRole("button", { name: "Aggiungi riga" }).click();
 		await expect(righe.filter({ hasText: notaManuale })).toBeVisible();
+		await attendiRigheConfermate(page);
 
 		// Riaprendo la giornata: tre righe salvate, nessuna proposta residua.
 		await page.reload();

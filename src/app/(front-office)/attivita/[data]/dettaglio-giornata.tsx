@@ -13,9 +13,18 @@ import {
   BadgeCategoriaAttivita,
   CLASSE_RIGA_OFFERTA_NON_ABILITATA,
   IconaOffertaNonAbilitata,
+  CLASSE_ELEMENTO_IN_ATTESA,
+  AvvisoMutazioneNonRiuscita,
   IndicatoreGiorniErogati,
+  IndicatoreSalvataggio,
+  MESSAGGIO_ERRORE_DI_RETE,
   PulsanteAttesa,
 } from "@/components";
+import {
+  PREFISSO_RIGA_PROVVISORIA,
+  righeConOperazioniInAttesa,
+  type OperazioneRigaInAttesa,
+} from "@/lib/righe-in-attesa";
 import {
   CATEGORIA_ATTIVITA_PREDEFINITA,
   CATEGORIE_ATTIVITA,
@@ -30,6 +39,7 @@ import {
 } from "@/domain/types";
 import { SezioneProposteCalendario, useProposteCalendario } from "./proposte-calendario";
 import type {
+  DatiGiornataAttivita,
   RigaAttivitaClient,
   PropostaCalendarioClient,
   ClienteSelect,
@@ -89,7 +99,9 @@ interface DettaglioGiornataProps {
    */
   onMutazioneCompletata: (
     giorno: string,
-    giorniAggiuntivi?: readonly string[]
+    giorniAggiuntivi?: readonly string[],
+    /** Giornata aggiornata restituita dalla scrittura, se disponibile. */
+    giornataAggiornata?: DatiGiornataAttivita
   ) => void | Promise<void>;
 }
 
@@ -255,7 +267,7 @@ export default function DettaglioGiornata({
   onRigaApertaInModifica,
   onMutazioneCompletata,
 }: DettaglioGiornataProps) {
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   // Foglio di un altro collaboratore aperto da un amministratore: le Server
   // Action lo ricevono e ne verificano l'autorizzazione.
   const collaboratoreConsultatoId = useCollaboratoreConsultato();
@@ -295,12 +307,6 @@ export default function DettaglioGiornata({
   );
   const [nota, setNota] = useState("");
   const [erroreSubmit, setErroreSubmit] = useState<string | null>(null);
-
-  // Attesa del salvataggio: copre l'intera chiamata alla server action, mentre
-  // `isPending` copre la successiva rilettura della giornata fatta dall'isola.
-  // Insieme rendono l'attesa continua dal click fino ai dati aggiornati a
-  // schermo.
-  const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
 
   // Riga su cui è in corso un'azione (modifica, eliminazione, rimozione
   // trasferta): ne disabilita i pulsanti così da escludere i doppi click.
@@ -348,23 +354,72 @@ export default function DettaglioGiornata({
   const [clienteRigaInModifica, setClienteRigaInModifica] =
     useState<ClienteSelect | null>(null);
 
+  // ── Feedback immediato: righe in attesa di conferma ────────
+  //
+  // Aggiunta, modifica ed eliminazione si vedono subito: l'operazione inviata
+  // resta qui finché il server non risponde. Alla conferma la giornata
+  // restituita dalla scrittura prende il suo posto; al rifiuto l'operazione
+  // viene tolta, la riga torna com'era e compare il motivo.
+  const [operazioniInAttesa, setOperazioniInAttesa] = useState<OperazioneRigaInAttesa[]>([]);
+  const contatoreOperazioni = useRef(0);
+  const righeMostrate = useMemo(
+    () => righeConOperazioniInAttesa(righe, operazioniInAttesa),
+    [righe, operazioniInAttesa]
+  );
+  const togliOperazione = useCallback((chiave: string) => {
+    setOperazioniInAttesa((operazioni) => operazioni.filter((o) => o.chiave !== chiave));
+  }, []);
+  const nuovaChiaveOperazione = useCallback(
+    () => `${PREFISSO_RIGA_PROVVISORIA}${++contatoreOperazioni.current}`,
+    []
+  );
+
+  /**
+   * Conferma una scrittura riuscita: l'isola adotta la giornata restituita dal
+   * server (o la rilegge, se manca) e solo dopo la riga provvisoria lascia il
+   * posto a quella vera, così a schermo non resta mai un buco.
+   */
+  const confermaScrittura = useCallback(
+    async (chiave: string, giornata?: DatiGiornataAttivita) => {
+      try {
+        await onMutazioneCompletata(data, undefined, giornata);
+      } finally {
+        togliOperazione(chiave);
+      }
+    },
+    [data, onMutazioneCompletata, togliOperazione]
+  );
+
+  // Eliminazione non riuscita: il messaggio compare sopra le righe del giorno.
+  const [erroreElenco, setErroreElenco] = useState<string | null>(null);
+  // Riga rifiutata dal server dopo essere stata mostrata: il messaggio del form
+  // dice quale riga non è stata salvata, prima del motivo.
+  const [contestoErroreSubmit, setContestoErroreSubmit] = useState<string | null>(null);
+
+  // Il form è vuoto: un rifiuto può ricompilarlo con la riga inviata senza
+  // cancellare ciò che l'utente ha iniziato a scrivere nel frattempo.
+  const formVuoto = useRef(true);
+  useEffect(() => {
+    formVuoto.current = modificaId === null && clienteId === "" && ore === "" && nota === "";
+  }, [modificaId, clienteId, ore, nota]);
+
   // ── Riepilogo ──────────────────────────────────────────────
 
   const riepilogo = useMemo(() => {
-    const nRighe = righe.length;
-    const oreTotali = sommaOre(...righe.map((r) => r.ore));
+    const nRighe = righeMostrate.length;
+    const oreTotali = sommaOre(...righeMostrate.map((r) => r.ore));
     const oreDaFatturare = sommaOre(
-      ...righe
+      ...righeMostrate
         .filter((r) => fatturataDalCollaboratore(r.categoria))
         .map((r) => r.ore),
     );
-    const totaleRimborsi = righe.reduce((s, r) => {
+    const totaleRimborsi = righeMostrate.reduce((s, r) => {
       if (r.rimborsoTrasfertaImporto == null) return s;
       const importo = parseFloat(r.rimborsoTrasfertaImporto);
       return s + (isNaN(importo) ? 0 : importo);
     }, 0);
     return { nRighe, oreTotali, oreDaFatturare, totaleRimborsi };
-  }, [righe]);
+  }, [righeMostrate]);
 
   const avanzamentoOffertaSelezionata = offerte.find(
     (offerta) => offerta.id === offertaId
@@ -487,6 +542,18 @@ export default function DettaglioGiornata({
     async (e: React.FormEvent) => {
       e.preventDefault();
       setErroreSubmit(null);
+      setContestoErroreSubmit(null);
+
+      // Doppio click su «Aggiungi riga»: il form è già stato svuotato dalla
+      // riga appena inviata, che è a schermo in attesa di conferma.
+      if (
+        !modificaId &&
+        !clienteId &&
+        !ore &&
+        operazioniInAttesa.some((o) => o.tipo === "nuova")
+      ) {
+        return;
+      }
 
       if (!clienteId || !ore) {
         setErroreSubmit("Compila tutti i campi obbligatori");
@@ -521,38 +588,73 @@ export default function DettaglioGiornata({
       if (selezioneRimborso !== SELEZIONE_RIMBORSO_INVARIATO) {
         fd.append("voceRimborsoTrasfertaId", selezioneRimborso);
       }
-
-      // Il `finally` chiude l'attesa anche quando l'action rifiuta la riga: il
-      // messaggio di errore compare con i campi ancora compilati e il pulsante
-      // di nuovo abilitato per un secondo tentativo.
-      setSalvataggioInCorso(true);
-      try {
-        if (modificaId) {
-          fd.append("rigaId", modificaId);
-          const result = await modificaRiga(fd);
-          if (!result.success) {
-            setErroreSubmit(result.error ?? "Errore nella modifica");
-            return;
-          }
-        } else {
-          if (eventoDaProposta) fd.append("eventoCalendarioId", eventoDaProposta);
-          const result = await creaRiga(fd);
-          if (!result.success) {
-            setErroreSubmit(result.error ?? "Errore nella creazione");
-            return;
-          }
-        }
-      } finally {
-        setSalvataggioInCorso(false);
+      if (modificaId) {
+        fd.append("rigaId", modificaId);
+      } else if (eventoDaProposta) {
+        fd.append("eventoCalendarioId", eventoDaProposta);
       }
 
-      // Aggiorna i dati server e invalida il mese nella cache del calendario
-      invalidaDopoMutazione();
-      if (!modificaId && eventoDaProposta) {
-        rimuoviProposta(eventoDaProposta);
-      }
+      // ── Riga mostrata subito, con i dati del form ──
+      const chiave = nuovaChiaveOperazione();
+      const rigaOriginale = modificaId ? righe.find((r) => r.id === modificaId) : undefined;
+      const offerta = offerte.find((o) => o.id === offertaId);
+      const cliente =
+        [...clientiSelezionabili.consigliati, ...clientiSelezionabili.altri].find(
+          (c) => c.id === clienteId
+        ) ?? clienteRigaInModifica;
+      const rimborso =
+        selezioneRimborso === SELEZIONE_RIMBORSO_INVARIATO
+          ? {
+              etichetta: rigaOriginale?.rimborsoTrasfertaEtichetta ?? null,
+              importo: rigaOriginale?.rimborsoTrasfertaImporto ?? null,
+            }
+          : {
+              etichetta: voceRimborsoSelezionata?.etichetta ?? null,
+              importo: voceRimborsoSelezionata?.importo ?? null,
+            };
+      const rigaProvvisoria: RigaAttivitaClient = {
+        id: modificaId ?? chiave,
+        data,
+        ore: Number(ore.replace(",", ".")),
+        nota: nota || null,
+        categoria,
+        rimborsoTrasfertaEtichetta: rimborso.etichetta,
+        rimborsoTrasfertaImporto: rimborso.importo,
+        offerta: offerta
+          ? {
+              id: offerta.id,
+              codice: offerta.codice,
+              descrizione: offerta.descrizione,
+              // L'offerta storica di una riga in modifica non passa dalla lettura.
+              attiva: offerta.abilitata !== undefined || (rigaOriginale?.offerta?.attiva ?? true),
+            }
+          : null,
+        offertaNonAbilitata: offerta?.abilitata === false,
+        cliente: { id: clienteId, ragioneSociale: cliente?.ragioneSociale ?? "" },
+      };
+      const valoriInviati = {
+        modificaId,
+        eventoDaProposta,
+        clienteId,
+        clienteRigaInModifica,
+        offerte,
+        offertaId,
+        ore,
+        categoria,
+        nota,
+        selezioneRimborso,
+      };
 
-      // Reset form
+      setOperazioniInAttesa((operazioni) => [
+        ...operazioni,
+        modificaId
+          ? { tipo: "modifica", chiave, riga: rigaProvvisoria }
+          : { tipo: "nuova", chiave, riga: rigaProvvisoria },
+      ]);
+
+      // Il form si svuota subito, pronto per la riga successiva.
+      revisioneLetturaOfferte.current += 1;
+      setOfferteLoading(false);
       setEventoDaProposta(null);
       setClienteId("");
       setOffertaId("");
@@ -563,10 +665,71 @@ export default function DettaglioGiornata({
       setSelezioneRimborso("");
       setModificaId(null);
       setOfferte([]);
-      setErroreSubmit(null);
+      setErroreOfferte(null);
       setClienteRigaInModifica(null);
+      formVuoto.current = true;
+
+      let esito: { success: boolean; error?: string; giornata?: DatiGiornataAttivita };
+      try {
+        esito = valoriInviati.modificaId ? await modificaRiga(fd) : await creaRiga(fd);
+      } catch {
+        esito = { success: false, error: MESSAGGIO_ERRORE_DI_RETE };
+      }
+
+      if (esito.success) {
+        await confermaScrittura(chiave, esito.giornata);
+        if (!valoriInviati.modificaId && valoriInviati.eventoDaProposta) {
+          rimuoviProposta(valoriInviati.eventoDaProposta);
+        }
+        return;
+      }
+
+      // ── Rifiuto: la riga torna com'era e il form torna compilato ──
+      togliOperazione(chiave);
+      const descrizioneRiga = `${rigaProvvisoria.cliente.ragioneSociale} · ${formattaOre(rigaProvvisoria.ore)}`;
+      setContestoErroreSubmit(
+        valoriInviati.modificaId
+          ? `La modifica della riga ${descrizioneRiga} non è stata salvata:`
+          : `La riga ${descrizioneRiga} non è stata salvata:`
+      );
+      setErroreSubmit(
+        esito.error ?? (valoriInviati.modificaId ? "Errore nella modifica" : "Errore nella creazione")
+      );
+      if (formVuoto.current) {
+        setModificaId(valoriInviati.modificaId);
+        setEventoDaProposta(valoriInviati.eventoDaProposta);
+        setClienteId(valoriInviati.clienteId);
+        setClienteRigaInModifica(valoriInviati.clienteRigaInModifica);
+        setOfferte(valoriInviati.offerte);
+        setOffertaId(valoriInviati.offertaId);
+        setOre(valoriInviati.ore);
+        setCategoria(valoriInviati.categoria);
+        setNota(valoriInviati.nota);
+        setSelezioneRimborso(valoriInviati.selezioneRimborso);
+      }
     },
-    [clienteId, offertaId, ore, nota, categoria, selezioneRimborso, data, modificaId, invalidaDopoMutazione, eventoDaProposta, rimuoviProposta, collaboratoreConsultatoId]
+    [
+      clienteId,
+      offertaId,
+      ore,
+      nota,
+      categoria,
+      selezioneRimborso,
+      data,
+      modificaId,
+      eventoDaProposta,
+      rimuoviProposta,
+      collaboratoreConsultatoId,
+      operazioniInAttesa,
+      nuovaChiaveOperazione,
+      righe,
+      offerte,
+      clientiSelezionabili,
+      clienteRigaInModifica,
+      voceRimborsoSelezionata,
+      confermaScrittura,
+      togliOperazione,
+    ]
   );
 
   // ── Modifica riga ──────────────────────────────────────────
@@ -741,20 +904,37 @@ export default function DettaglioGiornata({
   // ── Elimina riga ───────────────────────────────────────────
 
   const handleElimina = useCallback(
-    async (rigaId: string) => {
+    async (riga: RigaAttivitaClient) => {
       if (!confirm("Eliminare questa riga attività?")) return;
 
-      setRigaInAttesaId(rigaId);
+      // La riga sparisce subito; ricompare se l'eliminazione non riesce.
+      setErroreElenco(null);
+      const chiave = nuovaChiaveOperazione();
+      setOperazioniInAttesa((operazioni) => [
+        ...operazioni,
+        { tipo: "eliminazione", chiave, rigaId: riga.id },
+      ]);
+
+      let esito: { success: boolean; error?: string; giornata?: DatiGiornataAttivita };
       try {
-        const result = await eliminaRiga(rigaId, collaboratoreConsultatoId);
-        if (result.success) {
-          invalidaDopoMutazione();
-        }
-      } finally {
-        setRigaInAttesaId(null);
+        esito = await eliminaRiga(riga.id, collaboratoreConsultatoId);
+      } catch {
+        esito = { success: false, error: MESSAGGIO_ERRORE_DI_RETE };
       }
+
+      if (esito.success) {
+        await confermaScrittura(chiave, esito.giornata);
+        return;
+      }
+
+      togliOperazione(chiave);
+      setErroreElenco(
+        `L'eliminazione della riga ${riga.cliente.ragioneSociale} · ${formattaOre(riga.ore)} non è riuscita: ${
+          esito.error ?? "errore nell'eliminazione"
+        }`
+      );
     },
-    [collaboratoreConsultatoId, invalidaDopoMutazione]
+    [collaboratoreConsultatoId, nuovaChiaveOperazione, confermaScrittura, togliOperazione]
   );
 
   // ── Rimuovi rimborso ───────────────────────────────────────
@@ -1140,16 +1320,22 @@ export default function DettaglioGiornata({
               {erroreSubmit && (
                 <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
                   <IconaInfo />
-                  {erroreSubmit}
+                  <span>
+                    {contestoErroreSubmit && <span>{contestoErroreSubmit} </span>}
+                    <span>{erroreSubmit}</span>
+                  </span>
                 </div>
               )}
 
-              <PulsanteAttesa
+              {/*
+                Nessuna attesa sul pulsante: la riga inviata compare subito
+                nell'elenco con «Salvataggio…» e il form è già pronto per la
+                successiva (feedback immediato).
+              */}
+              <button
                 type="submit"
-                attesaEsterna={salvataggioInCorso || isPending}
-                etichettaAttesa="Salvataggio…"
                 disabled={offerteLoading || nessunClienteConOfferteAttive}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-medium text-white transition-colors hover:bg-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 sm:h-10"
+                className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-medium text-white transition-colors hover:bg-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10"
               >
                 {!modificaId && (
                   <svg
@@ -1165,7 +1351,7 @@ export default function DettaglioGiornata({
                   </svg>
                 )}
                 {modificaId ? "Salva modifiche" : "Aggiungi riga"}
-              </PulsanteAttesa>
+              </button>
             </form>
           </section>
         )}
@@ -1175,6 +1361,8 @@ export default function DettaglioGiornata({
           <section
             id="attivita-della-giornata"
             aria-labelledby="titolo-attivita-della-giornata"
+            // Scritture inviate e non ancora confermate dal server.
+            aria-busy={operazioniInAttesa.length > 0}
             className="scroll-mt-24"
           >
             <h2
@@ -1184,7 +1372,15 @@ export default function DettaglioGiornata({
               Attività della giornata
             </h2>
 
-            {righe.length === 0 ? (
+            {erroreElenco && (
+              <AvvisoMutazioneNonRiuscita
+                messaggio={erroreElenco}
+                onChiudi={() => setErroreElenco(null)}
+                className="mb-3"
+              />
+            )}
+
+            {righeMostrate.length === 0 ? (
               <div className="rounded-xl border border-dashed border-zinc-300 px-5 py-8 text-center text-sm text-testo-metadati dark:border-zinc-700">
                 Nessuna attività registrata per questa giornata.
                 {!solaLettura && (
@@ -1196,15 +1392,17 @@ export default function DettaglioGiornata({
               </div>
             ) : (
               <div className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
-                {righe.map((riga) => {
+                {righeMostrate.map((riga) => {
                   const inModifica = riga.id === modificaId;
                   return (
                     <div
                       key={riga.id}
                       data-testid="activity-row"
+                      data-in-attesa={riga.inAttesa ? "true" : undefined}
+                      aria-busy={riga.inAttesa ? "true" : undefined}
                       data-offerta-non-abilitata={riga.offertaNonAbilitata ? "true" : undefined}
                       aria-current={inModifica ? "true" : undefined}
-                      className={`px-4 py-4 sm:px-5 ${
+                      className={`px-4 py-4 sm:px-5 ${riga.inAttesa ? CLASSE_ELEMENTO_IN_ATTESA : ""} ${
                         riga.offertaNonAbilitata
                           ? CLASSE_RIGA_OFFERTA_NON_ABILITATA
                           : inModifica
@@ -1216,6 +1414,7 @@ export default function DettaglioGiornata({
                         <div className="min-w-0 flex-1">
                           <div className="text-[15px] font-medium text-testo-principale">
                             {riga.cliente.ragioneSociale}
+                            {riga.inAttesa && <IndicatoreSalvataggio className="ml-2 align-middle" />}
                             {inModifica && (
                               <span className="ml-2 text-xs font-medium text-rose-700 dark:text-rose-300">
                                 In modifica
@@ -1292,6 +1491,7 @@ export default function DettaglioGiornata({
                           <PulsanteAttesa
                             type="button"
                             attesaEsterna={rigaInAttesaId === riga.id}
+                            disabled={riga.inAttesa}
                             onClick={() => handleModifica(riga)}
                             className={CLASSE_AZIONE_RIGA}
                           >
@@ -1301,7 +1501,7 @@ export default function DettaglioGiornata({
                             type="button"
                             data-testid="copia-riga"
                             attesaEsterna={rigaInAttesaId === riga.id}
-                            disabled={motivoNonCopiabile(riga) !== null}
+                            disabled={riga.inAttesa || motivoNonCopiabile(riga) !== null}
                             aria-describedby={
                               motivoNonCopiabile(riga) ? `motivo-non-copiabile-${riga.id}` : undefined
                             }
@@ -1324,6 +1524,7 @@ export default function DettaglioGiornata({
                             <PulsanteAttesa
                               type="button"
                               attesaEsterna={rigaInAttesaId === riga.id}
+                              disabled={riga.inAttesa}
                               onClick={() => handleRimuoviRimborso(riga.id)}
                               className={CLASSE_AZIONE_RIGA}
                             >
@@ -1333,7 +1534,8 @@ export default function DettaglioGiornata({
                           <PulsanteAttesa
                             type="button"
                             attesaEsterna={rigaInAttesaId === riga.id}
-                            onClick={() => handleElimina(riga.id)}
+                            disabled={riga.inAttesa}
+                            onClick={() => handleElimina(riga)}
                             className={`${CLASSE_AZIONE_RIGA} text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300`}
                           >
                             Elimina

@@ -4,6 +4,7 @@ import {
   leggiPosizioneElenco,
   numeriPagineVisibili,
   urlPosizioneElenco,
+  valoreInviatoDalCampo,
 } from "@/lib/paginazione";
 
 describe("paginazione degli elenchi", () => {
@@ -31,5 +32,23 @@ describe("paginazione degli elenchi", () => {
     expect(numeriPagineVisibili(1, 4)).toEqual([1, 2, "…", 4]);
     expect(numeriPagineVisibili(5, 9)).toEqual([1, "…", 4, 5, 6, "…", 9]);
     expect(numeriPagineVisibili(9, 9)).toEqual([1, "…", 8, 9]);
+  });
+});
+
+describe("eco delle ricerche inviate dal campo", () => {
+  it("la risposta tardiva di «ABC» dopo l'invio di «ABCD» è un'eco: il campo non cambia", () => {
+    expect(valoreInviatoDalCampo(["ABC", "ABCD"], "ABC")).toEqual(["ABCD"]);
+    expect(valoreInviatoDalCampo(["ABCD"], "ABCD")).toEqual([]);
+  });
+
+  it("un valore mai inviato dal campo viene da fuori (Indietro, link) e va riallineato", () => {
+    expect(valoreInviatoDalCampo(["ABC"], "XYZ")).toBeNull();
+    expect(valoreInviatoDalCampo([], "")).toBeNull();
+  });
+
+  it("con ricerche ripetute consuma le eco nell'ordine di invio", () => {
+    const dopoPrima = valoreInviatoDalCampo(["ABC", "AB", "ABC"], "ABC");
+    expect(dopoPrima).toEqual(["AB", "ABC"]);
+    expect(valoreInviatoDalCampo(dopoPrima!, "AB")).toEqual(["ABC"]);
   });
 });

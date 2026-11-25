@@ -2,6 +2,12 @@ import type { Page } from "@playwright/test";
 
 import { accediComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import {
+	attendiConfermaMutazioni,
+	avvisoMutazioneNonRiuscita,
+	faiFallireAzioniServer,
+	trattieniAzioniServer,
+} from "./support/mutazioni-ottimistiche";
 
 /**
  * Test e2e — storico tariffe del collaboratore (giornaliera o fisso mensile).
@@ -9,7 +15,15 @@ import { test, expect } from "./support/fixtures";
  * Il collaboratore della factory è disattivato: un fisso mensile in vigore di un
  * collaboratore attivo peserebbe come «fisso non attribuibile» sulla
  * marginalità di ogni mese successivo, anche nei mesi riservati di altri test.
+ *
+ * Salvataggi ed eliminazioni sono immediati: il modulo si chiude e lo storico
+ * cambia subito, mentre la sezione resta `aria-busy` fino alla conferma del
+ * server. La «Tariffa attuale» in testa alla pagina cambia solo alla conferma.
  */
+
+function sezioneStorico(page: Page) {
+	return page.getByRole("region", { name: "Storico tariffe", exact: true });
+}
 
 function storico(page: Page) {
 	return page.getByRole("table", { name: "Storico tariffe" });
@@ -69,12 +83,15 @@ test.describe("Storico tariffe collaboratore", () => {
 		await expect(page.getByTestId("tariffa-attuale")).toContainText(/6\.?500,00\s*€\s*\/ mese/);
 		await expect(page.getByTestId("tariffa-attuale")).toContainText("Fisso mensile · da lug 2026");
 
-		// Un secondo inserimento sullo stesso mese è rifiutato sul campo del mese.
+		// Un secondo inserimento sullo stesso mese è rifiutato dal server: la
+		// tariffa provvisoria sparisce e il modulo si riapre con valori e messaggio.
 		const duplicato = await aggiungiTariffa(page, { mese: "2026-07", modalita: "Giornaliera", importo: "500" });
 		await expect(
 			duplicato.getByText("Esiste già una tariffa per questo mese: modifica quella"),
 		).toBeVisible();
 		await expect(duplicato.getByLabel("Valida dal mese")).toHaveValue("2026-07");
+		await expect(duplicato.getByLabel(/^Importo/)).toHaveValue("500");
+		await expect(storico(page).locator("tbody tr")).toHaveCount(3);
 		await duplicato.getByRole("button", { name: "Annulla" }).click();
 		await expect(storico(page).locator("tbody tr")).toHaveCount(3);
 
@@ -92,9 +109,70 @@ test.describe("Storico tariffe collaboratore", () => {
 		await page.getByRole("button", { name: "Elimina tariffa da gen 2026" }).click();
 		await expect(storico(page).locator("tbody tr")).toHaveCount(2);
 		await expect(rigaStorico(page, "gen 2025")).toContainText("gen 2025 → giu 2026");
+		await attendiConfermaMutazioni(sezioneStorico(page));
 
     // La tariffa resta nella scheda unificata dopo una nuova navigazione.
     await page.reload();
     await expect(page.getByTestId("tariffa-attuale")).toContainText(/6\.?500,00\s*€\s*\/ mese/);
+	});
+
+	test("la tariffa salvata compare subito in attesa di conferma e l'eliminazione non riuscita la rimette al suo posto", async ({
+		page,
+		factory,
+	}) => {
+		const { collaboratore } = await factory.createCollaboratore({
+			attivo: false,
+			tariffe: [
+				{ validaDalMese: "2025-01", modalita: "GIORNALIERA", importo: "400.00" },
+				{ validaDalMese: "2026-07", modalita: "GIORNALIERA", importo: "480.00" },
+			],
+		});
+
+		await page.goto(`/anagrafiche/collaboratori/${collaboratore.id}`);
+		await expect(page.getByTestId("tariffa-attuale")).toContainText(/480,00/);
+		await expect(storico(page).locator("tbody tr")).toHaveCount(2);
+		// Le server action partono dalla scheda persona a cui la pagina reindirizza.
+		const percorso = new URL(page.url()).pathname;
+
+		// Con la POST trattenuta il modulo si chiude e la tariffa nuova compare al
+		// suo posto, attenuata e senza azioni, con i periodi già ricalcolati; la
+		// «Tariffa attuale» aspetta la conferma.
+		const trattenute = await trattieniAzioniServer(page, percorso);
+		const modulo = await aggiungiTariffa(page, { mese: "2026-03", modalita: "Giornaliera", importo: "455,5" });
+		await expect(modulo).toHaveCount(0);
+
+		const rigaNuova = rigaStorico(page, "mar 2026");
+		await expect(rigaNuova).toBeVisible();
+		await expect(rigaNuova.getByText("Salvataggio…")).toBeVisible();
+		await expect(rigaNuova.getByRole("button")).toHaveCount(0);
+		await expect(rigaNuova).toContainText(/455,50\s*€\s*\/ giorno/);
+		await expect(rigaNuova).toContainText("mar 2026 → giu 2026");
+		await expect(storico(page).locator("tbody tr").nth(1)).toContainText("mar 2026");
+		await expect(rigaStorico(page, "gen 2025")).toContainText("gen 2025 → feb 2026");
+		await expect(sezioneStorico(page)).toHaveAttribute("aria-busy", "true");
+		await expect(page.getByTestId("tariffa-attuale")).toContainText(/480,00/);
+		await expect.poll(() => trattenute.conteggio()).toBe(1);
+
+		trattenute.rilascia();
+		await attendiConfermaMutazioni(sezioneStorico(page));
+		await expect(rigaNuova.getByText("Salvataggio…")).toHaveCount(0);
+		await expect(page.getByRole("button", { name: "Elimina tariffa da mar 2026" })).toBeVisible();
+		await trattenute.smetti();
+
+		// Eliminazione con il server irraggiungibile: la riga sparisce, poi torna
+		// al suo posto con un avviso che dice cosa non è riuscito.
+		const fallite = await faiFallireAzioniServer(page, percorso);
+		await page.getByRole("button", { name: "Elimina tariffa da mar 2026" }).click();
+		await attendiConfermaMutazioni(sezioneStorico(page));
+		await expect(avvisoMutazioneNonRiuscita(sezioneStorico(page))).toContainText(
+			"L'eliminazione della tariffa da mar 2026 non è riuscita",
+		);
+		await expect(storico(page).locator("tbody tr")).toHaveCount(3);
+		await expect(rigaNuova).toContainText("mar 2026 → giu 2026");
+		await fallite.smetti();
+
+		// Sul server la tariffa confermata c'è ancora.
+		await page.reload();
+		await expect(rigaStorico(page, "mar 2026")).toContainText(/455,50\s*€\s*\/ giorno/);
 	});
 });

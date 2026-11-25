@@ -9,6 +9,7 @@ import {
   mesePassatoRiservato,
 } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 test.use({
   viewport: { width: 1280, height: 720 },
@@ -55,6 +56,10 @@ test.describe("US-012 Mese concluso — nessun blocco temporale", () => {
     await page.getByRole("button", { name: "Aggiungi riga" }).click();
 
     const rigaCreata = cardAttivitaPerNota(page, notaUnivoca);
+    await expect(rigaCreata).toBeVisible();
+    // La riga compare subito, prima della risposta del server: il mese
+    // concluso non blocca il salvataggio se la riga resta dopo la conferma.
+    await attendiRigheConfermate(page);
     await expect(rigaCreata).toBeVisible();
     await expect(rigaCreata).toContainText(clienteConOfferta.cliente.ragioneSociale);
     await expect(rigaCreata).toContainText(clienteConOfferta.offerta.codice);

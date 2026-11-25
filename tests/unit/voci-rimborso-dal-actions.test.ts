@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Prisma } from "@/generated/prisma/client";
 
 const mockVoceRimborsoTrasferta = vi.hoisted(() => ({
 	findMany: vi.fn(),
@@ -213,6 +214,42 @@ describe("Server Actions voci di rimborso trasferta", () => {
 		expect(mockRedirect).toHaveBeenCalledWith(
 			"/anagrafiche/voci-rimborso?esito=eliminato",
 		);
+	});
+
+	it("rifiuta l'eliminazione senza id restituendo il motivo, senza scrivere a DB", async () => {
+		const result = await eliminaVoceRimborso(new FormData());
+
+		expect(result.errori._form).toBe("Voce di rimborso da eliminare mancante");
+		expect(mockVoceRimborsoTrasferta.delete).not.toHaveBeenCalled();
+		expect(mockRedirect).not.toHaveBeenCalled();
+	});
+
+	it("restituisce il motivo se la voce è già stata eliminata (P2025) e riallinea l'elenco", async () => {
+		mockVoceRimborsoTrasferta.delete.mockRejectedValueOnce(
+			new Prisma.PrismaClientKnownRequestError("Record to delete does not exist", {
+				code: "P2025",
+				clientVersion: "test",
+			}),
+		);
+		const formData = new FormData();
+		formData.set("id", "vrt-sparita");
+
+		const result = await eliminaVoceRimborso(formData);
+
+		expect(result.errori._form).toBe(
+			"La voce non esiste più: potrebbe essere già stata eliminata",
+		);
+		expect(mockRevalidatePath).toHaveBeenCalledWith("/anagrafiche/voci-rimborso");
+		expect(mockRedirect).not.toHaveBeenCalled();
+	});
+
+	it("rilancia gli errori di database diversi dalla voce mancante", async () => {
+		mockVoceRimborsoTrasferta.delete.mockRejectedValueOnce(new Error("Connessione persa"));
+		const formData = new FormData();
+		formData.set("id", "vrt-1");
+
+		await expect(eliminaVoceRimborso(formData)).rejects.toThrow("Connessione persa");
+		expect(mockRedirect).not.toHaveBeenCalled();
 	});
 
 	it("applica la guardia di permesso su DAL e Server Actions", async () => {

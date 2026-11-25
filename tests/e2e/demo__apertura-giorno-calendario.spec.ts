@@ -4,6 +4,7 @@ import {
 import { accediComeCollaboratore } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Demo scenario — US-031: ogni giorno del calendario è apribile.
@@ -53,6 +54,7 @@ test.describe("US-031 Demo", () => {
     await expect(
       page.getByText(`${clienteConOfferta.offerta.codice} — ${clienteConOfferta.offerta.descrizione}`, { exact: true }),
     ).toBeVisible();
+    await attendiRigheConfermate(page);
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();
     await expect(calendario).toBeVisible();

@@ -12,6 +12,8 @@ import {
   risolviCollaboratoreConsultato,
 } from "@/lib/foglio-attivita";
 import type { Collaboratore, RigaAttivita } from "@/generated/prisma/client";
+import { righeDelGiornoPerCollaboratoreAutorizzato } from "@/lib/attivita";
+import type { DatiGiornataAttivita } from "@/lib/attivita-contract";
 import { validaOre } from "@/domain/consuntivi";
 import {
   CATEGORIA_ATTIVITA_PREDEFINITA,
@@ -23,6 +25,15 @@ import {
 interface ActionResult {
   success: boolean;
   error?: string;
+}
+
+/**
+ * Esito di una scrittura sulle righe di un giorno: alla riuscita porta anche la
+ * giornata aggiornata, così il dettaglio giornata conferma la riga mostrata
+ * subito senza una seconda rilettura dal server.
+ */
+interface EsitoScritturaRiga extends ActionResult {
+  giornata?: DatiGiornataAttivita;
 }
 
 /**
@@ -316,7 +327,7 @@ function normalizzaGiorniDestinazione(
  */
 export async function creaRiga(
   formData: FormData
-): Promise<ActionResult> {
+): Promise<EsitoScritturaRiga> {
   const collaboratore = await richiediCollaboratoreOperativo(
     formData.get("collaboratoreConsultatoId") as string | null
   );
@@ -417,7 +428,10 @@ export async function creaRiga(
   revalidatePath("/attivita/riepilogo");
   revalidatePath("/attivita");
 
-  return { success: true };
+  return {
+    success: true,
+    giornata: await righeDelGiornoPerCollaboratoreAutorizzato(dataStr, collaboratore.id),
+  };
 }
 
 /**
@@ -430,7 +444,7 @@ export async function creaRiga(
  */
 export async function modificaRiga(
   formData: FormData
-): Promise<ActionResult> {
+): Promise<EsitoScritturaRiga> {
   const collaboratore = await richiediCollaboratoreOperativo(
     formData.get("collaboratoreConsultatoId") as string | null
   );
@@ -546,7 +560,12 @@ export async function modificaRiga(
   revalidatePath("/attivita/riepilogo");
   revalidatePath("/attivita");
 
-  return { success: true };
+  return {
+    success: true,
+    giornata: dataStr
+      ? await righeDelGiornoPerCollaboratoreAutorizzato(dataStr, collaboratore.id)
+      : undefined,
+  };
 }
 
 /**
@@ -557,7 +576,7 @@ export async function modificaRiga(
 export async function eliminaRiga(
   rigaId: string,
   collaboratoreConsultatoId?: string | null
-): Promise<ActionResult> {
+): Promise<EsitoScritturaRiga> {
   const collaboratore = await richiediCollaboratoreOperativo(
     collaboratoreConsultatoId
   );
@@ -586,15 +605,19 @@ export async function eliminaRiga(
     where: { id: rigaId },
   });
 
-  if (riga) {
-    const data = riga.data;
-    const dataStr = giornoDellaRiga(data);
+  const dataStr = riga ? giornoDellaRiga(riga.data) : null;
+  if (dataStr) {
     revalidatePath(`/attivita/${dataStr}`);
   }
   revalidatePath("/attivita/riepilogo");
   revalidatePath("/attivita");
 
-  return { success: true };
+  return {
+    success: true,
+    giornata: dataStr
+      ? await righeDelGiornoPerCollaboratoreAutorizzato(dataStr, collaboratore.id)
+      : undefined,
+  };
 }
 
 /**

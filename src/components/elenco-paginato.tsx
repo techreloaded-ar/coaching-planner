@@ -8,6 +8,7 @@ import {
   inizioPagina,
   numeriPagineVisibili,
   urlPosizioneElenco,
+  valoreInviatoDalCampo,
   type PaginaElenco,
   type PosizioneElenco,
 } from "@/lib/paginazione";
@@ -37,16 +38,21 @@ export function RicercaElenco({
   const percorso = usePathname();
   const [testo, setTesto] = useState(ricerca);
   const [ricercaOsservata, setRicercaOsservata] = useState(ricerca);
-  const [ultimaRicercaInviata, setUltimaRicercaInviata] = useState(ricerca);
+  const [ricercheInviate, setRicercheInviate] = useState<readonly string[]>([]);
   const timerRicerca = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Indietro o un link possono cambiare `q` senza rimontare il componente:
-  // il campo si riallinea all'URL, salvo quando è l'eco della ricerca appena
-  // inviata (l'utente potrebbe aver già digitato altro nel frattempo).
+  // Indietro o un link possono cambiare `q` senza rimontare il componente: il
+  // campo si riallinea all'URL. Le risposte delle ricerche inviate dal campo,
+  // invece, non lo toccano mai: anche quella di una ricerca precedente («ABC»)
+  // che arriva quando l'utente ha già scritto e inviato «ABCD».
   if (ricerca !== ricercaOsservata) {
     setRicercaOsservata(ricerca);
-    if (ricerca !== ultimaRicercaInviata) {
+    const eco = valoreInviatoDalCampo(ricercheInviate, ricerca);
+    if (eco === null) {
+      setRicercheInviate([]);
       setTesto(ricerca);
+    } else {
+      setRicercheInviate(eco);
     }
   }
 
@@ -56,7 +62,7 @@ export function RicercaElenco({
     setTesto(valore);
     clearTimeout(timerRicerca.current);
     timerRicerca.current = setTimeout(() => {
-      setUltimaRicercaInviata(valore.trim());
+      setRicercheInviate((inviate) => [...inviate, valore.trim()]);
       router.replace(
         urlPosizioneElenco(percorso, { ricerca: valore.trim(), pagina: 1 }, parametri),
         { scroll: false },

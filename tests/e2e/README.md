@@ -81,7 +81,7 @@ L'HTML server-rendered supera gli actionability check di Playwright prima che Re
 
 Le tabelle offerte espongono il contratto osservabile `data-idratata` (hook `useIdratata` in `src/components/use-idratata.ts`): vale `"false"` nell'HTML SSR e passa a `"true"` solo a idratazione avvenuta.
 
-Regola: ogni click su handler client (espansione riga, "Elimina") che è la **prima interazione client dopo una navigazione documentale** (goto, click da menu, redirect post-server-action) va preceduto dagli helper di `support/offerte.ts` — `apriPaginaOfferte` o `attendiTabellaOfferteIdratata`/`attendiTabellaOfferteClienteIdratata`. Non servono per: submit di form server-action (progressive enhancement), link `<a>`, o click successivi a interazioni client già riuscite nella stessa pagina.
+Regola: ogni click su handler client (espansione riga, "Elimina") che è la **prima interazione client dopo una navigazione documentale** (goto, reload, redirect post-server-action; il click da menu è invece una navigazione client, ma gli helper restano innocui) va preceduto dagli helper di `support/offerte.ts` — `apriPaginaOfferte` o `attendiTabellaOfferteIdratata`/`attendiTabellaOfferteClienteIdratata`. Non servono per: submit di form server-action (progressive enhancement), link `<a>`, o click successivi a interazioni client già riuscite nella stessa pagina.
 
 La suite avvia per default `npm run build && npm run start`, anche in locale:
 la build di produzione elimina HMR e compilazione on-demand delle route dal gate.

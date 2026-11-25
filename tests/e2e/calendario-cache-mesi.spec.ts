@@ -6,6 +6,7 @@ import { accediComeCollaboratore, preparaSessioneE2e } from "./support/auth";
 import { mesePrecedente, meseSuccessivo } from "../../src/domain/calendario";
 import { dataNelMese, mesePassatoRiservato, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 import type { Page } from "@playwright/test";
 
 /**
@@ -574,6 +575,7 @@ test.describe("US-052 Cambio mese servito dalla cache dei mesi", () => {
         page.getByRole("button", { name: "Modifica" }).count(),
       )
       .toBe(2);
+    await attendiRigheConfermate(page);
 
     await page.getByRole("link", { name: "Torna al calendario" }).click();
     await attendiCalendarioIdratato(page);

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Demo scenario — US-053: Cambio rapido del giorno dal dettaglio attività
@@ -109,6 +110,7 @@ test.describe("US-053 Demo", () => {
       .getByTestId("activity-row")
       .filter({ has: page.getByText(notaUnivoca, { exact: true }) });
     await expect(rigaCreata).toBeVisible();
+    await attendiRigheConfermate(page);
 
     // ── 5. La riga si vede anche nella cella calendario del giorno arrivo ──
     const tokenArrivo = dataArrivo.slice(0, 7);

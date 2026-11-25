@@ -5,6 +5,12 @@ import {
 } from "./support/auth";
 import { e2ePrisma } from "./support/prisma";
 import { test, expect } from "./support/fixtures";
+import {
+	attendiConfermaMutazioni,
+	avvisoMutazioneNonRiuscita,
+	faiFallireAzioniServer,
+	trattieniAzioniServer,
+} from "./support/mutazioni-ottimistiche";
 
 /**
  * Test e2e — US-042: Abilitazione dei collaboratori sulle offerte dal
@@ -67,6 +73,12 @@ test.describe("Abilitazioni collaboratore", () => {
 			name: "Offerte abilitate",
 			exact: true,
 		});
+		// Abilitazioni e revoche sono immediate: la sezione resta `aria-busy`
+		// finché il server non conferma, e ogni reload attende la conferma.
+		const sezioneAbilitate = page.getByRole("region", {
+			name: "Offerte abilitate",
+			exact: true,
+		});
 
 		// AC-1 — l'elenco mostra la sola offerta A (codice + cliente) e non le
 		// offerte non ancora abilitate B e C.
@@ -97,8 +109,8 @@ test.describe("Abilitazioni collaboratore", () => {
 		// Flusso naturale a due ricerche distinte: cerca B, selezionala; poi
 		// cambia la ricerca su C (che smonta e rimonta le righe filtrate, con B
 		// ora fuori dai risultati) e selezionala. La selezione di B deve
-		// sopravvivere al cambio di filtro grazie agli input nascosti che
-		// mantengono in submit le offerte selezionate ma non più visibili.
+		// sopravvivere al cambio di filtro: la selezione vive nello stato del
+		// dialog, non nei checkbox montati.
 		const campoRicerca = dialog.getByRole("searchbox", { name: "Cerca offerta" });
 		await campoRicerca.fill(codiceOffertaB);
 		await dialog.getByRole("checkbox", { name: codiceOffertaB }).check();
@@ -109,13 +121,15 @@ test.describe("Abilitazioni collaboratore", () => {
 			.getByRole("button", { name: "Abilita selezionate", exact: true })
 			.click();
 
-		// Attesa web-first: B e C compaiono nell'elenco delle abilitate.
+		// Il dialog si chiude subito e B e C compaiono nell'elenco delle abilitate.
+		await expect(dialog).toHaveCount(0);
 		await expect(
 			tabellaAbilitate.getByRole("row", { name: codiceOffertaB }),
 		).toBeVisible();
 		await expect(
 			tabellaAbilitate.getByRole("row", { name: codiceOffertaC }),
 		).toBeVisible();
+		await attendiConfermaMutazioni(sezioneAbilitate);
 
 		// AC-2 — la selezione multipla sopravvive al ricaricamento.
 		await page.reload();
@@ -141,6 +155,7 @@ test.describe("Abilitazioni collaboratore", () => {
 				tabellaAbilitate.getByRole("row", { name: codiceOffertaB }),
 			).toHaveCount(0, { timeout: 1_000 });
 		}).toPass({ timeout: 15_000 });
+		await attendiConfermaMutazioni(sezioneAbilitate);
 
 		// AC-3 — dopo il reload B resta assente mentre A e C sono invariate.
 		await page.reload();
@@ -153,6 +168,75 @@ test.describe("Abilitazioni collaboratore", () => {
 		await expect(
 			tabellaAbilitate.getByRole("row", { name: codiceOffertaC }),
 		).toBeVisible();
+	});
+
+	test("abilitazione immediata nel gruppo del cliente e revoca rifiutata con messaggio", async ({
+		page,
+		factory,
+	}) => {
+		const marcatore = `U42R${factory.namespace}`
+			.replace(/[^a-z0-9]/gi, "")
+			.toUpperCase();
+		const { cliente, offerta: offertaEsistente } = await factory.createClienteConOfferta(
+			{ ragioneSociale: `Cliente ${marcatore}` },
+			{ codice: `${marcatore}A` },
+		);
+		const offertaNuova = await factory.createOfferta({ cliente, codice: `${marcatore}B` });
+		const collaboratore = await factory.createCollaboratore();
+		await factory.createAbilitazioneOfferta({ collaboratore, offerta: offertaEsistente });
+
+		await accediComeAdmin(page);
+		await page.goto(`/anagrafiche/collaboratori/${collaboratore.collaboratore.id}`);
+		const sezione = page.getByRole("region", { name: "Offerte abilitate", exact: true });
+		const tabella = page.getByRole("table", { name: "Offerte abilitate", exact: true });
+		const gruppoCliente = tabella
+			.getByRole("rowgroup")
+			.filter({ has: page.getByRole("button", { name: cliente.ragioneSociale }) });
+		await expect(tabella.getByRole("row", { name: offertaEsistente.codice })).toBeVisible();
+		// Le server action partono dalla scheda persona a cui la pagina reindirizza.
+		const percorso = new URL(page.url()).pathname;
+
+		// Con la POST trattenuta l'offerta compare subito nel gruppo del suo
+		// cliente, attenuata, con «—» al posto dei giorni fatturati e senza azioni.
+		const trattenute = await trattieniAzioniServer(page, percorso);
+		const dialog = page.getByRole("dialog");
+		await expect(async () => {
+			await page.getByRole("button", { name: "Abilita offerte", exact: true }).click();
+			await expect(dialog).toBeVisible({ timeout: 1_000 });
+		}).toPass({ timeout: 15_000 });
+		await dialog.getByRole("searchbox", { name: "Cerca offerta" }).fill(offertaNuova.codice);
+		await dialog.getByRole("checkbox", { name: offertaNuova.codice }).check();
+		await dialog.getByRole("button", { name: "Abilita selezionate", exact: true }).click();
+
+		await expect(dialog).toHaveCount(0);
+		const rigaNuova = gruppoCliente.getByRole("row", { name: offertaNuova.codice });
+		await expect(rigaNuova).toBeVisible();
+		await expect(rigaNuova.getByText("Salvataggio…")).toBeVisible();
+		await expect(rigaNuova.getByRole("cell", { name: "—", exact: true })).toBeVisible();
+		await expect(rigaNuova.getByRole("button")).toHaveCount(0);
+		await expect(rigaNuova.getByRole("link")).toHaveCount(0);
+		await expect(gruppoCliente.getByRole("button", { name: cliente.ragioneSociale })).toContainText("2 offerte");
+
+		// Alla conferma arrivano giorni fatturati, link al foglio e Revoca.
+		trattenute.rilascia();
+		await attendiConfermaMutazioni(sezione);
+		await expect(rigaNuova.getByRole("cell", { name: "0", exact: true })).toBeVisible();
+		await expect(rigaNuova.getByRole("link", { name: offertaNuova.codice, exact: true })).toBeVisible();
+		await trattenute.smetti();
+
+		// Revoca rifiutata (server irraggiungibile): la riga ricompare e l'avviso
+		// dice cosa non è riuscito.
+		const fallite = await faiFallireAzioniServer(page, percorso);
+		await rigaNuova.getByRole("button", { name: "Revoca", exact: true }).click();
+		await attendiConfermaMutazioni(sezione);
+		await expect(avvisoMutazioneNonRiuscita(sezione)).toContainText(
+			`La revoca dell'abilitazione su ${offertaNuova.codice} non è riuscita`,
+		);
+		await expect(rigaNuova.getByRole("button", { name: "Revoca", exact: true })).toBeVisible();
+		await fallite.smetti();
+
+		await page.reload();
+		await expect(tabella.getByRole("row", { name: offertaNuova.codice })).toBeVisible();
 	});
 
 	test("pre-popolamento iniziale sul seed: Giulia Conti abilitata su TS-2025-01 (AC-4)", async ({

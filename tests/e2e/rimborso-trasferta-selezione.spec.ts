@@ -6,6 +6,7 @@ import { selezionaClienteEOffertaTest } from "./demo__inserimento-righe-attivita
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Test e2e — US-054: selezione della voce di rimborso e fotografia sulla riga.
@@ -129,6 +130,8 @@ test.describe("US-054 Rimborso trasferta selezionato e fotografato", () => {
       await expect(page.getByTestId("day-summary-rimborsi")).toHaveText(
         euroDettaglioGiornata(IMPORTO_ORIGINALE),
       );
+      // La riga è mostrata subito: prima di lasciare la giornata va confermata dal server.
+      await attendiRigheConfermate(page);
 
       // AC-3 — il riepilogo mensile del collaboratore somma l'importo fotografato.
       await apriRiepilogoMensile(page, mese);

@@ -13,6 +13,7 @@ import {
   type CollaboratoreTestData,
   type E2eDataFactory,
 } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 import type { Page } from "@playwright/test";
 
 /**
@@ -642,8 +643,9 @@ test.describe("US-056 Cambio giorno servito dalla cache delle giornate", () => {
       .filter({ has: page.getByText(notaSalvata, { exact: true }) });
 
     // La vista resta sul giorno salvato: il salvataggio non riporta l'utente
-    // sul giorno da cui era partito.
+    // sul giorno da cui era partito, nemmeno alla conferma del server.
     await expect(rigaSalvata).toBeVisible();
+    await attendiRigheConfermate(page);
     await expect(page).toHaveURL(`/attivita/${giornoSalvataggio}?mese=${mese}`);
     await expect(intestazioneGiornata(page)).toHaveText(
       etichettaGiornoAttesa(giornoSalvataggio),

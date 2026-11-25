@@ -1,6 +1,7 @@
 import { accediComeCollaboratore } from "./support/auth";
 import { meseRiservato, dataNelMese } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Selezione cliente nel form riga attività.
@@ -115,6 +116,10 @@ test.describe("Selezione cliente con gruppo Consigliati", () => {
 		const rigaCardAggiornata = page
 			.getByTestId("activity-row")
 			.filter({ hasText: rigaEsistente.nota ?? "" });
+		await expect(rigaCardAggiornata).toContainText("6 h");
+		// Le «6 h» compaiono subito: il salvataggio è consentito se restano
+		// dopo la conferma del server.
+		await attendiRigheConfermate(page);
 		await expect(rigaCardAggiornata).toContainText("6 h");
 	});
 });

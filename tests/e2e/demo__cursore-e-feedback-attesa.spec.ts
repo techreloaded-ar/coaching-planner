@@ -13,8 +13,8 @@ import { esci } from "./support/menu-account";
  *
  * Il revisore osserva: il cursore a manina sui controlli abilitati in back e
  * front office; l'attesa visibile (pulsante disabilitato, `aria-busy`) durante
- * il salvataggio di un form; lo stesso comportamento su un'azione distruttiva
- * con il dialog che resta aperto fino all'esito; infine un errore di
+ * il salvataggio di un form; un'azione distruttiva immediata, con la riga che
+ * sparisce subito e l'esito che arriva alla conferma; infine un errore di
  * validazione che chiude l'attesa e lascia il messaggio visibile.
  *
  * Registra un video per la review. La "rete lenta" non è mai un hard wait: la
@@ -151,7 +151,7 @@ test.describe("US-051 Demo", () => {
     ).toBeVisible();
     await gateSalvataggio.smetti();
 
-    // ── 3. Azione distruttiva: il dialog resta aperto fino all'esito ──
+    // ── 3. Azione distruttiva: la riga sparisce subito, l'esito arriva dopo ──
     await page.goto("/anagrafiche/voci-rimborso");
     const tabellaVociRimborso = page.locator(
       "table[aria-label='Elenco voci di rimborso trasferta']",
@@ -176,18 +176,22 @@ test.describe("US-051 Demo", () => {
       page,
       "/anagrafiche/voci-rimborso",
     );
-    const confermaEliminazione = dialogEliminazione.getByRole("button", {
-      name: /^(?:Elimina voce|Eliminazione…)$/,
-    });
-    await confermaEliminazione.click();
+    await dialogEliminazione
+      .getByRole("button", { name: "Elimina voce", exact: true })
+      .click();
 
-    await expect(confermaEliminazione).toBeDisabled();
-    await expect(confermaEliminazione).toHaveAttribute("aria-busy", "true");
-    await expect(dialogEliminazione).toBeVisible();
+    // Con la POST trattenuta la conferma si chiude e la riga sparisce subito;
+    // la tabella resta in attesa della conferma del server.
+    await expect(dialogEliminazione).toHaveCount(0);
+    await expect(rigaVoce).toHaveCount(0);
+    await expect(
+      page.getByRole("region", { name: "Voci di rimborso trasferta", exact: true }),
+    ).toHaveAttribute("aria-busy", "true");
 
     gateEliminazione.rilascia();
     await page.waitForURL("**/anagrafiche/voci-rimborso?esito=eliminato");
-    await expect(dialogEliminazione).toHaveCount(0);
+    await expect(page.getByText("Voce di rimborso eliminata")).toBeVisible();
+    await expect(rigaVoce).toHaveCount(0);
     await gateEliminazione.smetti();
 
     // ── 4. Front office: la manina compare anche lì ─────────────────

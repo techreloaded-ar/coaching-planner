@@ -15,6 +15,7 @@ import {
   type CollaboratoreTestData,
   type E2eDataFactory,
 } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 test.use({
   video: "on",
@@ -196,6 +197,8 @@ async function aggiungiRiga(
 
   await page.getByRole("button", { name: "Aggiungi riga" }).click();
   await expect(cardRiga(page, nota, categoria)).toBeVisible();
+  // Chi chiama poi lascia la giornata per leggere il riepilogo del mese.
+  await attendiRigheConfermate(page);
 }
 
 test.describe("US-014 Demo — Riepilogo mensile con importo fattura", () => {

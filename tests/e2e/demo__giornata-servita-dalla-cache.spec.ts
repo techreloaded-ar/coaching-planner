@@ -4,6 +4,7 @@ import { accediComeCollaboratore } from "./support/auth";
 import { attendiOfferteCaricate, labelOffertaTest } from "./demo__inserimento-righe-attivita.helpers";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 import type { Page } from "@playwright/test";
 
 /**
@@ -161,6 +162,7 @@ test.describe("US-056 Demo", () => {
       .getByTestId("activity-row")
       .filter({ has: page.getByText(notaSalvata, { exact: true }) });
     await expect(rigaSalvata).toBeVisible();
+    await attendiRigheConfermate(page);
 
     await page.getByRole("button", { name: "Giorno precedente" }).click();
     await expect(page).toHaveURL(`/attivita/${giorno2}`);

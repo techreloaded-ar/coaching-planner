@@ -9,6 +9,7 @@ import {
 import { accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * US-012: Inserimento delle righe di attività giornaliere
@@ -339,6 +340,11 @@ test.describe("US-012 Demo — Inserimento righe attività", () => {
       await (await rispostaConsegnata).finished();
       await page.locator("#ore").fill("7,25");
       await page.getByRole("button", { name: "Salva modifiche", exact: true }).click();
+      await expect(secondaRiga).toContainText("7,25 h");
+      // La riga provvisoria mostra i valori del form: offerta e ore salvate si
+      // verificano sulla riga confermata dal server (un rifiuto la riporterebbe
+      // ai valori originali, offerta compresa).
+      await attendiRigheConfermate(page);
       await expect(secondaRiga).toContainText("7,25 h");
       await expect(secondaRiga).toContainText(secondaClienteConOfferta.offerta.codice);
       await expect(primaRiga).toContainText("3,5 h");
