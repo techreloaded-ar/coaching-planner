@@ -13,6 +13,8 @@ import { haAccessoBackOffice, type Permesso } from "@/domain/permessi";
 import type { Ruolo } from "@/domain/types";
 import { useApriImpostazioni } from "./impostazioni/modale-impostazioni";
 import { gruppiAmministrazioneVisibili } from "./navigazione-amministrazione";
+import { useNavigazioneDalMenu } from "./navigazione-dal-menu";
+import ScheletroDelPercorso from "./scheletro-del-percorso";
 
 // ── Icone SVG inline ───────────────────────────────────────────
 
@@ -120,6 +122,13 @@ export default function SidebarApplicazione({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const apriImpostazioni = useApriImpostazioni();
+  // Clic su una voce: voce accesa e scheletro della pagina di arrivo subito,
+  // finché la pagina non arriva dal server.
+  const { destinazione, avvia: avviaNavigazione } = useNavigazioneDalMenu(
+    pathname,
+    searchParams.toString()
+  );
+  const percorsoAttivo = destinazione?.pathname ?? pathname;
 
   useEffect(() => {
     if (!menuAperto) {
@@ -157,9 +166,14 @@ export default function SidebarApplicazione({
     document.cookie = `${NOME_COOKIE_SIDEBAR_COMPRESSA}=${nuova ? "1" : "0"}; path=/; max-age=${DURATA_COOKIE_SIDEBAR_COMPRESSA_SECONDI}; samesite=lax`;
   }
 
-  const attivitaAttiva = pathname === PERCORSO_ATTIVITA || (pathname.startsWith("/attivita/") && !pathname.startsWith(PERCORSO_RIEPILOGO));
-  const riepilogoAttivo = pathname.startsWith(PERCORSO_RIEPILOGO);
-  const suNavigazione = () => setMenuAperto(false);
+  const attivitaAttiva =
+    percorsoAttivo === PERCORSO_ATTIVITA ||
+    (percorsoAttivo.startsWith("/attivita/") && !percorsoAttivo.startsWith(PERCORSO_RIEPILOGO));
+  const riepilogoAttivo = percorsoAttivo.startsWith(PERCORSO_RIEPILOGO);
+  const suNavigazione = (evento: React.MouseEvent<HTMLAnchorElement>) => {
+    avviaNavigazione(evento);
+    setMenuAperto(false);
+  };
   const gruppiAmministrazione = gruppiAmministrazioneVisibili(permessi);
 
   return (
@@ -222,18 +236,22 @@ export default function SidebarApplicazione({
             <div key={gruppo.titolo} className="contents">
               <TitoloGruppo titolo={gruppo.titolo} compressa={compressa} />
               {gruppo.voci.map((voce) => {
-                const attiva = pathname === voce.href || pathname.startsWith(`${voce.href}/`);
+                const attiva = percorsoAttivo === voce.href || percorsoAttivo.startsWith(`${voce.href}/`);
                 return (
-                  <a
+                  <Link
                     key={voce.href}
                     href={voce.href}
+                    // Navigazione client senza prefetch: il menu resta montato,
+                    // lo scheletro compare al clic e i dati della pagina sono
+                    // chiesti al server solo quando la si apre.
+                    prefetch={false}
                     onClick={suNavigazione}
                     aria-current={attiva ? "page" : undefined}
                     title={compressa ? voce.etichetta : undefined}
                     className={`${CLASSI_VOCE} ${attiva ? CLASSI_VOCE_ATTIVA : CLASSI_VOCE_INATTIVA}`}
                   >
                     <ContenutoVoce etichetta={voce.etichetta} icona={voce.icona} attiva={attiva} compressa={compressa} />
-                  </a>
+                  </Link>
                 );
               })}
             </div>
@@ -300,7 +318,14 @@ export default function SidebarApplicazione({
             </span>
           )}
         </header>
-        {children}
+        {/* La pagina corrente resta montata ma nascosta mentre arriva quella richiesta dal menu. */}
+        <div style={{ display: destinazione ? "none" : "contents" }}>{children}</div>
+        {destinazione && (
+          <ScheletroDelPercorso
+            percorso={destinazione.pathname}
+            vista={new URLSearchParams(destinazione.ricerca).get("vista")}
+          />
+        )}
       </div>
     </div>
   );

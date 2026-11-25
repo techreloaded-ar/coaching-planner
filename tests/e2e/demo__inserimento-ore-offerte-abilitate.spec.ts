@@ -2,6 +2,7 @@ import { attendiOfferteCaricate, labelOffertaTest } from "./demo__inserimento-ri
 import { accediComeCollaboratore } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Demo — Inserimento ore su offerte abilitate e non abilitate
@@ -105,6 +106,10 @@ test("il collaboratore vede le offerte abilitate e non abilitate e l'avviso non 
 		.getByTestId("activity-row")
 		.filter({ hasText: rigaStorica.nota ?? "" });
 	await expect(rigaAggiornata).toContainText("5 h");
+	// Le «5 h» compaiono subito: la modifica è salvata se restano dopo la
+	// conferma del server.
+	await attendiRigheConfermate(page);
+	await expect(rigaAggiornata).toContainText("5 h");
 
 	page.once("dialog", (dialog) => {
 		void dialog.accept();
@@ -112,6 +117,8 @@ test("il collaboratore vede le offerte abilitate e non abilitate e l'avviso non 
 	await rigaAggiornata.getByRole("button", { name: "Elimina" }).click();
 
 	await expect(rigaAggiornata).toBeHidden();
+	// Un'eliminazione rifiutata farebbe ricomparire la riga.
+	await attendiRigheConfermate(page);
 	await expect(
 		page.getByText("Nessuna attività registrata per questa giornata."),
 	).toBeVisible();

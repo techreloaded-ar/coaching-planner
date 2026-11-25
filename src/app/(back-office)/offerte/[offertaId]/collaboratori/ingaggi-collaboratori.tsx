@@ -1,9 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useActionState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import type { CollaboratoreIngaggiato, CollaboratoreIngaggiabile } from "@/lib/abilitazioni";
 import type { StatoIngaggiAction } from "./ingaggi-actions";
-import { PulsanteAttesa } from "@/components";
+import { CLASSE_ELEMENTO_IN_ATTESA, IndicatoreSalvataggio } from "@/components";
+import { AvvisiMutazioni, useMutazioniElenco } from "@/components/mutazioni-elenco";
+import {
+  conAggiunte,
+  elencoLeggibile,
+  ordinaPerCognomeENome,
+  type InAttesa,
+} from "@/lib/mutazioni-ottimistiche";
 import {
   ingaggiaCollaboratoriSuOfferta,
   revocaIngaggioCollaboratore,
@@ -16,28 +33,165 @@ function inizialiPersona(nome: string, cognome: string): string {
   return `${nome[0] ?? ""}${cognome[0] ?? ""}`.toUpperCase();
 }
 
+function nomeCompleto(collaboratore: { nome: string; cognome: string }): string {
+  return `${collaboratore.nome} ${collaboratore.cognome}`;
+}
+
+// ── Squadra ottimistica ─────────────────────────────────────────
+//
+// La squadra è condivisa fra la sezione «Collaboratori ingaggiati» e il
+// contatore «Squadra attiva» nella testata della pagina: ingaggi e revoche si
+// vedono subito in entrambi e tornano ai dati del server alla conferma.
+
+type CollaboratoreInSquadra = InAttesa<CollaboratoreIngaggiato>;
+
+type MutazioneSquadra =
+  | { tipo: "ingaggia"; collaboratori: CollaboratoreInSquadra[] }
+  | { tipo: "revoca"; collaboratoreId: string };
+
+function applicaMutazioneSquadra(
+  squadra: CollaboratoreInSquadra[],
+  mutazione: MutazioneSquadra,
+): CollaboratoreInSquadra[] {
+  if (mutazione.tipo === "revoca") {
+    return squadra.filter(
+      (collaboratore) => collaboratore.collaboratoreId !== mutazione.collaboratoreId,
+    );
+  }
+  return conAggiunte(
+    squadra,
+    mutazione.collaboratori,
+    (collaboratore) => collaboratore.collaboratoreId,
+    ordinaPerCognomeENome,
+  );
+}
+
+function useSquadraOttimistica(ingaggiati: CollaboratoreIngaggiato[]) {
+  return useMutazioniElenco<CollaboratoreInSquadra[], MutazioneSquadra>(
+    ingaggiati,
+    applicaMutazioneSquadra,
+  );
+}
+
+type SquadraOttimistica = ReturnType<typeof useSquadraOttimistica>;
+
+const ContestoSquadra = createContext<SquadraOttimistica | null>(null);
+
+function useSquadra(): SquadraOttimistica {
+  const squadra = useContext(ContestoSquadra);
+  if (!squadra) throw new Error("useSquadra va usato dentro <SquadraOfferta>");
+  return squadra;
+}
+
+/** Fornisce la squadra ottimistica dell'offerta a sezione e contatore. */
+export function SquadraOfferta({
+  ingaggiati,
+  children,
+}: {
+  ingaggiati: CollaboratoreIngaggiato[];
+  children: ReactNode;
+}) {
+  const squadra = useSquadraOttimistica(ingaggiati);
+  return <ContestoSquadra.Provider value={squadra}>{children}</ContestoSquadra.Provider>;
+}
+
+/**
+ * Contatore «Squadra attiva» della testata: conta chi può inserire ore, cioè i
+ * soli ingaggiati attivi. La tabella elenca invece anche gli ingaggi storici
+ * verso profili nel frattempo disattivati (AC-1).
+ */
+export function ContatoreSquadraAttiva() {
+  const { elenco: squadra } = useSquadra();
+  const collaboratoriAttivi = squadra.filter(
+    (collaboratore) => collaboratore.collaboratoreAttivo,
+  ).length;
+
+  return (
+    <div
+      data-testid="squadra-attiva"
+      className="flex shrink-0 flex-col justify-center border-l border-zinc-200 py-1 pl-5 text-right max-[720px]:mt-1 max-[720px]:w-full max-[720px]:border-t max-[720px]:border-l-0 max-[720px]:pt-3 max-[720px]:pl-0 max-[720px]:text-left dark:border-zinc-800"
+    >
+      <span className="mb-1 text-xs font-medium text-testo-metadati">
+        Squadra attiva
+      </span>
+      <span className="text-[22px] font-semibold tracking-tight text-testo-principale tabular-nums">
+        {collaboratoriAttivi}
+      </span>
+      <span className="text-xs font-medium text-testo-metadati">
+        {collaboratoriAttivi === 1 ? "collaboratore" : "collaboratori"}
+      </span>
+    </div>
+  );
+}
+
 // ── Props ───────────────────────────────────────────────────────
 
 interface IngaggiCollaboratoriProps {
   offertaId: string;
   codiceOfferta: string;
-  ingaggiati: CollaboratoreIngaggiato[];
   ingaggiabili: CollaboratoreIngaggiabile[];
 }
 
 // ── Sezione "Collaboratori ingaggiati" ──────────────────────────
 
+/** Va resa dentro `<SquadraOfferta>`, che fornisce la squadra ottimistica. */
 export default function IngaggiCollaboratori({
   offertaId,
   codiceOfferta,
-  ingaggiati,
   ingaggiabili,
 }: IngaggiCollaboratoriProps) {
+  const { elenco: ingaggiati, salvataggioInCorso, muta, avvisi, chiudiAvviso } = useSquadra();
   const [dialogAperto, setDialogAperto] = useState(false);
   const chiudiDialog = useCallback(() => setDialogAperto(false), []);
 
+  // Chi è appena entrato in squadra, anche se in attesa di conferma, non è più
+  // proponibile nel dialog.
+  const disponibili = useMemo(() => {
+    const inSquadra = new Set(ingaggiati.map((collaboratore) => collaboratore.collaboratoreId));
+    return ingaggiabili.filter((collaboratore) => !inSquadra.has(collaboratore.collaboratoreId));
+  }, [ingaggiati, ingaggiabili]);
+
+  function ingaggia(scelti: CollaboratoreIngaggiabile[]) {
+    setDialogAperto(false);
+    const datiForm = new FormData();
+    datiForm.set("offertaId", offertaId);
+    for (const collaboratore of scelti) {
+      datiForm.append("collaboratoreId", collaboratore.collaboratoreId);
+    }
+    muta(
+      {
+        tipo: "ingaggia",
+        // Il dialog propone solo collaboratori attivi.
+        collaboratori: scelti.map((collaboratore) => ({
+          ...collaboratore,
+          collaboratoreAttivo: true,
+          inAttesa: true,
+        })),
+      },
+      () => ingaggiaCollaboratoriSuOfferta(statoIniziale, datiForm),
+      {
+        operazione: `L'ingaggio di ${elencoLeggibile(scelti.map(nomeCompleto))} sull'offerta ${codiceOfferta} non è riuscito`,
+      },
+    );
+  }
+
+  function revoca(collaboratore: CollaboratoreIngaggiato) {
+    const datiForm = new FormData();
+    datiForm.set("offertaId", offertaId);
+    datiForm.set("collaboratoreId", collaboratore.collaboratoreId);
+    muta(
+      { tipo: "revoca", collaboratoreId: collaboratore.collaboratoreId },
+      () => revocaIngaggioCollaboratore(statoIniziale, datiForm),
+      { operazione: `La revoca di ${nomeCompleto(collaboratore)} non è riuscita` },
+    );
+  }
+
   return (
-    <section aria-labelledby="titolo-collaboratori-ingaggiati" className="mb-[22px]">
+    <section
+      aria-labelledby="titolo-collaboratori-ingaggiati"
+      aria-busy={salvataggioInCorso}
+      className="mb-[22px]"
+    >
       <div className="mb-[14px] flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-[11px]">
           <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
@@ -76,6 +230,8 @@ export default function IngaggiCollaboratori({
         </div>
       </div>
 
+      <AvvisiMutazioni avvisi={avvisi} onChiudi={chiudiAvviso} className="mb-[14px]" />
+
       {ingaggiati.length === 0 ? (
         <StatoVuoto />
       ) : (
@@ -99,8 +255,8 @@ export default function IngaggiCollaboratori({
                 <RigaCollaboratoreIngaggiato
                   key={collaboratore.collaboratoreId}
                   collaboratore={collaboratore}
-                  offertaId={offertaId}
                   codiceOfferta={codiceOfferta}
+                  onRevoca={revoca}
                 />
               ))}
             </tbody>
@@ -109,11 +265,11 @@ export default function IngaggiCollaboratori({
       )}
 
       <DialogIngaggia
-        offertaId={offertaId}
         codiceOfferta={codiceOfferta}
-        ingaggiabili={ingaggiabili}
+        ingaggiabili={disponibili}
         aperto={dialogAperto}
         onChiudi={chiudiDialog}
+        onIngaggia={ingaggia}
       />
     </section>
   );
@@ -123,18 +279,21 @@ export default function IngaggiCollaboratori({
 
 function RigaCollaboratoreIngaggiato({
   collaboratore,
-  offertaId,
   codiceOfferta,
+  onRevoca,
 }: {
-  collaboratore: CollaboratoreIngaggiato;
-  offertaId: string;
+  collaboratore: CollaboratoreInSquadra;
   codiceOfferta: string;
+  onRevoca: (collaboratore: CollaboratoreIngaggiato) => void;
 }) {
-  const [statoRevoca, azione] = useActionState(revocaIngaggioCollaboratore, statoIniziale);
-  const nomeCompleto = `${collaboratore.nome} ${collaboratore.cognome}`;
+  const nome = nomeCompleto(collaboratore);
 
   return (
-    <tr className="border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800/60 dark:hover:bg-zinc-800/50">
+    <tr
+      className={`border-t border-zinc-100 transition-colors hover:bg-zinc-50 dark:border-zinc-800/60 dark:hover:bg-zinc-800/50 ${
+        collaboratore.inAttesa ? CLASSE_ELEMENTO_IN_ATTESA : ""
+      }`}
+    >
       <td className="px-4 py-[13px] align-middle">
         <div className="flex min-w-0 items-center gap-[10px]">
           <span
@@ -147,8 +306,8 @@ function RigaCollaboratoreIngaggiato({
             {inizialiPersona(collaboratore.nome, collaboratore.cognome)}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-testo-principale" title={nomeCompleto}>
-              {nomeCompleto}
+            <span className="block truncate text-sm font-medium text-testo-principale" title={nome}>
+              {nome}
             </span>
             <span className="block truncate text-xs text-testo-metadati">
               {collaboratore.email}
@@ -170,23 +329,21 @@ function RigaCollaboratoreIngaggiato({
         )}
       </td>
       <td className="px-4 py-[13px] text-right align-middle whitespace-nowrap">
-        <form action={azione} className="inline">
-          <input type="hidden" name="offertaId" value={offertaId} />
-          <input type="hidden" name="collaboratoreId" value={collaboratore.collaboratoreId} />
-          <PulsanteAttesa
-            aria-label={`Revoca l'ingaggio di ${nomeCompleto} sull'offerta ${codiceOfferta}`}
+        {collaboratore.inAttesa ? (
+          // In attesa di conferma: nessuna azione, solo lo stato del salvataggio.
+          <IndicatoreSalvataggio />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onRevoca(collaboratore)}
+            aria-label={`Revoca l'ingaggio di ${nome} sull'offerta ${codiceOfferta}`}
             className="inline-flex items-center gap-[5px] rounded-[8px] px-2 py-[5px] font-[inherit] text-sm font-medium text-testo-secondario transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[14px] w-[14px]" strokeWidth={2} aria-hidden="true">
               <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
             </svg>
             Revoca
-          </PulsanteAttesa>
-        </form>
-        {statoRevoca.errori?._form && (
-          <p role="alert" className="mt-1 text-xs font-medium whitespace-normal text-red-600 dark:text-red-400">
-            {statoRevoca.errori._form}
-          </p>
+          </button>
         )}
       </td>
     </tr>
@@ -221,21 +378,20 @@ function StatoVuoto() {
 // ── Dialog di ricerca e selezione multipla ──────────────────────
 
 function DialogIngaggia({
-  offertaId,
   codiceOfferta,
   ingaggiabili,
   aperto,
   onChiudi,
+  onIngaggia,
 }: {
-  offertaId: string;
   codiceOfferta: string;
   ingaggiabili: CollaboratoreIngaggiabile[];
   aperto: boolean;
   onChiudi: () => void;
+  onIngaggia: (scelti: CollaboratoreIngaggiabile[]) => void;
 }) {
   const [ricerca, setRicerca] = useState("");
   const [selezionati, setSelezionati] = useState<Set<string>>(new Set());
-  const [stato, azione] = useActionState(ingaggiaCollaboratoriSuOfferta, statoIniziale);
   const campoRicercaRef = useRef<HTMLInputElement>(null);
 
   // Ripristina ricerca e selezione a ogni transizione di apertura/chiusura.
@@ -245,13 +401,6 @@ function DialogIngaggia({
     setRicerca("");
     setSelezionati(new Set());
   }
-
-  // Chiude il dialog alla riuscita dell'ingaggio.
-  useEffect(() => {
-    if (stato.successo) {
-      onChiudi();
-    }
-  }, [stato, onChiudi]);
 
   // Porta il fuoco al campo di ricerca all'apertura.
   useEffect(() => {
@@ -284,19 +433,19 @@ function DialogIngaggia({
     });
   }
 
-  const numeroSelezionati = selezionati.size;
+  // La selezione vive nello stato, non nei checkbox montati: i collaboratori
+  // scelti e poi nascosti da un cambio di ricerca restano nell'ingaggio.
+  const scelti = ingaggiabili.filter((collaboratore) =>
+    selezionati.has(collaboratore.collaboratoreId),
+  );
+  const numeroSelezionati = scelti.length;
 
-  // I collaboratori selezionati che il filtro di ricerca corrente nasconde non
-  // hanno un checkbox montato nel DOM: senza un input nascosto la submit nativa
-  // del form li perderebbe silenziosamente al cambio di ricerca.
-  const idVisibili = useMemo(
-    () => new Set(risultati.map((collaboratore) => collaboratore.collaboratoreId)),
-    [risultati],
-  );
-  const selezionatiNonVisibili = useMemo(
-    () => [...selezionati].filter((collaboratoreId) => !idVisibili.has(collaboratoreId)),
-    [selezionati, idVisibili],
-  );
+  // Il dialog si chiude subito: la squadra mostra i collaboratori scelti in
+  // attesa di conferma, e un eventuale rifiuto compare come avviso nella sezione.
+  function invia(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (scelti.length > 0) onIngaggia(scelti);
+  }
 
   return (
     <div
@@ -367,12 +516,7 @@ function DialogIngaggia({
           </label>
         </div>
 
-        <form action={azione} className="flex min-h-0 flex-1 flex-col">
-          <input type="hidden" name="offertaId" value={offertaId} />
-          {selezionatiNonVisibili.map((collaboratoreId) => (
-            <input key={collaboratoreId} type="hidden" name="collaboratoreId" value={collaboratoreId} />
-          ))}
-
+        <form onSubmit={invia} className="flex min-h-0 flex-1 flex-col">
           {/* Elenco collaboratori selezionabili */}
           <div className="min-h-0 flex-1 overflow-y-auto px-[20px] py-[14px]">
             {risultati.length === 0 ? (
@@ -402,7 +546,6 @@ function DialogIngaggia({
                     >
                       <input
                         type="checkbox"
-                        name="collaboratoreId"
                         value={collaboratore.collaboratoreId}
                         checked={scelta}
                         onChange={(e) => commuta(collaboratore.collaboratoreId, e.target.checked)}
@@ -426,17 +569,6 @@ function DialogIngaggia({
             )}
           </div>
 
-          {/* Errore di forma */}
-          {stato.errori?._form && (
-            <div className="mx-[20px] mb-[12px] flex items-start gap-[9px] rounded-[11px] border border-red-200 bg-red-50 px-[13px] py-[10px] text-sm font-medium leading-[1.45] text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="mt-[1px] h-[15px] w-[15px] shrink-0" strokeWidth={2} aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8v5M12 16h.01" />
-              </svg>
-              <span>{stato.errori._form}</span>
-            </div>
-          )}
-
           {/* Piè di pagina */}
           <div className="flex flex-wrap items-center justify-end gap-[9px] border-t border-zinc-200 px-[20px] py-[14px] dark:border-zinc-800">
             <span className="mr-auto text-sm font-medium text-testo-metadati">
@@ -450,16 +582,16 @@ function DialogIngaggia({
             >
               Annulla
             </button>
-            <PulsanteAttesa
+            <button
+              type="submit"
               disabled={numeroSelezionati === 0}
-              etichettaAttesa="Ingaggio…"
-              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600"
+              className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-indigo-500 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-[16px] w-[16px]" strokeWidth={2} aria-hidden="true">
                 <path d="M20 6 9 17l-5-5" />
               </svg>
               Ingaggia selezionati
-            </PulsanteAttesa>
+            </button>
           </div>
         </form>
       </div>

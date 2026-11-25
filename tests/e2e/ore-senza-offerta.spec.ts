@@ -1,6 +1,7 @@
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Ore storiche con offerta da definire.
@@ -63,6 +64,11 @@ test.describe("Ore con offerta da definire", () => {
 		await selectOfferta.selectOption(offerta.id);
 		await page.getByRole("button", { name: "Salva modifiche" }).click();
 
+		await expect(rigaCard.getByTestId("offerta-da-definire")).toHaveCount(0);
+		await expect(rigaCard).toContainText(offerta.codice);
+		// La riga provvisoria mostra l'offerta scelta nel form: è salvata se
+		// la mantiene anche dopo la conferma del server.
+		await attendiRigheConfermate(page);
 		await expect(rigaCard.getByTestId("offerta-da-definire")).toHaveCount(0);
 		await expect(rigaCard).toContainText(offerta.codice);
 	});

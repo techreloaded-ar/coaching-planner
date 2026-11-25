@@ -5,6 +5,7 @@ import {
 import { accediComeCollaboratore } from "./support/auth";
 import { meseRiservato, dataNelMese } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Offerte abilitate e non abilitate nel form riga attività.
@@ -109,6 +110,10 @@ test.describe("Offerte abilitate e non abilitate nel form riga attività", () =>
     const rigaCard = page.getByTestId("activity-row").filter({ hasText: nota });
     await expect(rigaCard).toContainText(clienteConOfferta.offerta.codice);
     await expect(rigaCard).toContainText("3 h");
+    // La riga compare prima della risposta del server: il salvataggio è
+    // consentito se la riga resta dopo la conferma.
+    await attendiRigheConfermate(page);
+    await expect(rigaCard).toContainText("3 h");
   });
 
   test("AC-4: una riga su offerta non abilitata resta modificabile ed eliminabile", async ({
@@ -157,6 +162,10 @@ test.describe("Offerte abilitate e non abilitate nel form riga attività", () =>
       .getByTestId("activity-row")
       .filter({ hasText: rigaEsistente.nota ?? "" });
     await expect(rigaCardAggiornata).toContainText("6 h");
+    // Le «6 h» compaiono subito: la modifica è salvata se restano dopo la
+    // conferma del server.
+    await attendiRigheConfermate(page);
+    await expect(rigaCardAggiornata).toContainText("6 h");
 
     // Elimina: gestisci il confirm nativo
     page.once("dialog", (dialog) => {
@@ -165,6 +174,8 @@ test.describe("Offerte abilitate e non abilitate nel form riga attività", () =>
     await rigaCardAggiornata.getByRole("button", { name: "Elimina" }).click();
 
     await expect(rigaCardAggiornata).toBeHidden();
+    // Un'eliminazione rifiutata farebbe ricomparire la riga.
+    await attendiRigheConfermate(page);
     await expect(
       page.getByText("Nessuna attività registrata per questa giornata."),
     ).toBeVisible();

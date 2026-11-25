@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { VoceRimborsoTrasferta } from "@/generated/prisma/client";
-import { PulsanteAttesa } from "@/components";
+import { AvvisiMutazioni, useMutazioniElenco } from "@/components/mutazioni-elenco";
 import { formattaEuro } from "@/lib/formattazione";
 import { eliminaVoceRimborso } from "./actions";
 
@@ -18,7 +18,18 @@ interface VociRimborsoTabellaProps {
 
 // ── Componente ─────────────────────────────────────────────────
 
-export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabellaProps) {
+function senzaVoce(voci: VoceRimborsoVista[], idEliminata: string): VoceRimborsoVista[] {
+  return voci.filter((voce) => voce.id !== idEliminata);
+}
+
+export default function VociRimborsoTabella({ vociRimborso: vociServer }: VociRimborsoTabellaProps) {
+  const {
+    elenco: vociRimborso,
+    salvataggioInCorso,
+    muta,
+    avvisi,
+    chiudiAvviso,
+  } = useMutazioniElenco<VoceRimborsoVista[], string>(vociServer, senzaVoce);
   const [voceDaEliminare, setVoceDaEliminare] = useState<VoceRimborsoVista | null>(null);
   const [modaleAperta, setModaleAperta] = useState(false);
 
@@ -29,9 +40,27 @@ export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabell
     setModaleAperta(true);
   }, []);
 
+  // La conferma chiude subito il modale e toglie la riga. Se l'eliminazione
+  // riesce, il redirect porta all'elenco con l'esito «eliminata»; se fallisce
+  // la riga ricompare e l'avviso dice perché.
+  function confermaEliminazione(voce: VoceRimborsoVista) {
+    chiudiModale();
+    const datiForm = new FormData();
+    datiForm.set("id", voce.id);
+    muta(voce.id, () => eliminaVoceRimborso(datiForm), {
+      operazione: `L'eliminazione della voce «${voce.etichetta}» non è riuscita`,
+    });
+  }
+
   return (
     <>
-      <section className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <AvvisiMutazioni avvisi={avvisi} onChiudi={chiudiAvviso} className="mb-[14px]" />
+
+      <section
+        aria-label="Voci di rimborso trasferta"
+        aria-busy={salvataggioInCorso}
+        className="rounded-[11px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+      >
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-3 border-b border-zinc-200 px-4 py-[14px] dark:border-zinc-800">
           <span className="inline-flex items-center gap-[9px] rounded-full border border-indigo-200 bg-indigo-50 px-[13px] py-[5px] text-sm font-medium text-indigo-600 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400">
@@ -172,19 +201,14 @@ export default function VociRimborsoTabella({ vociRimborso }: VociRimborsoTabell
             >
               Annulla
             </button>
-            {/* L'action comunica l'esito con `redirect`: il modale resta con il
-                pulsante in attesa fino alla navigazione, che lo smonta. Nessuna
-                chiusura ottimistica al click. */}
             {voceDaEliminare && (
-              <form action={eliminaVoceRimborso}>
-                <input type="hidden" name="id" value={voceDaEliminare.id} />
-                <PulsanteAttesa
-                  etichettaAttesa="Eliminazione…"
-                  className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:brightness-[.92]"
-                >
-                  Elimina voce
-                </PulsanteAttesa>
-              </form>
+              <button
+                type="button"
+                onClick={() => confermaEliminazione(voceDaEliminare)}
+                className="inline-flex items-center gap-[7px] rounded-[10px] border border-transparent bg-red-600 px-[15px] py-[9px] font-[inherit] text-sm font-medium text-white shadow-sm transition hover:brightness-[.92]"
+              >
+                Elimina voce
+              </button>
             )}
           </div>
         </div>

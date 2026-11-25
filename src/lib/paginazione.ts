@@ -114,3 +114,19 @@ export function numeriPagineVisibili(
   }
   return numeri;
 }
+
+/**
+ * Riconosce nel `q` arrivato dall'URL l'eco di una ricerca inviata dal campo.
+ *
+ * `inviate` sono le ricerche inviate e non ancora tornate, in ordine di invio.
+ * Se `ricerca` è una di queste restituisce quelle ancora attese dopo di lei
+ * (le precedenti sono superate); altrimenti `null`: il valore viene da fuori
+ * (Indietro, un link) e il campo va riallineato.
+ */
+export function valoreInviatoDalCampo(
+  inviate: readonly string[],
+  ricerca: string,
+): readonly string[] | null {
+  const indice = inviate.indexOf(ricerca);
+  return indice === -1 ? null : inviate.slice(indice + 1);
+}

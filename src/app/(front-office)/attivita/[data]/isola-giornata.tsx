@@ -552,7 +552,11 @@ export default function IsolaGiornata({
    * l'utente è partito, riportando la vista sul giorno sbagliato.
    */
   const invalidaDopoMutazione = useCallback(
-    async (giorno: string, giorniAggiuntivi?: readonly string[]) => {
+    async (
+      giorno: string,
+      giorniAggiuntivi?: readonly string[],
+      giornataAggiornata?: DatiGiornataAttivita
+    ) => {
       const giorniToccati = [...new Set([giorno, ...(giorniAggiuntivi ?? [])])];
       const mesiToccati = [...new Set(giorniToccati.map((g) => g.slice(0, 7)))];
 
@@ -566,6 +570,13 @@ export default function IsolaGiornata({
       }
 
       cacheGiornate.invalidate(...giorniToccati);
+
+      // La scrittura ha già restituito la giornata aggiornata: entra in cache
+      // e la sottoscrizione aggiorna la vista, senza una seconda richiesta.
+      if (giornataAggiornata?.data === giorno) {
+        cacheGiornate.seed(giornataAggiornata);
+        return;
+      }
 
       try {
         // L'attesa copre la rilettura: la vista viene aggiornata dalla

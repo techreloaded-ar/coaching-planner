@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -84,19 +85,44 @@ export async function aggiornaVoceRimborso(
   redirect("/anagrafiche/voci-rimborso?esito=salvato");
 }
 
+/** Esito di un'eliminazione rifiutata; quella riuscita termina con un redirect. */
+export interface StatoEliminazioneVoceRimborso {
+  errori: Record<string, string>;
+}
+
 /**
- * Server action per eliminare una voce di rimborso trasferta.
- * Chiamata direttamente dal form di conferma nella tabella.
+ * Server action per eliminare una voce di rimborso trasferta, chiamata dalla
+ * conferma nella tabella. Se riesce porta all'elenco con l'esito «eliminato»;
+ * altrimenti restituisce il motivo, così la tabella rimette la riga al suo
+ * posto e lo mostra.
  */
-export async function eliminaVoceRimborso(formData: FormData): Promise<void> {
+export async function eliminaVoceRimborso(
+  formData: FormData,
+): Promise<StatoEliminazioneVoceRimborso> {
   await guardiaGestioneVociRimborso();
 
   const id = formData.get("id") as string;
   if (!id) {
-    redirect("/anagrafiche/voci-rimborso");
+    return { errori: { _form: "Voce di rimborso da eliminare mancante" } };
   }
 
-  await db.voceRimborsoTrasferta.delete({ where: { id } });
+  try {
+    await db.voceRimborsoTrasferta.delete({ where: { id } });
+  } catch (error) {
+    // Voce già eliminata altrove: l'elenco si riallinea e l'utente lo sa.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      revalidatePath("/anagrafiche/voci-rimborso");
+      return {
+        errori: {
+          _form: "La voce non esiste più: potrebbe essere già stata eliminata",
+        },
+      };
+    }
+    throw error;
+  }
 
   revalidatePath("/anagrafiche/voci-rimborso");
   redirect("/anagrafiche/voci-rimborso?esito=eliminato");

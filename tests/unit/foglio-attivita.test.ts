@@ -218,7 +218,7 @@ describe("Server Action sul foglio consultato", () => {
 
     const esito = await creaRiga(formRiga(campiRiga));
 
-    expect(esito).toEqual({ success: true });
+    expect(esito).toMatchObject({ success: true });
     expect(mocks.rigaAttivita.create.mock.calls[0][0].data.collaboratoreId).toBe("collab-mario");
     expect(mocks.risolviProfiloCollaboratoreCorrente).not.toHaveBeenCalled();
   });
@@ -230,7 +230,7 @@ describe("Server Action sul foglio consultato", () => {
     const esito = await creaRiga(formRiga({ ...campiRiga, eventoCalendarioId: "evento-1" }));
 
     // Nessuna transazione con l'evento: la `db` di prova non ha `$transaction`.
-    expect(esito).toEqual({ success: true });
+    expect(esito).toMatchObject({ success: true });
     expect(mocks.rigaAttivita.create).toHaveBeenCalledTimes(1);
   });
 
@@ -256,7 +256,7 @@ describe("Server Action sul foglio consultato", () => {
     mocks.rigaAttivita.createManyAndReturn.mockResolvedValue([{ id: "copia-1" }]);
     const duplicazione = await duplicaRigaSuGiorni("riga-1", ["2026-10-13"], "collab-mario");
 
-    expect(modifica).toEqual({ success: true });
+    expect(modifica).toMatchObject({ success: true });
     expect(mocks.rigaAttivita.update).toHaveBeenCalledWith({
       where: { id: "riga-1" },
       data: { ore: 6 },

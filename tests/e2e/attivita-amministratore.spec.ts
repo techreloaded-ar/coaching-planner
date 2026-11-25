@@ -3,6 +3,7 @@ import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
 import { apriPersona, salvaPersona } from "./support/persone";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 import { apriMenuAccount, pannelloAccount } from "./support/menu-account";
 import { voceNavigazione } from "./support/navigazione";
 
@@ -53,6 +54,7 @@ test.describe("US-030 Attività amministratore", () => {
 		await expect(
 			rigaCreata.getByText(`${offerta.codice} — ${offerta.descrizione}`, { exact: true }),
 		).toBeVisible();
+		await attendiRigheConfermate(page);
 
 		await page.getByRole("link", { name: "Torna al calendario", exact: true }).click();
 		await page.waitForURL(`**/attivita?mese=${mese}`);

@@ -197,6 +197,7 @@ describe("DAL abilitazioni — query", () => {
           id: "off-3",
           codice: "OFF-3",
           descrizione: "Consulenza",
+          clienteId: "cli-3",
           cliente: { ragioneSociale: "Gamma S.r.l." },
         },
       ];
@@ -218,6 +219,7 @@ describe("DAL abilitazioni — query", () => {
           offertaId: "off-3",
           codice: "OFF-3",
           descrizione: "Consulenza",
+          clienteId: "cli-3",
           clienteRagioneSociale: "Gamma S.r.l.",
         },
       ]);

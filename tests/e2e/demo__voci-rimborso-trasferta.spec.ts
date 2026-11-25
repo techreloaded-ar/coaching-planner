@@ -6,6 +6,7 @@ import { selezionaClienteEOffertaTest } from "./demo__inserimento-righe-attivita
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMeseRiservato, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Demo e2e — US-054: Voci di rimborso trasferta a etichetta libera.
@@ -140,6 +141,8 @@ test.describe("US-054 Demo — Voci di rimborso trasferta a etichetta libera", (
       await expect(riga).toContainText(
         euroDettaglioGiornata(IMPORTO_ORIGINALE_ATTESO),
       );
+      // La riga è mostrata subito: prima di lasciare la giornata va confermata dal server.
+      await attendiRigheConfermate(page);
 
       // Passo 5 — il riepilogo mensile del collaboratore somma l'importo
       // fotografato.

@@ -24,7 +24,7 @@ export interface GruppoAmministrazione {
   voci: readonly VoceAmministrazione[];
 }
 
-/** Voci di amministrazione: pagine server con dati sempre freschi, navigazione documentale. */
+/** Voci di amministrazione: pagine server con dati sempre freschi, riletti dal server a ogni apertura. */
 export const GRUPPI_AMMINISTRAZIONE: readonly GruppoAmministrazione[] = [
   {
     titolo: "Anagrafica",

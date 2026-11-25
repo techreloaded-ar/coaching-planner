@@ -12,7 +12,8 @@ import { test, expect } from "./support/fixtures";
  *
  * Scenari:
  * - AC-2 — attesa visibile e submit bloccato durante l'invio di un form
- * - AC-3 — attesa visibile su un'eliminazione con dialog aperto fino all'esito
+ * - AC-3 — eliminazione immediata: la conferma si chiude e la riga sparisce
+ *   subito, la tabella resta in attesa (`aria-busy`) fino all'esito
  * - AC-4 — fine attesa su errore, con valori conservati e messaggio visibile
  * - AC-1 — cursore a manina sui controlli abilitati (front e back office) e
  *   cursore diverso da `pointer` su un controllo disabilitato
@@ -172,7 +173,7 @@ test.describe("US-051 Feedback di attesa sulle azioni", () => {
     ).toBeVisible();
   });
 
-  test("AC-3/AC-1 — l'eliminazione di una voce di rimborso tiene il dialog aperto e il pulsante in attesa", async ({
+  test("AC-3/AC-1 — l'eliminazione di una voce di rimborso chiude subito la conferma e toglie la riga fino all'esito", async ({
     page,
     factory,
   }) => {
@@ -211,21 +212,22 @@ test.describe("US-051 Feedback di attesa sulle azioni", () => {
 
     const gate = await trattieniPostDellaPagina(page, "/anagrafiche/voci-rimborso");
 
-    const confermaEliminazione = dialogConferma.getByRole("button", {
-      name: /^(?:Elimina voce|Eliminazione…)$/,
-    });
-    await confermaEliminazione.click();
+    await dialogConferma
+      .getByRole("button", { name: "Elimina voce", exact: true })
+      .click();
 
-    // AC-3: con la POST trattenuta la conferma è in attesa e il dialog non si
-    // è chiuso in modo ottimistico: resta esposto e visibile.
-    await expect(confermaEliminazione).toBeDisabled();
-    await expect(confermaEliminazione).toHaveAttribute("aria-busy", "true");
-    await expect(dialogConferma.getByText("Eliminazione…")).toBeVisible();
-    await expect(dialogDellaVoce).toBeVisible();
+    // AC-3: con la POST ancora trattenuta la conferma si è già chiusa e la
+    // riga è sparita; la tabella resta in attesa della conferma del server.
+    await expect(dialogConferma).toHaveCount(0);
+    await expect(riga).toHaveCount(0);
+    await expect(
+      page.getByRole("region", { name: "Voci di rimborso trasferta", exact: true }),
+    ).toHaveAttribute("aria-busy", "true");
+    await expect(page.getByText("Voce di rimborso eliminata")).toHaveCount(0);
 
     gate.rilascia();
 
-    // AC-3: solo dopo l'esito il dialog si chiude e la riga sparisce.
+    // AC-3: all'esito arriva il messaggio «eliminata» e la riga resta assente.
     await page.waitForURL("**/anagrafiche/voci-rimborso?esito=eliminato");
     await expect(page.getByText("Voce di rimborso eliminata")).toBeVisible();
     await expect(dialogConferma).toHaveCount(0);

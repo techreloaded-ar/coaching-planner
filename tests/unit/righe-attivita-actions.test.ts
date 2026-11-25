@@ -64,6 +64,16 @@ vi.mock("@/lib/dal", async (importOriginal) => {
   };
 });
 
+// ── Mock della lettura della giornata restituita alla riuscita ────
+
+const mockRigheDelGiorno = vi.hoisted(() =>
+  vi.fn(async (data: string, collaboratoreId: string) => ({ data, collaboratoreId, righe: [] })),
+);
+
+vi.mock("@/lib/attivita", () => ({
+  righeDelGiornoPerCollaboratoreAutorizzato: mockRigheDelGiorno,
+}));
+
 // ── Mock di revalidatePath ──────────────────────────────────────
 
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
@@ -165,6 +175,8 @@ describe("creaRiga", () => {
     const result = await creaRiga(fd);
 
     expect(result.success).toBe(true);
+    // La giornata aggiornata torna nella stessa risposta: niente seconda rilettura.
+    expect(result.giornata).toEqual({ data: "2026-07-01", collaboratoreId: "collab-giulia", righe: [] });
     expect(mockRigaAttivita.create).toHaveBeenCalledTimes(1);
 
     const chiamata = mockRigaAttivita.create.mock.calls[0][0];
@@ -979,6 +991,7 @@ describe("eliminaRiga", () => {
     const result = await eliminaRiga("riga-1");
 
     expect(result.success).toBe(true);
+    expect(result.giornata?.data).toBe("2026-07-01");
     expect(mockRigaAttivita.delete).toHaveBeenCalledWith({
       where: { id: "riga-1" },
     });

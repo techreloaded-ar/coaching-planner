@@ -445,10 +445,9 @@ export default function ElencoAttivita({ token, righe, contestoFatturato, filtri
                                   aria-describedby={motivoNonCopiabile(riga) ? `motivo-copia-${riga.id}` : undefined}
                                   title="Copia su altri giorni"
                                   onClick={() => copia(riga)}
-                                  className={`${CLASSE_PULSANTE} h-8 px-2.5 text-rose-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-300`}
+                                  className={`${CLASSE_PULSANTE} h-8 w-8 px-0 text-rose-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-300`}
                                 >
-                                  <IconaCopia className="h-[14px] w-[14px]" />
-                                  Copia
+                                  <IconaCopia className="h-[15px] w-[15px]" />
                                 </button>
                                 <Link
                                   href={urlGiornata(riga.data, riga.id)}

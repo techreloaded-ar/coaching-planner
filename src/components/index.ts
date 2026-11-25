@@ -36,3 +36,17 @@ export {
   CALCOLATO_DA_TARIFFA,
   CALCOLATA_DA_CORPO,
 } from "./importo-offerta";
+export {
+  IndicatoreSalvataggio,
+  AvvisoMutazioneNonRiuscita,
+  CLASSE_ELEMENTO_IN_ATTESA,
+  MESSAGGIO_ERRORE_DI_RETE,
+} from "./indicatore-salvataggio";
+export {
+  ScheletroPagina,
+  BloccoScheletro,
+  TitoloScheletro,
+  BarraStrumentiScheletro,
+  TabellaScheletro,
+  GrigliaCalendarioScheletro,
+} from "./scheletro-pagina";

@@ -22,6 +22,8 @@ export interface OffertaAbilitabile {
   offertaId: string;
   codice: string;
   descrizione: string;
+  /** Raggruppa l'offerta sotto il suo cliente quando viene abilitata. */
+  clienteId: string;
   clienteRagioneSociale: string;
 }
 
@@ -120,6 +122,7 @@ export async function elencaOfferteAbilitabili(
     offertaId: offerta.id,
     codice: offerta.codice,
     descrizione: offerta.descrizione,
+    clienteId: offerta.clienteId,
     clienteRagioneSociale: offerta.cliente.ragioneSociale,
   }));
 }

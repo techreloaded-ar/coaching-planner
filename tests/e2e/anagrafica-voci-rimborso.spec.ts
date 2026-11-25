@@ -4,6 +4,10 @@ import type { Locator, Page } from "@playwright/test";
 
 import { accediComeAdmin } from "./support/auth";
 import { test, expect } from "./support/fixtures";
+import {
+	avvisoMutazioneNonRiuscita,
+	faiFallireAzioniServer,
+} from "./support/mutazioni-ottimistiche";
 
 /**
  * Test e2e — US-054: Configurazione delle voci di rimborso trasferta
@@ -13,6 +17,7 @@ import { test, expect } from "./support/fixtures";
  * - Creazione con etichetta univoca e verifica in elenco
  * - Modifica dell'importo persistita dopo reload
  * - Eliminazione con conferma che rimuove la voce dall'elenco
+ * - Eliminazione non riuscita: la voce ricompare con un avviso
  *
  * VoceRimborsoTrasferta non ha vincoli di unicità: l'isolamento fra worker è
  * garantito da un'etichetta univoca per test, senza registri di risorse riservate.
@@ -145,5 +150,48 @@ test.describe("Anagrafica voci di rimborso trasferta", () => {
 		await expect(
 			tabella.locator("tbody tr").filter({ hasText: etichetta }),
 		).toHaveCount(0);
+	});
+
+	test("eliminazione non riuscita: la voce ricompare con un messaggio che dice cosa non è riuscito", async ({
+		page,
+		factory,
+	}) => {
+		const etichetta = etichettaUnivoca("Eliminazione fallita");
+		await factory.createVoceRimborsoTrasferta({ etichetta, importo: "12.00" });
+
+		await page.goto("/anagrafiche/voci-rimborso");
+
+		const tabella = tabellaVociRimborso(page);
+		const riga = tabella.locator("tbody tr").filter({ hasText: etichetta });
+		await expect(riga).toHaveCount(1);
+
+		// Il primo clic dopo la navigazione può cadere prima dell'idratazione:
+		// aprire la conferma è idempotente, quindi si ritenta finché è visibile.
+		const dialogDellaVoce = page.getByRole("dialog", {
+			name: `Eliminare la voce «${etichetta}»?`,
+		});
+		await expect(async () => {
+			await riga.getByRole("button", { name: "Elimina" }).click();
+			await expect(dialogDellaVoce).toBeVisible({ timeout: 1_000 });
+		}).toPass({ timeout: 15_000 });
+
+		// Server irraggiungibile: la conferma si chiude e la riga sparisce, poi
+		// ricompare con l'avviso; nessun esito «eliminata».
+		const fallite = await faiFallireAzioniServer(page, "/anagrafiche/voci-rimborso");
+		await dialogDellaVoce.getByRole("button", { name: "Elimina voce", exact: true }).click();
+		await expect(page.getByRole("dialog")).toHaveCount(0);
+
+		await expect(avvisoMutazioneNonRiuscita(page)).toContainText(
+			`L'eliminazione della voce «${etichetta}» non è riuscita`,
+		);
+		await expect(riga).toHaveCount(1);
+		await expect(page.getByText("Voce di rimborso eliminata")).toHaveCount(0);
+		await expect(page).toHaveURL(/\/anagrafiche\/voci-rimborso$/);
+		expect(fallite.conteggio()).toBe(1);
+		await fallite.smetti();
+
+		// La voce non è stata eliminata.
+		await page.reload();
+		await expect(riga).toHaveCount(1);
 	});
 });

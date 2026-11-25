@@ -5,6 +5,7 @@ import {
 import { accediComeCollaboratore } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Il collaboratore vede l'avanzamento in giornate dell'offerta su cui carica
@@ -69,9 +70,14 @@ test.describe("Avanzamento in giornate dell'offerta per il collaboratore", () =>
 		// Nessuna conferma: la riga si salva come su qualunque altra offerta.
 		await page.locator("#ore").fill("4");
 		await page.getByRole("button", { name: "Aggiungi riga", exact: true }).click();
-		await expect(
-			page.getByTestId("activity-row").filter({ hasText: offertaOltreBudget.codice }),
-		).toBeVisible();
+		const rigaOltreBudget = page
+			.getByTestId("activity-row")
+			.filter({ hasText: offertaOltreBudget.codice });
+		await expect(rigaOltreBudget).toBeVisible();
+		// La riga a schermo è provvisoria: il salvataggio è riuscito solo se,
+		// a scrittura confermata, la riga è ancora lì.
+		await attendiRigheConfermate(page);
+		await expect(rigaOltreBudget).toBeVisible();
 	});
 
 	test("il riepilogo del mese mostra su ogni riga le giornate erogate dell'offerta", async ({

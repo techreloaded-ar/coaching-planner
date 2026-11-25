@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { accediComeCollaboratore } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Elenco attività: vista tabellare del mese alternativa al calendario,
@@ -73,6 +74,7 @@ test.describe("Elenco attività del mese", () => {
     await page.locator("#ore").fill("2,5");
     await page.getByRole("button", { name: "Salva modifiche" }).click();
     await expect(page.getByTestId("activity-row").filter({ hasText: marcatore })).toContainText("2,5 h");
+    await attendiRigheConfermate(page);
 
     await page.getByRole("link", { name: "Torna all'elenco" }).click();
     await page.waitForURL(/vista=elenco/);

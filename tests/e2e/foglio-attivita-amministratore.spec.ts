@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { accediComeAdmin, accediComeCollaboratore } from "./support/auth";
 import { dataNelMese, meseRiservato } from "./support/date";
 import { test, expect } from "./support/fixtures";
+import { attendiRigheConfermate } from "./support/giornata";
 
 /**
  * Foglio attività dei collaboratori per gli amministratori.
@@ -87,6 +88,8 @@ test.describe("Foglio attività dei collaboratori per gli amministratori", () =>
 		page.once("dialog", (dialog) => dialog.accept());
 		await rigaConNota(page, notaEsistente).getByRole("button", { name: "Elimina" }).click();
 		await expect(rigaConNota(page, notaEsistente)).toHaveCount(0);
+		// Aggiunta ed eliminazione confermate prima di lasciare la giornata.
+		await attendiRigheConfermate(page);
 
 		// Il riepilogo del mese è quello di Mario.
 		await page.goto(`/attivita/riepilogo?mese=${mese}&collaboratore=${mario.collaboratore.id}`);
